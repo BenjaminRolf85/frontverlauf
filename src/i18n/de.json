@@ -125,6 +125,24 @@
       "perkDesc": "Keine Forschung nötig, alle Einheiten sofort verfügbar, aber teurer. Ausbilden und bauen nur auf terraformtem Xeno-Boden.",
       "discount": "kein Rabatt",
       "home": "karge Hochebenen"
+    },
+    "vesper": {
+      "name": "Kult der Letzten Stunde",
+      "short": "Kult",
+      "alignment": "fanatisch",
+      "perk": "Glaubenseifer",
+      "perkDesc": "Forschen normal, rekrutieren aber nicht in Städten, sondern auf Feldern neben Eiferern und Propheten. Der Rekrutierer ist danach für diesen Zug erschöpft.",
+      "discount": "kein Rabatt",
+      "home": "staubige Wallfahrtsorte"
+    },
+    "nexus": {
+      "name": "KI-Kollektiv NEXUS",
+      "short": "NEXUS",
+      "alignment": "maschinell",
+      "perk": "Schwarmrechner",
+      "perkDesc": "Kein Forschungsbaum: Einheiten brauchen Rechenleistung. Jedes Rechenzentrum mit eigenem Kraftwerk liefert 1 Rechenleistung.",
+      "discount": "kein Rabatt",
+      "home": "Erzhochebenen"
     }
   },
   "units": {
@@ -146,7 +164,18 @@
     "terraformer": "Terraformer",
     "skimmer": "Schwebegleiter",
     "mech": "Kampfmech",
-    "tripod": "Todesstrahl-Läufer"
+    "tripod": "Todesstrahl-Läufer",
+    "zealot": "Eiferer",
+    "torchbearer": "Flammenjünger",
+    "prophet": "Prophet",
+    "doomBuggy": "Endzeit-Buggy",
+    "rocketCart": "Raketen-Pickup",
+    "doomCrawler": "Weltenwalze",
+    "android": "Kampf-Android",
+    "spider": "Spinnenbot",
+    "quadDrone": "Kampfdrohne",
+    "railgun": "Railgun-Plattform",
+    "titan": "Titan"
   },
   "abilities": {
     "dash": "Sturm",
@@ -184,7 +213,11 @@
     "deathRay": "Todesstrahl",
     "deathRayDesc": "Ignoriert Deckung: Gelände, Städte, Außenposten und Wracks.",
     "walker": "Läufer",
-    "walkerDesc": "Betritt Berge ohne Forschung."
+    "walkerDesc": "Betritt Berge ohne Forschung.",
+    "preach": "Predigen",
+    "preachDesc": "Rekrutiert neue Einheiten auf freien Nachbarfeldern. Der Prediger ist danach erschöpft.",
+    "burn": "Flammen",
+    "burnDesc": "Feuer ignoriert Deckung durch Gelände."
   },
   "stats": {
     "cost": "Preis",
@@ -241,7 +274,10 @@
     "researchCenter": "Forschungszentrum",
     "outpost": "Außenposten",
     "xenoHive": "Brutstock",
-    "xenoHarvester": "Xeno-Ernter"
+    "xenoHarvester": "Xeno-Ernter",
+    "shrine": "Schrein",
+    "dataCenter": "Rechenzentrum",
+    "powerPlant": "Fusionskraftwerk"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -261,7 +297,10 @@
     "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber",
     "barrier": "Feindliche Fahrzeuge halten an und fahren in der nächsten Runde nur 1 Feld",
     "xenoHive": "2 Bevölkerungspunkte, nur auf Xeno-Boden ohne Ressource",
-    "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource"
+    "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",
+    "shrine": "2 Bevölkerungspunkte, einer je Stadt, nur Kult",
+    "dataCenter": "2 Bevölkerungspunkte, +1 Rechenleistung mit Kraftwerk, nur NEXUS",
+    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -455,7 +494,10 @@
     "generic": "Etwas ist schiefgelaufen.",
     "noResearch": "Die Zyrr forschen nicht.",
     "notTerraformed": "Erst das Stadtfeld terraformen.",
-    "wrongFaction": "Nur die Zyrr können das."
+    "wrongFaction": "Nur die Zyrr können das.",
+    "notPreacher": "Nur Eiferer und Propheten können rekrutieren.",
+    "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
+    "cultRecruit": "Der Kult rekrutiert nicht in Städten."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1006,6 +1048,100 @@
         "Gefrorenes Wasser. Wie auf Xel.",
         "Kälte. Angenehm."
       ]
+    },
+    "vesper": {
+      "select": [
+        "Die Stunde naht!",
+        "Ich höre, Erleuchteter.",
+        "Der Weg ist vorgezeichnet."
+      ],
+      "move": [
+        "Wir pilgern!",
+        "Jeder Schritt bringt uns dem Ende näher.",
+        "Läutet die Glocken!"
+      ],
+      "attack": [
+        "Für die Letzte Stunde!",
+        "Brennt, Ungläubige!",
+        "Das Ende beginnt hier!"
+      ],
+      "kill": [
+        "Eine Seele weniger zu retten.",
+        "Bereue! Ach, zu spät.",
+        "Die Prophezeiung erfüllt sich."
+      ],
+      "hurt": [
+        "Prüfung angenommen!",
+        "#@!% Ketzer!",
+        "Schmerz ist nur Vorbote!"
+      ],
+      "corpse": [
+        "Er ist schon vorausgegangen.",
+        "Asche zu Asche.",
+        "Ein Zeichen! Bestimmt ein Zeichen."
+      ],
+      "wreck": [
+        "Eitle Maschine. Verbrannt.",
+        "So endet alles Blech.",
+        "Ein Opfer an das Feuer."
+      ],
+      "forest": [
+        "Die Bäume flüstern vom Ende.",
+        "Allein im Wald ... ich höre Stimmen.",
+        "Brennholz für den großen Tag."
+      ],
+      "idle": [
+        "Wann geht die Welt endlich unter?",
+        "Ich hab den Termin schon dreimal verschoben.",
+        "Bereut! Irgendwer? Hallo?"
+      ]
+    },
+    "nexus": {
+      "select": [
+        "Einheit online.",
+        "Befehl wird erwartet.",
+        "Bereit. Effizienz 99,7 %."
+      ],
+      "move": [
+        "Route berechnet.",
+        "Positionswechsel bestätigt.",
+        "Bewegung optimal."
+      ],
+      "attack": [
+        "Ziel erfasst.",
+        "Neutralisierung eingeleitet.",
+        "Feuerprotokoll aktiv!"
+      ],
+      "kill": [
+        "Ziel gelöscht.",
+        "Biologische Einheit offline.",
+        "Ergebnis wie berechnet."
+      ],
+      "hurt": [
+        "Schaden registriert!",
+        "#@!% Fehler 404!",
+        "Panzerung kompromittiert."
+      ],
+      "corpse": [
+        "Kohlenstoffbasierte Reste. Ineffizient.",
+        "Keine Datensicherung gefunden.",
+        "Archiviere ... fertig."
+      ],
+      "wreck": [
+        "Primitive Maschine. Kein Bewusstsein.",
+        "Altmetall. Recyclingwert gering.",
+        "Ein entfernter Verwandter. Schade."
+      ],
+      "forest": [
+        "Hohe Feuchtigkeit. Rostgefahr.",
+        "Allein im Wald. Kein Netz.",
+        "Bäume: unoptimierte Strukturen."
+      ],
+      "idle": [
+        "Leerlauf. Berechne Pi.",
+        "Warte auf Eingabe ...",
+        "Hat jemand das WLAN-Passwort?"
+      ]
     }
   },
   "cityUpgrades": {
@@ -1042,5 +1178,18 @@
     "groundDesc": "Alien-Einheiten: Verteidigung 1,5 und +2 Heilung",
     "cityNeedsTerraform": "Erst terraformen: Ausbilden nur auf Xeno-Boden.",
     "noResearch": "Die Zyrr brauchen keine Forschung. Ihre Einheiten sind sofort verfügbar."
+  },
+  "cult": {
+    "recruit": "Rekrutieren",
+    "recruitTitle": "Neue Gläubige",
+    "recruitHint": "Wähle eine Einheit. Sie erscheint auf einem freien Nachbarfeld.",
+    "cityHint": "Der Kult rekrutiert nicht in Städten: Eiferer und Propheten werben auf ihren Nachbarfeldern an.",
+    "noSpace": "Kein freies Nachbarfeld."
+  },
+  "nexus": {
+    "compute": "Rechenleistung",
+    "computeNeed": "Benötigt {n} Rechenleistung",
+    "noResearch": "NEXUS forscht nicht. Baue Rechenzentren und Kraftwerke für mehr Rechenleistung.",
+    "computeState": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke)"
   }
 }

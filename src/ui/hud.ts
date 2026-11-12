@@ -3,9 +3,10 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  ALIEN_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, LAND_UNITS, SHIP_UPGRADES, UNITS, type BuildingId,
+  CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
+  neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
@@ -24,8 +25,10 @@ const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
   spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
   grey: 'lightning', terraformer: 'build', skimmer: 'move', mech: 'shield', tripod: 'range',
+  zealot: 'boot', torchbearer: 'lightning', prophet: 'heal', doomBuggy: 'move', rocketCart: 'range', doomCrawler: 'shield',
+  android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
 };
-const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star' };
+const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown' };
 
 export function unitName(u: Unit): string {
   return u.carried ? `${t(`units.${u.type}`)} (${t('stats.carrying', { unit: t(`units.${u.carried}`) })})` : t(`units.${u.type}`);
@@ -50,6 +53,8 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** offenes Rekrutier-Menue fuer diese Einheit / open recruit menu for this unit */
+  private recruitFor: number | null = null;
 
   constructor(root: HTMLElement, private game: Controller, private cb: HudCallbacks) {
     this.top = document.createElement('header');
@@ -94,7 +99,8 @@ export class Hud {
       case 'endTurn': void this.game.endTurn(); break;
       case 'research': {
         const st = this.game.state;
-        if (st && isAlienFaction(st, this.game.viewer >= 0 ? this.game.viewer : st.current)) { this.game.ui.toast(t('xeno.noResearch'), 'research'); break; }
+        const rf = st ? (this.game.viewer >= 0 ? this.game.viewer : st.current) : -1;
+        if (st && !canResearch(st, rf)) { this.game.ui.toast(t(isAlienFaction(st, rf) ? 'xeno.noResearch' : 'nexus.noResearch'), 'research'); break; }
         this.cb.openResearch(); break;
       }
       case 'diplomacy': this.cb.openDiplomacy(); break;
@@ -219,6 +225,12 @@ export class Hud {
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
             ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>`;
+        // Kult und NEXUS: Hinweise / cult and NEXUS: hints
+        if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
+        if (isRobotFaction(s, city.owner)) {
+          const cs = computeStats(s, city.owner);
+          body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t('nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants }))}</p>`;
+        }
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
       }
     } else {
@@ -270,6 +282,25 @@ export class Hud {
     if (has(u, 'heal')) {
       const ok = canActStill(u);
       this.actions.push({ id: 'medicHeal', icon: 'heal', label: t('actions.medicHeal'), enabled: ok, reason: ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'medicHeal', unit: u.id }) });
+    }
+    if (has(u, 'preach') && isCultFaction(s, u.owner)) {
+      // Rekrutieren: Menue mit allen verfuegbaren Kult-Einheiten / recruit: menu of all available cult units
+      if (this.recruitFor === u.id) {
+        this.actions.push({ id: 'recruit-cancel', icon: 'close', label: t('actions.cancel'), enabled: true, run: () => { this.recruitFor = null; this.render(); } });
+        for (const type of CULT_UNITS) {
+          const st = UNITS[type];
+          if (st.tech && !s.factions[u.owner].techs.includes(st.tech)) continue;
+          const spot = recruitSpot(s, u, type);
+          const chk = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'noSpace';
+          this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), cost: unitCost(s, u.owner, type)!, enabled: !!spot,
+            reason: spot ? t('cult.recruitHint') : chk === 'noSpace' ? t('cult.noSpace') : t(`errors.${chk}`),
+            run: () => { this.recruitFor = null; if (spot) void g.exec({ type: 'recruit', unit: u.id, unitType: type, x: spot.x, y: spot.y }); } });
+        }
+      } else {
+        const can = !u.fresh && !u.exhausted && !u.attacked;
+        this.actions.push({ id: 'recruit', icon: 'people', label: t('cult.recruit'), variant: 'primary', enabled: can,
+          reason: can ? t('abilities.preachDesc') : t('errors.unitExhausted'), run: () => { this.recruitFor = u.id; this.render(); } });
+      }
     }
     if (has(u, 'terraform')) {
       const targets = terraformTargets(s, u);
@@ -329,14 +360,15 @@ export class Hud {
       this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
         reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
     }
-    for (const type of isAlienFaction(s, c.owner!) ? ALIEN_UNITS : LAND_UNITS) {
+    if (isCultFaction(s, c.owner!)) return;
+    for (const type of rosterUnits(s, c.owner!)) {
       const st = UNITS[type];
       if (st.cost === null) continue;
       if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
       const chk = trainCheck(s, c, type);
       this.actions.push({
         id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), cost: unitCost(s, c.owner!, type)!,
-        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : t(`errors.${chk}`),
+        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : t(`errors.${chk}`),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       });
     }

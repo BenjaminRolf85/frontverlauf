@@ -100,6 +100,11 @@ export const primitives = {
     velkarGreen: '#8fd16a',
     zyrrViolet: '#7b3fc4',
     zyrrAcid: '#9cff3a',
+    vesperBlood: '#8a1c1c',
+    vesperEmber: '#ff7a1a',
+    nexusSteel: '#1f8fb3',
+    nexusIce: '#dff6ff',
+    nexusGlow: '#38f0ff',
     xeno600: '#5a2d7a',
     xeno400: '#8a4fb8',
     xenoGlow: '#d18cff',
@@ -225,6 +230,8 @@ export const factionTokens: Record<FactionId, FactionTokens> = {
   meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900, marker: c.orange500 },
   velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900, marker: c.velkarGreen },
   zyrr: { primary: c.zyrrViolet, secondary: c.zyrrAcid, terrain: '#9a7fb6', ink: c.white, marker: c.zyrrAcid },
+  vesper: { primary: c.vesperBlood, secondary: c.vesperEmber, terrain: '#9c7468', ink: c.white, marker: c.vesperEmber },
+  nexus: { primary: c.nexusSteel, secondary: c.nexusIce, terrain: '#7f98a3', ink: c.white, marker: c.nexusGlow },
 };
 
 // ---------- Ebene 3: Komponenten-Tokens / layer 3: component tokens ----------

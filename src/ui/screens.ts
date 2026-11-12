@@ -329,7 +329,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   const cost = researchCost(s, f, tech);
   const canAct = g.isHumanTurn && f === s.current;
   const parent = TECHS[tech].parent;
-  const un = techUnlocks(tech);
+  const un = techUnlocks(tech, fa.id);
   const unitRows = un.units.map((u) => {
     const us = UNITS[u];
     return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>

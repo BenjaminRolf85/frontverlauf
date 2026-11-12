@@ -84,6 +84,11 @@
   --p-color-velkar-green: #8fd16a;
   --p-color-zyrr-violet: #7b3fc4;
   --p-color-zyrr-acid: #9cff3a;
+  --p-color-vesper-blood: #8a1c1c;
+  --p-color-vesper-ember: #ff7a1a;
+  --p-color-nexus-steel: #1f8fb3;
+  --p-color-nexus-ice: #dff6ff;
+  --p-color-nexus-glow: #38f0ff;
   --p-color-xeno600: #5a2d7a;
   --p-color-xeno400: #8a4fb8;
   --p-color-xeno-glow: #d18cff;
@@ -252,6 +257,16 @@
   --faction-zyrr-terrain: #9a7fb6;
   --faction-zyrr-ink: #ffffff;
   --faction-zyrr-marker: #9cff3a;
+  --faction-vesper-primary: #8a1c1c;
+  --faction-vesper-secondary: #ff7a1a;
+  --faction-vesper-terrain: #9c7468;
+  --faction-vesper-ink: #ffffff;
+  --faction-vesper-marker: #ff7a1a;
+  --faction-nexus-primary: #1f8fb3;
+  --faction-nexus-secondary: #dff6ff;
+  --faction-nexus-terrain: #7f98a3;
+  --faction-nexus-ink: #ffffff;
+  --faction-nexus-marker: #38f0ff;
   --c-button-bg: #ffd23f;
   --c-button-bg-hover: #f5b700;
   --c-button-bg-secondary: #efe6c6;

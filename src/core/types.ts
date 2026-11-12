@@ -216,6 +216,7 @@ export type Command =
   | { type: 'barrier'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'terraform'; x: number; y: number; unit?: number }
+  | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
@@ -227,7 +228,8 @@ export type ErrorCode =
   | 'peace' | 'cannotAttack' | 'alreadyMoved' | 'alreadyAttacked' | 'notEnoughStars' | 'techMissing'
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
-  | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction';
+  | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit';
 
 export interface CommandResult {
   ok: boolean;

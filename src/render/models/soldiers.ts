@@ -58,6 +58,8 @@ export interface SoldierOpts {
   coat?: boolean;
   hat?: 'fedora';
   seed?: number;
+  /** Kutte bis zu den Knoecheln mit Schaerpe (Kult) / ankle-length robe with sash (cult) */
+  robe?: boolean;
   /** Beine weglassen (Besatzung in Luken) / omit legs (crew in hatches) */
   noLegs?: boolean;
 }
@@ -147,6 +149,14 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       b.box(0.018, 0.05, 0.034, mat.dark, [0.084, -0.008, 0.006]);
       b.box(0.012, 0.04, 0.012, mat.wood, [-0.082, -0.01, -0.02]);
     }
+    if (o.robe) {
+      // Kutte bis zu den Knoecheln, zerfranster Saum / ankle-length robe, ragged hem
+      b.add(d >= 1 ? geo.rtaper(0.21, 0.16, 0.158, 0.106, 0.13, 0.012) : geo.taper(0.21, 0.16, 0.158, 0.106, 0.13), L.jacket, { p: [0, -0.06, 0] });
+      if (d >= 1) for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        b.box(0.03, 0.02, 0.012, shade(L.jacket, 0.8), [Math.sin(a) * 0.095, -0.123, Math.cos(a) * 0.072], [0, a, 0]);
+      }
+    }
     if (o.coat) {
       // Mantelschoss bis zum Knie / coat skirt to the knee
       b.add(d >= 1 ? geo.rtaper(0.2, 0.135, 0.158, 0.104, 0.1, 0.01) : geo.taper(0.2, 0.135, 0.158, 0.104, 0.1), L.primary, { p: [0, -0.04, 0] });
@@ -175,6 +185,12 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
           // Brustplakette mit Emblem / chest badge with emblem
           b.box(0.02, 0.02, 0.004, L.secondary, [-0.045, 0.098, 0.051]);
         }
+      }
+      if (o.robe) {
+        // rote Schaerpe / red sash
+        b.box(0.03, 0.16, 0.012, L.primary, [0, 0.055, 0.053], [0, 0, 0.7]);
+        b.box(0.03, 0.16, 0.012, L.primary, [0, 0.055, -0.053], [0, 0, -0.7]);
+        b.box(0.028, 0.08, 0.008, L.primary, [0.05, -0.03, 0.056], [0, 0, 0.1]);
       }
       // Fraktionszubehoer / faction extras
       if (f === 'meridon' && !o.coat) {

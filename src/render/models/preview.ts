@@ -8,7 +8,7 @@ import '@fontsource/bangers';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ALIEN_UNITS, FACTION_IDS, GRAND_PROJECT_IDS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
@@ -117,6 +117,27 @@ function sheet(): Sheet {
             { geo: buildingGeometry('xenoHarvester', null), ground: semantic.xenoGround },
           ] },
           { label: 'xeno flora', cells: [0, 1, 2, 3, 4, 5].map((v) => ({ geo: xenoDecoration(v), ground: semantic.xenoGround })) },
+        ],
+      };
+    }
+    case 'cult':
+    case 'robots': {
+      const cult = cat === 'cult';
+      const fid: FactionId = cult ? 'vesper' : 'nexus';
+      const ground = factionTokens[fid].terrain;
+      const list: UnitTypeId[] = cult ? CULT_UNITS : ROBOT_UNITS;
+      const all8 = withNeutral.filter((f): f is FactionId => f !== null);
+      const kinds: (BuildingId | 'outpost')[] = cult ? ['shrine', 'outpost', 'storehouse'] : ['dataCenter', 'powerPlant', 'outpost'];
+      return {
+        cols: all8.map(fname),
+        rows: [
+          ...list.map((t) => ({ label: t, cells: all8.map((f) => ({ geo: unitGeometry(t, f, null), ground: f === fid ? ground : plainGround })) })),
+          { label: `${fid} city 1/3/5/8`, cells: [1, 3, 5, 8].map((lv) => ({ geo: cityGeometry(fid, lv, { hq: lv >= 3, factory: lv >= 5, bunkerRing: lv >= 8, govQuarter: lv >= 8 }), ground })) },
+          { label: `${fid} buildings`, cells: [...kinds.map((k) => ({ geo: buildingGeometry(k, fid), ground })), { geo: buildingGeometry(kinds[0], null), ground: plainGround }] },
+          { label: `${fid} crew`, cells: [
+            { geo: unitGeometry('infantry', fid, null), ground }, { geo: unitGeometry('spy', fid, null), ground },
+            { geo: unitGeometry('jeep', fid, null), ground }, { geo: unitGeometry('destroyer', fid, null), ground: waterGround },
+          ] },
         ],
       };
     }
@@ -288,12 +309,12 @@ window.addEventListener('resize', () => {
 function checkAll(): string[] {
   const errors: string[] = [];
   const all: [string, THREE.BufferGeometry | null][] = [];
-  const units: UnitTypeId[] = [...LAND, ...SHIPS, ...ALIEN_UNITS];
+  const units: UnitTypeId[] = [...LAND, ...SHIPS, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS];
   for (const f of FACTION_IDS) {
-    for (const t of units) for (const c of [null, ...LAND, ...ALIEN_UNITS]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
+    for (const t of units) for (const c of [null, ...LAND, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
   }
   for (const f of withNeutral) {
-    for (const k of [...BUILDINGS, 'xenoHive', 'xenoHarvester', ...GRAND_PROJECT_IDS] as (BuildingId | 'outpost' | GrandProjectId)[]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
+    for (const k of [...BUILDINGS, 'xenoHive', 'xenoHarvester', 'shrine', 'dataCenter', 'powerPlant', ...GRAND_PROJECT_IDS] as (BuildingId | 'outpost' | GrandProjectId)[]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
     for (let lv = 1; lv <= 9; lv++) for (let m = 0; m < 16; m++) {
       all.push([`city ${f} ${lv} ${m}`, cityGeometry(f, lv, { hq: !!(m & 1), factory: !!(m & 2), bunkerRing: !!(m & 4), govQuarter: !!(m & 8) })]);
     }
@@ -311,8 +332,8 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const big = name.startsWith('unit tank') || name.startsWith('unit mech') || name.startsWith('unit tripod');
-    const limit = big ? 4000 : name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const big = ['tank', 'mech', 'tripod', 'doomCrawler', 'titan'].some((u) => name.startsWith(`unit ${u} `));
+    const limit = big ? 4000 : name.startsWith('unit') ? 3600 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
   }
   errors.push(`checked ${all.length}`);

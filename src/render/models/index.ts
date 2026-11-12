@@ -21,6 +21,8 @@ import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
 import { artillery, heli, jeep, tank } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
+import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
+import { android, quadDrone, railgun, spider, titan } from './robots';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
@@ -45,6 +47,17 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'skimmer': return skimmer(faction).build();
       case 'mech': return mech(faction).build();
       case 'tripod': return tripod(faction).build();
+      case 'zealot': return zealot(faction).build();
+      case 'torchbearer': return torchbearer(faction).build();
+      case 'prophet': return prophet(faction).build();
+      case 'doomBuggy': return doomBuggy(faction).build();
+      case 'rocketCart': return rocketCart(faction).build();
+      case 'doomCrawler': return doomCrawler(faction).build();
+      case 'android': return android(faction).build();
+      case 'spider': return spider(faction).build();
+      case 'quadDrone': return quadDrone(faction).build();
+      case 'railgun': return railgun(faction).build();
+      case 'titan': return titan(faction).build();
     }
   });
 }
@@ -68,6 +81,17 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'skimmer': return skimmer(faction, true).build();
       case 'mech': return mech(faction, true).build();
       case 'tripod': return tripod(faction, true).build();
+      case 'zealot': return zealot(faction, true).build();
+      case 'torchbearer': return torchbearer(faction, true).build();
+      case 'prophet': return prophet(faction, true).build();
+      case 'doomBuggy': return doomBuggy(faction, true).build();
+      case 'rocketCart': return rocketCart(faction, true).build();
+      case 'doomCrawler': return doomCrawler(faction, true).build();
+      case 'android': return android(faction, true).build();
+      case 'spider': return spider(faction, true).build();
+      case 'quadDrone': return quadDrone(faction, true).build();
+      case 'railgun': return railgun(faction, true).build();
+      case 'titan': return titan(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

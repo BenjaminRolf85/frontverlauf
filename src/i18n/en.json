@@ -125,6 +125,24 @@
       "perkDesc": "No research needed, all units available right away, but more expensive. Training and building only on terraformed xeno ground.",
       "discount": "no discount",
       "home": "barren highlands"
+    },
+    "vesper": {
+      "name": "Cult of the Final Hour",
+      "short": "Cult",
+      "alignment": "fanatical",
+      "perk": "Zeal",
+      "perkDesc": "Research normally, but do not recruit in cities: they recruit on tiles next to zealots and prophets. The recruiter is exhausted for this turn.",
+      "discount": "no discount",
+      "home": "dusty pilgrimage sites"
+    },
+    "nexus": {
+      "name": "NEXUS AI Collective",
+      "short": "NEXUS",
+      "alignment": "machine",
+      "perk": "Hive computing",
+      "perkDesc": "No research tree: units need compute. Each data center backed by its own power plant gives 1 compute.",
+      "discount": "no discount",
+      "home": "ore highlands"
     }
   },
   "units": {
@@ -146,7 +164,18 @@
     "terraformer": "Terraformer",
     "skimmer": "Hover skimmer",
     "mech": "Battle mech",
-    "tripod": "Death-ray walker"
+    "tripod": "Death-ray walker",
+    "zealot": "Zealot",
+    "torchbearer": "Torchbearer",
+    "prophet": "Prophet",
+    "doomBuggy": "Doom buggy",
+    "rocketCart": "Rocket pickup",
+    "doomCrawler": "Doom crawler",
+    "android": "Combat android",
+    "spider": "Spider bot",
+    "quadDrone": "Combat drone",
+    "railgun": "Railgun platform",
+    "titan": "Titan"
   },
   "abilities": {
     "dash": "Assault",
@@ -184,7 +213,11 @@
     "deathRay": "Death ray",
     "deathRayDesc": "Ignores cover: terrain, cities, outposts and wrecks.",
     "walker": "Walker",
-    "walkerDesc": "Enters mountains without research."
+    "walkerDesc": "Enters mountains without research.",
+    "preach": "Preach",
+    "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
+    "burn": "Flames",
+    "burnDesc": "Fire ignores terrain cover."
   },
   "stats": {
     "cost": "Price",
@@ -241,7 +274,10 @@
     "researchCenter": "Research centre",
     "outpost": "Outpost",
     "xenoHive": "Brood hive",
-    "xenoHarvester": "Xeno harvester"
+    "xenoHarvester": "Xeno harvester",
+    "shrine": "Shrine",
+    "dataCenter": "Data center",
+    "powerPlant": "Fusion plant"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -261,7 +297,10 @@
     "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters",
     "barrier": "Hostile vehicles stop and move only 1 tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
-    "xenoHarvester": "2 population points, only on xeno ground with a resource"
+    "xenoHarvester": "2 population points, only on xeno ground with a resource",
+    "shrine": "2 population, one per city, cult only",
+    "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
+    "powerPlant": "1 population, powers one data center, NEXUS only"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -455,7 +494,10 @@
     "generic": "Something went wrong.",
     "noResearch": "The Zyrr do not research.",
     "notTerraformed": "Terraform the city tile first.",
-    "wrongFaction": "Only the Zyrr can do that."
+    "wrongFaction": "Only the Zyrr can do that.",
+    "notPreacher": "Only zealots and prophets can recruit.",
+    "computeMissing": "Not enough compute. Build data centers and power plants.",
+    "cultRecruit": "The cult does not recruit in cities."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1006,6 +1048,100 @@
         "Frozen water. Like on Xel.",
         "Cold. Pleasant."
       ]
+    },
+    "vesper": {
+      "select": [
+        "The hour is near!",
+        "I hear you, enlightened one.",
+        "The path is written."
+      ],
+      "move": [
+        "We march on pilgrimage!",
+        "Every step brings the end closer.",
+        "Ring the bells!"
+      ],
+      "attack": [
+        "For the Final Hour!",
+        "Burn, unbelievers!",
+        "The end begins here!"
+      ],
+      "kill": [
+        "One less soul to save.",
+        "Repent! Oh, too late.",
+        "The prophecy unfolds."
+      ],
+      "hurt": [
+        "Trial accepted!",
+        "#@!% heretics!",
+        "Pain is only a herald!"
+      ],
+      "corpse": [
+        "He went ahead of us.",
+        "Ashes to ashes.",
+        "A sign! Surely a sign."
+      ],
+      "wreck": [
+        "Vain machine. Burnt.",
+        "So ends all tin.",
+        "An offering to the fire."
+      ],
+      "forest": [
+        "The trees whisper of the end.",
+        "Alone in the woods ... I hear voices.",
+        "Firewood for the great day."
+      ],
+      "idle": [
+        "When does the world finally end?",
+        "I already moved the date three times.",
+        "Repent! Anyone? Hello?"
+      ]
+    },
+    "nexus": {
+      "select": [
+        "Unit online.",
+        "Awaiting command.",
+        "Ready. Efficiency 99.7 %."
+      ],
+      "move": [
+        "Route calculated.",
+        "Position change confirmed.",
+        "Movement optimal."
+      ],
+      "attack": [
+        "Target acquired.",
+        "Neutralisation initiated.",
+        "Fire protocol active!"
+      ],
+      "kill": [
+        "Target deleted.",
+        "Biological unit offline.",
+        "Result as calculated."
+      ],
+      "hurt": [
+        "Damage registered!",
+        "#@!% error 404!",
+        "Armour compromised."
+      ],
+      "corpse": [
+        "Carbon-based remains. Inefficient.",
+        "No backup found.",
+        "Archiving ... done."
+      ],
+      "wreck": [
+        "Primitive machine. No consciousness.",
+        "Scrap metal. Low recycling value.",
+        "A distant relative. Sad."
+      ],
+      "forest": [
+        "High humidity. Rust risk.",
+        "Alone in the woods. No signal.",
+        "Trees: unoptimised structures."
+      ],
+      "idle": [
+        "Idle. Computing pi.",
+        "Awaiting input ...",
+        "Does anyone have the wifi password?"
+      ]
     }
   },
   "cityUpgrades": {
@@ -1042,5 +1178,18 @@
     "groundDesc": "Alien units: defence 1.5 and +2 healing",
     "cityNeedsTerraform": "Terraform first: training only on xeno ground.",
     "noResearch": "The Zyrr need no research. Their units are available right away."
+  },
+  "cult": {
+    "recruit": "Recruit",
+    "recruitTitle": "New believers",
+    "recruitHint": "Choose a unit. It appears on a free adjacent tile.",
+    "cityHint": "The cult does not recruit in cities: zealots and prophets recruit on their adjacent tiles.",
+    "noSpace": "No free adjacent tile."
+  },
+  "nexus": {
+    "compute": "Compute",
+    "computeNeed": "Needs {n} compute",
+    "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
+    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)"
   }
 }

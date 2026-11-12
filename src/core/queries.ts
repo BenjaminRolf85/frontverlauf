@@ -3,9 +3,9 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  VETERAN, VISION, type BuildingId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
+  VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import type { City, Faction, GameState, Pos, Tile, Unit } from './types';
@@ -319,7 +319,7 @@ export interface CombatPreview { toDefender: number; toAttacker: number; kills: 
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
   const a = UNITS[att.type], d = UNITS[def.type];
   // Todesstrahl ignoriert Deckung / death ray ignores cover
-  const bonus = has(att, 'deathRay') ? DEFENSE_BONUS.open : defenseBonus(s, def, att);
+  const bonus = (has(att, 'deathRay') || has(att, 'burn')) ? DEFENSE_BONUS.open : defenseBonus(s, def, att);
   const defense = effectiveDefense(s, def);
   const attackForce = a.attack * (att.hp / att.maxHp);
   const defenseForce = defense * (def.hp / def.maxHp) * bonus;
@@ -415,7 +415,7 @@ export const MAX_FUEL = FUEL.tank;
 
 // ---------- Bauen / building ----------
 
-export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt'; cost: number };
+export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt' | 'wrongFaction'; cost: number };
 
 export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
   const st = BUILDINGS[b];
@@ -423,6 +423,9 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (!inBounds(s.size, x, y)) return { ok: false, error: 'invalidTile', cost };
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return { ok: false, error: 'notInTerritory', cost };
+  // Fraktionsgebaeude nur fuer ihre Fraktion / faction buildings only for their faction
+  const own = FACTION_BUILDINGS[b];
+  if (own && own !== s.factions[f].id) return { ok: false, error: 'wrongFaction', cost };
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
   const xenoB = b === 'xenoHive' || b === 'xenoHarvester';
   if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
@@ -445,7 +448,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   } else {
     if (t.building) return { ok: false, error: 'alreadyBuilt', cost };
     if (st.resource && t.resource !== st.resource) return { ok: false, error: 'invalidTile', cost };
-    if (!st.resource && t.resource && b !== 'bridge') return { ok: false, error: 'invalidTile', cost };
+    if (!st.resource && t.resource && b !== 'bridge' && b !== 'powerPlant') return { ok: false, error: 'invalidTile', cost };
     if (t.road && b !== 'bridge') return { ok: false, error: 'invalidTile', cost };
   }
   if (b === 'bridge') {
@@ -497,13 +500,17 @@ export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'inv
 }
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId):
-  'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' {
+  'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' {
   if (c.owner === null) return 'invalid';
   const st = UNITS[type];
   if (st.ship || st.cost === null) return 'invalid';
   // Fraktionseinheiten / faction units
   const alien = isAlienFaction(s, c.owner);
-  if ((st.faction && st.faction !== s.factions[c.owner].id) || (alien && !st.faction)) return 'invalid';
+  const roster = ROSTERS[s.factions[c.owner].id];
+  if ((st.faction && st.faction !== s.factions[c.owner].id) || (roster && !st.faction)) return 'invalid';
+  // Kult rekrutiert nicht in Staedten / the cult does not recruit in cities
+  if (isCultFaction(s, c.owner)) return 'cultRecruit';
+  if (st.compute !== undefined && computePower(s, c.owner) < st.compute) return 'computeMissing';
   if (alien && !tileAt(s, c.x, c.y)!.xeno) return 'invalid';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
   if (unitAt(s, c.x, c.y)) return 'occupied';
@@ -546,8 +553,10 @@ export function contactStars(s: GameState, g: number): number {
   return Math.min(ECON.firstContactMax, Math.max(1, Math.ceil(pts / 1000)) * ECON.firstContactPer1000);
 }
 
-export function techUnlocks(tech: TechId): { units: UnitTypeId[]; buildings: BuildingId[] } {
-  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech);
+export function techUnlocks(tech: TechId, faction?: FactionId): { units: UnitTypeId[]; buildings: BuildingId[] } {
+  // Menschen sehen Menschen-Einheiten, Sonderfraktionen ihre eigenen / humans see human units, special factions their own
+  const roster = faction ? ROSTERS[faction] : undefined;
+  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech && (roster ? UNITS[k].faction === faction || UNITS[k].ship : !UNITS[k].faction));
   const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech);
   for (const [terr, t] of Object.entries(RESEARCH_CENTER_TECH)) if (t === tech && terr) buildings.push('researchCenter');
   return { units, buildings };
@@ -684,4 +693,61 @@ export function terraformCheck(s: GameState, f: number, x: number, y: number, un
 
 export function terraformTargets(s: GameState, u: Unit): Pos[] {
   return area(s.size, u.x, u.y, 1).filter((p) => terraformCheck(s, u.owner, p.x, p.y, u.id) === 'ok');
+}
+
+/** Fraktionsgebaeude / faction buildings */
+export const FACTION_BUILDINGS: Partial<Record<BuildingId, string>> = {
+  xenoHive: XENO.faction, xenoHarvester: XENO.faction, shrine: CULT.faction, dataCenter: NEXUS.faction, powerPlant: NEXUS.faction,
+};
+export const isCultFaction = (s: GameState, f: number) => s.factions[f]?.id === CULT.faction;
+export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id === NEXUS.faction;
+/** Forscht diese Fraktion? / does this faction research? */
+export const canResearch = (s: GameState, f: number) => ROSTERS[s.factions[f].id]?.research !== false;
+/** Kaufbare Landeinheiten einer Fraktion / purchasable land units of a faction */
+export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
+  return ROSTERS[s.factions[f].id]?.units ?? LAND_UNITS;
+}
+
+/** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
+export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; compute: number } {
+  let dataCenters = 0, powerPlants = 0;
+  for (const t of s.tiles) {
+    if (t.building !== 'dataCenter' && t.building !== 'powerPlant') continue;
+    if (territoryOwner(s, t) !== f) continue;
+    if (t.building === 'dataCenter') dataCenters++; else powerPlants++;
+  }
+  return { dataCenters, powerPlants, compute: Math.min(dataCenters, powerPlants) };
+}
+export const computePower = (s: GameState, f: number) => computeStats(s, f).compute;
+
+export type RecruitCheck = 'ok' | 'notPreacher' | 'unitExhausted' | 'outOfRange' | 'occupied' | 'invalidTile' | 'invalid' | 'techMissing' | 'unitLimit' | 'notEnoughStars';
+/** Heimatstadt fuer Rekruten: naechste eigene Stadt / home city for recruits: nearest own city */
+export function recruitHome(s: GameState, f: number, x: number, y: number): City | null {
+  let best: City | null = null, bd = Infinity;
+  for (const c of ownCities(s, f)) { const d = dist(c, { x, y }); if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+/** Kann der Prediger diese Einheit auf (x, y) rekrutieren? / can the preacher recruit this unit at (x, y)? */
+export function recruitCheck(s: GameState, f: number, unitId: number, type: UnitTypeId, x: number, y: number): RecruitCheck {
+  if (!isCultFaction(s, f)) return 'invalid';
+  const u = s.units.find((o) => o.id === unitId);
+  if (!u || u.owner !== f || !has(u, 'preach')) return 'notPreacher';
+  if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
+  const st = UNITS[type];
+  if (st.faction !== CULT.faction || st.ship || st.cost === null) return 'invalid';
+  if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
+  const t = tileAt(s, x, y)!;
+  if (!isLand(t)) return 'invalidTile';
+  if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) return 'invalidTile';
+  if (unitAt(s, x, y)) return 'occupied';
+  if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
+  const home = recruitHome(s, f, x, y);
+  if (!home || supportedUnits(s, home) >= unitLimit(s, home)) return 'unitLimit';
+  if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
+  return 'ok';
+}
+/** Freies Nachbarfeld fuer eine Rekrutierung / free adjacent tile for a recruit */
+export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
+  for (const p of neighbors(s.size, u.x, u.y)) if (recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok') return p;
+  return null;
 }

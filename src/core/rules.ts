@@ -3,12 +3,13 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import {
+  recruitCheck, recruitHome,
   attackTargets, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -63,7 +64,7 @@ export function createGame(config: GameConfig): GameState {
     const alien = s.factions[i].id === XENO.faction;
     // Zyrr: Hauptquartier startet terraformt / Zyrr: HQ starts terraformed
     if (alien) for (const q of area(s.size, p.x, p.y, CITY.baseRadius)) { const tt = tileAt(s, q.x, q.y)!; if (tt.terrain !== 'ocean') tt.xeno = true; }
-    const u = spawnUnit(s, alien ? XENO.startUnit : START.unit, i, p.x, p.y, s.cities[i].id);
+    const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? START.unit, i, p.x, p.y, s.cities[i].id);
     u.fresh = false;
   });
   for (const f of s.factions) {
@@ -395,7 +396,7 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
   switch (reward) {
     case 'stars': giveStars(); break;
     case 'tech': {
-      if (fa.id === XENO.faction) { giveStars(); break; }
+      if (ROSTERS[fa.id]?.research === false) { giveStars(); break; }
       const options = TECH_IDS.filter((tech) => !fa.techs.includes(tech) && (!TECHS[tech].parent || fa.techs.includes(TECHS[tech].parent!)));
       if (options.length) {
         options.sort((a, b) => TECHS[a].tier - TECHS[b].tier);
@@ -412,7 +413,7 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
     case 'veteranMg': {
       const p = freeNeighbor(s, u.x, u.y, false);
       if (p) {
-        const m = spawnUnit(s, fa.id === XENO.faction ? XENO.uprisingUnit : 'mg', f, p.x, p.y, null);
+        const m = spawnUnit(s, ROSTERS[fa.id]?.mg ?? 'mg', f, p.x, p.y, null);
         m.veteran = true; m.maxHp += VETERAN.bonusHp; m.hp = m.maxHp;
       } else giveStars();
       break;
@@ -422,7 +423,8 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
       const p = fa.id === XENO.faction ? null : freeNeighbor(s, u.x, u.y, true);
       if (p) {
         const d = spawnUnit(s, 'destroyer', f, p.x, p.y, null);
-        d.carried = 'infantry'; d.hp = UNITS.infantry.hp; d.maxHp = UNITS.infantry.hp;
+        const inf = ROSTERS[fa.id]?.infantry ?? 'infantry';
+        d.carried = inf; d.hp = UNITS[inf].hp; d.maxHp = UNITS[inf].hp;
       } else giveStars();
       break;
     }
@@ -466,7 +468,7 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
     case 'govQuarter': c.govQuarter = true; break;
     case 'tank': {
       const p = !unitAt(s, c.x, c.y) ? { x: c.x, y: c.y } : freeNeighbor(s, c.x, c.y, false);
-      if (p) spawnUnit(s, s.factions[f].id === XENO.faction ? XENO.rewardTank : 'tank', f, p.x, p.y, c.id);
+      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? 'tank', f, p.x, p.y, c.id);
       break;
     }
   }
@@ -521,7 +523,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
         if (spawned >= max) break;
         const nt = tileAt(s, p.x, p.y)!;
         if (unitAt(s, p.x, p.y) || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
-        spawnUnit(s, s.factions[f].id === XENO.faction ? XENO.uprisingUnit : 'infantry', f, p.x, p.y, null);
+        spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
         spawned++;
       }
       c.noIncomeNext = true;
@@ -751,6 +753,17 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    case 'recruit': {
+      const check = recruitCheck(s, f, cmd.unit, cmd.unitType, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      fa.stars -= unitCost(s, f, cmd.unitType)!;
+      unitById(s, cmd.unit)!.exhausted = true;
+      const home = recruitHome(s, f, cmd.x, cmd.y)!;
+      const nu = spawnUnit(s, cmd.unitType, f, cmd.x, cmd.y, home.id);
+      ev.push({ t: 'train', unit: nu.id, city: home.id });
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'barrier': {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
@@ -788,7 +801,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     }
     case 'research': {
       const tech = cmd.tech as TechId;
-      if (fa.id === XENO.faction) return fail('noResearch');
+      if (ROSTERS[fa.id]?.research === false) return fail('noResearch');
       if (!TECHS[tech]) return fail('invalid');
       if (fa.techs.includes(tech)) return fail('alreadyResearched');
       const parent = TECHS[tech].parent;

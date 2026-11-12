@@ -3,12 +3,13 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
+  canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
 } from '../core';
 import {
-  ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
+  ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
   type BuildingId, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -266,6 +267,7 @@ function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, uncon
 export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId | null {
   const { s, f, prof } = ctx;
   if (isAlienFaction(s, f)) return chooseAlienUnit(ctx, urgent);
+  if (ROSTERS[ctx.fa.id]) return chooseRosterUnit(ctx, urgent);
   const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t || u.carried === t).length;
   const army = Math.max(1, ctx.my.length);
   const unexplored = ctx.fa.explored.some((e) => !e);
@@ -298,6 +300,30 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, LAND_UNITS.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
+    if (sc > bs) { bs = sc; best = t; }
+  }
+  return best;
+}
+
+/** Kult und NEXUS: Armeemischung / cult and NEXUS: army mix */
+const ROSTER_SHARE: Partial<Record<UnitTypeId, number>> = {
+  zealot: 0.4, torchbearer: 0.2, prophet: 0.1, doomBuggy: 0.12, rocketCart: 0.12, doomCrawler: 0.18,
+  android: 0.35, spider: 0.22, quadDrone: 0.12, railgun: 0.12, titan: 0.2,
+};
+function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
+  const { s, f } = ctx;
+  const army = Math.max(1, ctx.my.length);
+  const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t).length;
+  const roster = rosterUnits(s, f);
+  const avail = (t: UnitTypeId) => (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && (UNITS[t].compute === undefined || computePower(s, f) >= UNITS[t].compute!);
+  let best: UnitTypeId | null = null, bs = -Infinity;
+  for (const t of roster) {
+    if (!avail(t)) continue;
+    // Kult: ohne Prediger kein Nachschub / cult: no reinforcements without preachers
+    const preachers = ctx.my.filter((u) => UNITS[u.type].abilities.includes('preach')).length;
+    let sc = ((ROSTER_SHARE[t] ?? 0.1) - count(t) / army) * 4 - UNITS[t].cost! / 250;
+    if (UNITS[t].abilities.includes('preach') && preachers < 2) sc += 1;
+    if (urgent) sc = UNITS[t].hp * 0.05 + UNITS[t].attack * 0.2 - UNITS[t].cost! / 100;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;
@@ -399,8 +425,29 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
     mk(type, 1);
-    const cheap: UnitTypeId = isAlienFaction(s, f) ? 'grey' : 'infantry';
+    const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? 'infantry';
     if (type !== cheap) mk(cheap, 0.8);
+  }
+  // Kult: Prediger rekrutieren auf Nachbarfeldern / cult: preachers recruit on adjacent tiles
+  if (isCultFaction(s, f)) {
+    for (const u of ctx.my) {
+      if (!UNITS[u.type].abilities.includes('preach') || u.exhausted || u.fresh || u.attacked) continue;
+      const home = recruitHome(s, f, u.x, u.y);
+      if (!home) continue;
+      const urgent = ctx.enemies.some((e) => dist(e, u) <= 2 && UNITS[e.type].attack > 0);
+      const types = [chooseUnitType(ctx, home, urgent), 'zealot' as UnitTypeId];
+      types.forEach((t, i) => {
+        if (!t || (i === 1 && t === types[0])) return;
+        const spot = recruitSpot(s, u, t) ?? null;
+        const probe = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, f, u.id, t, q.x, q.y)).find((r) => r === 'notEnoughStars');
+        if (!probe) return;
+        const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y) === 'notEnoughStars')!;
+        const cost = unitCost(s, f, t)!;
+        let value = urgent ? cost * 3.5 : deficit > 0 ? cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW : cost * 0.25;
+        value = value * (i === 0 ? 1 : 0.8) + cost * ctx.pf;
+        buys.push({ cmd: { type: 'recruit', unit: u.id, unitType: t, x: p.x, y: p.y }, cost, value, save: !urgent });
+      });
+    }
   }
 
   // Gebaeude / buildings
@@ -464,11 +511,30 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
 
+  // Kult: Schrein; NEXUS: Rechenzentren und Kraftwerke / cult: shrine; NEXUS: data centers and power plants
+  if (isCultFaction(s, f) || isRobotFaction(s, f)) {
+    const cs = computeStats(s, f);
+    const list: BuildingId[] = isCultFaction(s, f) ? ['shrine'] : ['dataCenter', 'powerPlant'];
+    for (const c of ctx.myCities) {
+      for (const p of cityTiles(s, c)) {
+        for (const b of list) {
+          const chk = buildCheck(s, f, b, p.x, p.y);
+          if (!chk.ok && chk.error !== 'notEnoughStars') continue;
+          let value = BUILDINGS[b].pop * popVal;
+          // Rechenleistung ausgleichen / balance compute
+          if (b === 'dataCenter') value += cs.dataCenters <= cs.powerPlants ? 30 : 0;
+          if (b === 'powerPlant') value += cs.powerPlants < cs.dataCenters ? 40 : 0;
+          buys.push({ cmd: { type: 'build', building: b, x: p.x, y: p.y }, cost: chk.cost, value, save: true });
+        }
+      }
+    }
+  }
+
   // Forschung / research
   const sites = siteCounts(ctx);
   const unconnected = ctx.myCities.filter((c) => !c.connected && !c.isHQ).length;
   for (const t of TECH_IDS) {
-    if (isAlienFaction(s, f)) break;
+    if (!canResearch(s, f)) break;
     if (fa.techs.includes(t)) continue;
     const parent = TECHS[t].parent;
     if (parent && !fa.techs.includes(parent)) continue;

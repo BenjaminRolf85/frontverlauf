@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, hqOf, income, ownUnits, cityIncome, logisticsIncome } from '../src/core';
-import { FACTIONS, FACTION_IDS, INCOME, START, UNITS } from '../src/data/balance';
+import { FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, ok, setTerrain, untilTurnOf } from './helpers';
 
 describe('Start', () => {
@@ -18,7 +18,7 @@ describe('Start', () => {
       expect(s.cities.filter((c) => c.owner === f.index)).toHaveLength(1);
       const units = ownUnits(s, f.index);
       expect(units).toHaveLength(1);
-      expect(units[0].type).toBe(f.id === 'zyrr' ? 'grey' : 'infantry');
+      expect(units[0].type).toBe(ROSTERS[f.id]?.start ?? 'infantry');
       expect(units[0].x).toBe(hq.x);
       expect(units[0].y).toBe(hq.y);
       expect(f.stars).toBe(25);

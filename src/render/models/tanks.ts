@@ -35,7 +35,7 @@ interface TrackOpts {
 }
 
 /** Kettenlauf beidseitig / track run on both sides */
-function tracks(b: Builder, o: TrackOpts) {
+export function tracks(b: Builder, o: TrackOpts) {
   const hl = o.len / 2;
   const h = o.h;
   const prof: [number, number][] = [
@@ -71,7 +71,7 @@ function tracks(b: Builder, o: TrackOpts) {
 
 interface GunOpts { brake?: 'box' | 'ring' | 'big' | 'none'; sleeves?: number; lite: boolean; seg?: number }
 /** Kanonenrohr entlang +z / gun barrel along +z */
-function gun(b: Builder, x: number, y: number, z0: number, len: number, r: number, c: ColorLike, o: GunOpts) {
+export function gun(b: Builder, x: number, y: number, z0: number, len: number, r: number, c: ColorLike, o: GunOpts) {
   const seg = o.lite ? 8 : (o.seg ?? 10);
   b.cyl(r, r * 1.12, len, seg, c, [x, y, z0 + len / 2], [HALF_PI, 0, 0]);
   if (!o.lite) for (let i = 0; i < (o.sleeves ?? 0); i++) b.cyl(r * 1.3, r * 1.3, 0.03, seg, c, [x, y, z0 + len * (0.3 + i * 0.22)], [HALF_PI, 0, 0]);
@@ -93,28 +93,28 @@ function gun(b: Builder, x: number, y: number, z0: number, len: number, r: numbe
 }
 
 /** Kommandant im Luk (Kopfbedeckung der Fraktion) / commander in the hatch (faction headgear) */
-function commander(b: Builder, f: FactionId, x: number, top: number, z: number, seed: number) {
+export function commander(b: Builder, f: FactionId, x: number, top: number, z: number, seed: number) {
   b.group({ p: [x, top - 0.13, z], s: 0.62 }, () =>
     soldier(b, f, standPose([[-0.12, 0.25, 0.04], [0.12, 0.25, 0.04]]), { detail: 0, seed, noLegs: true }),
   );
 }
 
 /** Kuppel mit offenem Lukendeckel / cupola with open hatch lid */
-function cupola(b: Builder, L: Look, x: number, y: number, z: number, r: number, lite: boolean) {
+export function cupola(b: Builder, L: Look, x: number, y: number, z: number, r: number, lite: boolean) {
   b.cyl(r, r * 1.1, 0.024, lite ? 8 : 10, L.hullDark, [x, y + 0.012, z]);
   if (lite) return;
   for (const a of [0.3, 1.2, -0.6]) b.box(0.014, 0.01, 0.006, mat.glassDark, [x + Math.sin(a) * r, y + 0.018, z + Math.cos(a) * r], [0, a, 0]);
   b.add(geo.cyl(r * 0.85, r * 0.85, 0.008, 10), L.hull, { p: [x, y + 0.045, z - r - 0.008], r: [-1.25, 0, 0] });
 }
 
-function antenna(b: Builder, x: number, y: number, z: number, h: number, tip: ColorLike, lean = -0.12) {
+export function antenna(b: Builder, x: number, y: number, z: number, h: number, tip: ColorLike, lean = -0.12) {
   b.box(0.012, 0.012, 0.012, mat.dark, [x, y + 0.006, z]);
   b.tube([x, y, z], [x, y + h, z + h * lean], 0.003, 4, mat.dark);
   b.add(geo.ico(0.008, 0), tip, { p: [x, y + h + 0.004, z + h * lean] });
 }
 
 /** Leichtes MG auf Lafette / light MG on a mount */
-function roofMg(b: Builder, L: Look, x: number, y: number, z: number, shield: ColorLike | null) {
+export function roofMg(b: Builder, L: Look, x: number, y: number, z: number, shield: ColorLike | null) {
   b.cyl(0.006, 0.008, 0.03, 6, mat.dark, [x, y + 0.015, z]);
   b.add(geo.cbox(0.016, 0.02, 0.05, 0.004), mat.dark, { p: [x, y + 0.035, z + 0.01] });
   b.cyl(0.004, 0.004, 0.07, 6, mat.metal, [x, y + 0.038, z + 0.07], [HALF_PI, 0, 0]);
@@ -418,11 +418,11 @@ export function tank(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   switch (f) {
-    case 'korvat': korvat(b, L, lite); break;
+    case 'korvat': case 'vesper': korvat(b, L, lite); break;
     case 'dravon': dravon(b, L, lite); break;
     case 'alvenia': alvenia(b, L, lite); break;
     case 'meridon': meridon(b, L, lite); break;
-    case 'velkar': case 'zyrr': velkar(b, L, lite); break;
+    case 'velkar': case 'zyrr': case 'nexus': velkar(b, L, lite); break;
   }
   return b;
 }
