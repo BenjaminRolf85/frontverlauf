@@ -19,7 +19,8 @@ function part(g: THREE.BufferGeometry, color: string, m: THREE.Matrix4) {
 }
 
 /** Ecke je Ausbau, damit sie die Stadtmitte frei lassen / corner per upgrade so the centre stays free */
-export const PERK_SPOT: Record<CityUpgradeId, [number, number]> = { radioTower: [-0.43, -0.43], bunker: [-0.43, 0.43], barracks: [0.43, -0.43] };
+/** Platz je Slot (Ecken ausserhalb des Bodenrings) / position per slot (corners outside the ground ring) */
+export const SLOT_SPOT: [number, number][] = [[-0.43, -0.43], [-0.43, 0.43], [0.43, -0.43]];
 export const PERK_SCALE = 1.45;
 
 export function perkGeometry(up: CityUpgradeId, faction: FactionId | null): THREE.BufferGeometry {
@@ -48,6 +49,30 @@ export function perkGeometry(up: CityUpgradeId, faction: FactionId | null): THRE
       parts.push(part(new THREE.CapsuleGeometry(0.018, 0.035, 2, 6).rotateZ(Math.PI / 2), semantic.terrainPlainSide, M(Math.sin(a) * 0.15, 0.018, Math.cos(a) * 0.15, 0, a, 0)));
     }
     parts.push(part(new THREE.BoxGeometry(0.05, 0.01, 0.03), accent, M(0, 0.106, 0)));
+  } else if (up === 'hospital') {
+    // Lazarett: weisses Zelt mit Fahne in Fraktionsfarbe (kein rotes Kreuz) / hospital: white tent with faction flag (no red cross)
+    const tent = new THREE.ConeGeometry(0.13, 0.13, 4, 1).rotateY(Math.PI / 4);
+    parts.push(part(tent, semantic.white, M(0, 0.065, 0, 0, 0, 0, 1.3, 1, 0.9)));
+    parts.push(part(new THREE.BoxGeometry(0.05, 0.06, 0.004), semantic.ink, M(0, 0.03, 0.1)));
+    parts.push(part(new THREE.CylinderGeometry(0.004, 0.004, 0.2, 4), semantic.metal, M(0.13, 0.1, 0.05)));
+    parts.push(part(new THREE.BoxGeometry(0.05, 0.035, 0.004), accent, M(0.155, 0.18, 0.05)));
+    parts.push(part(new THREE.BoxGeometry(0.03, 0.03, 0.03), semantic.white, M(-0.14, 0.015, 0.06)));
+  } else if (up === 'flak') {
+    // Flugabwehr: Sandsackring mit Zwillingsgeschuetz / flak: sandbag ring with twin gun
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      parts.push(part(new THREE.CapsuleGeometry(0.016, 0.03, 2, 6).rotateZ(Math.PI / 2), semantic.terrainPlainSide, M(Math.sin(a) * 0.12, 0.016, Math.cos(a) * 0.12, 0, a, 0)));
+    }
+    parts.push(part(new THREE.CylinderGeometry(0.04, 0.05, 0.05, 8), semantic.metal, M(0, 0.04, 0)));
+    for (const x of [-0.018, 0.018]) parts.push(part(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 6), semantic.ink, M(x, 0.12, 0.05, -0.9, 0, 0)));
+    parts.push(part(new THREE.BoxGeometry(0.06, 0.012, 0.04), accent, M(0, 0.07, -0.02)));
+  } else if (up === 'depot') {
+    // Depot: Lagerhalle mit Kisten und Faessern / depot: storage shed with crates and barrels
+    parts.push(part(new THREE.BoxGeometry(0.16, 0.08, 0.12), semantic.neutral, M(-0.02, 0.04, -0.02)));
+    parts.push(part(new THREE.CylinderGeometry(0.06, 0.06, 0.16, 8, 1, false, 0, Math.PI).rotateZ(Math.PI / 2), semantic.terrainMountainDark, M(-0.02, 0.08, -0.02)));
+    parts.push(part(new THREE.BoxGeometry(0.06, 0.05, 0.004), semantic.ink, M(-0.02, 0.025, 0.041)));
+    for (const [x, z] of [[0.1, 0.08], [0.06, 0.12], [0.12, 0.13]]) parts.push(part(new THREE.BoxGeometry(0.04, 0.04, 0.04), semantic.accentStrong, M(x, 0.02, z)));
+    for (const [x, z] of [[-0.12, 0.1], [-0.08, 0.13]]) parts.push(part(new THREE.CylinderGeometry(0.018, 0.018, 0.045, 8), accent, M(x, 0.022, z)));
   } else {
     // Kaserne: Langhaus mit Satteldach, Fahnenmast / barracks: long house with gable roof and flagpole
     parts.push(part(new THREE.BoxGeometry(0.2, 0.08, 0.12), semantic.neutral, M(0, 0.04, 0)));

@@ -8,6 +8,7 @@ import { canSeeUnit, dist, isExplored, weather, type GameEvent, type GameState, 
 import { tList } from '../i18n/i18n';
 import type { View } from '../render/view';
 import { esc } from './components';
+import { audio } from '../audio/audio';
 
 export type BarkContext = 'select' | 'move' | 'attack' | 'kill' | 'hurt' | 'corpse' | 'wreck' | 'forest' | 'idle' | 'rain' | 'snow';
 
@@ -52,6 +53,7 @@ export class Barks {
     if (lines.length > 1 && i === this.lastLine.get(key)) i = (i + 1) % lines.length;
     this.lastLine.set(key, i);
     this.lastAt = now;
+    audio.bark(faction, lines[i]);
     for (const b of this.bubbles.filter((x) => x.unitId === u.id)) this.remove(b);
     while (this.bubbles.length >= 2) this.remove(this.bubbles[0]);
     const node = document.createElement('div');

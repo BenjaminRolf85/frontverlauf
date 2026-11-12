@@ -53,7 +53,9 @@
     "conquest": "Eroberung",
     "conquestDesc": "Ohne Rundenlimit gewinnt, wer als Letzter noch eine Stadt besitzt.",
     "sandbox": "Sandkasten",
-    "sandboxDesc": "Kartengröße, Kartentyp, Gegnerzahl, Schwierigkeit und Startsterne frei einstellbar."
+    "sandboxDesc": "Kartengröße, Kartentyp, Gegnerzahl, Schwierigkeit und Startsterne frei einstellbar.",
+    "endless": "Endlos",
+    "endlessDesc": "Kein Rundenlimit und kein Zeitdruck: Spiele so lange, wie du willst."
   },
   "mapTypes": {
     "continent": "Festland",
@@ -455,7 +457,8 @@
     "killed": "Einheit vernichtet",
     "convert": "Eine Einheit läuft über",
     "barrierHit": "Ein Fahrzeug steckt in einer Panzersperre fest",
-    "cityUpgrade": "{name} in {city} gebaut"
+    "cityUpgrade": "{name} in {city} gebaut",
+    "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})"
   },
   "fx": {
     "hit": [
@@ -525,7 +528,8 @@
     "winner": "{name} gewinnt",
     "scores": "Endwertung",
     "newGame": "Neuer Einsatz",
-    "toMenu": "Hauptmenü"
+    "toMenu": "Hauptmenü",
+    "continue": "Endlos weiterspielen"
   },
   "credits": {
     "title": "Mitwirkende",
@@ -633,8 +637,8 @@
     "wind": "Wind",
     "clearDesc": "keine Auswirkungen",
     "rainDesc": "Artillerie 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung",
-    "snowDesc": "nur optisch",
-    "windDesc": "nur optisch",
+    "snowDesc": "Jeeps, Panzer und Artillerie 1 Feld weniger Bewegung",
+    "windDesc": "Hubschrauber verbrauchen 2 Tankfüllungen pro Runde",
     "forecast": "ab Runde {round}: {weather}",
     "setupHint": "Wechselt alle 3 Runden. Regen schwächt Artillerie und Hubschrauber."
   },
@@ -930,6 +934,21 @@
     "bunkerDesc": "Eigene Einheiten in dieser Stadt erhalten +2 Verteidigung.",
     "barracksDesc": "Hier ausgebildete Einheiten starten als Veteranen (+5 LP).",
     "radioHint": "Tippe auf ein markiertes Feld, um den Bereich aufzudecken.",
-    "noTargets": "In Reichweite ist nichts mehr verdeckt."
+    "noTargets": "In Reichweite ist nichts mehr verdeckt.",
+    "hospital": "Lazarett",
+    "flak": "Flugabwehr",
+    "depot": "Depot",
+    "hospitalDesc": "Eigene Einheiten auf und neben der Stadt heilen 2 LP mehr.",
+    "flakDesc": "Feindliche Hubschrauber, die neben der Stadt ihren Zug beenden, verlieren 3 LP.",
+    "depotDesc": "5 Sterne mehr pro Runde.",
+    "full": "Alle 3 Slots sind belegt."
+  },
+  "saves": {
+    "title": "Spielstände",
+    "empty": "Leerer Platz",
+    "saveHere": "Hier speichern",
+    "load": "Laden",
+    "delete": "Löschen",
+    "saved": "Gespeichert in Platz {n}"
   }
 }

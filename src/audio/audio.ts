@@ -17,6 +17,15 @@ const THEMES: Record<FactionId, Theme> = {
   velkar: { tempo: 98, root: 164.8, scale: [0, 2, 3, 5, 7, 9, 10], pattern: [0, 4, 2, 5, 4, 6, 2, 1], bass: [0, 3, 5, 4], wave: 'sine' },
 };
 
+/** Stimme je Fraktion: Grundton, Wellenform, Formant / voice per faction */
+const VOICES: Record<FactionId, { pitch: number; wave: OscillatorType; formant: number }> = {
+  korvat: { pitch: 150, wave: 'square', formant: 900 },
+  dravon: { pitch: 105, wave: 'sawtooth', formant: 650 },
+  alvenia: { pitch: 210, wave: 'triangle', formant: 1300 },
+  meridon: { pitch: 240, wave: 'square', formant: 1600 },
+  velkar: { pitch: 180, wave: 'sine', formant: 2200 },
+};
+
 class AudioEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -100,6 +109,39 @@ class AudioEngine {
       case 'build': this.noise(t, 0.08, 0.3, 2500); this.noise(t + 0.12, 0.08, 0.3, 2500); break;
       case 'research': this.tone(880, t, 0.25, 'sine', 0.18, m, 1.5); break;
       case 'error': this.tone(180, t, 0.18, 'square', 0.15, m, 0.7); break;
+    }
+  }
+
+  /**
+   * Comic-Laut zur Sprechblase: gebrabbelte Silben mit Fraktionsstimme, bei Fluechen ein Zeichensalat-Geraeusch.
+   * Comic sound for a speech bubble: babbled syllables in the faction voice, a grawlix noise for curses.
+   */
+  bark(faction: FactionId, text: string) {
+    if (!this.effectsOn) return;
+    const ctx = this.ensure();
+    if (!ctx || !this.master) return;
+    const v = VOICES[faction];
+    let t = ctx.currentTime + 0.02;
+    const words = Math.max(2, Math.min(7, text.split(/\s+/).length));
+    let seed = text.length * 31 + text.charCodeAt(0);
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    const g = ctx.createGain();
+    g.gain.value = 0.55;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.value = v.formant; f.Q.value = 1.4;
+    g.connect(f); f.connect(this.master);
+    for (let i = 0; i < words; i++) {
+      const dur = 0.06 + rnd() * 0.06;
+      const base = v.pitch * (0.85 + rnd() * 0.4);
+      this.tone(base, t, dur, v.wave, 0.35, g, 0.75 + rnd() * 0.6);
+      t += dur + 0.025;
+    }
+    // Ausrufezeichen hebt die Stimme / exclamation raises the voice
+    if (text.trim().endsWith('!')) this.tone(v.pitch * 1.5, t, 0.12, v.wave, 0.3, g, 1.4);
+    // Fluch: Zeichensalat / curse: grawlix
+    if (/[#@%]/.test(text)) {
+      this.noise(t + 0.02, 0.12, 0.25, 3000);
+      [1.8, 1.2, 2.1, 0.9].forEach((m, i) => this.tone(v.pitch * m, t + 0.03 + i * 0.05, 0.05, 'square', 0.15, this.master!, 0.6));
     }
   }
 

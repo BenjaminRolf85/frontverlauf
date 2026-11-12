@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, dist, generateMap, hqOf, cityTiles, area } from '../src/core';
 import { FACTION_IDS, MAP_SIZES, type FactionId, type MapType, type ResourceId, type TerrainId } from '../src/data/balance';
 
-const FAIR_MIN: Record<number, number[]> = { 11: [7, 6, 5, 4], 14: [8, 7, 6, 4], 16: [10, 9, 7, 5], 18: [12, 11, 8, 6] };
+const FAIR_MIN: Record<number, number[]> = { 11: [7, 6, 5, 4], 14: [8, 7, 6, 4], 16: [10, 9, 7, 5], 18: [12, 11, 8, 6], 22: [14, 13, 10, 8], 26: [17, 15, 12, 9] };
 const TYPES: MapType[] = ['continent', 'lakes', 'continents', 'islands', 'waterworld'];
 const landShare = (tiles: { terrain: TerrainId }[]) => tiles.filter((t) => t.terrain !== 'shallow' && t.terrain !== 'ocean').length / tiles.length;
 
 describe('Kartengenerator / map generator', () => {
-  it('sizes 11x11, 14x14, 16x16 and 18x18', () => {
-    expect(MAP_SIZES).toEqual([11, 14, 16, 18]);
+  it('sizes 11x11 to 26x26', () => {
+    expect(MAP_SIZES).toEqual([11, 14, 16, 18, 22, 26]);
     for (const size of MAP_SIZES) {
       const s = createGame(defaultConfig({ seed: 3, size }));
       expect(s.size).toBe(size);

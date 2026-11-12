@@ -29,6 +29,9 @@ export interface ScreenHost {
   exportGame(): void;
   saveNow(): void;
   hasSave(): boolean;
+  /** Spielstand-Verwaltung / save slot manager */
+  openSlots(mode: 'save' | 'load'): void;
+  continueEndless(): void;
   startTutorial(): void;
   xr: { vr: boolean; ar: boolean; enter(mode: 'vr' | 'ar'): void };
   showMenu(): void;
@@ -53,6 +56,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
       <nav class="menu-list">
         ${host.hasSave() ? button(t('menu.continue'), { icon: 'play', action: 'continue', block: true }) : ''}
         ${button(t('menu.newGame'), { icon: 'plus', action: 'new', block: true, variant: host.hasSave() ? 'secondary' : 'primary' })}
+        ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
         ${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', block: true, variant: 'secondary' })}
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.settings'), { icon: 'settings', action: 'settings', variant: 'secondary', cls: 'grow' })}${button(t('menu.credits'), { icon: 'info', action: 'credits', variant: 'secondary', cls: 'grow' })}</div>
@@ -62,6 +66,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
   render();
   bind(n, {
     continue: () => host.continueGame(),
+    slots: () => host.openSlots('load'),
     new: () => { n.replaceWith(setupScreen(host)); },
     tutorial: () => host.startTutorial(),
     import: () => host.loadFromFile(),
@@ -96,7 +101,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       <div class="panel form">
         <div class="panel-title"><h2 class="display">${esc(t('setup.title'))}</h2>${iconButton('close', t('menu.back'), 'back')}</div>
         <div class="field"><span class="label">${esc(t('setup.mode'))}</span>
-          ${segmented('mode', (['points', 'conquest', 'sandbox'] as GameMode[]).map((m) => ({ value: m, label: t(`modes.${m}`) })), cfg.mode)}
+          ${segmented('mode', (['points', 'conquest', 'endless', 'sandbox'] as GameMode[]).map((m) => ({ value: m, label: t(`modes.${m}`) })), cfg.mode)}
           <span class="muted">${esc(t(`modes.${cfg.mode}Desc`, { rounds: MODES.pointsRounds }))}</span></div>
         <div class="field"><span class="label">${esc(t('setup.size'))}</span>
           ${segmented('size', MAP_SIZES.map((sz) => ({ value: String(sz), label: t('setup.tiles', { n: sz }) })), String(cfg.size))}</div>
@@ -214,6 +219,7 @@ export function pauseMenu(host: ScreenHost) {
     <nav class="menu-list">
       ${button(t('menu.resume'), { icon: 'play', action: 'close', block: true })}
       ${button(t('menu.save'), { icon: 'save', action: 'save', block: true, variant: 'secondary' })}
+      ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
       ${button(t('menu.exportFile'), { icon: 'download', action: 'export', block: true, variant: 'secondary' })}
       ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
       ${host.xr.vr ? button(t('menu.startVR'), { icon: 'vr', action: 'vr', block: true, variant: 'secondary' }) : ''}
@@ -225,6 +231,7 @@ export function pauseMenu(host: ScreenHost) {
   bind(d.node, {
     close: () => d.close(),
     save: () => { host.saveNow(); d.close(); },
+    slots: () => { d.close(); host.openSlots('save'); },
     export: () => host.exportGame(),
     import: () => { d.close(); host.loadFromFile(); },
     vr: () => { d.close(); host.xr.enter('vr'); },
@@ -503,11 +510,44 @@ export function gameOverScreen(host: ScreenHost) {
     ${s.winner !== null ? `<p class="display">${esc(t('gameover.winner', { name: t(`factions.${s.factions[s.winner].id}.name`) }))}</p>` : ''}
     <h3 class="display">${esc(t('gameover.scores'))}</h3>
     <div class="score-list">${ranking.map((r, i) => `<div class="score-row"><span class="display">${i + 1}.</span>${factionChip(r.f.id, t(`factions.${r.f.id}.short`))}<span class="grow">${esc(t(`factions.${r.f.id}.short`))}</span><span>${esc(t('diplomacy.score', { n: r.sc }))}</span></div>`).join('')}</div>
-    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false });
+    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${s.factions.filter((f) => f.alive).length > 1 ? button(t('gameover.continue'), { action: 'endless', icon: 'hourglass', variant: 'secondary' }) : ''}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false });
   bind(d.node, {
+    endless: () => { d.close(); host.continueEndless(); },
     menu: () => { d.close(); host.showMenu(); },
     new: () => { d.close(); host.showMenu(); const m = host.root.querySelector('.screen'); if (m) m.replaceWith(setupScreen(host)); },
   });
 }
 
 export { FACTION_EMBLEM };
+
+// ---------- Speicherstaende / save slots ----------
+export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: number; round: number; faction: string; mode: string; size: number; name: string } | null)[],
+  mode: 'save' | 'load', act: { save(i: number): void; load(i: number): void; remove(i: number): void }) {
+  const canSave = mode === 'save' && !!host.game.state;
+  const fmt = (ms: number) => { try { return new Date(ms).toLocaleString(); } catch { return ''; } };
+  const html = () => `${dialogTitle(t('saves.title'))}
+    <div class="score-list">${slots.map((info, i) => `
+      <div class="score-row slot-row">
+        <span class="display">${i + 1}</span>
+        ${info ? `${factionBadge(info.faction as FactionId)}<div class="grow col"><strong>${esc(info.name)}</strong>
+          <span class="muted">${esc(t(`modes.${info.mode}`))} · ${esc(t('setup.tiles', { n: info.size }))} · ${esc(t('hud.round'))} ${info.round} · ${esc(fmt(info.savedAt))}</span></div>`
+          : `<div class="grow muted">${esc(t('saves.empty'))}</div>`}
+        <div class="row">
+          ${canSave ? button(t('saves.saveHere'), { action: `save-${i}`, icon: 'save', variant: info ? 'secondary' : 'primary' }) : ''}
+          ${info ? button(t('saves.load'), { action: `load-${i}`, icon: 'play', variant: canSave ? 'secondary' : 'primary' }) : ''}
+          ${info ? iconButton('close', t('saves.delete'), `del-${i}`) : ''}
+        </div>
+      </div>`).join('')}</div>`;
+  const d = openDialog(host.root, html());
+  d.node.addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+    if (!b) return;
+    const a = b.dataset.action!;
+    if (a === 'close') { d.close(); return; }
+    const [kind, idx] = a.split('-');
+    const i = Number(idx);
+    if (kind === 'save') { act.save(i); d.close(); }
+    else if (kind === 'load') { d.close(); act.load(i); }
+    else if (kind === 'del') { act.remove(i); slots[i] = null; d.node.innerHTML = html(); }
+  });
+}

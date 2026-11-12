@@ -18,7 +18,7 @@ import {
 } from './components';
 import { icon } from './icons';
 
-const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet' };
+const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
 const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
@@ -301,7 +301,7 @@ export class Hud {
         id: `up-${up}`, icon: CITY_UPGRADE_ICON[up], label: radioActive ? t('actions.cancel') : t(`cityUpgrades.${up}`),
         cost: radioActive ? undefined : CITY_UPGRADES.cost[up], variant: 'primary',
         enabled: radioActive || (chk === 'ok' && !noTargets),
-        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : t(`errors.${chk === 'noSlot' ? 'onePerCity' : chk}`),
+        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : chk === 'noSlot' ? t('cityUpgrades.full') : t(`errors.${chk}`),
         run: () => {
           if (up !== 'radioTower') { void g.exec({ type: 'cityUpgrade', city: c.id, upgrade: up }); return; }
           if (radioActive) { g.radioCity = null; g.updateHighlights(); this.render(); return; }
