@@ -167,6 +167,11 @@ h1, h2, h3, .display {
   border: var(--p-border-width-thin) solid var(--s-outline); background: var(--s-surface-sunken); font-size: var(--p-font-size-xs);
 }
 .tag.warn { background: var(--s-warning); }
+.slots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-2); margin-top: var(--p-space-2); }
+.slot { display: inline-flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-space-6); padding: 0 var(--p-space-2);
+  border-radius: var(--p-radius-sm); font-size: var(--p-font-size-xs); }
+.slot.filled { background: var(--s-accent); border: var(--p-border-width-thin) solid var(--s-outline); }
+.slot.empty { border: var(--p-border-width-thin) dashed var(--s-outline); color: var(--s-text-muted); }
 .tag.ok { background: var(--c-tech-node-researched); }
 
 /* ---------- Fortschrittsbalken / progress bar ---------- */

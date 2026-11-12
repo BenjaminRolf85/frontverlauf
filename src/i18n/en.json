@@ -454,7 +454,8 @@
     "eliminated": "{name} has been eliminated",
     "killed": "Unit destroyed",
     "convert": "A unit defects",
-    "barrierHit": "A vehicle is stuck in a tank barrier"
+    "barrierHit": "A vehicle is stuck in a tank barrier",
+    "cityUpgrade": "{name} built in {city}"
   },
   "fx": {
     "hit": [
@@ -918,5 +919,17 @@
         "Snow camouflage active."
       ]
     }
+  },
+  "cityUpgrades": {
+    "title": "Upgrade slots",
+    "empty": "free",
+    "radioTower": "Radio tower",
+    "bunker": "Bunker",
+    "barracks": "Barracks",
+    "radioTowerDesc": "Reveals a hidden 5 x 5 tile area within 6 tiles, once.",
+    "bunkerDesc": "Own units in this city get +2 defence.",
+    "barracksDesc": "Units trained here start as veterans (+5 HP).",
+    "radioHint": "Tap a highlighted tile to reveal the area.",
+    "noTargets": "Nothing hidden left within range."
   }
 }

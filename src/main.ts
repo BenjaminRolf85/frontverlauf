@@ -124,6 +124,7 @@ function boot() {
         case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
+        case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {
           if (e.weather && e.weather !== lastWeather && s.factions[e.faction].human) {
             if (lastWeather !== null || e.weather !== 'clear') toast(root, `${t(`weather.${e.weather}`)}: ${t(`weather.${e.weather}Desc`)}`, ({ clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' } as Record<string, string>)[e.weather]);

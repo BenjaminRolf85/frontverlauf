@@ -121,6 +121,19 @@ export const WEATHER = {
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
 };
 
+/** Stadt-Ausbauten in Slots / city upgrades in slots */
+export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks';
+export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks'];
+export const CITY_UPGRADES = {
+  slots: 3,
+  cost: { radioTower: 15, bunker: 25, barracks: 35 } as Record<CityUpgradeId, number>,
+  /** Funkturm: Reichweite fuer das Ziel und Radius des aufgedeckten Bereichs / radio tower: target range and reveal radius */
+  radioRange: 6,
+  radioRadius: 2,
+  /** Bunker: Verteidigung fuer eigene Einheiten in der Stadt / bunker: defence for own units in the city */
+  bunkerDefense: 2,
+};
+
 export const HEALING = {
   ownTerritory: 4,
   elsewhere: 2,

@@ -3,7 +3,7 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  BARRIER, WEATHER, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  BARRIER, CITY_UPGRADES, WEATHER, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   VETERAN, VISION, type BuildingId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
@@ -315,13 +315,14 @@ export interface CombatPreview { toDefender: number; toAttacker: number; kills: 
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
   const a = UNITS[att.type], d = UNITS[def.type];
   const bonus = defenseBonus(s, def, att);
+  const defense = effectiveDefense(s, def);
   const attackForce = a.attack * (att.hp / att.maxHp);
-  const defenseForce = d.defense * (def.hp / def.maxHp) * bonus;
+  const defenseForce = defense * (def.hp / def.maxHp) * bonus;
   const total = attackForce + defenseForce;
   const toDefender = total > 0 ? Math.round((attackForce / total) * a.attack * COMBAT.damageFactor) : 0;
   const kills = toDefender >= def.hp;
   const retaliates = !kills && !has(def, 'noRetaliate') && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
-  const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * d.defense * COMBAT.damageFactor) : 0;
+  const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor) : 0;
   return { toDefender, toAttacker, kills, retaliates };
 }
 
@@ -583,4 +584,45 @@ export function effectiveMove(s: GameState, u: Unit): number {
   if (weather(s) === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.rain.moveDelta);
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
   return m;
+}
+
+// ---------- Stadt-Ausbauten / city upgrades ----------
+
+export const cityUpgrades = (c: City): CityUpgradeId[] => c.upgrades ?? [];
+export const hasCityUpgrade = (c: City, u: CityUpgradeId) => cityUpgrades(c).includes(u);
+
+/** Verteidigungswert inkl. Bunker der eigenen Stadt / defence value incl. bunker of the own city */
+export function effectiveDefense(s: GameState, u: Unit): number {
+  let d = UNITS[u.type].defense;
+  const t = tileAt(s, u.x, u.y);
+  if (t && t.cityId !== null && !isShip(u) && !has(u, 'fly')) {
+    const c = cityById(s, t.cityId);
+    if (c && c.owner === u.owner && hasCityUpgrade(c, 'bunker')) d += CITY_UPGRADES.bunkerDefense;
+  }
+  return d;
+}
+
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget';
+
+export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
+  if (c.owner !== f) return 'notYourCity';
+  const ups = cityUpgrades(c);
+  if (ups.includes(up)) return 'alreadyBuilt';
+  if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
+  if (s.factions[f].stars < CITY_UPGRADES.cost[up]) return 'notEnoughStars';
+  if (up === 'radioTower' && target && !radioTargetOk(s, c, target)) return 'invalidTarget';
+  return 'ok';
+}
+
+export function radioTargetOk(s: GameState, c: City, p: Pos): boolean {
+  return inBounds(s.size, p.x, p.y) && dist(c, p) <= CITY_UPGRADES.radioRange;
+}
+
+/** Sinnvolle Funkturm-Ziele: Felder mit mindestens einem unerforschten Feld im Radius / useful radio targets */
+export function radioTargets(s: GameState, f: number, c: City): Pos[] {
+  const out: Pos[] = [];
+  for (const p of area(s.size, c.x, c.y, CITY_UPGRADES.radioRange)) {
+    if (area(s.size, p.x, p.y, CITY_UPGRADES.radioRadius).some((q) => !isExplored(s, f, q.x, q.y))) out.push(p);
+  }
+  return out;
 }
