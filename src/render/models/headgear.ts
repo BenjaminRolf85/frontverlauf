@@ -4,8 +4,8 @@
  * Each faction is recognisable by its headgear silhouette alone (also from above):
  * - Korvat: runder Serien-Stahlhelm mit breiter, ausgestellter Krempe, rotem Band, Nieten, Kinnriemen, Zahnrad-Plakette
  *   / round mass-produced steel helmet with wide flared rim, red band, rivets, chinstrap, cog badge
- * - Dravon: schwarze Sturmhaube mit Augenausschnitt und schwarze Schiffchenmuetze mit Goldbiese und Faust-Abzeichen
- *   / black balaclava with eye opening and black garrison cap with gold piping and fist badge
+ * - Dravon: schwarze Sturmhaube mit Augenausschnitt, Strickrillen und kleinem goldenen Faust-Abzeichen
+ *   / black balaclava with eye opening, knit ribs and a small gold fist badge
  * - Alvenia: offener Helm mit Schirm, Schutzbrille mit Riemen, Seitenschienen, Stern-im-Ring-Abzeichen
  *   / open helmet with peak, strapped goggles, side rails, star-in-ring badge
  * - Meridon: schraeges Barett mit Kompassrosen-Abzeichen, Headset mit Mikrofon, Sonnenbrille
@@ -176,25 +176,14 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       if (d >= 1) {
         for (const y of d === 2 ? [0.004, 0.012, 0.02] : [0.008]) ring(b, 0.058, 0.004, ws, knit, [0, y, 0], [1, 1, 0.98]);
       }
-      // Schiffchenmuetze in Laengsrichtung, leicht schraeg / garrison cap lengthwise, slightly tilted
-      b.group({ p: [0.012, 0.106, -0.006], r: [0.04, 0, -0.16] }, () => {
-        // Umschlag (Band) / turned-up band
-        b.add(d >= 1 ? geo.rbox(0.082, 0.02, 0.136, 0.006) : geo.box(0.082, 0.02, 0.136), shade(hc, 1.12), { p: [0, 0.006, 0] });
-        // Haube mit First / crown with ridge
-        b.add(geo.rtaper(0.074, 0.13, 0.012, 0.112, 0.034, d >= 1 ? 0.004 : 0.001), hc, { p: [0, 0.026, 0] });
-        // goldene Biese am First und Band / gold piping on ridge and band
-        b.box(0.008, 0.006, 0.114, L.secondary, [0, 0.044, 0]);
-        if (d >= 1) for (const sx of [-1, 1]) b.box(0.004, 0.004, 0.13, L.secondary, [sx * 0.04, 0.016, 0]);
-        if (d >= 1) {
-          // Faust-Abzeichen vorn links / fist badge front left
-          b.group({ p: [-0.042, 0.008, 0.042], r: [0, -HALF_PI, 0] }, () => {
-            b.cyl(0.014, 0.014, 0.004, 10, L.secondary, [0, 0, 0], [HALF_PI, 0, 0]);
-            addEmblem(b, 'dravon', 0.011, 0.004, hc, { p: [0, 0, 0.003] });
-          });
-        } else {
-          b.box(0.006, 0.016, 0.02, L.secondary, [-0.042, 0.008, 0.042]);
-        }
-      });
+      // Oberseite rund, kleines goldenes Faust-Abzeichen seitlich / rounded top, small gold fist badge on the side
+      b.add(geo.hemi(0.058, ws, hs), hc, { p: [0, 0.098, 0], s: [0.98, 0.42, 0.96] });
+      if (d >= 1) {
+        b.group({ p: [-0.057, 0.056, 0.004], r: [0, -HALF_PI, 0] }, () => {
+          b.cyl(0.015, 0.015, 0.004, 10, L.secondary, [0, 0, 0], [HALF_PI, 0, 0]);
+          addEmblem(b, 'dravon', 0.011, 0.004, hc, { p: [0, 0, 0.003] });
+        });
+      }
       break;
     }
     case 'alvenia': {
