@@ -108,3 +108,31 @@ export function cityLabel(name: string, level: number, color: string, ink: strin
   s.renderOrder = 9;
   return s;
 }
+
+/** Fadenkreuz ueber angreifbaren Feinden / crosshair above attackable enemies */
+export function attackIcon(selected: boolean): THREE.Sprite {
+  const key = `attack-${selected}`;
+  const S = 128;
+  const m = material(key, S, S, (ctx) => {
+    const c = S / 2, r = 40;
+    const ring = selected ? semantic.accent : semantic.dangerBright;
+    // schwarzer Rand fuer Kontrast / black edge for contrast
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = semantic.ink; ctx.lineWidth = 20;
+    ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke();
+    for (const [x1, y1, x2, y2] of [[c, 6, c, 34], [c, S - 34, c, S - 6], [6, c, 34, c], [S - 34, c, S - 6, c]]) {
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.strokeStyle = ring; ctx.lineWidth = 10;
+    ctx.beginPath(); ctx.arc(c, c, r, 0, Math.PI * 2); ctx.stroke();
+    for (const [x1, y1, x2, y2] of [[c, 6, c, 34], [c, S - 34, c, S - 6], [6, c, 34, c], [S - 34, c, S - 6, c]]) {
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.fillStyle = semantic.ink; ctx.beginPath(); ctx.arc(c, c, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = ring; ctx.beginPath(); ctx.arc(c, c, 7, 0, Math.PI * 2); ctx.fill();
+  });
+  const s = new THREE.Sprite(m);
+  s.scale.set(0.36, 0.36, 1);
+  s.renderOrder = 11;
+  return s;
+}
