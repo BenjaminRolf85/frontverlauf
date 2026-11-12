@@ -24,6 +24,21 @@ export function band(b: Builder, x: number, y: number, z: number, w: number, d: 
   b.block(x, y, z, w + 0.008, h, d + 0.008, c, ry);
 }
 
+/** Fenstersprossen auf Vorder- und rechter Seite / window mullions on front and right side */
+export function mullions(b: Builder, w: number, d: number, y: number, h: number, c: ColorLike) {
+  const n = Math.max(2, Math.round(w / 0.045));
+  for (let i = 1; i < n; i++) b.box(0.006, h + 0.004, 0.006, c, [-w / 2 + (i / n) * w, y + h / 2, d / 2 + 0.005]);
+  const m = Math.max(2, Math.round(d / 0.045));
+  for (let i = 1; i < m; i++) b.box(0.006, h + 0.004, 0.006, c, [w / 2 + 0.005, y + h / 2, -d / 2 + (i / m) * d]);
+}
+
+/** Tuer mit Rahmen und Vordach / door with frame and canopy */
+export function door(b: Builder, z: number, c: ColorLike, frame: ColorLike, w = 0.032, h = 0.05) {
+  b.box(w + 0.01, h + 0.006, 0.004, frame, [0, h / 2, z + 0.001]);
+  b.box(w, h, 0.006, c, [0, h / 2, z + 0.003]);
+  b.box(w + 0.02, 0.006, 0.016, frame, [0, h + 0.006, z + 0.008]);
+}
+
 /** Fahnenmast mit Fraktionsflagge und Emblem / flag pole with faction flag and emblem */
 export function flagPole(b: Builder, f: FactionId | null, x: number, y: number, z: number, h: number, size = 1) {
   const L = look(f);
@@ -105,7 +120,11 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
       case 'korvat': {
         // Plattenbau, Flachdach / prefab block, flat roof
         b.block(0, 0, 0, w, h, d, L.wall);
-        for (let i = 0; i < floors; i++) band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.018, mat.window);
+        for (let i = 0; i < floors; i++) {
+          band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.018, mat.window);
+          if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.018, L.wall);
+        }
+        door(b, d / 2, L.roof, L.wallDark);
         b.block(0, h, 0, w + 0.016, 0.018, d + 0.016, L.roofDark);
         b.block(0, h - 0.03, d / 2 + 0.002, w * 0.3, 0.03, 0.006, L.roof);
         if (o.landmark) {
@@ -118,7 +137,11 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         // dunkler Stein, spitze Pyramidendaecher, Goldkanten / dark stone, sharp pyramid roofs, gold trim
         b.block(0, 0, 0, w, h, d, L.wall);
         b.block(0, 0, 0, w + 0.012, Math.min(0.04, h * 0.25), d + 0.012, L.wallDark);
-        for (let i = 0; i < floors; i++) band(b, 0, (i + 0.5) * (h / floors), 0, w, d, 0.014, L.secondary);
+        for (let i = 0; i < floors; i++) {
+          band(b, 0, (i + 0.5) * (h / floors), 0, w, d, 0.014, L.secondary);
+          if (i < 3) mullions(b, w, d, (i + 0.5) * (h / floors) - 0.022, 0.02, L.wallDark);
+        }
+        door(b, d / 2, mat.dark, L.secondary, 0.034, 0.045);
         const rh = Math.max(w, d) * (o.landmark ? 1.05 : 0.8);
         b.add(geo.cone(Math.SQRT1_2 * 1.02, 1, 4).rotateY(Math.PI / 4), L.roof, { p: [0, h + rh / 2, 0], s: [w, rh, d] });
         if (o.landmark || R() < 0.35) b.add(geo.cone(0.012, 0.08, 4), L.secondary, { p: [0, h + rh + 0.03, 0] });
@@ -133,7 +156,11 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
           b.add(geo.cone(r * 1.15, r * 2, 10), L.roof, { p: [0, h + r, 0] });
         } else {
           b.block(0, 0, 0, w, h, d, L.wall);
-          for (let i = 0; i < floors; i++) band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.wallDark);
+          for (let i = 0; i < floors; i++) {
+            band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.wallDark);
+            if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
+          }
+          b.block(w * 0.28, h, -d * 0.1, 0.022, Math.min(0.12, w * 0.55) * 0.8, 0.022, mat.concreteDark);
           b.block(0, 0, d / 2 + 0.002, 0.03, 0.05, 0.006, L.roofDark);
           gableRoof(b, 0, h, 0, w + 0.03, d + 0.03, Math.min(0.12, w * 0.55), L.roof);
         }
@@ -147,7 +174,11 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
           for (let i = 0; i < n; i++) container(b, 0, i * 0.06, 0, tones[(i + Math.floor(R() * 3)) % 3], 0, Math.max(w, 0.12));
         } else {
           b.block(0, 0, 0, w, h, d, L.wall);
-          for (let i = 0; i < floors; i++) band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.roof);
+          for (let i = 0; i < floors; i++) {
+            band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.roof);
+            if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
+          }
+          door(b, d / 2, L.secondary, L.wallDark);
           b.block(0, h, 0, w + 0.01, 0.014, d + 0.01, L.wallDark);
           b.box(w * 0.8, 0.008, 0.05, L.secondary, [0, h * 0.35, d / 2 + 0.022], [0.35, 0, 0]);
           if (o.landmark) {
@@ -166,6 +197,13 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         for (let i = 0; i < floors; i++) b.add(geo.cyl(r + 0.004, r + 0.004, 0.012, 6, true), i % 2 ? L.secondary : mat.window, { p: [0, (i + 0.5) * (h / floors), 0] });
         b.cyl(r * 0.75, r * 1.04, 0.04, 6, L.roof, [0, h + 0.02, 0]);
         b.cyl(r * 0.55, r * 0.74, 0.016, 6, mat.snow, [0, h + 0.048, 0]);
+        // Lichtleisten an den Kanten + Eingang / light strips on the edges + entrance
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          b.box(0.006, h * 0.9, 0.006, i % 2 ? L.secondary : L.wallDark, [Math.sin(a) * (r + 0.002), h * 0.45, Math.cos(a) * (r + 0.002)]);
+        }
+        b.add(geo.cbox(0.04, 0.05, 0.03, 0.008), L.wallDark, { p: [0, 0.025, r * 0.87] });
+        b.box(0.026, 0.04, 0.004, mat.glassDark, [0, 0.022, r * 0.87 + 0.016]);
         if (o.landmark) {
           b.cyl(0.005, 0.008, 0.16, 4, mat.metal, [0, h + 0.13, 0]);
           b.add(geo.ico(0.014, 0), L.secondary, { p: [0, h + 0.215, 0] });
@@ -175,8 +213,12 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
       default: {
         // neutrales Dorfhaus / neutral village house
         b.block(0, 0, 0, w, h, d, L.wall);
-        b.block(0, 0, d / 2 + 0.002, 0.03, 0.05, 0.006, mat.wood);
-        b.block(w * 0.25, h * 0.45, d / 2 + 0.002, 0.03, 0.03, 0.006, mat.window);
+        door(b, d / 2, mat.wood, mat.woodLight, 0.03, 0.05);
+        for (const x of [-w * 0.28, w * 0.28]) {
+          b.block(x, h * 0.42, d / 2 + 0.002, 0.03, 0.03, 0.006, mat.window);
+          for (const s of [-1, 1]) b.block(x + s * 0.021, h * 0.42, d / 2 + 0.003, 0.012, 0.032, 0.006, L.roofDark);
+        }
+        b.block(w / 2 + 0.002, h * 0.42, 0, 0.006, 0.03, 0.03, mat.window);
         gableRoof(b, 0, h, 0, w + 0.03, d + 0.03, Math.min(0.11, w * 0.55), L.roof);
         b.block(-w * 0.25, h, -d * 0.15, 0.025, 0.07, 0.025, mat.concreteDark);
         break;

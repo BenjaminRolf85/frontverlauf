@@ -126,6 +126,8 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       // breite, ausgestellte Krempe mit Kante / wide flared rim with edge
       b.add(geo.cyl(0.088, 0.116, 0.016, ws), shade(hc, 0.85), { p: [0, 0.061, -0.004], s: [1, 1, 1.05] });
       ring(b, 0.117, 0.007, ws, shade(hc, 0.55), [0, 0.0535, -0.004], [1, 1, 1.05]);
+      // rotes Krempenband (auch von oben sichtbar) / red rim band (visible from above)
+      b.cyl(0.108, 0.108, 0.004, ws, L.primary, [0, 0.067, -0.004]);
       // rotes Band / red band
       ring(b, 0.0865, 0.016, ws, L.primary, [0, 0.077, -0.004], [1, 1, 1.06], 0.0875);
       if (d === 2) {

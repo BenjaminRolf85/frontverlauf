@@ -23,6 +23,18 @@ function hall(b: Builder, f: FactionId | null, x: number, z: number, w: number, 
     b.block(0, 0, d / 2 + 0.002, w * 0.45, h * 0.7, 0.006, mat.darkMid);
     for (let i = 0; i < 3; i++) b.block(0, h * 0.12 + i * h * 0.2, d / 2 + 0.005, w * 0.45, 0.006, 0.004, mat.metal);
     gableRoof(b, 0, h, 0, w + 0.03, d + 0.03, Math.min(0.09, w * 0.35), L.roof, HALF_PI);
+    // Fensterreihe, Dachfirst, Regenrinnen, Lampe / window row, ridge, gutters, lamp
+    const n = Math.max(2, Math.round(w / 0.07));
+    for (let i = 0; i < n; i++) {
+      const x = -w / 2 + ((i + 0.5) / n) * w;
+      if (Math.abs(x) < w * 0.25) continue;
+      b.block(x, h * 0.55, d / 2 + 0.002, 0.03, 0.03, 0.006, mat.window);
+      b.block(x, h * 0.55 - 0.004, d / 2 + 0.004, 0.036, 0.004, 0.008, L.wallDark);
+    }
+    for (let i = 0; i < 3; i++) b.block(w / 2 + 0.002, h * 0.55, -d / 2 + ((i + 0.5) / 3) * d, 0.006, 0.03, 0.03, mat.window);
+    b.box(w + 0.04, 0.012, 0.012, L.roofDark, [0, h + Math.min(0.09, w * 0.35), 0]);
+    for (const s of [-1, 1]) b.box(w + 0.03, 0.008, 0.01, mat.metal, [0, h - 0.002, s * (d / 2 + 0.018)]);
+    b.box(0.014, 0.01, 0.014, mat.yellow, [0, h * 0.8, d / 2 + 0.01]);
   });
 }
 
