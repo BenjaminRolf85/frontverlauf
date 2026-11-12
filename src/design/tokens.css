@@ -71,6 +71,8 @@
   --p-color-korvat-red: #c8372d;
   --p-color-korvat-olive: #6b7a3a;
   --p-color-dravon-anthracite: #3a3d42;
+  --p-color-dravon-camo: #4d5c2e;
+  --p-color-dravon-black: #1c1d20;
   --p-color-dravon-gold: #d4a72c;
   --p-color-alvenia-blue: #2f6fc4;
   --p-color-alvenia-white: #f2f5fa;
@@ -210,7 +212,7 @@
   --faction-korvat-terrain: #a6c95a;
   --faction-korvat-ink: #ffffff;
   --faction-korvat-marker: #e2412e;
-  --faction-dravon-primary: #3a3d42;
+  --faction-dravon-primary: #4d5c2e;
   --faction-dravon-secondary: #d4a72c;
   --faction-dravon-terrain: #a9b07a;
   --faction-dravon-ink: #ffffff;

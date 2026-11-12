@@ -107,10 +107,10 @@ function build(id: FactionId): Look {
         emblem: col(p.paper50),
       };
     case 'dravon':
-      // Anthrazit/Gold, Visierhelm / anthracite/gold, visor helmet
+      // Tarngruen mit schwarzem Visierhelm, Goldakzente / camo green with black visor helmet, gold accents
       return {
         ...base,
-        helmet: pr, jacket: shade(pr, 1.12), pants: shade(pr, 0.75), gear: se,
+        helmet: col(p.dravonBlack), jacket: pr, pants: shade(pr, 0.78), gear: shade(pr, 0.6),
         hull: shade(pr, 1.1), hullDark: shade(pr, 0.7), trim: se,
         wall: shade(pr, 1.45), wallDark: pr, roof: shade(pr, 0.8), roofDark: shade(pr, 0.6),
         emblem: se,

@@ -79,11 +79,11 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
       ring(b, 0.072, 0.012, ws, L.primary, [0, 0.09, -0.006], [1.04, 1, 1.08]);
       break;
     case 'dravon':
-      // Fedora mit Goldband / fedora with gold band
-      b.cyl(0.094, 0.096, 0.012, ws, L.primary, [0, 0.092, 0]);
-      b.add(geo.rtaper(0.11, 0.11, 0.095, 0.08, 0.065, 0.02), L.primary, { p: [0, 0.13, 0] });
+      // schwarzer Fedora mit Goldband / black fedora with gold band
+      b.cyl(0.094, 0.096, 0.012, ws, L.helmet, [0, 0.092, 0]);
+      b.add(geo.rtaper(0.11, 0.11, 0.095, 0.08, 0.065, 0.02), L.helmet, { p: [0, 0.13, 0] });
       ring(b, 0.058, 0.016, ws, L.secondary, [0, 0.108, 0], [1.02, 1, 1]);
-      b.box(0.02, 0.012, 0.06, shade(L.primary, 0.75), [0, 0.164, 0]);
+      b.box(0.02, 0.012, 0.06, shade(L.helmet, 0.75), [0, 0.164, 0]);
       break;
     case 'alvenia':
       // weisser Breitkrempenhut mit blauem Band / white wide-brim hat with blue band
