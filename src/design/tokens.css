@@ -82,6 +82,11 @@
   --p-color-meridon-orange: #f08a24;
   --p-color-velkar-ice: #aab8c2;
   --p-color-velkar-green: #8fd16a;
+  --p-color-zyrr-violet: #7b3fc4;
+  --p-color-zyrr-acid: #9cff3a;
+  --p-color-xeno600: #5a2d7a;
+  --p-color-xeno400: #8a4fb8;
+  --p-color-xeno-glow: #d18cff;
   --p-font-display: 'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-comic: 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-body: 'Comic Neue', 'Trebuchet MS', 'Segoe UI', sans-serif;
@@ -187,6 +192,10 @@
   --s-cactus: #4f9a4a;
   --s-reed: #8a8f3a;
   --s-river: #4cc3e6;
+  --s-xeno-ground: #8a4fb8;
+  --s-xeno-ground-dark: #5a2d7a;
+  --s-xeno-glow: #d18cff;
+  --s-xeno-acid: #9cff3a;
   --s-flower-a: #e8483b;
   --s-flower-b: #ffd23f;
   --s-flower-c: #fbf7ec;
@@ -238,6 +247,11 @@
   --faction-velkar-terrain: #9ec9a0;
   --faction-velkar-ink: #15131f;
   --faction-velkar-marker: #8fd16a;
+  --faction-zyrr-primary: #7b3fc4;
+  --faction-zyrr-secondary: #9cff3a;
+  --faction-zyrr-terrain: #9a7fb6;
+  --faction-zyrr-ink: #ffffff;
+  --faction-zyrr-marker: #9cff3a;
   --c-button-bg: #ffd23f;
   --c-button-bg-hover: #f5b700;
   --c-button-bg-secondary: #efe6c6;

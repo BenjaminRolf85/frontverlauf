@@ -5,10 +5,12 @@
  * Alvenia weisse Waende mit blauen Satteldaechern, Meridon helle Flachdachhaeuser mit Markisen und Containern,
  * Velkar sechseckige Hightech-Bauten mit Schneehauben, neutral: Dorfhaeuser mit Holzdaechern.
  */
+import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, type ColorLike } from './kit';
 import { look, mat, type Look } from './look';
+import { zyrrSpire } from './xeno';
 
 export const HALF_PI = Math.PI / 2;
 
@@ -41,6 +43,10 @@ export function door(b: Builder, z: number, c: ColorLike, frame: ColorLike, w = 
 
 /** Fahnenmast mit Fraktionsflagge und Emblem / flag pole with faction flag and emblem */
 export function flagPole(b: Builder, f: FactionId | null, x: number, y: number, z: number, h: number, size = 1) {
+  if (f === 'zyrr') {
+    zyrrSpire(b, x, y, z, h, size);
+    return;
+  }
   const L = look(f);
   b.cyl(0.008 * size, 0.011 * size, h, 5, mat.metalLight, [x, y + h / 2, z]);
   b.add(geo.ico(0.014 * size, 0), mat.gold, { p: [x, y + h + 0.01 * size, z] });
@@ -207,6 +213,25 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         if (o.landmark) {
           b.cyl(0.005, 0.008, 0.16, 4, mat.metal, [0, h + 0.13, 0]);
           b.add(geo.ico(0.014, 0), L.secondary, { p: [0, h + 0.215, 0] });
+        }
+        break;
+      }
+      case 'zyrr': {
+        // organische Kuppel mit Adern, Leuchtkapseln und Spitze / organic dome with veins, glowing pods and spire
+        const r = Math.min(w, d) * 0.55;
+        const domeH = o.landmark ? h * 0.55 : h;
+        const sy = Math.max(0.5, domeH / r);
+        b.add(geo.hemi(r, 12, 4), L.wall, { p: [0, 0, 0], s: [1, sy, 1] });
+        for (let k = 0; k < 2; k++) b.add(new THREE.TorusGeometry(r, 0.005, 3, 8, Math.PI), L.roof, { p: [0, 0, 0], r: [0, (k / 2) * Math.PI + 0.4, 0], s: [1, sy, 1] });
+        b.add(geo.sphere(r * 0.3, 8, 4), mat.ink, { p: [0, r * 0.25, r * 0.92], s: [0.8, 1, 0.4] });
+        for (const s of [-1, 1]) b.add(geo.sphere(r * 0.18, 6, 4), s > 0 ? mat.acid : mat.xenoGlow, { p: [s * r * 0.75, r * sy * 0.45, r * 0.3] });
+        if (o.landmark) {
+          b.add(geo.cone(r * 0.35, h * 0.6, 8), L.roof, { p: [0, r * sy + h * 0.28, 0] });
+          b.add(geo.ico(r * 0.2, 1), mat.xenoGlow, { p: [0, r * sy + h * 0.6, 0] });
+          for (let i = 0; i < 2; i++) b.add(geo.torus(r * (0.3 - i * 0.08), 0.004, 3, 10), mat.acid, { p: [0, r * sy + h * (0.12 + i * 0.16), 0], r: [HALF_PI, 0, 0] });
+        } else if (R() < 0.5) {
+          b.add(geo.cone(r * 0.15, r * 0.6, 6), L.roof, { p: [r * 0.2, r * sy + r * 0.2, -r * 0.1] });
+          b.add(geo.ico(r * 0.1, 0), mat.acid, { p: [r * 0.2, r * sy + r * 0.52, -r * 0.1] });
         }
         break;
       }

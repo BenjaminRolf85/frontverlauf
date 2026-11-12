@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, shade } from './kit';
-import { look, mat, type Look } from './look';
+import { look, mat, styleOf, type Look } from './look';
 import { soldier, standPose } from './soldiers';
 
 const HALF_PI = Math.PI / 2;
@@ -61,8 +61,8 @@ function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: 
 
 /** Aufbau-Block im Fraktionsstil mit Bruecke / superstructure block in faction style with bridge windows */
 function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: number, z: number, w: number, h: number, d: number) {
-  const base = f === 'alvenia' || f === 'korvat' ? mat.concreteLight : f === 'meridon' ? mat.paper : f === 'dravon' ? shade(L.primary, 1.35) : shade(L.primary, 1.15);
-  switch (f) {
+  const base = styleOf(f) === 'alvenia' || styleOf(f) === 'korvat' ? mat.concreteLight : styleOf(f) === 'meridon' ? mat.paper : styleOf(f) === 'dravon' ? shade(L.primary, 1.35) : shade(L.primary, 1.15);
+  switch (styleOf(f)) {
     case 'korvat':
       b.add(geo.cbox(w, h, d, 0.008), base, { p: [x, y + h / 2, z] });
       b.block(x, y + h * 0.62, z, w + 0.006, h * 0.16, d + 0.006, mat.window);
@@ -106,19 +106,19 @@ function lifeboats(b: Builder, L: Look, x: number, y: number, z: number) {
 
 /** Geschuetzturm / gun turret; dir 1 = nach vorn, -1 = nach hinten */
 function turret(b: Builder, f: FactionId, L: Look, z: number, y: number, size: number, barrels: number, dir: 1 | -1) {
-  const big = f === 'dravon' ? 1.45 : 1;
+  const big = styleOf(f) === 'dravon' ? 1.45 : 1;
   b.group({ p: [0, y, z], r: [0, dir === 1 ? 0 : Math.PI, 0] }, () => {
-    if (f === 'alvenia') {
+    if (styleOf(f) === 'alvenia') {
       b.cyl(size * 0.5, size * 0.55, size * 0.34, 8, L.hull, [0, size * 0.25, 0]);
       b.add(geo.hemi(size * 0.5, 8, 2), L.hull, { p: [0, size * 0.42, 0], s: [1, 0.3, 1] });
-    } else if (f === 'dravon') {
+    } else if (styleOf(f) === 'dravon') {
       b.add(geo.prismXZ([[-size * 0.55, -size * 0.45], [size * 0.55, -size * 0.45], [size * 0.5, size * 0.25], [0, size * 0.55], [-size * 0.5, size * 0.25]], size * 0.38), L.hull, { p: [0, size * 0.06, 0] });
       b.add(geo.prismXZ([[-size * 0.56, -size * 0.46], [size * 0.56, -size * 0.46], [size * 0.51, size * 0.26], [-size * 0.51, size * 0.26]], size * 0.08), L.trim, { p: [0, size * 0.24, 0] });
-    } else if (f === 'velkar') {
+    } else if (styleOf(f) === 'velkar') {
       b.add(geo.taper(size * 1.0, size * 0.95, size * 0.7, size * 0.6, size * 0.34, -size * 0.06), L.hull, { p: [0, size * 0.23, 0] });
     } else {
       b.add(geo.ctaper(size * 0.95, size * 0.9, size * 0.85, size * 0.75, size * 0.36, size * 0.12), L.hull, { p: [0, size * 0.24, 0] });
-      if (f === 'meridon') b.block(0, size * 0.42, -size * 0.2, size * 0.5, size * 0.1, size * 0.3, L.trim);
+      if (styleOf(f) === 'meridon') b.block(0, size * 0.42, -size * 0.2, size * 0.5, size * 0.1, size * 0.3, L.trim);
     }
     b.cyl(size * 0.44, size * 0.48, size * 0.08, 12, L.hullDark, [0, size * 0.04, 0]);
     // Entfernungsmesser + Luke / rangefinder + hatch
@@ -145,18 +145,18 @@ function mast(b: Builder, L: Look, f: FactionId, z: number, y: number, h: number
     b.cyl(0.004, 0.004, 0.02, 4, mat.dark, [0, 0.01, 0]);
     b.box(0.09, 0.016, 0.008, mat.white, [0, 0.026, 0]);
   });
-  if (f === 'velkar' || f === 'alvenia') b.add(geo.sphere(0.026, 8, 4), mat.white, { p: [0, y + h * 0.58, z + 0.035] });
-  if (f === 'velkar') b.add(geo.ico(0.01, 0), L.secondary, { p: [0, y + h + 0.01, z] });
+  if (styleOf(f) === 'velkar' || styleOf(f) === 'alvenia') b.add(geo.sphere(0.026, 8, 4), mat.white, { p: [0, y + h * 0.58, z + 0.035] });
+  if (styleOf(f) === 'velkar') b.add(geo.ico(0.01, 0), L.secondary, { p: [0, y + h + 0.01, z] });
   // Wimpel in Fraktionsfarbe / pennant in faction colour
   b.add(geo.profileZY([[0, 0], [-0.07, -0.015], [0, -0.03]], 0.004), L.trim, { p: [0, y + h, z - 0.004] });
 }
 
 function funnel(b: Builder, f: FactionId, L: Look, z: number, y: number, h: number, r: number) {
-  if (f === 'alvenia') b.cyl(r, r * 1.1, h, 10, L.hull, [0, y + h / 2, z], [-0.15, 0, 0]);
-  else if (f === 'velkar') b.add(geo.taper(r * 2, r * 2.4, r * 1.4, r * 1.6, h), L.hull, { p: [0, y + h / 2, z] });
-  else if (f === 'dravon') b.add(geo.taper(r * 2, r * 2.6, r * 1.6, r * 1.6, h, -r * 0.6), L.hull, { p: [0, y + h / 2, z] });
+  if (styleOf(f) === 'alvenia') b.cyl(r, r * 1.1, h, 10, L.hull, [0, y + h / 2, z], [-0.15, 0, 0]);
+  else if (styleOf(f) === 'velkar') b.add(geo.taper(r * 2, r * 2.4, r * 1.4, r * 1.6, h), L.hull, { p: [0, y + h / 2, z] });
+  else if (styleOf(f) === 'dravon') b.add(geo.taper(r * 2, r * 2.6, r * 1.6, r * 1.6, h, -r * 0.6), L.hull, { p: [0, y + h / 2, z] });
   else b.add(geo.cbox(r * 2, h, r * 2.4, r * 0.5), L.hull, { p: [0, y + h / 2, z] });
-  const dz = f === 'dravon' ? -r * 0.6 : 0;
+  const dz = styleOf(f) === 'dravon' ? -r * 0.6 : 0;
   b.block(0, y + h - 0.02, z + dz, r * 2.1, 0.02, r * 2.5, L.trim);
   b.block(0, y + h, z + dz, r * 1.5, 0.004, r * 1.8, mat.ink);
   b.add(geo.ico(r * 0.9, 0), mat.cloudShade, { p: [0, y + h + r, z + dz - r * 0.6] });
@@ -238,7 +238,7 @@ export function submarine(f: FactionId): Builder {
   // Turm / sail
   const sz = 0.06;
   let st = 0.15;
-  switch (f) {
+  switch (styleOf(f)) {
     case 'korvat':
       b.add(geo.cbox(0.07, 0.12, 0.14, 0.014), L.hull, { p: [0, 0.09, sz] });
       b.block(0, 0.12, sz, 0.074, 0.016, 0.144, L.trim);
@@ -298,7 +298,7 @@ export function destroyer(f: FactionId): Builder {
   lifeboats(b, L, 0.07, d + 0.04, -0.04);
   turret(b, f, L, 0.24, d, 0.09, 1, 1);
   turret(b, f, L, -0.25, d, 0.075, 1, -1);
-  if (f === 'meridon') containers(b, L, -0.14, d);
+  if (styleOf(f) === 'meridon') containers(b, L, -0.14, d);
   else {
     // Torpedorohre / torpedo tubes
     b.add(geo.cbox(0.06, 0.03, 0.08, 0.01), L.hullDark, { p: [0, d + 0.015, -0.15] });
@@ -338,7 +338,7 @@ export function battleship(f: FactionId): Builder {
   bridgeWings(b, L, d + 0.16, 0.05, 0.12);
   mast(b, L, f, 0.03, d + 0.18, 0.15);
   funnel(b, f, L, -0.1, d, 0.15, 0.035);
-  if (f === 'meridon') containers(b, L, -0.18, d);
+  if (styleOf(f) === 'meridon') containers(b, L, -0.18, d);
   // Nebengeschuetze / secondary guns
   for (const s of [-1, 1]) for (const z of [-0.04, 0.06]) {
     b.add(geo.cyl(0.02, 0.022, 0.025, 8), L.hull, { p: [s * 0.1, d + 0.0125, z] });

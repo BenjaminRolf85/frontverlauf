@@ -3,10 +3,10 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, LAND_UNITS, SHIP_UPGRADES, UNITS, type BuildingId,
+  ALIEN_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, LAND_UNITS, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
-  barrierCheck, barrierTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
+  barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
   type GameState, type Unit,
@@ -23,6 +23,7 @@ const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow:
 const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
   spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
+  grey: 'lightning', terraformer: 'build', skimmer: 'move', mech: 'shield', tripod: 'range',
 };
 const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star' };
 
@@ -91,7 +92,11 @@ export class Hud {
       case 'zoomIn': v.setZoom(v.zoom * 1.25); break;
       case 'zoomOut': v.setZoom(v.zoom / 1.25); break;
       case 'endTurn': void this.game.endTurn(); break;
-      case 'research': this.cb.openResearch(); break;
+      case 'research': {
+        const st = this.game.state;
+        if (st && isAlienFaction(st, this.game.viewer >= 0 ? this.game.viewer : st.current)) { this.game.ui.toast(t('xeno.noResearch'), 'research'); break; }
+        this.cb.openResearch(); break;
+      }
       case 'diplomacy': this.cb.openDiplomacy(); break;
       case 'menu': this.cb.openMenu(); break;
       case 'grand': this.cb.openGrand(); break;
@@ -233,6 +238,7 @@ export class Hud {
       const bones = tile.remains ? tile.remains.skeletons ?? (tile.remains.kind === 'skeleton' ? 1 : 0) : 0;
       if (bones) tags.push(t('features.skeleton', { n: bones }));
       body += `<div class="row">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
+      if (tile.xeno) tags.push(`${t('xeno.ground')}: ${t('xeno.groundDesc')}`);
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
@@ -264,6 +270,13 @@ export class Hud {
     if (has(u, 'heal')) {
       const ok = canActStill(u);
       this.actions.push({ id: 'medicHeal', icon: 'heal', label: t('actions.medicHeal'), enabled: ok, reason: ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'medicHeal', unit: u.id }) });
+    }
+    if (has(u, 'terraform')) {
+      const targets = terraformTargets(s, u);
+      const active = g.terraformUnit === u.id;
+      this.actions.push({ id: 'terraform', icon: 'build', label: active ? t('actions.cancel') : t('xeno.terraform'), cost: active ? undefined : 0, variant: 'primary',
+        enabled: active || targets.length > 0, reason: targets.length ? t('abilities.terraformDesc') : t('errors.unitExhausted'),
+        run: () => { if (active) { g.terraformUnit = null; g.updateHighlights(); this.render(); } else { g.startTerraform(u.id); g.ui.toast(t('xeno.terraformHint'), 'build'); } } });
     }
     if (BARRIER.builders.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const targets = barrierTargets(s, u);
@@ -310,7 +323,13 @@ export class Hud {
         },
       });
     }
-    for (const type of LAND_UNITS) {
+    // Zyrr: erst das Stadtfeld terraformen / Zyrr: terraform the city tile first
+    if (isAlienFaction(s, c.owner!) && !s.tiles[c.y * s.size + c.x].xeno) {
+      const chk = terraformCheck(s, c.owner!, c.x, c.y);
+      this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
+        reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
+    }
+    for (const type of isAlienFaction(s, c.owner!) ? ALIEN_UNITS : LAND_UNITS) {
       const st = UNITS[type];
       if (st.cost === null) continue;
       if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
@@ -326,6 +345,11 @@ export class Hud {
   private buildActions(s: GameState, x: number, y: number) {
     const g = this.game;
     const f = s.current;
+    if (isAlienFaction(s, f) && !s.tiles[y * s.size + x].xeno) {
+      const chk = terraformCheck(s, f, x, y);
+      if (chk === 'ok' || chk === 'notEnoughStars') this.actions.push({ id: 'terraform-tile', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary',
+        enabled: chk === 'ok', reason: chk === 'ok' ? t('xeno.groundDesc') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x, y }) });
+    }
     for (const b of Object.keys(BUILDINGS) as BuildingId[]) {
       const chk = buildCheck(s, f, b, x, y);
       if (!chk.ok && chk.error !== 'notEnoughStars' && chk.error !== 'onePerCity') continue;

@@ -3,12 +3,12 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  aliveFactions, buildCheck, cityUpgradeCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
+  aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
 } from '../core';
 import {
-  BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
+  ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
   type BuildingId, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -265,6 +265,7 @@ function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, uncon
 /** Wunschtyp fuer eine Stadt / desired unit type for a city */
 export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId | null {
   const { s, f, prof } = ctx;
+  if (isAlienFaction(s, f)) return chooseAlienUnit(ctx, urgent);
   const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t || u.carried === t).length;
   const army = Math.max(1, ctx.my.length);
   const unexplored = ctx.fa.explored.some((e) => !e);
@@ -297,6 +298,23 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, LAND_UNITS.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
+    if (sc > bs) { bs = sc; best = t; }
+  }
+  return best;
+}
+
+/** Zyrr: Armeemischung aus Alien-Einheiten / Zyrr: army mix of alien units */
+function chooseAlienUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
+  const army = Math.max(1, ctx.my.length);
+  const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t).length;
+  if (urgent) return ctx.fa.stars >= UNITS.mech.cost! ? 'mech' : 'grey';
+  const share: Partial<Record<UnitTypeId, number>> = {
+    grey: 0.35, terraformer: army >= 3 ? 0.12 : 0.05, skimmer: ctx.fa.explored.some((e) => !e) ? 0.15 : 0.08,
+    mech: 0.22, tripod: ctx.hostileCities.length ? 0.18 : 0.05,
+  };
+  let best: UnitTypeId | null = null, bs = -Infinity;
+  for (const t of ALIEN_UNITS) {
+    const sc = ((share[t] ?? 0) - count(t) / army) * 4 - UNITS[t].cost! / 250;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;
@@ -381,7 +399,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
     mk(type, 1);
-    if (type !== 'infantry') mk('infantry', 0.8);
+    const cheap: UnitTypeId = isAlienFaction(s, f) ? 'grey' : 'infantry';
+    if (type !== cheap) mk(cheap, 0.8);
   }
 
   // Gebaeude / buildings
@@ -423,10 +442,33 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
 
+  // Zyrr: Terraformen und Xeno-Gebaeude / Zyrr: terraforming and xeno buildings
+  if (isAlienFaction(s, f)) {
+    for (const c of ctx.myCities) {
+      for (const p of cityTiles(s, c)) {
+        const t = s.tiles[idx(s.size, p.x, p.y)];
+        if (!t.xeno) {
+          if (terraformCheck(s, f, p.x, p.y) !== 'ok' && terraformCheck(s, f, p.x, p.y) !== 'notEnoughStars') continue;
+          // Stadtfeld zuerst (sonst keine Ausbildung), dann Ressourcen, dann der Rest
+          // city tile first (otherwise no training), then resources, then the rest
+          const value = t.cityId !== null ? 200 : t.resource ? 2 * popVal * 0.6 + 6 : popVal * 0.5 + 4;
+          buys.push({ cmd: { type: 'terraform', x: p.x, y: p.y }, cost: XENO.terraformCost, value, save: t.cityId !== null ? false : true });
+          continue;
+        }
+        for (const b of ['xenoHive', 'xenoHarvester'] as BuildingId[]) {
+          const chk = buildCheck(s, f, b, p.x, p.y);
+          if (!chk.ok && chk.error !== 'notEnoughStars') continue;
+          buys.push({ cmd: { type: 'build', building: b, x: p.x, y: p.y }, cost: chk.cost, value: BUILDINGS[b].pop * popVal, save: true });
+        }
+      }
+    }
+  }
+
   // Forschung / research
   const sites = siteCounts(ctx);
   const unconnected = ctx.myCities.filter((c) => !c.connected && !c.isHQ).length;
   for (const t of TECH_IDS) {
+    if (isAlienFaction(s, f)) break;
     if (fa.techs.includes(t)) continue;
     const parent = TECHS[t].parent;
     if (parent && !fa.techs.includes(parent)) continue;

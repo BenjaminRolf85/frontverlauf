@@ -66,8 +66,40 @@ function sunglasses(b: Builder, d: Detail, c: ColorLike = mat.ink) {
   b.box(0.016, 0.006, 0.006, c, [0, 0.064, 0.054]);
 }
 
+/** Fremdwesen-Kopf statt Helm (Zyrr) / alien head instead of a helmet (Zyrr) */
+export function alienHead(b: Builder, L: Look, d: Detail, antenna = true) {
+  const seg = d === 2 ? 16 : d === 1 ? 12 : 8;
+  const skin = mat.alienSkin;
+  b.add(geo.sphere(0.072, seg, Math.max(4, Math.round(seg * 0.6))), skin, { p: [0, 0.085, -0.006], s: [1.02, 1.12, 1.0] });
+  b.add(geo.sphere(0.042, Math.max(8, seg - 4), 5), skin, { p: [0, 0.03, 0.012], s: [0.8, 1.0, 0.85] });
+  // grosse schwarze Mandelaugen / big black almond eyes
+  for (const sx of [-1, 1]) {
+    b.add(geo.sphere(0.024, Math.max(8, seg - 4), 6), mat.ink, { p: [sx * 0.031, 0.072, 0.056], r: [0, sx * 0.35, sx * -0.5], s: [1.5, 0.72, 0.55] });
+    if (d === 2) b.add(geo.sphere(0.006, 6, 3), mat.white, { p: [sx * 0.024, 0.08, 0.068] });
+  }
+  if (d >= 1) {
+    for (const sx of [-1, 1]) b.box(0.004, 0.004, 0.004, mat.alienSkinDark, [sx * 0.006, 0.042, 0.05]);
+    b.box(0.018, 0.003, 0.004, mat.alienSkinDark, [0, 0.022, 0.046]);
+    // Zeichnung in Fraktionsfarbe / markings in faction colour
+    for (const sx of [-1, 1]) b.box(0.006, 0.05, 0.02, L.primary, [sx * 0.07, 0.1, -0.01], [0, 0, sx * 0.2]);
+  }
+  if (antenna) {
+    b.tube([0.02, 0.15, -0.01], [0.038, 0.205, -0.022], 0.0035, 4, mat.alienSkinDark);
+    b.add(geo.ico(0.009, 0), mat.acid, { p: [0.039, 0.208, -0.023] });
+  }
+}
+
 /** Spionage-Hut je Fraktion / spy hat per faction */
 function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
+  if (f === 'zyrr') {
+    // Fremdwesen mit Hut und Sonnenbrille / alien with hat and sunglasses
+    alienHead(b, L, d, false);
+    sunglasses(b, d);
+    b.cyl(0.1, 0.102, 0.01, ws, L.primary, [0, 0.142, -0.006]);
+    b.add(geo.cyl(0.056, 0.064, 0.055, ws), L.primary, { p: [0, 0.172, -0.006], s: [1, 1, 0.92] });
+    ring(b, 0.065, 0.016, ws, L.secondary, [0, 0.155, -0.006], [1, 1, 0.93]);
+    return;
+  }
   face(b, d, 'spy', 5);
   sunglasses(b, d);
   switch (f) {
@@ -115,6 +147,10 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   const hc = L.helmet;
   if (fedora) {
     spyHat(b, f, L, d, ws);
+    return;
+  }
+  if (f === 'zyrr') {
+    alienHead(b, L, d);
     return;
   }
   switch (f) {

@@ -8,11 +8,11 @@ import '@fontsource/bangers';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  FACTION_IDS, GRAND_PROJECT_IDS, type BuildingId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, FACTION_IDS, GRAND_PROJECT_IDS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry,
+  buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -99,6 +99,24 @@ function sheet(): Sheet {
           deco('shallow', 'fish', waterGround),
           { label: 'features', cells: [{ geo: featureGeometry('bunker'), ground: plainGround }, { geo: featureGeometry('radar'), ground: plainGround }, { geo: null, ground: null }, { geo: null, ground: null }] },
           { label: 'clouds', cells: [0, 1, 2, 3].map((v) => ({ geo: cloudGeometry(v), ground: plainGround })) },
+        ],
+      };
+    }
+    case 'aliens': {
+      const all6 = withNeutral.filter((f): f is FactionId => f !== null);
+      const zc = (lv: number) => ({ geo: cityGeometry('zyrr', lv, { hq: lv >= 3, factory: lv >= 5, bunkerRing: lv >= 8, govQuarter: lv >= 8 }), ground: semantic.xenoGround });
+      return {
+        cols: all6.map(fname),
+        rows: [
+          ...ALIEN_UNITS.map((t) => ({ label: t, cells: all6.map((f) => ({ geo: unitGeometry(t, f, null), ground: f === 'zyrr' ? semantic.xenoGround : plainGround })) })),
+          { label: 'zyrr city 1/3/5/8', cells: [1, 3, 5, 8].map(zc) },
+          { label: 'xeno buildings', cells: [
+            { geo: buildingGeometry('xenoHive', 'zyrr'), ground: semantic.xenoGround },
+            { geo: buildingGeometry('xenoHarvester', 'zyrr'), ground: semantic.xenoGround },
+            { geo: buildingGeometry('xenoHive', 'korvat'), ground: semantic.xenoGround },
+            { geo: buildingGeometry('xenoHarvester', null), ground: semantic.xenoGround },
+          ] },
+          { label: 'xeno flora', cells: [0, 1, 2, 3, 4, 5].map((v) => ({ geo: xenoDecoration(v), ground: semantic.xenoGround })) },
         ],
       };
     }
@@ -270,17 +288,18 @@ window.addEventListener('resize', () => {
 function checkAll(): string[] {
   const errors: string[] = [];
   const all: [string, THREE.BufferGeometry | null][] = [];
-  const units: UnitTypeId[] = [...LAND, ...SHIPS];
+  const units: UnitTypeId[] = [...LAND, ...SHIPS, ...ALIEN_UNITS];
   for (const f of FACTION_IDS) {
-    for (const t of units) for (const c of [null, ...LAND]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
+    for (const t of units) for (const c of [null, ...LAND, ...ALIEN_UNITS]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
   }
   for (const f of withNeutral) {
-    for (const k of [...BUILDINGS, ...GRAND_PROJECT_IDS]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
+    for (const k of [...BUILDINGS, 'xenoHive', 'xenoHarvester', ...GRAND_PROJECT_IDS] as (BuildingId | 'outpost' | GrandProjectId)[]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
     for (let lv = 1; lv <= 9; lv++) for (let m = 0; m < 16; m++) {
       all.push([`city ${f} ${lv} ${m}`, cityGeometry(f, lv, { hq: !!(m & 1), factory: !!(m & 2), bunkerRing: !!(m & 4), govQuarter: !!(m & 8) })]);
     }
   }
   all.push(['bunker', featureGeometry('bunker')], ['radar', featureGeometry('radar')]);
+  for (let v = -1; v < 8; v++) all.push([`xenoDeco ${v}`, xenoDecoration(v)]);
   const terrains: TerrainId[] = ['plain', 'forest', 'mountain', 'shallow', 'ocean'];
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
@@ -292,7 +311,8 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const limit = name.startsWith('unit tank') ? 4000 : name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : 4000;
+    const big = name.startsWith('unit tank') || name.startsWith('unit mech') || name.startsWith('unit tripod');
+    const limit = big ? 4000 : name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
   }
   errors.push(`checked ${all.length}`);

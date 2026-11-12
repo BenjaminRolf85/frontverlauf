@@ -51,7 +51,21 @@ export const mat = {
   orange: col(p.orange500),
   teal: col(p.teal500),
   blue: col(p.blue400),
+  // Fremdwesen-Grundstoffe / alien base materials
+  alienSkin: mix(p.rock400, p.xeno400, 0.35),
+  alienSkinDark: mix(p.rock600, p.xeno600, 0.45),
+  alienMetal: mix(p.ink700, p.xeno600, 0.55),
+  alienMetalLight: mix(p.ink500, p.xeno400, 0.5),
+  xenoGlow: col(semantic.xenoGlow),
+  acid: col(semantic.xenoAcid),
+  xenoGround: col(semantic.xenoGround),
+  xenoGroundDark: col(semantic.xenoGroundDark),
 };
+
+/** Bauform-Stil: Zyrr nutzt bei erbeuteter Menschentechnik die Hightech-Formen / shape style: Zyrr uses the hi-tech shapes for captured human equipment */
+export function styleOf(f: FactionId): Exclude<FactionId, 'zyrr'> {
+  return f === 'zyrr' ? 'velkar' : f;
+}
 
 /** Fraktionsoptik / faction look */
 export interface Look {
@@ -86,6 +100,7 @@ export interface Look {
 /** Gebaeudeflaechen gedaempft, Fraktionsfarbe nur als Akzent / building surfaces muted, faction colour only as accent */
 function build(id: FactionId): Look {
   const raw = buildRaw(id);
+  if (id === 'zyrr') return raw;
   const stone = col(p.paper100), stoneDark = col(p.paper300), roofN = shade(p.paper300, 0.62), roofNDark = shade(p.paper300, 0.45);
   return {
     ...raw,
@@ -151,6 +166,15 @@ function buildRaw(id: FactionId): Look {
         helmet: shade(pr, 1.1), jacket: pr, pants: shade(pr, 1.25), gear: shade(pr, 0.7),
         hull: pr, hullDark: shade(pr, 0.7), trim: se,
         wall: shade(pr, 1.2), wallDark: shade(pr, 0.85), roof: shade(pr, 0.75), roofDark: shade(pr, 0.6),
+        emblem: se,
+      };
+    case 'zyrr':
+      // Violett/Saeuregruen, organische Hochtechnologie / violet/acid green, organic high tech
+      return {
+        ...base,
+        helmet: mix(p.rock400, p.xeno400, 0.35), jacket: pr, pants: col(p.xeno600), gear: shade(pr, 0.6),
+        hull: pr, hullDark: col(p.xeno600), trim: se,
+        wall: col(p.xeno400), wallDark: col(p.xeno600), roof: pr, roofDark: shade(pr, 0.65),
         emblem: se,
       };
   }

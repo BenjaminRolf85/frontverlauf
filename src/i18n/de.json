@@ -44,6 +44,7 @@
     "start": "Einsatz starten",
     "addPlayer": "Fraktion hinzufügen",
     "removePlayer": "Entfernen",
+    "swapFaction": "Fraktion wechseln",
     "tiles": "{n} x {n} Felder",
     "hotseatHint": "Mehrere Menschen spielen abwechselnd am selben Gerät."
   },
@@ -115,6 +116,15 @@
       "perkDesc": "Alle Technologien kosten 20 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald"
+    },
+    "zyrr": {
+      "name": "Zyrr-Schwarm",
+      "short": "Zyrr",
+      "alignment": "außerirdisch",
+      "perk": "Fremdtechnologie",
+      "perkDesc": "Keine Forschung nötig, alle Einheiten sofort verfügbar, aber teurer. Ausbilden und bauen nur auf terraformtem Xeno-Boden.",
+      "discount": "kein Rabatt",
+      "home": "karge Hochebenen"
     }
   },
   "units": {
@@ -131,7 +141,12 @@
     "landingBoat": "Landungsboot",
     "submarine": "U-Boot",
     "destroyer": "Zerstörer",
-    "battleship": "Kriegsschiff"
+    "battleship": "Kriegsschiff",
+    "grey": "Laser-Alien",
+    "terraformer": "Terraformer",
+    "skimmer": "Schwebegleiter",
+    "mech": "Kampfmech",
+    "tripod": "Todesstrahl-Läufer"
   },
   "abilities": {
     "dash": "Sturm",
@@ -163,7 +178,13 @@
     "splash": "Flächenschaden",
     "splashDesc": "Trifft auch die Nachbarfelder des Ziels.",
     "carry": "Transport",
-    "carryDesc": "Trägt eine Landeinheit."
+    "carryDesc": "Trägt eine Landeinheit.",
+    "terraform": "Terraformen",
+    "terraformDesc": "Wandelt das eigene oder ein Nachbarfeld kostenlos in Xeno-Boden um.",
+    "deathRay": "Todesstrahl",
+    "deathRayDesc": "Ignoriert Deckung: Gelände, Städte, Außenposten und Wracks.",
+    "walker": "Läufer",
+    "walkerDesc": "Betritt Berge ohne Forschung."
   },
   "stats": {
     "cost": "Preis",
@@ -218,7 +239,9 @@
     "road": "Asphaltstraße",
     "bridge": "Stahlbrücke",
     "researchCenter": "Forschungszentrum",
-    "outpost": "Außenposten"
+    "outpost": "Außenposten",
+    "xenoHive": "Brutstock",
+    "xenoHarvester": "Xeno-Ernter"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -236,7 +259,9 @@
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",
     "researchCenter": "1 Bevölkerungspunkt und wachsende Punkte",
     "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber",
-    "barrier": "Feindliche Fahrzeuge halten an und fahren in der nächsten Runde nur 1 Feld"
+    "barrier": "Feindliche Fahrzeuge halten an und fahren in der nächsten Runde nur 1 Feld",
+    "xenoHive": "2 Bevölkerungspunkte, nur auf Xeno-Boden ohne Ressource",
+    "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -427,7 +452,10 @@
     "invalid": "Ungültige Aktion.",
     "fresh": "Neue Einheiten handeln erst im nächsten Zug.",
     "webgl": "Dein Browser unterstützt kein WebGL. Das Spiel kann nicht starten.",
-    "generic": "Etwas ist schiefgelaufen."
+    "generic": "Etwas ist schiefgelaufen.",
+    "noResearch": "Die Zyrr forschen nicht.",
+    "notTerraformed": "Erst das Stadtfeld terraformen.",
+    "wrongFaction": "Nur die Zyrr können das."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -922,6 +950,62 @@
         "Außentemperatur unter null. Wie geplant.",
         "Schneetarnung aktiv."
       ]
+    },
+    "zyrr": {
+      "select": [
+        "Zrrk. Bereit.",
+        "Wir hören, Kommandant-Einheit.",
+        "Ssssst. Befehl erwartet.",
+        "Xel vorr!"
+      ],
+      "move": [
+        "Zyrr gleitet.",
+        "Neues Gebiet, neue Proben.",
+        "Kkt-kkt. Unterwegs."
+      ],
+      "attack": [
+        "Desintegration eingeleitet!",
+        "Zzzzaaap!",
+        "Für den Schwarm!"
+      ],
+      "kill": [
+        "Probe genommen.",
+        "Organismus abgeschaltet.",
+        "Sehr primitiv. Sehr weich."
+      ],
+      "hurt": [
+        "Kkkrrr! Membran verletzt!",
+        "#@!% Erdlinge!",
+        "Zrrk! Unangenehm!"
+      ],
+      "corpse": [
+        "Skelett aus Kalk. Faszinierend.",
+        "Kohlenstoffreste. Ineffizient.",
+        "Hier riecht es nach Erdling."
+      ],
+      "wreck": [
+        "Primitive Maschine. Rauchend.",
+        "Metallschrott. Kein Bewusstsein.",
+        "Brennbare Technik. Lustig."
+      ],
+      "forest": [
+        "Zu viel Grün. Muss terraformen.",
+        "Bäume. Sie starren zurück.",
+        "Allein im Chlorophyll ..."
+      ],
+      "idle": [
+        "Heimatplanet ruft nicht an.",
+        "Wann ist dieser Planet endlich violett?",
+        "Bzzzt. Langeweile-Modus."
+      ],
+      "rain": [
+        "Wasser von oben. Barbarisch.",
+        "Membran wird nass. Kkt."
+      ],
+      "snow": [
+        "Gefrorenes Wasser. Wie auf Xel.",
+        "Kälte. Angenehm."
+      ]
     }
   },
   "cityUpgrades": {
@@ -950,5 +1034,13 @@
     "load": "Laden",
     "delete": "Löschen",
     "saved": "Gespeichert in Platz {n}"
+  },
+  "xeno": {
+    "terraform": "Terraformen",
+    "terraformHint": "Tippe auf ein markiertes Feld, um es in Xeno-Boden umzuwandeln.",
+    "ground": "Xeno-Boden",
+    "groundDesc": "Alien-Einheiten: Verteidigung 1,5 und +2 Heilung",
+    "cityNeedsTerraform": "Erst terraformen: Ausbilden nur auf Xeno-Boden.",
+    "noResearch": "Die Zyrr brauchen keine Forschung. Ihre Einheiten sind sofort verfügbar."
   }
 }
