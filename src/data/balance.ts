@@ -31,10 +31,10 @@ export type BuildingId =
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
-export type MapSize = 11 | 14 | 16 | 18;
+export type MapSize = 11 | 14 | 16 | 18 | 22 | 26;
 export type MapType = 'continent' | 'lakes' | 'continents' | 'islands' | 'waterworld';
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'extreme';
-export type GameMode = 'points' | 'conquest' | 'sandbox';
+export type GameMode = 'points' | 'conquest' | 'sandbox' | 'endless';
 
 export interface UnitStats {
   cost: number | null; // null = nicht kaeuflich / not purchasable
@@ -119,19 +119,36 @@ export const WEATHER = {
   weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
+  /** Schnee: Fahrzeuge 1 Feld weniger / snow: vehicles 1 tile less */
+  snow: { moveUnits: ['jeep', 'tank', 'artillery'] as UnitTypeId[], moveDelta: -1 },
+  /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
+  wind: { fuelBurn: 2 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
-export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks';
-export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks'];
+export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot';
+export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot'];
 export const CITY_UPGRADES = {
   slots: 3,
-  cost: { radioTower: 15, bunker: 25, barracks: 35 } as Record<CityUpgradeId, number>,
+  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30 } as Record<CityUpgradeId, number>,
+  /** Lazarett: zusaetzliche Heilung auf und neben der Stadt / hospital: extra healing on and next to the city */
+  hospitalHeal: 2,
+  /** Flugabwehr: Schaden an feindlichen Hubschraubern, die ihren Zug im Umkreis beenden / flak: damage to hostile helicopters ending their turn within range */
+  flakDamage: 3,
+  flakRange: 1,
+  /** Depot: Sterne pro Runde / depot: stars per round */
+  depotIncome: 5,
   /** Funkturm: Reichweite fuer das Ziel und Radius des aufgedeckten Bereichs / radio tower: target range and reveal radius */
   radioRange: 6,
   radioRadius: 2,
   /** Bunker: Verteidigung fuer eigene Einheiten in der Stadt / bunker: defence for own units in the city */
   bunkerDefense: 2,
+};
+
+/** Kriegsspuren (optisch): Krater von schweren Waffen, Brandflecken von allen anderen / war marks (visual) */
+export const WAR_MARKS = {
+  craterUnits: ['artillery', 'battleship', 'tank'] as UnitTypeId[],
+  maxPerTile: 4,
 };
 
 export const HEALING = {
@@ -363,7 +380,7 @@ export const MAP_TYPES: Record<MapType, MapGenParams> = {
   islands: { landRatio: 0.42, lumps: 8 },
   waterworld: { landRatio: 0.22, lumps: 12 },
 };
-export const MAP_SIZES: MapSize[] = [11, 14, 16, 18];
+export const MAP_SIZES: MapSize[] = [11, 14, 16, 18, 22, 26];
 
 export const MAPGEN = {
   villagesPerTile: 1 / 13,

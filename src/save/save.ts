@@ -94,3 +94,46 @@ export function importFile(): Promise<GameState | null> {
     input.click();
   });
 }
+
+// ---------- Mehrere Speicherstaende / multiple save slots ----------
+
+const SLOT_KEY = (i: number) => `frontverlauf.slot.v1.${i}`;
+export const SAVE_SLOTS = 6;
+
+export interface SlotInfo { slot: number; savedAt: number; round: number; faction: string; mode: string; size: number; name: string }
+
+export function slotInfo(i: number): SlotInfo | null {
+  try {
+    const raw = localStorage.getItem(SLOT_KEY(i));
+    if (!raw) return null;
+    const d = JSON.parse(raw) as { info: SlotInfo };
+    return d.info ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function listSlots(): (SlotInfo | null)[] {
+  return Array.from({ length: SAVE_SLOTS }, (_, i) => slotInfo(i));
+}
+
+export function saveToSlot(i: number, s: GameState, name: string): boolean {
+  const human = s.factions.find((f) => f.human) ?? s.factions[0];
+  const info: SlotInfo = { slot: i, savedAt: Date.now(), round: s.round, faction: human.id, mode: s.config.mode, size: s.size, name };
+  try { localStorage.setItem(SLOT_KEY(i), JSON.stringify({ info, state: s })); return true; } catch { return false; }
+}
+
+export function loadFromSlot(i: number): GameState | null {
+  try {
+    const raw = localStorage.getItem(SLOT_KEY(i));
+    if (!raw) return null;
+    const d = JSON.parse(raw) as { state: unknown };
+    return isValidState(d.state) ? d.state : null;
+  } catch {
+    return null;
+  }
+}
+
+export function deleteSlot(i: number) {
+  try { localStorage.removeItem(SLOT_KEY(i)); } catch { /* nichts / nothing */ }
+}

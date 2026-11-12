@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  BARRIER, CITY_UPGRADES, TRACKS, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
@@ -11,7 +11,7 @@ import { generateMap } from './mapgen';
 import {
   attackTargets, barrierCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
-  hqOf, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
+  hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -315,9 +315,41 @@ function endTurnProcessing(s: GameState, ev: GameEvent[]) {
   for (const u of s.units.slice()) {
     if (u.owner !== f || u.fuel === null) continue;
     if (isRefuelSpot(s, f, u.x, u.y)) continue;
-    u.fuel -= 1;
+    u.fuel -= fuelBurn(s);
     if (u.fuel <= 0) { killUnit(s, u, null, ev); ev.push({ t: 'crash', unit: u.id }); }
   }
+  // Flugabwehr feindlicher Staedte trifft Hubschrauber, die hier ihren Zug beenden
+  // flak of hostile cities hits helicopters ending their turn nearby
+  for (const u of s.units.slice()) {
+    if (u.owner !== f || !UNITS[u.type].abilities.includes('fly')) continue;
+    const c = s.cities.find((cc) => cc.owner !== null && cc.owner !== f && isHostile(s, f, cc.owner) && (cc.upgrades ?? []).includes('flak') && dist(cc, u) <= CITY_UPGRADES.flakRange);
+    if (!c) continue;
+    u.hp -= CITY_UPGRADES.flakDamage;
+    ev.push({ t: 'flak', city: c.id, unit: u.id, dmg: CITY_UPGRADES.flakDamage });
+    if (u.hp <= 0) killUnit(s, u, null, ev);
+  }
+}
+
+/** Kriegsspur auf einem Feld hinterlassen / leave a war mark on a tile */
+function addMark(s: GameState, x: number, y: number, k: 'crater' | 'scorch') {
+  const t = tileAt(s, x, y);
+  if (!t || !isLand(t) || t.cityId !== null) return;
+  const n = (t.marks ?? []).length;
+  const h = (x * 73 + y * 37 + n * 11 + s.round * 5) % 97;
+  const mark = { k, a: (h / 97) * Math.PI * 2, ox: ((h % 7) - 3) * 0.07, oz: (((h >> 3) % 7) - 3) * 0.07 };
+  t.marks = [...(t.marks ?? []), mark].slice(-WAR_MARKS.maxPerTile);
+}
+
+/** Endlos weiterspielen nach Ablauf des Rundenlimits / continue endlessly after the round limit */
+export function continueEndless(s: GameState): GameEvent[] {
+  const ev: GameEvent[] = [];
+  if (!s.over || s.factions.filter((f) => f.alive).length < 2) return ev;
+  s.over = false;
+  s.winner = null;
+  s.config.roundLimit = null;
+  s.config.mode = 'endless';
+  startTurn(s, ev);
+  return ev;
 }
 
 function advance(s: GameState, ev: GameEvent[]) {
@@ -515,6 +547,10 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): Command
   }
   target.hp -= pre.toDefender;
   if (pre.retaliates) u.hp -= pre.toAttacker;
+  // Kriegsspuren / war marks
+  const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
+  addMark(s, target.x, target.y, markKind);
+  for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch'); }
   ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: pre.toDefender, ret: pre.retaliates ? pre.toAttacker : 0, splash });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;

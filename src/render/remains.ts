@@ -184,3 +184,32 @@ export function barrierGeometry(color: string): THREE.BufferGeometry {
     return mergeGeometries(parts)!;
   });
 }
+
+/** Einschlagkrater: dunkle Mulde, aufgeworfener Rand, Erdbrocken / impact crater: dark pit, raised rim, clods */
+export function craterGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`crater-${variant}`, () => {
+    const r = rnd(variant + 31);
+    const parts: THREE.BufferGeometry[] = [];
+    parts.push(part(new THREE.CircleGeometry(0.16, 12), semantic.char, M(0, 0.008, 0, -Math.PI / 2, 0, 0)));
+    parts.push(part(new THREE.CircleGeometry(0.1, 10), semantic.ink, M(0, 0.01, 0, -Math.PI / 2, 0, 0)));
+    parts.push(part(new THREE.TorusGeometry(0.16, 0.028, 4, 12).scale(1, 1, 0.5), semantic.terrainPlainSide, M(0, 0.012, 0, -Math.PI / 2, 0, 0)));
+    for (let i = 0; i < 6; i++) {
+      const a = r() * Math.PI * 2, d = 0.2 + r() * 0.08;
+      parts.push(part(new THREE.DodecahedronGeometry(0.018 + r() * 0.012, 0), i % 2 ? semantic.terrainPlainSide : semantic.char, M(Math.cos(a) * d, 0.012, Math.sin(a) * d, r(), r(), r())));
+    }
+    return mergeGeometries(parts.map((p) => { if (p.getAttribute('uv')) p.deleteAttribute('uv'); return p; }))!;
+  });
+}
+
+/** Brandfleck mit Einschussloechern / scorch mark with bullet holes */
+export function scorchGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`scorch-${variant}`, () => {
+    const r = rnd(variant + 57);
+    const parts: THREE.BufferGeometry[] = [part(new THREE.CircleGeometry(0.11, 9).scale(1, 0.7, 1), semantic.char, M(0, 0.007, 0, -Math.PI / 2, 0, 0))];
+    for (let i = 0; i < 5; i++) {
+      const a = r() * Math.PI * 2, d = r() * 0.14;
+      parts.push(part(new THREE.CircleGeometry(0.012, 6), semantic.ink, M(Math.cos(a) * d, 0.009, Math.sin(a) * d, -Math.PI / 2, 0, 0)));
+    }
+    return mergeGeometries(parts.map((p) => { if (p.getAttribute('uv')) p.deleteAttribute('uv'); return p; }))!;
+  });
+}

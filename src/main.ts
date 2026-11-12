@@ -7,13 +7,15 @@ import { detectLanguage, onLanguageChange, setLanguage, t } from './i18n/i18n';
 import { attachPointer } from './input/pointer';
 import { clearLabelCache } from './render/labels';
 import { View } from './render/view';
-import { clearSave, exportFile, hasSave, importFile, loadGame, loadSettings, saveGame, saveSettings, type Settings } from './save/save';
+import { clearSave, deleteSlot, exportFile, hasSave, importFile, listSlots, loadFromSlot, loadGame, loadSettings, saveGame, saveSettings, saveToSlot, type Settings } from './save/save';
+import { continueEndless } from './core';
+import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
 import { Fx } from './ui/fx';
 import { Barks } from './ui/barks';
 import { Hud, cityName, unitName } from './ui/hud';
 import {
-  confirmDialog, detailsDialog, diplomacyDialog, gameOverScreen, grandDialog, handoverScreen, mainMenu, pauseMenu,
+  slotsDialog, confirmDialog, detailsDialog, diplomacyDialog, gameOverScreen, grandDialog, handoverScreen, mainMenu, pauseMenu,
   researchDialog, rewardDialog, type ScreenHost,
 } from './ui/screens';
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
@@ -78,6 +80,31 @@ function boot() {
       toast(root, saveGame(game.state) ? t('menu.saved') : t('menu.storageUnavailable'), saveGame(game.state) ? 'save' : 'warning');
     },
     hasSave: () => hasSave(),
+    openSlots(mode) {
+      slotsDialog(host, listSlots(), mode, {
+        save: (i) => {
+          if (!game.state) return;
+          const s = game.state;
+          const hq = s.cities.find((c) => c.isHQ && c.owner !== null && s.factions[c.owner].human);
+          const name = `${t(`factions.${(s.factions.find((f) => f.human) ?? s.factions[0]).id}.short`)}${hq ? ` · ${cityNameOf(s, hq.id)}` : ''}`;
+          toast(root, saveToSlot(i, s, name) ? t('saves.saved', { n: i + 1 }) : t('menu.storageUnavailable'), 'save');
+        },
+        load: (i) => {
+          const s = loadFromSlot(i);
+          if (!s) { toast(root, t('menu.loadFailed'), 'warning'); return; }
+          hideMenu();
+          game.load(s);
+          saveGame(s);
+        },
+        remove: (i) => deleteSlot(i),
+      });
+    },
+    continueEndless() {
+      if (!game.state) return;
+      continueEndless(game.state);
+      game.load(game.state);
+      game.autosave();
+    },
     startTutorial() {
       host.startGame(TUTORIAL_CONFIG);
       tutorial = new Tutorial(root, game, () => { settings.tutorialDone = true; saveSettings(settings); tutorial = null; });
@@ -124,6 +151,7 @@ function boot() {
         case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
+        case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {
           if (e.weather && e.weather !== lastWeather && s.factions[e.faction].human) {

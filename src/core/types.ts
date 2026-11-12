@@ -27,6 +27,8 @@ export interface Tile {
   biome?: BiomeId;
   /** Berghoehe 1-3 (optisch) / mountain height 1-3 (visual) */
   peak?: number;
+  /** Krater und Brandflecken (optisch) / craters and scorch marks (visual) */
+  marks?: { k: 'crater' | 'scorch'; a: number; ox: number; oz: number }[];
   /** Kettenspuren: Winkel und Runde (optisch) / track marks: angle and round (visual) */
   tracks?: { a: number; r: number }[];
   /** Fluss (optisch) / river (visual) */
@@ -174,6 +176,7 @@ export type GameEvent =
   | { t: 'radar'; index: number; faction: number }
   | { t: 'contact'; a: number; b: number; stars: number }
   | { t: 'crash'; unit: number }
+  | { t: 'flak'; city: number; unit: number; dmg: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
   | { t: 'barrierHit'; unit: number; x: number; y: number }

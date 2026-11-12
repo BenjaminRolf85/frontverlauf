@@ -120,6 +120,7 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.isHQ && c.hqOf === c.owner) inc += INCOME.hq;
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
+  if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
   for (const p of cityTiles(s, c)) {
     if (tileAt(s, p.x, p.y)!.building === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
   }
@@ -341,7 +342,10 @@ export function convertTargets(s: GameState, u: Unit): Unit[] {
 export function healAmount(s: GameState, u: Unit): number {
   const t = tileAt(s, u.x, u.y)!;
   const own = territoryOwner(s, t) === u.owner || (t.outpost !== null && t.outpost.owner === u.owner);
-  return own ? HEALING.ownTerritory : HEALING.elsewhere;
+  let h = own ? HEALING.ownTerritory : HEALING.elsewhere;
+  // Lazarett auf oder neben der Stadt / hospital on or next to the city
+  if (s.cities.some((c) => c.owner === u.owner && dist(c, u) <= 1 && (c.upgrades ?? []).includes('hospital'))) h += CITY_UPGRADES.hospitalHeal;
+  return h;
 }
 
 export function canHeal(u: Unit): boolean {
@@ -387,7 +391,7 @@ export function isRefuelSpot(s: GameState, f: number, x: number, y: number): boo
 export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
   if (u.fuel === null) return true;
   if (isRefuelSpot(s, u.owner, x, y)) return true;
-  const fuelAfter = u.fuel - 1;
+  const fuelAfter = u.fuel - fuelBurn(s);
   if (fuelAfter <= 0) return false;
   const range = fuelAfter * UNITS[u.type].move;
   for (let yy = 0; yy < s.size; yy++) {
@@ -399,7 +403,7 @@ export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
 }
 
 export function heliWillCrash(s: GameState, u: Unit): boolean {
-  return u.fuel !== null && u.fuel <= 1 && !isRefuelSpot(s, u.owner, u.x, u.y);
+  return u.fuel !== null && u.fuel <= fuelBurn(s) && !isRefuelSpot(s, u.owner, u.x, u.y);
 }
 
 export const MAX_FUEL = FUEL.tank;
@@ -582,6 +586,7 @@ export function effectiveRange(s: GameState, u: Unit): number {
 export function effectiveMove(s: GameState, u: Unit): number {
   let m = UNITS[u.type].move;
   if (weather(s) === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.rain.moveDelta);
+  if (weather(s) === 'snow' && WEATHER.snow.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.snow.moveDelta);
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
   return m;
 }
@@ -625,4 +630,9 @@ export function radioTargets(s: GameState, f: number, c: City): Pos[] {
     if (area(s.size, p.x, p.y, CITY_UPGRADES.radioRadius).some((q) => !isExplored(s, f, q.x, q.y))) out.push(p);
   }
   return out;
+}
+
+/** Sprit pro Runde (Wind: mehr) / fuel burned per round (wind: more) */
+export function fuelBurn(s: GameState): number {
+  return weather(s) === 'wind' ? WEATHER.wind.fuelBurn : 1;
 }

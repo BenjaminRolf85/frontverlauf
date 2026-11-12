@@ -53,7 +53,9 @@
     "conquest": "Conquest",
     "conquestDesc": "No round limit: the last faction still holding a city wins.",
     "sandbox": "Sandbox",
-    "sandboxDesc": "Freely set map size, map type, number of opponents, difficulty and starting stars."
+    "sandboxDesc": "Freely set map size, map type, number of opponents, difficulty and starting stars.",
+    "endless": "Endless",
+    "endlessDesc": "No round limit and no time pressure: play as long as you like."
   },
   "mapTypes": {
     "continent": "Mainland",
@@ -455,7 +457,8 @@
     "killed": "Unit destroyed",
     "convert": "A unit defects",
     "barrierHit": "A vehicle is stuck in a tank barrier",
-    "cityUpgrade": "{name} built in {city}"
+    "cityUpgrade": "{name} built in {city}",
+    "flak": "Anti-aircraft hits a helicopter (-{dmg})"
   },
   "fx": {
     "hit": [
@@ -525,7 +528,8 @@
     "winner": "{name} wins",
     "scores": "Final scores",
     "newGame": "New operation",
-    "toMenu": "Main menu"
+    "toMenu": "Main menu",
+    "continue": "Continue endlessly"
   },
   "credits": {
     "title": "Credits",
@@ -633,8 +637,8 @@
     "wind": "Wind",
     "clearDesc": "no effects",
     "rainDesc": "artillery range -1, helicopter movement -1",
-    "snowDesc": "visual only",
-    "windDesc": "visual only",
+    "snowDesc": "Jeeps, tanks and artillery move 1 tile less",
+    "windDesc": "Helicopters burn 2 fuel per round",
     "forecast": "from round {round}: {weather}",
     "setupHint": "Changes every 3 rounds. Rain weakens artillery and helicopters."
   },
@@ -930,6 +934,21 @@
     "bunkerDesc": "Own units in this city get +2 defence.",
     "barracksDesc": "Units trained here start as veterans (+5 HP).",
     "radioHint": "Tap a highlighted tile to reveal the area.",
-    "noTargets": "Nothing hidden left within range."
+    "noTargets": "Nothing hidden left within range.",
+    "hospital": "Field hospital",
+    "flak": "Anti-aircraft",
+    "depot": "Depot",
+    "hospitalDesc": "Own units on and next to the city heal 2 HP more.",
+    "flakDesc": "Hostile helicopters ending their turn next to the city lose 3 HP.",
+    "depotDesc": "5 more stars per round.",
+    "full": "All 3 slots are taken."
+  },
+  "saves": {
+    "title": "Saved games",
+    "empty": "Empty slot",
+    "saveHere": "Save here",
+    "load": "Load",
+    "delete": "Delete",
+    "saved": "Saved in slot {n}"
   }
 }

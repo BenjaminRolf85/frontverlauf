@@ -13,10 +13,10 @@ import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './con
 import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
-import { PERK_SCALE, PERK_SPOT, perkGeometry } from './cityPerks';
+import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
-import { barrierGeometry, dropletGeometry, fireballGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
+import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
 const placeholderCache = new Map<string, THREE.BufferGeometry>();
@@ -56,28 +56,26 @@ export function tileTop(t: Tile): number {
     (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
 }
 
-/** Weicher Schattenfleck unter Einheiten (nicht realistisch, nur leicht) / soft blob shadow under units (not realistic, just light) */
-let blobMat: THREE.MeshBasicMaterial | null = null;
-function shadowBlobMaterial(): THREE.MeshBasicMaterial {
-  if (blobMat) return blobMat;
-  const S = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = S; canvas.height = S;
-  const ctx = canvas.getContext('2d')!;
-  const g = ctx.createRadialGradient(S / 2, S / 2, S * 0.05, S / 2, S / 2, S / 2);
-  g.addColorStop(0, semantic.ink);
-  g.addColorStop(0.55, semantic.ink);
-  g.addColorStop(1, 'transparent');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, S, S);
-  const tex = new THREE.CanvasTexture(canvas);
-  blobMat = new THREE.MeshBasicMaterial({
-    map: tex, transparent: false, opacity: 0.34, depthWrite: false, depthTest: false,
-    blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
-  });
-  return blobMat;
+
+/** Einheiten groesser als die Umgebung, auf einem Sockel / units larger than the surroundings, on a base */
+const UNIT_SCALE = 1.25;
+const BASE_H = 0.035;
+const baseCache = new Map<string, THREE.BufferGeometry>();
+function baseGeometry(rim: string): THREE.BufferGeometry {
+  let g = baseCache.get(rim);
+  if (g) return g;
+  g = new THREE.CylinderGeometry(0.34, 0.36, BASE_H, 28).toNonIndexed();
+  g.translate(0, BASE_H / 2, 0);
+  const pos = g.getAttribute('position'), nor = g.getAttribute('normal');
+  const top = new THREE.Color(hex(semantic.soil)), side = new THREE.Color(hex(rim));
+  const col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) { const c = nor.getY(i) > 0.5 ? top : side; col.set([c.r, c.g, c.b], i * 3); }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  baseCache.set(rim, g);
+  return g;
 }
-const blobGeo = new THREE.PlaneGeometry(0.62, 0.62).rotateX(-Math.PI / 2);
+let baseMat: THREE.MeshBasicMaterial | null = null;
+const baseMaterial = () => (baseMat ??= new THREE.MeshBasicMaterial({ vertexColors: true }));
 
 /** Zeichenreihenfolge der Einheiten (nach dem Leeren des Tiefenpuffers) / render order of units (after the depth clear) */
 const UNIT_ORDER = 60;
@@ -195,6 +193,7 @@ export class Board {
       list.push(m);
     };
     const fishTiles: { x: number; z: number; y: number }[] = [];
+    const occupied = new Set(s.units.filter((u) => viewer < 0 || canSeeUnit(s, viewer, u)).map((u) => u.y * size + u.x));
     const coast: { x: number; z: number; y: number; nx: number; nz: number }[] = [];
     const decals = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const roadSegs: THREE.Matrix4[] = [];
@@ -229,10 +228,16 @@ export class Board {
           new THREE.Vector3(Math.min(1.15, 0.85 + ps * 0.15), ps, Math.min(1.15, 0.85 + ps * 0.15)));
         const variant = (x * 7 + y * 13) % 3;
         const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature;
+        // Auf Feldern mit Einheit keine Baeume, Graeser oder Felsen, damit die Einheit frei steht
+        // no trees, grass or rocks on tiles with a unit so the unit stands out
+        const occ = occupied.has(k);
         // Pflanzen wiegen sich / plants sway
         const plant = t.terrain === 'forest' || t.resource === 'farmland' || (t.terrain === 'plain' && !t.resource);
-        if (!hasStructure || t.building === 'road') addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
-        if (!hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (occ && t.terrain === 'mountain') {
+          // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
+          addDeco(decorationGeometry(t.terrain, null, variant), new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)));
+        } else if (!occ && (!hasStructure || t.building === 'road')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
+        if (!occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische und Kueste / fish and coast
         if (t.terrain === 'shallow' || t.terrain === 'ocean') {
           if (t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
@@ -244,6 +249,12 @@ export class Board {
               if (nt.terrain !== 'shallow' && nt.terrain !== 'ocean' && explored(nx, ny)) coast.push({ x: x - off, z: y - off, y: top, nx: dx, nz: dy });
             }
           }
+        }
+        // Krater und Brandflecken / craters and scorch marks
+        for (const [i, mk] of (t.marks ?? []).entries()) {
+          const geo = mk.k === 'crater' ? craterGeometry((x + y + i) % 3) : scorchGeometry((x * 3 + y + i) % 3);
+          if (!decals.has(geo)) decals.set(geo, []);
+          decals.get(geo)!.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off + mk.ox, top, y - off + mk.oz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), mk.a), new THREE.Vector3(1, 1, 1)));
         }
         // Kettenspuren / track marks
         for (const m of t.tracks ?? []) {
@@ -268,7 +279,7 @@ export class Board {
           }
           if (!any) riverSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.008, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
         }
-        else if (t.resource && !t.building && t.cityId === null) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
+        else if (!occ && t.resource && !t.building && t.cityId === null) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
         if (t.building && t.building !== 'road') {
@@ -434,9 +445,9 @@ export class Board {
       obj.traverse((o) => { o.raycast = () => {}; });
       this.staticLayer.add(obj);
       // Stadt-Ausbauten / city upgrades
-      for (const up of c.upgrades ?? []) {
+      for (const [slot, up] of (c.upgrades ?? []).entries()) {
         const perk = outlined(perkGeometry(up, fid), OUTLINE.building);
-        const [px, pz] = PERK_SPOT[up];
+        const [px, pz] = SLOT_SPOT[slot % SLOT_SPOT.length];
         perk.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(px, 0, pz));
         perk.scale.setScalar(PERK_SCALE);
         perk.traverse((o) => { o.raycast = () => {}; });
@@ -470,14 +481,12 @@ export class Board {
         // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
         const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit, unitMaterial());
-        // leichter Schattenfleck unter der Einheit / light shadow blob under the unit
-        const shadow = new THREE.Mesh(blobGeo, shadowBlobMaterial());
-        shadow.name = 'shadow';
-        shadow.position.y = 0.01;
-        shadow.scale.setScalar(u.type === 'heli' ? 0.75 : 1);
-        shadow.renderOrder = UNIT_ORDER - 0.5;
-        shadow.raycast = () => {};
-        grp.add(shadow);
+        // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
+        const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
+        base.name = 'base';
+        base.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER - 0.6; });
+        grp.add(base);
+        model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
         grp.add(model);
         grp.add(this.groundMarker(f, own));
@@ -499,13 +508,13 @@ export class Board {
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
         v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank });
-        v.badge.position.set(0, u.type === 'heli' ? 0.85 : 0.62, 0);
+        v.badge.position.set(0, u.type === 'heli' ? 1.02 : 0.8, 0);
         v.group.add(v.badge);
         v.badgeKey = badgeKey;
       }
       // Hubschrauber schwebt / helicopter hovers
       const model = v.group.getObjectByName('model')!;
-      model.position.y = u.type === 'heli' ? 0.1 : 0;
+      model.position.y = (u.type === 'heli' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;

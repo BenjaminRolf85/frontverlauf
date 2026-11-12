@@ -445,6 +445,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       let value = 0;
       let cmd: Command = { type: 'cityUpgrade', city: c.id, upgrade: up };
       if (up === 'bunker') value = front ? cost * 2.2 : cost * 0.25;
+      else if (up === 'depot') value = CITY_UPGRADES.depotIncome * Math.min(ctx.points ? ctx.roundsLeft : 20, 20) * 0.45;
+      else if (up === 'hospital') value = front ? cost * 1.2 : cost * 0.3;
+      else if (up === 'flak') value = ctx.enemies.some((e) => e.type === 'heli' && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
       else if (up === 'barracks') value = cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
       else {
         const targets = radioTargets(s, f, c);
