@@ -75,6 +75,12 @@ h1, h2, h3, .display {
   font-family: var(--c-panel-title-font); font-size: var(--c-panel-title-size); letter-spacing: var(--p-letter-spacing-display);
   display: flex; align-items: center; justify-content: space-between; gap: var(--p-space-2); margin-bottom: var(--p-space-3);
 }
+.panel-title h2, .panel-title h3 { font-size: inherit; min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+.dialog { overflow-x: hidden; }
+.price { display: inline-flex; align-items: center; gap: var(--p-space-1); white-space: nowrap; }
+.kv > span { display: inline-flex; align-items: center; gap: var(--p-space-1); }
+.dialog-actions .btn { flex: 1 1 auto; }
+.dialog h3.display { font-size: var(--p-font-size-lg); margin: var(--p-space-3) 0 var(--p-space-2); }
 .muted { color: var(--s-text-muted); font-weight: var(--p-font-weight-regular); }
 .row { display: flex; align-items: center; gap: var(--p-space-2); flex-wrap: wrap; }
 .col { display: flex; flex-direction: column; gap: var(--p-space-2); }
@@ -346,6 +352,10 @@ input[type="text"], select {
 .tech-link { stroke: var(--s-outline); stroke-width: var(--c-tech-tree-stroke); }
 .tech-link.done { stroke: var(--c-tech-node-researched); stroke-width: var(--c-tech-tree-stroke-done); }
 .tech-detail { margin-top: var(--p-space-3); }
+.unlock-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }
+.unlock { display: grid; grid-template-columns: auto 1fr; gap: 0 var(--p-space-2); align-items: center; padding: var(--p-space-2);
+  border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md); background: var(--s-surface); }
+.unlock .muted { grid-column: 2; font-size: var(--p-font-size-sm); }
 .legend { display: flex; flex-wrap: wrap; gap: var(--p-space-2); font-size: var(--p-font-size-xs); }
 .legend i { display: inline-block; width: var(--p-space-3); height: var(--p-space-3); border-radius: var(--p-radius-pill); border: var(--p-border-width-thin) solid var(--s-outline); vertical-align: middle; margin-right: var(--p-space-1); }
 

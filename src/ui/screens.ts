@@ -259,7 +259,6 @@ export function researchDialog(host: ScreenHost) {
   const html = () => {
     const s = g.state!;
     const f = g.viewer >= 0 ? g.viewer : s.current;
-    const canAct = g.isHumanTurn && f === s.current;
     let links = '', nodes = '';
     for (const id of TECH_IDS) {
       const p = layout.get(id)!;
@@ -281,35 +280,73 @@ export function researchDialog(host: ScreenHost) {
         ${lines.map((l, i) => `<text class="name" x="${p.x}" y="${p.y + 46 + i * 13}" text-anchor="middle">${esc(l)}</text>`).join('')}
       </g>`;
     }
-    let detail = '';
-    if (selected) {
-      const st = techState(s, f, selected);
-      const un = techUnlocks(selected);
-      const items = [...un.units.map((u) => t(`units.${u}`)), ...un.buildings.map((b) => t(`buildings.${b}`))];
-      const extra = t(`techExtra.${selected}`);
-      if (!extra.startsWith('techExtra.')) items.push(extra);
-      const cost = researchCost(s, f, selected);
-      detail = `<div class="panel tech-detail"><div class="row"><h3 class="display grow">${esc(t(`techs.${selected}`))}</h3><span class="tag">${esc(t('tech.tier', { n: TECHS[selected].tier }))}</span><span class="tag">${esc(t(`tech.${st}`))}</span></div>
-        <p>${esc(t('tech.unlocks'))}: ${items.map(esc).join(', ')}</p>
-        ${st !== 'researched' ? button(t('tech.research', { cost }), { icon: 'research', action: 'research', disabled: !canAct || st !== 'available', extra: price(cost) }) : ''}</div>`;
-    }
     const legend = (['researched', 'available', 'expensive', 'locked'] as const).map((k) => `<span><i style="background:var(--c-tech-node-${k})"></i>${esc(t(`tech.${k}`))}</span>`).join('');
     return `${dialogTitle(t('tech.title'))}
       <div class="row"><span class="res"><span class="star">${icon('star')}</span><span class="val">${s.factions[f].stars}</span></span><span class="muted">${esc(t('tech.costFormula'))}</span></div>
       <div class="legend">${legend}</div>
       <div class="tech-wrap"><svg class="tech-svg" viewBox="0 0 800 800" role="group" aria-label="${esc(t('tech.title'))}">
         ${links}<circle cx="${C}" cy="${C}" r="44" class="tech-center"/>
-        ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>${detail}`;
+        ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>`;
   };
   const d = openDialog(host.root, html(), { wide: true });
   d.node.addEventListener('click', async (e) => {
     const target = e.target as Element;
     if (target.closest('[data-action="close"]')) { d.close(); return; }
     const node = target.closest<SVGGElement>('[data-tech]');
-    if (node) { selected = node.dataset.tech as TechId; g.play('select'); d.node.innerHTML = html(); return; }
-    if (target.closest('[data-action="research"]') && selected) {
-      await g.exec({ type: 'research', tech: selected });
+    if (node) {
+      selected = node.dataset.tech as TechId;
+      g.play('select');
       d.node.innerHTML = html();
+      techInfoBox(host, selected, () => { selected = null; d.node.innerHTML = html(); });
+    }
+  });
+}
+
+/** Infobox zu einer Technologie mit Bestaetigung / info box for a technology with confirmation */
+function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
+  const g = host.game;
+  const s = g.state!;
+  const f = g.viewer >= 0 ? g.viewer : s.current;
+  const fa = s.factions[f];
+  const st = techState(s, f, tech);
+  const cost = researchCost(s, f, tech);
+  const canAct = g.isHumanTurn && f === s.current;
+  const parent = TECHS[tech].parent;
+  const un = techUnlocks(tech);
+  const unitRows = un.units.map((u) => {
+    const us = UNITS[u];
+    return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>
+      <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${us.cost !== null ? ` · ${us.cost} ${esc(t('hud.stars'))}` : ''}</span></li>`;
+  });
+  const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(t(`buildingDesc.${b}`))}</span></li>`);
+  const extra = t(`techExtra.${tech}`);
+  const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon('lightning', 'icon-sm')}<strong>${esc(extra)}</strong></li>`];
+  let reason = '';
+  if (st === 'researched') reason = t('tech.done');
+  else if (st === 'locked' && parent) reason = t('tech.needParent', { tech: t(`techs.${parent}`) });
+  else if (st === 'expensive') reason = t('tech.missingStars', { n: cost - fa.stars });
+  else if (!canAct) reason = t('tech.notYourTurn');
+  const canResearch = st === 'available' && canAct;
+  const box = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t(`techs.${tech}`))}</h2>${iconButton('close', t('actions.close'), 'cancel')}</div>
+    <div class="row"><span class="tag">${esc(t('tech.tier', { n: TECHS[tech].tier }))}</span><span class="tag ${st === 'researched' ? 'ok' : st === 'available' ? '' : 'warn'}">${esc(t(`tech.${st}`))}</span></div>
+    <div class="kv">
+      <span>${esc(t('stats.cost'))}</span><span>${price(cost)}</span>
+      <span>${esc(t('hud.stars'))}</span><span>${price(fa.stars)}</span>
+      ${parent ? `<span>${esc(t('tech.requires'))}</span><span>${esc(t(`techs.${parent}`))} ${fa.techs.includes(parent) ? icon('check', 'icon-sm') : icon('lock', 'icon-sm')}</span>` : ''}
+    </div>
+    <h3 class="display">${esc(t('tech.unlocks'))}</h3>
+    <ul class="unlock-list">${[...unitRows, ...buildingRows, ...extraRows].join('')}</ul>
+    ${reason ? `<p class="tag warn">${esc(reason)}</p>` : ''}
+    <div class="dialog-actions">
+      ${button(t('actions.cancel'), { action: 'cancel', variant: 'secondary' })}
+      ${st !== 'researched' ? button(t('tech.confirm'), { action: 'confirm', icon: 'research', disabled: !canResearch, extra: price(cost) }) : ''}
+    </div>`, { onClose });
+  box.node.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-action="cancel"]')) { box.close(); return; }
+    if (target.closest('[data-action="confirm"]') && canResearch) {
+      const res = await g.exec({ type: 'research', tech });
+      if (res.ok) box.close();
     }
   });
 }
