@@ -303,7 +303,13 @@
     "research": "Research for {cost}",
     "unlocks": "Unlocks",
     "tier": "Tier {n}",
-    "costFormula": "Cost: (tier x cities + 4) x 5"
+    "costFormula": "Cost: (tier x cities + 4) x 5",
+    "requires": "Requires",
+    "missingStars": "You need {n} more stars.",
+    "needParent": "Research {tech} first.",
+    "notYourTurn": "You can only research on your own turn.",
+    "confirm": "Research",
+    "done": "Already researched."
   },
   "rewards": {
     "title": "{city} reaches level {level}",

@@ -303,7 +303,13 @@
     "research": "Erforschen für {cost}",
     "unlocks": "Schaltet frei",
     "tier": "Stufe {n}",
-    "costFormula": "Kosten: (Stufe x Städte + 4) x 5"
+    "costFormula": "Kosten: (Stufe x Städte + 4) x 5",
+    "requires": "Voraussetzung",
+    "missingStars": "Es fehlen noch {n} Sterne.",
+    "needParent": "Erst {tech} erforschen.",
+    "notYourTurn": "Forschen geht nur im eigenen Zug.",
+    "confirm": "Erforschen",
+    "done": "Bereits erforscht."
   },
   "rewards": {
     "title": "{city} steigt auf Stufe {level}",
