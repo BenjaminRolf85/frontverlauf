@@ -10,14 +10,16 @@ export type TerrainId = 'plain' | 'forest' | 'mountain' | 'shallow' | 'ocean';
 export type BiomeId = 'grassland' | 'hills' | 'desert' | 'steppe' | 'tundra' | 'swamp';
 export const BIOMES: BiomeId[] = ['grassland', 'hills', 'desert', 'steppe', 'tundra', 'swamp'];
 export type ResourceId = 'supplies' | 'livestock' | 'fish' | 'farmland' | 'ore';
-export type FactionId = 'korvat' | 'dravon' | 'alvenia' | 'meridon' | 'velkar';
+export type FactionId = 'korvat' | 'dravon' | 'alvenia' | 'meridon' | 'velkar' | 'zyrr';
 export type LandUnitId =
   | 'infantry' | 'sniper' | 'jeep' | 'pioneer' | 'mg' | 'medic' | 'artillery' | 'spy' | 'heli' | 'tank';
 export type ShipId = 'landingBoat' | 'submarine' | 'destroyer' | 'battleship';
-export type UnitTypeId = LandUnitId | ShipId;
+/** Ausserirdische Einheiten (nur Zyrr) / alien units (Zyrr only) */
+export type AlienUnitId = 'grey' | 'terraformer' | 'skimmer' | 'mech' | 'tripod';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
-  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry';
+  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -27,7 +29,8 @@ export type TechId =
 export type BuildingId =
   | 'storehouse' | 'ranch' | 'fishery' | 'lumberCamp' | 'farm' | 'mine'
   | 'materialsPlant' | 'foodFactory' | 'steelMill' | 'logisticsCenter'
-  | 'navalBase' | 'road' | 'bridge' | 'researchCenter';
+  | 'navalBase' | 'road' | 'bridge' | 'researchCenter'
+  | 'xenoHive' | 'xenoHarvester';
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
@@ -47,6 +50,8 @@ export interface UnitStats {
   abilities: Ability[];
   tech: TechId | null; // null = von Beginn an / available from start
   ship: boolean;
+  /** nur fuer diese Fraktion / only for this faction */
+  faction?: FactionId;
 }
 
 export const UNITS: Record<UnitTypeId, UnitStats> = {
@@ -66,6 +71,32 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   submarine: { cost: 25, hp: 0, attack: 2, defense: 1, move: 3, range: 2, vision: 2, abilities: ['carry', 'submerged'], tech: 'diving', ship: true },
   destroyer: { cost: 25, hp: 0, attack: 3, defense: 3, move: 3, range: 1, vision: 1, abilities: ['carry', 'dash'], tech: 'shipbuilding', ship: true },
   battleship: { cost: 75, hp: 0, attack: 3, defense: 2, move: 2, range: 3, vision: 1, abilities: ['carry', 'splash'], tech: 'navalArtillery', ship: true },
+  // Ausserirdische: keine Forschung, dafuer teurer / aliens: no research, but more expensive
+  grey: { cost: 15, hp: 10, attack: 2.5, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  terraformer: { cost: 20, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: ['terraform', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  skimmer: { cost: 40, hp: 12, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'zyrr' },
+  mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  tripod: { cost: 55, hp: 25, attack: 4.5, defense: 2, move: 1, range: 2, vision: 2, abilities: ['deathRay', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+};
+
+/** Einheiten der Zyrr / Zyrr roster */
+export const ALIEN_UNITS: AlienUnitId[] = ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'];
+
+/** Terraformen und Xeno-Boden / terraforming and xeno ground */
+export const XENO = {
+  faction: 'zyrr' as FactionId,
+  /** Preis je Feld im eigenen Gebiet / price per tile in own territory */
+  terraformCost: 5,
+  /** Verteidigungsbonus fuer Alien-Einheiten auf Xeno-Boden / defence bonus for alien units on xeno ground */
+  groundDefense: 1.5,
+  /** zusaetzliche Heilung auf Xeno-Boden / extra healing on xeno ground */
+  groundHeal: 2,
+  /** Punkte je terraformtem Feld / points per terraformed tile */
+  tilePoints: 10,
+  startUnit: 'grey' as UnitTypeId,
+  /** Ersatz fuer menschliche Belohnungen / replacement for human rewards */
+  rewardTank: 'mech' as UnitTypeId,
+  uprisingUnit: 'grey' as UnitTypeId,
 };
 
 export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank'];
@@ -245,6 +276,9 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   road: { cost: 15, pop: 0, tech: 'roadbuilding', terrain: ['plain', 'forest', 'mountain'] },
   bridge: { cost: 25, pop: 0, tech: 'roadbuilding', terrain: ['shallow'] },
   researchCenter: { cost: 100, pop: 1, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'], onePerCity: true },
+  // Nur Zyrr, nur auf Xeno-Boden / Zyrr only, only on xeno ground
+  xenoHive: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain'] },
+  xenoHarvester: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
 };
 
 /** Basisgebaeude der Werke, die das Logistikzentrum zaehlt / base buildings counted by the logistics centre */
@@ -315,21 +349,22 @@ export const TERRAIN_DEFENSE_TECH: Partial<Record<TerrainId, TechId>> = {
 };
 
 export interface FactionStats {
-  perk: 'massMobilization' | 'drill' | 'alliancePolicy' | 'boom' | 'researchLead';
+  perk: 'massMobilization' | 'drill' | 'alliancePolicy' | 'boom' | 'researchLead' | 'xenotech';
   discountUnit: UnitTypeId;
   discount: number;
-  startTech: TechId;
+  startTech: TechId | null;
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
 }
 
-export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'];
+export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar', 'zyrr'];
 
 export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
   dravon: { perk: 'drill', discountUnit: 'jeep', discount: 0.2, startTech: 'motorization', home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
   alvenia: { perk: 'alliancePolicy', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
   meridon: { perk: 'boom', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
+  zyrr: { perk: 'xenotech', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   velkar: { perk: 'researchLead', discountUnit: 'pioneer', discount: 0.2, startTech: 'mountainTraining', home: { plain: 0.25, forest: 0.35, mountain: 0.35, water: 0.05, res: { ore: 0.2, supplies: 0.1 } } },
 };
 

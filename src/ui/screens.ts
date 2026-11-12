@@ -119,6 +119,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               ${factionBadge(p.id)}
               <div class="row"><strong>${esc(t(`factions.${p.id}.name`))}</strong>
                 <span class="muted">${esc(t(`factions.${p.id}.perk`))}: ${esc(t(`factions.${p.id}.perkDesc`))} ${esc(t(`factions.${p.id}.discount`))}</span>
+                ${cfg.players.length < FACTION_IDS.length ? iconButton('rotateRight', t('setup.swapFaction'), `swap-${i}`) : ''}
                 ${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</div>
               ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
               ${!p.human ? segmented(`diff-${i}`, (['easy', 'normal', 'hard', 'extreme'] as Difficulty[]).map((d) => ({ value: d, label: t(`difficulty.${d}`) })), p.difficulty) : ''}
@@ -156,6 +157,15 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     else if (a === 'add') {
       const free = FACTION_IDS.find((f) => !cfg.players.some((p) => p.id === f));
       if (free) cfg.players.push({ id: free, human: false, difficulty: 'normal' });
+      render();
+    } else if (a.startsWith('swap-')) {
+      // Naechste freie Fraktion waehlen / pick the next free faction
+      const p = cfg.players[Number(a.slice(5))];
+      const start = FACTION_IDS.indexOf(p.id);
+      for (let k = 1; k < FACTION_IDS.length; k++) {
+        const f = FACTION_IDS[(start + k) % FACTION_IDS.length];
+        if (!cfg.players.some((o) => o.id === f)) { p.id = f; break; }
+      }
       render();
     } else if (a.startsWith('remove-')) { cfg.players.splice(Number(a.slice(7)), 1); render(); }
     else if (a === 'start') {

@@ -35,6 +35,8 @@ export interface Tile {
   river?: boolean;
   /** Panzersperre / tank barrier */
   barrier?: { owner: number } | null;
+  /** terraformt: Xeno-Boden der Zyrr / terraformed: Zyrr xeno ground */
+  xeno?: boolean;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -179,6 +181,7 @@ export type GameEvent =
   | { t: 'flak'; city: number; unit: number; dmg: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
+  | { t: 'terraform'; x: number; y: number; faction: number; unit?: number }
   | { t: 'barrierHit'; unit: number; x: number; y: number }
   | { t: 'uprising'; city: number; faction: number; spawned: number }
   | { t: 'embark'; unit: number }
@@ -212,6 +215,7 @@ export type Command =
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
+  | { type: 'terraform'; x: number; y: number; unit?: number }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
@@ -223,7 +227,7 @@ export type ErrorCode =
   | 'peace' | 'cannotAttack' | 'alreadyMoved' | 'alreadyAttacked' | 'notEnoughStars' | 'techMissing'
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
-  | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh';
+  | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction';
 
 export interface CommandResult {
   ok: boolean;

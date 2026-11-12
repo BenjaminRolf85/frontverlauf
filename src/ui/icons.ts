@@ -64,13 +64,14 @@ const P: Record<string, string> = {
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',
   emblemStarRing: '<circle cx="12" cy="12" r="9.5"/><path d="M12 5.5l1.9 4 4.4.5-3.3 3 .9 4.4L12 15.2l-3.9 2.2.9-4.4-3.3-3 4.4-.5z" fill="currentColor"/>',
   emblemCompass: '<circle cx="12" cy="12" r="9.5"/><path d="M12 2.5l2 7.5 7.5 2-7.5 2-2 7.5-2-7.5-7.5-2 7.5-2z" fill="currentColor"/>',
+  emblemSaucer: '<ellipse cx="12" cy="13" rx="9.5" ry="3.2"/><path d="M7.5 11.6a4.5 4.5 0 0 1 9 0" fill="currentColor"/><path d="M8 17.5l-1.5 3M12 17.5v3M16 17.5l1.5 3"/>',
   emblemHex: '<path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><path d="M12 7l4.3 2.5v5L12 17l-4.3-2.5v-5z" fill="currentColor"/>',
 };
 
 export type IconName = keyof typeof P;
 
 export const FACTION_EMBLEM: Record<string, IconName> = {
-  korvat: 'emblemGear', dravon: 'emblemFist', alvenia: 'emblemStarRing', meridon: 'emblemCompass', velkar: 'emblemHex',
+  korvat: 'emblemGear', dravon: 'emblemFist', alvenia: 'emblemStarRing', meridon: 'emblemCompass', velkar: 'emblemHex', zyrr: 'emblemSaucer',
 };
 
 /** SVG-Markup fuer ein Symbol / SVG markup for an icon */

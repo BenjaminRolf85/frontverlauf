@@ -18,11 +18,11 @@ describe('Start', () => {
       expect(s.cities.filter((c) => c.owner === f.index)).toHaveLength(1);
       const units = ownUnits(s, f.index);
       expect(units).toHaveLength(1);
-      expect(units[0].type).toBe('infantry');
+      expect(units[0].type).toBe(f.id === 'zyrr' ? 'grey' : 'infantry');
       expect(units[0].x).toBe(hq.x);
       expect(units[0].y).toBe(hq.y);
       expect(f.stars).toBe(25);
-      expect(f.techs).toEqual([FACTIONS[f.id].startTech]);
+      expect(f.techs).toEqual(FACTIONS[f.id].startTech ? [FACTIONS[f.id].startTech] : []);
     }
     expect(s.round).toBe(1);
     expect(s.current).toBe(0);

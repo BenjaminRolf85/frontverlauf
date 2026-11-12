@@ -98,6 +98,11 @@ export const primitives = {
     meridonOrange: '#f08a24',
     velkarIce: '#aab8c2',
     velkarGreen: '#8fd16a',
+    zyrrViolet: '#7b3fc4',
+    zyrrAcid: '#9cff3a',
+    xeno600: '#5a2d7a',
+    xeno400: '#8a4fb8',
+    xenoGlow: '#d18cff',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -179,6 +184,10 @@ export const semantic = {
   cactus: c.cactus500,
   reed: c.reed500,
   river: c.river400,
+  xenoGround: c.xeno400,
+  xenoGroundDark: c.xeno600,
+  xenoGlow: c.xenoGlow,
+  xenoAcid: c.zyrrAcid,
   flowerA: c.flowerRed,
   flowerB: c.flowerYellow,
   flowerC: c.flowerWhite,
@@ -215,6 +224,7 @@ export const factionTokens: Record<FactionId, FactionTokens> = {
   alvenia: { primary: c.alveniaBlue, secondary: c.alveniaWhite, terrain: '#86cf7a', ink: c.white, marker: c.blue400 },
   meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900, marker: c.orange500 },
   velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900, marker: c.velkarGreen },
+  zyrr: { primary: c.zyrrViolet, secondary: c.zyrrAcid, terrain: '#9a7fb6', ink: c.white, marker: c.zyrrAcid },
 };
 
 // ---------- Ebene 3: Komponenten-Tokens / layer 3: component tokens ----------

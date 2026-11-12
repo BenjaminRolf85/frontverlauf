@@ -79,6 +79,19 @@ export function emblemShapes(f: FactionId): THREE.Shape[] {
       }
       return [poly(pts)];
     }
+    case 'zyrr': {
+      // Dreifach-Ring-Siegel mit Mittelpunkt / triple-ring sigil with centre dot
+      const out: THREE.Shape[] = [];
+      for (let i = 0; i < 3; i++) {
+        const a = Math.PI / 2 + (i / 3) * Math.PI * 2;
+        const cx = Math.cos(a) * 0.52, cy = Math.sin(a) * 0.52;
+        const ringShape = poly(circlePts(0.42, 8, Math.PI / 8).map(([x, y]) => [x + cx, y + cy] as [number, number]));
+        ringShape.holes.push(hole(circlePts(0.26, 8, Math.PI / 8).map(([x, y]) => [x + cx, y + cy] as [number, number])));
+        out.push(ringShape);
+      }
+      out.push(poly(circlePts(0.16, 8)));
+      return out;
+    }
     case 'velkar': {
       const outer = poly(circlePts(1, 6, Math.PI / 2));
       outer.holes.push(hole(circlePts(0.68, 6, Math.PI / 2)));

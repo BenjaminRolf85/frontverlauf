@@ -3,7 +3,7 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  BARRIER, CITY_UPGRADES, WEATHER, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   VETERAN, VISION, type BuildingId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
@@ -172,6 +172,7 @@ export function score(s: GameState, f: number): number {
     }
   }
   for (const t of fa.techs) p += SCORE.techPerTier * TECHS[t].tier;
+  if (isAlienFaction(s, f)) for (const c of ownCities(s, f)) for (const pos of cityTiles(s, c)) if (tileAt(s, pos.x, pos.y)!.xeno) p += XENO.tilePoints;
   for (const u of ownUnits(s, f)) p += unitScore(u);
   p += SCORE.grandProject * fa.grandProjectsBuilt.length;
   return p;
@@ -243,7 +244,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
         if (isWater(t)) {
           if (t.terrain === 'ocean' && !hasTech(s, f, 'diving')) continue;
         } else {
-          if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) continue;
+          if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining') && !has(u, 'walker')) continue;
           disembark = true; stop = true;
         }
       } else {
@@ -252,7 +253,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
             embark = true; stop = true;
           } else continue;
         } else {
-          if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) continue;
+          if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining') && !has(u, 'walker')) continue;
           if ((t.terrain === 'forest' || t.terrain === 'mountain') && !t.road) stop = true;
           if (roadLike(fromTile) && roadLike(t) && (fromTile.road || t.road || isBridge(t) || isBridge(fromTile))) cost = 0.5;
         }
@@ -306,6 +307,8 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   if (t.outpost && t.outpost.owner === def.owner && INFANTRY_TYPES.includes(def.type)) {
     if (!(attacker && has(attacker, 'ignoreOutpost'))) b = Math.max(b, DEFENSE_BONUS.outpost);
   }
+  // Xeno-Boden schuetzt Alien-Einheiten / xeno ground protects alien units
+  if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
   if (t.remains?.kind === 'wreck' && !isShip(def)) b += REMAINS.wreckDefenseBonus;
   return b;
@@ -315,7 +318,8 @@ export interface CombatPreview { toDefender: number; toAttacker: number; kills: 
 
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
   const a = UNITS[att.type], d = UNITS[def.type];
-  const bonus = defenseBonus(s, def, att);
+  // Todesstrahl ignoriert Deckung / death ray ignores cover
+  const bonus = has(att, 'deathRay') ? DEFENSE_BONUS.open : defenseBonus(s, def, att);
   const defense = effectiveDefense(s, def);
   const attackForce = a.attack * (att.hp / att.maxHp);
   const defenseForce = defense * (def.hp / def.maxHp) * bonus;
@@ -343,6 +347,7 @@ export function healAmount(s: GameState, u: Unit): number {
   const t = tileAt(s, u.x, u.y)!;
   const own = territoryOwner(s, t) === u.owner || (t.outpost !== null && t.outpost.owner === u.owner);
   let h = own ? HEALING.ownTerritory : HEALING.elsewhere;
+  if (t.xeno && isAlien(u)) h += XENO.groundHeal;
   // Lazarett auf oder neben der Stadt / hospital on or next to the city
   if (s.cities.some((c) => c.owner === u.owner && dist(c, u) <= 1 && (c.upgrades ?? []).includes('hospital'))) h += CITY_UPGRADES.hospitalHeal;
   return h;
@@ -418,6 +423,16 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (!inBounds(s.size, x, y)) return { ok: false, error: 'invalidTile', cost };
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return { ok: false, error: 'notInTerritory', cost };
+  // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
+  const xenoB = b === 'xenoHive' || b === 'xenoHarvester';
+  if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
+  if (xenoB) {
+    if (!t.xeno) return { ok: false, error: 'invalidTile', cost };
+    if (t.cityId !== null || t.building || t.feature || t.grandProject || t.outpost || !st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
+    if ((b === 'xenoHarvester') !== !!t.resource) return { ok: false, error: 'invalidTile', cost };
+    if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
+    return { ok: true, cost };
+  }
   if (b === 'researchCenter') {
     const terr = t.terrain === 'ocean' ? null : (t.terrain as 'plain' | 'forest' | 'mountain' | 'shallow');
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
@@ -486,6 +501,10 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
   if (c.owner === null) return 'invalid';
   const st = UNITS[type];
   if (st.ship || st.cost === null) return 'invalid';
+  // Fraktionseinheiten / faction units
+  const alien = isAlienFaction(s, c.owner);
+  if ((st.faction && st.faction !== s.factions[c.owner].id) || (alien && !st.faction)) return 'invalid';
+  if (alien && !tileAt(s, c.x, c.y)!.xeno) return 'invalid';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
   if (unitAt(s, c.x, c.y)) return 'occupied';
   if (supportedUnits(s, c) >= unitLimit(s, c)) return 'unitLimit';
@@ -635,4 +654,34 @@ export function radioTargets(s: GameState, f: number, c: City): Pos[] {
 /** Sprit pro Runde (Wind: mehr) / fuel burned per round (wind: more) */
 export function fuelBurn(s: GameState): number {
   return weather(s) === 'wind' ? WEATHER.wind.fuelBurn : 1;
+}
+
+// ---------- Ausserirdische / aliens ----------
+
+export const isAlienFaction = (s: GameState, f: number) => s.factions[f]?.id === XENO.faction;
+export const isAlien = (u: Unit) => UNITS[u.type].faction === XENO.faction;
+
+export type TerraformCheck = 'ok' | 'wrongFaction' | 'invalidTile' | 'alreadyBuilt' | 'notInTerritory' | 'notEnoughStars' | 'unitExhausted' | 'outOfRange';
+
+/** Terraformen: per Sterne im eigenen Gebiet oder per Terraformer auf/neben sich / by stars in own territory or by a terraformer on/next to itself */
+export function terraformCheck(s: GameState, f: number, x: number, y: number, unitId?: number): TerraformCheck {
+  if (!isAlienFaction(s, f)) return 'wrongFaction';
+  if (!inBounds(s.size, x, y)) return 'invalidTile';
+  const t = tileAt(s, x, y)!;
+  if (t.terrain === 'ocean') return 'invalidTile';
+  if (t.xeno) return 'alreadyBuilt';
+  if (unitId !== undefined) {
+    const u = s.units.find((o) => o.id === unitId);
+    if (!u || u.owner !== f || !has(u, 'terraform')) return 'wrongFaction';
+    if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
+    if (dist(u, { x, y }) > 1) return 'outOfRange';
+    return 'ok';
+  }
+  if (territoryOwner(s, t) !== f) return 'notInTerritory';
+  if (s.factions[f].stars < XENO.terraformCost) return 'notEnoughStars';
+  return 'ok';
+}
+
+export function terraformTargets(s: GameState, u: Unit): Pos[] {
+  return area(s.size, u.x, u.y, 1).filter((p) => terraformCheck(s, u.owner, p.x, p.y, u.id) === 'ok');
 }

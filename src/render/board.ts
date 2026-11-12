@@ -37,6 +37,7 @@ const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: P
   safe(models.buildingGeometry, f ? factionTokens[f].secondary : semantic.neutral, k, f);
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
 const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
+const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
 import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
 
@@ -117,8 +118,8 @@ export class Board {
   }
 
   private snowy = false;
-  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2): THREE.BufferGeometry {
-    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}`;
+  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false): THREE.BufferGeometry {
+    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}`;
     let g = this.tileGeoCache.get(key);
     if (g) return g;
     if (terrain === 'fog') {
@@ -141,6 +142,11 @@ export class Board {
       if (bt) { topColor = bt.top; if (bt.side) side = bt.side; }
       if (tint && (terrain === 'plain' || terrain === 'forest')) topColor = mix(topColor, tint, lush ? 0.5 : 0.18);
       if (tint && terrain === 'mountain') topColor = mix(topColor, tint, 0.15);
+      // Xeno-Boden: violett mit dunkler Kante / xeno ground: violet with a dark edge
+      if (xeno && terrain !== 'shallow' && terrain !== 'ocean') {
+        topColor = mix(semantic.xenoGround, topColor, terrain === 'mountain' ? 0.35 : 0.15);
+        side = semantic.xenoGroundDark;
+      } else if (xeno) topColor = mix(topColor, semantic.xenoGlow, 0.35);
       // Schneewetter: Land leicht verschneit / snow weather: land lightly snow-covered
       if (this.snowy && terrain !== 'shallow' && terrain !== 'ocean') topColor = mix(topColor, semantic.snow, 0.5);
       g = coloredBox(0.98, h, 0.98, topColor, side);
@@ -219,7 +225,7 @@ export class Board {
           continue;
         }
         const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
-        add(this.tileGeo(t.terrain, homeFaction ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2), pos, k);
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno), pos, k);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -236,8 +242,11 @@ export class Board {
         if (occ && t.terrain === 'mountain') {
           // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
           addDeco(decorationGeometry(t.terrain, null, variant), new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)));
+        } else if (t.xeno && t.terrain !== 'mountain' && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
+          // Xeno-Flora statt Baeumen und Graesern / xeno flora instead of trees and grass
+          if (!occ && (!hasStructure || t.building === 'road')) addDeco(t.resource ? decorationGeometry(t.terrain, t.resource, variant) : xenoDecoration((x * 7 + y * 13 + x * y) % 6), at(), !t.resource);
         } else if (!occ && (!hasStructure || t.building === 'road')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
-        if (!occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische und Kueste / fish and coast
         if (t.terrain === 'shallow' || t.terrain === 'ocean') {
           if (t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });

@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  area, attackTargets, barrierTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -271,6 +271,15 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     if (bo) {
       const c: Command = { type: 'barrier', unit: u.id, x: bo.x, y: bo.y };
       if (stay + bo.v > bestV && ok(failed, c)) { bestV = stay + bo.v; bestCmd = c; }
+    }
+    // Terraformer: Feld umwandeln, bevorzugt Staedte und Ressourcen / terraformer: convert a tile, cities and resources first
+    if (has(u, 'terraform')) {
+      for (const p of terraformTargets(s, u)) {
+        const t = s.tiles[p.y * s.size + p.x];
+        const v = t.cityId !== null ? 40 : t.resource ? 10 : t.territory !== null ? 7 : 4;
+        const c: Command = { type: 'terraform', x: p.x, y: p.y, unit: u.id };
+        if (stay + v > bestV && ok(failed, c)) { bestV = stay + v; bestCmd = c; }
+      }
     }
     // Aussenposten / outpost
     const oc = outpostOption(ctx, u);

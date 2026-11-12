@@ -19,6 +19,8 @@ import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
 import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
 import { artillery, heli, jeep, tank } from './vehicles';
+import { grey, mech, skimmer, terraformer, tripod } from './aliens';
+import { xenoFlora } from './xeno';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
@@ -38,6 +40,11 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'submarine': return submarine(faction).build();
       case 'destroyer': return destroyer(faction).build();
       case 'battleship': return battleship(faction).build();
+      case 'grey': return grey(faction).build();
+      case 'terraformer': return terraformer(faction).build();
+      case 'skimmer': return skimmer(faction).build();
+      case 'mech': return mech(faction).build();
+      case 'tripod': return tripod(faction).build();
     }
   });
 }
@@ -56,6 +63,11 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'pioneer': return pioneer(faction, true).build();
       case 'medic': return medic(faction, true).build();
       case 'spy': return spy(faction, true).build();
+      case 'grey': return grey(faction, true).build();
+      case 'terraformer': return terraformer(faction, true).build();
+      case 'skimmer': return skimmer(faction, true).build();
+      case 'mech': return mech(faction, true).build();
+      case 'tripod': return tripod(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });
@@ -90,6 +102,12 @@ export function decorationGeometry(terrain: TerrainId, resource: ResourceId | nu
   if (g) g.name = key;
   decoCache.set(key, g);
   return g;
+}
+
+/** Fremdwesen-Flora fuer terraformte Felder (6 Varianten) / alien flora for terraformed tiles (6 variants) */
+export function xenoDecoration(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 6) + 6) % 6;
+  return memo(`xenoDeco|${v}`, () => xenoFlora(v).build());
 }
 
 export function cloudGeometry(variant: number): THREE.BufferGeometry {

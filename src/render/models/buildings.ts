@@ -12,6 +12,7 @@ import { addEmblem } from './emblems';
 import { Builder, geo, rng, shade } from './kit';
 import { look, mat } from './look';
 import { cattle } from './nature';
+import { xenoHarvester, xenoHive } from './xeno';
 
 type Kind = BuildingId | 'outpost' | GrandProjectId;
 
@@ -541,6 +542,8 @@ export function building(kind: Kind, f: FactionId | null): Builder {
     case 'bridge': bridge(b, f); break;
     case 'researchCenter': researchCenter(b, f); break;
     case 'outpost': outpost(b, f); break;
+    case 'xenoHive': xenoHive(b, f); break;
+    case 'xenoHarvester': xenoHarvester(b, f); break;
     default: grandProject(b, kind, f); break;
   }
   return b;

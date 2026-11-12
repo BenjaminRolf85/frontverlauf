@@ -44,6 +44,7 @@
     "start": "Launch operation",
     "addPlayer": "Add faction",
     "removePlayer": "Remove",
+    "swapFaction": "Change faction",
     "tiles": "{n} x {n} tiles",
     "hotseatHint": "Several people take turns on the same device."
   },
@@ -115,6 +116,15 @@
       "perkDesc": "All technologies cost 20 % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest"
+    },
+    "zyrr": {
+      "name": "Zyrr Swarm",
+      "short": "Zyrr",
+      "alignment": "extraterrestrial",
+      "perk": "Xenotech",
+      "perkDesc": "No research needed, all units available right away, but more expensive. Training and building only on terraformed xeno ground.",
+      "discount": "no discount",
+      "home": "barren highlands"
     }
   },
   "units": {
@@ -131,7 +141,12 @@
     "landingBoat": "Landing boat",
     "submarine": "Submarine",
     "destroyer": "Destroyer",
-    "battleship": "Battleship"
+    "battleship": "Battleship",
+    "grey": "Laser alien",
+    "terraformer": "Terraformer",
+    "skimmer": "Hover skimmer",
+    "mech": "Battle mech",
+    "tripod": "Death-ray walker"
   },
   "abilities": {
     "dash": "Assault",
@@ -163,7 +178,13 @@
     "splash": "Splash damage",
     "splashDesc": "Also hits the tiles next to the target.",
     "carry": "Transport",
-    "carryDesc": "Carries a land unit."
+    "carryDesc": "Carries a land unit.",
+    "terraform": "Terraform",
+    "terraformDesc": "Turns its own or an adjacent tile into xeno ground for free.",
+    "deathRay": "Death ray",
+    "deathRayDesc": "Ignores cover: terrain, cities, outposts and wrecks.",
+    "walker": "Walker",
+    "walkerDesc": "Enters mountains without research."
   },
   "stats": {
     "cost": "Price",
@@ -218,7 +239,9 @@
     "road": "Asphalt road",
     "bridge": "Steel bridge",
     "researchCenter": "Research centre",
-    "outpost": "Outpost"
+    "outpost": "Outpost",
+    "xenoHive": "Brood hive",
+    "xenoHarvester": "Xeno harvester"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -236,7 +259,9 @@
     "bridge": "connects two land tiles across a water tile",
     "researchCenter": "1 population point and growing points",
     "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters",
-    "barrier": "Hostile vehicles stop and move only 1 tile next round"
+    "barrier": "Hostile vehicles stop and move only 1 tile next round",
+    "xenoHive": "2 population points, only on xeno ground without resource",
+    "xenoHarvester": "2 population points, only on xeno ground with a resource"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -427,7 +452,10 @@
     "invalid": "Invalid action.",
     "fresh": "New units act from your next turn.",
     "webgl": "Your browser does not support WebGL. The game cannot start.",
-    "generic": "Something went wrong."
+    "generic": "Something went wrong.",
+    "noResearch": "The Zyrr do not research.",
+    "notTerraformed": "Terraform the city tile first.",
+    "wrongFaction": "Only the Zyrr can do that."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -922,6 +950,62 @@
         "Outside temperature below zero. As planned.",
         "Snow camouflage active."
       ]
+    },
+    "zyrr": {
+      "select": [
+        "Zrrk. Ready.",
+        "We hear, commander unit.",
+        "Ssssst. Awaiting orders.",
+        "Xel vorr!"
+      ],
+      "move": [
+        "Zyrr glides.",
+        "New ground, new samples.",
+        "Kkt-kkt. Moving."
+      ],
+      "attack": [
+        "Disintegration initiated!",
+        "Zzzzaaap!",
+        "For the swarm!"
+      ],
+      "kill": [
+        "Sample taken.",
+        "Organism switched off.",
+        "Very primitive. Very soft."
+      ],
+      "hurt": [
+        "Kkkrrr! Membrane damaged!",
+        "#@!% earthlings!",
+        "Zrrk! Unpleasant!"
+      ],
+      "corpse": [
+        "Skeleton made of calcium. Fascinating.",
+        "Carbon residue. Inefficient.",
+        "It smells of earthling here."
+      ],
+      "wreck": [
+        "Primitive machine. Smoking.",
+        "Scrap metal. No consciousness.",
+        "Flammable tech. Amusing."
+      ],
+      "forest": [
+        "Too much green. Must terraform.",
+        "Trees. They stare back.",
+        "Alone in the chlorophyll ..."
+      ],
+      "idle": [
+        "Home planet never calls.",
+        "When will this planet finally be violet?",
+        "Bzzzt. Boredom mode."
+      ],
+      "rain": [
+        "Water from above. Barbaric.",
+        "Membrane getting wet. Kkt."
+      ],
+      "snow": [
+        "Frozen water. Like on Xel.",
+        "Cold. Pleasant."
+      ]
     }
   },
   "cityUpgrades": {
@@ -950,5 +1034,13 @@
     "load": "Load",
     "delete": "Delete",
     "saved": "Saved in slot {n}"
+  },
+  "xeno": {
+    "terraform": "Terraform",
+    "terraformHint": "Tap a highlighted tile to turn it into xeno ground.",
+    "ground": "Xeno ground",
+    "groundDesc": "Alien units: defence 1.5 and +2 healing",
+    "cityNeedsTerraform": "Terraform first: training only on xeno ground.",
+    "noResearch": "The Zyrr need no research. Their units are available right away."
   }
 }

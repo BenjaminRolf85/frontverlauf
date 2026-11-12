@@ -231,6 +231,7 @@ const HOME_BIOME: Record<FactionId, Partial<Record<BiomeId, number>>> = {
   alvenia: { hills: 0.4, grassland: 0.2 },
   meridon: { swamp: 0.25, grassland: 0.3 },
   velkar: { tundra: 0.45, hills: 0.25 },
+  zyrr: { desert: 0.25, steppe: 0.2 },
 };
 
 /**

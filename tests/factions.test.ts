@@ -11,8 +11,9 @@ function game(f: FactionId, other: FactionId = f === 'korvat' ? 'dravon' : 'korv
 }
 
 describe('Fraktionen / factions', () => {
-  it('exactly five factions with start techs of the spec', () => {
-    expect(FACTION_IDS).toEqual(['korvat', 'dravon', 'alvenia', 'meridon', 'velkar']);
+  it('five human factions with start techs of the spec, plus the Zyrr without tech', () => {
+    expect(FACTION_IDS).toEqual(['korvat', 'dravon', 'alvenia', 'meridon', 'velkar', 'zyrr']);
+    expect(FACTIONS.zyrr.startTech).toBeNull();
     expect(FACTIONS.korvat.startTech).toBe('livestock');
     expect(FACTIONS.dravon.startTech).toBe('motorization');
     expect(FACTIONS.alvenia.startTech).toBe('supply');

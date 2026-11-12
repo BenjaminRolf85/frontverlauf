@@ -4,7 +4,7 @@
  */
 import {
   applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, radioTargets,
+  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, radioTargets, terraformTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
@@ -48,6 +48,8 @@ export class Controller {
   barrierMode = false;
   /** Zielauswahl fuer den Funkturm: Stadt-ID / target selection for the radio tower: city id */
   radioCity: number | null = null;
+  /** Zielauswahl fuer den Terraformer / target selection for the terraformer */
+  terraformUnit: number | null = null;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -90,6 +92,12 @@ export class Controller {
     this.ui.update();
   }
 
+  startTerraform(unitId: number) {
+    this.terraformUnit = unitId;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
   startRadio(cityId: number) {
     this.radioCity = cityId;
     this.updateHighlights();
@@ -99,6 +107,7 @@ export class Controller {
   clearSelection() {
     this.barrierMode = false;
     this.radioCity = null;
+    this.terraformUnit = null;
     this.selected = null; this.selectedUnit = null; this.pendingTarget = null;
     this.updateHighlights();
   }
@@ -112,6 +121,10 @@ export class Controller {
     if (!s) return;
     const list: { x: number; y: number; kind: HighlightKind }[] = [];
     if (this.selected) list.push({ ...this.selected, kind: 'select' });
+    if (this.terraformUnit !== null && this.isHumanTurn) {
+      const tu = unitById(s, this.terraformUnit);
+      if (tu) for (const p of terraformTargets(s, tu)) list.push({ ...p, kind: 'build' });
+    }
     if (this.radioCity !== null && this.isHumanTurn) {
       const c = s.cities.find((cc) => cc.id === this.radioCity);
       if (c) for (const p of radioTargets(s, s.current, c)) list.push({ ...p, kind: 'build' });
@@ -143,6 +156,17 @@ export class Controller {
     const s = this.state;
     if (!s || this.busy) return;
     audio.unlock();
+    if (this.terraformUnit !== null) {
+      const uid = this.terraformUnit;
+      this.terraformUnit = null;
+      const tu = unitById(s, uid);
+      if (tu && terraformTargets(s, tu).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'terraform', x, y, unit: uid });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
     if (this.radioCity !== null) {
       const cityId = this.radioCity;
       this.radioCity = null;
@@ -287,6 +311,7 @@ export class Controller {
           case 'heal': { const u = unitById(s, e.unit); if (u && visible(u.x, u.y)) this.ui.fx('heal', u.x, u.y, `+${e.amount}`); break; }
           case 'build': if (e.faction === this.viewer) this.play('build'); break;
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
+          case 'terraform': if (e.faction === this.viewer) this.play('research'); break;
           case 'cityUpgrade': if (e.faction === this.viewer) this.play(e.upgrade === 'radioTower' ? 'research' : 'build'); break;
           case 'barrierHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); } break;
           case 'research': if (e.faction === this.viewer) this.play('research'); break;

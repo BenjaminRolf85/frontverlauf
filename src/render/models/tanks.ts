@@ -130,7 +130,7 @@ function sideEmblems(b: Builder, f: FactionId, L: Look, x: number, y: number, z:
 // ---------- Korvat ----------
 
 function korvat(b: Builder, L: Look, lite: boolean) {
-  const f: FactionId = 'korvat';
+  const f: FactionId = L.id === 'neutral' ? 'korvat' : L.id;
   tracks(b, { x: 0.135, w: 0.095, len: 0.42, h: 0.095, wheels: 5, wr: 0.038, sprocket: L.trim, hub: L.hullDark, lite, links: 11 });
   // kastenfoermige Wanne mit Kettenabdeckungen / boxy hull with track guards
   b.add(geo.profileZY([[-0.2, 0.035], [0.15, 0.035], [0.215, 0.1], [0.19, 0.155], [-0.19, 0.155], [-0.21, 0.12]], 0.19), L.hull);
@@ -193,7 +193,7 @@ function korvat(b: Builder, L: Look, lite: boolean) {
 // ---------- Dravon ----------
 
 function dravon(b: Builder, L: Look, lite: boolean) {
-  const f: FactionId = 'dravon';
+  const f: FactionId = L.id === 'neutral' ? 'dravon' : L.id;
   const gold = L.secondary;
   tracks(b, { x: 0.13, w: 0.085, len: 0.44, h: 0.085, wheels: 6, wr: 0.03, sprocket: gold, hub: L.hullDark, lite, links: 12 });
   // lange Keilwanne / long wedge hull
@@ -242,7 +242,7 @@ function dravon(b: Builder, L: Look, lite: boolean) {
 // ---------- Alvenia ----------
 
 function alvenia(b: Builder, L: Look, lite: boolean) {
-  const f: FactionId = 'alvenia';
+  const f: FactionId = L.id === 'neutral' ? 'alvenia' : L.id;
   const white = L.trim;
   tracks(b, { x: 0.128, w: 0.08, len: 0.42, h: 0.08, wheels: 6, wr: 0.028, sprocket: L.hullDark, hub: white, lite, links: 11 });
   // flache, abgerundete Wanne / low rounded hull
@@ -302,7 +302,7 @@ function container(b: Builder, x: number, y: number, z: number, w: number, h: nu
 }
 
 function meridon(b: Builder, L: Look, lite: boolean) {
-  const f: FactionId = 'meridon';
+  const f: FactionId = L.id === 'neutral' ? 'meridon' : L.id;
   const orange = L.trim;
   tracks(b, { x: 0.112, w: 0.062, len: 0.38, h: 0.072, wheels: 6, wr: 0.021, sprocket: orange, hub: L.hullDark, lite, links: 10, rollers: 2 });
   // leichte, schmale Wanne / light narrow hull
@@ -360,7 +360,7 @@ function hexPlate(b: Builder, x: number, y: number, z: number, r: number, c: Col
 }
 
 function velkar(b: Builder, L: Look, lite: boolean) {
-  const f: FactionId = 'velkar';
+  const f: FactionId = L.id === 'neutral' ? 'velkar' : L.id;
   const green = L.secondary;
   tracks(b, { x: 0.13, w: 0.085, len: 0.38, h: 0.08, wheels: 5, wr: 0.028, sprocket: L.hullDark, hub: green, lite, links: 9 });
   // kompakte, gedrungene Wanne / compact squat hull
@@ -422,7 +422,7 @@ export function tank(f: FactionId, lite = false): Builder {
     case 'dravon': dravon(b, L, lite); break;
     case 'alvenia': alvenia(b, L, lite); break;
     case 'meridon': meridon(b, L, lite); break;
-    case 'velkar': velkar(b, L, lite); break;
+    case 'velkar': case 'zyrr': velkar(b, L, lite); break;
   }
   return b;
 }
