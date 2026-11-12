@@ -408,7 +408,7 @@ function along(p: V3, dir: V3, t: number): V3 {
 
 export function infantry(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  const d: Detail = lite ? 1 : 2;
+  const d: Detail = lite ? 0 : 2;
   const G: V3 = [0.035, 0.2, 0.06];
   const D: V3 = [-0.3, 0.12, 1];
   soldier(b, f, {
@@ -454,7 +454,7 @@ export function sniper(f: FactionId, lite = false): Builder {
     // Ghillie-Tarnung auf Ruecken und Beinen / ghillie camo on back and legs
     const R = rng(77);
     const tones = [mat.leaf, mat.leafDark, mat.grass, mix(mat.leaf, L.primary, 0.3)];
-    const n = lite ? 8 : 16;
+    const n = lite ? 5 : 16;
     b.group({ p: pelvis, r: body }, () => {
       for (let i = 0; i < n; i++) {
         const y = -0.12 + R() * 0.27;
@@ -479,7 +479,7 @@ function sandbag(b: Builder, x: number, y: number, z: number, ry: number, d: Det
 
 export function pioneer(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  const d: Detail = lite ? 1 : 2;
+  const d: Detail = lite ? 0 : 2;
   // Schaufel schraeg vor dem Koerper / shovel held diagonally in front
   const G: V3 = [0.075, 0.215, -0.02];
   const B: V3 = [-0.075, 0.03, 0.15];
@@ -564,7 +564,7 @@ export function mgTeam(f: FactionId, lite = false): Builder {
 export function medic(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  const d: Detail = lite ? 1 : 2;
+  const d: Detail = lite ? 0 : 2;
   soldier(b, f, {
     ...standPose([[-0.105, 0.155, 0.07], [0.125, 0.13, 0.03]]),
     twist: [0, -0.1, 0],
@@ -584,7 +584,7 @@ export function medic(f: FactionId, lite = false): Builder {
 export function spy(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  const d: Detail = lite ? 1 : 2;
+  const d: Detail = lite ? 0 : 2;
   soldier(b, f, {
     ...standPose([[-0.1, 0.165, 0.045], [0.125, 0.135, -0.01]]),
     footL: [-0.045, 0.034, 0.025],

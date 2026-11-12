@@ -130,16 +130,16 @@ export function jeep(f: FactionId, lite = false): Builder {
       b.cyl(0.018, 0.02, 0.016, 8, L.hullDark, [s * 0.075, ly, front + 0.004], [HALF_PI, 0, 0]);
       b.box(0.022, 0.022, 0.006, mat.yellow, [s * 0.075, ly, front + 0.013]);
     }
-    b.add(geo.cbox(0.24, 0.022, 0.024, 0.006), mat.dark, { p: [0, cy, 0.195] });
-    b.add(geo.cbox(0.22, 0.022, 0.024, 0.006), mat.dark, { p: [0, cy, -0.195] });
+    b.box(0.24, 0.022, 0.024, mat.dark, [0, cy, 0.195]);
+    b.box(0.22, 0.022, 0.024, mat.dark, [0, cy, -0.195]);
     for (const x of [-0.055, 0.055]) {
       b.add(geo.cbox(0.06, 0.02, 0.055, 0.008), mat.darkMid, { p: [x, by + 0.07, -0.0] });
     }
-    b.add(geo.cyl(0.024, 0.024, 0.006, 10, true), mat.ink, { p: [-0.055, by + 0.115, 0.03], r: [1.1, 0, 0] });
+    b.add(geo.cyl(0.024, 0.024, 0.006, 8, true), mat.ink, { p: [-0.055, by + 0.115, 0.03], r: [1.1, 0, 0] });
     // Ersatzrad hinten in Fraktionsfarbe / spare wheel at the rear with faction rim
     b.group({ p: [0, by + 0.07, -0.205], r: [0, HALF_PI, 0] }, () => wheel(b, 0, 0, 0, 0.048, 0.03, { rim: L.trim }));
     // Kanister / jerrycan
-    b.add(geo.cbox(0.03, 0.05, 0.04, 0.006), L.primaryDark, { p: [0.105, by + 0.1, -0.18] });
+    b.box(0.03, 0.05, 0.04, L.primaryDark, [0.105, by + 0.1, -0.18]);
   }
   // Emblem auf der Haube / emblem on hood
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [0, by + (f === 'velkar' ? 0.075 : f === 'korvat' ? 0.073 : 0.07), 0.13], r: [-HALF_PI + (f === 'dravon' ? 0.3 : 0.1), 0, 0] });
@@ -183,7 +183,7 @@ export function tank(f: FactionId, lite = false): Builder {
     }
     b.cyl(0.026, 0.026, 0.014, 8, L.trim, [ox, 0.058, 0.18], [0, 0, HALF_PI]);
     b.cyl(0.024, 0.024, 0.014, 8, mat.metal, [ox, 0.055, -0.185], [0, 0, HALF_PI]);
-    for (let i = 0; i < 6; i++) b.box(tw + 0.006, 0.008, 0.012, mat.ink, [s * tx, 0.088, -0.15 + i * 0.06]);
+    for (let i = 0; i < 5; i++) b.box(tw + 0.006, 0.008, 0.012, mat.ink, [s * tx, 0.088, -0.14 + i * 0.07]);
   }
   // Wanne / hull
   const hullW = 2 * tx - tw + 0.01;
@@ -191,14 +191,14 @@ export function tank(f: FactionId, lite = false): Builder {
   b.block(0, 0.085, 0, 2 * tx + tw + 0.01, 0.014, 0.4, f === 'velkar' ? L.hullDark : L.hull);
   if (!lite) {
     // Bugplatte, Scheinwerfer, Motorgitter, Auspuff, Werkzeugkiste / glacis, lights, engine grille, exhaust, toolbox
-    b.add(geo.cbox(hullW - 0.02, 0.012, 0.07, 0.01), L.hullDark, { p: [0, 0.118, 0.18], r: [0.68, 0, 0] });
+    b.box(hullW - 0.02, 0.012, 0.07, L.hullDark, [0, 0.118, 0.18], [0.68, 0, 0]);
     for (const sx of [-1, 1]) {
       b.box(0.024, 0.018, 0.014, mat.dark, [sx * 0.08, 0.13, 0.172], [0.68, 0, 0]);
       b.box(0.018, 0.012, 0.004, mat.yellow, [sx * 0.08, 0.134, 0.18], [0.68, 0, 0]);
     }
     for (let i = 0; i < 3; i++) b.box(hullW * 0.6, 0.006, 0.01, mat.ink, [0, 0.148, -0.11 - i * 0.022]);
-    b.add(geo.cbox(0.05, 0.03, 0.08, 0.008), L.primaryDark, { p: [-(tx + tw / 2 - 0.03), 0.107, -0.1] });
-    b.add(geo.cbox(0.05, 0.03, 0.08, 0.008), L.secondary, { p: [tx + tw / 2 - 0.03, 0.107, -0.1] });
+    b.box(0.05, 0.03, 0.08, L.primaryDark, [-(tx + tw / 2 - 0.03), 0.107, -0.1]);
+    b.box(0.05, 0.03, 0.08, L.secondary, [tx + tw / 2 - 0.03, 0.107, -0.1]);
   }
   const ty = 0.145; // Turmboden / turret base
   let tz = -0.03;
@@ -227,9 +227,9 @@ export function tank(f: FactionId, lite = false): Builder {
       break;
     case 'alvenia':
       // runder, moderner Turm / rounded, modern turret
-      b.cyl(0.11, 0.115, 0.06, 12, L.hull, [0, ty + 0.03, tz]);
-      b.add(geo.hemi(0.11, 12, 3), L.hull, { p: [0, ty + 0.06, tz], s: [1, 0.28, 1] });
-      b.add(geo.cyl(0.116, 0.116, 0.014, 12, true), L.trim, { p: [0, ty + 0.035, tz] });
+      b.cyl(0.11, 0.115, 0.06, 10, L.hull, [0, ty + 0.03, tz]);
+      b.add(geo.hemi(0.11, 10, 3), L.hull, { p: [0, ty + 0.06, tz], s: [1, 0.28, 1] });
+      b.add(geo.cyl(0.116, 0.116, 0.014, 10, true), L.trim, { p: [0, ty + 0.035, tz] });
       b.add(geo.cbox(0.04, 0.03, 0.04, 0.008), mat.glassDark, { p: [0.05, ty + 0.085, tz - 0.01] });
       mantletZ = tz + 0.105;
       emblemSides(b, f, L, 0.112, ty + 0.03, tz, lite ? 0 : 0.028);
@@ -272,7 +272,6 @@ export function tank(f: FactionId, lite = false): Builder {
   if (!lite && f !== 'korvat') b.cyl(barrelR * 1.5, barrelR * 1.5, 0.045, 8, L.hullDark, [0, by0, mantletZ + barrelLen * 0.5], [HALF_PI, 0, 0]);
   if (f === 'dravon' || f === 'korvat') {
     b.add(geo.cbox(barrelR * 3.2, barrelR * 2.4, 0.05, 0.006), mat.dark, { p: [0, by0, mantletZ + barrelLen - 0.012] });
-    if (!lite) for (const sx of [-1, 1]) b.box(0.004, barrelR * 1.6, 0.03, mat.ink, [sx * barrelR * 1.62, by0, mantletZ + barrelLen - 0.012]);
   } else {
     b.cyl(barrelR * 1.35, barrelR * 1.35, 0.028, lite ? 8 : 10, mat.dark, [0, by0, mantletZ + barrelLen - 0.012], [HALF_PI, 0, 0]);
   }
@@ -280,13 +279,13 @@ export function tank(f: FactionId, lite = false): Builder {
     // Kommandantenkuppel mit offenem Luk, Antenne / commander cupola with open hatch, antenna
     const cx = -0.045, cz = tz - 0.03;
     const top = f === 'dravon' ? ty + 0.095 : f === 'velkar' ? ty + 0.077 : f === 'meridon' ? ty + 0.07 : ty + 0.08;
-    b.cyl(0.036, 0.04, 0.026, 10, L.hullDark, [cx, top + 0.008, cz]);
+    b.cyl(0.036, 0.04, 0.026, 8, L.hullDark, [cx, top + 0.008, cz]);
     b.box(0.03, 0.01, 0.008, mat.glassDark, [cx, top + 0.014, cz + 0.038]);
-    b.add(geo.cyl(0.032, 0.032, 0.008, 10), L.hull, { p: [cx, top + 0.045, cz - 0.03], r: [-1.2, 0, 0] });
+    b.box(0.05, 0.008, 0.05, L.hull, [cx, top + 0.045, cz - 0.03], [-1.2, 0, 0]);
     if (f !== 'velkar') b.group({ p: [cx, top - 0.13, cz], s: 0.62 }, () => soldier(b, f, standPose([[-0.12, 0.25, 0.04], [0.12, 0.25, 0.04]]), { detail: 0, seed: 7, noLegs: true }));
     b.tube([0.06, top, tz - 0.1], [0.075, top + 0.2, tz - 0.13], 0.003, 4, mat.dark);
     b.add(geo.ico(0.008, 0), L.secondary, { p: [0.075, top + 0.205, tz - 0.13] });
-    b.add(geo.cbox(0.03, 0.02, 0.025, 0.005), mat.dark, { p: [0.06, top - 0.002, tz - 0.1] });
+    b.box(0.03, 0.02, 0.025, mat.dark, [0.06, top - 0.002, tz - 0.1]);
   }
   return b;
 }
@@ -298,7 +297,7 @@ export function artillery(f: FactionId, lite = false): Builder {
   const L = look(f);
   const big = f === 'dravon' ? 1.15 : 1;
   const wr = f === 'meridon' ? 0.07 : 0.075;
-  for (const s of [-1, 1]) wheel(b, s * 0.14, wr, 0.02, wr, 0.035, { spokes: lite ? 0 : 6, rim: L.hull, lite, seg: 12 });
+  for (const s of [-1, 1]) wheel(b, s * 0.14, wr, 0.02, wr, 0.035, { spokes: lite ? 0 : 5, rim: L.hull, lite, seg: 12 });
   b.box(0.27, 0.02, 0.02, mat.dark, [0, wr, 0.02]);
   // Spreizlafette / split trail
   for (const s of [-1, 1]) {
@@ -334,7 +333,13 @@ export function artillery(f: FactionId, lite = false): Builder {
   }
   // langes Rohr, angehoben / long barrel, raised
   b.group({ p: [0, wr + 0.06, 0.02], r: [-0.3, 0, 0] }, () => {
-    b.box(0.06, 0.05, 0.14, L.hullDark, [0, 0, 0.0]);
+    b.add(lite ? geo.box(0.06, 0.05, 0.14) : geo.cbox(0.06, 0.05, 0.14, 0.012), L.hullDark, { p: [0, 0, 0.0] });
+    if (!lite) {
+      // Rohrruecklauf-Zylinder + Verschluss / recoil cylinders + breech
+      b.cyl(0.013, 0.013, 0.16, 10, L.hull, [0, 0.032, 0.07], [HALF_PI, 0, 0]);
+      b.add(geo.cbox(0.05, 0.05, 0.04, 0.01), mat.dark, { p: [0, 0, -0.085] });
+      b.box(0.008, 0.03, 0.03, mat.metal, [0.03, 0.0, -0.085]);
+    }
     b.cyl(0.017 * big, 0.019 * big, 0.32 * big, 8, L.hullDark, [0, 0.0, 0.07 + 0.16 * big], [HALF_PI, 0, 0]);
     b.cyl(0.027 * big, 0.027 * big, 0.04, 8, mat.dark, [0, 0.0, 0.07 + 0.32 * big - 0.02], [HALF_PI, 0, 0]);
   });
@@ -352,18 +357,19 @@ export function heli(f: FactionId, lite = false): Builder {
   const L = look(f);
   const lift = 0.08; // schwebt / hovering
   const by = lift + 0.05;
-  // Kufen / skids
+  // Kufen mit Querrohren / skids with cross tubes
   for (const s of [-1, 1]) {
-    b.box(0.014, 0.014, 0.3, mat.dark, [s * 0.085, lift, 0.02]);
-    b.tube([s * 0.085, lift, 0.1], [s * 0.05, by + 0.02, 0.09], 0.006, 4, mat.dark);
-    b.tube([s * 0.085, lift, -0.06], [s * 0.05, by + 0.02, -0.06], 0.006, 4, mat.dark);
+    b.cyl(0.008, 0.008, 0.3, 4, mat.dark, [s * 0.085, lift, 0.02], [HALF_PI, 0, 0]);
+    b.tube([s * 0.085, lift, 0.17], [s * 0.085, lift + 0.02, 0.195], 0.008, lite ? 4 : 6, mat.dark);
+    b.tube([s * 0.085, lift, 0.1], [s * 0.05, by + 0.02, 0.09], 0.006, lite ? 4 : 6, mat.dark);
+    b.tube([s * 0.085, lift, -0.06], [s * 0.05, by + 0.02, -0.06], 0.006, lite ? 4 : 6, mat.dark);
   }
   let topY = by + 0.11;
   // Rumpf / fuselage
   switch (f) {
     case 'korvat':
-      b.add(geo.taper(0.13, 0.28, 0.11, 0.22, 0.11, -0.01), L.hull, { p: [0, by + 0.055, 0.0] });
-      b.add(geo.taper(0.12, 0.08, 0.09, 0.04, 0.07, -0.015), mat.glass, { p: [0, by + 0.075, 0.16] });
+      b.add(geo.rtaper(0.13, 0.28, 0.11, 0.22, 0.11, 0.016, -0.01), L.hull, { p: [0, by + 0.055, 0.0] });
+      b.add(geo.rtaper(0.12, 0.08, 0.09, 0.04, 0.07, 0.01, -0.015), mat.glass, { p: [0, by + 0.075, 0.16] });
       b.block(0, by + 0.04, 0.0, 0.135, 0.014, 0.25, L.trim);
       break;
     case 'dravon':
@@ -373,13 +379,13 @@ export function heli(f: FactionId, lite = false): Builder {
       topY = by + 0.12;
       break;
     case 'alvenia':
-      b.add(geo.sphere(0.1, 10, 6), L.hull, { p: [0, by + 0.06, 0.0], s: [0.7, 0.62, 1.35] });
+      b.add(geo.sphere(0.1, 12, 6), L.hull, { p: [0, by + 0.06, 0.0], s: [0.7, 0.62, 1.35] });
       b.add(geo.sphere(0.07, 10, 5), mat.glass, { p: [0, by + 0.08, 0.1], s: [0.85, 0.75, 1.1] });
       b.box(0.02, 0.012, 0.2, L.trim, [0, by + 0.115, -0.02]);
       break;
     case 'meridon':
-      b.add(geo.taper(0.1, 0.24, 0.085, 0.2, 0.095, -0.01), L.hull, { p: [0, by + 0.05, 0.0] });
-      b.add(geo.taper(0.09, 0.08, 0.07, 0.04, 0.065, -0.015), mat.glass, { p: [0, by + 0.07, 0.15] });
+      b.add(geo.rtaper(0.1, 0.24, 0.085, 0.2, 0.095, 0.014, -0.01), L.hull, { p: [0, by + 0.05, 0.0] });
+      b.add(geo.rtaper(0.09, 0.08, 0.07, 0.04, 0.065, 0.01, -0.015), mat.glass, { p: [0, by + 0.07, 0.15] });
       // Container-Kufenkasten / container pod
       b.block(0, by - 0.035, -0.02, 0.09, 0.04, 0.14, L.trim);
       for (const z of [-0.07, -0.035, 0, 0.035]) b.block(0, by - 0.036, z, 0.094, 0.042, 0.008, shade(L.trim, 0.78));
@@ -396,34 +402,68 @@ export function heli(f: FactionId, lite = false): Builder {
   }
   // Heckausleger / tail boom
   const boomH = f === 'dravon' ? 0.045 : 0.038;
-  b.add(geo.taper(boomH * 0.6, boomH * 0.6, boomH, boomH, 0.24), L.hull, { p: [0, by + 0.07, -0.24], r: [HALF_PI, 0, 0] });
-  b.add(geo.taper(0.012, 0.06, 0.008, 0.04, 0.09, -0.02), L.hull, { p: [0, by + 0.11, -0.35] });
-  b.box(0.12, 0.008, 0.035, L.hull, [0, by + 0.075, -0.32]);
-  b.box(0.01, 0.1, 0.012, mat.dark, [0.018, by + 0.11, -0.36]);
-  b.box(0.01, 0.012, 0.1, mat.dark, [0.018, by + 0.11, -0.36]);
+  const seg = lite ? 6 : 10;
+  if (f === 'alvenia') b.add(geo.cyl(boomH * 0.55, boomH * 0.35, 0.25, seg), L.hull, { p: [0, by + 0.075, -0.235], r: [-HALF_PI, 0, 0] });
+  else b.add(lite ? geo.taper(boomH * 0.6, boomH * 0.6, boomH, boomH, 0.24) : geo.ctaper(boomH * 0.6, boomH * 0.6, boomH, boomH, 0.24, 0.008), L.hull, { p: [0, by + 0.07, -0.24], r: [HALF_PI, 0, 0] });
+  b.add(lite ? geo.taper(0.012, 0.06, 0.008, 0.04, 0.09, -0.02) : geo.rtaper(0.014, 0.065, 0.01, 0.04, 0.095, 0.004, -0.025), L.hull, { p: [0, by + 0.11, -0.35] });
+  b.add(geo.taper(0.012, 0.022, 0.008, 0.02, 0.02), L.trim, { p: [0, by + 0.165, -0.375] });
+  b.add(lite ? geo.box(0.12, 0.008, 0.035) : geo.cbox(0.13, 0.008, 0.035, 0.012), L.hull, { p: [0, by + 0.075, -0.32] });
+  for (const s of [-1, 1]) b.box(0.006, 0.03, 0.03, L.trim, [s * 0.066, by + 0.075, -0.32]);
+  // Heckrotor / tail rotor
+  b.cyl(0.008, 0.008, 0.02, 6, mat.dark, [0.015, by + 0.11, -0.36], [0, 0, HALF_PI]);
+  for (let i = 0; i < 2; i++) {
+    b.group({ p: [0.024, by + 0.11, -0.36], r: [(i / 2) * Math.PI + 0.4, 0, 0] }, () => {
+      b.box(0.004, 0.11, 0.014, mat.dark, [0, 0, 0]);
+      if (!lite) b.box(0.005, 0.016, 0.015, L.trim, [0, 0.05, 0]);
+    });
+  }
   b.box(0.018, 0.02, 0.06, L.trim, [0, by + 0.08, -0.25]);
-  // Stummelfluegel + Raketenbehaelter / stub wings + rocket pods
+  if (!lite) {
+    // Triebwerk mit Auspuff, Kabinenrahmen, Seitenfenster, Pilot / engine with exhausts, canopy frame, side windows, pilot
+    const ey = topY - 0.012;
+    b.add(geo.ctaper(0.09, 0.15, 0.07, 0.12, 0.035, 0.014), L.hullDark, { p: [0, ey + 0.017, -0.03] });
+    for (const sx of [-1, 1]) {
+      b.cyl(0.014, 0.012, 0.04, 8, mat.darkMid, [sx * 0.05, ey + 0.015, -0.1], [HALF_PI, 0, 0]);
+      b.box(0.004, 0.03, 0.05, mat.glassDark, [sx * 0.066, by + 0.07, 0.05]);
+    }
+    b.box(0.03, 0.032, 0.032, mat.skin, [0, by + 0.095, 0.11]);
+    b.add(geo.hemi(0.022, 8, 2), L.primary, { p: [0, by + 0.108, 0.108] });
+    b.box(0.03, 0.008, 0.006, mat.glassDark, [0, by + 0.098, 0.127]);
+    b.box(0.006, 0.006, 0.09, mat.dark, [0, by + 0.115, 0.12], [0.35, 0, 0]);
+  }
+  // Stummelfluegel + Raketenbehaelter + Lenkflugkoerper / stub wings + rocket pods + missiles
   const podScale = f === 'dravon' ? 1.3 : 1;
   for (const s of [-1, 1]) {
-    b.box(0.12, 0.012, 0.05, L.hullDark, [s * 0.11, by + 0.05, 0.0], [0, 0, s * -0.1]);
-    b.cyl(0.024 * podScale, 0.024 * podScale, 0.1, 8, L.hullDark, [s * 0.155, by + 0.03, 0.01], [HALF_PI, 0, 0]);
-    b.cyl(0.018 * podScale, 0.018 * podScale, 0.004, 8, mat.dark, [s * 0.155, by + 0.03, 0.062], [HALF_PI, 0, 0]);
+    b.add(geo.box(0.12, 0.012, 0.052), L.hullDark, { p: [s * 0.11, by + 0.05, 0.0], r: [0, 0, s * -0.1] });
+    b.cyl(0.024 * podScale, 0.024 * podScale, 0.1, lite ? 6 : 8, L.hullDark, [s * 0.155, by + 0.03, 0.01], [HALF_PI, 0, 0]);
+    b.cyl(0.018 * podScale, 0.018 * podScale, 0.004, lite ? 6 : 8, mat.dark, [s * 0.155, by + 0.03, 0.062], [HALF_PI, 0, 0]);
+    if (!lite) {
+      b.cyl(0.009, 0.009, 0.08, 6, mat.white, [s * 0.11, by + 0.03, 0.015], [HALF_PI, 0, 0]);
+      b.add(geo.cone(0.009, 0.02, 6), mat.red, { p: [s * 0.11, by + 0.03, 0.065], r: [HALF_PI, 0, 0] });
+      b.box(0.01, 0.018, 0.006, L.hullDark, [s * 0.155, by + 0.05, 0.01]);
+    }
   }
-  // Bugkanone / chin gun
+  // Bugkanone im Drehturm / chin gun in a turret
   const gunLen = f === 'dravon' ? 0.17 : 0.08;
-  b.add(geo.ico(0.022, 0), mat.dark, { p: [0, by - 0.005, 0.13] });
-  b.cyl(0.006 * (f === 'dravon' ? 1.8 : 1), 0.006 * (f === 'dravon' ? 1.8 : 1), gunLen, 6, mat.metal, [0, by - 0.01, 0.13 + gunLen / 2], [HALF_PI, 0, 0]);
+  const gk = f === 'dravon' ? 1.8 : 1;
+  b.add(lite ? geo.ico(0.022, 0) : geo.sphere(0.024, 8, 4), mat.dark, { p: [0, by - 0.005, 0.13] });
+  b.cyl(0.006 * gk, 0.006 * gk, gunLen, 6, mat.metal, [0, by - 0.01, 0.13 + gunLen / 2], [HALF_PI, 0, 0]);
+  if (!lite) b.cyl(0.01 * gk, 0.008 * gk, 0.02, 6, mat.dark, [0, by - 0.01, 0.13 + gunLen], [HALF_PI, 0, 0]);
   // Emblem auf dem Ausleger / emblem on boom
-  emblemSides(b, f, L, 0.02, by + 0.075, -0.15, lite ? 0 : 0.026);
-  // Hauptrotor / main rotor
-  b.cyl(0.014, 0.018, 0.05, 6, mat.dark, [0, topY + 0.02, 0.0]);
-  b.cyl(0.03, 0.03, 0.02, 8, L.trim, [0, topY + 0.045, 0.0]);
+  emblemSides(b, f, L, 0.022, by + 0.072, -0.17, lite ? 0 : 0.028);
+  // Hauptrotor mit Taumelscheibe / main rotor with swash plate
+  b.cyl(0.014, 0.018, 0.05, 8, mat.dark, [0, topY + 0.02, 0.0]);
+  b.cyl(0.03, 0.03, 0.02, seg, L.trim, [0, topY + 0.045, 0.0]);
+  if (!lite) b.add(geo.hemi(0.02, 8, 2), mat.dark, { p: [0, topY + 0.055, 0] });
   const blades = f === 'alvenia' || f === 'velkar' ? 4 : f === 'meridon' ? 3 : 4;
   for (let i = 0; i < blades; i++) {
     const a = Math.PI / 4 + (i / blades) * Math.PI * 2;
     b.group({ p: [0, topY + 0.05, 0], r: [0, a, 0] }, () => {
-      b.box(0.04, 0.008, 0.4, mat.dark, [0, 0, 0.21], [0, 0, 0.08]);
-      b.box(0.042, 0.009, 0.04, L.trim, [0, 0, 0.39], [0, 0, 0.08]);
+      b.add(lite ? geo.box(0.04, 0.008, 0.4) : geo.cbox(0.042, 0.008, 0.4, 0.012), mat.dark, { p: [0, 0, 0.21], r: [0, 0, 0.08] });
+      b.box(0.044, 0.009, 0.04, L.trim, [0, 0, 0.39], [0, 0, 0.08]);
+      if (!lite) {
+        b.box(0.044, 0.009, 0.012, L.secondary, [0, 0, 0.33], [0, 0, 0.08]);
+      }
     });
   }
   return b;
