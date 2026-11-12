@@ -198,7 +198,7 @@ export function doomBuggy(f: FactionId, lite = false): Builder {
   b.tube([-0.085, top, -0.1], [0.085, top, -0.1], 0.007, 6, mat.gunmetal);
   b.tube([-0.085, top, 0.0], [0.085, top, -0.1], 0.006, 5, mat.gunmetal);
   // Fahrer + Dach-MG / driver + roof MG
-  if (!lite) b.group({ p: [-0.045, by - 0.005, -0.03], s: 0.85 }, () => soldier(b, f, seatPose([[-0.045, 0.125, 0.11], [0.045, 0.125, 0.11]]), { detail: 0, seed: 3, noLegs: true }));
+  if (!lite) b.group({ p: [-0.045, by - 0.055, -0.04], s: 0.75 }, () => soldier(b, f, seatPose([[-0.045, 0.125, 0.11], [0.045, 0.125, 0.11]]), { detail: 0, seed: 3, noLegs: true }));
   roofMg(b, L, 0.03, top, -0.05, L.primary);
   // Stachelbuegel vorn / spiked front bar
   b.box(0.26, 0.02, 0.02, mat.gunmetal, [0, by + 0.01, 0.2]);
@@ -246,20 +246,19 @@ export function rocketCart(f: FactionId, lite = false): Builder {
   for (const sx of [-1, 1]) b.block(sx * 0.105, by, -0.1, 0.012, 0.05, 0.2, L.hull);
   b.block(0, by, -0.198, 0.22, 0.05, 0.012, L.hull);
   // Raketengestell aus Rohren / rocket rack from pipes
-  b.group({ p: [0, by + 0.07, -0.1], r: [-0.45, 0, 0] }, () => {
+  b.group({ p: [0, by + 0.14, -0.09], r: [-0.4, 0, 0] }, () => {
     b.box(0.18, 0.01, 0.17, mat.gunmetal, [0, -0.035, 0]);
     for (const sx of [-1, 1]) b.box(0.01, 0.08, 0.17, mat.gunmetal, [sx * 0.085, 0.0, 0]);
     for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
       const x = -0.05 + c * 0.05, y = -0.012 + r * 0.04;
-      b.cyl(0.018, 0.018, 0.17, lite ? 6 : 10, mat.rust, [x, y, 0], [HALF_PI, 0, 0]);
+      b.cyl(0.018, 0.018, 0.17, lite ? 6 : 10, (r + c) % 2 ? mat.rust : shade(mat.rust, 1.25), [x, y, 0], [HALF_PI, 0, 0]);
       if (!lite) b.add(geo.cyl(0.019, 0.019, 0.012, 10, true), mat.rustDark, { p: [x, y, 0.06], r: [HALF_PI, 0, 0] });
       b.add(geo.cone(0.013, 0.04, lite ? 5 : 8), (r + c) % 2 ? L.primary : mat.ember, { p: [x, y, 0.1], r: [HALF_PI, 0, 0] });
     }
   });
-  b.cyl(0.012, 0.016, 0.06, 6, mat.gunmetal, [0, by + 0.03, -0.1]);
+  b.cyl(0.014, 0.018, 0.12, 6, mat.gunmetal, [0, by + 0.06, -0.1]);
   if (!lite) {
     // Fahrer, Banner, Kisten, Stossstange / driver, banners, crates, bumper
-    b.group({ p: [-0.045, by + 0.01, 0.02], s: 0.85 }, () => soldier(b, f, seatPose([[-0.045, 0.125, 0.11], [0.045, 0.125, 0.11]]), { detail: 0, seed: 5, noLegs: true }));
     for (const sx of [-1, 1]) {
       b.tube([sx * 0.1, by + 0.05, -0.19], [sx * 0.1, by + 0.27, -0.2], 0.004, 4, mat.wood);
       b.box(0.006, 0.09, 0.05, L.primary, [sx * 0.1, by + 0.22, -0.172]);
@@ -269,6 +268,18 @@ export function rocketCart(f: FactionId, lite = false): Builder {
     for (let i = 0; i < 3; i++) b.add(geo.cone(0.01, 0.04, 6), mat.bone, { p: [-0.08 + i * 0.08, cy, 0.235], r: [HALF_PI, 0, 0] });
     rustPatches(b, 9, 5, 0.112, by + 0.02, by + 0.08, -0.18, 0.18);
     antenna(b, 0.08, by + 0.15, 0.02, 0.15, mat.ember);
+    // Ersatzrad, Suchscheinwerfer, Auspuffe, Kisten, Ketten / spare wheel, searchlight, exhausts, crates, chains
+    b.group({ p: [-0.122, by + 0.06, 0.13], r: [0, 0, HALF_PI] }, () => wheel(b, 0, 0, 0, 0.045, 0.025, { rim: L.trim }));
+    b.cyl(0.016, 0.018, 0.022, 10, mat.gunmetal, [0.06, by + 0.16, 0.06], [HALF_PI - 0.3, 0, 0]);
+    b.cyl(0.013, 0.013, 0.004, 10, mat.yellow, [0.06, by + 0.164, 0.073], [HALF_PI - 0.3, 0, 0]);
+    for (const sx of [-1, 1]) {
+      b.tube([sx * 0.112, by + 0.03, -0.02], [sx * 0.118, by + 0.16, -0.03], 0.008, 6, mat.rust);
+      b.add(geo.ico(0.012, 0), mat.ember, { p: [sx * 0.118, by + 0.168, -0.03] });
+      chainLinks(b, [sx * 0.112, by + 0.05, 0.1], [sx * 0.112, by + 0.04, 0.17], 5);
+    }
+    b.add(geo.cbox(0.05, 0.035, 0.04, 0.006), mat.woodLight, { p: [0.07, by + 0.03, -0.17] });
+    b.add(geo.cbox(0.04, 0.03, 0.035, 0.006), L.primaryDark, { p: [-0.07, by + 0.028, -0.17] });
+    rustPatches(b, 19, 6, 0.112, by + 0.02, by + 0.1, -0.18, 0.15);
   }
   return b;
 }
@@ -284,8 +295,8 @@ export function doomCrawler(f: FactionId, lite = false): Builder {
   b.add(geo.cbox(0.4, 0.02, 0.4, 0.02), mat.rustDark, { p: [0, 0.12, -0.02] });
   for (const sx of [-1, 1]) b.add(geo.cbox(0.02, 0.06, 0.36, 0.006), L.hull, { p: [sx * 0.2, 0.1, -0.02] });
   if (!lite) {
-    rustPatches(b, 13, 10, 0.211, 0.08, 0.12, -0.18, 0.15);
-    for (const sx of [-1, 1]) for (let i = 0; i < 7; i++) b.box(0.006, 0.006, 0.006, mat.gunmetal, [sx * 0.211, 0.123, -0.17 + i * 0.05]);
+    rustPatches(b, 13, 6, 0.211, 0.08, 0.12, -0.18, 0.15);
+    for (const sx of [-1, 1]) for (let i = 0; i < 5; i++) b.box(0.006, 0.006, 0.006, mat.gunmetal, [sx * 0.211, 0.123, -0.16 + i * 0.07]);
   }
   // riesige Stachelschaufel / giant spiked blade
   const bz = 0.2;
@@ -318,8 +329,8 @@ export function doomCrawler(f: FactionId, lite = false): Builder {
   }
   if (!lite) {
     // Ketten, Knochen, Kultist im Luk / chains, bones, cultist in the hatch
-    chainLinks(b, [-0.2, 0.15, 0.15], [-0.2, 0.12, -0.05], 8);
-    chainLinks(b, [0.2, 0.15, 0.15], [0.2, 0.12, -0.05], 8);
+    chainLinks(b, [-0.2, 0.15, 0.15], [-0.2, 0.12, -0.05], 6);
+    chainLinks(b, [0.2, 0.15, 0.15], [0.2, 0.12, -0.05], 6);
     bone(b, [-0.12, 0.2, 0.17], [-0.06, 0.2, 0.17]);
     bone(b, [0.06, 0.21, 0.17], [0.12, 0.2, 0.17]);
     commander(b, f, 0.08, 0.2, -0.02, 9);

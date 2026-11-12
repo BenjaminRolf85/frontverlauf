@@ -418,11 +418,11 @@ export function tank(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   switch (f) {
-    case 'korvat': korvat(b, L, lite); break;
+    case 'korvat': case 'vesper': korvat(b, L, lite); break;
     case 'dravon': dravon(b, L, lite); break;
     case 'alvenia': alvenia(b, L, lite); break;
     case 'meridon': meridon(b, L, lite); break;
-    case 'velkar': case 'zyrr': velkar(b, L, lite); break;
+    case 'velkar': case 'zyrr': case 'nexus': velkar(b, L, lite); break;
   }
   return b;
 }
