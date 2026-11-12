@@ -60,11 +60,25 @@ export const mat = {
   acid: col(semantic.xenoAcid),
   xenoGround: col(semantic.xenoGround),
   xenoGroundDark: col(semantic.xenoGroundDark),
+  // Kult + Roboter / cult + robots
+  bone: mix(p.paper50, p.paper300, 0.3),
+  robe: mix(p.ink800, p.ink700, 0.4),
+  rust: mix(p.orange500, p.ink700, 0.55),
+  rustDark: mix(p.orange500, p.ink800, 0.72),
+  ember: col(factionTokens.vesper.secondary),
+  gunmetal: col(p.ink700),
+  plate: mix(p.white, factionTokens.nexus.secondary, 0.5),
+  cyanGlow: col(factionTokens.nexus.marker),
 };
 
 /** Bauform-Stil: Zyrr nutzt bei erbeuteter Menschentechnik die Hightech-Formen / shape style: Zyrr uses the hi-tech shapes for captured human equipment */
-export function styleOf(f: FactionId): Exclude<FactionId, 'zyrr'> {
-  return f === 'zyrr' ? 'velkar' : f;
+export type HumanStyle = 'korvat' | 'dravon' | 'alvenia' | 'meridon' | 'velkar';
+export function styleOf(f: FactionId): HumanStyle {
+  switch (f) {
+    case 'zyrr': case 'nexus': return 'velkar';
+    case 'vesper': return 'korvat';
+    default: return f;
+  }
 }
 
 /** Fraktionsoptik / faction look */
@@ -100,7 +114,7 @@ export interface Look {
 /** Gebaeudeflaechen gedaempft, Fraktionsfarbe nur als Akzent / building surfaces muted, faction colour only as accent */
 function build(id: FactionId): Look {
   const raw = buildRaw(id);
-  if (id === 'zyrr') return raw;
+  if (id === 'zyrr' || id === 'vesper' || id === 'nexus') return raw;
   const stone = col(p.paper100), stoneDark = col(p.paper300), roofN = shade(p.paper300, 0.62), roofNDark = shade(p.paper300, 0.45);
   return {
     ...raw,
@@ -167,6 +181,24 @@ function buildRaw(id: FactionId): Look {
         hull: pr, hullDark: shade(pr, 0.7), trim: se,
         wall: shade(pr, 1.2), wallDark: shade(pr, 0.85), roof: shade(pr, 0.75), roofDark: shade(pr, 0.6),
         emblem: se,
+      };
+    case 'vesper':
+      // dunkle Kutten, Knochenmasken, Blutrot + Glut / dark robes, bone masks, blood red + ember
+      return {
+        ...base,
+        helmet: mix(p.ink800, pr, 0.15), jacket: mix(p.ink800, p.ink700, 0.4), pants: col(p.ink800), gear: mix(p.orange500, p.ink700, 0.55),
+        hull: mix(p.orange500, p.ink700, 0.55), hullDark: mix(p.orange500, p.ink800, 0.72), trim: se,
+        wall: shade(p.paper300, 0.72), wallDark: shade(p.paper300, 0.5), roof: shade(pr, 0.85), roofDark: shade(pr, 0.6),
+        emblem: mix(p.paper50, p.paper300, 0.3),
+      };
+    case 'nexus':
+      // weisse Panzerplatten, Kanonenmetall, Cyan-Leuchtlinien / white plates, gunmetal, cyan light lines
+      return {
+        ...base,
+        helmet: mix(p.white, se, 0.5), jacket: mix(p.white, se, 0.5), pants: col(p.ink700), gear: col(p.ink700),
+        hull: mix(p.white, se, 0.5), hullDark: col(p.ink700), trim: pr,
+        wall: mix(p.paper50, p.rock400, 0.25), wallDark: col(p.rock400), roof: col(p.ink700), roofDark: col(p.ink800),
+        emblem: col(factionTokens.nexus.marker),
       };
     case 'zyrr':
       // Violett/Saeuregruen, organische Hochtechnologie / violet/acid green, organic high tech

@@ -79,6 +79,41 @@ export function emblemShapes(f: FactionId): THREE.Shape[] {
       }
       return [poly(pts)];
     }
+    case 'vesper': {
+      // zerbrochene, untergehende Sonne mit Strahlen / broken setting sun with rays
+      const out: THREE.Shape[] = [];
+      const half: [number, number][] = [];
+      for (let i = 0; i <= 8; i++) {
+        const a = (i / 8) * Math.PI;
+        half.push([Math.cos(a) * 0.5, Math.sin(a) * 0.5 - 0.15]);
+      }
+      out.push(poly(half.filter((_, i) => i !== 3)));
+      out.push(rect(-0.95, -0.32, 0.95, -0.2));
+      out.push(rect(-0.7, -0.55, 0.7, -0.45));
+      for (let i = 0; i < 5; i++) {
+        const a = Math.PI * (0.15 + i * 0.175);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const r0 = 0.6, r1 = 0.98, w = 0.08;
+        out.push(poly([[ca * r0 - sa * w, sa * r0 - 0.15 + ca * w], [ca * r1, sa * r1 - 0.15], [ca * r0 + sa * w, sa * r0 - 0.15 - ca * w]]));
+      }
+      return out;
+    }
+    case 'nexus': {
+      // Sechseck mit neuronalem Netz / hexagon with neural network
+      const out: THREE.Shape[] = [];
+      const hexRing = poly(circlePts(1, 6, Math.PI / 2));
+      hexRing.holes.push(hole(circlePts(0.84, 6, Math.PI / 2)));
+      out.push(hexRing);
+      out.push(poly(circlePts(0.2, 6)));
+      for (let i = 0; i < 3; i++) {
+        const a = Math.PI / 2 + (i / 3) * Math.PI * 2;
+        const cx = Math.cos(a) * 0.52, cy = Math.sin(a) * 0.52;
+        out.push(poly(circlePts(0.13, 6).map(([x, y]) => [x + cx, y + cy] as [number, number])));
+        const ca = Math.cos(a), sa = Math.sin(a), w = 0.045;
+        out.push(poly([[ca * 0.18 - sa * w, sa * 0.18 + ca * w], [ca * 0.4 - sa * w, sa * 0.4 + ca * w], [ca * 0.4 + sa * w, sa * 0.4 - ca * w], [ca * 0.18 + sa * w, sa * 0.18 - ca * w]]));
+      }
+      return out;
+    }
     case 'zyrr': {
       // Dreifach-Ring-Siegel mit Mittelpunkt / triple-ring sigil with centre dot
       const out: THREE.Shape[] = [];

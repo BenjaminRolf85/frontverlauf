@@ -14,7 +14,7 @@ const HALF_PI = Math.PI / 2;
 
 interface WheelOpts { seg?: number; rim?: ColorLike; spokes?: number; lite?: boolean }
 /** Rad mit Reifen, Felge, Nabe und optional Speichen / wheel with tyre, rim, hub and optional spokes */
-function wheel(b: Builder, x: number, y: number, z: number, r: number, w: number, o: WheelOpts = {}) {
+export function wheel(b: Builder, x: number, y: number, z: number, r: number, w: number, o: WheelOpts = {}) {
   const seg = o.lite ? 8 : (o.seg ?? 10);
   b.cyl(r, r, w, seg, mat.dark, [x, y, z], [0, 0, HALF_PI]);
   if (o.lite) {

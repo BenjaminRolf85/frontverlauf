@@ -89,8 +89,62 @@ export function alienHead(b: Builder, L: Look, d: Detail, antenna = true) {
   }
 }
 
+/** Kultkapuze mit Knochenmaske (Vesper) / cult hood with bone mask (Vesper) */
+export function cultHood(b: Builder, L: Look, d: Detail, spy: boolean) {
+  const seg = d === 2 ? 16 : d === 1 ? 12 : 8;
+  const robe = L.helmet;
+  b.add(geo.sphere(0.084, seg, Math.max(4, Math.round(seg * 0.6))), robe, { p: [0, 0.075, -0.012], s: [1.02, 1.12, 1.06] });
+  b.add(geo.cone(0.05, 0.08, d >= 1 ? 8 : 5), robe, { p: [0, 0.15, -0.055], r: [-0.95, 0, 0] });
+  b.add(geo.torus(0.058, 0.013, 4, seg), shade(robe, 0.75), { p: [0, 0.07, 0.058], s: [1, 1.2, 1] });
+  b.add(geo.sphere(0.05, Math.max(6, seg - 4), 4), mat.ink, { p: [0, 0.07, 0.05], s: [1, 1.15, 0.4] });
+  // Knochenmaske mit Glut-Augenschlitzen / bone mask with ember eye slits
+  b.add(d >= 1 ? geo.rtaper(0.074, 0.016, 0.064, 0.014, 0.086, 0.006) : geo.box(0.07, 0.086, 0.015), mat.bone, { p: [0, 0.068, 0.064], r: [-0.08, 0, 0] });
+  for (const sx of [-1, 1]) b.box(0.022, 0.008, 0.004, mat.ember, [sx * 0.018, 0.08, 0.073], [0, 0, sx * 0.3]);
+  if (d >= 1) {
+    for (const x of [-0.012, 0, 0.012]) b.box(0.004, 0.016, 0.004, mat.ink, [x, 0.042, 0.072]);
+    b.box(0.006, 0.03, 0.004, shade(mat.bone, 0.75), [0.022, 0.06, 0.072], [0, 0, 0.4]);
+  }
+  // rotes Stirnband / red headband
+  b.add(geo.cyl(0.0875, 0.0875, 0.016, seg, true), L.primary, { p: [0, 0.112, -0.012], s: [1.02, 1, 1.07] });
+  if (d === 2) for (const sx of [-1, 1]) b.box(0.012, 0.04, 0.004, L.primary, [sx * 0.012, 0.09, -0.105], [0.2, 0, sx * 0.3]);
+  if (spy) {
+    b.cyl(0.125, 0.127, 0.01, seg, robe, [0, 0.16, -0.01]);
+    b.add(geo.cyl(0.058, 0.066, 0.055, seg), robe, { p: [0, 0.19, -0.01], s: [1, 1, 0.92] });
+    b.add(geo.cyl(0.067, 0.067, 0.016, seg, true), L.primary, { p: [0, 0.172, -0.01], s: [1, 1, 0.93] });
+  }
+}
+
+/** Roboterkopf mit leuchtendem Visierstreifen (Nexus) / robot head with glowing visor strip (Nexus) */
+export function robotHead(b: Builder, L: Look, d: Detail, spy: boolean) {
+  const plate = L.helmet;
+  const metal = mat.gunmetal;
+  const glow = mat.cyanGlow;
+  b.add(d >= 1 ? geo.rbox(0.104, 0.1, 0.104, 0.022) : geo.box(0.1, 0.1, 0.1), plate, { p: [0, 0.058, 0] });
+  b.add(d >= 1 ? geo.rtaper(0.084, 0.07, 0.074, 0.06, 0.03, 0.008) : geo.box(0.08, 0.03, 0.07), metal, { p: [0, 0.012, 0.008] });
+  b.box(0.104, 0.03, 0.006, metal, [0, 0.066, 0.052]);
+  b.box(0.092, 0.014, 0.006, glow, [0, 0.066, 0.055]);
+  for (const sx of [-1, 1]) {
+    b.cyl(0.022, 0.022, 0.014, d >= 1 ? 10 : 6, metal, [sx * 0.057, 0.058, 0], [0, 0, HALF_PI]);
+    if (d >= 1) b.add(geo.torus(0.015, 0.003, 3, 10), glow, { p: [sx * 0.065, 0.058, 0], r: [0, HALF_PI, 0] });
+    if (d === 2) b.box(0.004, 0.06, 0.004, glow, [sx * 0.053, 0.06, 0.04]);
+  }
+  b.cyl(0.03, 0.03, 0.008, 6, shade(plate, 0.85), [0, 0.11, -0.004]);
+  b.tube([0.03, 0.105, -0.03], [0.04, 0.17, -0.045], 0.003, 4, metal);
+  b.add(geo.ico(0.007, 0), glow, { p: [0.04, 0.173, -0.046] });
+  if (spy) {
+    b.cyl(0.095, 0.097, 0.006, d >= 1 ? 12 : 8, metal, [0, 0.11, 0]);
+    b.cyl(0.05, 0.054, 0.045, d >= 1 ? 12 : 8, metal, [0, 0.135, 0]);
+    b.add(geo.cyl(0.055, 0.055, 0.01, d >= 1 ? 12 : 8, true), glow, { p: [0, 0.12, 0] });
+  }
+}
+
 /** Spionage-Hut je Fraktion / spy hat per faction */
 function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
+  if (f === 'vesper' || f === 'nexus') {
+    if (f === 'vesper') cultHood(b, L, d, true);
+    else robotHead(b, L, d, true);
+    return;
+  }
   if (f === 'zyrr') {
     // Fremdwesen mit Hut und Sonnenbrille / alien with hat and sunglasses
     alienHead(b, L, d, false);
@@ -151,6 +205,14 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   }
   if (f === 'zyrr') {
     alienHead(b, L, d);
+    return;
+  }
+  if (f === 'vesper') {
+    cultHood(b, L, d, false);
+    return;
+  }
+  if (f === 'nexus') {
+    robotHead(b, L, d, false);
     return;
   }
   switch (f) {

@@ -47,6 +47,28 @@ export function flagPole(b: Builder, f: FactionId | null, x: number, y: number, 
     zyrrSpire(b, x, y, z, h, size);
     return;
   }
+  if (f === 'vesper') {
+    // zerfetztes rotes Banner am krummen Mast / tattered red banner on a crooked pole
+    const L = look(f);
+    b.tube([x, y, z], [x + 0.01 * size, y + h * 0.55, z], 0.009 * size, 5, mat.wood);
+    b.tube([x + 0.01 * size, y + h * 0.55, z], [x - 0.006 * size, y + h, z + 0.008 * size], 0.008 * size, 5, mat.wood);
+    b.box(0.13 * size, 0.008 * size, 0.008 * size, mat.wood, [x + 0.05 * size, y + h - 0.01 * size, z + 0.006 * size]);
+    const bw = 0.1 * size, bh = 0.15 * size;
+    b.box(bw, bh * 0.75, 0.006, L.primary, [x + 0.06 * size, y + h - 0.01 * size - bh * 0.4, z + 0.006 * size]);
+    for (const dx of [-bw / 3, 0, bw / 3]) b.add(geo.profileXY([[-bw / 6, 0], [bw / 6, 0], [0, -bh * 0.22]], 0.006), L.primary, { p: [x + 0.06 * size + dx, y + h - 0.01 * size - bh * 0.775, z + 0.006 * size] });
+    addEmblem(b, f, bh * 0.22, 0.012, mat.bone, { p: [x + 0.06 * size, y + h - bh * 0.4, z + 0.006 * size] });
+    return;
+  }
+  if (f === 'nexus') {
+    // Holo-Tafel am Mast / holographic panel on a mast
+    b.cyl(0.007 * size, 0.012 * size, h, 6, mat.gunmetal, [x, y + h / 2, z]);
+    b.box(0.006 * size, 0.11 * size, 0.006 * size, mat.cyanGlow, [x, y + h * 0.6, z + 0.009 * size]);
+    const pw = 0.15 * size, ph = 0.1 * size;
+    b.box(pw + 0.012 * size, ph + 0.012 * size, 0.006, mat.gunmetal, [x + pw / 2 + 0.01 * size, y + h - ph / 2, z]);
+    b.box(pw, ph, 0.008, mix(mat.cyanGlow, mat.white, 0.35), [x + pw / 2 + 0.01 * size, y + h - ph / 2, z]);
+    addEmblem(b, f, ph * 0.36, 0.014, look(f).primary, { p: [x + pw / 2 + 0.01 * size, y + h - ph / 2, z] });
+    return;
+  }
   const L = look(f);
   b.cyl(0.008 * size, 0.011 * size, h, 5, mat.metalLight, [x, y + h / 2, z]);
   b.add(geo.ico(0.014 * size, 0), mat.gold, { p: [x, y + h + 0.01 * size, z] });
@@ -213,6 +235,67 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         if (o.landmark) {
           b.cyl(0.005, 0.008, 0.16, 4, mat.metal, [0, h + 0.13, 0]);
           b.add(geo.ico(0.014, 0), L.secondary, { p: [0, h + 0.215, 0] });
+        }
+        break;
+      }
+      case 'vesper': {
+        // Zelte, Bretterbuden, Glockenturm mit Untergangssonne / tents, shacks, bell tower with doom sun
+        if (o.landmark) {
+          b.add(geo.taper(w, d, w * 0.8, d * 0.8, h * 0.45), L.wallDark, { p: [0, h * 0.225, 0] });
+          b.add(geo.taper(w * 0.55, d * 0.55, w * 0.42, d * 0.42, h * 0.5), L.wall, { p: [0, h * 0.7, 0] });
+          const top = h * 0.95;
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0.012, h * 0.2, 0.012, mat.wood, [sx * w * 0.2, top + h * 0.1, sz * d * 0.2]);
+          b.add(geo.cone(w * 0.36, h * 0.2, 4).rotateY(Math.PI / 4), L.roof, { p: [0, top + h * 0.3, 0] });
+          b.add(geo.hemi(w * 0.12, 10, 3), mat.rust, { p: [0, top + h * 0.06, 0], r: [Math.PI, 0, 0], s: [1, 1.4, 1] });
+          b.cyl(0.004, 0.004, h * 0.12, 4, mat.dark, [0, top + h * 0.14, 0]);
+          b.group({ p: [0, h * 0.6, d * 0.21 + 0.004] }, () => {
+            b.cyl(w * 0.22, w * 0.22, 0.008, 14, mat.ember, [0, 0, 0], [HALF_PI, 0, 0]);
+            addEmblem(b, 'vesper', w * 0.2, 0.012, L.primary, { p: [0, 0, 0.004] });
+          });
+          b.box(w * 0.25, h * 0.2, 0.006, mat.ink, [0, h * 0.1, d / 2 + 0.003]);
+        } else if (R() < 0.45) {
+          // Zelt / tent
+          b.add(geo.cone(Math.SQRT1_2 * 1.02, 1, 4).rotateY(Math.PI / 4), L.wall, { p: [0, h * 0.6, 0], s: [w, h * 1.2, d] });
+          b.box(w * 0.08, h * 1.1, d * 0.6, L.roof, [0, h * 0.4, 0], [0, 0, 0]);
+          b.add(geo.profileXY([[-w * 0.15, 0], [w * 0.15, 0], [0, h * 0.5]], 0.006), mat.ink, { p: [0, 0, d * 0.32] });
+          b.cyl(0.005, 0.005, 0.05, 4, mat.wood, [0, h * 1.2 + 0.02, 0]);
+        } else {
+          // schiefe Bretterbude / crooked shack
+          b.group({ r: [0, 0, (R() - 0.5) * 0.12] }, () => {
+            b.block(0, 0, 0, w, h, d, L.wallDark);
+            for (let i = 0; i < 3; i++) b.block(0, h * (0.2 + i * 0.28), d / 2 + 0.003, w * (0.7 + R() * 0.3), 0.012, 0.006, L.wall);
+            b.add(geo.taper(w + 0.03, d + 0.03, w + 0.03, d * 0.4 + 0.03, 0.02, d * 0.3), R() < 0.5 ? L.roof : mat.rust, { p: [0, h + 0.012, 0], r: [0.2, 0, 0] });
+            b.box(0.02, 0.03, 0.006, mat.ember, [w * 0.25, h * 0.5, d / 2 + 0.004]);
+            b.cyl(0.008, 0.008, 0.07, 6, mat.rustDark, [-w * 0.3, h + 0.04, -d * 0.2]);
+            b.add(geo.ico(0.008, 0), mat.ember, { p: [-w * 0.3, h + 0.08, -d * 0.2] });
+          });
+        }
+        break;
+      }
+      case 'nexus': {
+        // monolithische Bloecke mit Leuchtfugen, Serverturm, Kernspitze / monolithic blocks with glowing seams, server tower, core spire
+        if (o.landmark) {
+          const r = Math.min(w, d) * 0.5;
+          b.add(geo.cyl(r * 0.45, r, h * 1.2, 6), L.wall, { p: [0, h * 0.6, 0] });
+          for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            b.box(0.005, h * 1.1, 0.005, mat.cyanGlow, [Math.cos(a) * r * 0.75, h * 0.6, Math.sin(a) * r * 0.75], [0, -a, 0.08]);
+          }
+          b.add(geo.torus(r * 0.8, 0.008, 4, 16), mat.cyanGlow, { p: [0, h * 0.85, 0], r: [HALF_PI, 0, 0] });
+          b.add(geo.ico(r * 0.35, 1), mat.cyanGlow, { p: [0, h * 1.25, 0] });
+          b.add(geo.torus(r * 0.5, 0.005, 3, 14), L.roof, { p: [0, h * 1.25, 0], r: [HALF_PI - 0.4, 0.3, 0] });
+        } else {
+          b.add(geo.cbox(w, h, d, Math.min(w, d) * 0.12), L.wall, { p: [0, h / 2, 0] });
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0.005, h, 0.005, mat.cyanGlow, [sx * w * 0.44, h / 2, sz * d * 0.44]);
+          const floors2 = Math.min(3, Math.max(1, Math.round(h / 0.1)));
+          for (let i = 0; i < floors2; i++) band(b, 0, (i + 0.55) * (h / floors2), 0, w * 0.9, d * 0.9, 0.006, mat.cyanGlow);
+          b.block(0, h, 0, w * 0.6, 0.02, d * 0.6, L.roof);
+          if (R() < 0.5) {
+            b.cyl(0.004, 0.004, 0.08, 4, mat.gunmetal, [w * 0.25, h + 0.06, -d * 0.2]);
+            b.add(geo.ico(0.008, 0), mat.cyanGlow, { p: [w * 0.25, h + 0.1, -d * 0.2] });
+          } else {
+            for (let i = 0; i < 3; i++) b.box(w * 0.5, 0.004, 0.006, mat.dark, [0, h * (0.25 + i * 0.2), d / 2 + 0.003]);
+          }
         }
         break;
       }

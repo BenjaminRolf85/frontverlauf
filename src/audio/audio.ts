@@ -15,6 +15,8 @@ const THEMES: Record<FactionId, Theme> = {
   alvenia: { tempo: 112, root: 220, scale: [0, 2, 4, 5, 7, 9, 11], pattern: [0, 2, 4, 6, 5, 4, 2, 4], bass: [0, 3, 4, 4], wave: 'triangle' },
   meridon: { tempo: 124, root: 246.9, scale: [0, 2, 4, 7, 9], pattern: [0, 1, 2, 4, 3, 2, 1, 3], bass: [0, 2, 3, 1], wave: 'triangle' },
   velkar: { tempo: 98, root: 164.8, scale: [0, 2, 3, 5, 7, 9, 10], pattern: [0, 4, 2, 5, 4, 6, 2, 1], bass: [0, 3, 5, 4], wave: 'sine' },
+  vesper: { tempo: 76, root: 130.8, scale: [0, 1, 3, 5, 6, 8, 10], pattern: [0, 0, 1, 0, 3, 2, 1, 0], bass: [0, 0, 1, 0], wave: 'sawtooth' },
+  nexus: { tempo: 132, root: 207.7, scale: [0, 2, 3, 7, 10], pattern: [0, 2, 4, 2, 1, 3, 0, 4], bass: [0, 0, 3, 2], wave: 'square' },
   zyrr: { tempo: 86, root: 138.6, scale: [0, 1, 4, 6, 7, 10], pattern: [0, 3, 1, 5, 2, 4, 0, 5], bass: [0, 1, 0, 3], wave: 'sine' },
 };
 
@@ -25,6 +27,8 @@ const VOICES: Record<FactionId, { pitch: number; wave: OscillatorType; formant: 
   alvenia: { pitch: 210, wave: 'triangle', formant: 1300 },
   meridon: { pitch: 240, wave: 'square', formant: 1600 },
   velkar: { pitch: 180, wave: 'sine', formant: 2200 },
+  vesper: { pitch: 120, wave: 'sawtooth', formant: 700 },
+  nexus: { pitch: 260, wave: 'square', formant: 3000 },
   zyrr: { pitch: 320, wave: 'sine', formant: 2600 },
 };
 
