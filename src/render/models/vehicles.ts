@@ -8,7 +8,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade } from './kit';
 import { look, mat, type Look } from './look';
-import { soldier } from './soldiers';
+import { seatPose, soldier, standPose } from './soldiers';
 
 const HALF_PI = Math.PI / 2;
 
@@ -103,7 +103,7 @@ export function jeep(f: FactionId, lite = false): Builder {
   // Emblem auf der Haube / emblem on hood
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [0, by + (f === 'velkar' ? 0.075 : f === 'korvat' ? 0.073 : 0.07), 0.13], r: [-HALF_PI + (f === 'dravon' ? 0.3 : 0.1), 0, 0] });
   // Fahrer / driver
-  if (!lite) b.group({ p: [-0.055, by - 0.06, 0.0], s: 0.78 }, () => soldier(b, f, { kneel: true, armL: [-1.2, 0, 0.1], armR: [-1.2, 0, -0.1], seed: 3 }));
+  if (!lite) b.group({ p: [-0.055, by - 0.005, 0.0], s: 0.85 }, () => soldier(b, f, seatPose([[-0.045, 0.125, 0.11], [0.045, 0.125, 0.11]]), { detail: 0, seed: 3 }));
   // Bordwaffe auf Lafette / mounted gun on a pintle
   const gy = by + 0.2;
   b.cyl(0.012, 0.016, 0.13, 6, mat.dark, [0.05, by + 0.13, -0.09]);
@@ -113,7 +113,7 @@ export function jeep(f: FactionId, lite = false): Builder {
     b.box(0.1, 0.06, 0.01, L.trim, [0, 0.01, 0.075], [-0.1, 0, 0]);
   });
   // Schuetze / gunner
-  if (!lite) b.group({ p: [0.05, by - 0.035, -0.17], s: 0.78 }, () => soldier(b, f, { armL: [-1.4, 0, 0.45], armR: [-1.4, 0, -0.45], seed: 4 }));
+  if (!lite) b.group({ p: [0.05, by - 0.035, -0.17], s: 0.78 }, () => soldier(b, f, standPose([[-0.035, 0.29, 0.075], [0.035, 0.29, 0.075]]), { detail: 0, seed: 4 }));
   return b;
 }
 
@@ -209,7 +209,7 @@ export function tank(f: FactionId, lite = false): Builder {
   else if (f === 'alvenia') b.cyl(barrelR * 1.6, barrelR * 1.6, 0.05, 8, L.hullDark, [0, ty + 0.035, mantletZ + barrelLen * 0.55], [HALF_PI, 0, 0]);
   else b.cyl(barrelR * 1.3, barrelR * 1.3, 0.025, 8, mat.dark, [0, ty + 0.035, mantletZ + barrelLen - 0.012], [HALF_PI, 0, 0]);
   // Kommandant im Luk / commander in the hatch
-  if (f !== 'velkar' && !lite) b.group({ p: [-0.045, ty - 0.15, tz - 0.03], s: 0.7 }, () => soldier(b, f, { armL: [-0.4, 0, 0.6], armR: [-0.3, 0, -0.6], seed: 7 }));
+  if (f !== 'velkar' && !lite) b.group({ p: [-0.045, ty - 0.15, tz - 0.03], s: 0.7 }, () => soldier(b, f, standPose([[-0.12, 0.215, 0.05], [0.12, 0.215, 0.05]]), { detail: 0, seed: 7 }));
   return b;
 }
 
@@ -262,7 +262,7 @@ export function artillery(f: FactionId, lite = false): Builder {
   });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [-0.09, wr + 0.09, 0.09], r: [-0.2, 0, 0] });
   // Bedienung / crew
-  if (!lite) b.group({ p: [0.22, 0, -0.12], r: [0, -0.5, 0] }, () => soldier(b, f, { armL: [-0.6, 0, 0.3], armR: [-0.5, 0, -0.3], seed: 13 }));
+  if (!lite) b.group({ p: [0.22, 0, -0.12], r: [0, -0.5, 0] }, () => soldier(b, f, standPose([[-0.035, 0.17, 0.1], [0.035, 0.17, 0.1]]), { detail: 1, seed: 13 }));
   b.box(0.06, 0.04, 0.04, L.gear, [0.25, 0.02, 0.03]);
   return b;
 }
