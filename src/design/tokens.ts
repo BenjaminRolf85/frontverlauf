@@ -262,6 +262,7 @@ export const components = {
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
   },
   fx: { burstSize: '120px', burstStroke: '3' },
+  bark: { maxWidth: '220px' },
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
 } as const;
 

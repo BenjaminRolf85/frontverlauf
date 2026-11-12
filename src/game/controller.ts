@@ -25,6 +25,9 @@ export interface UiHooks {
   confirm(text: string, ok: string): Promise<boolean>;
   gameOver(): void;
   rewards(): void;
+  afterCommand?(events: GameEvent[]): void;
+  unitSelected?(u: Unit): void;
+  turnStarted?(): void;
 }
 
 const AI_DELAY: Record<string, number> = { slow: 420, normal: 220, fast: 60, instant: 0 };
@@ -177,6 +180,7 @@ export class Controller {
       this.tab = visibleUnit ? 'unit' : city && explored ? 'city' : 'tile';
     }
     this.selectedUnit = visibleUnit && this.tab === 'unit' ? visibleUnit.id : null;
+    if (!same && visibleUnit && visibleUnit.owner === this.viewer) this.ui.unitSelected?.(visibleUnit);
     this.play('select');
     this.updateHighlights();
     this.ui.update();
@@ -269,6 +273,7 @@ export class Controller {
       this.busy = false;
     }
     this.refresh();
+    this.ui.afterCommand?.(res.events);
     if (this.selectedUnit !== null && !unitById(s, this.selectedUnit)) { this.selectedUnit = null; this.pendingTarget = null; }
     if (this.pendingTarget !== null && !unitById(s, this.pendingTarget)) this.pendingTarget = null;
     this.updateHighlights();
@@ -322,6 +327,7 @@ export class Controller {
     this.refresh();
     this.ui.update();
     this.ui.rewards();
+    this.ui.turnStarted?.();
   }
 
   async runAi() {
@@ -342,7 +348,7 @@ export class Controller {
           if (fast) {
             res = applyCommand(s, cmd);
             this.onCommand?.(cmd, res);
-            if (res.ok) for (const e of res.events) this.ui.event(e, s);
+            if (res.ok) { for (const e of res.events) this.ui.event(e, s); this.ui.afterCommand?.(res.events); }
           } else {
             res = await this.exec(cmd, { ai: true });
             const delay = AI_DELAY[this.aiSpeed];

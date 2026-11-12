@@ -3,7 +3,7 @@
  * The game map as a 3D diorama. Reads the state, never changes it.
  */
 import * as THREE from 'three';
-import type { BiomeId, TerrainId } from '../data/balance';
+import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
 import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } from '../core';
@@ -417,7 +417,7 @@ export class Board {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
-      const key = `${u.type}-${f}-${u.carried}`;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
@@ -425,6 +425,10 @@ export class Board {
         const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
         model.name = 'model';
         grp.add(model);
+        // Bodenmarkierung in Fraktionsfarbe: eigene kraeftig mit Flaeche, fremde als duenner Ring
+        // ground marker in faction colour: own bold with fill, others as a thin ring
+        const own = viewer < 0 || u.owner === viewer;
+        grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
         grp.position.copy(this.tileCenter(s, u.x, u.y));
         v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
@@ -459,6 +463,32 @@ export class Board {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
     }
     this.dirty = true;
+  }
+
+  private markerCache = new Map<string, THREE.Group>();
+  private groundMarker(f: FactionId, own: boolean): THREE.Object3D {
+    const key = `${f}-${own}`;
+    let tpl = this.markerCache.get(key);
+    if (!tpl) {
+      tpl = new THREE.Group();
+      const color = hex(factionTokens[f].primary);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(own ? 0.34 : 0.37, own ? 0.43 : 0.42, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      const edge = new THREE.Mesh(new THREE.RingGeometry(own ? 0.43 : 0.42, own ? 0.455 : 0.44, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: hex(semantic.ink), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      tpl.add(ring, edge);
+      if (own) {
+        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.34, 32).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+        tpl.add(fill);
+      }
+      tpl.position.y = 0.012;
+      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = 3; });
+      this.markerCache.set(key, tpl);
+    }
+    const m = tpl.clone();
+    m.name = 'marker';
+    return m;
   }
 
   unitObject(id: number): THREE.Group | undefined {

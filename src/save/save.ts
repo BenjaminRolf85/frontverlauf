@@ -13,10 +13,11 @@ export interface Settings {
   aiSpeed: 'slow' | 'normal' | 'fast' | 'instant';
   quality: 'low' | 'high';
   tutorialDone: boolean;
+  barks: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: 'high', tutorialDone: false,
+  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: 'high', tutorialDone: false, barks: true,
 };
 
 export function loadSettings(): Settings {
