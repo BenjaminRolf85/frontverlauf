@@ -57,6 +57,8 @@ export interface SoldierOpts {
   coat?: boolean;
   hat?: 'fedora';
   seed?: number;
+  /** Beine weglassen (Besatzung in Luken) / omit legs (crew in hatches) */
+  noLegs?: boolean;
 }
 
 /** Zwei-Knochen-IK / two-bone IK */
@@ -329,7 +331,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
   }
 
   // ---- Beine / legs ----
-  for (const side of [-1, 1] as const) {
+  if (!o.noLegs) for (const side of [-1, 1] as const) {
     const S = new THREE.Vector3(side * HIP_X, HIP_Y, 0).applyMatrix4(Mp);
     const T = V(side < 0 ? pose.footL : pose.footR);
     const pole = V((side < 0 ? pose.kneePoleL : pose.kneePoleR) ?? [0, 0, 1]);
