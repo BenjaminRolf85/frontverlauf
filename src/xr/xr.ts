@@ -83,6 +83,7 @@ export class XrSession {
 
   private enter() {
     const v = this.view, s = this.game.state!;
+    v.applyShadows(true);
     this.active = true;
     const board = v.board.group;
     this.saved = { parent: board.parent, pos: board.position.clone(), scale: board.scale.x, quat: board.quaternion.clone() };
@@ -157,6 +158,7 @@ export class XrSession {
     this.root.visible = true;
     v.onFrame = null;
     v.resize();
+    v.applyShadows(false);
     v.invalidate();
     if (this.rewardDone) { const d = this.rewardDone; this.rewardDone = null; d(); }
   }

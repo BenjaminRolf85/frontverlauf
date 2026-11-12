@@ -116,3 +116,17 @@ export function paint(g: THREE.BufferGeometry, color: string): THREE.BufferGeome
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   return g;
 }
+
+const unitMats = new Map<string, THREE.MeshToonMaterial>();
+/** Einheiten etwas heller und kraeftiger als die Umgebung / units slightly brighter than the surroundings */
+export function unitMaterial(opts: { transparent?: boolean; opacity?: number } = {}): THREE.MeshToonMaterial {
+  const key = `${opts.transparent ? 1 : 0}-${opts.opacity ?? 1}`;
+  let m = unitMats.get(key);
+  if (!m) {
+    m = toonMaterial(opts).clone();
+    m.color.setScalar(UNIT_BRIGHTNESS);
+    unitMats.set(key, m);
+  }
+  return m;
+}
+export const UNIT_BRIGHTNESS = 1.16;

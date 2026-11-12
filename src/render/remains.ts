@@ -87,26 +87,68 @@ export function skeletonGeometry(faction: FactionId, variant: number): THREE.Buf
 /** Verkohltes Wrack aus dem Einheitenmodell / charred wreck from the unit model */
 export function wreckGeometry(type: UnitTypeId, faction: FactionId, variant: number): THREE.BufferGeometry {
   return memo(`wreck-${type}-${faction}-${variant}`, () => {
-    const src = unitGeometry(type, faction, null).clone();
-    const col = src.getAttribute('color') as THREE.BufferAttribute;
-    const charC = new THREE.Color(hex(semantic.char));
-    const tmp = new THREE.Color();
-    for (let i = 0; i < col.count; i++) {
-      tmp.setRGB(col.getX(i), col.getY(i), col.getZ(i)).lerp(charC, 0.68);
-      col.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    // Fahrzeug in Truemmer zerlegen: Dreiecke nach Raster-Zellen gruppieren, Zellen verschieben, kippen, teils weglassen
+    // break the vehicle into debris: group triangles by grid cell, move and tilt cells, drop some
+    const src = unitGeometry(type, faction, null);
+    const pos = src.getAttribute('position') as THREE.BufferAttribute;
+    const nor = src.getAttribute('normal') as THREE.BufferAttribute;
+    const r = rnd(variant * 7 + type.length * 13);
+    const CELL = 0.12;
+    const cells = new Map<string, number[]>();
+    for (let t = 0; t < pos.count; t += 3) {
+      const cx = (pos.getX(t) + pos.getX(t + 1) + pos.getX(t + 2)) / 3;
+      const cy = (pos.getY(t) + pos.getY(t + 1) + pos.getY(t + 2)) / 3;
+      const cz = (pos.getZ(t) + pos.getZ(t + 1) + pos.getZ(t + 2)) / 3;
+      const key = `${Math.floor(cx / CELL)},${Math.floor(cy / CELL)},${Math.floor(cz / CELL)}`;
+      let list = cells.get(key);
+      if (!list) { list = []; cells.set(key, list); }
+      list.push(t);
     }
-    col.needsUpdate = true;
-    const tilt = type === 'heli' ? 0.55 : 0.18;
-    src.applyMatrix4(M(0, type === 'heli' ? -0.02 : -0.02, 0, tilt * 0.6, variant * 1.1, tilt, type === 'heli' ? 0.85 : 1));
-    // Truemmer und Glut / debris and embers
-    const r = rnd(variant + 11);
-    const parts: THREE.BufferGeometry[] = [src];
-    for (let i = 0; i < 4; i++) {
-      parts.push(part(new THREE.BoxGeometry(0.06, 0.03, 0.04), semantic.char, M((r() - 0.5) * 0.7, 0.015, (r() - 0.5) * 0.7, 0, r() * 3, 0)));
+    const charA = new THREE.Color(hex(semantic.char));
+    const charB = new THREE.Color(hex(semantic.ink));
+    const ember = new THREE.Color(hex(semantic.fire));
+    const P: number[] = [], N: number[] = [], C: number[] = [];
+    const v = new THREE.Vector3(), nv = new THREE.Vector3();
+    for (const [key, tris] of cells) {
+      if (r() < 0.22) continue; // Teile fehlen / parts missing
+      const [kx, ky, kz] = key.split(',').map(Number);
+      const centre = new THREE.Vector3((kx + 0.5) * CELL, (ky + 0.5) * CELL, (kz + 0.5) * CELL);
+      // nach aussen geschleudert und zusammengesackt / thrown outward and collapsed
+      const out = new THREE.Vector3(centre.x, 0, centre.z).normalize().multiplyScalar(0.03 + r() * 0.09);
+      const drop = -centre.y * (0.45 + r() * 0.35);
+      const m = new THREE.Matrix4().compose(
+        new THREE.Vector3(out.x + (r() - 0.5) * 0.05, drop, out.z + (r() - 0.5) * 0.05),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler((r() - 0.5) * 0.9, (r() - 0.5) * 1.2, (r() - 0.5) * 0.9)),
+        new THREE.Vector3(1, 1, 1));
+      const pivot = new THREE.Matrix4().makeTranslation(centre.x, centre.y, centre.z);
+      const unpivot = new THREE.Matrix4().makeTranslation(-centre.x, -centre.y, -centre.z);
+      const full = new THREE.Matrix4().multiplyMatrices(pivot, m).multiply(unpivot);
+      const nm = new THREE.Matrix3().getNormalMatrix(full);
+      const glow = r() < 0.08;
+      for (const t of tris) {
+        for (let k = 0; k < 3; k++) {
+          v.fromBufferAttribute(pos, t + k).applyMatrix4(full);
+          v.y = Math.max(v.y, 0.002);
+          nv.fromBufferAttribute(nor, t + k).applyMatrix3(nm).normalize();
+          P.push(v.x, v.y, v.z); N.push(nv.x, nv.y, nv.z);
+          const c = glow && k === 0 ? ember : (t / 3) % 3 === 0 ? charB : charA;
+          C.push(c.r, c.g, c.b);
+        }
+      }
     }
-    parts.push(part(new THREE.TetrahedronGeometry(0.04, 0), semantic.fire, M(0.05, 0.1, 0.02, 0.3, 0.4, 0)));
-    const g = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)).map((p) => { p.deleteAttribute('uv'); return p; }))!;
-    return g;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+    g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+    // zusaetzliche Truemmer und Glutnester / extra debris and embers
+    const parts: THREE.BufferGeometry[] = [g];
+    for (let i = 0; i < 7; i++) {
+      parts.push(part(new THREE.BoxGeometry(0.03 + r() * 0.04, 0.012, 0.02 + r() * 0.03), semantic.char, M((r() - 0.5) * 0.8, 0.008, (r() - 0.5) * 0.8, 0, r() * 3, (r() - 0.5) * 0.4)));
+    }
+    for (let i = 0; i < 2; i++) parts.push(part(new THREE.TetrahedronGeometry(0.022, 0), semantic.fire, M((r() - 0.5) * 0.3, 0.02, (r() - 0.5) * 0.3, r(), r(), 0)));
+    const merged = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)).map((p) => { if (p.getAttribute('uv')) p.deleteAttribute('uv'); return p; }))!;
+    merged.rotateY(variant * 1.1);
+    return merged;
   });
 }
 

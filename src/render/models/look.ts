@@ -83,7 +83,18 @@ export interface Look {
   emblem: THREE.Color;
 }
 
+/** Gebaeudeflaechen gedaempft, Fraktionsfarbe nur als Akzent / building surfaces muted, faction colour only as accent */
 function build(id: FactionId): Look {
+  const raw = buildRaw(id);
+  const stone = col(p.paper100), stoneDark = col(p.paper300), roofN = shade(p.paper300, 0.62), roofNDark = shade(p.paper300, 0.45);
+  return {
+    ...raw,
+    wall: mix(raw.wall, stone, 0.6), wallDark: mix(raw.wallDark, stoneDark, 0.6),
+    roof: mix(raw.roof, roofN, 0.55), roofDark: mix(raw.roofDark, roofNDark, 0.55),
+  };
+}
+
+function buildRaw(id: FactionId): Look {
   const t = factionTokens[id];
   const pr = col(t.primary);
   const se = col(t.secondary);

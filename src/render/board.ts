@@ -10,11 +10,11 @@ import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } 
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { tList } from '../i18n/i18n';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
-import { cityLabel, hpBadge } from './labels';
+import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
-import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, trackGeometry } from './biomes';
+import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { barrierGeometry, dropletGeometry, fireballGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
@@ -37,7 +37,7 @@ const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: P
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
 const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
-import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial } from './toon';
+import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
 
 export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build';
 
@@ -54,6 +54,32 @@ export function tileTop(t: Tile): number {
   return TILE_TOP[t.terrain] + (t.biome && t.terrain !== 'shallow' && t.terrain !== 'ocean' ? BIOME_LIFT[t.biome] : 0) +
     (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
 }
+
+/** Weicher Schattenfleck unter Einheiten (nicht realistisch, nur leicht) / soft blob shadow under units (not realistic, just light) */
+let blobMat: THREE.MeshBasicMaterial | null = null;
+function shadowBlobMaterial(): THREE.MeshBasicMaterial {
+  if (blobMat) return blobMat;
+  const S = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = S; canvas.height = S;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(S / 2, S / 2, S * 0.05, S / 2, S / 2, S / 2);
+  g.addColorStop(0, semantic.ink);
+  g.addColorStop(0.55, semantic.ink);
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  const tex = new THREE.CanvasTexture(canvas);
+  blobMat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: false, opacity: 0.34, depthWrite: false, depthTest: false,
+    blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+  });
+  return blobMat;
+}
+const blobGeo = new THREE.PlaneGeometry(0.62, 0.62).rotateX(-Math.PI / 2);
+
+/** Zeichenreihenfolge der Einheiten (nach dem Leeren des Tiefenpuffers) / render order of units (after the depth clear) */
+const UNIT_ORDER = 60;
 
 export class Board {
   readonly group = new THREE.Group();
@@ -74,6 +100,14 @@ export class Board {
 
   constructor() {
     this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group);
+    // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
+    // clear the depth buffer before units: buildings, trees and mountains no longer hide units
+    const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+    clearer.frustumCulled = false;
+    clearer.renderOrder = UNIT_ORDER - 1;
+    clearer.onBeforeRender = (renderer) => renderer.clearDepth();
+    clearer.raycast = () => {};
+    this.unitLayer.add(clearer);
   }
 
   /** Mittelpunkt eines Feldes in Brett-Koordinaten / centre of a tile in board coordinates */
@@ -163,6 +197,7 @@ export class Board {
     const coast: { x: number; z: number; y: number; nx: number; nz: number }[] = [];
     const decals = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const roadSegs: THREE.Matrix4[] = [];
+    const roadNodes: THREE.Matrix4[] = [];
     const riverSegs: THREE.Matrix4[] = [];
     const borderSegs: { m: THREE.Matrix4; color: string }[] = [];
     const clouds: THREE.Matrix4[] = [];
@@ -282,22 +317,20 @@ export class Board {
           return (o.road || o.cityId !== null) && explored(xx, yy);
         };
         if (t.road || t.cityId !== null) {
-          let any = false;
           for (let dy = -1; dy <= 1; dy++) {
             for (let dx = -1; dx <= 1; dx++) {
               if ((!dx && !dy) || !roadLike(x + dx, y + dy)) continue;
               if (!t.road && !s.tiles[(y + dy) * size + x + dx].road) continue;
-              any = true;
               const len = Math.hypot(dx, dy) / 2;
               const ang = Math.atan2(dx, dy);
               const m = new THREE.Matrix4().compose(
-                new THREE.Vector3(x - off + dx * 0.25, top + 0.012, y - off + dy * 0.25),
+                new THREE.Vector3(x - off + dx * 0.25, top + 0.002, y - off + dy * 0.25),
                 new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ang),
-                new THREE.Vector3(1, 1, len + 0.09));
+                new THREE.Vector3(1, 1, len));
               roadSegs.push(m);
             }
           }
-          if (t.road && !any) roadSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.012, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
+          if (t.road) roadNodes.push(new THREE.Matrix4().makeTranslation(x - off, top + 0.003, y - off));
         }
         // Grenzen / borders
         if (owner !== null) {
@@ -323,6 +356,7 @@ export class Board {
 
     for (const [geo, gr] of groups) {
       const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile);
+      mesh.receiveShadow = true;
       gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
@@ -358,10 +392,10 @@ export class Board {
       mesh.raycast = () => {};
       this.staticLayer.add(mesh, line);
     }
-    if (roadSegs.length) {
-      const g = coloredBox(0.16, 0.025, 1, semantic.soil, semantic.ink);
-      const { mesh, line } = outlinedInstanced(g, roadSegs.length, OUTLINE.highlight);
-      roadSegs.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+    for (const [geo, list] of [[roadSegment(), roadSegs], [roadJunction(), roadNodes]] as [THREE.BufferGeometry, THREE.Matrix4[]][]) {
+      if (!list.length) continue;
+      const { mesh, line } = outlinedInstanced(geo, list.length, OUTLINE.highlight);
+      list.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.raycast = () => {};
       this.staticLayer.add(mesh, line);
     }
@@ -422,16 +456,24 @@ export class Board {
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
         const grp = new THREE.Group();
-        // Eigene Einheiten: leuchtende Kontur in Markierungsfarbe; fremde: schwarze Tuschelinie
-        // own units: bright outline in marker colour; others: black ink line
+        // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
+        // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = own
-          ? outlined(unitGeometry(u.type, f, u.carried), OUTLINE.ownUnit, undefined, factionTokens[f].marker)
-          : outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit, unitMaterial());
+        // leichter Schattenfleck unter der Einheit / light shadow blob under the unit
+        const shadow = new THREE.Mesh(blobGeo, shadowBlobMaterial());
+        shadow.name = 'shadow';
+        shadow.position.y = 0.01;
+        shadow.scale.setScalar(u.type === 'heli' ? 0.75 : 1);
+        shadow.renderOrder = UNIT_ORDER - 0.5;
+        shadow.raycast = () => {};
+        grp.add(shadow);
         model.name = 'model';
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
+        // Reihenfolge: Bodenring, Schatten, Einheit / order: ground ring, shadow, unit
+        grp.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.renderOrder === 0) o.renderOrder = UNIT_ORDER; });
         grp.position.copy(this.tileCenter(s, u.x, u.y));
         v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
         this.units.set(u.id, v);
@@ -457,13 +499,14 @@ export class Board {
       const submerged = u.type === 'submarine' && !u.revealed;
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
-        if (mesh.isMesh && mesh.material === toonMaterial()) mesh.material = submerged ? toonMaterial({ transparent: true, opacity: 0.55 }) : toonMaterial();
-        else if (mesh.isMesh && !submerged && (mesh.material as THREE.Material).transparent) mesh.material = toonMaterial();
+        if (mesh.isMesh && mesh.material === unitMaterial()) mesh.material = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : unitMaterial();
+        else if (mesh.isMesh && !submerged && mesh.material === unitMaterial({ transparent: true, opacity: 0.55 })) mesh.material = unitMaterial();
       });
     }
     for (const [id, v] of this.units) {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
     }
+    this.updateShadows();
     this.dirty = true;
   }
 
@@ -489,7 +532,7 @@ export class Board {
         tpl.add(flat(0.4, 0.43, factionTokens[f].primary), flat(0.43, 0.445, semantic.ink));
       }
       tpl.position.y = 0.012;
-      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = 3; });
+      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER - 0.7; });
       this.markerCache.set(key, tpl);
     }
     const m = tpl.clone();
@@ -498,7 +541,23 @@ export class Board {
   }
 
   /** Eigene Ringe pulsieren leicht / own rings pulse gently */
+  /** Schatten mit sterbenden Einheiten ausblenden / hide shadows of dying units */
+  updateShadows() {
+    for (const v of this.units.values()) {
+      const sh = v.group.getObjectByName('shadow');
+      if (sh) sh.visible = v.group.scale.x > 0.3;
+    }
+  }
+
   pulseMarkers(time: number) {
+    this.updateShadows();
+    for (const o of this.highlightLayer.children) {
+      if (o.userData.bob !== undefined) {
+        o.position.y = o.userData.bob + Math.sin(time * 4) * 0.035;
+        const k = 0.36 * (1 + Math.sin(time * 4) * 0.06);
+        o.scale.set(k, k, 1);
+      }
+    }
     const k = 1 + Math.sin(time * 3.2) * 0.045;
     for (const v of this.units.values()) {
       const m = v.group.getObjectByName('marker');
@@ -595,6 +654,7 @@ export class Board {
         drops.push({ o, vel: new THREE.Vector3(Math.cos(a) * 1.1, 1.8, Math.sin(a) * 1.1) });
       }
     }
+    fx.traverse((o) => { o.renderOrder = UNIT_ORDER; });
     return this.addAnim(ANIM.death, (t) => {
       if (kind === 'skeleton' && model) {
         // hochschleudern, drehen, umkippen / launch, spin, topple
@@ -653,6 +713,14 @@ export class Board {
       mesh.renderOrder = 5;
       mesh.raycast = () => {};
       this.highlightLayer.add(mesh);
+    }
+    // Fadenkreuz ueber Feinden in Reichweite / crosshair above enemies in range
+    for (const h of list) {
+      if (h.kind !== 'attack' && h.kind !== 'target') continue;
+      const icon = attackIcon(h.kind === 'target');
+      icon.position.copy(this.tileCenter(s, h.x, h.y)).add(new THREE.Vector3(0, 0.98, 0));
+      icon.userData.bob = icon.position.y;
+      this.highlightLayer.add(icon);
     }
     this.dirty = true;
   }

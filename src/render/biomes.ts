@@ -163,3 +163,27 @@ export function trackGeometry(color: string): THREE.BufferGeometry {
   trackCache.set(color, g);
   return g;
 }
+
+/** Strassenabschnitt entlang z: Asphalt, weisse Randlinien, gelbe Mittelstriche / road segment along z: asphalt, white edge lines, yellow centre dashes */
+let roadSeg: THREE.BufferGeometry | null = null;
+export function roadSegment(): THREE.BufferGeometry {
+  if (roadSeg) return roadSeg;
+  const parts: THREE.BufferGeometry[] = [];
+  parts.push(part(new THREE.BoxGeometry(0.3, 0.022, 1), semantic.asphalt, M(0, 0.011, 0)));
+  parts.push(part(new THREE.BoxGeometry(0.34, 0.012, 1), semantic.asphaltEdge, M(0, 0.006, 0)));
+  for (const x of [-0.125, 0.125]) parts.push(part(new THREE.BoxGeometry(0.018, 0.004, 1), semantic.roadLine, M(x, 0.024, 0)));
+  for (const z of [-0.33, 0, 0.33]) parts.push(part(new THREE.BoxGeometry(0.022, 0.004, 0.16), semantic.roadCenter, M(0, 0.024, z)));
+  roadSeg = mergeGeometries(parts)!;
+  return roadSeg;
+}
+/** Kreuzungsplatte in der Feldmitte / junction plate in the tile centre */
+let roadNode: THREE.BufferGeometry | null = null;
+export function roadJunction(): THREE.BufferGeometry {
+  if (roadNode) return roadNode;
+  const parts = [
+    part(new THREE.CylinderGeometry(0.17, 0.17, 0.022, 16), semantic.asphalt, M(0, 0.011, 0)),
+    part(new THREE.CylinderGeometry(0.19, 0.19, 0.012, 16), semantic.asphaltEdge, M(0, 0.006, 0)),
+  ];
+  roadNode = mergeGeometries(parts)!;
+  return roadNode;
+}
