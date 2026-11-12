@@ -7,6 +7,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, shade } from './kit';
 import { look, mat, type Look } from './look';
+import { soldier, standPose } from './soldiers';
 
 const HALF_PI = Math.PI / 2;
 
@@ -39,9 +40,20 @@ function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: 
   // Reling / rail
   for (const s of [-1, 1]) {
     b.box(0.004, 0.004, z1 - z0 + 0.04, mat.white, [s * (w * 0.93), top + 0.02, (z0 + z1) / 2]);
-    for (const t of [0, 1]) b.box(0.004, 0.02, 0.004, mat.white, [s * (w * 0.93), top + 0.01, z0 + t * (z1 - z0)]);
+    for (let i = 0; i <= 6; i++) b.box(0.004, 0.02, 0.004, mat.white, [s * (w * 0.93), top + 0.01, z0 + (i / 6) * (z1 - z0)]);
+    b.box(0.004, 0.004, z1 - z0 + 0.04, mat.white, [s * (w * 0.93), top + 0.011, (z0 + z1) / 2]);
+    // Ankerkette / anchor chain
+    b.box(0.006, 0.004, 0.08, mat.dark, [s * 0.02, top + 0.009, h - bow * 0.6], [0, s * 0.3, 0]);
     // Anker / anchor
     b.box(0.006, 0.022, 0.016, mat.dark, [s * (w * 0.62 + 0.004), top * 0.6, h - bow * 0.45], [0, s * 0.6, 0]);
+  }
+  // Luken + Luefter auf dem Vordeck / hatches + vents on the foredeck
+  for (const s of [-1, 1]) {
+    b.add(geo.cbox(0.026, 0.008, 0.03, 0.006), shade(deck, 0.8), { p: [s * w * 0.4, top + 0.012, h - bow - 0.03] });
+    b.cyl(0.007, 0.007, 0.022, 6, mat.white, [s * w * 0.55, top + 0.018, -h + 0.08]);
+    b.add(geo.hemi(0.009, 6, 2), mat.white, { p: [s * w * 0.55, top + 0.029, -h + 0.08] });
+    // Poller / bollards
+    for (const z of [h - bow - 0.06, -h + 0.04]) b.cyl(0.006, 0.007, 0.012, 6, mat.dark, [s * w * 0.75, top + 0.014, z]);
   }
   // Bugwelle / bow wave
   b.add(geo.prismXZ([[-w * 0.9, h - bow * 0.9], [0, h + 0.008], [w * 0.9, h - bow * 0.9], [w * 0.5, h - bow * 0.5], [-w * 0.5, h - bow * 0.5]], 0.006), mat.white, { p: [0, 0.0, 0] });
@@ -88,6 +100,7 @@ function lifeboats(b: Builder, L: Look, x: number, y: number, z: number) {
   for (const s of [-1, 1]) {
     b.add(geo.ctaper(0.02, 0.07, 0.03, 0.09, 0.02, 0.012), mat.white, { p: [s * x, y + 0.01, z] });
     b.add(geo.ctaper(0.024, 0.07, 0.016, 0.06, 0.012, 0.01), L.primary, { p: [s * x, y + 0.026, z] });
+    for (const dz of [-0.03, 0.03]) b.add(geo.cyl(0.003, 0.003, 0.04, 4), mat.dark, { p: [s * (x + 0.01), y + 0.03, z + dz], r: [0, 0, s * 0.4] });
   }
 }
 
@@ -107,13 +120,16 @@ function turret(b: Builder, f: FactionId, L: Look, z: number, y: number, size: n
       b.add(geo.ctaper(size * 0.95, size * 0.9, size * 0.85, size * 0.75, size * 0.36, size * 0.12), L.hull, { p: [0, size * 0.24, 0] });
       if (f === 'meridon') b.block(0, size * 0.42, -size * 0.2, size * 0.5, size * 0.1, size * 0.3, L.trim);
     }
+    b.cyl(size * 0.44, size * 0.48, size * 0.08, 12, L.hullDark, [0, size * 0.04, 0]);
     // Entfernungsmesser + Luke / rangefinder + hatch
     b.box(size * 1.15, size * 0.08, size * 0.1, L.hullDark, [0, size * 0.36, -size * 0.25]);
     b.box(size * 0.25, size * 0.04, size * 0.2, L.trim, [size * 0.18, size * 0.44, -size * 0.1]);
     const len = size * 1.1 * big;
     for (let i = 0; i < barrels; i++) {
       const x = barrels === 1 ? 0 : (i - (barrels - 1) / 2) * size * 0.32;
+      b.cyl(size * 0.1, size * 0.11, size * 0.12, 8, mat.darkMid, [x, size * 0.26, size * 0.42], [HALF_PI - 0.06, 0, 0]);
       b.cyl(size * 0.07 * big, size * 0.08 * big, len, 8, mat.dark, [x, size * 0.26, size * 0.4 + len / 2], [HALF_PI - 0.06, 0, 0]);
+      b.cyl(size * 0.09 * big, size * 0.09 * big, size * 0.07, 8, mat.ink, [x, size * 0.26 + len * 0.06, size * 0.4 + len], [HALF_PI - 0.06, 0, 0]);
     }
   });
 }
@@ -163,10 +179,19 @@ export function landingBoat(f: FactionId, carried: THREE.BufferGeometry | null):
   b.add(geo.cbox(w - 0.02, 0.03, len - 0.02, 0.03), L.hullDark, { p: [0, -0.015, 0] });
   b.add(geo.cbox(w, 0.014, len, 0.03), mat.ink, { p: [0, 0.007, 0] });
   b.block(0, 0.014, -0.02, w - 0.02, 0.012, len - 0.06, mat.woodLight);
+  for (let i = 0; i < 4; i++) b.block(0, 0.026, -0.22 + i * 0.13, w - 0.06, 0.003, 0.008, mat.wood);
   for (const s of [-1, 1]) {
     b.add(geo.cbox(0.03, top - 0.014, len - 0.02, 0.008), L.hull, { p: [s * (w / 2 - 0.015), 0.014 + (top - 0.014) / 2, -0.01] });
     b.block(s * (w / 2 - 0.015), top, -0.01, 0.034, 0.006, len - 0.02, L.trim);
+    // Poller, Fender, Seitenrippen / bollards, fenders, side ribs
+    for (const z of [-0.2, 0.15]) b.cyl(0.008, 0.009, 0.016, 6, mat.dark, [s * (w / 2 - 0.015), top + 0.011, z]);
+    for (const z of [-0.05, 0.15]) b.cyl(0.011, 0.011, 0.03, 8, mat.dark, [s * (w / 2 + 0.008), 0.035, z]);
+    for (let i = 0; i < 3; i++) b.box(0.004, top - 0.02, 0.008, L.hullDark, [s * (w / 2 + 0.001), top / 2 + 0.005, -0.2 + i * 0.15]);
   }
+  // Rettungsring + Bootsfuehrer / life ring + helmsman
+  b.add(geo.torus(0.022, 0.007, 4, 10), mat.white, { p: [w / 2 + 0.004, 0.05, -0.2], r: [0, HALF_PI, 0] });
+  b.add(geo.torus(0.022, 0.0072, 4, 4), L.primary, { p: [w / 2 + 0.0045, 0.05, -0.2], r: [0, HALF_PI, Math.PI / 4] });
+  b.group({ p: [0.08, top - 0.02, -0.22], s: 0.6 }, () => soldier(b, f, standPose([[-0.06, 0.24, -0.08], [0.06, 0.24, -0.08]]), { detail: 0, seed: 9, noLegs: true }));
   b.block(0, 0.014, -len / 2 + 0.03, w, top - 0.014 + 0.015, 0.06, L.hull);
   // Bugrampe mit Rippen / bow ramp with ribs
   b.group({ p: [0, 0.06, len / 2 - 0.03], r: [-0.2, 0, 0] }, () => {
@@ -195,10 +220,16 @@ export function submarine(f: FactionId): Builder {
   const b = new Builder();
   const L = look(f);
   // Rumpf als gestreckter Koerper / hull as stretched body
-  b.add(geo.sphere(0.1, 16, 8), L.hullDark, { p: [0, 0.0, 0], s: [0.85, 0.6, 4.1] });
-  b.add(geo.sphere(0.1, 16, 6), L.hull, { p: [0, 0.012, 0], s: [0.75, 0.42, 3.8] });
+  b.add(geo.sphere(0.1, 20, 10), L.hullDark, { p: [0, 0.0, 0], s: [0.85, 0.6, 4.1] });
+  b.add(geo.sphere(0.1, 20, 8), L.hull, { p: [0, 0.012, 0], s: [0.75, 0.42, 3.8] });
   b.add(geo.cbox(0.05, 0.012, 0.56, 0.012), L.hull, { p: [0, 0.052, -0.01] });
   b.box(0.02, 0.008, 0.5, L.trim, [0, 0.06, 0]);
+  // Flutschlitze + Reling / flood holes + rail
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 8; i++) b.box(0.006, 0.006, 0.02, mat.ink, [sx * 0.07, 0.028, -0.26 + i * 0.07]);
+    b.box(0.003, 0.003, 0.2, mat.white, [sx * 0.022, 0.078, -0.2]);
+    for (let i = 0; i < 4; i++) b.box(0.003, 0.018, 0.003, mat.white, [sx * 0.022, 0.068, -0.29 + i * 0.06]);
+  }
   // Luken / hatches
   for (const z of [-0.2, 0.2, 0.28]) b.cyl(0.012, 0.013, 0.008, 8, L.hullDark, [0, 0.062, z]);
   // Bugwelle + Kielwasser / bow wave + wake
@@ -248,6 +279,8 @@ export function submarine(f: FactionId): Builder {
   for (let i = 0; i < 3; i++) b.box(0.012, 0.04, 0.004, mat.metal, [0, 0, -0.418], [0, 0, (i / 3) * Math.PI]);
   addEmblem(b, f, 0.03, 0.006, L.emblem, { p: [0.04, 0.09, sz], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.03, 0.006, L.emblem, { p: [-0.04, 0.09, sz], r: [0, -HALF_PI, 0] });
+  // Kommandant im Turm (Fraktions-Kopfbedeckung) / commander in the sail (faction headgear)
+  b.group({ p: [0, st - 0.115, sz - 0.03], s: 0.55 }, () => soldier(b, f, standPose([[-0.09, 0.27, 0.06], [0.09, 0.27, 0.06]]), { detail: 0, seed: 8, noLegs: true }));
   return b;
 }
 
@@ -255,7 +288,7 @@ export function destroyer(f: FactionId): Builder {
   const b = new Builder();
   const L = look(f);
   const top = 0.06;
-  hull(b, L, 0.84, 0.2, top, 0.22, mat.metalLight, 4);
+  hull(b, L, 0.84, 0.2, top, 0.22, mat.metalLight, 10);
   const d = top + 0.008;
   superBlock(b, f, L, 0, d, 0.06, 0.13, 0.07, 0.16);
   superBlock(b, f, L, 0, d + 0.07, 0.08, 0.1, 0.055, 0.08);
@@ -272,8 +305,18 @@ export function destroyer(f: FactionId): Builder {
     for (const x of [-0.015, 0.015]) b.cyl(0.009, 0.009, 0.1, 6, mat.dark, [x, d + 0.04, -0.15], [HALF_PI, 0, 0]);
   }
   // Hubschrauberdeck-Ring am Heck / helideck ring at the stern
-  b.add(geo.cyl(0.05, 0.05, 0.004, 10), mat.white, { p: [0, d + 0.001, -0.33] });
+  b.add(geo.cyl(0.05, 0.05, 0.004, 14), mat.white, { p: [0, d + 0.001, -0.33] });
+  b.add(geo.cyl(0.042, 0.042, 0.004, 14), shade(mat.metalLight, 0.85), { p: [0, d + 0.003, -0.33] });
+  // Nahbereichsabwehr, Startbehaelter, Radarkuppel, Heckmast / close-in gun, launcher, radar dome, aft mast
+  b.cyl(0.018, 0.02, 0.025, 10, mat.white, [0, d + 0.137, 0.025]);
+  b.add(geo.hemi(0.018, 10, 3), mat.white, { p: [0, d + 0.15, 0.025] });
+  b.cyl(0.004, 0.004, 0.04, 6, mat.dark, [0, d + 0.14, 0.05], [HALF_PI, 0, 0]);
+  b.add(geo.cbox(0.06, 0.03, 0.05, 0.008), L.hullDark, { p: [0, d + 0.015, 0.155] });
+  for (const x of [-0.015, 0.015]) for (const z of [0.14, 0.17]) b.box(0.02, 0.003, 0.02, mat.ink, [x, d + 0.031, z]);
+  b.tube([0, d, -0.1], [0, d + 0.12, -0.1], 0.005, 6, mat.dark);
+  b.add(geo.sphere(0.02, 10, 5), mat.white, { p: [0, d + 0.13, -0.1] });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [0.101, 0.035, 0.18], r: [0, HALF_PI, 0] });
+  addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [-0.101, 0.035, 0.18], r: [0, -HALF_PI, 0] });
   return b;
 }
 
@@ -281,25 +324,31 @@ export function battleship(f: FactionId): Builder {
   const b = new Builder();
   const L = look(f);
   const top = 0.07;
-  hull(b, L, 0.88, 0.28, top, 0.24, mat.woodLight, 4);
+  hull(b, L, 0.88, 0.28, top, 0.24, mat.woodLight, 6);
   const d = top + 0.008;
   // Mehrere Tuerme: zwei vorn (ueberhoehend), einer hinten / multiple turrets: two fore (superfiring), one aft
-  turret(b, f, L, 0.235, d, 0.11, 2, 1);
+  turret(b, f, L, 0.222, d, 0.11, 2, 1);
   b.add(geo.cbox(0.1, 0.035, 0.1, 0.02), L.hullDark, { p: [0, d + 0.0175, 0.12] });
   turret(b, f, L, 0.12, d + 0.035, 0.11, 2, 1);
   turret(b, f, L, -0.22, d, 0.11, 2, -1);
   // Aufbau mit Turmmast / superstructure with tower mast
   superBlock(b, f, L, 0, d, 0.0, 0.17, 0.07, 0.2);
   superBlock(b, f, L, 0, d + 0.07, 0.02, 0.12, 0.06, 0.11);
-  bridgeWings(b, L, d + 0.11, 0.06, 0.15);
-  mast(b, L, f, 0.03, d + 0.13, 0.19);
+  superBlock(b, f, L, 0, d + 0.13, 0.03, 0.08, 0.05, 0.06);
+  bridgeWings(b, L, d + 0.16, 0.05, 0.12);
+  mast(b, L, f, 0.03, d + 0.18, 0.15);
   funnel(b, f, L, -0.1, d, 0.15, 0.035);
   if (f === 'meridon') containers(b, L, -0.18, d);
   // Nebengeschuetze / secondary guns
-  for (const s of [-1, 1]) {
-    b.box(0.04, 0.025, 0.04, L.hull, [s * 0.1, d + 0.0125, 0.0]);
-    b.cyl(0.005, 0.005, 0.05, 4, mat.dark, [s * 0.1, d + 0.015, 0.035], [HALF_PI, 0, 0]);
+  for (const s of [-1, 1]) for (const z of [-0.04, 0.06]) {
+    b.add(geo.cyl(0.02, 0.022, 0.025, 8), L.hull, { p: [s * 0.1, d + 0.0125, z] });
+    b.cyl(0.005, 0.005, 0.05, 6, mat.dark, [s * 0.1, d + 0.018, z + 0.035], [HALF_PI, 0, 0]);
   }
+  // Heckkran + Katapult / stern crane + catapult
+  b.cyl(0.008, 0.01, 0.06, 8, mat.dark, [0.06, d + 0.03, -0.33]);
+  b.box(0.008, 0.008, 0.09, mat.dark, [0.06, d + 0.06, -0.3], [0.5, 0, 0]);
+  b.box(0.02, 0.008, 0.12, mat.metal, [-0.05, d + 0.004, -0.33]);
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [0.141, 0.04, 0.2], r: [0, HALF_PI, 0] });
+  addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [-0.141, 0.04, 0.2], r: [0, -HALF_PI, 0] });
   return b;
 }

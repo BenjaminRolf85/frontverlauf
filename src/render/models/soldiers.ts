@@ -10,7 +10,8 @@ import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, xfMatrix, type V3 } from './kit';
-import { look, mat, type Look } from './look';
+import { headgear } from './headgear';
+import { look, mat } from './look';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -116,94 +117,6 @@ export function seatPose(hands: [V3, V3]): Pose {
   };
 }
 
-// ---------- Kopfbedeckung / headgear ----------
-
-function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean) {
-  const ws = d === 2 ? 14 : d === 1 ? 10 : 8;
-  const hs = d === 2 ? 4 : 3;
-  const face = (glasses: boolean) => {
-    b.add(d >= 1 ? geo.rbox(0.104, 0.098, 0.1, 0.02) : geo.box(0.104, 0.098, 0.1), mat.skin, { p: [0, 0.049, 0] });
-    if (glasses) {
-      b.box(0.092, 0.022, 0.012, mat.ink, [0, 0.06, 0.05]);
-    } else {
-      b.box(0.015, 0.026, 0.008, mat.ink, [-0.024, 0.058, 0.051]);
-      b.box(0.015, 0.026, 0.008, mat.ink, [0.024, 0.058, 0.051]);
-    }
-    if (d === 2) {
-      b.box(0.03, 0.022, 0.022, shade(mat.skin, 0.92), [0, 0.035, 0.054]);
-      for (const s of [-1, 1]) b.box(0.014, 0.03, 0.024, shade(mat.skin, 0.9), [s * 0.055, 0.048, 0]);
-      b.box(0.03, 0.005, 0.005, shade(mat.skin, 0.6), [0, 0.018, 0.0505]);
-    }
-  };
-  if (fedora) {
-    face(true);
-    b.cyl(0.092, 0.094, 0.012, ws, L.secondary, [0, 0.093, 0]);
-    b.add(geo.cyl(0.052, 0.06, 0.062, Math.max(8, ws - 4)), L.secondary, { p: [0, 0.13, 0], s: [1, 1, 0.92] });
-    b.cyl(0.061, 0.062, 0.018, Math.max(8, ws - 4), L.primaryDark, [0, 0.109, 0]);
-    if (d === 2) b.box(0.03, 0.012, 0.07, shade(L.secondary, 0.82), [0, 0.162, 0]);
-    return;
-  }
-  switch (f) {
-    case 'korvat':
-      // runder Stahlhelm mit Krempe / round steel helmet with brim
-      face(false);
-      b.add(geo.hemi(0.08, ws, hs), L.helmet, { p: [0, 0.072, -0.004], s: [1, 0.95, 1.05] });
-      b.cyl(0.095, 0.097, 0.012, ws, shade(L.helmet, 0.8), [0, 0.075, -0.004]);
-      b.box(0.03, 0.022, 0.01, L.primary, [0, 0.112, 0.074], [-0.4, 0, 0]);
-      if (d === 2) {
-        b.add(geo.cyl(0.081, 0.083, 0.012, ws, true), shade(L.helmet, 0.7), { p: [0, 0.098, -0.004], s: [1, 1, 1.05] });
-      }
-      break;
-    case 'dravon':
-      // geschlossener Visierhelm, scharfkantig / closed visor helmet, sharp-edged
-      b.add(geo.rtaper(0.126, 0.122, 0.1, 0.1, 0.13, d >= 1 ? 0.012 : 0.001), L.helmet, { p: [0, 0.065, 0] });
-      b.add(geo.taper(0.1, 0.1, 0.02, 0.07, 0.03), L.helmet, { p: [0, 0.145, 0] });
-      b.box(0.108, 0.02, 0.012, L.secondary, [0, 0.062, 0.062]);
-      b.add(geo.taper(0.018, 0.124, 0.01, 0.1, 0.035), L.secondary, { p: [0, 0.155, 0] });
-      b.box(0.022, 0.044, 0.012, L.secondary, [0, 0.028, 0.063]);
-      if (d === 2) {
-        for (const s of [-1, 1]) {
-          b.add(geo.taper(0.012, 0.06, 0.008, 0.04, 0.05), shade(L.helmet, 0.75), { p: [s * 0.066, 0.04, 0.02] });
-          b.box(0.03, 0.006, 0.006, mat.ink, [s * 0.03, 0.04, 0.0625], [0, 0, s * 0.5]);
-        }
-        b.add(geo.rbox(0.13, 0.03, 0.04, 0.008), shade(L.helmet, 0.8), { p: [0, 0.015, -0.055] });
-      }
-      break;
-    case 'alvenia':
-      // offener Helm mit Schutzbrille / open helmet with goggles
-      face(false);
-      b.add(geo.hemi(0.079, ws, hs), L.helmet, { p: [0, 0.078, -0.004] });
-      b.cyl(0.082, 0.083, 0.014, ws, L.secondary, [0, 0.078, -0.004]);
-      b.add(geo.cyl(0.0795, 0.0805, 0.01, ws, true), mat.dark, { p: [0, 0.1, -0.004] });
-      for (const x of [-0.027, 0.027]) {
-        if (d >= 1) b.add(geo.cyl(0.021, 0.021, 0.016, 8, true), L.secondary, { p: [x, 0.104, 0.068], r: [HALF_PI - 0.3, 0, 0] });
-        b.cyl(0.016, 0.016, 0.014, d >= 1 ? 8 : 6, mat.glass, [x, 0.104, 0.068], [HALF_PI - 0.3, 0, 0]);
-      }
-      if (d === 2) for (const s of [-1, 1]) b.box(0.006, 0.05, 0.008, mat.dark, [s * 0.054, 0.04, 0.025], [0.15, 0, 0]);
-      break;
-    case 'meridon':
-      // Barett, schraeg, mit Abzeichen / tilted beret with badge
-      face(false);
-      b.box(0.11, 0.032, 0.064, mat.dark, [0, 0.085, -0.025]);
-      b.add(geo.sphere(0.072, ws, hs + 1), L.helmet, { p: [0.012, 0.104, -0.004], r: [0, 0, -0.22], s: [1.15, 0.42, 1.12] });
-      b.add(geo.cyl(0.06, 0.062, 0.014, ws, true), shade(L.helmet, 0.75), { p: [0.004, 0.092, -0.004], r: [0, 0, -0.1] });
-      b.add(geo.cyl(0.013, 0.013, 0.008, 8), L.primary, { p: [-0.032, 0.1, 0.074], r: [HALF_PI, 0, 0] });
-      break;
-    case 'velkar': {
-      // Helm mit Visier und Antenne / helmet with visor and antenna
-      face(false);
-      b.add(geo.hemi(0.083, ws, hs), L.helmet, { p: [0, 0.07, -0.006], s: [1, 1, 1.04] });
-      b.cyl(0.086, 0.086, 0.02, ws, shade(L.helmet, 0.85), [0, 0.07, -0.006]);
-      b.add(d >= 1 ? geo.rtaper(0.118, 0.032, 0.112, 0.026, 0.042, 0.006) : geo.box(0.116, 0.04, 0.03), mix(L.secondary, mat.glassDark, 0.45), { p: [0, 0.06, 0.058] });
-      if (d >= 1) for (const s of [-1, 1]) b.cyl(0.022, 0.022, 0.03, d === 2 ? 8 : 6, L.gear, [s * 0.086, 0.06, 0], [0, 0, HALF_PI]);
-      b.tube([0.068, 0.1, -0.03], [0.078, 0.21, -0.045], 0.005, 5, mat.dark);
-      b.add(geo.ico(0.014, 0), L.secondary, { p: [0.079, 0.215, -0.046] });
-      if (d === 2) b.box(0.03, 0.008, 0.008, L.secondary, [0, 0.12, 0.062]);
-      break;
-    }
-  }
-}
-
 /**
  * Soldat aufbauen (lokal: Fuesse auf y=0, Blick +z) / build a soldier (local: feet at y=0, facing +z).
  */
@@ -213,7 +126,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
   const R = rng(o.seed ?? 1);
   // Teil-Geometrie je Detailstufe / part geometry per detail level
   const part = (w: number, h: number, dd: number, ch = 0.22, minDetail: Detail = 2) =>
-    d >= minDetail ? geo.cbox(w, h, dd, Math.min(w, dd) * ch) : geo.box(w, h, dd);
+    d >= minDetail ? (d === 2 ? geo.rbox(w, h, dd, Math.min(w, h, dd) * ch) : geo.cbox(w, h, dd, Math.min(w, dd) * ch)) : geo.box(w, h, dd);
   const Mp = xfMatrix({ p: pose.pelvis, r: pose.body });
   const Mt = Mp.clone().multiply(xfMatrix({ p: [0, TORSO_Y, 0], r: pose.twist }));
   const sleeve = o.coat ? L.primary : L.jacket;
@@ -226,8 +139,13 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     if (d === 2 && !o.coat) {
       // Taschen am Koppel / belt pouches
       for (const [x, z] of [[-0.05, 0.048], [0.05, 0.048]] as [number, number][]) {
-        b.box(Math.abs(z) > 0 ? 0.034 : 0.016, 0.03, Math.abs(z) > 0 ? 0.014 : 0.034, shade(L.gear, 0.85), [x, 0.008, z]);
+        b.box(0.034, 0.032, 0.016, shade(L.gear, 0.85), [x, 0.008, z]);
+        b.box(0.036, 0.008, 0.018, shade(L.gear, 0.7), [x, 0.022, z]);
       }
+      // Handgranaten, Holster, Messer / grenades, holster, knife
+      for (const x of [-0.02, 0.02]) b.add(geo.sphere(0.011, 6, 4), mix(L.gear, mat.dark, 0.5), { p: [x, 0.012, 0.055] });
+      b.box(0.018, 0.05, 0.034, mat.dark, [0.084, -0.008, 0.006]);
+      b.box(0.012, 0.04, 0.012, mat.wood, [-0.082, -0.01, -0.02]);
     }
     if (o.coat) {
       // Mantelschoss bis zum Knie / coat skirt to the knee
@@ -251,7 +169,11 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
           for (const s of [-1, 1]) {
             b.box(0.014, 0.115, 0.008, L.gear, [s * 0.04, 0.058, 0.05]);
             b.box(0.03, 0.026, 0.01, shade(jacket, 0.82), [s * 0.045, 0.072, 0.051]);
+            b.box(0.03, 0.008, 0.012, shade(jacket, 0.7), [s * 0.045, 0.086, 0.052]);
+            b.box(0.016, 0.012, 0.006, L.secondary, [s * 0.026, 0.104, 0.04], [0.4, 0, 0]);
           }
+          // Brustplakette mit Emblem / chest badge with emblem
+          b.box(0.02, 0.02, 0.004, L.secondary, [-0.045, 0.098, 0.051]);
         }
       }
       // Fraktionszubehoer / faction extras
@@ -306,9 +228,9 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         }
       }
       // Kopf / head
-      b.group({ p: [0, NECK_Y, 0], r: pose.head }, () => {
-        b.cyl(0.03, 0.034, 0.03, d === 2 ? 8 : 6, mat.skin, [0, -0.005, 0]);
-        headgear(b, f, L, d, o.hat === 'fedora');
+      b.group({ p: [0, NECK_Y, 0], r: pose.head, s: 1.1 }, () => {
+        b.cyl(0.03, 0.034, 0.03, d === 2 ? 10 : 6, mat.skin, [0, -0.005, 0]);
+        headgear(b, f, L, d, o.hat === 'fedora', o.seed ?? 1);
       });
     });
   });
@@ -321,10 +243,13 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const { joint: E, end: H } = ik(S, T, UPPER, FORE, pole);
     b.segment(S, E, (len) => part(0.05, len + 0.014, 0.052), sleeve, (len) => {
       if (o.armband && side < 0) b.box(0.058, 0.024, 0.06, L.secondary, [0, len * 0.45, 0]);
-      if (d === 2 && !o.armband && !o.coat) b.box(0.054, 0.016, 0.03, L.secondary, [side * 0.004, len * 0.25, 0.0]);
+      if (d === 2 && !o.armband && !o.coat) {
+        b.box(0.054, 0.016, 0.03, L.secondary, [side * 0.004, len * 0.25, 0.0]);
+        if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.027, len * 0.55, 0], r: [0, -HALF_PI, 0] });
+      }
       if (f === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
     });
-    b.segment(E, H, (len) => part(0.046, Math.max(0.01, len - 0.022), 0.048).translate(0, -0.011, 0), sleeve, (len) => {
+    b.segment(E, H, (len) => part(0.046, Math.max(0.01, len - 0.022), 0.048, 0.22, 1).translate(0, -0.011, 0), sleeve, (len) => {
       if (d === 2) b.box(0.05, 0.014, 0.052, shade(sleeve, 0.82), [0, len - 0.03, 0]);
       b.add(part(0.04, 0.042, 0.044, 0.28), mat.skin, { p: [0, len, 0] });
     });
@@ -337,10 +262,18 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const pole = V((side < 0 ? pose.kneePoleL : pose.kneePoleR) ?? [0, 0, 1]);
     const { joint: K, end: A } = ik(S, T, THIGH, SHIN, pole);
     b.segment(S, K, (len) => part(0.062, len + 0.014, 0.066), L.pants);
-    b.segment(K, A, (len) => part(0.056, len + 0.006, 0.06), L.pants);
+    b.segment(K, A, (len) => part(0.056, len + 0.006, 0.06, 0.22, 1), L.pants, (len) => {
+      if (d === 2) {
+        b.box(0.05, 0.03, 0.02, shade(L.gear, 0.9), [0, 0.006, 0.03]);
+        b.box(0.062, 0.016, 0.066, mat.dark, [0, len - 0.004, 0]);
+      }
+    });
     b.group({ p: [A.x, A.y, A.z], r: (side < 0 ? pose.bootL : pose.bootR) ?? [0, 0, 0] }, () => {
       b.add(part(0.064, 0.04, 0.094, 0.22), mat.dark, { p: [0, -0.016, 0.014] });
-      if (d === 2) b.box(0.066, 0.008, 0.098, mat.ink, [0, -0.032, 0.014]);
+      if (d === 2) {
+        b.box(0.066, 0.008, 0.098, mat.ink, [0, -0.032, 0.014]);
+        for (const z of [0.02, 0.035]) b.box(0.03, 0.004, 0.004, mat.paper, [0, 0.003, z]);
+      }
       if (f === 'velkar' && d >= 1) b.box(0.068, 0.012, 0.03, mat.snow, [0, -0.004, -0.02]);
     });
   }
@@ -382,7 +315,14 @@ export function rifle(b: Builder, grip: V3, dir: V3, o: RifleOpts = {}): void {
     b.cyl(0.0075 * k, 0.0075 * k, bl, d === 2 ? 8 : 6, mat.metal, [0, 0.004, 0.19 + bl / 2], [HALF_PI, 0, 0]);
     b.cyl(0.011 * k, 0.011 * k, 0.025, d === 2 ? 8 : 6, mat.dark, [0, 0.004, len - 0.012], [HALF_PI, 0, 0]);
     b.box(0.006, 0.018, 0.008, mat.dark, [0, 0.016, len - 0.03]);
-    if (d === 2) b.box(0.014, 0.012, 0.016, mat.dark, [0, 0.022, 0.03]);
+    if (d === 2) {
+      // Schiene, Visier, Riemen, Bajonetthalter / rail, sights, sling, bayonet lug
+      b.box(0.014, 0.008, 0.1, mat.ink, [0, 0.021, 0.07]);
+      b.add(geo.rbox(0.014, 0.016, 0.022, 0.004), mat.dark, { p: [0, 0.03, 0.03] });
+      b.box(0.004, 0.02, 0.004, mat.dark, [0, 0.018, len - 0.05]);
+      b.box(0.004, 0.006, 0.17, mat.darkMid, [0.014, -0.022, 0.03]);
+      b.box(0.01, 0.01, 0.02, mat.dark, [0, -0.012, 0.2]);
+    }
     if (o.scope) {
       b.cyl(0.014, 0.014, 0.1, 10, mat.ink, [0, 0.038, 0.06], [HALF_PI, 0, 0]);
       b.cyl(0.019, 0.016, 0.026, 8, mat.ink, [0, 0.038, 0.12], [HALF_PI, 0, 0]);
@@ -408,7 +348,7 @@ function along(p: V3, dir: V3, t: number): V3 {
 
 export function infantry(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  const d: Detail = lite ? 0 : 2;
+  const d: Detail = lite ? 1 : 2;
   const G: V3 = [0.035, 0.2, 0.06];
   const D: V3 = [-0.3, 0.12, 1];
   soldier(b, f, {
@@ -454,7 +394,7 @@ export function sniper(f: FactionId, lite = false): Builder {
     // Ghillie-Tarnung auf Ruecken und Beinen / ghillie camo on back and legs
     const R = rng(77);
     const tones = [mat.leaf, mat.leafDark, mat.grass, mix(mat.leaf, L.primary, 0.3)];
-    const n = lite ? 5 : 16;
+    const n = lite ? 8 : 26;
     b.group({ p: pelvis, r: body }, () => {
       for (let i = 0; i < n; i++) {
         const y = -0.12 + R() * 0.27;
@@ -462,7 +402,7 @@ export function sniper(f: FactionId, lite = false): Builder {
         const s = 0.026 + R() * 0.018;
         b.add(geo.ico(s, 0), tones[i % tones.length], { p: [x, y, -0.05 - R() * 0.02], r: [R() * 3, R() * 3, R() * 3], s: [1, 1, 0.6] });
       }
-      if (!lite) for (let i = 0; i < 8; i++) {
+      if (!lite) for (let i = 0; i < 14; i++) {
         const y = -0.05 + R() * 0.2;
         const x = (R() < 0.5 ? -1 : 1) * (0.07 + R() * 0.02);
         b.add(geo.cone(0.012, 0.06, 4), tones[(i + 1) % 4], { p: [x, y, -0.04], r: [R() - 0.5, 0, (x > 0 ? -1 : 1) * (1.2 + R() * 0.4)] });
@@ -479,7 +419,7 @@ function sandbag(b: Builder, x: number, y: number, z: number, ry: number, d: Det
 
 export function pioneer(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  const d: Detail = lite ? 0 : 2;
+  const d: Detail = lite ? 1 : 2;
   // Schaufel schraeg vor dem Koerper / shovel held diagonally in front
   const G: V3 = [0.075, 0.215, -0.02];
   const B: V3 = [-0.075, 0.03, 0.15];
@@ -508,9 +448,9 @@ export function pioneer(f: FactionId, lite = false): Builder {
   sandbag(b, -0.13, 0, 0.21, 0.35, d);
   sandbag(b, -0.01, 0, 0.24, 0.05, d);
   sandbag(b, 0.11, 0, 0.22, -0.3, d);
-  sandbag(b, -0.07, 0.046, 0.225, 0.2, d);
+  if (!lite) sandbag(b, -0.07, 0.046, 0.225, 0.2, d);
   sandbag(b, 0.05, 0.046, 0.23, -0.12, d);
-  sandbag(b, -0.01, 0.092, 0.23, 0.05, d);
+  if (!lite) sandbag(b, -0.01, 0.092, 0.23, 0.05, d);
   if (!lite) sandbag(b, 0.23, 0, 0.1, -1.0, 1);
   return b;
 }
@@ -539,10 +479,11 @@ export function mgTeam(f: FactionId, lite = false): Builder {
     b.add(geo.rtaper(0.15, 0.012, 0.13, 0.012, 0.1, 0.006), L.primary, { p: [0, gy + 0.03, 0.075], r: [-0.12, 0, 0] });
     b.box(0.152, 0.016, 0.016, L.secondary, [0, gy + 0.077, 0.08], [-0.12, 0, 0]);
     b.box(0.04, 0.03, 0.006, L.secondary, [0.045, gy + 0.035, 0.083], [-0.12, 0, 0]);
+    if (!lite) addEmblem(b, f, 0.022, 0.006, L.emblem, { p: [-0.035, gy + 0.03, 0.084], r: [-0.12, 0, 0] });
     // Munitionskasten + Gurt / ammo box + belt
     b.add(geo.cbox(0.07, 0.055, 0.045, 0.01), L.gear, { p: [0.085, 0.028, 0.0] });
     b.box(0.03, 0.012, 0.03, mat.dark, [0.085, 0.06, 0.0]);
-    const n = lite ? 3 : 5;
+    const n = lite ? 3 : 9;
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
       const p: V3 = [0.075 - t * 0.05, 0.06 + Math.sin(t * Math.PI) * 0.06 + t * 0.03, 0.0];
@@ -564,7 +505,7 @@ export function mgTeam(f: FactionId, lite = false): Builder {
 export function medic(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  const d: Detail = lite ? 0 : 2;
+  const d: Detail = lite ? 1 : 2;
   soldier(b, f, {
     ...standPose([[-0.105, 0.155, 0.07], [0.125, 0.13, 0.03]]),
     twist: [0, -0.1, 0],
@@ -584,13 +525,24 @@ export function medic(f: FactionId, lite = false): Builder {
 export function spy(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  const d: Detail = lite ? 0 : 2;
+  const d: Detail = lite ? 1 : 2;
   soldier(b, f, {
     ...standPose([[-0.1, 0.165, 0.045], [0.125, 0.135, -0.01]]),
     footL: [-0.045, 0.034, 0.025],
     footR: [0.047, 0.034, -0.02],
     head: [0.1, 0.25, 0],
   }, { detail: d, coat: true, hat: 'fedora', seed: 61 });
+  if (!lite) {
+    // Mantelknoepfe, Taschenklappen, Schulterklappen / coat buttons, pocket flaps, epaulettes
+    for (const y of [0.2, 0.225, 0.25]) for (const x of [-0.03, 0.03]) b.add(geo.sphere(0.005, 5, 3), mat.dark, { p: [x, y, 0.058] });
+    for (const s of [-1, 1]) {
+      b.box(0.05, 0.012, 0.03, L.primaryDark, [s * 0.075, 0.15, 0.048], [0, s * 0.5, 0]);
+      b.box(0.04, 0.008, 0.05, L.primaryDark, [s * 0.08, 0.287, -0.005]);
+    }
+    // Zeitung unter dem Arm / newspaper under the arm
+    b.add(geo.rbox(0.012, 0.05, 0.07, 0.004), mat.paper, { p: [-0.118, 0.2, 0.0], r: [0, 0, 0.15] });
+    b.box(0.013, 0.008, 0.06, mat.ink, [-0.118, 0.21, 0.0], [0, 0, 0.15]);
+  }
   // Schal in Zweitfarbe / scarf in secondary colour
   b.add(geo.rbox(0.11, 0.022, 0.09, 0.008), L.secondary, { p: [0, 0.29, 0.005] });
   b.add(geo.rbox(0.03, 0.07, 0.012, 0.004), L.secondary, { p: [0.03, 0.25, 0.055], r: [0.1, 0, 0.1] });
