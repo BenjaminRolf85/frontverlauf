@@ -432,12 +432,10 @@ export class Board {
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
         const grp = new THREE.Group();
-        // Eigene Einheiten: leuchtende Kontur in Markierungsfarbe; fremde: schwarze Tuschelinie
-        // own units: bright outline in marker colour; others: black ink line
+        // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
+        // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = own
-          ? outlined(unitGeometry(u.type, f, u.carried), OUTLINE.ownUnit, undefined, factionTokens[f].marker)
-          : outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
         model.name = 'model';
         grp.add(model);
         grp.add(this.groundMarker(f, own));
