@@ -155,6 +155,7 @@ export class View {
       const targetWind = this.board.weatherFx.kind === 'wind' ? 1 : 0;
       SWAY.uWind.value += (targetWind - SWAY.uWind.value) * 0.03;
       this.board.ambient.update(sec);
+      this.board.pulseMarkers(sec);
       this.needs = true;
     }
     const wfx = this.board.weatherFx;

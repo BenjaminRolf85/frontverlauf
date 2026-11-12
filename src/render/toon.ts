@@ -33,13 +33,14 @@ export function flatToon(color: string): THREE.MeshToonMaterial {
   return new THREE.MeshToonMaterial({ color: hex(color), gradientMap: gradientMap() });
 }
 
-const outlineMats = new Map<number, THREE.ShaderMaterial>();
+const outlineMats = new Map<string, THREE.ShaderMaterial>();
 /** Konturmaterial, Breite in Objektkoordinaten / outline material, width in object space */
-export function outlineMaterial(width = 0.018): THREE.ShaderMaterial {
-  let m = outlineMats.get(width);
+export function outlineMaterial(width = 0.018, color: string = semantic.ink): THREE.ShaderMaterial {
+  const key = `${width}-${color}`;
+  let m = outlineMats.get(key);
   if (m) return m;
   m = new THREE.ShaderMaterial({
-    uniforms: { uWidth: { value: width }, uColor: { value: new THREE.Color(hex(semantic.ink)) } },
+    uniforms: { uWidth: { value: width }, uColor: { value: new THREE.Color(hex(color)) } },
     vertexShader: /* glsl */ `
       uniform float uWidth;
       void main() {
@@ -54,7 +55,7 @@ export function outlineMaterial(width = 0.018): THREE.ShaderMaterial {
       void main() { gl_FragColor = vec4(uColor, 1.0); }`,
     side: THREE.BackSide,
   });
-  outlineMats.set(width, m);
+  outlineMats.set(key, m);
   return m;
 }
 
@@ -73,10 +74,10 @@ export function hullGeometry(g: THREE.BufferGeometry): THREE.BufferGeometry {
 }
 
 /** Mesh mit Kontur / mesh with outline */
-export function outlined(g: THREE.BufferGeometry, width = 0.018, material: THREE.Material = toonMaterial()): THREE.Group {
+export function outlined(g: THREE.BufferGeometry, width = 0.018, material: THREE.Material = toonMaterial(), lineColor?: string): THREE.Group {
   const grp = new THREE.Group();
   const mesh = new THREE.Mesh(g, material);
-  const line = new THREE.Mesh(hullGeometry(g), outlineMaterial(width));
+  const line = new THREE.Mesh(hullGeometry(g), outlineMaterial(width, lineColor));
   line.raycast = () => {};
   grp.add(mesh, line);
   grp.userData.mesh = mesh;

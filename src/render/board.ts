@@ -422,12 +422,14 @@ export class Board {
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
         const grp = new THREE.Group();
-        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        // Eigene Einheiten: leuchtende Kontur in Markierungsfarbe; fremde: schwarze Tuschelinie
+        // own units: bright outline in marker colour; others: black ink line
+        const own = viewer >= 0 && u.owner === viewer;
+        const model = own
+          ? outlined(unitGeometry(u.type, f, u.carried), OUTLINE.ownUnit, undefined, factionTokens[f].marker)
+          : outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
         model.name = 'model';
         grp.add(model);
-        // Bodenmarkierung in Fraktionsfarbe: eigene kraeftig mit Flaeche, fremde als duenner Ring
-        // ground marker in faction colour: own bold with fill, others as a thin ring
-        const own = viewer < 0 || u.owner === viewer;
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
         grp.position.copy(this.tileCenter(s, u.x, u.y));
@@ -471,16 +473,20 @@ export class Board {
     let tpl = this.markerCache.get(key);
     if (!tpl) {
       tpl = new THREE.Group();
-      const color = hex(factionTokens[f].primary);
-      const ring = new THREE.Mesh(new THREE.RingGeometry(own ? 0.34 : 0.37, own ? 0.43 : 0.42, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
-      const edge = new THREE.Mesh(new THREE.RingGeometry(own ? 0.43 : 0.42, own ? 0.455 : 0.44, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: hex(semantic.ink), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
-      tpl.add(ring, edge);
+      const flat = (inner: number, outer: number, color: string, opacity = 1) => new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, 40).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: hex(color), transparent: opacity < 1, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
       if (own) {
-        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.34, 32).rotateX(-Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.28, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+        // dicker Ring: schwarz / Markierungsfarbe / weiss / schwarz, dazu leichte Flaeche
+        // thick ring: black / marker colour / white / black, plus a light fill
+        const mk = factionTokens[f].marker;
+        tpl.add(flat(0.465, 0.49, semantic.ink), flat(0.37, 0.465, mk), flat(0.345, 0.37, semantic.white), flat(0.33, 0.345, semantic.ink));
+        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.33, 40).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: hex(mk), transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
         tpl.add(fill);
+        tpl.userData.pulse = true;
+      } else {
+        tpl.add(flat(0.4, 0.43, factionTokens[f].primary), flat(0.43, 0.445, semantic.ink));
       }
       tpl.position.y = 0.012;
       tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = 3; });
@@ -489,6 +495,15 @@ export class Board {
     const m = tpl.clone();
     m.name = 'marker';
     return m;
+  }
+
+  /** Eigene Ringe pulsieren leicht / own rings pulse gently */
+  pulseMarkers(time: number) {
+    const k = 1 + Math.sin(time * 3.2) * 0.045;
+    for (const v of this.units.values()) {
+      const m = v.group.getObjectByName('marker');
+      if (m && m.userData.pulse) m.scale.set(k, 1, k);
+    }
   }
 
   unitObject(id: number): THREE.Group | undefined {

@@ -199,13 +199,14 @@ export const semantic = {
   white: c.white,
 } as const;
 
-export interface FactionTokens { primary: string; secondary: string; terrain: string; ink: string }
+/** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
+export interface FactionTokens { primary: string; secondary: string; terrain: string; ink: string; marker: string }
 export const factionTokens: Record<FactionId, FactionTokens> = {
-  korvat: { primary: c.korvatRed, secondary: c.korvatOlive, terrain: '#a6c95a', ink: c.white },
-  dravon: { primary: c.dravonAnthracite, secondary: c.dravonGold, terrain: '#a9b07a', ink: c.white },
-  alvenia: { primary: c.alveniaBlue, secondary: c.alveniaWhite, terrain: '#86cf7a', ink: c.white },
-  meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900 },
-  velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900 },
+  korvat: { primary: c.korvatRed, secondary: c.korvatOlive, terrain: '#a6c95a', ink: c.white, marker: c.red500 },
+  dravon: { primary: c.dravonAnthracite, secondary: c.dravonGold, terrain: '#a9b07a', ink: c.white, marker: c.yellow400 },
+  alvenia: { primary: c.alveniaBlue, secondary: c.alveniaWhite, terrain: '#86cf7a', ink: c.white, marker: c.blue400 },
+  meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900, marker: c.orange500 },
+  velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900, marker: c.velkarGreen },
 };
 
 // ---------- Ebene 3: Komponenten-Tokens / layer 3: component tokens ----------
