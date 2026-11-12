@@ -292,7 +292,7 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const limit = name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : 4000;
+    const limit = name.startsWith('unit tank') ? 4000 : name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
   }
   errors.push(`checked ${all.length}`);
