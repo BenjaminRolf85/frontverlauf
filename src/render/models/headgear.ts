@@ -4,8 +4,8 @@
  * Each faction is recognisable by its headgear silhouette alone (also from above):
  * - Korvat: runder Serien-Stahlhelm mit breiter, ausgestellter Krempe, rotem Band, Nieten, Kinnriemen, Zahnrad-Plakette
  *   / round mass-produced steel helmet with wide flared rim, red band, rivets, chinstrap, cog badge
- * - Dravon: geschlossener Helm mit Gesichtsvisier, schmalem Sehschlitz, Kamm, Wangenplatten, Nackenschutz, Goldlinien
- *   / closed helmet with face visor, narrow eye slit, crest, cheek plates, neck guard, gold trim
+ * - Dravon: schwarze Sturmhaube mit Augenausschnitt und schwarze Schiffchenmuetze mit Goldbiese und Faust-Abzeichen
+ *   / black balaclava with eye opening and black garrison cap with gold piping and fist badge
  * - Alvenia: offener Helm mit Schirm, Schutzbrille mit Riemen, Seitenschienen, Stern-im-Ring-Abzeichen
  *   / open helmet with peak, strapped goggles, side rails, star-in-ring badge
  * - Meridon: schraeges Barett mit Kompassrosen-Abzeichen, Headset mit Mikrofon, Sonnenbrille
@@ -152,40 +152,49 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       break;
     }
     case 'dravon': {
-      // geschlossener Helm / closed helmet
-      const dark = shade(hc, 0.72);
-      b.add(geo.rtaper(0.132, 0.128, 0.106, 0.104, 0.132, d >= 1 ? 0.012 : 0.001), hc, { p: [0, 0.066, -0.002] });
-      b.add(geo.cyl(0.03, 0.068, 0.036, 8), hc, { p: [0, 0.149, -0.004], r: [0, Math.PI / 8, 0], s: [1, 1, 1.08] });
-      // Kamm mit Goldkante / crest with gold edge
-      b.add(geo.rtaper(0.024, 0.15, 0.012, 0.12, 0.03, d >= 1 ? 0.004 : 0.001), dark, { p: [0, 0.168, -0.006] });
-      b.box(0.007, 0.006, 0.12, L.secondary, [0, 0.184, -0.006]);
-      // Gesichtsvisier mit Sehschlitz / face visor with eye slit
-      b.add(geo.rtaper(0.114, 0.016, 0.106, 0.014, 0.104, d >= 1 ? 0.004 : 0.001), dark, { p: [0, 0.06, 0.059] });
-      b.box(0.094, 0.013, 0.008, mat.ink, [0, 0.074, 0.067]);
-      b.box(0.108, 0.005, 0.006, L.secondary, [0, 0.087, 0.067]);
-      if (d >= 1) {
-        // Atemgitter + Mittellinie / breathing grille + centre line
-        for (const x of [-0.022, 0, 0.022]) b.box(0.006, 0.024, 0.006, mat.ink, [x, 0.032, 0.067]);
-        b.box(0.005, 0.016, 0.006, L.secondary, [0, 0.056, 0.067]);
-      }
-      // kantige Wangenplatten / angular cheek plates
-      for (const s of [-1, 1]) {
-        b.add(geo.taper(0.012, 0.075, 0.008, 0.04, 0.062), dark, { p: [s * 0.068, 0.034, 0.022], r: [0, s * 0.25, s * 0.14] });
-        if (d >= 1) b.box(0.006, 0.005, 0.07, L.secondary, [s * 0.071, 0.006, 0.022], [0, s * 0.25, 0]);
-        b.box(0.004, 0.005, 0.11, L.secondary, [s * 0.068, 0.12, -0.004]);
-      }
-      // Nackenschutz / neck guard
-      b.add(geo.rtaper(0.13, 0.03, 0.118, 0.02, 0.045, d >= 1 ? 0.005 : 0.001), hc, { p: [0, 0.018, -0.066], r: [-0.45, 0, 0] });
-      b.add(d >= 1 ? geo.cbox(0.136, 0.008, 0.132, 0.014) : geo.box(0.136, 0.008, 0.132), L.secondary, { p: [0, 0.002, -0.002] });
-      if (d === 2) {
-        addEmblem(b, 'dravon', 0.016, 0.004, L.secondary, { p: [-0.068, 0.095, -0.01], r: [0, -HALF_PI, 0] });
-        // Nieten am Visier, Seitenluefter / visor rivets, side vents
-        for (const s of [-1, 1]) {
-          for (const y of [0.03, 0.06, 0.09]) b.add(geo.sphere(0.004, 5, 3), L.secondary, { p: [s * 0.05, y, 0.067] });
-          for (const y of [0.045, 0.06, 0.075]) b.box(0.004, 0.006, 0.03, mat.ink, [s * 0.067, y, -0.03]);
+      // schwarze Sturmhaube mit Augenausschnitt + flaches Barett mit Goldrand und Faust-Abzeichen
+      // black balaclava with eye opening + flat beret with gold edge and fist badge
+      const knit = shade(hc, 1.35);
+      b.add(d >= 1 ? geo.rbox(0.112, 0.106, 0.108, 0.026) : geo.box(0.112, 0.106, 0.108), hc, { p: [0, 0.052, 0] });
+      // Augenausschnitt mit Haut und Augen / eye opening with skin and eyes
+      b.add(d >= 1 ? geo.rbox(0.082, 0.026, 0.01, 0.006) : geo.box(0.082, 0.026, 0.01), mat.skin, { p: [0, 0.062, 0.051] });
+      for (const sx of [-1, 1]) {
+        if (d >= 1) {
+          b.box(0.02, 0.016, 0.006, mat.white, [sx * 0.021, 0.062, 0.0565]);
+          b.box(0.01, 0.012, 0.006, mat.ink, [sx * 0.018, 0.061, 0.0585]);
+          if (d === 2) b.box(0.024, 0.006, 0.006, mat.ink, [sx * 0.022, 0.074, 0.0565], [0, 0, sx * -0.25]);
+        } else {
+          b.box(0.014, 0.016, 0.008, mat.ink, [sx * 0.02, 0.062, 0.057]);
         }
-        b.add(geo.rtaper(0.05, 0.03, 0.03, 0.02, 0.02, 0.004), L.secondary, { p: [0, 0.1, 0.066], r: [0.2, 0, 0] });
       }
+      // Nasenwoelbung und Mundoeffnung / nose bulge and mouth opening
+      if (d >= 1) {
+        b.add(geo.rtaper(0.024, 0.02, 0.016, 0.012, 0.026, 0.005), hc, { p: [0, 0.04, 0.058] });
+        b.add(geo.rbox(0.03, 0.01, 0.008, 0.004), mat.ink, { p: [0, 0.02, 0.054] });
+      }
+      // Strickrillen am Hals / knit ribs at the neck
+      if (d >= 1) {
+        for (const y of d === 2 ? [0.004, 0.012, 0.02] : [0.008]) ring(b, 0.058, 0.004, ws, knit, [0, y, 0], [1, 1, 0.98]);
+      }
+      // Schiffchenmuetze in Laengsrichtung, leicht schraeg / garrison cap lengthwise, slightly tilted
+      b.group({ p: [0.012, 0.106, -0.006], r: [0.04, 0, -0.16] }, () => {
+        // Umschlag (Band) / turned-up band
+        b.add(d >= 1 ? geo.rbox(0.082, 0.02, 0.136, 0.006) : geo.box(0.082, 0.02, 0.136), shade(hc, 1.12), { p: [0, 0.006, 0] });
+        // Haube mit First / crown with ridge
+        b.add(geo.rtaper(0.074, 0.13, 0.012, 0.112, 0.034, d >= 1 ? 0.004 : 0.001), hc, { p: [0, 0.026, 0] });
+        // goldene Biese am First und Band / gold piping on ridge and band
+        b.box(0.008, 0.006, 0.114, L.secondary, [0, 0.044, 0]);
+        if (d >= 1) for (const sx of [-1, 1]) b.box(0.004, 0.004, 0.13, L.secondary, [sx * 0.04, 0.016, 0]);
+        if (d >= 1) {
+          // Faust-Abzeichen vorn links / fist badge front left
+          b.group({ p: [-0.042, 0.008, 0.042], r: [0, -HALF_PI, 0] }, () => {
+            b.cyl(0.014, 0.014, 0.004, 10, L.secondary, [0, 0, 0], [HALF_PI, 0, 0]);
+            addEmblem(b, 'dravon', 0.011, 0.004, hc, { p: [0, 0, 0.003] });
+          });
+        } else {
+          b.box(0.006, 0.016, 0.02, L.secondary, [-0.042, 0.008, 0.042]);
+        }
+      });
       break;
     }
     case 'alvenia': {
