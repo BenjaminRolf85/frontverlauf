@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { hex, semantic } from '../design/tokens';
 import { Board } from './board';
 import { SWAY } from './ambient';
-import { ANIM, CAMERA } from './config';
+import { ANIM, CAMERA, SUN } from './config';
 
 export class View {
   readonly renderer: THREE.WebGLRenderer;
@@ -35,8 +35,13 @@ export class View {
     this.scene.add(this.board.group);
     const hemi = new THREE.HemisphereLight(hex(semantic.white), hex(semantic.terrainPlainSide), 1.6);
     this.sun = new THREE.DirectionalLight(hex(semantic.white), 2.2);
-    this.sun.position.set(-6, 12, 4);
-    this.scene.add(hemi, this.sun);
+    this.sun.position.set(SUN.x, SUN.y, SUN.z);
+    // eine guenstige Schattenquelle nur fuer Einheiten / one cheap shadow source for units only
+    this.sun.shadow.mapSize.set(2048, 2048);
+    this.sun.shadow.bias = -0.0006;
+    this.sun.shadow.normalBias = 0.02;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.scene.add(hemi, this.sun, this.sun.target);
     this.resize();
     // Eine Ausnahme darf die Render-Schleife nie beenden / an exception must never end the render loop
     this.renderer.setAnimationLoop((now, frame) => {
@@ -47,6 +52,27 @@ export class View {
   setQuality(q: 'low' | 'high') {
     this.quality = q;
     this.resize();
+    this.applyShadows();
+  }
+
+  /** Schatten nur bei hoher Qualitaet und nicht in XR / shadows only on high quality and not in XR */
+  applyShadows(inXr = this.renderer.xr.isPresenting) {
+    // projizierte Comic-Schatten ersetzen die Schattenkarte / projected comic shadows replace the shadow map
+    const on = false && this.quality === 'high' && !inXr;
+    const half = this.mapSize * 0.75 + 1;
+    const cam = this.sun.shadow.camera;
+    cam.left = -half; cam.right = half; cam.top = half; cam.bottom = -half; cam.near = 0.5; cam.far = 40;
+    cam.updateProjectionMatrix();
+    if (this.renderer.shadowMap.enabled !== on || this.sun.castShadow !== on) {
+      this.renderer.shadowMap.enabled = on;
+      this.sun.castShadow = on;
+      this.scene.traverse((o) => {
+        const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+        if (!m) return;
+        for (const mm of Array.isArray(m) ? m : [m]) mm.needsUpdate = true;
+      });
+    }
+    this.needs = true;
   }
 
   resize() {
@@ -65,6 +91,7 @@ export class View {
     const portrait = h > w;
     this.zoom = portrait ? 2.6 : 2;
     this.mapSize = size;
+    this.applyShadows();
     this.updateCamera();
   }
   mapSize = 14;

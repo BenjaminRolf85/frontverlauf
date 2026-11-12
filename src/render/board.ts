@@ -37,7 +37,7 @@ const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: P
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
 const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
-import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial } from './toon';
+import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
 
 export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build';
 
@@ -54,6 +54,29 @@ export function tileTop(t: Tile): number {
   return TILE_TOP[t.terrain] + (t.biome && t.terrain !== 'shallow' && t.terrain !== 'ocean' ? BIOME_LIFT[t.biome] : 0) +
     (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
 }
+
+/** Weicher Schattenfleck unter Einheiten (nicht realistisch, nur leicht) / soft blob shadow under units (not realistic, just light) */
+let blobMat: THREE.MeshBasicMaterial | null = null;
+function shadowBlobMaterial(): THREE.MeshBasicMaterial {
+  if (blobMat) return blobMat;
+  const S = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = S; canvas.height = S;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(S / 2, S / 2, S * 0.05, S / 2, S / 2, S / 2);
+  g.addColorStop(0, semantic.ink);
+  g.addColorStop(0.55, semantic.ink);
+  g.addColorStop(1, 'transparent');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, S, S);
+  const tex = new THREE.CanvasTexture(canvas);
+  blobMat = new THREE.MeshBasicMaterial({
+    map: tex, transparent: false, opacity: 0.34, depthWrite: false, depthTest: false,
+    blending: THREE.CustomBlending, blendSrc: THREE.SrcAlphaFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+  });
+  return blobMat;
+}
+const blobGeo = new THREE.PlaneGeometry(0.62, 0.62).rotateX(-Math.PI / 2);
 
 /** Zeichenreihenfolge der Einheiten (nach dem Leeren des Tiefenpuffers) / render order of units (after the depth clear) */
 const UNIT_ORDER = 60;
@@ -333,6 +356,7 @@ export class Board {
 
     for (const [geo, gr] of groups) {
       const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile);
+      mesh.receiveShadow = true;
       gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
@@ -435,12 +459,21 @@ export class Board {
         // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
         // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit, unitMaterial());
+        // leichter Schattenfleck unter der Einheit / light shadow blob under the unit
+        const shadow = new THREE.Mesh(blobGeo, shadowBlobMaterial());
+        shadow.name = 'shadow';
+        shadow.position.y = 0.01;
+        shadow.scale.setScalar(u.type === 'heli' ? 0.75 : 1);
+        shadow.renderOrder = UNIT_ORDER - 0.5;
+        shadow.raycast = () => {};
+        grp.add(shadow);
         model.name = 'model';
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
-        grp.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.renderOrder = UNIT_ORDER; });
+        // Reihenfolge: Bodenring, Schatten, Einheit / order: ground ring, shadow, unit
+        grp.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.renderOrder === 0) o.renderOrder = UNIT_ORDER; });
         grp.position.copy(this.tileCenter(s, u.x, u.y));
         v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
         this.units.set(u.id, v);
@@ -466,13 +499,14 @@ export class Board {
       const submerged = u.type === 'submarine' && !u.revealed;
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
-        if (mesh.isMesh && mesh.material === toonMaterial()) mesh.material = submerged ? toonMaterial({ transparent: true, opacity: 0.55 }) : toonMaterial();
-        else if (mesh.isMesh && !submerged && (mesh.material as THREE.Material).transparent) mesh.material = toonMaterial();
+        if (mesh.isMesh && mesh.material === unitMaterial()) mesh.material = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : unitMaterial();
+        else if (mesh.isMesh && !submerged && mesh.material === unitMaterial({ transparent: true, opacity: 0.55 })) mesh.material = unitMaterial();
       });
     }
     for (const [id, v] of this.units) {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
     }
+    this.updateShadows();
     this.dirty = true;
   }
 
@@ -498,7 +532,7 @@ export class Board {
         tpl.add(flat(0.4, 0.43, factionTokens[f].primary), flat(0.43, 0.445, semantic.ink));
       }
       tpl.position.y = 0.012;
-      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER; });
+      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER - 0.7; });
       this.markerCache.set(key, tpl);
     }
     const m = tpl.clone();
@@ -507,7 +541,16 @@ export class Board {
   }
 
   /** Eigene Ringe pulsieren leicht / own rings pulse gently */
+  /** Schatten mit sterbenden Einheiten ausblenden / hide shadows of dying units */
+  updateShadows() {
+    for (const v of this.units.values()) {
+      const sh = v.group.getObjectByName('shadow');
+      if (sh) sh.visible = v.group.scale.x > 0.3;
+    }
+  }
+
   pulseMarkers(time: number) {
+    this.updateShadows();
     for (const o of this.highlightLayer.children) {
       if (o.userData.bob !== undefined) {
         o.position.y = o.userData.bob + Math.sin(time * 4) * 0.035;
