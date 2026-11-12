@@ -454,7 +454,8 @@
     "eliminated": "{name} ist ausgeschieden",
     "killed": "Einheit vernichtet",
     "convert": "Eine Einheit läuft über",
-    "barrierHit": "Ein Fahrzeug steckt in einer Panzersperre fest"
+    "barrierHit": "Ein Fahrzeug steckt in einer Panzersperre fest",
+    "cityUpgrade": "{name} in {city} gebaut"
   },
   "fx": {
     "hit": [
@@ -918,5 +919,17 @@
         "Schneetarnung aktiv."
       ]
     }
+  },
+  "cityUpgrades": {
+    "title": "Ausbau-Slots",
+    "empty": "frei",
+    "radioTower": "Funkturm",
+    "bunker": "Bunker",
+    "barracks": "Kaserne",
+    "radioTowerDesc": "Deckt einmalig einen 5 x 5 Felder großen verdeckten Bereich im Umkreis von 6 Feldern auf.",
+    "bunkerDesc": "Eigene Einheiten in dieser Stadt erhalten +2 Verteidigung.",
+    "barracksDesc": "Hier ausgebildete Einheiten starten als Veteranen (+5 LP).",
+    "radioHint": "Tippe auf ein markiertes Feld, um den Bereich aufzudecken.",
+    "noTargets": "In Reichweite ist nichts mehr verdeckt."
   }
 }

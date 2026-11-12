@@ -3,13 +3,13 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  BARRIER, TRACKS, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  BARRIER, CITY_UPGRADES, TRACKS, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import {
-  attackTargets, barrierCheck, buildCheck, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
+  attackTargets, barrierCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
@@ -635,6 +635,11 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       fa.stars -= unitCost(s, f, cmd.unitType)!;
       const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, c.id);
       ev.push({ t: 'train', unit: u.id, city: c.id });
+      // Kaserne: Einheit startet als Veteran / barracks: unit starts as a veteran
+      if (hasCityUpgrade(c, 'barracks')) {
+        u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
+        ev.push({ t: 'veteran', unit: u.id });
+      }
       res = { ok: true, events: ev };
       break;
     }
@@ -680,6 +685,19 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       addPop(s, cityById(s, t.territory!)!, GRAND_PROJECTS.pop, ev);
       ev.push({ t: 'grandProject', id: cmd.id, faction: f });
       ev.push({ t: 'build', building: cmd.id, x: cmd.x, y: cmd.y, faction: f });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'cityUpgrade': {
+      const c = cityById(s, cmd.city);
+      if (!c) return fail('notYourCity');
+      if (cmd.upgrade === 'radioTower' && !cmd.target) return fail('invalidTarget');
+      const check = cityUpgradeCheck(s, f, c, cmd.upgrade, cmd.target);
+      if (check !== 'ok') return fail(check === 'noSlot' ? 'onePerCity' : check);
+      fa.stars -= CITY_UPGRADES.cost[cmd.upgrade];
+      c.upgrades = [...cityUpgrades(c), cmd.upgrade];
+      if (cmd.upgrade === 'radioTower' && cmd.target) reveal(s, f, cmd.target.x, cmd.target.y, CITY_UPGRADES.radioRadius, ev);
+      ev.push({ t: 'cityUpgrade', city: c.id, upgrade: cmd.upgrade, faction: f, target: cmd.target });
       res = { ok: true, events: ev };
       break;
     }

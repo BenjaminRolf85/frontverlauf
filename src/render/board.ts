@@ -13,6 +13,7 @@ import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './con
 import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
+import { PERK_SCALE, PERK_SPOT, perkGeometry } from './cityPerks';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { barrierGeometry, dropletGeometry, fireballGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
@@ -432,6 +433,15 @@ export class Board {
       obj.position.copy(this.tileCenter(s, c.x, c.y));
       obj.traverse((o) => { o.raycast = () => {}; });
       this.staticLayer.add(obj);
+      // Stadt-Ausbauten / city upgrades
+      for (const up of c.upgrades ?? []) {
+        const perk = outlined(perkGeometry(up, fid), OUTLINE.building);
+        const [px, pz] = PERK_SPOT[up];
+        perk.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(px, 0, pz));
+        perk.scale.setScalar(PERK_SCALE);
+        perk.traverse((o) => { o.raycast = () => {}; });
+        this.staticLayer.add(perk);
+      }
       if (this.showLabels && names.length) {
         const color = fid ? factionTokens[fid].primary : semantic.neutral;
         const ink = fid ? factionTokens[fid].ink : semantic.text;

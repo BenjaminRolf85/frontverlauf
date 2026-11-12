@@ -3,12 +3,12 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  aliveFactions, buildCheck, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
+  aliveFactions, buildCheck, cityUpgradeCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
 } from '../core';
 import {
-  BUILDINGS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
+  BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
   type BuildingId, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -433,6 +433,38 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     let value = techValue(ctx, t, sites, unconnected);
     if (prof.sloppy > 0) value *= 1 + (hashNoise(TECH_IDS.indexOf(t), s.round, f) - 0.5) * prof.sloppy * 1.5;
     buys.push({ cmd: { type: 'research', tech: t }, cost: researchCost(s, f, t), value, save: true });
+  }
+
+  // Stadt-Ausbauten: Bunker an der Front, Kaserne in Ausbildungsstaedten, Funkturm bei viel Nebel
+  // city upgrades: bunker at the front, barracks in training cities, radio tower when much is hidden
+  for (const c of ctx.myCities) {
+    const front = ctx.enemies.some((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
+    for (const up of CITY_UPGRADE_IDS) {
+      if (cityUpgradeCheck(s, f, c, up) === 'alreadyBuilt' || cityUpgradeCheck(s, f, c, up) === 'noSlot' || cityUpgradeCheck(s, f, c, up) === 'notYourCity') continue;
+      const cost = CITY_UPGRADES.cost[up];
+      let value = 0;
+      let cmd: Command = { type: 'cityUpgrade', city: c.id, upgrade: up };
+      if (up === 'bunker') value = front ? cost * 2.2 : cost * 0.25;
+      else if (up === 'barracks') value = cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
+      else {
+        const targets = radioTargets(s, f, c);
+        if (!targets.length) continue;
+        // Ziel mit den meisten unerforschten Feldern / target with most unexplored tiles
+        let best = targets[0], bestN = -1;
+        for (const p of targets) {
+          let n = 0;
+          for (let dy = -CITY_UPGRADES.radioRadius; dy <= CITY_UPGRADES.radioRadius; dy++) for (let dx = -CITY_UPGRADES.radioRadius; dx <= CITY_UPGRADES.radioRadius; dx++) {
+            const x = p.x + dx, y = p.y + dy;
+            if (x >= 0 && y >= 0 && x < s.size && y < s.size && !fa.explored[idx(s.size, x, y)]) n++;
+          }
+          if (n > bestN) { bestN = n; best = p; }
+        }
+        value = bestN * 1.1;
+        cmd = { type: 'cityUpgrade', city: c.id, upgrade: up, target: best };
+      }
+      if (prof.difficulty === 'easy') value *= 0.5;
+      buys.push({ cmd, cost, value, save: up !== 'bunker' || !front });
+    }
   }
 
   // Botschaften / embassies

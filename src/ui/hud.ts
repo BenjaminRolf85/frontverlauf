@@ -3,10 +3,10 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  BARRIER, WEATHER, BUILDINGS, GRAND_PROJECT_IDS, INFANTRY_TYPES, LAND_UNITS, SHIP_UPGRADES, UNITS, type BuildingId,
+  BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, LAND_UNITS, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
-  barrierCheck, barrierTargets, weather, weatherFor, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
+  barrierCheck, barrierTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
   type GameState, type Unit,
@@ -18,6 +18,7 @@ import {
 } from './components';
 import { icon } from './icons';
 
+const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
 const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
@@ -208,7 +209,11 @@ export class Hud {
           <div class="stats"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>
           ${city.factory ? `<span class="tag">${esc(t('rewards.factory'))}</span>` : ''}${city.bunkerRing ? `<span class="tag">${esc(t('rewards.bunkerRing'))}</span>` : ''}
-          ${city.govQuarter ? `<span class="tag">${esc(t('rewards.govQuarter'))}</span>` : ''}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>`;
+          ${city.govQuarter ? `<span class="tag">${esc(t('rewards.govQuarter'))}</span>` : ''}</div>
+          <div class="slots" aria-label="${esc(t('cityUpgrades.title'))}"><span class="muted">${esc(t('cityUpgrades.title'))}</span>
+          ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
+            ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
+            : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>`;
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
       }
     } else {
@@ -286,6 +291,25 @@ export class Hud {
   private cityActions(s: GameState, cityId: number) {
     const g = this.game;
     const c = cityById(s, cityId)!;
+    // Ausbau-Slots / upgrade slots
+    for (const up of CITY_UPGRADE_IDS) {
+      if (hasCityUpgrade(c, up)) continue;
+      const chk = cityUpgradeCheck(s, c.owner!, c, up);
+      const radioActive = up === 'radioTower' && g.radioCity === c.id;
+      const noTargets = up === 'radioTower' && radioTargets(s, c.owner!, c).length === 0;
+      this.actions.push({
+        id: `up-${up}`, icon: CITY_UPGRADE_ICON[up], label: radioActive ? t('actions.cancel') : t(`cityUpgrades.${up}`),
+        cost: radioActive ? undefined : CITY_UPGRADES.cost[up], variant: 'primary',
+        enabled: radioActive || (chk === 'ok' && !noTargets),
+        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : t(`errors.${chk === 'noSlot' ? 'onePerCity' : chk}`),
+        run: () => {
+          if (up !== 'radioTower') { void g.exec({ type: 'cityUpgrade', city: c.id, upgrade: up }); return; }
+          if (radioActive) { g.radioCity = null; g.updateHighlights(); this.render(); return; }
+          g.startRadio(c.id);
+          g.ui.toast(t('cityUpgrades.radioHint'), 'range');
+        },
+      });
+    }
     for (const type of LAND_UNITS) {
       const st = UNITS[type];
       if (st.cost === null) continue;

@@ -1,5 +1,5 @@
 import type {
-  BiomeId, BuildingId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
+  BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
   UnitTypeId, BunkerReward,
 } from '../data/balance';
 
@@ -54,6 +54,8 @@ export interface City {
   govQuarter: boolean;
   connected: boolean;
   noIncomeNext: boolean;
+  /** gekaufte Ausbauten (hoechstens 3) / bought upgrades (at most 3) */
+  upgrades?: CityUpgradeId[];
   nameIndex: number;
 }
 
@@ -173,6 +175,7 @@ export type GameEvent =
   | { t: 'contact'; a: number; b: number; stars: number }
   | { t: 'crash'; unit: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
+  | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
   | { t: 'barrierHit'; unit: number; x: number; y: number }
   | { t: 'uprising'; city: number; faction: number; spawned: number }
   | { t: 'embark'; unit: number }
@@ -205,6 +208,7 @@ export type Command =
   | { type: 'grandProject'; id: GrandProjectId; x: number; y: number }
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
+  | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
