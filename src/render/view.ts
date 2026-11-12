@@ -1,0 +1,177 @@
+/**
+ * Isometrische Ansicht: orthografische Kamera, 45 Grad gedreht, verschieben, zoomen, in 90-Grad-Schritten drehen.
+ * Isometric view: orthographic camera rotated 45 degrees; pan, zoom, rotate in 90 degree steps.
+ */
+import * as THREE from 'three';
+import { hex, semantic } from '../design/tokens';
+import { Board } from './board';
+import { SWAY } from './ambient';
+import { ANIM, CAMERA } from './config';
+
+export class View {
+  readonly renderer: THREE.WebGLRenderer;
+  readonly scene = new THREE.Scene();
+  readonly camera: THREE.OrthographicCamera;
+  readonly board = new Board();
+  readonly target = new THREE.Vector3();
+  rotation = 0; // in 90-Grad-Schritten / in 90 degree steps
+  private angle = Math.PI / 4;
+  private angleFrom = this.angle;
+  private angleTo = this.angle;
+  private angleStart = 0;
+  zoom = 1;
+  private needs = true;
+  private lastNow = 0;
+  onFrame: ((now: number, frame?: XRFrame) => void) | null = null;
+  quality: 'low' | 'high' = 'high';
+  private sun: THREE.DirectionalLight;
+
+  constructor(readonly canvas: HTMLCanvasElement) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x000000, 0);
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.xr.enabled = true;
+    this.camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+    this.scene.add(this.board.group);
+    const hemi = new THREE.HemisphereLight(hex(semantic.white), hex(semantic.terrainPlainSide), 1.6);
+    this.sun = new THREE.DirectionalLight(hex(semantic.white), 2.2);
+    this.sun.position.set(-6, 12, 4);
+    this.scene.add(hemi, this.sun);
+    this.resize();
+    // Eine Ausnahme darf die Render-Schleife nie beenden / an exception must never end the render loop
+    this.renderer.setAnimationLoop((now, frame) => {
+      try { this.loop(now, frame); } catch (e) { console.error(e); this.board.finishAnimations(); }
+    });
+  }
+
+  setQuality(q: 'low' | 'high') {
+    this.quality = q;
+    this.resize();
+  }
+
+  resize() {
+    const w = this.canvas.clientWidth || window.innerWidth;
+    const h = this.canvas.clientHeight || window.innerHeight;
+    const ratio = Math.min(window.devicePixelRatio || 1, this.quality === 'high' ? 2 : 1);
+    this.renderer.setPixelRatio(ratio);
+    this.renderer.setSize(w, h, false);
+    this.updateCamera();
+  }
+
+  /** Karte vollstaendig einpassen / fit the whole map */
+  fit(size: number) {
+    this.target.set(0, 0, 0);
+    const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
+    const portrait = h > w;
+    this.zoom = portrait ? 2.6 : 2;
+    this.mapSize = size;
+    this.updateCamera();
+  }
+  mapSize = 14;
+
+  private updateCamera() {
+    const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
+    const aspect = w / Math.max(1, h);
+    const span = this.mapSize * CAMERA.baseView / this.zoom;
+    const halfH = aspect < 1 ? span / aspect * 0.9 : span;
+    const halfW = halfH * aspect;
+    this.camera.left = -halfW; this.camera.right = halfW; this.camera.top = halfH; this.camera.bottom = -halfH;
+    const el = CAMERA.elevation, d = CAMERA.distance;
+    this.camera.position.set(
+      this.target.x + Math.cos(this.angle) * Math.cos(el) * d,
+      this.target.y + Math.sin(el) * d,
+      this.target.z + Math.sin(this.angle) * Math.cos(el) * d,
+    );
+    this.camera.lookAt(this.target);
+    this.camera.updateProjectionMatrix();
+    this.needs = true;
+  }
+
+  rotate(dir: 1 | -1, animate = true) {
+    this.rotation = (this.rotation + dir + 4) % 4;
+    this.angleFrom = this.angle;
+    this.angleTo = this.angleTo + (dir * Math.PI) / 2;
+    this.angleStart = performance.now();
+    if (!animate) { this.angle = this.angleTo; this.updateCamera(); }
+    this.needs = true;
+  }
+
+  setZoom(z: number) {
+    this.zoom = Math.max(CAMERA.minZoom, Math.min(CAMERA.maxZoom, z));
+    this.updateCamera();
+  }
+
+  /** Verschieben in Bildschirmpixeln / pan in screen pixels */
+  pan(dx: number, dy: number) {
+    const h = this.canvas.clientHeight || window.innerHeight;
+    const worldPerPixel = (this.camera.top - this.camera.bottom) / h;
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+    right.y = 0; up.y = 0; right.normalize(); up.normalize();
+    const factor = 1 / Math.sin(CAMERA.elevation);
+    this.target.addScaledVector(right, -dx * worldPerPixel);
+    this.target.addScaledVector(up, dy * worldPerPixel * factor);
+    const lim = this.mapSize / 2 + 1;
+    this.target.x = Math.max(-lim, Math.min(lim, this.target.x));
+    this.target.z = Math.max(-lim, Math.min(lim, this.target.z));
+    this.updateCamera();
+  }
+
+  centerOn(p: THREE.Vector3) {
+    this.target.set(p.x, 0, p.z);
+    this.updateCamera();
+  }
+
+  raycaster(clientX: number, clientY: number): THREE.Raycaster {
+    const r = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(ndc, this.camera);
+    return ray;
+  }
+
+  /** Weltpunkt auf den Bildschirm / world point to screen */
+  toScreen(p: THREE.Vector3): { x: number; y: number } {
+    const v = p.clone().project(this.camera);
+    const r = this.canvas.getBoundingClientRect();
+    return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+  }
+
+  invalidate() { this.needs = true; }
+
+  private loop(now: number, frame?: XRFrame) {
+    if (this.angle !== this.angleTo) {
+      const t = this.board.animations ? Math.min(1, (now - this.angleStart) / ANIM.rotate) : 1;
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      this.angle = this.angleFrom + (this.angleTo - this.angleFrom) * e;
+      if (t >= 1) this.angle = this.angleTo;
+      this.updateCamera();
+    }
+    this.onFrame?.(now, frame);
+    // Lebendige Karte / living map
+    if (this.board.animations) {
+      const sec = now / 1000;
+      SWAY.uTime.value = sec;
+      const targetWind = this.board.weatherFx.kind === 'wind' ? 1 : 0;
+      SWAY.uWind.value += (targetWind - SWAY.uWind.value) * 0.03;
+      this.board.ambient.update(sec);
+      this.needs = true;
+    }
+    const wfx = this.board.weatherFx;
+    if (wfx.active) {
+      wfx.animate = this.board.animations;
+      wfx.update(this.lastNow ? (now - this.lastNow) / 1000 : 0);
+      if (wfx.animate) this.needs = true;
+    }
+    this.lastNow = now;
+    const boardChanged = this.board.tick(now);
+    if (this.renderer.xr.isPresenting) {
+      this.renderer.render(this.scene, this.renderer.xr.getCamera());
+      return;
+    }
+    if (boardChanged || this.needs) {
+      this.needs = false;
+      this.renderer.render(this.scene, this.camera);
+    }
+  }
+}

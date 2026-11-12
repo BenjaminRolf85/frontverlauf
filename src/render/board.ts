@@ -1,0 +1,658 @@
+/**
+ * Die Spielkarte als 3D-Diorama. Liest den Zustand, veraendert ihn nie.
+ * The game map as a 3D diorama. Reads the state, never changes it.
+ */
+import * as THREE from 'three';
+import type { BiomeId, TerrainId } from '../data/balance';
+import type { Tile } from '../core';
+import { FUEL } from '../data/balance';
+import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } from '../core';
+import { factionTokens, hex, semantic } from '../design/tokens';
+import { tList } from '../i18n/i18n';
+import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
+import { cityLabel, hpBadge } from './labels';
+import * as models from './models';
+import { WeatherFx } from './weather';
+import { AmbientFx, swayMaterial, swayOutline } from './ambient';
+import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, trackGeometry } from './biomes';
+import { barrierGeometry, dropletGeometry, fireballGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
+
+/** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
+const placeholderCache = new Map<string, THREE.BufferGeometry>();
+function placeholder(color: string, h = 0.3): THREE.BufferGeometry {
+  const key = `${color}-${h}`;
+  let g = placeholderCache.get(key);
+  if (!g) { g = paint(new THREE.CylinderGeometry(0.18, 0.22, h, 8).toNonIndexed(), color); g.translate(0, h / 2, 0); placeholderCache.set(key, g); }
+  return g;
+}
+function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null, fallback: string | null, ...args: T): THREE.BufferGeometry | null {
+  try { return fn(...args); } catch { return fallback ? placeholder(fallback) : null; }
+}
+const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2]) =>
+  safe(models.unitGeometry, factionTokens[f].primary, type, f, c)!;
+const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
+  safe(models.cityGeometry, f ? factionTokens[f].primary : semantic.neutral, f, l, fl)!;
+const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: Parameters<typeof models.buildingGeometry>[1]) =>
+  safe(models.buildingGeometry, f ? factionTokens[f].secondary : semantic.neutral, k, f);
+const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
+const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
+const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
+import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial } from './toon';
+
+export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build';
+
+interface UnitView { id: number; group: THREE.Group; key: string; badge: THREE.Sprite | null; badgeKey: string }
+interface Anim { update: (t: number) => void; start: number; dur: number; resolve: () => void }
+
+const mix = (a: string, b: string, t: number) => {
+  const c = new THREE.Color(hex(a)).lerp(new THREE.Color(hex(b)), t);
+  return `#${c.getHexString()}`;
+};
+
+/** Oberkante eines Feldes inkl. Landschaft / tile top including biome */
+export function tileTop(t: Tile): number {
+  return TILE_TOP[t.terrain] + (t.biome && t.terrain !== 'shallow' && t.terrain !== 'ocean' ? BIOME_LIFT[t.biome] : 0) +
+    (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
+}
+
+export class Board {
+  readonly group = new THREE.Group();
+  private staticLayer = new THREE.Group();
+  private unitLayer = new THREE.Group();
+  private highlightLayer = new THREE.Group();
+  private labelLayer = new THREE.Group();
+  readonly weatherFx = new WeatherFx();
+  readonly ambient = new AmbientFx();
+  private units = new Map<number, UnitView>();
+  private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
+  private anims: Anim[] = [];
+  private tileGeoCache = new Map<string, THREE.BufferGeometry>();
+  size = 0;
+  animations = true;
+  showLabels = true;
+  dirty = true;
+
+  constructor() {
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group);
+  }
+
+  /** Mittelpunkt eines Feldes in Brett-Koordinaten / centre of a tile in board coordinates */
+  tileCenter(s: GameState | null, x: number, y: number): THREE.Vector3 {
+    const off = (this.size - 1) / 2;
+    const top = s ? tileTop(s.tiles[y * s.size + x]) : 0;
+    return new THREE.Vector3(x - off, top, y - off);
+  }
+
+  private snowy = false;
+  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2): THREE.BufferGeometry {
+    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}`;
+    let g = this.tileGeoCache.get(key);
+    if (g) return g;
+    if (terrain === 'fog') {
+      g = coloredBox(0.98, 0.32, 0.98, semantic.cloudShade, semantic.neutralDark);
+      g.translate(0, 0.32 / 2 + TILE_BOTTOM, 0);
+    } else {
+      const top = TILE_TOP[terrain] + (biome && terrain !== 'shallow' && terrain !== 'ocean' ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0);
+      const h = top - TILE_BOTTOM;
+      let topColor: string;
+      let side: string = semantic.terrainPlainSide;
+      switch (terrain) {
+        case 'plain': topColor = semantic.terrainPlain; break;
+        case 'forest': topColor = semantic.terrainForest; break;
+        case 'mountain': topColor = semantic.terrainMountain; side = semantic.terrainMountainDark; break;
+        case 'shallow': topColor = semantic.terrainShallow; side = semantic.terrainOcean; break;
+        default: topColor = semantic.terrainOcean; side = semantic.terrainDeep; break;
+      }
+      const bt = biomeTop(terrain, biome);
+      const lush = !biome || biome === 'grassland' || biome === 'hills';
+      if (bt) { topColor = bt.top; if (bt.side) side = bt.side; }
+      if (tint && (terrain === 'plain' || terrain === 'forest')) topColor = mix(topColor, tint, lush ? 0.5 : 0.18);
+      if (tint && terrain === 'mountain') topColor = mix(topColor, tint, 0.15);
+      // Schneewetter: Land leicht verschneit / snow weather: land lightly snow-covered
+      if (this.snowy && terrain !== 'shallow' && terrain !== 'ocean') topColor = mix(topColor, semantic.snow, 0.5);
+      g = coloredBox(0.98, h, 0.98, topColor, side);
+      g.translate(0, TILE_BOTTOM + h / 2, 0);
+    }
+    this.tileGeoCache.set(key, g);
+    return g;
+  }
+
+  private clearGroup(g: THREE.Group) {
+    for (const c of [...g.children]) {
+      g.remove(c);
+      c.traverse((o) => {
+        if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+      });
+    }
+  }
+
+  /** Statische Ebene neu aufbauen / rebuild static layer */
+  rebuild(s: GameState, viewer: number) {
+    this.size = s.size;
+    this.weatherFx.set(weather(s), s.size);
+    this.snowy = weather(s) === 'snow';
+    this.clearGroup(this.staticLayer);
+    this.clearGroup(this.labelLayer);
+    this.pickMeshes = [];
+    const size = s.size;
+    const explored = (x: number, y: number) => viewer < 0 || isExplored(s, viewer, x, y);
+
+    // Scholle / slab
+    const slab = outlined(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), semantic.soil), OUTLINE.tile);
+    slab.position.y = TILE_BOTTOM - SLAB_DEPTH / 2 + 0.001;
+    this.staticLayer.add(slab);
+
+    // Felder gruppiert nach Geometrie / tiles grouped by geometry
+    const groups = new Map<THREE.BufferGeometry, { tiles: number[]; mats: THREE.Matrix4[] }>();
+    const add = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, tile: number) => {
+      if (!geo) return;
+      let gr = groups.get(geo);
+      if (!gr) { gr = { tiles: [], mats: [] }; groups.set(geo, gr); }
+      gr.tiles.push(tile); gr.mats.push(m);
+    };
+    const decoGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
+    const swayGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
+    const addDeco = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, sway = false) => {
+      if (!geo) return;
+      const map = sway ? swayGroups : decoGroups;
+      let list = map.get(geo);
+      if (!list) { list = []; map.set(geo, list); }
+      list.push(m);
+    };
+    const fishTiles: { x: number; z: number; y: number }[] = [];
+    const coast: { x: number; z: number; y: number; nx: number; nz: number }[] = [];
+    const decals = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
+    const roadSegs: THREE.Matrix4[] = [];
+    const riverSegs: THREE.Matrix4[] = [];
+    const borderSegs: { m: THREE.Matrix4; color: string }[] = [];
+    const clouds: THREE.Matrix4[] = [];
+    const off = (size - 1) / 2;
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const k = y * size + x;
+        const t = s.tiles[k];
+        const pos = new THREE.Matrix4().makeTranslation(x - off, 0, y - off);
+        if (!explored(x, y)) {
+          add(this.tileGeo('fog', null), pos, k);
+          const v = (x * 7 + y * 13) % 3;
+          const cm = new THREE.Matrix4().compose(
+            new THREE.Vector3(x - off, CLOUD_Y + ((x + y) % 2) * 0.04, y - off),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (v * Math.PI) / 2),
+            new THREE.Vector3(1, 1, 1));
+          clouds.push(cm);
+          continue;
+        }
+        const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
+        add(this.tileGeo(t.terrain, homeFaction ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2), pos, k);
+        const top = tileTop(t);
+        const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
+        const at = (dy = 0) => new THREE.Matrix4().compose(
+          new THREE.Vector3(x - off, top + dy, y - off),
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y * 5) % 4) * (Math.PI / 2)),
+          new THREE.Vector3(Math.min(1.15, 0.85 + ps * 0.15), ps, Math.min(1.15, 0.85 + ps * 0.15)));
+        const variant = (x * 7 + y * 13) % 3;
+        const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature;
+        // Pflanzen wiegen sich / plants sway
+        const plant = t.terrain === 'forest' || t.resource === 'farmland' || (t.terrain === 'plain' && !t.resource);
+        if (!hasStructure || t.building === 'road') addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
+        if (!hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        // Fische und Kueste / fish and coast
+        if (t.terrain === 'shallow' || t.terrain === 'ocean') {
+          if (t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
+          if (!t.building) {
+            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+              const nx = x + dx, ny = y + dy;
+              if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
+              const nt = s.tiles[ny * size + nx];
+              if (nt.terrain !== 'shallow' && nt.terrain !== 'ocean' && explored(nx, ny)) coast.push({ x: x - off, z: y - off, y: top, nx: dx, nz: dy });
+            }
+          }
+        }
+        // Kettenspuren / track marks
+        for (const m of t.tracks ?? []) {
+          const age = s.round - m.r;
+          const geo = trackGeometry(age <= 1 ? semantic.trackFresh : semantic.trackOld);
+          if (!decals.has(geo)) decals.set(geo, []);
+          decals.get(geo)!.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), m.a), new THREE.Vector3(1, 1, 1)));
+        }
+        // Fluesse / rivers
+        if (t.river) {
+          const wet = (xx: number, yy: number) => {
+            if (xx < 0 || yy < 0 || xx >= size || yy >= size) return false;
+            const o = s.tiles[yy * size + xx];
+            return !!o.river || o.terrain === 'shallow' || o.terrain === 'ocean';
+          };
+          let any = false;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            if (!wet(x + dx, y + dy)) continue;
+            any = true;
+            riverSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off + dx * 0.25, top + 0.008, y - off + dy * 0.25),
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(dx, dy)), new THREE.Vector3(1, 1, 0.56)));
+          }
+          if (!any) riverSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.008, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
+        }
+        else if (t.resource && !t.building && t.cityId === null) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
+        const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
+        const ownerFaction = owner !== null ? s.factions[owner].id : null;
+        if (t.building && t.building !== 'road') {
+          let rot = 0;
+          if (t.building === 'bridge') {
+            const landAt = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < size && yy < size && !['shallow', 'ocean'].includes(s.tiles[yy * size + xx].terrain);
+            if (landAt(x - 1, y) || landAt(x + 1, y)) rot = Math.PI / 2;
+          }
+          addDeco(buildingGeometry(t.building, ownerFaction), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(1, 1, 1)));
+        }
+        if (t.grandProject) addDeco(buildingGeometry(t.grandProject, ownerFaction), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        if (t.barrier) {
+          const bf = s.factions[t.barrier.owner]?.id;
+          addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        }
+        // Ueberreste: Fleck + Skelett oder Wrack / remains: splat + skeleton or wreck
+        if (t.remains) {
+          const rem = t.remains;
+          const fid = s.factions[rem.faction]?.id ?? 'korvat';
+          const v = (x * 5 + y * 3) % 3;
+          const splat = splatGeometry(rem.kind === 'wreck' ? semantic.oil : semantic.splatter, v);
+          const dm = new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), v * 2.1), new THREE.Vector3(1, 1, 1));
+          if (!decals.has(splat)) decals.set(splat, []);
+          decals.get(splat)!.push(dm);
+          const hasStruct = t.building || t.outpost || t.grandProject;
+          const sc = hasStruct ? 0.7 : 1;
+          if (rem.kind === 'wreck') {
+            addDeco(safe(wreckGeometry, factionTokens[fid].primary, rem.unit, fid, v), new THREE.Matrix4().compose(
+              new THREE.Vector3(x - off + (hasStruct ? 0.24 : 0), top, y - off + (hasStruct ? 0.24 : 0)), new THREE.Quaternion(), new THREE.Vector3(sc, sc, sc)));
+          }
+          // Skelette bleiben dauerhaft, bis zu drei sichtbar / skeletons are permanent, up to three visible
+          const count = Math.min(3, rem.skeletons ?? (rem.kind === 'skeleton' ? 1 : 0));
+          const sf = s.factions[rem.skeletonFaction ?? rem.faction]?.id ?? fid;
+          const spots = rem.kind === 'wreck' ? [[-0.26, 0.24], [0.26, -0.22], [-0.24, -0.26]] : [[0, 0], [0.22, -0.2], [-0.22, 0.18]];
+          for (let i = 0; i < count; i++) {
+            const k = 0.85 * (rem.kind === 'wreck' || i > 0 ? 0.75 : 1) * sc;
+            addDeco(safe(skeletonGeometry, semantic.bone, sf, (v + i) % 3), new THREE.Matrix4().compose(
+              new THREE.Vector3(x - off + spots[i][0] + (hasStruct ? 0.2 : 0), top, y - off + spots[i][1] + (hasStruct ? 0.2 : 0)), new THREE.Quaternion(), new THREE.Vector3(k, k, k)));
+          }
+        }
+        // Strassen / roads
+        const roadLike = (xx: number, yy: number) => {
+          if (xx < 0 || yy < 0 || xx >= size || yy >= size) return false;
+          const o = s.tiles[yy * size + xx];
+          return (o.road || o.cityId !== null) && explored(xx, yy);
+        };
+        if (t.road || t.cityId !== null) {
+          let any = false;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              if ((!dx && !dy) || !roadLike(x + dx, y + dy)) continue;
+              if (!t.road && !s.tiles[(y + dy) * size + x + dx].road) continue;
+              any = true;
+              const len = Math.hypot(dx, dy) / 2;
+              const ang = Math.atan2(dx, dy);
+              const m = new THREE.Matrix4().compose(
+                new THREE.Vector3(x - off + dx * 0.25, top + 0.012, y - off + dy * 0.25),
+                new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ang),
+                new THREE.Vector3(1, 1, len + 0.09));
+              roadSegs.push(m);
+            }
+          }
+          if (t.road && !any) roadSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.012, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
+        }
+        // Grenzen / borders
+        if (owner !== null) {
+          const color = factionTokens[s.factions[owner].id].primary;
+          const dirs: [number, number, number][] = [[0, -1, 0], [1, 0, Math.PI / 2], [0, 1, Math.PI], [-1, 0, -Math.PI / 2]];
+          for (const [dx, dy, rot] of dirs) {
+            const nx = x + dx, ny = y + dy;
+            let other: number | null = null;
+            if (nx >= 0 && ny >= 0 && nx < size && ny < size) {
+              const nt = s.tiles[ny * size + nx];
+              other = nt.territory !== null ? cityById(s, nt.territory)?.owner ?? null : null;
+            }
+            if (other === owner) continue;
+            const m = new THREE.Matrix4().compose(
+              new THREE.Vector3(x - off + dx * 0.44, Math.max(top, 0) + 0.03, y - off + dy * 0.44),
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot),
+              new THREE.Vector3(1, 1, 1));
+            borderSegs.push({ m, color });
+          }
+        }
+      }
+    }
+
+    for (const [geo, gr] of groups) {
+      const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile);
+      gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
+      mesh.computeBoundingSphere();
+      this.staticLayer.add(mesh, line);
+      this.pickMeshes.push({ mesh, tiles: gr.tiles });
+    }
+    for (const [geo, mats] of decoGroups) {
+      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building);
+      mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    for (const [geo, mats] of swayGroups) {
+      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building, swayMaterial(), swayOutline(OUTLINE.building));
+      mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    this.ambient.build(fishTiles, coast);
+    const decalMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    for (const [geo, mats] of decals) {
+      const mesh = new THREE.InstancedMesh(geo, decalMat, mats.length);
+      mats.forEach((m, i) => mesh.setMatrixAt(i, m));
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh);
+    }
+    if (riverSegs.length) {
+      const g = riverSegment();
+      const { mesh, line } = outlinedInstanced(g, riverSegs.length, OUTLINE.highlight);
+      riverSegs.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    if (roadSegs.length) {
+      const g = coloredBox(0.16, 0.025, 1, semantic.soil, semantic.ink);
+      const { mesh, line } = outlinedInstanced(g, roadSegs.length, OUTLINE.highlight);
+      roadSegs.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    if (borderSegs.length) {
+      const g = paint(new THREE.BoxGeometry(0.98, 0.05, 0.07).toNonIndexed(), semantic.white);
+      const mesh = new THREE.InstancedMesh(g, toonMaterial(), borderSegs.length);
+      borderSegs.forEach((b, i) => { mesh.setMatrixAt(i, b.m); mesh.setColorAt(i, new THREE.Color(hex(b.color))); });
+      mesh.raycast = () => {};
+      const line = new THREE.InstancedMesh(hullGeometry(g), outlineMaterial(OUTLINE.highlight), borderSegs.length);
+      borderSegs.forEach((b, i) => line.setMatrixAt(i, b.m));
+      line.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    if (clouds.length) {
+      const geos = [0, 1, 2].map((v) => cloudGeometry(v));
+      const byVariant: THREE.Matrix4[][] = [[], [], []];
+      clouds.forEach((m, i) => byVariant[i % 3].push(m));
+      byVariant.forEach((list, v) => {
+        if (!list.length) return;
+        const { mesh, line } = outlinedInstanced(geos[v], list.length, OUTLINE.cloud);
+        list.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+        mesh.raycast = () => {};
+        this.staticLayer.add(mesh, line);
+      });
+    }
+
+    // Staedte / cities
+    const names = tList('cityNames');
+    for (const c of s.cities) {
+      if (!explored(c.x, c.y)) continue;
+      const fid = c.owner !== null ? s.factions[c.owner].id : null;
+      const g = cityGeometry(fid, c.owner === null ? 1 : c.level, { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter });
+      const obj = outlined(g, OUTLINE.building);
+      obj.position.copy(this.tileCenter(s, c.x, c.y));
+      obj.traverse((o) => { o.raycast = () => {}; });
+      this.staticLayer.add(obj);
+      if (this.showLabels && names.length) {
+        const color = fid ? factionTokens[fid].primary : semantic.neutral;
+        const ink = fid ? factionTokens[fid].ink : semantic.text;
+        const label = cityLabel(names[c.nameIndex % names.length], c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner);
+        label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
+        label.center.set(0.5, 1);
+        this.labelLayer.add(label);
+      }
+    }
+    this.dirty = true;
+  }
+
+  /** Einheiten abgleichen / sync units */
+  syncUnits(s: GameState, viewer: number) {
+    const seen = new Set<number>();
+    for (const u of s.units) {
+      if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
+      seen.add(u.id);
+      const f = s.factions[u.owner].id;
+      const key = `${u.type}-${f}-${u.carried}`;
+      let v = this.units.get(u.id);
+      if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
+      if (!v) {
+        const grp = new THREE.Group();
+        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        model.name = 'model';
+        grp.add(model);
+        grp.userData.unitId = u.id;
+        grp.position.copy(this.tileCenter(s, u.x, u.y));
+        v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
+        this.units.set(u.id, v);
+        this.unitLayer.add(grp);
+      }
+      if (!this.isAnimating(u.id)) {
+        v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        v.group.scale.setScalar(1);
+      }
+      const ft = factionTokens[f];
+      const done = u.owner === s.current && (u.exhausted || u.fresh);
+      const badgeKey = `${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}`;
+      if (v.badgeKey !== badgeKey) {
+        if (v.badge) v.group.remove(v.badge);
+        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank });
+        v.badge.position.set(0, u.type === 'heli' ? 0.85 : 0.62, 0);
+        v.group.add(v.badge);
+        v.badgeKey = badgeKey;
+      }
+      // Hubschrauber schwebt / helicopter hovers
+      const model = v.group.getObjectByName('model')!;
+      model.position.y = u.type === 'heli' ? 0.1 : 0;
+      const submerged = u.type === 'submarine' && !u.revealed;
+      model.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.isMesh && mesh.material === toonMaterial()) mesh.material = submerged ? toonMaterial({ transparent: true, opacity: 0.55 }) : toonMaterial();
+        else if (mesh.isMesh && !submerged && (mesh.material as THREE.Material).transparent) mesh.material = toonMaterial();
+      });
+    }
+    for (const [id, v] of this.units) {
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
+    }
+    this.dirty = true;
+  }
+
+  unitObject(id: number): THREE.Group | undefined {
+    return this.units.get(id)?.group;
+  }
+
+  private animating = new Set<number>();
+  private isAnimating(id: number) { return this.animating.has(id); }
+
+  private addAnim(dur: number, update: (t: number) => void): Promise<void> {
+    if (!this.animations) { update(1); this.dirty = true; return Promise.resolve(); }
+    return new Promise((resolve) => this.anims.push({ update, start: performance.now(), dur, resolve }));
+  }
+
+  animateMove(s: GameState, unitId: number, from: { x: number; y: number }, path: { x: number; y: number }[]): Promise<void> {
+    const v = this.units.get(unitId);
+    if (!v || !path.length) return Promise.resolve();
+    const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
+    this.animating.add(unitId);
+    const dur = Math.min(ANIM.maxTotal, ANIM.move * Math.max(1, path.length) * 0.6);
+    const last = pts[pts.length - 1], prev = pts[pts.length - 2];
+    const model = v.group.getObjectByName('model');
+    if (model) model.rotation.y = Math.atan2(last.x - prev.x, last.z - prev.z);
+    return this.addAnim(dur, (t) => {
+      const f = t * (pts.length - 1);
+      const i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
+      const local = f - i;
+      v.group.position.lerpVectors(pts[i], pts[i + 1], local);
+      v.group.position.y += Math.sin(local * Math.PI) * 0.08;
+      if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
+    });
+  }
+
+  animateAttack(attackerId: number, targetId: number): Promise<void> {
+    const a = this.units.get(attackerId), d = this.units.get(targetId);
+    if (!a || !d) return Promise.resolve();
+    const start = a.group.position.clone();
+    const dir = d.group.position.clone().sub(start);
+    const model = a.group.getObjectByName('model');
+    if (model) model.rotation.y = Math.atan2(dir.x, dir.z);
+    dir.multiplyScalar(0.3);
+    const dStart = d.group.position.clone();
+    this.animating.add(attackerId); this.animating.add(targetId);
+    return this.addAnim(ANIM.attack, (t) => {
+      const k = Math.sin(Math.min(1, t) * Math.PI);
+      a.group.position.copy(start).addScaledVector(dir, k);
+      const shake = t > 0.4 ? Math.sin(t * 60) * 0.03 * (1 - t) : 0;
+      d.group.position.copy(dStart).add(new THREE.Vector3(shake, 0, -shake));
+      if (t >= 1) { a.group.position.copy(start); d.group.position.copy(dStart); this.animating.delete(attackerId); this.animating.delete(targetId); }
+    });
+  }
+
+  /**
+   * Sterbeanimation im Comic-Stil (hoechstens 400 ms): Fusstruppen fliegen hoch, drehen sich und kippen um,
+   * dazu Blutstropfen; Fahrzeuge explodieren mit Feuerball; Schiffe sinken.
+   * Comic death animation (at most 400 ms): foot units fly up, spin and topple with blood droplets;
+   * vehicles explode with a fireball; ships sink.
+   */
+  animateDeath(unitId: number, kind: 'wreck' | 'skeleton' | null = null): Promise<void> {
+    const v = this.units.get(unitId);
+    if (!v) return Promise.resolve();
+    this.animating.add(unitId);
+    const start = v.group.position.clone();
+    const model = v.group.getObjectByName('model');
+    if (v.badge) v.badge.visible = false;
+    const fx = new THREE.Group();
+    fx.position.copy(start);
+    this.unitLayer.add(fx);
+    const drops: { o: THREE.Object3D; vel: THREE.Vector3 }[] = [];
+    let fire: THREE.Object3D | null = null;
+    if (kind === 'skeleton') {
+      for (let i = 0; i < 9; i++) {
+        const o = outlined(dropletGeometry(i % 3 ? semantic.splatter : semantic.splatterDark), 0.008);
+        const a = (i / 9) * Math.PI * 2 + unitId;
+        o.position.set(0, 0.22, 0);
+        o.scale.setScalar(0.7 + (i % 3) * 0.35);
+        fx.add(o);
+        drops.push({ o, vel: new THREE.Vector3(Math.cos(a) * (0.6 + (i % 4) * 0.2), 1.6 + (i % 3) * 0.5, Math.sin(a) * (0.6 + (i % 4) * 0.2)) });
+      }
+    } else if (kind === 'wreck') {
+      fire = outlined(fireballGeometry(), 0.012);
+      fire.position.set(0, 0.2, 0);
+      fx.add(fire);
+      for (let i = 0; i < 6; i++) {
+        const o = outlined(dropletGeometry(i % 2 ? semantic.char : semantic.fire), 0.008);
+        const a = (i / 6) * Math.PI * 2;
+        o.position.set(0, 0.2, 0);
+        fx.add(o);
+        drops.push({ o, vel: new THREE.Vector3(Math.cos(a) * 1.1, 1.8, Math.sin(a) * 1.1) });
+      }
+    }
+    return this.addAnim(ANIM.death, (t) => {
+      if (kind === 'skeleton' && model) {
+        // hochschleudern, drehen, umkippen / launch, spin, topple
+        v.group.position.copy(start);
+        v.group.position.y += Math.sin(Math.min(1, t * 1.4) * Math.PI) * 0.35;
+        model.rotation.z = Math.min(1, t * 1.5) * (Math.PI / 2);
+        model.rotation.y = t * Math.PI * 2;
+        v.group.scale.setScalar(t > 0.75 ? Math.max(0.001, 1 - (t - 0.75) * 4) : 1);
+      } else if (kind === 'wreck') {
+        v.group.position.copy(start);
+        v.group.position.y += Math.sin(Math.min(1, t * 2) * Math.PI) * 0.18;
+        if (model) model.rotation.z = t * 0.4;
+        v.group.scale.setScalar(t > 0.5 ? Math.max(0.001, 1 - (t - 0.5) * 2) : 1);
+        if (fire) fire.scale.setScalar(t < 0.4 ? 0.3 + t * 3 : Math.max(0.001, 1.5 - (t - 0.4) * 2.5));
+      } else {
+        v.group.position.copy(start);
+        v.group.position.y -= t * 0.3;
+        v.group.rotation.z = t * 0.5;
+        v.group.scale.setScalar(Math.max(0.001, 1 - t * 0.8));
+      }
+      const dt = t * (ANIM.death / 1000);
+      for (const d of drops) {
+        d.o.position.set(d.vel.x * dt, 0.22 + d.vel.y * dt - 4.5 * dt * dt, d.vel.z * dt);
+        if (d.o.position.y < 0.02) { d.o.position.y = 0.02; d.o.scale.set(1.6, 0.25, 1.6); }
+      }
+      if (t >= 1) {
+        this.unitLayer.remove(v.group); this.unitLayer.remove(fx);
+        this.units.delete(unitId); this.animating.delete(unitId);
+      }
+    });
+  }
+
+  /** Markierungen / highlights */
+  setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind }[]) {
+    this.clearGroup(this.highlightLayer);
+    if (!s || !list.length) { this.dirty = true; return; }
+    const colors: Record<HighlightKind, string> = {
+      move: semantic.highlightMove, attack: semantic.highlightAttack, safe: semantic.highlightSafe, unsafe: semantic.highlightUnsafe,
+      select: semantic.highlightSelect, target: semantic.highlightAttack, hint: semantic.highlightSelect, build: semantic.highlightSafe,
+    };
+    const byKind = new Map<HighlightKind, THREE.Matrix4[]>();
+    for (const h of list) {
+      const p = this.tileCenter(s, h.x, h.y);
+      p.y = Math.max(p.y, TILE_TOP.shallow) + 0.02;
+      const m = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z);
+      if (!byKind.has(h.kind)) byKind.set(h.kind, []);
+      byKind.get(h.kind)!.push(m);
+    }
+    for (const [kind, mats] of byKind) {
+      const big = kind === 'select' || kind === 'target' || kind === 'hint';
+      const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
+      const flat = paint(ring.toNonIndexed(), colors[kind]);
+      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide });
+      const mesh = new THREE.InstancedMesh(flat, mat, mats.length);
+      mats.forEach((m, i) => mesh.setMatrixAt(i, m));
+      mesh.renderOrder = 5;
+      mesh.raycast = () => {};
+      this.highlightLayer.add(mesh);
+    }
+    this.dirty = true;
+  }
+
+  /** Feld unter dem Strahl / tile under the ray */
+  pick(ray: THREE.Raycaster): { x: number; y: number } | null {
+    const unitHits = ray.intersectObjects(this.unitLayer.children, true);
+    if (unitHits.length) {
+      let o: THREE.Object3D | null = unitHits[0].object;
+      while (o && o.userData.unitId === undefined) o = o.parent;
+      if (o) {
+        const local = this.group.worldToLocal(o.getWorldPosition(new THREE.Vector3()));
+        const off = (this.size - 1) / 2;
+        return { x: Math.round(local.x + off), y: Math.round(local.z + off) };
+      }
+    }
+    const hits = ray.intersectObjects(this.pickMeshes.map((p) => p.mesh), false);
+    if (!hits.length) return null;
+    const h = hits[0];
+    const entry = this.pickMeshes.find((p) => p.mesh === h.object);
+    if (!entry || h.instanceId === undefined) return null;
+    const k = entry.tiles[h.instanceId];
+    return { x: k % this.size, y: Math.floor(k / this.size) };
+  }
+
+  /** Animationen fortschreiben; true, wenn neu gezeichnet werden muss / advance animations; true if redraw needed */
+  tick(now: number): boolean {
+    if (!this.anims.length) { const d = this.dirty; this.dirty = false; return d; }
+    for (const a of [...this.anims]) {
+      // rAF-Zeit kann vor dem Start liegen: auf 0..1 begrenzen / rAF time can precede the start: clamp to 0..1
+      const t = Math.max(0, Math.min(1, (now - a.start) / a.dur));
+      try { a.update(t); } catch (e) { console.error(e); this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); continue; }
+      if (t >= 1) { this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); }
+    }
+    this.dirty = false;
+    return true;
+  }
+
+  get busy() { return this.anims.length > 0; }
+
+  finishAnimations() {
+    for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
+    this.anims = [];
+    this.dirty = true;
+  }
+}
+
+export type { Unit };

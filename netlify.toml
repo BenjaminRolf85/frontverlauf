@@ -1,0 +1,14 @@
+# Statische Seite, Build mit Vite / static site, built with Vite
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# WebXR auf der Quest erlauben / allow WebXR on Quest
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "xr-spatial-tracking=(self)"
+    X-Content-Type-Options = "nosniff"

@@ -1,0 +1,30 @@
+{
+  "name": "frontverlauf",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rundenbasiertes 4X-Strategiespiel im Browser mit Comic-Look und WebXR / Turn-based 4X strategy game for the browser with comic look and WebXR",
+  "scripts": {
+    "dev": "vite",
+    "dev:https": "vite --mode https --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "tokens": "node scripts/build-tokens.mjs",
+    "check": "tsc --noEmit && node scripts/check-ui-rules.mjs"
+  },
+  "dependencies": {
+    "@fontsource/bangers": "^5.3.0",
+    "@fontsource/black-ops-one": "^5.3.0",
+    "@fontsource/comic-neue": "^5.3.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.180.0",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.8",
+    "vitest": "^5.1.0"
+  }
+}

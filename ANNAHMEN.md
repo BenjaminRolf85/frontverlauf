@@ -1,0 +1,71 @@
+# Annahmen / Assumptions
+
+Begründete Annahmen für Punkte, die der Prompt offen lässt. Jede Zeile auf Deutsch und Englisch.
+Reasoned assumptions for points the brief leaves open. Each line in German and English.
+
+## Technik / Technology
+- Die 3D-Modelle werden prozedural per Skript im Code erzeugt (`src/render/models/`). Blender ist in der Entwicklungsumgebung nicht installiert. `blender/generate_assets.py` baut die Grundformen in Blender nach und exportiert sie als `.glb`, das ist die dokumentierte Pipeline. / 3D models are generated procedurally by script in code. Blender is not installed in the dev environment; `blender/generate_assets.py` rebuilds the base shapes in Blender and exports `.glb` files as the documented pipeline.
+- Comic-Grafik (Wunsch des Auftraggebers): Toon-Shading mit drei harten Stufen, schwarze Tuschekonturen (Inverted Hull), Rasterpunkte und Comic-Effektwörter in der Oberfläche. Die Konturen sind Geometrie, kein Nachbearbeitungseffekt, und gelten daher auch in XR. / Comic graphics (client request): three-step toon shading, black ink outlines (inverted hull), halftone dots and comic effect words in the UI. Outlines are geometry, not post-processing, so they are also allowed in XR.
+- Klang und Musik werden per WebAudio erzeugt (eigene Schöpfung, keine Audiodateien). / Sound and music are synthesised with WebAudio (own creation, no audio files).
+- Schriften: Bangers und Comic Neue (SIL OFL 1.1), lokal gebündelt über @fontsource. / Fonts: Bangers and Comic Neue (SIL OFL 1.1), bundled locally via @fontsource.
+- Es gibt ein einziges helles Comic-Farbschema; der Weltraum-Hintergrund ist dunkel. / There is a single light comic colour scheme; the space background is dark.
+
+## Karte / Map
+- Entfernungen sind Schachbrett-Distanz (8 Nachbarn), auch für Reichweite, Zone of Control und „neben“ beim Tanken. / Distances are Chebyshev (8 neighbours), also for range, zone of control and "next to" for refuelling.
+- Faire Startpunkte: bester von 12 Farthest-Point-Durchläufen (größter Mindestabstand); jede Fraktion hat mindestens 3 Ressourcen im 3x3-Startgebiet und eine Siedlung im Abstand 3. / Fair starts: best of 12 farthest-point runs; every faction gets at least 3 resources in its 3x3 start area and a settlement at distance 3.
+- Heimatgebiet = alle Felder, die dem eigenen Startpunkt am nächsten liegen (Voronoi). / Home region = all tiles closest to the own start (Voronoi).
+- Radarstationen stehen auf Land in den Ecken; ein Radar gilt als entdeckt, sobald sein Feld aufgedeckt ist. / Radar stations stand on land in the corners; a radar counts as discovered once its tile is revealed.
+- Städte sehen ihr Gebiet plus 1 Feld. Die Aufklärungsdrohne deckt Radius 4 auf, der Bunker-Fund Radius 3. / Cities see their territory plus 1 tile. The recon drone reveals radius 4, the bunker find radius 3.
+
+## Runden und Wirtschaft / Turns and economy
+- Runde 1 bringt kein Einkommen, nur die Startsterne. Einkommen kommt zu Beginn des eigenen Zuges. / Round 1 yields no income, only the start stars. Income arrives at the start of the own turn.
+- KI-Einkommensbonus: schwer +5, extrem +10 Sterne pro Runde. / AI income bonus: hard +5, extreme +10 stars per round.
+- Logistikzentrum: 5 Sterne je angrenzendem Forstbetrieb, Agrarbetrieb oder Tagebau (die Basisgebäude der Werke), höchstens 40. / Logistics centre: 5 stars per adjacent lumber camp, farm or mine (the base buildings of the works), at most 40.
+- Stadtverbindung gibt einmalig je 1 Bevölkerungspunkt, sobald die Verbindung entsteht; Straßen zählen nur im eigenen Gebiet. / City connection gives 1 population each once, when it is made; roads only count in own territory.
+- Bei Stufe 5 und höher mit bereits vorhandenem Regierungsviertel ersetzt „25 Sterne“ die Wahl A. / At level 5+ with an existing government quarter, "25 stars" replaces option A.
+- Die Panzer-Belohnung entfällt, wenn Stadtfeld und alle Nachbarfelder belegt sind. / The tank reward is lost if the city tile and all neighbours are occupied.
+- Ein Zug kann erst enden, wenn offene Stadtbelohnungen gewählt wurden. / A turn can only end once pending city rewards are chosen.
+- Forschungszentrum: einmal pro Stadt. Großprojekte: kostenlos auf freiem Land (keine Berge, keine Ressource) im eigenen Gebiet. / Research centre: once per city. Grand projects: free, on free land (no mountain, no resource) in own territory.
+- Friedensdenkmal: freigeschaltet, wenn aktuelle Runde minus letzte Angriffsrunde mindestens 5 ist. / Peace monument unlocks when current round minus last attack round is at least 5.
+
+## Einheiten und Kampf / Units and combat
+- Jede Einheit darf einmal ziehen und einmal angreifen. Ohne Sturm ist nach der Bewegung kein Angriff mehr möglich. Heilen, Einnehmen und Außenposten verbrauchen den Zug. / Each unit may move once and attack once. Without Assault no attack after moving. Heal, capture and outpost consume the turn.
+- Heilen ist eine ausdrückliche Aktion („statt zu handeln“). / Healing is an explicit action ("instead of acting").
+- Nahkämpfer rücken nach einem Sieg nicht nach. / Melee units do not advance after a kill.
+- Der Stadtbonus gilt nur für Einheiten mit Verschanzen; der Hubschrauber erhält nie einen Bonus. / The city bonus only applies to units with Dig in; the helicopter never gets a bonus.
+- Flächenschaden des Kriegsschiffs = 50 % des Hauptschadens (gerundet) auf feindliche Nachbareinheiten, ohne Gegenschlag. / Battleship splash = 50 % of the main damage (rounded) on enemy neighbours, no return fire.
+- Ein Folgeangriff-Hubschrauber darf nach einem Abschuss erneut angreifen, aber sich nicht mehr bewegen. / A follow-up helicopter may attack again after a kill but may not move afterwards.
+- Unsichtbare oder getauchte Feinde lösen keine Zone of Control aus, solange sie nicht gesehen werden. / Unseen invisible or submerged enemies cause no zone of control.
+- Ein- und Ausschiffen beendet den Zug der Einheit. Schiffe übernehmen die LP der getragenen Einheit. / Embarking and disembarking end the unit's turn. Ships keep the carried unit's HP.
+- Überlaufen: Die Einheit wechselt dauerhaft den Besitzer, gehört aber zu keiner Stadt (zählt nicht zum Limit). / Defect: the unit permanently changes sides but belongs to no city (does not count towards a limit).
+- Einnehmen dürfen Landeinheiten außer Hubschrauber und Spion. / Land units except helicopter and spy can capture.
+- Ein Spion darf eine Stadt einer befriedeten Fraktion betreten, löst dort aber keinen Aufstand aus. / A spy may enter a city of a faction at peace but causes no uprising there.
+- Heilung im eigenen Außenposten (4 LP) gilt für alle Einheiten. Außenposten dürfen auch nach der Bewegung gebaut werden. / Healing in an own outpost (4 HP) applies to all units. Outposts may also be built after moving.
+- Bunker „Technologie“ = zufällige erforschbare Technologie der niedrigsten Stufe; Wasserbunker ergeben mit 50 % einen Zerstörer mit Infanterie. / Bunker "tech" = random researchable tech of the lowest tier; water bunkers give a destroyer with infantry with 50 % chance.
+
+## Diplomatie / Diplomacy
+- Kontakt gilt einseitig: Wer die andere Fraktion sieht, bekommt die Sterne (mindestens 15, aufgerundet auf angefangene 1000 Punkte, höchstens 60). / Contact is one-sided: the faction that sees gets the stars (at least 15, per started 1000 points, at most 60).
+- Friedensangebote bleiben offen, bis die andere Seite in ihrem Zug annimmt oder ablehnt. Bieten sich beide an, gilt sofort Frieden. / Peace offers stay open until the other side accepts or declines on its turn. If both offer, peace applies immediately.
+- Botschaft: braucht Geheimdienst, Kontakt und das aufgedeckte gegnerische Hauptquartier. Sie endet, wenn das Hauptquartier erobert wird. Alvenias Faktor 2 gilt für alle Botschaftseinkommen Alvenias. / Embassy: needs Intelligence, contact and the revealed enemy HQ. It ends when that HQ is captured. Alvenia's ×2 applies to all of Alvenia's embassy income.
+
+## Modi / Modes
+- Punktemodus: Bei Gleichstand gewinnt die Fraktion mit dem kleineren Index. Bleibt nur eine Fraktion übrig, endet auch der Punktemodus. / Points mode: on a tie the lower faction index wins. If only one faction remains, points mode ends too.
+- Sandkasten folgt den Eroberungsregeln ohne Rundenlimit. / Sandbox follows conquest rules without a round limit.
+- Hotseat: Der Übergabebildschirm erscheint nur, wenn mehr als ein Mensch mitspielt; der Nebel zeigt immer die Sicht des aktiven Menschen. / Hotseat: the handover screen only appears with more than one human; the fog always shows the active human's view.
+- Der automatische Spielstand wird nach jedem Zug gespeichert. / The autosave is written after every turn.
+
+## XR
+- Greifen: Grifftaste am Controller; bei Handtracking Pinch halten und bewegen (mehr als 4 cm). Kurzer Pinch = Auswahl. / Grab: grip button on controllers; with hand tracking, hold the pinch and move more than 4 cm. A short pinch selects.
+- Das Handgelenk-Menü hängt am linken Controller bzw. an der linken Hand. / The wrist menu is attached to the left controller or left hand.
+- Comic-Effektwörter erscheinen nur in der flachen Ansicht. / Comic effect words only appear in the flat view.
+
+## Erweiterungen auf Wunsch des Auftraggebers / extensions requested by the client
+- Militärischer Comic-Look: Schablonenschrift Black Ops One (OFL) für Überschriften, Oliv/Khaki, Tarnmuster, Warnstreifen, Nieten. / Military comic look: Black Ops One stencil font (OFL), olive/khaki, camouflage, hazard stripes, rivets.
+- Überreste: Panzer, Jeep, Artillerie und Hubschrauber hinterlassen an Land ein Wrack; ein Wrack gibt Landeinheiten auf dem Feld +1,0 auf den Verteidigungsbonus (zusätzlich zu allen anderen Boni, nicht für Hubschrauber oder Schiffe). / Remains: tank, jeep, artillery and helicopter leave a wreck on land; a wreck adds +1.0 to the defence bonus of land units on that tile (on top of other bonuses, not for helicopters or ships).
+- Fußtruppen (Infanterie, Scharfschütze, Pionier, MG, Sanitäter, Spion) hinterlassen Skelette, die dauerhaft liegen bleiben und sich sammeln; in Städten und auf Wasser bleibt nichts zurück. Der Spion beim Aufstand hinterlässt nichts. / Foot units leave skeletons that stay permanently and pile up; nothing remains in cities or on water. A spy consumed by an uprising leaves nothing.
+- Sterbeanimation im Comic-Stil (höchstens 400 ms, abschaltbar): Fußtruppen werden hochgeschleudert, drehen sich, kippen um, Blutstropfen und Splatter; Fahrzeuge explodieren mit Feuerball. / Comic death animation (max 400 ms, can be disabled).
+- Panzersperre: Der Pioniertrupp baut sie mit Stellungsbau für 10 Sterne auf ein freies Nachbarfeld (Ebene, Wald, Berg); das verbraucht seinen Zug. Feindliche Fahrzeuge (Panzer, Jeep, Artillerie), die das Feld betreten, müssen anhalten und fahren in ihrer nächsten Runde nur 1 Feld. Die Sperre bleibt stehen; eigene Fahrzeuge, Fußtruppen und Hubschrauber sind nicht betroffen. / Tank barrier: built by the pioneer squad with Fortification for 10 stars on an adjacent free tile; consumes its turn. Hostile vehicles entering it must stop and move only 1 tile next round. The barrier stays; own vehicles, foot units and helicopters are unaffected.
+- Landschaften (Wiese, Hügel, Wüste, Steppe, Tundra, Sumpf) und Flüsse sind optisch und ändern keine Regeln; die Spielregeln folgen weiter den fünf Geländetypen aus Abschnitt 3. Sie entstehen aus einem eigenen Zufallsstrom des Seeds (Klima Nord-Süd, Wassernähe, Heimatgebiet). / Biomes and rivers are visual and change no rules; the rules still follow the five terrain types of section 3. They come from a separate random stream of the seed.
+- Berge haben drei Höhen (flach, mittel, hoch), Wiesen bekommen Gras, Blumen und vereinzelt Bäumchen, Panzer hinterlassen Kettenspuren (verblassen nach 8 Runden). Alles optisch, keine Regeländerung. / Mountains have three heights, meadows get grass, flowers and occasional small trees, tanks leave track marks (fade after 8 rounds). All visual, no rule change.
+- Wetter gilt für die ganze Karte und wechselt alle 3 Runden, deterministisch aus Seed und Runde (Runde 1 immer klar). Regen: Artillerie −1 Reichweite (mindestens 1), Hubschrauber −1 Bewegung. Schnee und Wind sind bisher nur optisch. Wetter lässt sich in der Einsatzplanung abschalten. Die Hubschrauber-Rückflugprüfung rechnet mit normaler Bewegung. / Weather is map-wide, changes every 3 rounds, deterministic from seed and round (round 1 always clear). Rain: artillery range −1 (min 1), helicopter movement −1. Snow and wind are visual only so far. Weather can be switched off in mission planning. The helicopter safe-return check uses normal movement.
+- Lebendige Karte (optisch, folgt dem Schalter „Animationen“): Bäume, Gras, Blumen und Felder wiegen sich per Vertex-Shader, bei Wind stärker; an Fischgründen schwimmen Fischschatten und Fische springen im Bogen; Brandung und Wellen laufen an die Küste. Mit aktiven Animationen wird jedes Bild neu gezeichnet. / Living map (visual, follows the "animations" switch): trees, grass, flowers and fields sway via vertex shader, stronger in wind; fish swim and jump at fishing grounds; surf and waves roll onto the coast. With animations on, every frame is redrawn.

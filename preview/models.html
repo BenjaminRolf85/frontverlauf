@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Frontverlauf - Modellvorschau / model preview</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--s-world-background); }
+    canvas { display: block; }
+    nav { position: fixed; top: 8px; left: 8px; display: flex; gap: 6px; flex-wrap: wrap; font: 14px 'Comic Neue', sans-serif; }
+    nav a { color: var(--s-text); background: var(--s-accent); border: 2px solid var(--s-outline); border-radius: 8px; padding: 4px 8px; text-decoration: none; }
+  </style>
+  <link rel="stylesheet" href="/src/design/tokens.css" />
+</head>
+<body>
+  <nav>
+    <a href="?cat=units">Einheiten / units</a>
+    <a href="?cat=ships">Schiffe / ships</a>
+    <a href="?cat=buildings">Gebaeude / buildings</a>
+    <a href="?cat=grand">Grossprojekte / grand projects</a>
+    <a href="?cat=cities">Staedte / cities</a>
+    <a href="?cat=nature">Natur / nature</a>
+  </nav>
+  <script type="module" src="/src/render/models/preview.ts"></script>
+</body>
+</html>
