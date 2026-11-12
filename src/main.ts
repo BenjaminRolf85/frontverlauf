@@ -10,6 +10,7 @@ import { View } from './render/view';
 import { clearSave, exportFile, hasSave, importFile, loadGame, loadSettings, saveGame, saveSettings, type Settings } from './save/save';
 import { toast } from './ui/components';
 import { Fx } from './ui/fx';
+import { Barks } from './ui/barks';
 import { Hud, cityName, unitName } from './ui/hud';
 import {
   confirmDialog, detailsDialog, diplomacyDialog, gameOverScreen, grandDialog, handoverScreen, mainMenu, pauseMenu,
@@ -34,6 +35,7 @@ function boot() {
   }
   const game = new Controller(view);
   const fx = new Fx(root, view);
+  const barks = new Barks(root, view);
   let tutorial: Tutorial | null = null;
   let menuNode: HTMLElement | null = null;
   const xr = new XrSession(view, game);
@@ -46,6 +48,7 @@ function boot() {
       audio.effectsOn = settings.effects;
       view.board.animations = settings.animations;
       fx.enabled = settings.animations;
+      barks.enabled = settings.barks;
       app.classList.toggle('no-anim', !settings.animations);
       game.aiSpeed = settings.aiSpeed;
       view.setQuality(settings.quality);
@@ -86,6 +89,7 @@ function boot() {
     },
     showMenu() {
       tutorial?.finish(); tutorial = null;
+      barks.clear();
       hud.show(false);
       root.querySelectorAll('.screen, .overlay').forEach((n) => n.remove());
       menuNode = mainMenu(host);
@@ -143,6 +147,9 @@ function boot() {
       }
     },
     fx: (kind, x, y, text) => { if (game.state) fx.show(game.state, kind, x, y, text); },
+    afterCommand(events) { if (game.state) barks.onEvents(game.state, events, game.viewer, new Map()); },
+    unitSelected(u) { if (game.state) barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); },
+    turnStarted() { if (game.state) barks.onTurnStart(game.state, game.viewer); },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
     gameOver: () => { gameOverScreen(host); clearSave(); },

@@ -14,6 +14,9 @@ import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry,
 } from './index';
+import { headgear } from './headgear';
+import { Builder } from './kit';
+import { look } from './look';
 
 type Cell = { geo: THREE.BufferGeometry | null; ground: string | null; label?: string };
 type Row = { label: string; cells: Cell[] };
@@ -96,6 +99,22 @@ function sheet(): Sheet {
           deco('shallow', 'fish', waterGround),
           { label: 'features', cells: [{ geo: featureGeometry('bunker'), ground: plainGround }, { geo: featureGeometry('radar'), ground: plainGround }, { geo: null, ground: null }, { geo: null, ground: null }] },
           { label: 'clouds', cells: [0, 1, 2, 3].map((v) => ({ geo: cloudGeometry(v), ground: plainGround })) },
+        ],
+      };
+    }
+    case 'helmets': {
+      // Koepfe vergroessert (x4) / heads enlarged (x4)
+      const head = (f: FactionId, d: 0 | 1 | 2, hat: boolean) => {
+        const b = new Builder();
+        b.group({ s: 4, p: [0, 0.02, 0] }, () => headgear(b, f, look(f), d, hat));
+        return b.build();
+      };
+      return {
+        cols: factions.map(fname),
+        rows: [
+          { label: 'helmet', cells: factions.map((f) => ({ geo: head(f, 2, false), ground: plainGround })) },
+          { label: 'crew (low)', cells: factions.map((f) => ({ geo: head(f, 0, false), ground: plainGround })) },
+          { label: 'spy hat', cells: factions.map((f) => ({ geo: head(f, 2, true), ground: plainGround })) },
         ],
       };
     }
@@ -273,7 +292,7 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const limit = name.startsWith('unit') ? 1500 : 3000;
+    const limit = name.startsWith('unit') ? 3000 : name.startsWith('city') ? 6000 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
   }
   errors.push(`checked ${all.length}`);

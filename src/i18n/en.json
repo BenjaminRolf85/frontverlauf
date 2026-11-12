@@ -502,7 +502,8 @@
     "quality": "Graphics quality",
     "low": "Low",
     "high": "High",
-    "showGrid": "Show grid"
+    "showGrid": "Show grid",
+    "barks": "Speech bubbles"
   },
   "handover": {
     "title": "Change of watch",
@@ -629,5 +630,287 @@
     "windDesc": "visual only",
     "forecast": "from round {round}: {weather}",
     "setupHint": "Changes every 3 rounds. Rain weakens artillery and helicopters."
+  },
+  "barks": {
+    "korvat": {
+      "select": [
+        "For the collective!",
+        "Ready, comrade sergeant!",
+        "The harvest waits, so does the enemy.",
+        "Yes, together!"
+      ],
+      "move": [
+        "In step, everyone!",
+        "Every step for the collective.",
+        "Boots pinch. Who cares."
+      ],
+      "attack": [
+        "For the workbench!",
+        "Grind them like grain!",
+        "All for one, fire!"
+      ],
+      "kill": [
+        "Another field freed!",
+        "The collective wins!",
+        "Into the furrow!"
+      ],
+      "hurt": [
+        "Blast and bother!",
+        "Ow, my back!",
+        "#@!% turnip greens!"
+      ],
+      "corpse": [
+        "Poor fellow. Who ploughs his field now?",
+        "He has finished his shift.",
+        "Bones in the field. Bad sign."
+      ],
+      "wreck": [
+        "Scrap! We will melt it into tractors.",
+        "That used to be a proud vehicle.",
+        "Good cover, this wreck!"
+      ],
+      "forest": [
+        "All alone in the woods ... comrades?",
+        "Something is creaking in the undergrowth.",
+        "Without the collective the forest is so quiet."
+      ],
+      "idle": [
+        "When is cabbage soup day?",
+        "Quota met: 112 percent!",
+        "My helmet is too big. As always."
+      ],
+      "rain": [
+        "Rain is good for grain, bad for socks.",
+        "Soaked to the bone!"
+      ],
+      "snow": [
+        "Cold as the field kitchen in winter.",
+        "Snow! Who has the gloves?"
+      ]
+    },
+    "dravon": {
+      "select": [
+        "Orders are orders!",
+        "At your command, Protector!",
+        "Attention!",
+        "Awaiting instructions."
+      ],
+      "move": [
+        "Move, move!",
+        "No hesitation, no questions.",
+        "Left, two, three, four!"
+      ],
+      "attack": [
+        "For the Protector!",
+        "Order through fire!",
+        "Resistance is disorder!"
+      ],
+      "kill": [
+        "Done. Next!",
+        "Ticked off.",
+        "Discipline wins."
+      ],
+      "hurt": [
+        "That goes in the report!",
+        "Thunderation!",
+        "#@!% visor fogged up!"
+      ],
+      "corpse": [
+        "One weakling fewer. Move on.",
+        "Do not stop, that is an order.",
+        "Dead. That was not authorised."
+      ],
+      "wreck": [
+        "Parked improperly.",
+        "Wreck. Report it!",
+        "That thing has resigned from service."
+      ],
+      "forest": [
+        "Trees. Grown without discipline.",
+        "Alone in the woods. No orders for this.",
+        "Who authorised this forest?"
+      ],
+      "idle": [
+        "My boots shine. Duty done.",
+        "Free time is a rumour.",
+        "I do not smile behind the visor."
+      ],
+      "rain": [
+        "Rain is no excuse for weakness!",
+        "The visor is rusting already."
+      ],
+      "snow": [
+        "Snow? Orders are not to freeze!",
+        "Cold builds character."
+      ]
+    },
+    "alvenia": {
+      "select": [
+        "We vote later, go now!",
+        "Present, for the Republic!",
+        "Agreed, with reservations.",
+        "Is there a protocol for this?"
+      ],
+      "move": [
+        "Majority decision: forward!",
+        "I would like to propose an amendment ...",
+        "For freedom and paperwork!"
+      ],
+      "attack": [
+        "In the name of the people!",
+        "The debate is over!",
+        "Fire, after the vote!"
+      ],
+      "kill": [
+        "Motion carried.",
+        "Clear result.",
+        "The opposition is silent."
+      ],
+      "hurt": [
+        "Objection! That hurt!",
+        "Blast, my goggles!",
+        "#@!% agenda!"
+      ],
+      "corpse": [
+        "May he rest in peace. Unanimously.",
+        "Someone should document this.",
+        "This could have been solved diplomatically."
+      ],
+      "wreck": [
+        "A scrappage bonus would have helped.",
+        "The wreck gives cover. Motion for cover!",
+        "Broken. Who is liable?"
+      ],
+      "forest": [
+        "All alone ... is this still democratic?",
+        "The forest has no opinion. Creepy.",
+        "Hello? Committee meeting in the woods?"
+      ],
+      "idle": [
+        "I would like a break, by vote.",
+        "My goggles are fogging up.",
+        "Is that in the coalition agreement?"
+      ],
+      "rain": [
+        "Rain. Who voted for this?",
+        "Wet goggles, all I see is clauses."
+      ],
+      "snow": [
+        "Snow! I move for woolly hats.",
+        "Cold feet, warm hearts."
+      ]
+    },
+    "meridon": {
+      "select": [
+        "Time is money, what is up?",
+        "Good rates today!",
+        "What is in it for me?",
+        "Ahoy, at your service!"
+      ],
+      "move": [
+        "Course set!",
+        "Quick, the market is waiting.",
+        "I smell a deal."
+      ],
+      "attack": [
+        "Interest is due!",
+        "Hostile takeover!",
+        "That costs extra!"
+      ],
+      "kill": [
+        "Booked.",
+        "Deal closed.",
+        "Competition eliminated."
+      ],
+      "hurt": [
+        "That goes on your bill!",
+        "Blimey, my sunglasses!",
+        "#@!% exchange rate!"
+      ],
+      "corpse": [
+        "He negotiated badly.",
+        "Rest in peace, old trader.",
+        "No more returns for that one."
+      ],
+      "wreck": [
+        "Scrap metal! What does it fetch per ton?",
+        "Total loss, but recyclable.",
+        "Good cover, and free."
+      ],
+      "forest": [
+        "No sea, no market, only trees ...",
+        "Nobody hears me haggle out here.",
+        "Alone in the woods. Bad deal."
+      ],
+      "idle": [
+        "Anyone selling fish?",
+        "Beret on, business booming.",
+        "When is the harbour festival?"
+      ],
+      "rain": [
+        "Rain! Umbrellas at a special price!",
+        "Wet, but in profit."
+      ],
+      "snow": [
+        "Snow is hard to sell.",
+        "Cold! Who trades in blankets?"
+      ]
+    },
+    "velkar": {
+      "select": [
+        "Data confirms: ready.",
+        "Systems online.",
+        "Calculating.",
+        "Antenna aligned."
+      ],
+      "move": [
+        "Route optimised.",
+        "Movement within tolerance.",
+        "Path computed efficiently."
+      ],
+      "attack": [
+        "Target acquired.",
+        "Probability favourable. Fire.",
+        "Ballistics verified."
+      ],
+      "kill": [
+        "Target neutralised.",
+        "Expected value reached.",
+        "Record deleted."
+      ],
+      "hurt": [
+        "Error 404: cover not found!",
+        "Sensor damaged!",
+        "#@!% calibration!"
+      ],
+      "corpse": [
+        "Vital signs: zero.",
+        "Statistically, that was expected.",
+        "Note: do not linger here."
+      ],
+      "wreck": [
+        "Material sample secured.",
+        "Structural failure under high load.",
+        "Wreck provides 1 point of cover. Acceptable."
+      ],
+      "forest": [
+        "Signal strength low. Alone.",
+        "Tree density high, visibility low.",
+        "No network in the woods."
+      ],
+      "idle": [
+        "Firmware update later, please.",
+        "My visor reflects. Good.",
+        "Coffee level critical."
+      ],
+      "rain": [
+        "Precipitation: 100 percent.",
+        "Rain disturbs the optics."
+      ],
+      "snow": [
+        "Outside temperature below zero. As planned.",
+        "Snow camouflage active."
+      ]
+    }
   }
 }

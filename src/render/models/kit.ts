@@ -6,6 +6,7 @@
  * finally everything is merged into one BufferGeometry.
  */
 import * as THREE from 'three';
+import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { semantic } from '../../design/tokens';
 
@@ -143,6 +144,51 @@ export const geo = {
     }
     return g;
   },
+  /**
+   * Quader mit gefasten Kanten (Fase c), optional verjuengt; zentriert.
+   * Box with chamfered edges (chamfer c), optionally tapered; centred.
+   */
+  rtaper: (wb: number, db: number, wt: number, dt: number, h: number, c: number, dz = 0) => {
+    const pts: THREE.Vector3[] = [];
+    const k = Math.min(c, h / 2.2, Math.min(wb, db, wt, dt) / 2.2);
+    for (const top of [false, true]) {
+      const y = top ? h / 2 : -h / 2;
+      const w = top ? wt : wb, d = top ? dt : db, oz = top ? dz : 0;
+      // Punkt auf der Seitenkante etwas innerhalb / point on the side edge slightly inside
+      const t = k / h;
+      const wi = top ? wt + (wb - wt) * t : wb + (wt - wb) * t;
+      const di = top ? dt + (db - dt) * t : db + (dt - db) * t;
+      const ozi = top ? dz * (1 - t) : dz * t;
+      const yi = top ? y - k : y + k;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        pts.push(new THREE.Vector3(sx * (w / 2 - k), y, sz * d / 2 + oz));
+        pts.push(new THREE.Vector3(sx * w / 2, y, sz * (d / 2 - k) + oz));
+        pts.push(new THREE.Vector3(sx * wi / 2, yi, sz * di / 2 + ozi));
+      }
+    }
+    return new ConvexGeometry(pts);
+  },
+  rbox: (w: number, h: number, d: number, c: number) => geo.rtaper(w, d, w, d, h, c),
+  /**
+   * Nur die senkrechten Kanten gefast (Achtkant-Prisma, 28 Dreiecke), optional verjuengt; zentriert.
+   * Only the vertical edges chamfered (octagonal prism, 28 triangles), optionally tapered; centred.
+   */
+  ctaper: (wb: number, db: number, wt: number, dt: number, h: number, c: number, dz = 0) => {
+    const pts: THREE.Vector3[] = [];
+    for (const top of [false, true]) {
+      const w = top ? wt : wb, d = top ? dt : db, oz = top ? dz : 0;
+      const k = Math.min(c, w / 2.2, d / 2.2);
+      const y = top ? h / 2 : -h / 2;
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        pts.push(new THREE.Vector3(sx * (w / 2 - k), y, sz * d / 2 + oz));
+        pts.push(new THREE.Vector3(sx * w / 2, y, sz * (d / 2 - k) + oz));
+      }
+    }
+    return new ConvexGeometry(pts);
+  },
+  cbox: (w: number, h: number, d: number, c: number) => geo.ctaper(w, d, w, d, h, c),
+  /** Konvexe Huelle beliebiger Punkte / convex hull of arbitrary points */
+  hull: (pts: V3[]) => new ConvexGeometry(pts.map((q) => new THREE.Vector3(q[0], q[1], q[2]))),
   /** Prisma aus Grundriss (x,z), Boden y=0, Dach y=h / prism from a top-view outline */
   prismXZ: (pts: [number, number][], h: number) => {
     const s = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)));
@@ -259,6 +305,22 @@ export class Builder {
     const m = new THREE.Matrix4().compose(va.clone().add(vb).multiplyScalar(0.5), q, new THREE.Vector3(1, 1, 1));
     g.applyMatrix4(m);
     return this.add(g, c);
+  }
+
+  /**
+   * Teil entlang der Strecke a->c (lokale y-Achse = Richtung); make(len) liefert eine um y zentrierte Geometrie.
+   * Part along segment a->c (local y = direction); make(len) returns geometry centred on y.
+   */
+  segment(a: THREE.Vector3, c: THREE.Vector3, make: (len: number) => THREE.BufferGeometry, col: ColorLike, inner?: (len: number) => void): this {
+    const dir = c.clone().sub(a);
+    const len = Math.max(1e-4, dir.length());
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+    this.group({ p: [a.x, a.y, a.z], r: [e.x, e.y, e.z] }, () => {
+      this.add(make(len), col, { p: [0, len / 2, 0] });
+      inner?.(len);
+    });
+    return this;
   }
 
   triangles(): number {

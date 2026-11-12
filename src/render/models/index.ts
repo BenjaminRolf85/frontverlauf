@@ -51,6 +51,11 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'artillery': return artillery(faction, true).build();
       case 'heli': return heli(faction, true).build();
       case 'mg': return mgTeam(faction, true).build();
+      case 'infantry': return infantry(faction, true).build();
+      case 'sniper': return sniper(faction, true).build();
+      case 'pioneer': return pioneer(faction, true).build();
+      case 'medic': return medic(faction, true).build();
+      case 'spy': return spy(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

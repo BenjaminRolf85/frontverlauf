@@ -3,7 +3,7 @@
  * The game map as a 3D diorama. Reads the state, never changes it.
  */
 import * as THREE from 'three';
-import type { BiomeId, TerrainId } from '../data/balance';
+import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
 import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } from '../core';
@@ -417,14 +417,20 @@ export class Board {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
-      const key = `${u.type}-${f}-${u.carried}`;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
         const grp = new THREE.Group();
-        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
+        // Eigene Einheiten: leuchtende Kontur in Markierungsfarbe; fremde: schwarze Tuschelinie
+        // own units: bright outline in marker colour; others: black ink line
+        const own = viewer >= 0 && u.owner === viewer;
+        const model = own
+          ? outlined(unitGeometry(u.type, f, u.carried), OUTLINE.ownUnit, undefined, factionTokens[f].marker)
+          : outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit);
         model.name = 'model';
         grp.add(model);
+        grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
         grp.position.copy(this.tileCenter(s, u.x, u.y));
         v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
@@ -459,6 +465,45 @@ export class Board {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
     }
     this.dirty = true;
+  }
+
+  private markerCache = new Map<string, THREE.Group>();
+  private groundMarker(f: FactionId, own: boolean): THREE.Object3D {
+    const key = `${f}-${own}`;
+    let tpl = this.markerCache.get(key);
+    if (!tpl) {
+      tpl = new THREE.Group();
+      const flat = (inner: number, outer: number, color: string, opacity = 1) => new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, 40).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: hex(color), transparent: opacity < 1, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      if (own) {
+        // dicker Ring: schwarz / Markierungsfarbe / weiss / schwarz, dazu leichte Flaeche
+        // thick ring: black / marker colour / white / black, plus a light fill
+        const mk = factionTokens[f].marker;
+        tpl.add(flat(0.465, 0.49, semantic.ink), flat(0.37, 0.465, mk), flat(0.345, 0.37, semantic.white), flat(0.33, 0.345, semantic.ink));
+        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.33, 40).rotateX(-Math.PI / 2),
+          new THREE.MeshBasicMaterial({ color: hex(mk), transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+        tpl.add(fill);
+        tpl.userData.pulse = true;
+      } else {
+        tpl.add(flat(0.4, 0.43, factionTokens[f].primary), flat(0.43, 0.445, semantic.ink));
+      }
+      tpl.position.y = 0.012;
+      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = 3; });
+      this.markerCache.set(key, tpl);
+    }
+    const m = tpl.clone();
+    m.name = 'marker';
+    return m;
+  }
+
+  /** Eigene Ringe pulsieren leicht / own rings pulse gently */
+  pulseMarkers(time: number) {
+    const k = 1 + Math.sin(time * 3.2) * 0.045;
+    for (const v of this.units.values()) {
+      const m = v.group.getObjectByName('marker');
+      if (m && m.userData.pulse) m.scale.set(k, 1, k);
+    }
   }
 
   unitObject(id: number): THREE.Group | undefined {

@@ -87,6 +87,8 @@ export const primitives = {
     korvatRed: '#c8372d',
     korvatOlive: '#6b7a3a',
     dravonAnthracite: '#3a3d42',
+    dravonCamo: '#4d5c2e',
+    dravonBlack: '#1c1d20',
     dravonGold: '#d4a72c',
     alveniaBlue: '#2f6fc4',
     alveniaWhite: '#f2f5fa',
@@ -199,13 +201,14 @@ export const semantic = {
   white: c.white,
 } as const;
 
-export interface FactionTokens { primary: string; secondary: string; terrain: string; ink: string }
+/** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
+export interface FactionTokens { primary: string; secondary: string; terrain: string; ink: string; marker: string }
 export const factionTokens: Record<FactionId, FactionTokens> = {
-  korvat: { primary: c.korvatRed, secondary: c.korvatOlive, terrain: '#a6c95a', ink: c.white },
-  dravon: { primary: c.dravonAnthracite, secondary: c.dravonGold, terrain: '#a9b07a', ink: c.white },
-  alvenia: { primary: c.alveniaBlue, secondary: c.alveniaWhite, terrain: '#86cf7a', ink: c.white },
-  meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900 },
-  velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900 },
+  korvat: { primary: c.korvatRed, secondary: c.korvatOlive, terrain: '#a6c95a', ink: c.white, marker: c.red500 },
+  dravon: { primary: c.dravonCamo, secondary: c.dravonGold, terrain: '#a9b07a', ink: c.white, marker: c.yellow400 },
+  alvenia: { primary: c.alveniaBlue, secondary: c.alveniaWhite, terrain: '#86cf7a', ink: c.white, marker: c.blue400 },
+  meridon: { primary: c.meridonTeal, secondary: c.meridonOrange, terrain: '#9ad28a', ink: c.ink900, marker: c.orange500 },
+  velkar: { primary: c.velkarIce, secondary: c.velkarGreen, terrain: '#9ec9a0', ink: c.ink900, marker: c.velkarGreen },
 };
 
 // ---------- Ebene 3: Komponenten-Tokens / layer 3: component tokens ----------
@@ -262,6 +265,7 @@ export const components = {
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
   },
   fx: { burstSize: '120px', burstStroke: '3' },
+  bark: { maxWidth: '220px' },
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
 } as const;
 

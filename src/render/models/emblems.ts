@@ -65,8 +65,8 @@ export function emblemShapes(f: FactionId): THREE.Shape[] {
       return out;
     }
     case 'alvenia': {
-      const ring = poly(circlePts(1, 16));
-      ring.holes.push(hole(circlePts(0.8, 16)));
+      const ring = poly(circlePts(1, 12));
+      ring.holes.push(hole(circlePts(0.8, 12)));
       return [ring, poly(starPts(5, 0.72, 0.3))];
     }
     case 'meridon': {

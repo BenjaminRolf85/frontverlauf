@@ -502,7 +502,8 @@
     "quality": "Grafikqualität",
     "low": "Niedrig",
     "high": "Hoch",
-    "showGrid": "Raster anzeigen"
+    "showGrid": "Raster anzeigen",
+    "barks": "Sprechblasen"
   },
   "handover": {
     "title": "Wachwechsel",
@@ -629,5 +630,287 @@
     "windDesc": "nur optisch",
     "forecast": "ab Runde {round}: {weather}",
     "setupHint": "Wechselt alle 3 Runden. Regen schwächt Artillerie und Hubschrauber."
+  },
+  "barks": {
+    "korvat": {
+      "select": [
+        "Für das Kollektiv!",
+        "Bereit, Genosse Feldwebel!",
+        "Die Ernte wartet, der Feind auch.",
+        "Jawohl, gemeinsam!"
+      ],
+      "move": [
+        "Im Gleichschritt, Leute!",
+        "Jeder Schritt fürs Kollektiv.",
+        "Die Stiefel drücken, egal."
+      ],
+      "attack": [
+        "Für die Werkbank!",
+        "Zermahlen wie Korn!",
+        "Alle für einen, Feuer!"
+      ],
+      "kill": [
+        "Wieder ein Feld befreit!",
+        "Das Kollektiv siegt!",
+        "Ab in die Furche!"
+      ],
+      "hurt": [
+        "Verflixt und zugenäht!",
+        "Autsch, mein Kreuz!",
+        "#@!% Rübenkraut!"
+      ],
+      "corpse": [
+        "Armer Kerl. Wer pflügt jetzt sein Feld?",
+        "Der hat seine Schicht beendet.",
+        "Gebeine im Acker. Kein gutes Zeichen."
+      ],
+      "wreck": [
+        "Schrott! Daraus gießen wir neue Traktoren.",
+        "Das war mal ein stolzes Fahrzeug.",
+        "Gute Deckung, das Wrack!"
+      ],
+      "forest": [
+        "So allein hier im Wald ... Genossen?",
+        "Hier knackt was im Unterholz.",
+        "Ohne Kollektiv ist der Wald so still."
+      ],
+      "idle": [
+        "Wann gibt es wieder Kohlsuppe?",
+        "Planerfüllung: 112 Prozent!",
+        "Mein Helm ist zu groß. Wie immer."
+      ],
+      "rain": [
+        "Regen ist gut fürs Korn, schlecht für die Socken.",
+        "Nass bis auf die Knochen!"
+      ],
+      "snow": [
+        "Kalt wie die Gulaschkanone im Winter.",
+        "Schnee! Wer hat die Handschuhe?"
+      ]
+    },
+    "dravon": {
+      "select": [
+        "Befehl ist Befehl!",
+        "Zu Befehl, Protektor!",
+        "Stillgestanden!",
+        "Ich warte auf Anweisung."
+      ],
+      "move": [
+        "Marsch, Marsch!",
+        "Kein Zögern, kein Fragen.",
+        "Links, zwo, drei, vier!"
+      ],
+      "attack": [
+        "Für den Protektor!",
+        "Ordnung durch Feuer!",
+        "Widerstand ist Unordnung!"
+      ],
+      "kill": [
+        "Erledigt. Nächster!",
+        "Abgehakt.",
+        "Disziplin gewinnt."
+      ],
+      "hurt": [
+        "Das gibt eine Meldung!",
+        "Donnerkeil!",
+        "#@!% Visier beschlagen!"
+      ],
+      "corpse": [
+        "Ein Schwächling weniger. Weiter.",
+        "Nicht stehen bleiben, das ist ein Befehl.",
+        "Tot. Das war nicht genehmigt."
+      ],
+      "wreck": [
+        "Unordentlich abgestellt.",
+        "Wrack. Melden Sie das!",
+        "Das Ding hat seinen Dienst quittiert."
+      ],
+      "forest": [
+        "Bäume. Undiszipliniert gewachsen.",
+        "Allein im Wald. Kein Befehl dazu.",
+        "Wer hat diesen Wald genehmigt?"
+      ],
+      "idle": [
+        "Meine Stiefel glänzen. Pflicht erfüllt.",
+        "Freizeit ist ein Gerücht.",
+        "Hinter dem Visier lächle ich nicht."
+      ],
+      "rain": [
+        "Regen ist kein Grund zur Schwäche!",
+        "Das Visier rostet schon."
+      ],
+      "snow": [
+        "Schnee? Befehl ist, nicht zu frieren!",
+        "Kälte stählt."
+      ]
+    },
+    "alvenia": {
+      "select": [
+        "Wir stimmen später ab, jetzt los!",
+        "Zur Stelle, im Namen der Republik!",
+        "Einverstanden, mit Vorbehalt.",
+        "Gibt es dazu ein Protokoll?"
+      ],
+      "move": [
+        "Mehrheitlich beschlossen: vorwärts!",
+        "Ich hätte einen Änderungsantrag ...",
+        "Für Freiheit und Formulare!"
+      ],
+      "attack": [
+        "Im Namen des Volkes!",
+        "Die Debatte ist beendet!",
+        "Feuer, nach Abstimmung!"
+      ],
+      "kill": [
+        "Antrag angenommen.",
+        "Ergebnis eindeutig.",
+        "Die Opposition schweigt."
+      ],
+      "hurt": [
+        "Einspruch! Das tat weh!",
+        "Verflixt, meine Brille!",
+        "#@!% Tagesordnung!"
+      ],
+      "corpse": [
+        "Möge er in Frieden ruhen. Einstimmig.",
+        "Jemand sollte das dokumentieren.",
+        "Das hätte man diplomatisch lösen können."
+      ],
+      "wreck": [
+        "Hier hätte eine Abwrackprämie geholfen.",
+        "Das Wrack gibt Deckung. Antrag auf Deckung!",
+        "Kaputt. Wer haftet?"
+      ],
+      "forest": [
+        "Ganz allein ... ist das noch demokratisch?",
+        "Der Wald hat keine Meinung. Unheimlich.",
+        "Hallo? Sitzung im Wald?"
+      ],
+      "idle": [
+        "Ich hätte gern eine Pause, mit Abstimmung.",
+        "Meine Brille beschlägt.",
+        "Steht das im Koalitionsvertrag?"
+      ],
+      "rain": [
+        "Regen. Wer hat dafür gestimmt?",
+        "Die Brille ist nass, ich sehe nur Paragrafen."
+      ],
+      "snow": [
+        "Schnee! Ich beantrage Mützen.",
+        "Kalte Füße, warme Herzen."
+      ]
+    },
+    "meridon": {
+      "select": [
+        "Zeit ist Geld, was gibt’s?",
+        "Guter Kurs heute!",
+        "Was springt für mich raus?",
+        "Ahoi, zu Diensten!"
+      ],
+      "move": [
+        "Kurs gesetzt!",
+        "Schnell rüber, der Markt wartet.",
+        "Ich rieche ein Geschäft."
+      ],
+      "attack": [
+        "Zinsen fällig!",
+        "Feindliche Übernahme!",
+        "Das kostet extra!"
+      ],
+      "kill": [
+        "Verbucht.",
+        "Geschäft abgeschlossen.",
+        "Konkurrenz ausgeschaltet."
+      ],
+      "hurt": [
+        "Das geht auf deine Rechnung!",
+        "Sakra, meine Sonnenbrille!",
+        "#@!% Wechselkurs!"
+      ],
+      "corpse": [
+        "Der hat schlecht verhandelt.",
+        "Ruhe in Frieden, alter Händler.",
+        "Keine Rendite mehr für den da."
+      ],
+      "wreck": [
+        "Altmetall! Was bringt das pro Tonne?",
+        "Totalschaden, aber verwertbar.",
+        "Gute Deckung und gratis."
+      ],
+      "forest": [
+        "Kein Meer, kein Markt, nur Bäume ...",
+        "Hier hört mich keiner feilschen.",
+        "Allein im Wald. Schlechtes Geschäft."
+      ],
+      "idle": [
+        "Hat jemand Fisch zu verkaufen?",
+        "Die Mütze sitzt, das Geschäft läuft.",
+        "Wann ist Hafenfest?"
+      ],
+      "rain": [
+        "Regen! Schirme jetzt zum Sonderpreis!",
+        "Nass, aber im Plus."
+      ],
+      "snow": [
+        "Schnee lässt sich schlecht verkaufen.",
+        "Kalt! Wer handelt mit Decken?"
+      ]
+    },
+    "velkar": {
+      "select": [
+        "Daten bestätigen: einsatzbereit.",
+        "Systeme online.",
+        "Berechnung läuft.",
+        "Antenne ausgerichtet."
+      ],
+      "move": [
+        "Route optimiert.",
+        "Bewegung in Toleranz.",
+        "Laufweg effizient berechnet."
+      ],
+      "attack": [
+        "Ziel erfasst.",
+        "Wahrscheinlichkeit günstig. Feuer.",
+        "Ballistik geprüft."
+      ],
+      "kill": [
+        "Ziel neutralisiert.",
+        "Erwartungswert erreicht.",
+        "Datensatz gelöscht."
+      ],
+      "hurt": [
+        "Fehler 404: Deckung nicht gefunden!",
+        "Sensor beschädigt!",
+        "#@!% Kalibrierung!"
+      ],
+      "corpse": [
+        "Lebenszeichen: null.",
+        "Statistisch war das zu erwarten.",
+        "Notiz: hier nicht verweilen."
+      ],
+      "wreck": [
+        "Materialprobe gesichert.",
+        "Strukturversagen bei hoher Last.",
+        "Wrack bietet 1 Punkt Deckung. Akzeptabel."
+      ],
+      "forest": [
+        "Signalstärke gering. Allein.",
+        "Baumdichte hoch, Sichtweite niedrig.",
+        "Kein Netz im Wald."
+      ],
+      "idle": [
+        "Firmware-Update bitte später.",
+        "Mein Visier spiegelt. Gut so.",
+        "Kaffeespiegel kritisch."
+      ],
+      "rain": [
+        "Niederschlag: 100 Prozent.",
+        "Regen stört die Optik."
+      ],
+      "snow": [
+        "Außentemperatur unter null. Wie geplant.",
+        "Schneetarnung aktiv."
+      ]
+    }
   }
 }
