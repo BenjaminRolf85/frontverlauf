@@ -4,9 +4,8 @@
  */
 import {
   area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
-  neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit,
-} from '../core';
-import { DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, type UnitTypeId } from '../data/balance';
+  neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome } from '../core';
+import { AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
 export type GoalKind =
@@ -60,6 +59,10 @@ export interface Ctx {
   navalNeed: boolean;
   /** gewuenschte Armeegroesse / desired army size */
   desiredArmy: number;
+  /** Belagerungsmodus: volle Armee greift entschlossen an / siege mode: full army attacks decisively */
+  siege: boolean;
+  /** Faktor, um den die Vorsicht im Belagerungsmodus sinkt / factor by which caution drops in siege mode */
+  siegeCaution: number;
   /** Staedte, die gleich ausbilden koennen / cities that can train right away */
   trainable: Set<number>;
 }
@@ -88,7 +91,10 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const my = s.units.filter((u) => u.owner === f);
   const myCities = s.cities.filter((c) => c.owner === f);
   const enemies = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && canSeeUnit(s, f, u));
-  const hostileCities = s.cities.filter((c) => c.owner !== null && c.owner !== f && isHostile(s, f, c.owner) && isExplored(s, f, c.x, c.y));
+  // Ab Runde AI.intelRound kennt die KI alle feindlichen Staedte (Aufklaerung), damit Partien nicht im Nebel stocken
+  // from round AI.intelRound the AI knows all hostile cities (intelligence) so games do not stall in the fog
+  const intel = s.round >= AI.intelRound;
+  const hostileCities = s.cities.filter((c) => c.owner !== null && c.owner !== f && isHostile(s, f, c.owner) && (intel || isExplored(s, f, c.x, c.y)));
   const neutralCities = s.cities.filter((c) => c.owner === null && isExplored(s, f, c.x, c.y));
   const threat: number[][] = Array.from({ length: n }, () => []);
   enemies.forEach((e, i) => {
@@ -103,7 +109,9 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const progress = limit !== null ? Math.min(1, s.round / limit) : 0;
   const pf = points ? 0.12 + 0.45 * progress * progress * progress + (roundsLeft === 0 ? 0.4 : 0) : 0.02;
 
-  const hasMountain = hasTech(s, f, 'mountainTraining');
+  // Zyrr: alle Bodeneinheiten sind Laeufer und waten durchs Wasser / Zyrr: all ground units walk mountains and wade
+  const wader = fa.id === XENO.faction;
+  const hasMountain = hasTech(s, f, 'mountainTraining') || wader;
   const hasDiving = hasTech(s, f, 'diving');
   const hasCoastal = hasTech(s, f, 'coastalEconomy');
   const landOk = new Uint8Array(n), seaOk = new Uint8Array(n), landCost = new Uint8Array(n), seaCost = new Uint8Array(n);
@@ -125,9 +133,12 @@ export function buildCtx(s: GameState, f: number): Ctx {
       const c = cityById(s, t.cityId);
       if (c && c.owner !== null && c.owner !== f && !isHostile(s, f, c.owner)) lok = false;
     }
+    if (water && !bridge && wader) lok = true;
+    // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round)) lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
-    landCost[k] = t.road || t.cityId !== null || bridge ? 1 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : 2;
+    landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
     seaOk[k] = water && (t.terrain !== 'ocean' || hasDiving) ? 1 : 0;
     seaCost[k] = 1;
     if (t.building === 'navalBase' && hasCoastal && territoryOwner(s, t) === f) navalOwn[k] = 1;
@@ -140,7 +151,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     s, f, fa, prof: profileFor(s, f), n, size, my, myCities, enemies, hostileCities, neutralCities, threat,
     points, conquest: !points, roundsLeft, pf,
     landOk, seaOk, landCost, seaCost, navalOwn, realLand, fields: fc.fields, goals: new Map(), navalNeed: false,
-    desiredArmy: 0, trainable: new Set(),
+    desiredArmy: 0, trainable: new Set(), siege: false, siegeCaution: 1,
   };
   const prof = ctx.prof;
   // Punktemodus: Wirtschaft vor Militaer / points mode: economy before military
@@ -149,6 +160,24 @@ export function buildCtx(s: GameState, f: number): Ctx {
   desired += Math.min(4, enemies.filter((e) => myCities.some((c) => dist(c, e) <= 3)).length);
   if (neutralCities.length) desired += 1;
   ctx.desiredArmy = desired;
+  // Volle Armee oder voller Sternespeicher: Stillstand aufbrechen und angreifen
+  // full army or a big star bank: break the standstill and attack
+  let capacity = 0;
+  for (const c of myCities) capacity += unitLimit(s, c);
+  const saturation = capacity > 0 ? my.length / capacity : 0;
+  // Armee kann nicht weiter wachsen (Sold frisst das Einkommen) oder genug Truppen fuer einen Vorstoss
+  // army cannot grow further (upkeep eats the income) or enough troops for a push
+  const stalled = netIncome(s, f) < 4 && my.length >= 6;
+  const strongEnough = my.length >= 8 && s.round >= 18;
+  if (saturation >= 0.8 || (fa.stars > 250 && my.length >= desired) || stalled || strongEnough) {
+    const push = Math.min(1, Math.max(saturation - 0.6, fa.stars / 1000));
+    prof.aggression += 0.6 * push + 0.3;
+    ctx.siegeCaution = 1 - 0.75 * push;
+    prof.caution *= ctx.siegeCaution;
+    prof.attackMin -= 2 + 6 * push;
+    prof.retreatHp *= 1 - push;
+    ctx.siege = true;
+  }
   if (desired > my.length && fa.stars >= 10) {
     for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c)) ctx.trainable.add(c.id);
   }
@@ -379,7 +408,7 @@ function buildGoals(ctx: Ctx): Goal[] {
     const owned = s.cities.filter((o) => o.owner === c.owner).length;
     const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25) +
       (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0);
-    goals.push({ kind: 'city', x: c.x, y: c.y, value, cap: defended ? 5 : 2, distW: 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
+    goals.push({ kind: 'city', x: c.x, y: c.y, value: value + (ctx.siege ? 20 : 0), cap: ctx.siege ? (defended ? 5 : 3) : defended ? 4 : 2, distW: ctx.siege ? 3 : 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
   }
   for (let k = 0; k < ctx.n; k++) {
     const t = s.tiles[k];
@@ -435,6 +464,18 @@ function eligible(u: Unit, g: Goal): boolean {
 function assignGoals(ctx: Ctx) {
   const { s, f, prof } = ctx;
   const goals = buildGoals(ctx);
+  // Hauptziel: erreichbare Stadt, auf die sich die Armee konzentriert / main target: a reachable city the army concentrates on
+  const fighters = ctx.my.filter((u) => isCombat(u) && canCaptureType(u) && !isShip(u));
+  let main: Goal | null = null, bestMain = -Infinity;
+  for (const g of goals) {
+    if (g.kind !== 'city') continue;
+    let n = 0, sum = 0;
+    for (const u of fighters) { const t = turnsTo(ctx, u, g); if (Number.isFinite(t)) { n++; sum += t; } }
+    if (!n) continue;
+    const sc = n * 2 - (sum / n) * 3 + g.value * 0.2;
+    if (sc > bestMain) { bestMain = sc; main = g; }
+  }
+  if (main) { main.value += 25; main.cap = ctx.siege ? 14 : 8; main.distW = 2; }
   const pairs: { u: Unit; g: number; sc: number }[] = [];
   const special = (u: Unit) => u.type === 'spy' || u.type === 'medic';
   for (const u of ctx.my) {
@@ -445,7 +486,7 @@ function assignGoals(ctx: Ctx) {
       continue;
     }
     // Hubschrauber mit wenig Sprit / helicopter low on fuel
-    if (u.fuel !== null && u.fuel <= 2 && !isRefuelSpot(s, f, u.x, u.y)) {
+    if (u.fuel !== null && u.fuel <= 3 && !isRefuelSpot(s, f, u.x, u.y)) {
       ctx.goals.set(u.id, { kind: 'refuel', x: -1, y: -1, value: 100, cap: 99, distW: 0, src: 'refuel', water: false });
       continue;
     }

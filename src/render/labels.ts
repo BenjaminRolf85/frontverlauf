@@ -79,9 +79,9 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
 }
 
 /** Stadtschild / city sign */
-export function cityLabel(name: string, level: number, color: string, ink: string, capital: boolean): THREE.Sprite {
-  const key = `city-${name}-${level}-${color}-${capital}`;
-  const W = 320, H = 80;
+export function cityLabel(name: string, level: number, color: string, ink: string, capital: boolean, pop = 0, need = 0): THREE.Sprite {
+  const key = `city-${name}-${level}-${color}-${capital}-${pop}-${need}`;
+  const W = 320, H = need > 0 ? 112 : 80;
   const m = material(key, W, H, (ctx) => {
     ctx.font = `40px ${primitives.font.display}`;
     const text = name.toUpperCase();
@@ -102,6 +102,18 @@ export function cityLabel(name: string, level: number, color: string, ink: strin
     ctx.fillStyle = ink; ctx.lineWidth = 5; ctx.strokeStyle = semantic.ink;
     ctx.strokeText(text, x + 46 + tw / 2, 34, tw - 10);
     ctx.fillText(text, x + 46 + tw / 2, 34, tw - 10);
+    // Ausbaufortschritt: Punkte bis zur naechsten Stufe / growth progress: pips to the next level
+    if (need > 0) {
+      const n = Math.min(need, 10);
+      const filled = Math.round((Math.min(pop, need) / need) * n);
+      const pw = 20, gap = 5, total = n * pw + (n - 1) * gap;
+      const px = (W - total) / 2, py = 76;
+      ctx.lineWidth = 3; ctx.strokeStyle = semantic.ink;
+      for (let i = 0; i < n; i++) {
+        ctx.fillStyle = i < filled ? semantic.accent : semantic.surfaceRaised;
+        roundRect(ctx, px + i * (pw + gap), py, pw, 18, 5); ctx.fill(); ctx.stroke();
+      }
+    }
   });
   const s = new THREE.Sprite(m);
   s.scale.set(0.95, 0.95 * (H / W), 1);

@@ -119,14 +119,19 @@ export function paint(g: THREE.BufferGeometry, color: string): THREE.BufferGeome
 
 const unitMats = new Map<string, THREE.MeshToonMaterial>();
 /** Einheiten etwas heller und kraeftiger als die Umgebung / units slightly brighter than the surroundings */
-export function unitMaterial(opts: { transparent?: boolean; opacity?: number } = {}): THREE.MeshToonMaterial {
-  const key = `${opts.transparent ? 1 : 0}-${opts.opacity ?? 1}`;
+export function unitMaterial(opts: { transparent?: boolean; opacity?: number; dim?: boolean } = {}): THREE.MeshToonMaterial {
+  const key = `${opts.transparent ? 1 : 0}-${opts.opacity ?? 1}-${opts.dim ? 1 : 0}`;
   let m = unitMats.get(key);
   if (!m) {
-    m = toonMaterial(opts).clone();
-    m.color.setScalar(UNIT_BRIGHTNESS);
+    m = toonMaterial({ transparent: opts.transparent, opacity: opts.opacity }).clone();
+    // erschoepfte Einheiten: dunkler und leicht grau / exhausted units: darker and slightly grey
+    if (opts.dim) m.color.setRGB(UNIT_DIM, UNIT_DIM, UNIT_DIM * 1.15);
+    else m.color.setScalar(UNIT_BRIGHTNESS);
+    m.userData.unitMat = true;
     unitMats.set(key, m);
   }
   return m;
 }
 export const UNIT_BRIGHTNESS = 1.16;
+/** Helligkeit erschoepfter Einheiten / brightness of exhausted units */
+export const UNIT_DIM = 0.6;

@@ -223,7 +223,9 @@
     "preach": "Preach",
     "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
     "burn": "Flames",
-    "burnDesc": "Fire ignores terrain cover."
+    "burnDesc": "Fire ignores terrain cover.",
+    "wade": "Wade",
+    "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there."
   },
   "stats": {
     "cost": "Price",
@@ -437,7 +439,10 @@
     "crashWarningConfirm": "End anyway",
     "pendingReward": "Choose a city reward first.",
     "noIncomeNext": "No income next round (uprising)",
-    "slowed": "Slowed: 1 tile only"
+    "slowed": "Slowed: 1 tile only",
+    "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
+    "upkeepUnit": "Upkeep {n} per round",
+    "upkeepFree": "No upkeep (core troop)"
   },
   "actions": {
     "move": "Move",
@@ -589,7 +594,8 @@
     "low": "Low",
     "high": "High",
     "showGrid": "Show grid",
-    "barks": "Speech bubbles"
+    "barks": "Speech bubbles",
+    "ambience": "Ambience (weather, battle noise)"
   },
   "handover": {
     "title": "Change of watch",
@@ -1197,5 +1203,25 @@
     "computeNeed": "Needs {n} compute",
     "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
     "computeState": "Compute {have} ({dc} data centers, {pp} power plants)"
+  },
+  "hazards": {
+    "title": "Map features",
+    "none": "None",
+    "normal": "Normal",
+    "many": "Many",
+    "setupHint": "Volcanoes, jungle, crash sites and old wrecks on the map.",
+    "volcano": "Volcano",
+    "volcanoIn": "Eruption in {n} rounds",
+    "volcanoNow": "Eruption this round",
+    "volcanoDesc": "Burns the adjacent tiles: {dmg} damage, then {r} rounds of lava.",
+    "lava": "Lava",
+    "lavaDesc": "Burns for {n} more rounds. Impassable.",
+    "jungle": "Jungle",
+    "jungleDesc": "Every step in or out ends the move. Vehicles only as their first step. Foot troops: cover {def}.",
+    "crash": "Crash site",
+    "crashDesc": "Salvage: {n} stars and recon, Zyrr get a saucer. Cover +1.",
+    "crashLooted": "Crash site (salvaged): cover +1",
+    "eruption": "Volcanic eruption!",
+    "salvaged": "Crash site salvaged: +{n} stars"
   }
 }

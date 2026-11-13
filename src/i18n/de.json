@@ -223,7 +223,9 @@
     "preach": "Predigen",
     "preachDesc": "Rekrutiert neue Einheiten auf freien Nachbarfeldern. Der Prediger ist danach erschöpft.",
     "burn": "Flammen",
-    "burnDesc": "Feuer ignoriert Deckung durch Gelände."
+    "burnDesc": "Feuer ignoriert Deckung durch Gelände.",
+    "wade": "Waten",
+    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen."
   },
   "stats": {
     "cost": "Preis",
@@ -437,7 +439,10 @@
     "crashWarningConfirm": "Trotzdem beenden",
     "pendingReward": "Erst eine Stadtbelohnung wählen.",
     "noIncomeNext": "Kein Einkommen in der nächsten Runde (Aufstand)",
-    "slowed": "Gebremst: nur 1 Feld"
+    "slowed": "Gebremst: nur 1 Feld",
+    "perRoundUpkeep": "{net} pro Runde ({n} Einkommen, −{up} Sold)",
+    "upkeepUnit": "Sold {n} pro Runde",
+    "upkeepFree": "Kein Sold (Stammtruppe)"
   },
   "actions": {
     "move": "Bewegen",
@@ -589,7 +594,8 @@
     "low": "Niedrig",
     "high": "Hoch",
     "showGrid": "Raster anzeigen",
-    "barks": "Sprechblasen"
+    "barks": "Sprechblasen",
+    "ambience": "Atmosphäre (Wetter, Gefechtslärm)"
   },
   "handover": {
     "title": "Wachwechsel",
@@ -1197,5 +1203,25 @@
     "computeNeed": "Benötigt {n} Rechenleistung",
     "noResearch": "NEXUS forscht nicht. Baue Rechenzentren und Kraftwerke für mehr Rechenleistung.",
     "computeState": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke)"
+  },
+  "hazards": {
+    "title": "Besonderheiten",
+    "none": "Keine",
+    "normal": "Normal",
+    "many": "Viele",
+    "setupHint": "Vulkane, Dschungel, Absturzstellen und alte Wracks auf der Karte.",
+    "volcano": "Vulkan",
+    "volcanoIn": "Ausbruch in {n} Runden",
+    "volcanoNow": "Ausbruch diese Runde",
+    "volcanoDesc": "Verbrennt die Nachbarfelder: {dmg} Schaden, danach {r} Runden Lava.",
+    "lava": "Lava",
+    "lavaDesc": "Brennt noch {n} Runden. Nicht betretbar.",
+    "jungle": "Dschungel",
+    "jungleDesc": "Jeder Schritt hinein oder heraus beendet die Bewegung. Fahrzeuge nur als ersten Schritt. Fußtruppen: Deckung {def}.",
+    "crash": "Absturzstelle",
+    "crashDesc": "Bergung: {n} Sterne und Aufklärung, Zyrr erhalten eine Untertasse. Deckung +1.",
+    "crashLooted": "Absturzstelle (geborgen): Deckung +1",
+    "eruption": "Vulkanausbruch!",
+    "salvaged": "Absturzstelle geborgen: +{n} Sterne"
   }
 }

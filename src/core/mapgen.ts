@@ -261,6 +261,7 @@ function assignBiomes(seed: number, size: number, tiles: Tile[], factions: Facti
         steppe: Math.max(0, 0.45 - Math.abs(lat - 0.62)) * 0.9,
         tundra: Math.max(0, 0.32 - lat) * 2.2,
         swamp: nearWater(x, y) && t.terrain !== 'mountain' ? 0.18 : 0,
+        jungle: 0,
       };
       const home = t.home !== null ? HOME_BIOME[factions[t.home]] : {};
       for (const [b, v] of Object.entries(home)) w[b as BiomeId] += v as number;

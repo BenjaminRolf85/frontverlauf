@@ -22,7 +22,7 @@ describe('Start', () => {
       expect(units[0].x).toBe(hq.x);
       expect(units[0].y).toBe(hq.y);
       expect(f.stars).toBe(25);
-      expect(f.techs).toEqual(FACTIONS[f.id].startTech ? [FACTIONS[f.id].startTech] : []);
+      expect(f.techs).toEqual([...(FACTIONS[f.id].startTech ? [FACTIONS[f.id].startTech] : []), ...(FACTIONS[f.id].extraTechs ?? [])]);
     }
     expect(s.round).toBe(1);
     expect(s.current).toBe(0);
@@ -35,18 +35,19 @@ describe('Start', () => {
 });
 
 describe('Einkommen / income', () => {
-  it('city 5 per level, HQ +5, factory +5, government quarter +5', () => {
+  it('city income per level, HQ, factory and government quarter bonuses', () => {
     const s = blankGame();
     const hq = addCity(s, 2, 2, 0, { hq: true, level: 1 });
     const c = addCity(s, 7, 7, 0, { level: 3 });
-    expect(cityIncome(s, hq)).toBe(5 + 5);
-    expect(cityIncome(s, c)).toBe(15);
+    const L = INCOME.perCityLevel;
+    expect(cityIncome(s, hq)).toBe(L + INCOME.hq);
+    expect(cityIncome(s, c)).toBe(3 * L);
     c.factory = true;
-    expect(cityIncome(s, c)).toBe(20);
+    expect(cityIncome(s, c)).toBe(3 * L + INCOME.factory);
     c.govQuarter = true;
-    expect(cityIncome(s, c)).toBe(25);
-    expect(income(s, 0)).toBe(35);
-    expect(INCOME).toMatchObject({ perCityLevel: 5, hq: 5, factory: 5, govQuarter: 5 });
+    expect(cityIncome(s, c)).toBe(3 * L + INCOME.factory + INCOME.govQuarter);
+    expect(income(s, 0)).toBe(L + INCOME.hq + 3 * L + INCOME.factory + INCOME.govQuarter);
+    expect(INCOME).toMatchObject({ perCityLevel: 3, hq: 4, factory: 4, govQuarter: 4 });
   });
 
   it('income is credited at the start of the own turn', () => {
@@ -55,8 +56,8 @@ describe('Einkommen / income', () => {
     addCity(s, 8, 8, 1, { hq: true });
     s.factions[0].stars = 3;
     untilTurnOf(s, 0);
-    expect(s.factions[0].stars).toBe(3 + 15);
-    expect(s.factions[1].stars).toBe(10);
+    expect(s.factions[0].stars).toBe(3 + 2 * INCOME.perCityLevel + INCOME.hq);
+    expect(s.factions[1].stars).toBe(INCOME.perCityLevel + INCOME.hq);
   });
 
   it('no income in round 1 (start stars only)', () => {
@@ -67,7 +68,7 @@ describe('Einkommen / income', () => {
     expect(s.factions[1].stars).toBe(25);
     endTurn(s);
     expect(s.round).toBe(2);
-    expect(s.factions[0].stars).toBe(25 + 10);
+    expect(s.factions[0].stars).toBe(25 + INCOME.perCityLevel + INCOME.hq);
   });
 
   it('neutral settlements produce no income', () => {
@@ -85,7 +86,7 @@ describe('Einkommen / income', () => {
     setTerrain(s, 5, 3, 'mountain', { building: 'mine' });
     setTerrain(s, 3, 4, 'plain', { building: 'storehouse' }); // zaehlt nicht / does not count
     expect(logisticsIncome(s, 4, 4)).toBe(15);
-    expect(cityIncome(s, c)).toBe(5 + 15);
+    expect(cityIncome(s, c)).toBe(INCOME.perCityLevel + 15);
     // Deckel 40 / cap 40
     expect(INCOME.logisticsMax).toBe(40);
     const s2 = blankGame();
@@ -97,7 +98,7 @@ describe('Einkommen / income', () => {
     const s = blankGame();
     addCity(s, 2, 2, 1, { hq: true });
     const base = income(s, 1);
-    for (const [d, bonus] of [['easy', 0], ['normal', 0], ['hard', 5], ['extreme', 10]] as const) {
+    for (const [d, bonus] of [['easy', 0], ['normal', 0], ['hard', INCOME.aiBonus.hard], ['extreme', INCOME.aiBonus.extreme]] as const) {
       s.factions[1].human = false; s.factions[1].difficulty = d;
       expect(income(s, 1)).toBe(base + bonus);
     }

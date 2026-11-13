@@ -5,7 +5,7 @@
  */
 import {
   ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
-  type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
+  type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
@@ -86,6 +86,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   n.className = 'screen';
   const cfg = {
     weather: true,
+    hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
     players: [
@@ -110,6 +111,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('weather.title'))}</span>
           ${segmented('weather', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.weather ? 'on' : 'off')}
           <span class="muted">${esc(t('weather.setupHint'))}</span></div>
+        <div class="field"><span class="label">${esc(t('hazards.title'))}</span>
+          ${segmented('hazards', (['none', 'normal', 'many'] as HazardLevel[]).map((h) => ({ value: h, label: t(`hazards.${h}`) })), cfg.hazards)}
+          <span class="muted">${esc(t('hazards.setupHint'))}</span></div>
         ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
           ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
@@ -174,6 +178,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'mapType') cfg.mapType = v as MapType;
       else if (key === 'stars') cfg.startStars = Number(v);
       else if (key === 'weather') cfg.weather = v === 'on';
+      else if (key === 'hazards') cfg.hazards = v as HazardLevel;
       else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
       else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
@@ -201,6 +206,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         startStars: cfg.mode === 'sandbox' ? cfg.startStars : START.stars,
         roundLimit: cfg.mode === 'points' ? MODES.pointsRounds : null,
         weather: cfg.weather,
+        hazards: cfg.hazards,
       });
       n.remove();
       host.startGame(config);
@@ -218,6 +224,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
       <div class="field"><span class="label">${esc(t('settings.language'))}</span>${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}</div>
       <div class="field"><span class="label">${esc(t('settings.music'))}</span>${onOff('music', s.music)}</div>
       <div class="field"><span class="label">${esc(t('settings.effects'))}</span>${onOff('effects', s.effects)}</div>
+      <div class="field"><span class="label">${esc(t('settings.ambience'))}</span>${onOff('ambience', s.ambience)}</div>
       <div class="field"><span class="label">${esc(t('settings.animations'))}</span>${onOff('animations', s.animations)}</div>
       <div class="field"><span class="label">${esc(t('settings.barks'))}</span>${onOff('barks', s.barks)}</div>
       <div class="field"><span class="label">${esc(t('settings.aiSpeed'))}</span>${segmented('aiSpeed', ['slow', 'normal', 'fast', 'instant'].map((v) => ({ value: v, label: t(`settings.${v}`) })), s.aiSpeed)}</div>
@@ -231,7 +238,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
     if (!seg) return;
     const k = seg.dataset.seg!, v = seg.dataset.value!;
     if (k === 'lang') { s.lang = v as 'de' | 'en'; setLanguage(s.lang); }
-    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks') s[k] = v === 'on';
+    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks' || k === 'ambience') s[k] = v === 'on';
     else if (k === 'aiSpeed') s.aiSpeed = v as Settings['aiSpeed'];
     else if (k === 'quality') s.quality = v as Settings['quality'];
     host.applySettings();

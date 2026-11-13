@@ -55,6 +55,11 @@
   --p-color-tundra300: #b9cfd6;
   --p-color-swamp400: #6f8f4a;
   --p-color-swamp600: #4c6a3a;
+  --p-color-jungle400: #2f8a3c;
+  --p-color-jungle600: #1e5e2a;
+  --p-color-lava500: #ff5a1a;
+  --p-color-lava300: #ffc23a;
+  --p-color-basalt700: #3a3330;
   --p-color-hills400: #7cc04d;
   --p-color-cactus500: #4f9a4a;
   --p-color-reed500: #8a8f3a;
@@ -193,6 +198,11 @@
   --s-biome-tundra-dark: #b9cfd6;
   --s-biome-swamp: #6f8f4a;
   --s-biome-swamp-dark: #4c6a3a;
+  --s-biome-jungle: #2f8a3c;
+  --s-biome-jungle-dark: #1e5e2a;
+  --s-lava: #ff5a1a;
+  --s-lava-glow: #ffc23a;
+  --s-basalt: #3a3330;
   --s-biome-hills: #7cc04d;
   --s-cactus: #4f9a4a;
   --s-reed: #8a8f3a;

@@ -9,7 +9,7 @@ import { semantic } from '../design/tokens';
 import { paint } from './toon';
 
 /** Zusaetzliche Hoehe der Feldoberkante je Landschaft / extra tile top height per biome */
-export const BIOME_LIFT: Record<BiomeId, number> = { grassland: 0, hills: 0.07, desert: 0.01, steppe: 0, tundra: 0.02, swamp: -0.03 };
+export const BIOME_LIFT: Record<BiomeId, number> = { grassland: 0, hills: 0.07, desert: 0.01, steppe: 0, tundra: 0.02, swamp: -0.03, jungle: 0.01 };
 
 /** Oberflaechenfarbe nach Gelaende und Landschaft / top colour by terrain and biome */
 export function biomeTop(terrain: TerrainId, biome: BiomeId | undefined): { top: string; side?: string } | null {
@@ -21,6 +21,7 @@ export function biomeTop(terrain: TerrainId, biome: BiomeId | undefined): { top:
     steppe: { top: semantic.biomeSteppe, side: semantic.biomeSteppeDark },
     tundra: { top: semantic.biomeTundra, side: semantic.biomeTundraDark },
     swamp: { top: semantic.biomeSwamp, side: semantic.biomeSwampDark },
+    jungle: { top: semantic.biomeJungle, side: semantic.biomeJungleDark },
   };
   if (terrain === 'mountain') {
     if (biome === 'tundra') return { top: semantic.biomeTundraDark, side: semantic.terrainMountainDark };

@@ -3,11 +3,12 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
+import { burning, isJungle } from './hazards';
 import type { City, Faction, GameState, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
@@ -146,6 +147,29 @@ export function income(s: GameState, f: number): number {
   return inc;
 }
 
+/** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
+export function unitUpkeep(u: Unit): number {
+  const flat = UPKEEP.flat[u.type];
+  if (flat !== undefined) return flat;
+  // Landungsboot: Wert der getragenen Einheit / landing boat: value of the carried unit
+  const type = u.type === 'landingBoat' && u.carried ? u.carried : u.type;
+  const fl = UPKEEP.flat[type];
+  if (fl !== undefined) return fl;
+  return Math.ceil((UNITS[type].cost ?? 0) * UPKEEP.share);
+}
+/** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
+export function paidUnits(s: GameState, f: number): Unit[] {
+  return s.units.filter((u) => u.owner === f).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
+}
+/** Gesamtsold pro Runde / total upkeep per round */
+export function upkeep(s: GameState, f: number): number {
+  let sum = 0;
+  for (const u of paidUnits(s, f)) sum += unitUpkeep(u);
+  return sum;
+}
+/** Netto-Einkommen nach Sold / net income after upkeep */
+export const netIncome = (s: GameState, f: number) => income(s, f) - upkeep(s, f);
+
 export function researchCenterPoints(s: GameState, t: Tile): number {
   if (t.researchBuilt === null) return 0;
   const steps = Math.floor((s.round - t.researchBuilt) / SCORE.researchCenterInterval);
@@ -248,7 +272,11 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
           disembark = true; stop = true;
         }
       } else {
-        if (!walkable(t)) {
+        // Zyrr waten langsam durchs Wasser: jedes Wasserfeld beendet die Bewegung
+        // Zyrr wade slowly through water: every water tile ends the movement
+        if (has(u, 'wade') && !walkable(t)) {
+          stop = true;
+        } else if (!walkable(t)) {
           if (t.building === 'navalBase' && territoryOwner(s, t) === f && hasTech(s, f, 'coastalEconomy')) {
             embark = true; stop = true;
           } else continue;
@@ -257,6 +285,19 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
           if ((t.terrain === 'forest' || t.terrain === 'mountain') && !t.road) stop = true;
           if (roadLike(fromTile) && roadLike(t) && (fromTile.road || t.road || isBridge(t) || isBridge(fromTile))) cost = 0.5;
         }
+      }
+      // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
+      if (has(u, 'wade') && !walkable(fromTile)) stop = true;
+      // Lava und Vulkangipfel sind unpassierbar / lava and volcano peaks are impassable
+      if (t.volcano || burning(s, t)) continue;
+      // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
+      // jungle: vehicles only as the first step, every step in or out ends the move
+      if (!fly && !ship) {
+        if (isJungle(t)) {
+          if (JUNGLE.vehicles.includes(u.type) && cur.cost > 0) continue;
+          stop = true;
+        }
+        if (isJungle(fromTile)) stop = true;
       }
       const total = cur.cost + cost;
       if (total > maxMove + 1e-9) continue;
@@ -310,7 +351,9 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   // Xeno-Boden schuetzt Alien-Einheiten / xeno ground protects alien units
   if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
-  if (t.remains?.kind === 'wreck' && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  // Dschungel: Hinterhalt fuer Fusstruppen / jungle: ambush cover for foot troops
+  if (isJungle(t) && !JUNGLE.vehicles.includes(def.type) && !isShip(def)) b = Math.max(b, JUNGLE.footDefense);
   return b;
 }
 
@@ -326,13 +369,19 @@ export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview
   const total = attackForce + defenseForce;
   const toDefender = total > 0 ? Math.round((attackForce / total) * a.attack * COMBAT.damageFactor) : 0;
   const kills = toDefender >= def.hp;
-  const retaliates = !kills && !has(def, 'noRetaliate') && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
+  const retaliates = !kills && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
   const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor) : 0;
   return { toDefender, toAttacker, kills, retaliates };
 }
 
+/** Watende Einheit unter Wasser: greift nicht an, schlaegt nicht zurueck / wading unit under water: no attack, no retaliation */
+export function submerged(s: GameState, u: Unit): boolean {
+  if (!has(u, 'wade')) return false;
+  return !walkable(tileAt(s, u.x, u.y)!);
+}
+
 export function attackTargets(s: GameState, u: Unit): Unit[] {
-  if (!canAttackNow(u)) return [];
+  if (!canAttackNow(u) || submerged(s, u)) return [];
   const r = effectiveRange(s, u);
   return s.units.filter((o) =>
     o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) <= r && canSeeUnit(s, u.owner, o));
@@ -396,13 +445,23 @@ export function isRefuelSpot(s: GameState, f: number, x: number, y: number): boo
 export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
   if (u.fuel === null) return true;
   if (isRefuelSpot(s, u.owner, x, y)) return true;
-  const fuelAfter = u.fuel - fuelBurn(s);
-  if (fuelAfter <= 0) return false;
-  const range = fuelAfter * UNITS[u.type].move;
-  for (let yy = 0; yy < s.size; yy++) {
-    for (let xx = 0; xx < s.size; xx++) {
-      if (dist({ x, y }, { x: xx, y: yy }) <= range && isRefuelSpot(s, u.owner, xx, yy)) return true;
+  let fuel = u.fuel - fuelBurn(s);
+  if (fuel <= 0) return false;
+  // Rueckflug mit dem vorhersagbaren Wetter der naechsten Runden (Regen bremst, Wind verbraucht mehr Sprit)
+  // return flight with the predictable weather of the next rounds (rain slows, wind burns more fuel)
+  const wx = (r: number): WeatherId => (s.config.weather === false ? 'clear' : weatherFor(s.config.seed, r));
+  let range = 0;
+  for (let i = 1; i <= 12 && fuel > 0; i++) {
+    const w = wx(s.round + i);
+    let mv = UNITS[u.type].move;
+    if (w === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) mv = Math.max(1, mv + WEATHER.rain.moveDelta);
+    range += mv;
+    for (let yy = Math.max(0, y - range); yy <= Math.min(s.size - 1, y + range); yy++) {
+      for (let xx = Math.max(0, x - range); xx <= Math.min(s.size - 1, x + range); xx++) {
+        if (isRefuelSpot(s, u.owner, xx, yy)) return true;
+      }
     }
+    fuel -= w === 'wind' ? WEATHER.wind.fuelBurn : 1;
   }
   return false;
 }

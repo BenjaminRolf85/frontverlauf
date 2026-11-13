@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } from '../core';
+import { attackTargets, levelUpCost, burning, canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { tList } from '../i18n/i18n';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -37,6 +37,15 @@ const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: P
   safe(models.buildingGeometry, f ? factionTokens[f].secondary : semantic.neutral, k, f);
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
 const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
+const volcanoGeometry = (v: number) => safe(models.volcanoGeometry, semantic.basalt, v);
+const volcanoSmokeGeometry = () => safe(models.volcanoSmokeGeometry, null);
+const lavaGeometry = (v: number) => safe(models.lavaGeometry, semantic.lava, v);
+const crashSiteGeometry = (v: number) => safe(models.crashSiteGeometry, semantic.metal, v);
+const jungleDecoration = (v: number) => safe(models.jungleDecoration, semantic.biomeJungleDark, v);
+/** Deckkraft erschoepfter Einheiten / opacity of exhausted units */
+const DONE_OPACITY = 0.5;
+/** Eintauchtiefe watender Einheiten / sink depth of wading units */
+const WADE_SINK = 0.14;
 const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
 import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
@@ -239,14 +248,24 @@ export class Board {
         const occ = occupied.has(k);
         // Pflanzen wiegen sich / plants sway
         const plant = t.terrain === 'forest' || t.resource === 'farmland' || (t.terrain === 'plain' && !t.resource);
-        if (occ && t.terrain === 'mountain') {
+        const jungle = t.terrain === 'forest' && t.biome === 'jungle';
+        if (t.volcano) {
+          // Vulkan statt Berggipfel, Rauch darueber / volcano instead of the peak, smoke above
+          addDeco(volcanoGeometry(variant), at());
+          addDeco(volcanoSmokeGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.78, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)), true);
+        } else if (occ && t.terrain === 'mountain') {
           // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
           addDeco(decorationGeometry(t.terrain, null, variant), new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)));
         } else if (t.xeno && t.terrain !== 'mountain' && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
           // Xeno-Flora statt Baeumen und Graesern / xeno flora instead of trees and grass
           if (!occ && (!hasStructure || t.building === 'road')) addDeco(t.resource ? decorationGeometry(t.terrain, t.resource, variant) : xenoDecoration((x * 7 + y * 13 + x * y) % 6), at(), !t.resource);
+        } else if (jungle && !t.resource) {
+          // dichter Dschungel, auch neben Einheiten sichtbar am Rand / dense jungle, kept at the edge next to units
+          if (!hasStructure || t.building === 'road') addDeco(jungleDecoration((x * 5 + y * 11) % 4), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.8, 0.45)) : at(), true);
         } else if (!occ && (!hasStructure || t.building === 'road')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
-        if (!t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        // brennende Lava nach einem Ausbruch / burning lava after an eruption
+        if (burning(s, t)) addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off));
+        if (!jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische und Kueste / fish and coast
         if (t.terrain === 'shallow' || t.terrain === 'ocean') {
           if (t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
@@ -301,7 +320,8 @@ export class Board {
         }
         if (t.grandProject) addDeco(buildingGeometry(t.grandProject, ownerFaction), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
         if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
-        if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
+        else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;
           addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
@@ -465,7 +485,9 @@ export class Board {
       if (this.showLabels && names.length) {
         const color = fid ? factionTokens[fid].primary : semantic.neutral;
         const ink = fid ? factionTokens[fid].ink : semantic.text;
-        const label = cityLabel(names[c.nameIndex % names.length], c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner);
+        // Stufe und Fortschritt zur naechsten Stufe (nur fuer Staedte von Fraktionen) / level and progress to the next level (faction cities only)
+        const need = c.owner !== null ? levelUpCost(s, c) : 0;
+        const label = cityLabel(names[c.nameIndex % names.length], c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
         label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
         label.center.set(0.5, 1);
         this.labelLayer.add(label);
@@ -509,10 +531,14 @@ export class Board {
       }
       if (!this.isAnimating(u.id)) {
         v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        // Zyrr unter Wasser: halb eingetaucht / Zyrr under water: half submerged
+        if (isWading(s, u)) v.group.position.y -= WADE_SINK;
         v.group.scale.setScalar(1);
       }
       const ft = factionTokens[f];
-      const done = u.owner === s.current && (u.exhausted || u.fresh);
+      // keine Aktion mehr moeglich (nur im Zug eines Menschen) / no action left (only during a human turn)
+      const done = u.owner === s.current && s.factions[s.current].human &&
+        (u.exhausted || u.fresh || u.attacked || (u.moved && attackTargets(s, u).length === 0));
       const badgeKey = `${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}`;
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
@@ -525,10 +551,10 @@ export class Board {
       const model = v.group.getObjectByName('model')!;
       model.position.y = (u.type === 'heli' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
+      const mat = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : done ? unitMaterial({ dim: true, transparent: true, opacity: DONE_OPACITY }) : unitMaterial();
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
-        if (mesh.isMesh && mesh.material === unitMaterial()) mesh.material = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : unitMaterial();
-        else if (mesh.isMesh && !submerged && mesh.material === unitMaterial({ transparent: true, opacity: 0.55 })) mesh.material = unitMaterial();
+        if (mesh.isMesh && (mesh.material as THREE.Material).userData?.unitMat && mesh.material !== mat) mesh.material = mat;
       });
     }
     for (const [id, v] of this.units) {

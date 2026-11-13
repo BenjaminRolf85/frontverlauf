@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { contactStars, embassyCost, embassyIncome, isHostile, score } from '../src/core';
-import { ECON, type TechId } from '../src/data/balance';
+import { ECON, type TechId, INCOME } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, untilTurnOf } from './helpers';
 
 describe('Erstkontakt / first contact', () => {
@@ -179,9 +179,9 @@ describe('Botschaft / embassy', () => {
     expect(embassyIncome(s, 1)).toBe(10);
     expect(embassyIncome(s, 2)).toBe(0);
     endTurn(s);
-    expect(s.factions[1].stars).toBe(before1 + 10 + 10); // HQ 10 + Botschaft 10
+    expect(s.factions[1].stars).toBe(before1 + INCOME.perCityLevel + INCOME.hq + 10); // HQ + Botschaft 10 / HQ + embassy 10
     untilTurnOf(s, 0);
-    expect(s.factions[0].stars).toBe(475 + 10 + 10);
+    expect(s.factions[0].stars).toBe(475 + INCOME.perCityLevel + INCOME.hq + 10);
   });
 
   it('an embassy ends when the host HQ is lost', () => {

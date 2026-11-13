@@ -14,7 +14,7 @@ export interface Tile {
   cityId: number | null;
   /** Stadtgebiet / territory of city */
   territory: number | null;
-  feature: 'bunker' | 'radar' | null;
+  feature: 'bunker' | 'radar' | 'crashSite' | null;
   /** Index der Fraktion, deren Heimatgebiet hier liegt / index of the faction whose home region is here */
   home: number | null;
   outpost: { owner: number } | null;
@@ -37,6 +37,12 @@ export interface Tile {
   barrier?: { owner: number } | null;
   /** terraformt: Xeno-Boden der Zyrr / terraformed: Zyrr xeno ground */
   xeno?: boolean;
+  /** Vulkan auf diesem Bergfeld / volcano on this mountain tile */
+  volcano?: boolean;
+  /** brennt bis einschliesslich dieser Runde (Lava) / burns until and including this round (lava) */
+  lava?: number;
+  /** Absturzstelle bereits geborgen / crash site already salvaged */
+  looted?: boolean;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -136,6 +142,8 @@ export interface GameConfig {
   startStars: number;
   /** Wetter an (Standard) / weather on (default) */
   weather?: boolean;
+  /** Kartenbesonderheiten: Vulkane, Absturzstellen, Wracks, Dschungel / map gimmicks */
+  hazards?: 'none' | 'normal' | 'many';
   /** Spielrundenlimit (Punktemodus) / round limit (points mode) */
   roundLimit: number | null;
 }
@@ -198,6 +206,8 @@ export type GameEvent =
   | { t: 'connected'; city: number }
   | { t: 'eliminated'; faction: number }
   | { t: 'turn'; faction: number; round: number; income: number; weather?: string }
+  | { t: 'eruption'; x: number; y: number; tiles: Pos[] }
+  | { t: 'crashSite'; x: number; y: number; faction: number; unit?: number }
   | { t: 'gameOver'; winner: number | null };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';

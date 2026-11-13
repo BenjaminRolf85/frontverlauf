@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  erupts, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -104,7 +104,9 @@ function lazyUnit(ctx: Ctx, u: Unit): boolean {
 const assaultCache = new WeakMap<Goal, number>();
 
 /** Vorsichtsfaktor fuer ein Ziel: bei lokaler Ueberlegenheit Sturm / caution factor: assault on local superiority */
-export function cautionFor(ctx: Ctx, g: Goal): number {
+export function cautionFor(ctx: Ctx, g: Goal, u?: Unit): number {
+  // Hubschrauber bleiben auch bei Belagerung vorsichtig / helicopters stay careful even in a siege
+  if (u && u.fuel !== null && ctx.siege) return 1 / ctx.siegeCaution;
   if (g.kind === 'retreat' || g.kind === 'refuel' || g.x < 0) return 1;
   const cached = assaultCache.get(g);
   if (cached !== undefined) return cached;
@@ -119,6 +121,8 @@ export function cautionFor(ctx: Ctx, g: Goal): number {
   let f = 1;
   if (g.kind === 'defend') f = 0.6;
   if ((g.kind === 'city' || g.kind === 'hunt' || g.kind === 'stage') && own >= opp * 1.3 / ctx.prof.aggression) f = 0.3 * (1 - ctx.prof.late * 0.6);
+  // Belagerung: volle Armee rueckt trotz Gefahr vor / siege: a full army advances despite danger
+  else if (ctx.siege && (g.kind === 'city' || g.kind === 'hunt' || g.kind === 'stage')) f = 0.35;
   assaultCache.set(g, f);
   return f;
 }
@@ -137,10 +141,23 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   let v = 0;
   if (u.fuel !== null) {
     if (!heliSafe(s, u, x, y)) return -1e6;
-    if (!heliSecure(ctx, u, x, y)) v -= 40;
+    if (!heliSecure(ctx, u, x, y)) v -= u.fuel <= 3 ? 200 : 40;
+    // knapper Sprit: Tankstelle muss von dort tatsaechlich erreichbar sein (Gegner und Kontrollzonen blockieren)
+    // low fuel: a refuel spot must actually be reachable from there (enemies and control zones block)
+    if (u.fuel - fuelBurn(s) <= 2 && !isRefuelSpot(s, f, x, y)) {
+      const ghost: Unit = { ...u, x, y, moved: false, attacked: false, exhausted: false, fresh: false, moveDone: false };
+      const spots = reachable(s, ghost, true).filter((q) => isRefuelSpot(s, f, q.x, q.y)).length;
+      // zu wenige Landeplaetze: ein Gegner kann den Rueckweg noch versperren / too few landing tiles: an enemy may still block the way
+      // nach diesem Zug kaum Sprit: lieber an der Tankstelle bleiben / little fuel after this turn: prefer staying at a refuel spot
+      v -= 100;
+      if (spots === 0) v -= 300;
+      else if (spots < 3) v -= 150;
+    }
+    // eine Runde Sprit als Reserve, falls Gegner den Rueckweg blockieren / one round of fuel in reserve in case enemies block the way back
+    if (u.fuel > 1 && !isRefuelSpot(s, f, x, y) && !heliSafe(s, { ...u, fuel: u.fuel - 1 }, x, y)) v -= 60;
   }
   const fd = fieldAt(ctx, fld, x, y, layer);
-  v -= (Number.isFinite(fd) ? fd : 400) * 3;
+  v -= (Number.isFinite(fd) ? fd : 400) * (ctx.siege && u.fuel === null ? 5 : 3);
   const onGoal = g.x === x && g.y === y;
   if (onGoal) {
     if (g.kind === 'village') v += 30;
@@ -158,7 +175,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     const capturer = !fly && type !== 'spy' && type !== 'artillery' && type !== 'medic' && layer === 0;
     if (c.owner === f) {
       // blockiert Ausbildung; eine frische Einheit verteidigt die Stadt ebenso / blocks training; a fresh unit defends as well
-      if (ctx.trainable.has(c.id)) v -= 18;
+      // Stadtfeld fuer Ausbildung freimachen, besonders mit vollem Sternekonto / clear the city tile for training, especially with stars to spend
+      if (ctx.trainable.has(c.id)) v -= ctx.fa.stars >= 40 ? 50 : 18;
       else if (!(onGoal && g.kind === 'defend')) v -= 4;
     } else if (capturer && c.owner === null) v += 22;
     else if (capturer) v += 14 * prof.aggression;
@@ -171,9 +189,14 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     let pen = dmg >= u.hp ? (w + 12) * 1.4 : (dmg / u.hp) * w * 1.1;
     if (type === 'artillery') pen *= 1.8;
     if (type === 'medic' || type === 'spy') pen *= 1.3;
-    v -= pen * prof.caution * cautionFor(ctx, g);
+    v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
+  for (const p of area(size, x, y, 1)) {
+    const vt = s.tiles[idx(size, p.x, p.y)];
+    if (vt.volcano && (erupts(p.x, p.y, s.round + 1) || erupts(p.x, p.y, s.round))) { v -= 40; break; }
+  }
   // Aufklaerung / exploration
   const vr = t.terrain === 'mountain' ? 2 : 1;
   let fresh = 0;
@@ -243,7 +266,14 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     let bestCmd: Command | null = null;
     let bestV = stay;
     // Bewegung / movement
-    for (const r of reachable(s, u)) {
+    let dests = reachable(s, u);
+    // Hubschrauber mit wenig Sprit landet sicher, sobald eine Tankstelle erreichbar ist
+    // a low-fuel helicopter lands as soon as a refuel spot is reachable
+    if (g.kind === 'refuel') {
+      const land = dests.filter((r) => isRefuelSpot(s, u.owner, r.x, r.y));
+      if (land.length) dests = land;
+    }
+    for (const r of dests) {
       const nl = r.embark ? 1 : r.disembark ? 0 : layer;
       // Spion: Aufstand in feindlicher Stadt / spy: uprising in hostile city
       const v = spy ? spyTile(ctx, u, fld, r.x, r.y) : evalTile(ctx, u, g, fld, r.x, r.y, nl, r);

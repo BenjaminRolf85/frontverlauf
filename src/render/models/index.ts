@@ -21,6 +21,7 @@ import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
 import { artillery, heli, jeep, tank } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
+import { crashSite, jungle, lava, volcano, volcanoSmoke } from './terrain';
 import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
 
@@ -132,6 +133,35 @@ export function decorationGeometry(terrain: TerrainId, resource: ResourceId | nu
 export function xenoDecoration(variant: number): THREE.BufferGeometry {
   const v = ((Math.floor(variant) % 6) + 6) % 6;
   return memo(`xenoDeco|${v}`, () => xenoFlora(v).build());
+}
+
+/** Vulkan auf einer Bergkachel (3 Varianten) / volcano on a mountain tile (3 variants) */
+export function volcanoGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 3) + 3) % 3;
+  return memo(`volcano|${v}`, () => volcano(v).build());
+}
+
+/** Rauchwolken ueber dem Krater (wird animiert) / smoke puffs above the crater (animated by the renderer) */
+export function volcanoSmokeGeometry(): THREE.BufferGeometry {
+  return memo('volcanoSmoke', () => volcanoSmoke().build());
+}
+
+/** Lava-Ueberlagerung fuer brennende Kacheln (3 Varianten) / lava overlay for burning tiles (3 variants) */
+export function lavaGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 3) + 3) % 3;
+  return memo(`lava|${v}`, () => lava(v).build());
+}
+
+/** Abgestuerzte Untertasse (2 Varianten) / crashed saucer (2 variants) */
+export function crashSiteGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 2) + 2) % 2;
+  return memo(`crash|${v}`, () => crashSite(v).build());
+}
+
+/** Dichter Dschungel fuer Waldkacheln (4 Varianten) / dense jungle for forest tiles (4 variants) */
+export function jungleDecoration(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 4) + 4) % 4;
+  return memo(`jungle|${v}`, () => jungle(v).build());
 }
 
 export function cloudGeometry(variant: number): THREE.BufferGeometry {

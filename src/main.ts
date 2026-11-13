@@ -48,6 +48,7 @@ function boot() {
       saveSettings(settings);
       audio.musicOn = settings.music;
       audio.effectsOn = settings.effects;
+      audio.setAmbienceOn(settings.ambience);
       view.board.animations = settings.animations;
       fx.enabled = settings.animations;
       barks.enabled = settings.barks;

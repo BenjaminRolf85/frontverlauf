@@ -65,7 +65,7 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
 describe('KI-Kollektiv NEXUS', () => {
   it('forscht nicht und startet mit Android / no research, starts with an android', () => {
     const s = createGame(defaultConfig({ seed: 6, size: 14, factions: [{ id: 'nexus', human: true, difficulty: 'normal' }, { id: 'korvat', human: false, difficulty: 'normal' }] }));
-    expect(s.factions[0].techs).toEqual([]);
+    expect(s.factions[0].techs).toEqual(['coastalEconomy', 'diving', 'shipbuilding']);
     expect(s.units.find((u) => u.owner === 0)!.type).toBe('android');
     fails(s, { type: 'research', tech: 'motorization' }, 'noResearch');
   });
@@ -97,8 +97,31 @@ describe('KI spielt Kult und NEXUS / AI plays cult and NEXUS', () => {
       console.log(`${id}: units ${mine.join(',')} buildings ${blds} techs ${s.factions[0].techs.length} compute ${computePower(s, 0)} cities ${s.cities.filter((c) => c.owner === 0).length}`);
       expect(failedTurns).toBe(0);
       expect(mine.length).toBeGreaterThan(2);
-      expect(mine.every((t) => UNITS[t].faction === id || UNITS[t].ship)).toBe(true);
-      if (id === 'nexus') { expect(s.factions[0].techs).toEqual([]); expect(computePower(s, 0)).toBeGreaterThan(0); }
+      // Propheten bekehren auch fremde Einheiten / prophets also convert foreign units
+      expect(mine.filter((t) => UNITS[t].faction === id || UNITS[t].ship).length).toBeGreaterThan(mine.length / 2);
+      if (id === 'nexus') { expect(s.factions[0].techs).toEqual(['coastalEconomy', 'diving', 'shipbuilding']); expect(computePower(s, 0)).toBeGreaterThan(0); }
     }, 180000);
   }
+});
+
+describe('Zyrr waten durchs Wasser / Zyrr wade through water', () => {
+  it('ein Feld pro Zug im Wasser, kein Angriff und kein Gegenschlag unter Wasser / one tile per turn in water, no attack or retaliation submerged', async () => {
+    const { reachable, attackTargets, submerged } = await import('../src/core');
+    const s = blankGame({ stars: 50, factions: ['zyrr', 'korvat'] });
+    addCity(s, 2, 2, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
+    revealAll(s, 0); revealAll(s, 1);
+    for (let x = 4; x <= 7; x++) setTerrain(s, x, 5, 'ocean');
+    const g = addUnit(s, 'mech', 0, 3, 5);
+    const r = reachable(s, g);
+    expect(r.some((p) => p.x === 4 && p.y === 5)).toBe(true);
+    expect(r.some((p) => p.x === 5 && p.y === 5)).toBe(false);
+    ok(s, { type: 'move', unit: g.id, to: { x: 4, y: 5 } });
+    expect(submerged(s, g)).toBe(true);
+    const e = addUnit(s, 'infantry', 1, 4, 6);
+    expect(attackTargets(s, g)).toEqual([]);
+    // Menschen ohne Waten koennen nicht ins Wasser / humans without wading cannot enter water
+    expect(reachable(s, e).some((p) => p.x === 5 && p.y === 5)).toBe(false);
+    const pre = combatPreview(s, e, g);
+    expect(pre.retaliates).toBe(false);
+  });
 });
