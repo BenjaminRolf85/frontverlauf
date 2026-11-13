@@ -450,7 +450,7 @@ export function sniper(f: FactionId, lite = false): Builder {
     // Ghillie-Tarnung auf Ruecken und Beinen / ghillie camo on back and legs
     const R = rng(77);
     const tones = [mat.leaf, mat.leafDark, mat.grass, mix(mat.leaf, L.primary, 0.3)];
-    const n = lite ? 8 : 46;
+    const n = lite ? 8 : 38;
     b.group({ p: pelvis, r: body }, () => {
       // dicker Ghillie-Buckel / bulky ghillie hump
       for (let i = 0; i < n; i++) {
@@ -467,7 +467,7 @@ export function sniper(f: FactionId, lite = false): Builder {
           b.add(geo.cone(0.02, 0.1, 4), tones[i % 4], { p: [Math.cos(a) * 0.08, 0.2 + Math.sin(a) * 0.03, -0.03 + Math.sin(a) * 0.05], r: [-0.6 + (R() - 0.5) * 0.6, 0, Math.cos(a) * 1.2] });
         }
       }
-      if (!lite) for (let i = 0; i < 24; i++) {
+      if (!lite) for (let i = 0; i < 16; i++) {
         const y = -0.05 + R() * 0.2;
         const x = (R() < 0.5 ? -1 : 1) * (0.07 + R() * 0.02);
         b.add(geo.cone(0.012, 0.06, 4), tones[(i + 1) % 4], { p: [x, y, -0.04], r: [R() - 0.5, 0, (x > 0 ? -1 : 1) * (1.2 + R() * 0.4)] });

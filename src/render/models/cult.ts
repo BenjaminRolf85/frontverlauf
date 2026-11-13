@@ -108,6 +108,7 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   const d = lite ? 1 : 2;
   const G: V3 = [0.045, 0.175, 0.07];
   const D: V3 = [-0.12, 0.02, 1];
+  b.group({ p: [0, 0, -0.1] }, () => {
   soldier(b, f, {
     ...standPose([along(G, D, 0.1), G]),
     footL: [-0.05, 0.034, 0.04], footR: [0.052, 0.034, -0.035], twist: [0, 0.25, 0], head: [0, -0.2, 0],
@@ -118,7 +119,7 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   b.tube(back, tip, 0.011, lite ? 6 : 10, mat.rust);
   b.add(geo.cbox(0.03, 0.035, 0.08, 0.008), mat.rustDark, { p: along(G, D, 0.02) });
   b.cyl(0.016, 0.014, 0.03, 8, mat.dark, along(G, D, 0.245), [HALF_PI, -0.12, 0]);
-  flame(b, along(G, D, 0.26), D, lite ? 0.13 : 0.19, lite);
+  flame(b, along(G, D, 0.26), D, lite ? 0.13 : 0.155, lite);
   // rostige Tanks auf dem Ruecken / rusty tanks on the back
   for (const sx of [-1, 1]) {
     b.cyl(0.028, 0.028, 0.13, lite ? 8 : 12, sx > 0 ? mat.rust : L.primaryDark, [sx * 0.032, 0.24, -0.1]);
@@ -132,6 +133,7 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   // Gasmasken-Filter / gas mask filter
   b.cyl(0.016, 0.018, 0.03, 8, mat.rustDark, [0.01, 0.335, 0.09], [HALF_PI, 0, 0]);
   b.cyl(0.012, 0.012, 0.006, 8, mat.dark, [0.01, 0.335, 0.107], [HALF_PI, 0, 0]);
+  });
   return b;
 }
 

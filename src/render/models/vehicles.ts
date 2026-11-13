@@ -131,15 +131,15 @@ export function jeep(f: FactionId, lite = false): Builder {
   if (styleOf(f) !== 'meridon') {
     const rz = -0.04, top = by + 0.2;
     for (const s of [-1, 1]) {
-      b.tube([s * 0.112, by + 0.06, rz + 0.03], [s * 0.112, top, rz], 0.011, lite ? 6 : 10, mat.dark);
-      b.tube([s * 0.112, top - 0.02, rz], [s * 0.1, by + 0.07, rz - 0.14], 0.008, lite ? 5 : 8, mat.dark);
+      b.tube([s * 0.112, by + 0.06, rz + 0.03], [s * 0.112, top, rz], 0.011, 6, mat.dark);
+      b.tube([s * 0.112, top - 0.02, rz], [s * 0.1, by + 0.07, rz - 0.14], 0.008, 5, mat.dark);
     }
-    b.tube([-0.112, top, rz], [0.112, top, rz], 0.011, lite ? 6 : 10, mat.dark);
+    b.tube([-0.112, top, rz], [0.112, top, rz], 0.011, 6, mat.dark);
     if (!lite) {
       // Zusatzscheinwerfer am Buegel / spot lamps on the bar
       for (const s of [-1, 1]) {
-        b.cyl(0.016, 0.018, 0.02, 10, L.hullDark, [s * 0.07, top + 0.018, rz + 0.01], [HALF_PI, 0, 0]);
-        b.cyl(0.014, 0.014, 0.004, 10, mat.yellow, [s * 0.07, top + 0.018, rz + 0.022], [HALF_PI, 0, 0]);
+        b.cyl(0.016, 0.018, 0.02, 6, L.hullDark, [s * 0.07, top + 0.018, rz + 0.01], [HALF_PI, 0, 0]);
+        b.cyl(0.014, 0.014, 0.004, 6, mat.yellow, [s * 0.07, top + 0.018, rz + 0.022], [HALF_PI, 0, 0]);
       }
     }
   }
