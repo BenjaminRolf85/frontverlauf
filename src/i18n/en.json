@@ -1219,9 +1219,13 @@
     "jungle": "Jungle",
     "jungleDesc": "Every step in or out ends the move. Vehicles only as their first step. Foot troops: cover {def}.",
     "crash": "Crash site",
-    "crashDesc": "Salvage: {n} stars and recon, Zyrr get a saucer. Cover +1.",
+    "crashDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a saucer. Cover +1.",
     "crashLooted": "Crash site (salvaged): cover +1",
     "eruption": "Volcanic eruption!",
-    "salvaged": "Crash site salvaged: +{n} stars"
+    "salvaged": "Crash site salvaged: +{n} stars",
+    "lab": "Abandoned research facility",
+    "labDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
+    "labLooted": "Research facility (salvaged): cover +1",
+    "salvagedTech": "Salvaged: technology {tech}"
   }
 }

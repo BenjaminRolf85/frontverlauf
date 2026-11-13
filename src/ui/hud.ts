@@ -259,7 +259,8 @@ export class Hud {
       }
       if (burning(s, tile)) tags.push(`${t('hazards.lava')}: ${t('hazards.lavaDesc', { n: (tile.lava ?? s.round) - s.round + 1 })}`);
       if (isJungle(tile)) tags.push(`${t('hazards.jungle')}: ${t('hazards.jungleDesc', { def: JUNGLE.footDefense })}`);
-      if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars })}`);
+      if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
+      if (tile.feature === 'labRuin') tags.push(tile.looted ? t('hazards.labLooted') : `${t('hazards.lab')}: ${t('hazards.labDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);

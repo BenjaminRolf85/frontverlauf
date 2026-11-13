@@ -14,7 +14,7 @@ export interface Tile {
   cityId: number | null;
   /** Stadtgebiet / territory of city */
   territory: number | null;
-  feature: 'bunker' | 'radar' | 'crashSite' | null;
+  feature: 'bunker' | 'radar' | 'crashSite' | 'labRuin' | null;
   /** Index der Fraktion, deren Heimatgebiet hier liegt / index of the faction whose home region is here */
   home: number | null;
   outpost: { owner: number } | null;
@@ -207,7 +207,7 @@ export type GameEvent =
   | { t: 'eliminated'; faction: number }
   | { t: 'turn'; faction: number; round: number; income: number; weather?: string }
   | { t: 'eruption'; x: number; y: number; tiles: Pos[] }
-  | { t: 'crashSite'; x: number; y: number; faction: number; unit?: number }
+  | { t: 'salvage'; x: number; y: number; faction: number; kind: 'crashSite' | 'labRuin'; tech?: TechId; stars?: number; unit?: number }
   | { t: 'gameOver'; winner: number | null };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';

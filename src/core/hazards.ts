@@ -55,6 +55,18 @@ export function addHazards(s: GameState, level: HazardLevel) {
     crashes.push(p);
   }
 
+  // verlassene Forschungseinrichtungen / abandoned research facilities
+  const labs: Pos[] = [];
+  const lTarget = count(HAZARDS.labs[level]);
+  for (const p of shuffled()) {
+    if (labs.length >= lTarget) break;
+    const t = tileOf(p);
+    if (t.terrain !== 'plain' || !free(t) || t.volcano || !farFromStart(p)) continue;
+    if ([...labs, ...crashes].some((c) => dist(c, p) < 5)) continue;
+    t.feature = 'labRuin'; t.resource = null;
+    labs.push(p);
+  }
+
   // alte Wracks eines frueheren Krieges (Deckung +1) / old wrecks from an earlier war (cover +1)
   const wTarget = count(HAZARDS.wrecks[level]);
   let wrecks = 0;
