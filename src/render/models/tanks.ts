@@ -64,8 +64,29 @@ export function tracks(b: Builder, o: TrackOpts) {
       const z = -span * 0.3 + (i / Math.max(1, rollers - 1)) * span * 0.6;
       b.cyl(0.01, 0.01, 0.012, 6, mat.metal, [ox, h * 0.86, z], [0, 0, HALF_PI]);
     }
-    const n = o.links ?? 10;
-    for (let i = 0; i < n; i++) b.box(o.w + 0.006, 0.007, 0.012, mat.ink, [s * o.x, h + 0.002, -hl + 0.04 + (i / (n - 1)) * (o.len - 0.08)]);
+    // einzelne Kettenglieder oben, unten und an den Enden / individual track plates top, bottom and ends
+    const n = Math.round((o.links ?? 10) * 1.8);
+    for (let i = 0; i < n; i++) {
+      const z = -hl + 0.04 + (i / (n - 1)) * (o.len - 0.08);
+      b.box(o.w + 0.006, 0.007, 0.012, mat.ink, [s * o.x, h + 0.002, z]);
+      b.box(o.w + 0.004, 0.006, 0.012, mat.ink, [s * o.x, -0.001, z]);
+      b.box(0.008, 0.01, 0.006, mat.metal, [s * o.x, h + 0.006, z]);
+    }
+    for (const [zc, yc, rr] of [[hl - 0.035, h * 0.5, h * 0.5], [-hl + 0.035, h * 0.5, h * 0.5]] as [number, number, number][]) {
+      const sign = zc > 0 ? 1 : -1;
+      for (let k = 1; k < 6; k++) {
+        const a = -HALF_PI + (k / 6) * Math.PI;
+        b.box(o.w + 0.005, 0.012, 0.007, mat.ink, [s * o.x, yc + Math.sin(a) * rr, zc + sign * Math.cos(a) * rr * 0.9], [-sign * a, 0, 0]);
+      }
+    }
+    // Radnaben-Bolzen / road wheel hub bolts
+    for (let i = 0; i < o.wheels; i++) {
+      const z = -span / 2 + (i / (o.wheels - 1)) * span;
+      for (let k = 0; k < 4; k++) {
+        const a = (k / 4) * Math.PI * 2;
+        b.box(0.006, 0.005, 0.005, mat.dark, [ox + s * 0.01, o.wr + 0.004 + Math.cos(a) * o.wr * 0.65, z + Math.sin(a) * o.wr * 0.65]);
+      }
+    }
   }
 }
 

@@ -21,7 +21,20 @@ export function wheel(b: Builder, x: number, y: number, z: number, r: number, w:
     b.cyl(r * 0.5, r * 0.5, w + 0.006, 6, o.rim ?? mat.metal, [x, y, z], [0, 0, HALF_PI]);
     return;
   }
+  // Reifenprofil-Stollen / tyre tread blocks
+  const treads = Math.max(10, Math.round(r * 220));
+  for (let i = 0; i < treads; i++) {
+    const a = (i / treads) * Math.PI * 2;
+    b.box(w * 0.9, 0.006, r * 0.32, mat.ink, [x, y + Math.cos(a) * (r + 0.002), z + Math.sin(a) * (r + 0.002)], [a, 0, 0]);
+  }
+  // Seitenwand-Ring / sidewall ring
+  b.add(geo.cyl(r * 0.8, r * 0.8, w + 0.003, seg, true), shade(mat.dark, 1.2), { p: [x, y, z], r: [0, 0, HALF_PI] });
   if (!o.spokes) {
+    // Felge mit Radbolzen / rim with wheel bolts
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      for (const sx of [-1, 1]) b.box(0.004, 0.007, 0.007, mat.dark, [x + sx * (w / 2 + 0.006), y + Math.cos(a) * r * 0.38, z + Math.sin(a) * r * 0.38]);
+    }
     // Profilring + Felge + Nabe / tread ring + rim + hub
     b.cyl(r * 0.6, r * 0.6, w + 0.008, 8, o.rim ?? mat.metal, [x, y, z], [0, 0, HALF_PI]);
     b.cyl(r * 0.22, r * 0.26, w + 0.018, 6, mat.metal, [x, y, z], [0, 0, HALF_PI]);
