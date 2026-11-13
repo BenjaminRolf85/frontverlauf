@@ -614,6 +614,38 @@
     "toMenu": "Hauptmenü",
     "continue": "Endlos weiterspielen"
   },
+  "minimap": {
+    "label": "Lagekarte",
+    "hint": "Lagekarte: Tippen bewegt die Kamera dorthin",
+    "show": "Lagekarte einblenden",
+    "hide": "Lagekarte ausblenden"
+  },
+  "history": {
+    "title": "Kriegsstatistik",
+    "open": "Statistik",
+    "tabs": "Ansicht wählen",
+    "score": "Punkte",
+    "units": "Armee",
+    "cities": "Städte",
+    "stars": "Sterne",
+    "chartLabel": "Verlauf: {metric} je Runde",
+    "roundAxis": "Runde",
+    "totals": "Bilanz",
+    "faction": "Fraktion",
+    "kills": "Abschüsse",
+    "losses": "Verluste",
+    "captures": "Eroberungen",
+    "techs": "Technologien",
+    "heroes": "Helden der Schlacht",
+    "hero": "Held der Schlacht",
+    "heroKills": "{n} Abschüsse",
+    "heroKill": "1 Abschuss",
+    "fallen": "gefallen in Runde {n}",
+    "alive": "im Einsatz",
+    "noHeroes": "Noch keine Abschüsse. Die Front ist ruhig.",
+    "midGame": "Stand Runde {n}. Nur bekannte Fraktionen.",
+    "leader": "{name} führt"
+  },
   "credits": {
     "title": "Mitwirkende",
     "game": "Spielidee, Regeln, Code, Modelle und Klang: Frontverlauf-Projekt (eigene Schöpfung, CC0)",

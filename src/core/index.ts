@@ -6,3 +6,4 @@ export { generateMap } from './mapgen';
 export { hashSeed } from './rng';
 export { dist, idx, inBounds, isLand, isWater, neighbors, tileAt, area } from './grid';
 export * from './hazards';
+export * from './history';
