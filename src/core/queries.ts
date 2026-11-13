@@ -3,11 +3,12 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
+import { burning, isJungle } from './hazards';
 import type { City, Faction, GameState, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
@@ -287,6 +288,17 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       }
       // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
       if (has(u, 'wade') && !walkable(fromTile)) stop = true;
+      // Lava und Vulkangipfel sind unpassierbar / lava and volcano peaks are impassable
+      if (t.volcano || burning(s, t)) continue;
+      // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
+      // jungle: vehicles only as the first step, every step in or out ends the move
+      if (!fly && !ship) {
+        if (isJungle(t)) {
+          if (JUNGLE.vehicles.includes(u.type) && cur.cost > 0) continue;
+          stop = true;
+        }
+        if (isJungle(fromTile)) stop = true;
+      }
       const total = cur.cost + cost;
       if (total > maxMove + 1e-9) continue;
       // Panzersperre stoppt feindliche Fahrzeuge / tank barrier stops hostile vehicles
@@ -339,7 +351,9 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   // Xeno-Boden schuetzt Alien-Einheiten / xeno ground protects alien units
   if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
-  if (t.remains?.kind === 'wreck' && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  // Dschungel: Hinterhalt fuer Fusstruppen / jungle: ambush cover for foot troops
+  if (isJungle(t) && !JUNGLE.vehicles.includes(def.type) && !isShip(def)) b = Math.max(b, JUNGLE.footDefense);
   return b;
 }
 

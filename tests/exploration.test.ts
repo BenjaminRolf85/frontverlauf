@@ -35,10 +35,10 @@ function enterBunker(reward: BunkerReward, water = false): { s: GameState; r: Co
 }
 
 describe('Verlassener Bunker / abandoned bunker', () => {
-  it('50 stars', () => {
+  it('bunker stars', () => {
     const { s } = enterBunker('stars');
-    expect(BUNKER.stars).toBe(50);
-    expect(s.factions[0].stars).toBe(50);
+    expect(BUNKER.stars).toBe(35);
+    expect(s.factions[0].stars).toBe(BUNKER.stars);
   });
 
   it('a free technology (lowest available tier)', () => {
@@ -104,7 +104,7 @@ describe('Verlassener Bunker / abandoned bunker', () => {
     me.x = 5; me.y = 7;
     const r = ok(s, { type: 'move', unit: u2.id, to: { x: 6, y: 5 } });
     expect(r.events.some((e) => e.t === 'bunker')).toBe(false);
-    expect(s.factions[0].stars).toBe(50);
+    expect(s.factions[0].stars).toBe(BUNKER.stars);
   });
 });
 

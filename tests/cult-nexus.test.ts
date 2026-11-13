@@ -65,7 +65,7 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
 describe('KI-Kollektiv NEXUS', () => {
   it('forscht nicht und startet mit Android / no research, starts with an android', () => {
     const s = createGame(defaultConfig({ seed: 6, size: 14, factions: [{ id: 'nexus', human: true, difficulty: 'normal' }, { id: 'korvat', human: false, difficulty: 'normal' }] }));
-    expect(s.factions[0].techs).toEqual(['coastalEconomy']);
+    expect(s.factions[0].techs).toEqual(['coastalEconomy', 'diving', 'shipbuilding']);
     expect(s.units.find((u) => u.owner === 0)!.type).toBe('android');
     fails(s, { type: 'research', tech: 'motorization' }, 'noResearch');
   });
@@ -99,7 +99,7 @@ describe('KI spielt Kult und NEXUS / AI plays cult and NEXUS', () => {
       expect(mine.length).toBeGreaterThan(2);
       // Propheten bekehren auch fremde Einheiten / prophets also convert foreign units
       expect(mine.filter((t) => UNITS[t].faction === id || UNITS[t].ship).length).toBeGreaterThan(mine.length / 2);
-      if (id === 'nexus') { expect(s.factions[0].techs).toEqual(['coastalEconomy']); expect(computePower(s, 0)).toBeGreaterThan(0); }
+      if (id === 'nexus') { expect(s.factions[0].techs).toEqual(['coastalEconomy', 'diving', 'shipbuilding']); expect(computePower(s, 0)).toBeGreaterThan(0); }
     }, 180000);
   }
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cityIncome, convertTargets, healAmount, income, reachable } from '../src/core';
-import { CITY, HEALING } from '../src/data/balance';
+import { CITY, HEALING, INCOME } from '../src/data/balance';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, unit, untilTurnOf } from './helpers';
 
 function ag() {
@@ -55,7 +55,7 @@ describe('Spion: Aufstand / spy uprising', () => {
     ok(s, { type: 'endTurn' });
     expect(s.factions[1].stars).toBe(stars + expected);
     expect(c.noIncomeNext).toBe(false);
-    expect(cityIncome(s, c)).toBe(10);
+    expect(cityIncome(s, c)).toBe(INCOME.perCityLevel * c.level + (c.isHQ ? INCOME.hq : 0));
   });
 
   it('spy moves 2 and cannot capture or attack', () => {

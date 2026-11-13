@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  erupts, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -175,7 +175,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     const capturer = !fly && type !== 'spy' && type !== 'artillery' && type !== 'medic' && layer === 0;
     if (c.owner === f) {
       // blockiert Ausbildung; eine frische Einheit verteidigt die Stadt ebenso / blocks training; a fresh unit defends as well
-      if (ctx.trainable.has(c.id)) v -= 18;
+      // Stadtfeld fuer Ausbildung freimachen, besonders mit vollem Sternekonto / clear the city tile for training, especially with stars to spend
+      if (ctx.trainable.has(c.id)) v -= ctx.fa.stars >= 40 ? 50 : 18;
       else if (!(onGoal && g.kind === 'defend')) v -= 4;
     } else if (capturer && c.owner === null) v += 22;
     else if (capturer) v += 14 * prof.aggression;
@@ -191,6 +192,11 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
+  for (const p of area(size, x, y, 1)) {
+    const vt = s.tiles[idx(size, p.x, p.y)];
+    if (vt.volcano && (erupts(p.x, p.y, s.round + 1) || erupts(p.x, p.y, s.round))) { v -= 40; break; }
+  }
   // Aufklaerung / exploration
   const vr = t.terrain === 'mountain' ? 2 : 1;
   let fresh = 0;

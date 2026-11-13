@@ -3,11 +3,12 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
+import { addHazards, erupts } from './hazards';
 import {
   recruitCheck, recruitHome,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -46,7 +47,7 @@ export function createGame(config: GameConfig): GameState {
   config.factions.forEach((fc, i) => {
     const f: Faction = {
       index: i, id: fc.id, human: fc.human, difficulty: fc.difficulty, stars: config.startStars,
-      techs: FACTIONS[fc.id].startTech ? [FACTIONS[fc.id].startTech!] : [], explored: new Array(n).fill(0), alive: true, contacts: [],
+      techs: [...(FACTIONS[fc.id].startTech ? [FACTIONS[fc.id].startTech!] : []), ...(FACTIONS[fc.id].extraTechs ?? [])], explored: new Array(n).fill(0), alive: true, contacts: [],
       relations: config.factions.map(() => 'war'), breakRound: config.factions.map(() => null), peaceOffers: [],
       embassies: [], kills: 0, lastAttackRound: 0, grandProjectsBuilt: [], grandProjectsUnlocked: [], radarsFound: [],
       maxStars: config.startStars, eliminatedRound: null,
@@ -67,6 +68,7 @@ export function createGame(config: GameConfig): GameState {
     const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? START.unit, i, p.x, p.y, s.cities[i].id);
     u.fresh = false;
   });
+  addHazards(s, config.hazards ?? 'none');
   for (const f of s.factions) {
     const hq = hqOf(s, f.index)!;
     reveal(s, f.index, hq.x, hq.y, hq.radius + VISION.cityExtra, []);
@@ -366,7 +368,7 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (next === 0) wrapped = true;
     if (s.factions[next].alive) break;
   }
-  if (wrapped) s.round++;
+  if (wrapped) { s.round++; processVolcanoes(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -382,6 +384,45 @@ function advance(s: GameState, ev: GameEvent[]) {
     return;
   }
   startTurn(s, ev);
+}
+
+/** Absturzstelle bergen: Sterne und Aufklaerung, Zyrr bekommen eine Untertasse / salvage a crash site: stars and recon, Zyrr get a saucer */
+function salvageCrash(s: GameState, u: Unit, ev: GameEvent[]) {
+  const t = tileAt(s, u.x, u.y)!;
+  t.looted = true;
+  const f = u.owner;
+  s.factions[f].stars += CRASH.stars;
+  reveal(s, f, u.x, u.y, CRASH.revealRadius, ev);
+  let unit: number | undefined;
+  if (s.factions[f].id === XENO.faction) {
+    const p = freeNeighbor(s, u.x, u.y, false);
+    if (p) unit = spawnUnit(s, CRASH.alienUnit, f, p.x, p.y, null).id;
+  }
+  ev.push({ t: 'crashSite', x: u.x, y: u.y, faction: f, unit });
+}
+
+/** Vulkanausbrueche zu Rundenbeginn / volcano eruptions at the start of a round */
+function processVolcanoes(s: GameState, ev: GameEvent[]) {
+  for (let k = 0; k < s.tiles.length; k++) {
+    const t = s.tiles[k];
+    if (!t.volcano) continue;
+    const x = k % s.size, y = Math.floor(k / s.size);
+    if (!erupts(x, y, s.round)) continue;
+    const hit: { x: number; y: number }[] = [];
+    for (const p of area(s.size, x, y, VOLCANO.radius)) {
+      const nt = tileAt(s, p.x, p.y)!;
+      if ((p.x === x && p.y === y) || isWater(nt) || nt.cityId !== null) continue;
+      nt.lava = s.round + VOLCANO.burnRounds - 1;
+      hit.push(p);
+    }
+    ev.push({ t: 'eruption', x, y, tiles: hit });
+    for (const p of hit) {
+      const u = unitAt(s, p.x, p.y);
+      if (!u) continue;
+      u.hp -= VOLCANO.damage;
+      if (u.hp <= 0) killUnit(s, u, null, ev);
+    }
+  }
 }
 
 function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
@@ -533,6 +574,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     }
   }
   if (t.feature === 'bunker') exploreBunker(s, u, ev);
+  else if (t.feature === 'crashSite' && !t.looted) salvageCrash(s, u, ev);
   return { ok: true, events: ev };
 }
 
@@ -917,6 +959,7 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     startStars: partial.startStars ?? START.stars,
     roundLimit: partial.roundLimit !== undefined ? partial.roundLimit : mode === 'points' ? MODES.pointsRounds : null,
     weather: partial.weather ?? true,
+    hazards: partial.hazards ?? 'none',
   };
 }
 

@@ -3,10 +3,10 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
+  CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
-  paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
+  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
@@ -253,6 +253,13 @@ export class Hud {
       if (bones) tags.push(t('features.skeleton', { n: bones }));
       body += `<div class="row">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (tile.xeno) tags.push(`${t('xeno.ground')}: ${t('xeno.groundDesc')}`);
+      if (tile.volcano) {
+        const n = roundsToEruption(x, y, s.round + (s.current === s.factions.length - 1 ? 1 : 0));
+        tags.push(`${t('hazards.volcano')}: ${n <= 0 ? t('hazards.volcanoNow') : t('hazards.volcanoIn', { n })}. ${t('hazards.volcanoDesc', { dmg: VOLCANO.damage, r: VOLCANO.burnRounds })}`);
+      }
+      if (burning(s, tile)) tags.push(`${t('hazards.lava')}: ${t('hazards.lavaDesc', { n: (tile.lava ?? s.round) - s.round + 1 })}`);
+      if (isJungle(tile)) tags.push(`${t('hazards.jungle')}: ${t('hazards.jungleDesc', { def: JUNGLE.footDefense })}`);
+      if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars })}`);
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);

@@ -7,7 +7,7 @@
 
 export type TerrainId = 'plain' | 'forest' | 'mountain' | 'shallow' | 'ocean';
 /** Landschaftszonen (rein optisch, Regeln folgen dem Gelaende) / biomes (visual only, rules follow terrain) */
-export type BiomeId = 'grassland' | 'hills' | 'desert' | 'steppe' | 'tundra' | 'swamp';
+export type BiomeId = 'grassland' | 'hills' | 'desert' | 'steppe' | 'tundra' | 'swamp' | 'jungle';
 export const BIOMES: BiomeId[] = ['grassland', 'hills', 'desert', 'steppe', 'tundra', 'swamp'];
 export type ResourceId = 'supplies' | 'livestock' | 'fish' | 'farmland' | 'ore';
 export type FactionId = 'korvat' | 'dravon' | 'alvenia' | 'meridon' | 'velkar' | 'zyrr' | 'vesper' | 'nexus';
@@ -119,6 +119,29 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * a share of its price (rounded up); tanks cost a flat amount.
  */
 export const UPKEEP = { freeUnits: 5, share: 0.2, flat: { tank: 10 } as Partial<Record<UnitTypeId, number>> };
+
+/** Kartenbesonderheiten / map hazards and gimmicks */
+export type HazardLevel = 'none' | 'normal' | 'many';
+export const HAZARDS = {
+  /** Anzahl je Stufe, skaliert mit der Kartengroesse (pro 100 Felder) / count per level, scaled per 100 tiles */
+  volcanoes: { none: 0, normal: 0.35, many: 0.8 } as Record<HazardLevel, number>,
+  crashSites: { none: 0, normal: 0.3, many: 0.7 } as Record<HazardLevel, number>,
+  wrecks: { none: 0, normal: 2.5, many: 5 } as Record<HazardLevel, number>,
+  /** Anteil der Waldfelder, die zu Dschungel werden / share of forest tiles that become jungle */
+  jungle: { none: 0, normal: 0.3, many: 0.55 } as Record<HazardLevel, number>,
+  /** Mindestabstand zu Hauptquartieren / minimum distance to headquarters */
+  startDistance: 4,
+};
+/** Vulkan: bricht alle `interval` Runden aus, Lava brennt `burnRounds` Runden / erupts every `interval` rounds, lava burns `burnRounds` rounds */
+export const VOLCANO = { interval: 5, firstRound: 4, burnRounds: 2, damage: 6, radius: 1 };
+/** Absturzstelle: einmalige Bergung / crash site: one-time salvage */
+export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitTypeId };
+/** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
+ *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
+export const JUNGLE = {
+  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech'] as UnitTypeId[],
+  footDefense: 1.5,
+};
 
 /** Kult: Rekrutieren neben Predigern statt in Staedten / cult: recruit next to preachers instead of in cities */
 export const CULT = { faction: 'vesper' as FactionId };
@@ -256,16 +279,17 @@ export const START = {
   unit: 'infantry' as UnitTypeId,
 };
 
+/** Einkommen: gegenueber der Vorlage gesenkt, damit Armeen langsamer wachsen / income: lowered vs the brief so armies grow slower */
 export const INCOME = {
-  perCityLevel: 5,
-  hq: 5,
-  factory: 5,
-  govQuarter: 5,
+  perCityLevel: 3,
+  hq: 4,
+  factory: 4,
+  govQuarter: 4,
   logisticsPerAdjacent: 5,
   logisticsMax: 40,
   embassy: 10,
   embassyAlveniaMultiplier: 2,
-  aiBonus: { easy: 0, normal: 0, hard: 5, extreme: 10 } as Record<Difficulty, number>,
+  aiBonus: { easy: 0, normal: 0, hard: 3, extreme: 6 } as Record<Difficulty, number>,
 };
 
 export const CITY = {
@@ -274,7 +298,7 @@ export const CITY = {
   baseRadius: 1, // 3x3
   expandedRadius: 2, // 5x5
   unitLimitExtra: 1, // Stufe + 1 / level + 1
-  rewardStars: 25,
+  rewardStars: 15,
   rewardPopulation: 3,
   bunkerRingLevel: 3,
   govQuarterPoints: 250,
@@ -400,6 +424,8 @@ export interface FactionStats {
   discountUnit: UnitTypeId;
   discount: number;
   startTech: TechId | null;
+  /** weitere Starttechnologien (Sonderfraktionen ohne Forschung) / extra start techs (special factions without research) */
+  extraTechs?: TechId[];
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
 }
@@ -413,7 +439,7 @@ export const FACTIONS: Record<FactionId, FactionStats> = {
   meridon: { perk: 'boom', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
-  nexus: { perk: 'hivemind', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
+  nexus: { perk: 'hivemind', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
   velkar: { perk: 'researchLead', discountUnit: 'pioneer', discount: 0.2, startTech: 'mountainTraining', home: { plain: 0.25, forest: 0.35, mountain: 0.35, water: 0.05, res: { ore: 0.2, supplies: 0.1 } } },
 };
 
@@ -447,7 +473,7 @@ export const MODES = {
 export const BUNKER_REWARDS = ['stars', 'tech', 'population', 'veteranMg', 'reveal'] as const;
 export type BunkerReward = (typeof BUNKER_REWARDS)[number] | 'destroyer';
 export const BUNKER = {
-  stars: 50,
+  stars: 35,
   population: 3,
   /** Wahrscheinlichkeit eines Zerstoerers bei Wasserbunkern / chance of a destroyer for water bunkers */
   waterDestroyerChance: 0.5,
@@ -487,6 +513,8 @@ export const SANDBOX = {
 };
 
 export const AI = {
+  /** ab dieser Runde kennt die KI alle feindlichen Staedte / from this round the AI knows all hostile cities */
+  intelRound: 30,
   maxMillis: 2000,
   maxCommandsPerTurn: 400,
 };

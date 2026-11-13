@@ -328,6 +328,18 @@ class AudioEngine {
     for (let i = 0; i < 4; i++) this.noise(t + 0.25 + i * 0.09, 0.05, vol * 0.18, 3000, out, { type: 'bandpass', q: 4 });
   }
 
+  /** Vulkanausbruch: tiefes Grollen, Explosion, prasselnde Brocken / eruption: deep rumble, blast, raining debris */
+  eruption() {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.02;
+    const out = this.fxOut(0.6);
+    this.noise(t, 2.6, 0.7, 140, out, { freqEnd: 50, attack: 0.4 });
+    this.tone(38, t, 2.4, 'sine', 0.6, out, 0.7, 0.3);
+    this.explosion(t + 0.5, 1);
+    for (let i = 0; i < 10; i++) this.noise(t + 0.9 + i * 0.12, 0.08, 0.2, 1800, out, { type: 'bandpass', q: 3 });
+  }
+
   private splash(t: number, vol: number, out: AudioNode) {
     this.noise(t, 0.7, vol, 2500, out, { type: 'bandpass', q: 0.6, freqEnd: 400, attack: 0.02 });
   }

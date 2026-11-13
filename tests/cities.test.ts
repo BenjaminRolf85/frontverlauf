@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { captureKind, cityIncome, levelUpCost, rewardOptions, score, unitLimit, cityTiles, trainCheck } from '../src/core';
-import { CITY, SCORE } from '../src/data/balance';
+import { CITY, SCORE, INCOME } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, explored, fails, ok, setTerrain, tile, unit, untilTurnOf } from './helpers';
 
 function growGame() {
@@ -58,7 +58,7 @@ describe('Wachstum / growth', () => {
     const before = cityIncome(s, hq);
     ok(s, { type: 'reward', city: hq.id, choice: 'a' });
     expect(hq.factory).toBe(true);
-    expect(cityIncome(s, hq)).toBe(before + 5);
+    expect(cityIncome(s, hq)).toBe(before + INCOME.factory);
     const g = growGame();
     g.s.pendingRewards.push({ cityId: g.hq.id, level: 2 });
     expect(explored(g.s, 0, 9, 9)).toBe(false);
@@ -74,7 +74,7 @@ describe('Wachstum / growth', () => {
     expect(hq.bunkerRing).toBe(true);
     const stars = s.factions[0].stars;
     ok(s, { type: 'reward', city: hq.id, choice: 'b' });
-    expect(s.factions[0].stars).toBe(stars + 25);
+    expect(s.factions[0].stars).toBe(stars + CITY.rewardStars);
   });
 
   it('level 4: A expands the city area to 5x5, B gives 3 population', () => {
@@ -108,7 +108,7 @@ describe('Wachstum / growth', () => {
     const inc = cityIncome(s, hq);
     ok(s, { type: 'reward', city: hq.id, choice: 'a' });
     expect(hq.govQuarter).toBe(true);
-    expect(cityIncome(s, hq)).toBe(inc + 5);
+    expect(cityIncome(s, hq)).toBe(inc + INCOME.govQuarter);
     expect(score(s, 0)).toBe(sc + SCORE.govQuarter);
     s.pendingRewards.push({ cityId: hq.id, level: 6 });
     ok(s, { type: 'reward', city: hq.id, choice: 'b' });
@@ -251,7 +251,7 @@ describe('Einnahme / capture', () => {
     const u = addUnit(s, 'infantry', 0, hq1.x, hq1.y);
     ok(s, { type: 'capture', unit: u.id });
     expect(hq1.owner).toBe(0);
-    expect(cityIncome(s, hq1)).toBe(5);
+    expect(cityIncome(s, hq1)).toBe(INCOME.perCityLevel * hq1.level);
     expect(s.factions[1].alive).toBe(true);
   });
 });

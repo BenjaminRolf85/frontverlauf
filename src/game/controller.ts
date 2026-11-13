@@ -8,7 +8,7 @@ import {
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
-import { UNITS } from '../data/balance';
+import { CRASH, UNITS } from '../data/balance';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
@@ -354,6 +354,24 @@ export class Controller {
           case 'cityUpgrade': if (e.faction === this.viewer) this.play(e.upgrade === 'radioTower' ? 'research' : 'build'); break;
           case 'barrierHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); } break;
           case 'research': if (e.faction === this.viewer) this.play('research'); break;
+          case 'eruption': {
+            if (visible(e.x, e.y)) {
+              audio.eruption();
+              this.ui.fx('boom', e.x, e.y);
+              for (const p of e.tiles) if (visible(p.x, p.y)) this.ui.fx('boom', p.x, p.y);
+              const { t } = await import('../i18n/i18n');
+              this.ui.toast(t('hazards.eruption'), 'warning');
+            }
+            break;
+          }
+          case 'crashSite': {
+            if (e.faction === this.viewer) {
+              this.play('levelUp');
+              const { t } = await import('../i18n/i18n');
+              this.ui.toast(t('hazards.salvaged', { n: CRASH.stars }), 'star');
+            }
+            break;
+          }
           case 'turn': break;
           default: break;
         }

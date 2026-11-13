@@ -1203,5 +1203,25 @@
     "computeNeed": "Benötigt {n} Rechenleistung",
     "noResearch": "NEXUS forscht nicht. Baue Rechenzentren und Kraftwerke für mehr Rechenleistung.",
     "computeState": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke)"
+  },
+  "hazards": {
+    "title": "Besonderheiten",
+    "none": "Keine",
+    "normal": "Normal",
+    "many": "Viele",
+    "setupHint": "Vulkane, Dschungel, Absturzstellen und alte Wracks auf der Karte.",
+    "volcano": "Vulkan",
+    "volcanoIn": "Ausbruch in {n} Runden",
+    "volcanoNow": "Ausbruch diese Runde",
+    "volcanoDesc": "Verbrennt die Nachbarfelder: {dmg} Schaden, danach {r} Runden Lava.",
+    "lava": "Lava",
+    "lavaDesc": "Brennt noch {n} Runden. Nicht betretbar.",
+    "jungle": "Dschungel",
+    "jungleDesc": "Jeder Schritt hinein oder heraus beendet die Bewegung. Fahrzeuge nur als ersten Schritt. Fußtruppen: Deckung {def}.",
+    "crash": "Absturzstelle",
+    "crashDesc": "Bergung: {n} Sterne und Aufklärung, Zyrr erhalten eine Untertasse. Deckung +1.",
+    "crashLooted": "Absturzstelle (geborgen): Deckung +1",
+    "eruption": "Vulkanausbruch!",
+    "salvaged": "Absturzstelle geborgen: +{n} Sterne"
   }
 }

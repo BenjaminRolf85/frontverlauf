@@ -5,7 +5,7 @@
  */
 import {
   ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
-  type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
+  type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
@@ -86,6 +86,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   n.className = 'screen';
   const cfg = {
     weather: true,
+    hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
     players: [
@@ -110,6 +111,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('weather.title'))}</span>
           ${segmented('weather', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.weather ? 'on' : 'off')}
           <span class="muted">${esc(t('weather.setupHint'))}</span></div>
+        <div class="field"><span class="label">${esc(t('hazards.title'))}</span>
+          ${segmented('hazards', (['none', 'normal', 'many'] as HazardLevel[]).map((h) => ({ value: h, label: t(`hazards.${h}`) })), cfg.hazards)}
+          <span class="muted">${esc(t('hazards.setupHint'))}</span></div>
         ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
           ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
@@ -174,6 +178,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'mapType') cfg.mapType = v as MapType;
       else if (key === 'stars') cfg.startStars = Number(v);
       else if (key === 'weather') cfg.weather = v === 'on';
+      else if (key === 'hazards') cfg.hazards = v as HazardLevel;
       else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
       else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
@@ -201,6 +206,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         startStars: cfg.mode === 'sandbox' ? cfg.startStars : START.stars,
         roundLimit: cfg.mode === 'points' ? MODES.pointsRounds : null,
         weather: cfg.weather,
+        hazards: cfg.hazards,
       });
       n.remove();
       host.startGame(config);

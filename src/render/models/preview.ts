@@ -6,6 +6,7 @@
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
   ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
@@ -13,6 +14,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
+  crashSiteGeometry, jungleDecoration, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -79,6 +81,28 @@ function sheet(): Sheet {
           label: fname(f),
           cells: variants.map((v) => ({ geo: cityGeometry(f, v.level, v.flags), ground: f ? factionTokens[f].terrain : plainGround })),
         })),
+      };
+    }
+    case 'terrain': {
+      const mt = semantic.terrainMountain;
+      const smoke = (v: number) => {
+        // Vulkan + Rauch zusammen fuer die Vorschau / volcano + smoke together for the preview
+        const g = volcanoGeometry(v).clone();
+        const sm = volcanoSmokeGeometry().clone();
+        sm.translate(0, 0.76, 0);
+        const m = mergeGeometries([g, sm]) ?? g;
+        m.computeBoundingBox();
+        return m;
+      };
+      return {
+        cols: ['v0', 'v1', 'v2', 'v3'],
+        rows: [
+          { label: 'volcano', cells: [0, 1, 2].map((v) => ({ geo: smoke(v), ground: mt })) },
+          { label: 'lava', cells: [0, 1, 2].map((v) => ({ geo: lavaGeometry(v), ground: mt })) },
+          { label: 'crash site', cells: [0, 1].map((v) => ({ geo: crashSiteGeometry(v), ground: plainGround })) },
+          { label: 'jungle', cells: [0, 1, 2, 3].map((v) => ({ geo: jungleDecoration(v), ground: semantic.terrainForest })) },
+          { label: 'forest (compare)', cells: [0, 1].map((v) => ({ geo: decorationGeometry('forest', null, v), ground: semantic.terrainForest })) },
+        ],
       };
     }
     case 'nature': {
@@ -321,6 +345,10 @@ function checkAll(): string[] {
   }
   all.push(['bunker', featureGeometry('bunker')], ['radar', featureGeometry('radar')]);
   for (let v = -1; v < 8; v++) all.push([`xenoDeco ${v}`, xenoDecoration(v)]);
+  for (let v = -1; v < 5; v++) {
+    all.push([`volcano ${v}`, volcanoGeometry(v)], [`lava ${v}`, lavaGeometry(v)], [`crash ${v}`, crashSiteGeometry(v)], [`jungle ${v}`, jungleDecoration(v)]);
+  }
+  all.push(['volcanoSmoke', volcanoSmokeGeometry()]);
   const terrains: TerrainId[] = ['plain', 'forest', 'mountain', 'shallow', 'ocean'];
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
