@@ -181,7 +181,12 @@
     "spider": "Spider bot",
     "quadDrone": "Combat drone",
     "railgun": "Railgun platform",
-    "titan": "Titan"
+    "titan": "Titan",
+    "antiTank": "Anti-tank squad",
+    "antiAir": "Flak tank",
+    "mineLayer": "Mine layer",
+    "faustZealot": "Rocket zealot",
+    "flakDrone": "Flak drone"
   },
   "abilities": {
     "dash": "Assault",
@@ -225,7 +230,11 @@
     "burn": "Flames",
     "burnDesc": "Fire ignores terrain cover.",
     "wade": "Wade",
-    "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there."
+    "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there.",
+    "flak": "Flak zone",
+    "flakDesc": "Hostile flyers that end their turn right next to it take 3 damage.",
+    "mines": "Lay mines",
+    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction)."
   },
   "stats": {
     "cost": "Price",
@@ -263,7 +272,9 @@
     "wreck": "Wreck",
     "skeleton": "Bones of fallen soldiers ({n})",
     "wreckCover": "+1 cover for units on this tile",
-    "barrier": "Tank barrier"
+    "barrier": "Tank barrier",
+    "mine": "Mine",
+    "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it."
   },
   "buildings": {
     "storehouse": "Build storehouse",
@@ -469,7 +480,9 @@
     "none": "No action possible",
     "stars": "{n} stars",
     "barrier": "Build tank barrier",
-    "barrierHint": "Tap an adjacent tile for the tank barrier."
+    "barrierHint": "Tap an adjacent tile for the tank barrier.",
+    "mine": "Lay mine",
+    "mineHint": "Tap a free adjacent tile for the mine."
   },
   "errors": {
     "gameOver": "The game is over.",
@@ -509,7 +522,8 @@
     "notPreacher": "Only zealots and prophets can recruit.",
     "computeMissing": "Not enough compute. Build data centers and power plants.",
     "cultRecruit": "The cult does not recruit in cities.",
-    "cityLevel": "The city needs a higher level."
+    "cityLevel": "The city needs a higher level.",
+    "mineLimit": "At most {n} mines per faction."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -540,7 +554,9 @@
     "convert": "A unit defects",
     "barrierHit": "A vehicle is stuck in a tank barrier",
     "cityUpgrade": "{name} built in {city}",
-    "flak": "Anti-aircraft hits a helicopter (-{dmg})"
+    "flak": "Anti-aircraft hits a helicopter (-{dmg})",
+    "mineHit": "A mine explodes (-{dmg})",
+    "aaFire": "Flak hits a flyer (-{dmg})"
   },
   "fx": {
     "hit": [
@@ -1263,5 +1279,11 @@
     "labDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
     "labLooted": "Research facility (salvaged): cover +1",
     "salvagedTech": "Salvaged: technology {tech}"
+  },
+  "counter": {
+    "vsVehicle": "{pct} % vs vehicles",
+    "vsAir": "{pct} % vs flyers",
+    "vsFoot": "{pct} % vs foot troops",
+    "hint": "Counter: damage against this target class, when attacking and retaliating."
   }
 }

@@ -181,7 +181,12 @@
     "spider": "Spinnenbot",
     "quadDrone": "Kampfdrohne",
     "railgun": "Railgun-Plattform",
-    "titan": "Titan"
+    "titan": "Titan",
+    "antiTank": "Panzerabwehr-Trupp",
+    "antiAir": "Flakpanzer",
+    "mineLayer": "Minenleger",
+    "faustZealot": "Panzerfaust-Eiferer",
+    "flakDrone": "Flak-Drohne"
   },
   "abilities": {
     "dash": "Sturm",
@@ -225,7 +230,11 @@
     "burn": "Flammen",
     "burnDesc": "Feuer ignoriert Deckung durch Gelände.",
     "wade": "Waten",
-    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen."
+    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen.",
+    "flak": "Flakzone",
+    "flakDesc": "Feindliche Flieger, die direkt daneben ihren Zug beenden, nehmen 3 Schaden.",
+    "mines": "Minen legen",
+    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion)."
   },
   "stats": {
     "cost": "Preis",
@@ -263,7 +272,9 @@
     "wreck": "Wrack",
     "skeleton": "Gebeine gefallener Soldaten ({n})",
     "wreckCover": "+1 Schutz für Einheiten auf diesem Feld",
-    "barrier": "Panzersperre"
+    "barrier": "Panzersperre",
+    "mine": "Mine",
+    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus."
   },
   "buildings": {
     "storehouse": "Vorratslager anlegen",
@@ -469,7 +480,9 @@
     "none": "Keine Aktion möglich",
     "stars": "{n} Sterne",
     "barrier": "Panzersperre bauen",
-    "barrierHint": "Tippe auf ein Nachbarfeld für die Panzersperre."
+    "barrierHint": "Tippe auf ein Nachbarfeld für die Panzersperre.",
+    "mine": "Mine legen",
+    "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine."
   },
   "errors": {
     "gameOver": "Die Partie ist vorbei.",
@@ -509,7 +522,8 @@
     "notPreacher": "Nur Eiferer und Propheten können rekrutieren.",
     "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
     "cultRecruit": "Der Kult rekrutiert nicht in Städten.",
-    "cityLevel": "Die Stadt braucht eine höhere Stufe."
+    "cityLevel": "Die Stadt braucht eine höhere Stufe.",
+    "mineLimit": "Höchstens {n} Minen je Fraktion."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -540,7 +554,9 @@
     "convert": "Eine Einheit läuft über",
     "barrierHit": "Ein Fahrzeug steckt in einer Panzersperre fest",
     "cityUpgrade": "{name} in {city} gebaut",
-    "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})"
+    "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})",
+    "mineHit": "Eine Mine explodiert (-{dmg})",
+    "aaFire": "Flak trifft einen Flieger (-{dmg})"
   },
   "fx": {
     "hit": [
@@ -1263,5 +1279,11 @@
     "labDesc": "Bergung: eine Gratis-Technologie bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
     "labLooted": "Forschungseinrichtung (geborgen): Deckung +1",
     "salvagedTech": "Geborgen: Technologie {tech}"
+  },
+  "counter": {
+    "vsVehicle": "{pct} % gegen Fahrzeuge",
+    "vsAir": "{pct} % gegen Flieger",
+    "vsFoot": "{pct} % gegen Fußtruppen",
+    "hint": "Konter: Schaden gegen diese Zielklasse, beim Angriff und beim Gegenschlag."
   }
 }

@@ -12,18 +12,22 @@ export const BIOMES: BiomeId[] = ['grassland', 'hills', 'desert', 'steppe', 'tun
 export type ResourceId = 'supplies' | 'livestock' | 'fish' | 'farmland' | 'ore';
 export type FactionId = 'korvat' | 'dravon' | 'alvenia' | 'meridon' | 'velkar' | 'zyrr' | 'vesper' | 'nexus';
 export type LandUnitId =
-  | 'infantry' | 'sniper' | 'jeep' | 'pioneer' | 'mg' | 'medic' | 'artillery' | 'spy' | 'heli' | 'tank';
+  | 'infantry' | 'sniper' | 'jeep' | 'pioneer' | 'mg' | 'medic' | 'artillery' | 'spy' | 'heli' | 'tank'
+  // Konter-Einheiten / counter units
+  | 'antiTank' | 'antiAir' | 'mineLayer';
 export type ShipId = 'landingBoat' | 'submarine' | 'destroyer' | 'battleship';
 /** Ausserirdische Einheiten (nur Zyrr) / alien units (Zyrr only) */
 export type AlienUnitId = 'grey' | 'terraformer' | 'skimmer' | 'mech' | 'tripod';
 /** Einheiten des Weltuntergangskults (nur Vesper) / doomsday cult units (Vesper only) */
-export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler';
+export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler' | 'faustZealot';
 /** Robotereinheiten (nur NEXUS) / robot units (NEXUS only) */
-export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan';
+export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone';
 export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
-  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade';
+  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
+  // Konter: Flugabwehr-Feuerzone, Minen legen / counters: anti-air fire zone, lay mines
+  | 'flak' | 'mines';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -58,7 +62,17 @@ export interface UnitStats {
   faction?: FactionId;
   /** benoetigte Rechenleistung (NEXUS) / required compute (NEXUS) */
   compute?: number;
+  /**
+   * Schadensfaktor gegen Zielklassen (Konter, siehe COUNTER) / damage multiplier against target classes (counters, see COUNTER).
+   * 2.5 = +150 % gegen diese Klasse, 0.6 = -40 % / 2.5 = +150 % against this class, 0.6 = -40 %.
+   */
+  bonusVs?: Partial<Record<CounterClass, number>>;
 }
+
+/** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
+export type CounterClass = 'foot' | 'vehicle' | 'air';
+/** Einheitenklasse (Schiffe bekommen nie Konter-Boni) / unit class (ships never receive counter bonuses) */
+export type UnitClass = CounterClass | 'ship';
 
 export const UNITS: Record<UnitTypeId, UnitStats> = {
   infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
@@ -94,12 +108,24 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   railgun: { cost: 45, hp: 10, attack: 4.5, defense: 0.5, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'nexus', compute: 3 },
   titan: { cost: 60, hp: 35, attack: 4.5, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'nexus', compute: 4 },
   tripod: { cost: 55, hp: 25, attack: 4.5, defense: 2, move: 1, range: 2, vision: 2, abilities: ['deathRay', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+  // Konter-Einheiten (Schere-Stein-Papier, siehe COUNTER) / counter units (rock-paper-scissors, see COUNTER)
+  // Panzerabwehr-Trupp: muss stehen bleiben (kein Sturm), Reichweite 2, stark gegen Fahrzeuge, schwach gegen Infanterie
+  // anti-tank squad: must stand still (no dash), range 2, strong vs vehicles, weak vs infantry
+  antiTank: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: 'armsIndustry', ship: false, bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  // Flakpanzer: stark gegen Flieger, Feuerzone trifft Flieger, die daneben ihren Zug beenden / AA vehicle: strong vs flyers, fire zone hits flyers ending their turn next to it
+  antiAir: { cost: 30, hp: 15, attack: 2, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: 'aerodynamics', ship: false, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
+  // Minenleger: legt verdeckte Minen auf Nachbarfelder / mine layer: lays hidden mines on adjacent tiles
+  mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: 'fortification', ship: false },
+  // Kult: Panzerfaust-Eiferer / cult: rocket zealot
+  faustZealot: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
+  flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
 export const ALIEN_UNITS: AlienUnitId[] = ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'];
-export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler'];
-export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'railgun', 'titan'];
+export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'faustZealot'];
+export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'railgun', 'titan', 'flakDrone'];
 
 /**
  * Ersatzeinheiten der Sonderfraktionen fuer Start, Belohnungen und Aufstaende.
@@ -142,7 +168,7 @@ export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitT
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
-  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech'] as UnitTypeId[],
+  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone'] as UnitTypeId[],
   footDefense: 1.5,
 };
 
@@ -169,7 +195,7 @@ export const XENO = {
   uprisingUnit: 'grey' as UnitTypeId,
 };
 
-export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank'];
+export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 export const SHIP_UPGRADES: ShipId[] = ['submarine', 'destroyer', 'battleship'];
 /** Infanterietypen fuer Aussenposten / infantry types for outposts */
 export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer'];
@@ -191,8 +217,8 @@ export const DEFENSE_BONUS = {
 export const REMAINS = {
   /** Wracks geben +1 auf den Verteidigungsbonus / wrecks add +1 to the defense bonus */
   wreckDefenseBonus: 1,
-  wreckUnits: ['tank', 'jeep', 'artillery', 'heli'] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy'] as UnitTypeId[],
+  wreckUnits: ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -200,10 +226,38 @@ export const BARRIER = {
   cost: 10,
   builders: ['pioneer'] as UnitTypeId[],
   /** betroffene Fahrzeuge / affected vehicles */
-  vehicles: ['tank', 'jeep', 'artillery'] as UnitTypeId[],
+  vehicles: ['tank', 'jeep', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[],
   /** Bewegung in der naechsten Runde / movement in the next round */
   slowedMove: 1,
   terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+};
+
+/**
+ * Konter-Einheiten (Schere-Stein-Papier) / counter units (rock-paper-scissors).
+ * Klassen: Flieger = Faehigkeit 'fly', Schiffe = ship, Fahrzeuge = Liste unten (inkl. Laeufer und Mechs), sonst Fusstruppen.
+ * Classes: air = ability 'fly', ships = ship, vehicles = list below (incl. walkers and mechs), otherwise foot troops.
+ * Der Faktor bonusVs der Einheit multipliziert den Schaden gegen die Klasse (Angriff und Gegenschlag).
+ * The unit's bonusVs factor multiplies its damage against the class (attack and retaliation).
+ */
+export const COUNTER = {
+  vehicles: [
+    'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
+    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod',
+  ] as UnitTypeId[],
+  /** Flak-Feuerzone: feindliche Flieger, die im Umkreis ihren Zug beenden, nehmen Schaden / flak zone: hostile flyers ending their turn within range take damage */
+  flak: { range: 1, damage: 3 },
+  /**
+   * Minen: verdeckt (sichtbar fuer den Besitzer und Einheiten direkt daneben), loesen bei feindlichen Bodeneinheiten aus.
+   * Mines: hidden (visible to the owner and units right next to them), trigger on hostile ground units.
+   */
+  mine: {
+    cost: 10,
+    damageFoot: 6,
+    damageVehicle: 15,
+    terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+    /** hoechstens so viele Minen je Fraktion / at most this many mines per faction */
+    maxPerFaction: 8,
+  },
 };
 
 /** Kettenspuren (optisch) / track marks (visual) */
@@ -221,7 +275,7 @@ export const WEATHER = {
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
   /** Schnee: Fahrzeuge 1 Feld weniger / snow: vehicles 1 tile less */
-  snow: { moveUnits: ['jeep', 'tank', 'artillery'] as UnitTypeId[], moveDelta: -1 },
+  snow: { moveUnits: ['jeep', 'tank', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[], moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
   wind: { fuelBurn: 2 },
 };
