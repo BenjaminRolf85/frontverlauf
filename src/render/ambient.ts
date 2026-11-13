@@ -1,13 +1,15 @@
 /**
- * Lebendige Karte: Pflanzen wiegen sich (Shader, bei Wind staerker), Fische schwimmen und springen,
- * Schaumkronen laufen sanft auf die Kueste zu.
- * Living map: plants sway (shader, stronger in wind), fish swim and jump, foam rolls gently onto the coast.
+ * Lebendige Karte: Pflanzen wiegen sich (Shader, bei Wind staerker), Fische schwimmen und springen.
+ * Die Brandung an der Kueste zeichnet jetzt der Wasser-Shader (water.ts).
+ * Living map: plants sway (shader, stronger in wind), fish swim and jump.
+ * The surf at the coast is now drawn by the water shader (water.ts).
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { hex, semantic } from '../design/tokens';
 import { toonMaterial } from './toon';
 import { paint } from './toon';
+import { patchAtmosphere } from './atmosphere';
 
 /** Gemeinsame Uniforms fuer das Wiegen / shared uniforms for swaying */
 export const SWAY = { uTime: { value: 0 }, uWind: { value: 0 } };
@@ -32,13 +34,14 @@ let swayToon: THREE.MeshToonMaterial | null = null;
 export function swayMaterial(): THREE.MeshToonMaterial {
   if (swayToon) return swayToon;
   const m = toonMaterial().clone();
+  // Wiegen plus Leuchten und Dunst (Geometrie braucht 'glow', siehe withGlow)
+  // sway plus glow and haze (geometry needs 'glow', see withGlow)
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = SWAY.uTime;
     shader.uniforms.uWind = SWAY.uWind;
-    shader.vertexShader = 'uniform float uTime;\nuniform float uWind;\n' +
-      shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n${SWAY_GLSL}`);
+    patchAtmosphere(shader, SWAY_GLSL, 'uniform float uTime;\nuniform float uWind;\n');
   };
-  m.customProgramCacheKey = () => 'sway-toon';
+  m.customProgramCacheKey = () => 'sway-toon-atmo';
   swayToon = m;
   return m;
 }
@@ -78,21 +81,18 @@ function fishGeometry(): THREE.BufferGeometry {
 }
 
 interface Fish { x: number; z: number; y: number; phase: number; period: number; r: number }
-interface Foam { x: number; z: number; y: number; nx: number; nz: number; rot: number; phase: number; line: boolean }
 
 export class AmbientFx {
   readonly group = new THREE.Group();
   private fish: Fish[] = [];
-  private foam: Foam[] = [];
   private jumpers: THREE.InstancedMesh | null = null;
   private shadows: THREE.InstancedMesh | null = null;
   private splashes: THREE.InstancedMesh | null = null;
-  private foamMesh: THREE.InstancedMesh | null = null;
   private tmp = new THREE.Object3D();
 
-  /** tiles: Liste der Fischfelder und Kuestenkanten in Brettkoordinaten / fish tiles and coast edges in board coords */
-  build(fishTiles: { x: number; z: number; y: number }[], coast: { x: number; z: number; y: number; nx: number; nz: number }[]) {
-    for (const m of [this.jumpers, this.shadows, this.splashes, this.foamMesh]) if (m) { this.group.remove(m); m.dispose(); }
+  /** tiles: Liste der Fischfelder in Brettkoordinaten / fish tiles in board coords */
+  build(fishTiles: { x: number; z: number; y: number }[]) {
+    for (const m of [this.jumpers, this.shadows, this.splashes]) if (m) { this.group.remove(m); m.dispose(); }
     this.fish = [];
     fishTiles.forEach((t, i) => {
       for (let k = 0; k < 2; k++) {
@@ -105,19 +105,7 @@ export class AmbientFx {
     this.shadows = new THREE.InstancedMesh(new THREE.CircleGeometry(0.05, 8).scale(0.6, 1.6, 1).rotateX(-Math.PI / 2), shadowMat, n);
     const ringMat = new THREE.MeshBasicMaterial({ color: hex(semantic.white), transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
     this.splashes = new THREE.InstancedMesh(new THREE.RingGeometry(0.05, 0.075, 14).rotateX(-Math.PI / 2), ringMat, n);
-    // je Kante: feste Brandungslinie + zwei versetzte Wellen / per edge: fixed surf line + two staggered waves
-    this.foam = coast.flatMap((c, i) => {
-      const base = { ...c, rot: Math.atan2(c.nx, c.nz) };
-      return [
-        { ...base, phase: 0, line: true },
-        { ...base, phase: (i * 0.73) % (Math.PI * 2), line: false },
-        { ...base, phase: ((i * 0.73) % (Math.PI * 2)) + Math.PI, line: false },
-      ];
-    });
-    const foamMat = new THREE.MeshBasicMaterial({ color: hex(semantic.white), transparent: true, opacity: 0.95, depthWrite: false });
-    this.foamMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(0.9, 0.014, 0.07), foamMat, Math.max(1, this.foam.length));
-    this.foamMesh.count = this.foam.length;
-    for (const m of [this.jumpers, this.shadows, this.splashes, this.foamMesh]) {
+    for (const m of [this.jumpers, this.shadows, this.splashes]) {
       m.raycast = () => {};
       m.frustumCulled = false;
       m.renderOrder = 4;
@@ -129,7 +117,7 @@ export class AmbientFx {
 
   /** time in Sekunden / time in seconds */
   update(time: number) {
-    if (!this.jumpers || !this.shadows || !this.splashes || !this.foamMesh) return;
+    if (!this.jumpers || !this.shadows || !this.splashes) return;
     const o = this.tmp;
     this.fish.forEach((f, i) => {
       const t = (time + f.phase) % f.period;
@@ -164,25 +152,6 @@ export class AmbientFx {
       o.updateMatrix();
       this.splashes!.setMatrixAt(i, o.matrix);
     });
-    // Schaumkronen laufen zum Ufer / foam rolls to the shore
-    this.foam.forEach((c, i) => {
-      if (c.line) {
-        // Brandung am Ufer, atmet leicht / surf at the shore, breathes gently
-        const b = 0.75 + 0.25 * Math.sin(time * 1.6 + c.x * 2 + c.z * 3);
-        o.position.set(c.x + c.nx * 0.455, c.y + 0.007, c.z + c.nz * 0.455);
-        o.rotation.set(0, c.rot, 0);
-        o.scale.set(1.08, 1, b);
-      } else {
-        const k = ((time * 0.3 + c.phase / (Math.PI * 2)) % 1);
-        const d = 0.08 + k * 0.34;
-        o.position.set(c.x + c.nx * d, c.y + 0.006, c.z + c.nz * d);
-        o.rotation.set(0, c.rot, 0);
-        const fade = Math.sin(k * Math.PI);
-        o.scale.set(0.55 + 0.45 * k, 1, Math.max(0.001, fade * 0.8));
-      }
-      o.updateMatrix();
-      this.foamMesh!.setMatrixAt(i, o.matrix);
-    });
-    for (const m of [this.jumpers, this.shadows, this.splashes, this.foamMesh]) m.instanceMatrix.needsUpdate = true;
+    for (const m of [this.jumpers, this.shadows, this.splashes]) m.instanceMatrix.needsUpdate = true;
   }
 }
