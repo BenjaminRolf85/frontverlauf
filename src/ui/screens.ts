@@ -4,7 +4,7 @@
  * Screens and dialogs.
  */
 import {
-  FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
+  ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
   type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
@@ -115,12 +115,15 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
           <span class="muted">${esc(t('setup.hotseatHint'))}</span>
           ${cfg.players.map((p, i) => `
-            <div class="player-row">
-              ${factionBadge(p.id)}
-              <div class="row"><strong>${esc(t(`factions.${p.id}.name`))}</strong>
-                <span class="muted">${esc(t(`factions.${p.id}.perk`))}: ${esc(t(`factions.${p.id}.perkDesc`))} ${esc(t(`factions.${p.id}.discount`))}</span>
-                ${cfg.players.length < FACTION_IDS.length ? iconButton('rotateRight', t('setup.swapFaction'), `swap-${i}`) : ''}
+            <div class="player-row slot">
+              <div class="slot-head"><span class="slot-no display">${esc(t('setup.slot', { n: i + 1 }))}</span>
                 ${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</div>
+              <button type="button" class="slot-pick" data-action="pick-${i}" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(t(`factions.${p.id}.name`))}">
+                ${factionBadge(p.id)}
+                <span class="col grow"><strong>${esc(t(`factions.${p.id}.name`))}</strong>
+                  <span class="muted">${esc(t(`factions.${p.id}.perk`))}${ROSTERS[p.id] ? ` · ${esc(t('setup.special'))}` : ''}</span></span>
+                <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
+              </button>
               ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
               ${!p.human ? segmented(`diff-${i}`, (['easy', 'normal', 'hard', 'extreme'] as Difficulty[]).map((d) => ({ value: d, label: t(`difficulty.${d}`) })), p.difficulty) : ''}
             </div>`).join('')}
@@ -130,6 +133,35 @@ export function setupScreen(host: ScreenHost): HTMLElement {
           <div class="row"><input id="seed" type="text" value="${esc(cfg.seed)}" class="grow" inputmode="numeric">${button(t('setup.randomSeed'), { action: 'seed', variant: 'secondary' })}</div></div>
         ${button(t('setup.start'), { icon: 'play', action: 'start', block: true })}
       </div>`;
+  };
+  // Fraktionsauswahl fuer einen Slot / faction picker for a slot
+  const pickFaction = (slot: number) => {
+    const html = `${dialogTitle(t('setup.chooseTitle', { n: slot + 1 }))}
+      <p class="muted">${esc(t('setup.swapHint'))}</p>
+      <div class="faction-grid">${FACTION_IDS.map((f) => {
+        const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
+        const current = cfg.players[slot].id === f;
+        return `<button type="button" class="faction-card" data-pick="${f}" aria-pressed="${current}">
+          ${factionBadge(f)}
+          <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
+            <span class="muted">${esc(t(`factions.${f}.perk`))}: ${esc(t(`factions.${f}.perkDesc`))}</span>
+            <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
+              ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
+        </button>`;
+      }).join('')}</div>`;
+    const d = openDialog(n, html, { wide: true });
+    d.node.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[data-action="close"]')) { d.close(); return; }
+      const card = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
+      if (!card) return;
+      const f = card.dataset.pick as FactionId;
+      const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
+      // belegte Fraktion tauschen / swap a taken faction
+      if (other >= 0) cfg.players[other].id = cfg.players[slot].id;
+      cfg.players[slot].id = f;
+      d.close();
+      render();
+    });
   };
   render();
   n.addEventListener('click', (e) => {
@@ -158,15 +190,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       const free = FACTION_IDS.find((f) => !cfg.players.some((p) => p.id === f));
       if (free) cfg.players.push({ id: free, human: false, difficulty: 'normal' });
       render();
-    } else if (a.startsWith('swap-')) {
-      // Naechste freie Fraktion waehlen / pick the next free faction
-      const p = cfg.players[Number(a.slice(5))];
-      const start = FACTION_IDS.indexOf(p.id);
-      for (let k = 1; k < FACTION_IDS.length; k++) {
-        const f = FACTION_IDS[(start + k) % FACTION_IDS.length];
-        if (!cfg.players.some((o) => o.id === f)) { p.id = f; break; }
-      }
-      render();
+    } else if (a.startsWith('pick-')) {
+      pickFaction(Number(a.slice(5)));
     } else if (a.startsWith('remove-')) { cfg.players.splice(Number(a.slice(7)), 1); render(); }
     else if (a === 'start') {
       const seedNum = /^-?\d+$/.test(cfg.seed.trim()) ? Number(cfg.seed.trim()) | 0 : hashSeed(cfg.seed);

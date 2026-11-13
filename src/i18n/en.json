@@ -44,9 +44,15 @@
     "start": "Launch operation",
     "addPlayer": "Add faction",
     "removePlayer": "Remove",
-    "swapFaction": "Change faction",
     "tiles": "{n} x {n} tiles",
-    "hotseatHint": "Several people take turns on the same device."
+    "hotseatHint": "Several people take turns on the same device.",
+    "slot": "Slot {n}",
+    "chooseFaction": "Choose faction",
+    "chooseTitle": "Faction for slot {n}",
+    "special": "Special faction",
+    "takenBy": "taken by slot {n}",
+    "swapHint": "A taken faction is swapped with the other slot.",
+    "current": "selected"
   },
   "modes": {
     "points": "Points",
