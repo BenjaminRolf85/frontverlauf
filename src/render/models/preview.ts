@@ -2,7 +2,7 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|all &view=iso|top|front &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|all &view=iso|top|front &f=<faction>
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
@@ -14,7 +14,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, jungleDecoration, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -31,7 +31,7 @@ const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
 const withNeutral: (FactionId | null)[] = onlyFaction ? [onlyFaction] : [...FACTION_IDS, null];
 
-const LAND: UnitTypeId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank'];
+const LAND: UnitTypeId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleship'];
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
@@ -163,6 +163,18 @@ function sheet(): Sheet {
             { geo: unitGeometry('infantry', fid, null), ground }, { geo: unitGeometry('spy', fid, null), ground },
             { geo: unitGeometry('jeep', fid, null), ground }, { geo: unitGeometry('destroyer', fid, null), ground: waterGround },
           ] },
+        ],
+      };
+    }
+    case 'counters': {
+      // Konter-Einheiten aller Fraktionen + Mine / counter units of all factions + mine
+      const all8 = withNeutral.filter((f): f is FactionId => f !== null);
+      const types: UnitTypeId[] = ['antiTank', 'antiAir', 'mineLayer', 'faustZealot', 'flakDrone'];
+      return {
+        cols: all8.map(fname),
+        rows: [
+          ...types.map((t) => ({ label: t, cells: all8.map((f) => ({ geo: unitGeometry(t, f, null), ground: plainGround })) })),
+          { label: 'mine', cells: all8.map((f) => ({ geo: mineGeometry(f), ground: plainGround })) },
         ],
       };
     }
@@ -345,6 +357,7 @@ function checkAll(): string[] {
     }
   }
   all.push(['bunker', featureGeometry('bunker')], ['radar', featureGeometry('radar')]);
+  for (const f of withNeutral) all.push([`mine ${f}`, mineGeometry(f)]);
   for (let v = -1; v < 8; v++) all.push([`xenoDeco ${v}`, xenoDecoration(v)]);
   for (let v = -1; v < 5; v++) {
     all.push([`volcano ${v}`, volcanoGeometry(v)], [`lava ${v}`, lavaGeometry(v)], [`crash ${v}`, crashSiteGeometry(v)], [`jungle ${v}`, jungleDecoration(v)], [`labRuin ${v}`, labRuinGeometry(v)]);

@@ -657,6 +657,7 @@ const MUZZLE: Partial<Record<UnitTypeId, [number, number]>> = {
   heli: [0.3, 0.24], landingBoat: [0.2, 0.22], submarine: [0.0, 0.32], destroyer: [0.26, 0.32], battleship: [0.32, 0.36],
   skimmer: [0.22, 0.26], mech: [0.42, 0.2], tripod: [0.4, 0.14], titan: [0.55, 0.22], spider: [0.12, 0.22],
   quadDrone: [0.36, 0.12], railgun: [0.32, 0.4], rocketCart: [0.32, 0.12], android: [0.3, 0.15],
+  antiTank: [0.33, 0.36], faustZealot: [0.33, 0.36], antiAir: [0.45, 0.22], flakDrone: [0.45, 0.16],
 };
 /** Trefferhoehe / hit height */
 const HIT_H: Partial<Record<UnitTypeId, number>> = { heli: 0.36, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34 };

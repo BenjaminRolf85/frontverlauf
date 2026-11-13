@@ -162,6 +162,9 @@ function boot() {
           break;
         }
         case 'barrierHit': { const u = s.units.find((x) => x.id === e.unit); if (u && (u.owner === viewer || s.tiles[e.y * s.size + e.x].barrier?.owner === viewer)) toast(root, t('events.barrierHit'), 'shield'); break; }
+        // Konter: Minen und Flak / counters: mines and flak
+        case 'mineHit': if (e.owner === viewer || s.current === viewer) toast(root, t('events.mineHit', { dmg: e.dmg }), 'warning'); break;
+        case 'aaFire': toast(root, t('events.aaFire', { dmg: e.dmg }), 'attack'); break;
         case 'uprising': toast(root, t('events.uprising', { city: cityName(s, e.city) }), 'warning'); break;
         case 'peace': if (e.a === viewer || e.b === viewer) toast(root, t('events.peace', { a: fname(e.a), b: fname(e.b) }), 'diplomacy'); break;
         case 'peaceOffer': if (e.to === viewer) toast(root, t('events.peaceOffer', { name: fname(e.from) }), 'diplomacy'); break;

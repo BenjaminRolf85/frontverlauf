@@ -3,7 +3,7 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
+  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
@@ -242,6 +242,11 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   }
   let mil = (MIL[t] ?? 0) * prof.militaryW * (ctx.conquest ? 1.3 : 1);
   if (t === 'ballistics' && ctx.hostileCities.length) mil += 12;
+  // Konter-Technologien, wenn die sichtbare Gegnerarmee sie verlangt / counter techs when the visible enemy army calls for them
+  if (t === 'armsIndustry' || t === 'aerodynamics') {
+    const ct = counterShares(ctx);
+    mil += (t === 'armsIndustry' ? ct.antiVehicle : ct.antiAir) * 70 * prof.militaryW;
+  }
   if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW;
   if (t === 'roadbuilding') mil += unconnected * 12;
   if (t === 'mountainTraining' || t === 'highAltitude') {
@@ -263,6 +268,32 @@ function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, uncon
   return v * ctx.prof.researchW;
 }
 
+/**
+ * Zusammensetzung der sichtbaren Gegner: Anteil Fahrzeuge und Flieger (fuer Konter-Einheiten).
+ * Composition of the visible enemies: vehicles and flyers (for counter units).
+ */
+export function enemyMix(ctx: Ctx, near?: { x: number; y: number }, radius = 99): { vehicle: number; air: number; total: number } {
+  let vehicle = 0, air = 0, total = 0;
+  for (const e of ctx.enemies) {
+    if (UNITS[e.type].attack <= 0 || (near && dist(e, near) > radius)) continue;
+    const cls = unitClass(e.carried ?? e.type);
+    total++;
+    if (cls === 'vehicle') vehicle++;
+    else if (cls === 'air') air++;
+  }
+  return { vehicle, air, total };
+}
+
+/** Zielanteile der Konter-Einheiten / target shares of the counter units */
+function counterShares(ctx: Ctx): { antiVehicle: number; antiAir: number; vehRatio: number; airRatio: number } {
+  const mix = enemyMix(ctx);
+  const vehRatio = mix.total ? mix.vehicle / Math.max(3, mix.total) : 0;
+  const antiVehicle = mix.vehicle >= 2 ? Math.min(0.45, 0.1 + 0.5 * vehRatio) : mix.vehicle ? 0.06 : 0;
+  const airRatio = mix.total ? mix.air / Math.max(3, mix.total) : 0;
+  const antiAir = mix.air ? Math.min(0.4, 0.12 + 0.12 * mix.air) : 0;
+  return { antiVehicle, antiAir, vehRatio, airRatio };
+}
+
 /** Wunschtyp fuer eine Stadt / desired unit type for a city */
 export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId | null {
   const { s, f, prof } = ctx;
@@ -272,10 +303,16 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   const army = Math.max(1, ctx.my.length);
   const unexplored = ctx.fa.explored.some((e) => !e);
   const avail = (t: UnitTypeId) => UNITS[t].cost !== null && (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!));
+  // Konter: Anteile nach sichtbaren Fahrzeugen und Fliegern / counters: shares by visible vehicles and flyers
+  const ct = counterShares(ctx);
+  const soft = 1 - 0.5 * Math.min(1, ct.vehRatio + ct.airRatio);
   // Zielanteile der Armee / target shares of the army
   const share: Partial<Record<UnitTypeId, number>> = {
-    infantry: avail('mg') ? 0.15 : 0.45,
-    mg: 0.35,
+    infantry: (avail('mg') ? 0.15 : 0.45) * soft,
+    mg: 0.35 * soft,
+    antiTank: ct.antiVehicle,
+    antiAir: ct.antiAir,
+    mineLayer: army >= 4 && (ctx.enemies.length > 0 || ctx.conquest) ? 0.08 : 0,
     jeep: unexplored ? 0.2 : 0.08,
     sniper: 0.06,
     pioneer: 0.05,
@@ -287,16 +324,20 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9,
+    antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
   };
+  // Bedrohung der Stadt: Fahrzeuge oder Flieger in der Naehe / threat to the city: vehicles or flyers nearby
+  const local = enemyMix(ctx, c, 3);
   let best: UnitTypeId | null = null;
   let bs = -Infinity;
   for (const t of LAND_UNITS) {
     if (!avail(t)) continue;
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper'].includes(t)) continue;
+    const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
-    if (urgent) sc = t === 'mg' ? 2 : t === 'pioneer' ? 1.6 : t === 'infantry' ? 1.2 : 1;
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' ? 2 : t === 'pioneer' ? 1.6 : t === 'infantry' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, LAND_UNITS.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
@@ -315,13 +356,21 @@ function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
   const army = Math.max(1, ctx.my.length);
   const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t).length;
   const roster = rosterUnits(s, f);
+  // Konter der Sonderfraktionen / counters of the special factions
+  const ct = counterShares(ctx);
+  const shareOf = (t: UnitTypeId) => {
+    const bonus = UNITS[t].bonusVs;
+    if (bonus?.vehicle && bonus.vehicle > 1) return Math.max(0.04, ct.antiVehicle);
+    if (bonus?.air && bonus.air > 1) return Math.max(0.04, ct.antiAir);
+    return (ROSTER_SHARE[t] ?? 0.1) * (1 - 0.4 * Math.min(1, ct.vehRatio + ct.airRatio));
+  };
   const avail = (t: UnitTypeId) => (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && (UNITS[t].compute === undefined || computePower(s, f) >= UNITS[t].compute!);
   let best: UnitTypeId | null = null, bs = -Infinity;
   for (const t of roster) {
     if (!avail(t)) continue;
     // Kult: ohne Prediger kein Nachschub / cult: no reinforcements without preachers
     const preachers = ctx.my.filter((u) => UNITS[u.type].abilities.includes('preach')).length;
-    let sc = ((ROSTER_SHARE[t] ?? 0.1) - count(t) / army) * 4 - UNITS[t].cost! / 250;
+    let sc = (shareOf(t) - count(t) / army) * 4 - UNITS[t].cost! / 250;
     if (UNITS[t].abilities.includes('preach') && preachers < 2) sc += 1;
     if (urgent) sc = UNITS[t].hp * 0.05 + UNITS[t].attack * 0.2 - UNITS[t].cost! / 100;
     if (sc > bs) { bs = sc; best = t; }

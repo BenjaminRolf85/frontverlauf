@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { attackTargets, levelUpCost, burning, canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
+import { attackTargets, levelUpCost, burning, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { tList } from '../i18n/i18n';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -366,6 +366,10 @@ export class Board {
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;
           addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        }
+        // Mine: nur fuer den Besitzer und Einheiten daneben sichtbar / mine: only visible to the owner and adjacent units
+        if (t.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) {
+          addDeco(models.mineGeometry(s.factions[t.mine.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
         }
         // Ueberreste: Fleck + Skelett oder Wrack / remains: splat + skeleton or wreck
         if (t.remains) {

@@ -35,6 +35,8 @@ export interface Tile {
   river?: boolean;
   /** Panzersperre / tank barrier */
   barrier?: { owner: number } | null;
+  /** verdeckte Mine (nur Besitzer und Nachbareinheiten sehen sie) / hidden mine (only the owner and adjacent units see it) */
+  mine?: { owner: number } | null;
   /** terraformt: Xeno-Boden der Zyrr / terraformed: Zyrr xeno ground */
   xeno?: boolean;
   /** Vulkan auf diesem Bergfeld / volcano on this mountain tile */
@@ -191,6 +193,9 @@ export type GameEvent =
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
   | { t: 'terraform'; x: number; y: number; faction: number; unit?: number }
   | { t: 'barrierHit'; unit: number; x: number; y: number }
+  | { t: 'mine'; x: number; y: number; faction: number }
+  | { t: 'mineHit'; unit: number; x: number; y: number; dmg: number; owner: number }
+  | { t: 'aaFire'; unit: number; target: number; dmg: number }
   | { t: 'uprising'; city: number; faction: number; spawned: number }
   | { t: 'embark'; unit: number }
   | { t: 'disembark'; unit: number }
@@ -224,6 +229,7 @@ export type Command =
   | { type: 'grandProject'; id: GrandProjectId; x: number; y: number }
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
+  | { type: 'mine'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'terraform'; x: number; y: number; unit?: number }
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }

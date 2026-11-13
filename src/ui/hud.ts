@@ -3,11 +3,11 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
-  barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
+  canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
   type GameState, type Unit,
@@ -28,7 +28,19 @@ const UNIT_ICON: Record<string, string> = {
   grey: 'lightning', terraformer: 'build', skimmer: 'move', mech: 'shield', tripod: 'range',
   zealot: 'boot', torchbearer: 'lightning', prophet: 'heal', doomBuggy: 'move', rocketCart: 'range', doomCrawler: 'shield',
   android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
+  antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
 };
+const COUNTER_KEY: Record<CounterClass, string> = { vehicle: 'counter.vsVehicle', air: 'counter.vsAir', foot: 'counter.vsFoot' };
+
+/** Konter-Boni als Text, z. B. "+150 % gegen Fahrzeuge" / counter bonuses as text */
+export function counterTags(type: UnitTypeId): { text: string; good: boolean }[] {
+  const bonus = UNITS[type].bonusVs;
+  if (!bonus) return [];
+  return (Object.entries(bonus) as [CounterClass, number][]).map(([cls, f]) => {
+    const pct = Math.round((f - 1) * 100);
+    return { text: t(COUNTER_KEY[cls], { pct: pct > 0 ? `+${pct}` : `${pct}` }), good: pct > 0 };
+  });
+}
 const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown' };
 
 export function unitName(u: Unit): string {
@@ -218,7 +230,7 @@ export class Hud {
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
         </div>
-        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}</div>`;
+        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div>`;
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
     } else if ((tab === 'city' || (tab === 'unit' && !vUnit)) && city) {
       const name = cityName(s, city.id);
@@ -259,6 +271,7 @@ export class Hud {
       if (tile.outpost) tags.push(`${t('features.outpost')} (${t(`factions.${s.factions[tile.outpost.owner].id}.short`)})`);
       if (tile.grandProject) tags.push(t(`grand.${tile.grandProject}`));
       if (tile.barrier) tags.push(`${t('features.barrier')} (${t(`factions.${s.factions[tile.barrier.owner].id}.short`)})`);
+      if (tile.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) tags.push(`${t('features.mine')} (${t(`factions.${s.factions[tile.mine.owner].id}.short`)}): ${t('features.mineDesc', { foot: COUNTER.mine.damageFoot, vehicle: COUNTER.mine.damageVehicle })}`);
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
       const bones = tile.remains ? tile.remains.skeletons ?? (tile.remains.kind === 'skeleton' ? 1 : 0) : 0;
       if (bones) tags.push(t('features.skeleton', { n: bones }));
@@ -337,6 +350,15 @@ export class Hud {
       const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'cannotCapture' ? 'unitExhausted' : base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
       this.actions.push({ id: 'barrier', icon: 'shield', label: g.barrierMode ? t('actions.cancel') : t('actions.barrier'), cost: g.barrierMode ? undefined : BARRIER.cost, enabled: ok || g.barrierMode, reason,
         run: () => { if (g.barrierMode) { g.barrierMode = false; g.updateHighlights(); this.render(); } else { g.startBarrier(); g.ui.toast(t('actions.barrierHint'), 'shield'); } } });
+    }
+    // Minenleger: Mine auf ein Nachbarfeld / mine layer: mine on an adjacent tile
+    if (has(u, 'mines')) {
+      const targets = mineTargets(s, u);
+      const ok = targets.length > 0;
+      const base = neighbors(s.size, u.x, u.y).map((q) => mineCheck(s, u, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'invalidTile';
+      const reason = ok ? t('actions.mineHint') : base === 'cannotCapture' ? t('errors.unitExhausted') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
+      this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
+        run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
     }
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);

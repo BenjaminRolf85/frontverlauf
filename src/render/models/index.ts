@@ -24,6 +24,7 @@ import { xenoFlora } from './xeno';
 import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terrain';
 import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
+import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
@@ -59,6 +60,12 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'quadDrone': return quadDrone(faction).build();
       case 'railgun': return railgun(faction).build();
       case 'titan': return titan(faction).build();
+      // Konter-Einheiten / counter units
+      case 'antiTank': return antiTank(faction).build();
+      case 'antiAir': return antiAir(faction).build();
+      case 'mineLayer': return mineLayer(faction).build();
+      case 'faustZealot': return faustZealot(faction).build();
+      case 'flakDrone': return flakDrone(faction).build();
     }
   });
 }
@@ -93,6 +100,11 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'quadDrone': return quadDrone(faction, true).build();
       case 'railgun': return railgun(faction, true).build();
       case 'titan': return titan(faction, true).build();
+      case 'antiTank': return antiTank(faction, true).build();
+      case 'antiAir': return antiAir(faction, true).build();
+      case 'mineLayer': return mineLayer(faction, true).build();
+      case 'faustZealot': return faustZealot(faction, true).build();
+      case 'flakDrone': return flakDrone(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });
@@ -111,6 +123,11 @@ export function cityGeometry(
 export function buildingGeometry(kind: BuildingId | 'outpost' | GrandProjectId, faction: FactionId | null): THREE.BufferGeometry {
   const f = kind === 'road' ? null : faction;
   return memo(`building|${kind}|${f ?? 'neutral'}`, () => building(kind, f).build());
+}
+
+/** Verdeckte Mine, nur fuer den Besitzer sichtbar / hidden mine, visible to its owner only */
+export function mineGeometry(faction: FactionId | null): THREE.BufferGeometry {
+  return memo(`mine|${faction ?? 'neutral'}`, () => mineModel(faction).build());
 }
 
 export function featureGeometry(kind: 'bunker' | 'radar'): THREE.BufferGeometry {

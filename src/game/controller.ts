@@ -4,7 +4,7 @@
  */
 import {
   isHostile, dist, weather, applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, radioTargets, terraformTargets,
+  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
@@ -48,6 +48,8 @@ export class Controller {
   hintTile: { x: number; y: number } | null = null;
   /** Zielauswahl fuer die Panzersperre / target selection for the tank barrier */
   barrierMode = false;
+  /** Zielauswahl fuer eine Mine / target selection for a mine */
+  mineMode = false;
   /** Zielauswahl fuer den Funkturm: Stadt-ID / target selection for the radio tower: city id */
   radioCity: number | null = null;
   /** Zielauswahl fuer den Terraformer / target selection for the terraformer */
@@ -95,6 +97,13 @@ export class Controller {
     this.ui.update();
   }
 
+  startMine() {
+    this.mineMode = true;
+    this.barrierMode = false;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
   startTerraform(unitId: number) {
     this.terraformUnit = unitId;
     this.updateHighlights();
@@ -109,6 +118,7 @@ export class Controller {
 
   clearSelection() {
     this.barrierMode = false;
+    this.mineMode = false;
     this.radioCity = null;
     this.terraformUnit = null;
     this.selected = null; this.selectedUnit = null; this.pendingTarget = null;
@@ -135,6 +145,8 @@ export class Controller {
     const u = this.selectedUnitObj();
     if (u && this.barrierMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of barrierTargets(s, u)) list.push({ ...p, kind: 'build' });
+    } else if (u && this.mineMode && u.owner === s.current && this.isHumanTurn) {
+      for (const p of mineTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && u.owner === s.current && this.isHumanTurn) {
       for (const r of reachable(s, u)) {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
@@ -187,6 +199,15 @@ export class Controller {
       this.barrierMode = false;
       if (barrierTargets(s, u).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'barrier', unit: u.id, x, y });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
+    if (u && this.mineMode) {
+      this.mineMode = false;
+      if (mineTargets(s, u).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'mine', unit: u.id, x, y });
         return;
       }
       this.updateHighlights(); this.ui.update();
@@ -370,6 +391,10 @@ export class Controller {
           case 'heal': { const u = unitById(s, e.unit); if (u && visible(u.x, u.y)) this.ui.fx('heal', u.x, u.y, `+${e.amount}`); break; }
           case 'build': if (e.faction === this.viewer) this.play('build'); break;
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
+          // Minen: nur der Besitzer hoert das Legen / mines: only the owner hears the laying
+          case 'mine': if (e.faction === this.viewer) this.play('build'); break;
+          case 'mineHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); this.ui.fx('num', e.x, e.y, `-${e.dmg}`); if (animate) this.view.shake(SHAKE.barrier * 2); } break;
+          case 'aaFire': { const tu = before.get(e.target); if (tu && visible(tu.x, tu.y)) { this.play('hit'); this.ui.fx('num', tu.x, tu.y, `-${e.dmg}`); } break; }
           case 'terraform': if (e.faction === this.viewer) this.play('research'); break;
           case 'cityUpgrade': if (e.faction === this.viewer) this.play(e.upgrade === 'radioTower' ? 'research' : 'build'); break;
           case 'barrierHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.barrier); } break;
