@@ -232,6 +232,11 @@ export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barra
 export const CITY_UPGRADES = {
   slots: 3,
   cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30 } as Record<CityUpgradeId, number>,
+  /**
+   * Freischaltung durch Forschung; Fraktionen ohne Forschung brauchen stattdessen die Stadtstufe (Stufe der Technologie + 1).
+   * Unlock by research; factions without research need the city level instead (tech tier + 1).
+   */
+  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics' } as Record<CityUpgradeId, TechId>,
   /** Lazarett: zusaetzliche Heilung auf und neben der Stadt / hospital: extra healing on and next to the city */
   hospitalHeal: 2,
   /** Flugabwehr: Schaden an feindlichen Hubschraubern, die ihren Zug im Umkreis beenden / flak: damage to hostile helicopters ending their turn within range */

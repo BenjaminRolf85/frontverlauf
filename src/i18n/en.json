@@ -508,7 +508,8 @@
     "wrongFaction": "Only the Zyrr can do that.",
     "notPreacher": "Only zealots and prophets can recruit.",
     "computeMissing": "Not enough compute. Build data centers and power plants.",
-    "cultRecruit": "The cult does not recruit in cities."
+    "cultRecruit": "The cult does not recruit in cities.",
+    "cityLevel": "The city needs a higher level."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1173,7 +1174,10 @@
     "hospitalDesc": "Own units on and next to the city heal 2 HP more.",
     "flakDesc": "Hostile helicopters ending their turn next to the city lose 3 HP.",
     "depotDesc": "5 more stars per round.",
-    "full": "All 3 slots are taken."
+    "full": "All 3 slots are taken.",
+    "unlock": "City upgrade: {name}",
+    "lockedHint": "More upgrades are unlocked by research ({n}).",
+    "lockedHintLevel": "More upgrades at a higher city level ({n})."
   },
   "saves": {
     "title": "Saved games",

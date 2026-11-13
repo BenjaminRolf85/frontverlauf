@@ -4,7 +4,7 @@
  * Screens and dialogs.
  */
 import {
-  ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
@@ -370,6 +370,11 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(t(`buildingDesc.${b}`))}</span></li>`);
   const extra = t(`techExtra.${tech}`);
   const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon('lightning', 'icon-sm')}<strong>${esc(extra)}</strong></li>`];
+  // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
+  for (const up of CITY_UPGRADE_IDS) {
+    if (CITY_UPGRADES.tech[up] !== tech) continue;
+    extraRows.push(`<li class="unlock">${icon('city', 'icon-sm')}<strong>${esc(t('cityUpgrades.unlock', { name: t(`cityUpgrades.${up}`) }))}</strong><span class="muted">${esc(t(`cityUpgrades.${up}Desc`))}</span></li>`);
+  }
   let reason = '';
   if (st === 'researched') reason = t('tech.done');
   else if (st === 'locked' && parent) reason = t('tech.needParent', { tech: t(`techs.${parent}`) });

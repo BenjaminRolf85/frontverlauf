@@ -239,7 +239,7 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit';
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel';
 
 export interface CommandResult {
   ok: boolean;

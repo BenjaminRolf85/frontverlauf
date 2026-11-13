@@ -694,16 +694,26 @@ export function effectiveDefense(s: GameState, u: Unit): number {
   return d;
 }
 
-export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget';
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel';
 
 export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
   if (c.owner !== f) return 'notYourCity';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
+  const need = cityUpgradeRequirement(s, f, up);
+  if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';
+  if (need.level && c.level < need.level) return 'cityLevel';
   if (s.factions[f].stars < CITY_UPGRADES.cost[up]) return 'notEnoughStars';
   if (up === 'radioTower' && target && !radioTargetOk(s, c, target)) return 'invalidTarget';
   return 'ok';
+}
+
+/** Voraussetzung eines Ausbaus: Technologie oder (ohne Forschung) Stadtstufe / requirement: tech or (without research) city level */
+export function cityUpgradeRequirement(s: GameState, f: number, up: CityUpgradeId): { tech?: TechId; level?: number } {
+  const tech = CITY_UPGRADES.tech[up];
+  if (ROSTERS[s.factions[f].id]?.research === false && !hasTech(s, f, tech)) return { level: TECHS[tech].tier + 1 };
+  return { tech };
 }
 
 export function radioTargetOk(s: GameState, c: City, p: Pos): boolean {

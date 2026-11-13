@@ -553,7 +553,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   for (const c of ctx.myCities) {
     const front = ctx.enemies.some((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
     for (const up of CITY_UPGRADE_IDS) {
-      if (cityUpgradeCheck(s, f, c, up) === 'alreadyBuilt' || cityUpgradeCheck(s, f, c, up) === 'noSlot' || cityUpgradeCheck(s, f, c, up) === 'notYourCity') continue;
+      const uc = cityUpgradeCheck(s, f, c, up);
+      if (uc !== 'ok' && uc !== 'notEnoughStars' && uc !== 'invalidTarget') continue;
       const cost = CITY_UPGRADES.cost[up];
       let value = 0;
       let cmd: Command = { type: 'cityUpgrade', city: c.id, upgrade: up };

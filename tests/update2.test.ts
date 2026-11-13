@@ -1,3 +1,4 @@
+import { CITY_UPGRADES } from '../src/data/balance';
 import { describe, expect, it } from 'vitest';
 import { cityIncome, continueEndless, createGame, defaultConfig, effectiveMove, healAmount, weatherFor } from '../src/core';
 import { CITY_UPGRADES, HEALING, MAP_SIZES, WEATHER } from '../src/data/balance';
@@ -40,6 +41,7 @@ describe('Schnee und Wind / snow and wind', () => {
 describe('Neue Ausbauten / new upgrades', () => {
   function g() {
     const s = blankGame({ stars: 200 });
+    for (const f of s.factions) f.techs.push(...Object.values(CITY_UPGRADES.tech));
     const hq = addCity(s, 2, 2, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
     return { s, hq };
   }
@@ -81,6 +83,7 @@ describe('Neue Ausbauten / new upgrades', () => {
 describe('Kriegsspuren / war marks', () => {
   it('Artillerie hinterlaesst Krater, Infanterie Brandflecken / artillery leaves craters, infantry scorch marks', () => {
     const s = blankGame();
+    for (const f of s.factions) f.techs.push(...Object.values(CITY_UPGRADES.tech));
     addCity(s, 1, 1, 0, { hq: true }); addCity(s, 10, 10, 1, { hq: true });
     const a = addUnit(s, 'artillery', 0, 5, 3), v = addUnit(s, 'tank', 1, 5, 5);
     revealAll(s, 0);

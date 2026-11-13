@@ -54,6 +54,8 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** Hinweis auf gesperrte Stadt-Ausbauten / note about locked city upgrades */
+  private cityNote = '';
   /** 3D-Portraet der gewaehlten Einheit / 3D portrait of the selected unit */
   private portrait = new Portrait();
   private portraitFor: { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null = null;
@@ -244,7 +246,9 @@ export class Hud {
           const cs = computeStats(s, city.owner);
           body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t('nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants }))}</p>`;
         }
+        this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
+        if (this.cityNote) body += `<p class="muted">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
       }
     } else {
       const owner = territoryOwner(s, tile);
@@ -357,9 +361,12 @@ export class Hud {
     const g = this.game;
     const c = cityById(s, cityId)!;
     // Ausbau-Slots / upgrade slots
+    let lockedUpgrades = 0;
     for (const up of CITY_UPGRADE_IDS) {
       if (hasCityUpgrade(c, up)) continue;
       const chk = cityUpgradeCheck(s, c.owner!, c, up);
+      // noch nicht erforscht: nicht anzeigen, nur zaehlen / not researched yet: hide, only count
+      if (chk === 'techMissing' || chk === 'cityLevel') { lockedUpgrades++; continue; }
       const radioActive = up === 'radioTower' && g.radioCity === c.id;
       const noTargets = up === 'radioTower' && radioTargets(s, c.owner!, c).length === 0;
       this.actions.push({
@@ -374,6 +381,10 @@ export class Hud {
           g.ui.toast(t('cityUpgrades.radioHint'), 'range');
         },
       });
+    }
+    if (lockedUpgrades && cityUpgrades(c).length < CITY_UPGRADES.slots) {
+      const noResearch = !canResearch(s, c.owner!);
+      this.cityNote = t(noResearch ? 'cityUpgrades.lockedHintLevel' : 'cityUpgrades.lockedHint', { n: lockedUpgrades });
     }
     // Zyrr: erst das Stadtfeld terraformen / Zyrr: terraform the city tile first
     if (isAlienFaction(s, c.owner!) && !s.tiles[c.y * s.size + c.x].xeno) {

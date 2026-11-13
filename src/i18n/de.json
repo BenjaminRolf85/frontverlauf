@@ -508,7 +508,8 @@
     "wrongFaction": "Nur die Zyrr können das.",
     "notPreacher": "Nur Eiferer und Propheten können rekrutieren.",
     "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
-    "cultRecruit": "Der Kult rekrutiert nicht in Städten."
+    "cultRecruit": "Der Kult rekrutiert nicht in Städten.",
+    "cityLevel": "Die Stadt braucht eine höhere Stufe."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1173,7 +1174,10 @@
     "hospitalDesc": "Eigene Einheiten auf und neben der Stadt heilen 2 LP mehr.",
     "flakDesc": "Feindliche Hubschrauber, die neben der Stadt ihren Zug beenden, verlieren 3 LP.",
     "depotDesc": "5 Sterne mehr pro Runde.",
-    "full": "Alle 3 Slots sind belegt."
+    "full": "Alle 3 Slots sind belegt.",
+    "unlock": "Stadt-Ausbau: {name}",
+    "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
+    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
   },
   "saves": {
     "title": "Spielstände",
