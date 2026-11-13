@@ -223,7 +223,9 @@
     "preach": "Predigen",
     "preachDesc": "Rekrutiert neue Einheiten auf freien Nachbarfeldern. Der Prediger ist danach erschöpft.",
     "burn": "Flammen",
-    "burnDesc": "Feuer ignoriert Deckung durch Gelände."
+    "burnDesc": "Feuer ignoriert Deckung durch Gelände.",
+    "wade": "Waten",
+    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen."
   },
   "stats": {
     "cost": "Preis",
@@ -437,7 +439,10 @@
     "crashWarningConfirm": "Trotzdem beenden",
     "pendingReward": "Erst eine Stadtbelohnung wählen.",
     "noIncomeNext": "Kein Einkommen in der nächsten Runde (Aufstand)",
-    "slowed": "Gebremst: nur 1 Feld"
+    "slowed": "Gebremst: nur 1 Feld",
+    "perRoundUpkeep": "{net} pro Runde ({n} Einkommen, −{up} Sold)",
+    "upkeepUnit": "Sold {n} pro Runde",
+    "upkeepFree": "Kein Sold (Stammtruppe)"
   },
   "actions": {
     "move": "Bewegen",

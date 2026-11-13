@@ -10,7 +10,7 @@ import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import {
   recruitCheck, recruitHome,
-  attackTargets, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
+  upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
@@ -299,8 +299,9 @@ function startTurn(s: GameState, ev: GameEvent[]) {
   });
   let inc = 0;
   if (s.round > 1) {
-    inc = income(s, f);
-    fa.stars += inc;
+    // Einkommen minus Sold; Sterne fallen nie unter 0 / income minus upkeep; stars never drop below 0
+    inc = income(s, f) - upkeep(s, f);
+    fa.stars = Math.max(0, fa.stars + inc);
   }
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
   for (const u of s.units) {
@@ -538,7 +539,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
 function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): CommandResult {
   if (target.owner !== u.owner && !isHostile(s, u.owner, target.owner)) return fail('peace');
   if (!attackTargets(s, u).some((o) => o.id === target.id)) {
-    if (!canAttackNow(u)) return fail('cannotAttack');
+    if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
     return fail('outOfRange');
   }
   const pre = combatPreview(s, u, target);

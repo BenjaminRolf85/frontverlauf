@@ -73,9 +73,13 @@ export function profileFor(s: GameState, f: number): Profile {
   // Eroberung oder Sandkasten ohne Rundenlimit / conquest or sandbox without round limit
   if (s.config.mode === 'conquest' || s.config.roundLimit === null) {
     p.aggression += 0.35; p.armyPerCity += 0.6; p.militaryW += 0.2;
-    // spaete Runden: Stellungskriege aufbrechen / late rounds: break up trench wars
-    const late = Math.min(0.8, Math.max(0, s.round - 40) * 0.012);
+    // spaete Runden: Stellungskriege aufbrechen (ab Runde 20) / late rounds: break up trench wars (from round 20)
+    const late = Math.min(0.8, Math.max(0, s.round - 20) * 0.02);
     p.aggression += late; p.caution *= 1 - late * 0.5; p.attackMin -= late * 3; p.late = late;
+  } else if (s.config.roundLimit !== null) {
+    // Punktemodus: ab der Spielmitte offensiver / points mode: more offensive from mid-game
+    const late = Math.min(0.4, Math.max(0, s.round - s.config.roundLimit * 0.4) * 0.025);
+    p.aggression += late; p.caution *= 1 - late * 0.5; p.attackMin -= late * 2; p.late = late;
   }
   return p;
 }

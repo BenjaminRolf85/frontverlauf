@@ -6,7 +6,7 @@ import {
   CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
-  neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
+  paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
@@ -133,11 +133,12 @@ export class Hud {
     const viewerIdx = g.viewer >= 0 ? g.viewer : s.current;
     const f = s.factions[viewerIdx];
     const inc = income(s, viewerIdx);
+    const up = upkeep(s, viewerIdx);
     const limit = s.config.roundLimit;
     this.top.innerHTML = `
       ${factionChip(f.id, t(`factions.${f.id}.short`))}
       ${resource('medal', score(s, viewerIdx), '', t('hud.points'))}
-      ${resource('star', f.stars, t('hud.perRound', { n: inc }), t('hud.stars'))}
+      ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: (inc - up >= 0 ? '+' : '') + (inc - up) }) : t('hud.perRound', { n: inc }), t('hud.stars'))}
       ${resource('hourglass', limit ? `${Math.min(s.round, limit)}/${limit}` : s.round, '', t('hud.round'))}
       ${this.weatherChip(s)}
       <span class="grow"></span>
@@ -203,6 +204,7 @@ export class Hud {
           <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range || esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
+          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
         </div>
         <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}</div>`;

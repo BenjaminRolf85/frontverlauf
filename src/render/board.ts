@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { canSeeUnit, cityById, isExplored, weather, type GameState, type Unit } from '../core';
+import { canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { tList } from '../i18n/i18n';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -37,6 +37,8 @@ const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: P
   safe(models.buildingGeometry, f ? factionTokens[f].secondary : semantic.neutral, k, f);
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
 const decorationGeometry = (t: TerrainId, r: Parameters<typeof models.decorationGeometry>[1], v: number) => safe(models.decorationGeometry, null, t, r, v);
+/** Eintauchtiefe watender Einheiten / sink depth of wading units */
+const WADE_SINK = 0.14;
 const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
 import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
@@ -509,6 +511,8 @@ export class Board {
       }
       if (!this.isAnimating(u.id)) {
         v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        // Zyrr unter Wasser: halb eingetaucht / Zyrr under water: half submerged
+        if (isWading(s, u)) v.group.position.y -= WADE_SINK;
         v.group.scale.setScalar(1);
       }
       const ft = factionTokens[f];

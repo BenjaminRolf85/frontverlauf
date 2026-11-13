@@ -223,7 +223,9 @@
     "preach": "Preach",
     "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
     "burn": "Flames",
-    "burnDesc": "Fire ignores terrain cover."
+    "burnDesc": "Fire ignores terrain cover.",
+    "wade": "Wade",
+    "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there."
   },
   "stats": {
     "cost": "Price",
@@ -437,7 +439,10 @@
     "crashWarningConfirm": "End anyway",
     "pendingReward": "Choose a city reward first.",
     "noIncomeNext": "No income next round (uprising)",
-    "slowed": "Slowed: 1 tile only"
+    "slowed": "Slowed: 1 tile only",
+    "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
+    "upkeepUnit": "Upkeep {n} per round",
+    "upkeepFree": "No upkeep (core troop)"
   },
   "actions": {
     "move": "Move",

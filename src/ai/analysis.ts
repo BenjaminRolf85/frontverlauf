@@ -6,7 +6,7 @@ import {
   area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit,
 } from '../core';
-import { DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, type UnitTypeId } from '../data/balance';
+import { DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
 export type GoalKind =
@@ -60,6 +60,10 @@ export interface Ctx {
   navalNeed: boolean;
   /** gewuenschte Armeegroesse / desired army size */
   desiredArmy: number;
+  /** Belagerungsmodus: volle Armee greift entschlossen an / siege mode: full army attacks decisively */
+  siege: boolean;
+  /** Faktor, um den die Vorsicht im Belagerungsmodus sinkt / factor by which caution drops in siege mode */
+  siegeCaution: number;
   /** Staedte, die gleich ausbilden koennen / cities that can train right away */
   trainable: Set<number>;
 }
@@ -103,7 +107,9 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const progress = limit !== null ? Math.min(1, s.round / limit) : 0;
   const pf = points ? 0.12 + 0.45 * progress * progress * progress + (roundsLeft === 0 ? 0.4 : 0) : 0.02;
 
-  const hasMountain = hasTech(s, f, 'mountainTraining');
+  // Zyrr: alle Bodeneinheiten sind Laeufer und waten durchs Wasser / Zyrr: all ground units walk mountains and wade
+  const wader = fa.id === XENO.faction;
+  const hasMountain = hasTech(s, f, 'mountainTraining') || wader;
   const hasDiving = hasTech(s, f, 'diving');
   const hasCoastal = hasTech(s, f, 'coastalEconomy');
   const landOk = new Uint8Array(n), seaOk = new Uint8Array(n), landCost = new Uint8Array(n), seaCost = new Uint8Array(n);
@@ -125,9 +131,10 @@ export function buildCtx(s: GameState, f: number): Ctx {
       const c = cityById(s, t.cityId);
       if (c && c.owner !== null && c.owner !== f && !isHostile(s, f, c.owner)) lok = false;
     }
+    if (water && !bridge && wader) lok = true;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
-    landCost[k] = t.road || t.cityId !== null || bridge ? 1 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : 2;
+    landCost[k] = t.road || t.cityId !== null || bridge ? 1 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
     seaOk[k] = water && (t.terrain !== 'ocean' || hasDiving) ? 1 : 0;
     seaCost[k] = 1;
     if (t.building === 'navalBase' && hasCoastal && territoryOwner(s, t) === f) navalOwn[k] = 1;
@@ -140,7 +147,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     s, f, fa, prof: profileFor(s, f), n, size, my, myCities, enemies, hostileCities, neutralCities, threat,
     points, conquest: !points, roundsLeft, pf,
     landOk, seaOk, landCost, seaCost, navalOwn, realLand, fields: fc.fields, goals: new Map(), navalNeed: false,
-    desiredArmy: 0, trainable: new Set(),
+    desiredArmy: 0, trainable: new Set(), siege: false, siegeCaution: 1,
   };
   const prof = ctx.prof;
   // Punktemodus: Wirtschaft vor Militaer / points mode: economy before military
@@ -149,6 +156,20 @@ export function buildCtx(s: GameState, f: number): Ctx {
   desired += Math.min(4, enemies.filter((e) => myCities.some((c) => dist(c, e) <= 3)).length);
   if (neutralCities.length) desired += 1;
   ctx.desiredArmy = desired;
+  // Volle Armee oder voller Sternespeicher: Stillstand aufbrechen und angreifen
+  // full army or a big star bank: break the standstill and attack
+  let capacity = 0;
+  for (const c of myCities) capacity += unitLimit(s, c);
+  const saturation = capacity > 0 ? my.length / capacity : 0;
+  if (saturation >= 0.8 || (fa.stars > 250 && my.length >= desired)) {
+    const push = Math.min(1, Math.max(saturation - 0.6, fa.stars / 1000));
+    prof.aggression += 0.6 * push + 0.3;
+    ctx.siegeCaution = 1 - 0.75 * push;
+    prof.caution *= ctx.siegeCaution;
+    prof.attackMin -= 2 + 6 * push;
+    prof.retreatHp *= 1 - push;
+    ctx.siege = true;
+  }
   if (desired > my.length && fa.stars >= 10) {
     for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c)) ctx.trainable.add(c.id);
   }
@@ -379,7 +400,7 @@ function buildGoals(ctx: Ctx): Goal[] {
     const owned = s.cities.filter((o) => o.owner === c.owner).length;
     const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25) +
       (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0);
-    goals.push({ kind: 'city', x: c.x, y: c.y, value, cap: defended ? 5 : 2, distW: 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
+    goals.push({ kind: 'city', x: c.x, y: c.y, value: value + (ctx.siege ? 20 : 0), cap: ctx.siege ? (defended ? 9 : 4) : defended ? 5 : 2, distW: ctx.siege ? 3 : 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
   }
   for (let k = 0; k < ctx.n; k++) {
     const t = s.tiles[k];
@@ -445,7 +466,7 @@ function assignGoals(ctx: Ctx) {
       continue;
     }
     // Hubschrauber mit wenig Sprit / helicopter low on fuel
-    if (u.fuel !== null && u.fuel <= 2 && !isRefuelSpot(s, f, u.x, u.y)) {
+    if (u.fuel !== null && u.fuel <= 3 && !isRefuelSpot(s, f, u.x, u.y)) {
       ctx.goals.set(u.id, { kind: 'refuel', x: -1, y: -1, value: 100, cap: 99, distW: 0, src: 'refuel', water: false });
       continue;
     }
