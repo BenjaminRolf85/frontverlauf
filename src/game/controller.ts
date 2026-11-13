@@ -12,6 +12,7 @@ import { UNITS } from '../data/balance';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
+import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { saveGame } from '../save/save';
 
 export type Tab = 'unit' | 'city' | 'tile';
@@ -305,32 +306,51 @@ export class Controller {
             const pos = at ? { x: at.x, y: at.y } : before.get(e.target);
             const ab = before.get(e.unit), tb = before.get(e.target);
             const seen = (pos && visible(pos.x, pos.y)) || (ab && visible(ab.x, ab.y));
-            if (seen && ab) {
+            const shown = !!pos && visible(pos.x, pos.y);
+            // Klang und Anzeigen, mit animiertem Schuss und Einschlag synchron / sound and markers, in sync with the animated shot and impact
+            const fire = () => {
+              if (!seen || !ab) return;
               audio.weapon(ab.type);
               // eigener Angriff: gelegentlich ein Kampfschrei / own attack: an occasional battle cry
               if (ab.owner === this.viewer && Math.random() < 0.35) audio.battleCry(fid(ab.owner));
-            }
-            if (animate && board.unitObject(e.unit) && board.unitObject(e.target)) {
-              await board.animateAttack(e.unit, e.target);
-            }
-            if (seen && tb) {
-              if (!killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
-              // Gegenschlag / retaliation
-              if (e.ret > 0) window.setTimeout(() => audio.weapon(tb.type), 280);
-            }
-            if (pos && visible(pos.x, pos.y)) {
+            };
+            const hit = () => {
+              if (seen && tb && !killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
+              if (!shown || !pos) return;
               this.ui.fx('hit', pos.x, pos.y);
               this.ui.fx('num', pos.x, pos.y, `-${e.dmg}`);
+              for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
+            };
+            // Gegenschlag / retaliation
+            const returnFire = () => { if (seen && tb) audio.weapon(tb.type); };
+            const returnHit = () => {
               const att = unitById(s, e.unit) ?? null;
               const ap = att ? { x: att.x, y: att.y } : before.get(e.unit);
-              if (e.ret && ap) this.ui.fx('num', ap.x, ap.y, `-${e.ret}`);
-              for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
+              if (shown && e.ret && ap) this.ui.fx('num', ap.x, ap.y, `-${e.ret}`);
+            };
+            if (animate && ab && tb && board.unitObject(e.unit) && board.unitObject(e.target)) {
+              const water = (p: { x: number; y: number }) => { const tt = s.tiles[p.y * s.size + p.x].terrain; return tt === 'shallow' || tt === 'ocean'; };
+              const shake = seen ? impactShake(weaponOf(ab.type)) : 0;
+              const retShake = seen ? impactShake(weaponOf(tb.type)) * 0.8 : 0;
+              await board.animateAttack(e.unit, e.target, {
+                attacker: ab.type, target: tb.type, attackerFaction: fid(ab.owner), targetFaction: fid(tb.owner),
+                attackerWater: water(ab), targetWater: water(tb), retaliate: e.ret > 0, splash: (e.splash ?? []).map((sp) => sp.unit),
+                onFire: fire,
+                onImpact: () => { hit(); this.view.shake(shake); },
+                onReturnFire: returnFire,
+                onReturnImpact: () => { returnHit(); this.view.shake(retShake); },
+              });
+            } else {
+              fire(); hit(); returnHit();
+              if (e.ret > 0) window.setTimeout(returnFire, 280);
             }
             break;
           }
           case 'killed': {
             const p = before.get(e.unit);
             if (p && visible(p.x, p.y)) { audio.impact(p.type, true, fid(p.owner)); this.ui.fx(e.remains === 'skeleton' ? 'splat' : e.remains === 'wreck' ? 'boom' : 'kill', p.x, p.y); }
+            // Fahrzeug- oder Schiffsverlust: grosse Explosion / vehicle or ship lost: big explosion
+            if (animate && p && visible(p.x, p.y) && (e.remains === 'wreck' || UNITS[p.type].ship)) this.view.shake(SHAKE.wreck, 420);
             if (animate) await board.animateDeath(e.unit, e.remains ?? null);
             break;
           }
@@ -352,11 +372,12 @@ export class Controller {
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
           case 'terraform': if (e.faction === this.viewer) this.play('research'); break;
           case 'cityUpgrade': if (e.faction === this.viewer) this.play(e.upgrade === 'radioTower' ? 'research' : 'build'); break;
-          case 'barrierHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); } break;
+          case 'barrierHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.barrier); } break;
           case 'research': if (e.faction === this.viewer) this.play('research'); break;
           case 'eruption': {
             if (visible(e.x, e.y)) {
               audio.eruption();
+              if (animate) this.view.shake(SHAKE.eruption, SHAKE.eruptionMs);
               this.ui.fx('boom', e.x, e.y);
               for (const p of e.tiles) if (visible(p.x, p.y)) this.ui.fx('boom', p.x, p.y);
               const { t } = await import('../i18n/i18n');

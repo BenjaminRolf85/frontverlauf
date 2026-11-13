@@ -104,12 +104,14 @@ export class View {
     const halfW = halfH * aspect;
     this.camera.left = -halfW; this.camera.right = halfW; this.camera.top = halfH; this.camera.bottom = -halfH;
     const el = CAMERA.elevation, d = CAMERA.distance;
+    // Wackeln verschiebt nur die Kamera, nicht das gespeicherte Ziel / shake offsets only the camera, not the stored target
+    const look = this.shakeOffset.lengthSq() ? this.target.clone().add(this.shakeOffset) : this.target;
     this.camera.position.set(
-      this.target.x + Math.cos(this.angle) * Math.cos(el) * d,
-      this.target.y + Math.sin(el) * d,
-      this.target.z + Math.sin(this.angle) * Math.cos(el) * d,
+      look.x + Math.cos(this.angle) * Math.cos(el) * d,
+      look.y + Math.sin(el) * d,
+      look.z + Math.sin(this.angle) * Math.cos(el) * d,
     );
-    this.camera.lookAt(this.target);
+    this.camera.lookAt(look);
     this.camera.updateProjectionMatrix();
     this.needs = true;
   }
@@ -166,6 +168,49 @@ export class View {
 
   invalidate() { this.needs = true; }
 
+  private shakeAmp = 0;
+  private shakeStart = 0;
+  private shakeDur = 0;
+  private shakeSeed = 0;
+  private readonly shakeOffset = new THREE.Vector3();
+
+  /**
+   * Kamerawackeln mit abklingendem Rauschen (Staerke ~0.3 leicht, ~0.8 grosse Explosion, ~1.5 Vulkan).
+   * Nicht in XR und nur mit eingeschalteten Animationen; ein staerkeres laufendes Wackeln bleibt.
+   * Camera shake with decaying noise (strength ~0.3 light, ~0.8 big explosion, ~1.5 volcano).
+   * Not in XR and only with animations enabled; a stronger running shake is kept.
+   */
+  shake(strength: number, durationMs = 340) {
+    if (strength <= 0 || !this.board.animations || this.renderer.xr.isPresenting) return;
+    const now = performance.now();
+    const k = this.shakeDur ? Math.min(1, (now - this.shakeStart) / this.shakeDur) : 1;
+    if (this.shakeAmp * (1 - k) * (1 - k) > strength) return;
+    this.shakeAmp = strength;
+    this.shakeStart = now;
+    this.shakeDur = Math.max(60, durationMs);
+    this.shakeSeed = Math.random() * 100;
+    this.needs = true;
+  }
+
+  private applyShake() {
+    const k = (performance.now() - this.shakeStart) / this.shakeDur;
+    if (k >= 1 || !this.board.animations || this.renderer.xr.isPresenting) {
+      this.shakeAmp = 0;
+      this.shakeOffset.set(0, 0, 0);
+      this.updateCamera();
+      return;
+    }
+    // Ausschlag relativ zur sichtbaren Hoehe: wirkt bei jedem Zoom gleich / amplitude relative to the visible height: same at every zoom
+    const amp = this.shakeAmp * (1 - k) * (1 - k) * (this.camera.top - this.camera.bottom) * 0.016;
+    const t = k * this.shakeDur * 0.001 + this.shakeSeed;
+    const ox = (Math.sin(t * 61) * 0.6 + Math.sin(t * 107 + 1.3) * 0.4) * amp;
+    const oy = (Math.sin(t * 73 + 2.1) * 0.6 + Math.sin(t * 131 + 0.4) * 0.4) * amp;
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+    const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+    this.shakeOffset.copy(right).multiplyScalar(ox).addScaledVector(up, oy);
+    this.updateCamera();
+  }
+
   private loop(now: number, frame?: XRFrame) {
     if (this.angle !== this.angleTo) {
       const t = this.board.animations ? Math.min(1, (now - this.angleStart) / ANIM.rotate) : 1;
@@ -192,6 +237,7 @@ export class View {
       if (wfx.animate) this.needs = true;
     }
     this.lastNow = now;
+    if (this.shakeAmp > 0) this.applyShake();
     const boardChanged = this.board.tick(now);
     if (this.renderer.xr.isPresenting) {
       this.renderer.render(this.scene, this.renderer.xr.getCamera());

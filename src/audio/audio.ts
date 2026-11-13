@@ -16,11 +16,11 @@ export type Intensity = 0 | 1 | 2;
 export type Ambience = 'clear' | 'rain' | 'snow' | 'wind';
 
 /** Waffenklang / weapon sound */
-type Weapon =
+export type Weapon =
   | 'rifle' | 'sniper' | 'mg' | 'cannon' | 'artillery' | 'rocket' | 'heliRockets' | 'naval' | 'bigNaval' | 'torpedo'
   | 'laser' | 'plasma' | 'deathRay' | 'flame' | 'railgun' | 'energy' | 'buzz' | 'none';
 
-const WEAPON: Record<UnitTypeId, Weapon> = {
+export const WEAPON: Record<UnitTypeId, Weapon> = {
   infantry: 'rifle', sniper: 'sniper', jeep: 'mg', pioneer: 'rifle', mg: 'mg', medic: 'none', artillery: 'artillery',
   spy: 'none', heli: 'heliRockets', tank: 'cannon', landingBoat: 'rifle', submarine: 'torpedo', destroyer: 'naval', battleship: 'bigNaval',
   grey: 'laser', terraformer: 'none', skimmer: 'laser', mech: 'plasma', tripod: 'deathRay',
@@ -29,7 +29,7 @@ const WEAPON: Record<UnitTypeId, Weapon> = {
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {

@@ -113,6 +113,9 @@ export const primitives = {
     xeno600: '#5a2d7a',
     xeno400: '#8a4fb8',
     xenoGlow: '#d18cff',
+    // Kampfeffekte / combat effects
+    flash100: '#fff4b0',
+    smoke500: '#9a95a3',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -229,6 +232,23 @@ export const semantic = {
   neutralDark: c.ink500,
   metal: c.ink500,
   white: c.white,
+  // Kampfeffekte (3D) / combat effects (3D)
+  fxFlash: c.yellow400,
+  fxFlashHot: c.flash100,
+  fxTracer: c.flash100,
+  fxSpark: c.yellow400,
+  fxFire: c.fire400,
+  fxFireHot: c.yellow500,
+  fxEmber: c.red500,
+  fxSmoke: c.cloud300,
+  fxSmokeDark: c.smoke500,
+  fxDirt: c.track500,
+  fxDirtDark: c.track700,
+  fxSplash: c.water300,
+  fxFoam: c.white,
+  fxDebris: c.char800,
+  fxShell: c.ink800,
+  fxRocket: c.olive600,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
