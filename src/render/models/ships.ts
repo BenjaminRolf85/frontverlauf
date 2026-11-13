@@ -69,6 +69,7 @@ function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: number, z: 
     case 'korvat':
       b.add(geo.cbox(w, h, d, 0.008), base, { p: [x, y + h / 2, z] });
       b.block(x, y + h * 0.62, z, w + 0.006, h * 0.16, d + 0.006, mat.window);
+      mullions(b, x, y + h * 0.7, z, w, d);
       b.block(x, y + h, z, w + 0.01, 0.006, d + 0.01, L.primary);
       break;
     case 'dravon':
@@ -83,12 +84,28 @@ function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: number, z: 
     case 'meridon':
       b.add(geo.cbox(w, h, d, 0.006), base, { p: [x, y + h / 2, z] });
       b.block(x, y + h * 0.62, z, w + 0.006, h * 0.16, d + 0.006, mat.window);
+      mullions(b, x, y + h * 0.7, z, w, d);
       b.block(x, y + h, z, w + 0.02, 0.006, d + 0.02, L.secondary);
       break;
     case 'velkar':
       b.add(geo.taper(w, d, w * 0.72, d * 0.72, h), base, { p: [x, y + h / 2, z] });
       b.add(geo.taper(w * 0.86, d * 0.86, w * 0.82, d * 0.82, h * 0.13), L.secondary, { p: [x, y + h * 0.65, z] });
       break;
+  }
+}
+
+/** Fensterstreben vorn und seitlich an der Bruecke / window mullions on the bridge front and sides */
+function mullions(b: Builder, x: number, y: number, z: number, w: number, d: number) {
+  const n = Math.max(3, Math.round(w / 0.022));
+  for (let i = 1; i < n; i++) b.box(0.004, 0.016, 0.006, mat.ink, [x - w / 2 + (i / n) * w, y, z + d / 2 + 0.004]);
+  for (const s of [-1, 1]) for (let i = 1; i < 3; i++) b.box(0.006, 0.016, 0.004, mat.ink, [x + s * (w / 2 + 0.004), y, z - d / 2 + (i / 3) * d]);
+}
+
+/** Rettungsringe an der Reling / life rings on the rail */
+function lifeRings(b: Builder, x: number, y: number, zs: number[]) {
+  for (const s of [-1, 1]) for (const z of zs) {
+    b.add(geo.torus(0.014, 0.0045, 4, 12), mat.white, { p: [s * x, y, z], r: [0, HALF_PI, 0] });
+    for (const a of [0, HALF_PI]) b.box(0.003, 0.01, 0.006, mat.red, [s * (x + 0.001), y + Math.cos(a) * 0.014, z + Math.sin(a) * 0.014]);
   }
 }
 
@@ -299,6 +316,7 @@ export function destroyer(f: FactionId): Builder {
   mast(b, L, f, 0.06, d + 0.125, 0.16);
   funnel(b, f, L, -0.06, d, 0.13, 0.03);
   lifeboats(b, L, 0.07, d + 0.04, -0.04);
+  lifeRings(b, 0.072, d + 0.025, [0.13, -0.2]);
   turret(b, f, L, 0.24, d, 0.09, 1, 1);
   turret(b, f, L, -0.25, d, 0.075, 1, -1);
   if (styleOf(f) === 'meridon') containers(b, L, -0.14, d);
@@ -356,6 +374,7 @@ export function battleship(f: FactionId): Builder {
     b.box(0.02, 0.012, 0.004, mat.dark, [s * 0.11, d + 0.015, z + 0.012]);
   }
   lifeboats(b, L, 0.115, d + 0.045, -0.1);
+  lifeRings(b, 0.093, d + 0.03, [0.03, -0.17]);
   // Heckkran + Katapult / stern crane + catapult
   b.cyl(0.008, 0.01, 0.06, 8, mat.dark, [0.06, d + 0.03, -0.33]);
   b.box(0.008, 0.008, 0.09, mat.dark, [0.06, d + 0.06, -0.3], [0.5, 0, 0]);

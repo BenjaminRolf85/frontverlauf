@@ -42,7 +42,7 @@ function bezier(a: V3, c: V3, e: V3, n: number): V3[] {
 function laserRifle(b: Builder, L: Look, grip: V3, dir: V3, lite: boolean) {
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), V(dir).normalize());
   const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
-  b.group({ p: grip, r: [e.x, e.y, e.z] }, () => {
+  b.group({ p: grip, r: [e.x, e.y, e.z], s: lite ? 1 : 1.4 }, () => {
     b.add(geo.rtaper(0.022, 0.06, 0.03, 0.08, 0.034, 0.008, 0.01), mat.alienMetal, { p: [0, 0.004, -0.04] });
     b.add(geo.rbox(0.03, 0.036, 0.13, 0.01), L.primaryDark, { p: [0, 0.004, 0.06] });
     b.add(geo.rtaper(0.016, 0.02, 0.014, 0.016, 0.04, 0.004), mat.alienMetal, { p: [0, -0.024, 0.01], r: [-0.3, 0, 0] });

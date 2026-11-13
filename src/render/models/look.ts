@@ -141,7 +141,7 @@ function buildRaw(id: FactionId): Look {
       // Rot/Oliv, schlichte Uniform / red/olive, plain uniform
       return {
         ...base,
-        helmet: shade(se, 0.95), jacket: pr, pants: shade(se, 0.8), gear: shade(se, 0.65),
+        helmet: shade(se, 1.05), jacket: pr, pants: shade(se, 0.62), gear: shade(se, 0.5),
         hull: pr, hullDark: shade(pr, 0.62), trim: se,
         wall: mix(p.rock400, p.paper200, 0.45), wallDark: shade(p.rock400, 0.85), roof: pr, roofDark: shade(se, 0.8),
         emblem: col(p.paper50),
@@ -150,7 +150,7 @@ function buildRaw(id: FactionId): Look {
       // Tarngruen mit schwarzem Visierhelm, Goldakzente / camo green with black visor helmet, gold accents
       return {
         ...base,
-        helmet: col(p.dravonBlack), jacket: pr, pants: shade(pr, 0.78), gear: shade(pr, 0.6),
+        helmet: col(p.dravonBlack), jacket: shade(pr, 1.12), pants: shade(pr, 0.52), gear: shade(pr, 0.42),
         hull: shade(pr, 1.1), hullDark: shade(pr, 0.7), trim: se,
         wall: shade(pr, 1.45), wallDark: pr, roof: shade(pr, 0.8), roofDark: shade(pr, 0.6),
         emblem: se,
@@ -159,7 +159,7 @@ function buildRaw(id: FactionId): Look {
       // Blau/Weiss, offene Helme / blue/white, open helmets
       return {
         ...base,
-        helmet: pr, jacket: pr, pants: mix(se, pr, 0.25), gear: se,
+        helmet: pr, jacket: pr, pants: shade(pr, 0.58), gear: se,
         hull: pr, hullDark: shade(pr, 0.65), trim: se,
         wall: se, wallDark: mix(se, pr, 0.25), roof: pr, roofDark: shade(pr, 0.7),
         emblem: se,
@@ -168,7 +168,7 @@ function buildRaw(id: FactionId): Look {
       // Tuerkis/Orange, Barett, leichte Weste / teal/orange, beret, light vest
       return {
         ...base,
-        helmet: se, jacket: pr, pants: shade(pr, 0.6), gear: se,
+        helmet: se, jacket: pr, pants: shade(pr, 0.5), gear: se,
         hull: pr, hullDark: shade(pr, 0.65), trim: se,
         wall: col(p.paper100), wallDark: col(p.paper300), roof: pr, roofDark: se,
         emblem: col(p.paper50),
@@ -177,7 +177,7 @@ function buildRaw(id: FactionId): Look {
       // Eisgrau/Hellgruen, Visier + Antenne, Schneetarn / ice grey/light green, visor + antenna, snow camo
       return {
         ...base,
-        helmet: shade(pr, 1.1), jacket: pr, pants: shade(pr, 1.25), gear: shade(pr, 0.7),
+        helmet: shade(pr, 1.1), jacket: pr, pants: shade(pr, 0.55), gear: shade(pr, 0.48),
         hull: pr, hullDark: shade(pr, 0.7), trim: se,
         wall: shade(pr, 1.2), wallDark: shade(pr, 0.85), roof: shade(pr, 0.75), roofDark: shade(pr, 0.6),
         emblem: se,

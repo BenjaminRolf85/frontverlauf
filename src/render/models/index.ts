@@ -33,7 +33,7 @@ import { android, quadDrone, railgun, spider, titan } from './robots';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
-  return memo(`unit|${type}|${faction}|${c ?? ''}`, () => withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
+  return memo(`unit|${type}|${faction}|${c ?? ''}`, () => finishUnit(type, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
       case 'sniper': return sniper(faction).build();
@@ -66,7 +66,53 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'railgun': return railgun(faction).build();
       case 'titan': return titan(faction).build();
     }
-  }));
+  })));
+}
+
+/** Comic-Vergroesserung je Typ (begrenzt durch Kachel und Lebensbalken) / comic enlargement per type (limited by tile and HP badge) */
+const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
+  infantry: 1.2, sniper: 1.2, pioneer: 1.2, mg: 1.15, medic: 1.25, spy: 1.25, artillery: 1.1, jeep: 1.2,
+  zealot: 1.2, torchbearer: 1.2, prophet: 1.2, grey: 1.2, android: 1.2, doomBuggy: 1.2, rocketCart: 1.2, mech: 1.15,
+  terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
+};
+/** Breiter gebaut (x) / built wider (x) */
+const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
+  tank: 1.18, doomCrawler: 1.1, titan: 1.08, jeep: 1.08, destroyer: 1.45, battleship: 1.4, submarine: 1.4, landingBoat: 1.15,
+};
+/** Hoechste Modellhoehe unter dem Lebensbalken / highest model point below the HP badge */
+const MAX_H = 0.62;
+
+/**
+ * Lesbarkeit: Comic-Vergroesserung und Helligkeitsverlauf aus den vorhandenen Farben (unten dunkler, Oberseiten heller).
+ * Readability: comic enlargement and a value ramp from the existing colours (darker low down, lighter top faces).
+ */
+function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeometry {
+  const wide = UNIT_WIDE[type];
+  if (wide) {
+    g.computeBoundingBox();
+    const bx = g.boundingBox!;
+    g.scale(Math.max(1, Math.min(wide, 0.45 / Math.max(-bx.min.x, bx.max.x))), 1, 1);
+  }
+  g.computeBoundingBox();
+  let bb = g.boundingBox!;
+  const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
+  const want = UNIT_SIZE[type] ?? 1;
+  const s = Math.max(1, Math.min(want, 0.45 / ext, MAX_H / bb.max.y));
+  if (s > 1.001) { g.scale(s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
+  const H = Math.max(0.15, bb.max.y);
+  const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), colr = g.getAttribute('color');
+  const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship';
+  const floor = ship ? 0.82 : 0.66;
+  for (let i = 0; i < pos.count; i++) {
+    const h = Math.min(1, Math.max(0, pos.getY(i) / (H * 0.42)));
+    let k = floor + (1 - floor) * h * h * (3 - 2 * h);
+    const ny = nor.getY(i);
+    if (ny < -0.35) k *= 0.78;
+    else if (ny > 0.55) k *= 1 + 0.2 * Math.min(1, Math.max(0, (pos.getY(i) / H - 0.25) / 0.6));
+    colr.setXYZ(i, Math.min(1, colr.getX(i) * k), Math.min(1, colr.getY(i) * k), Math.min(1, colr.getZ(i) * k));
+  }
+  colr.needsUpdate = true;
+  return g;
 }
 
 /** Vereinfachte Ladung fuer das Landungsboot (ohne Besatzung/Embleme) / simplified cargo for the landing boat */

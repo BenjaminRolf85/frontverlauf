@@ -89,9 +89,10 @@ export function zealot(f: FactionId, lite = false): Builder {
   // Untergangs-Schild auf dem Ruecken / doom placard on the back
   b.tube([0.02, 0.15, -0.09], [0.04, 0.52, -0.12], 0.006, 5, mat.wood);
   b.group({ p: [0.045, 0.47, -0.123], r: [-0.08, 0.2, 0.06] }, () => {
-    b.add(lite ? geo.box(0.13, 0.09, 0.008) : geo.cbox(0.13, 0.09, 0.008, 0.01), mat.woodLight, {});
-    addEmblem(b, 'vesper', 0.035, 0.006, L.primary, { p: [0, 0, -0.005], r: [0, Math.PI, 0] });
-    addEmblem(b, 'vesper', 0.035, 0.006, L.primary, { p: [0, 0, 0.005] });
+    b.add(lite ? geo.box(0.18, 0.12, 0.01) : geo.cbox(0.18, 0.12, 0.01, 0.012), mat.woodLight, {});
+    if (!lite) for (const sy of [-1, 1]) b.box(0.19, 0.012, 0.014, mat.wood, [0, sy * 0.058, 0]);
+    addEmblem(b, 'vesper', 0.048, 0.006, L.primary, { p: [0, 0, -0.006], r: [0, Math.PI, 0] });
+    addEmblem(b, 'vesper', 0.048, 0.006, L.primary, { p: [0, 0, 0.006] });
   });
   // Handglocke am Strick / hand bell on a cord
   b.tube([-0.08, 0.15, 0.02], [-0.085, 0.11, 0.025], 0.002, 3, mat.wood);
@@ -117,7 +118,7 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   b.tube(back, tip, 0.011, lite ? 6 : 10, mat.rust);
   b.add(geo.cbox(0.03, 0.035, 0.08, 0.008), mat.rustDark, { p: along(G, D, 0.02) });
   b.cyl(0.016, 0.014, 0.03, 8, mat.dark, along(G, D, 0.245), [HALF_PI, -0.12, 0]);
-  flame(b, along(G, D, 0.26), D, 0.13, lite);
+  flame(b, along(G, D, 0.26), D, lite ? 0.13 : 0.19, lite);
   // rostige Tanks auf dem Ruecken / rusty tanks on the back
   for (const sx of [-1, 1]) {
     b.cyl(0.028, 0.028, 0.13, lite ? 8 : 12, sx > 0 ? mat.rust : L.primaryDark, [sx * 0.032, 0.24, -0.1]);
@@ -149,7 +150,7 @@ export function prophet(f: FactionId, lite = false): Builder {
     b.tube([0.13, 0.0, 0.05], [0.12, 0.5, 0.035], 0.008, 6, mat.wood);
     b.tube([0.12, 0.5, 0.035], [0.15, 0.53, 0.035], 0.006, 5, mat.wood);
     b.tube([0.15, 0.53, 0.035], [0.15, 0.505, 0.035], 0.002, 3, mat.dark);
-    lantern(b, [0.15, 0.45, 0.035], 1.1);
+    lantern(b, [0.15, 0.44, 0.035], 1.5);
     // heiliges Buch / holy book
     b.add(geo.rbox(0.07, 0.016, 0.055, 0.004), L.primaryDark, { p: [-0.06, 0.205, 0.11], r: [0.5, 0.2, 0] });
     b.add(geo.box(0.064, 0.012, 0.05), mat.bone, { p: [-0.06, 0.212, 0.107], r: [0.5, 0.2, 0] });
