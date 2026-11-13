@@ -96,6 +96,7 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   const land = new Uint8Array(n);
   for (let i = 0; i < n; i++) land[i] = value[i] > threshold ? 1 : 0;
   for (const s of starts) for (const p of area(size, s.x, s.y, 1)) land[idx(size, p.x, p.y)] = 1;
+  ensureStartIslands(size, land, starts, value);
   const radars: Pos[] = [
     { x: 0, y: 0 }, { x: size - 1, y: 0 }, { x: 0, y: size - 1 }, { x: size - 1, y: size - 1 },
   ];
@@ -157,6 +158,13 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
       const r = pickResource(t);
       if (r) { t.resource = r; count++; }
     }
+  }
+
+  // Hafenplatz freihalten: liegt Wasser im Stadtgebiet, bleibt ein Flachwasserfeld ohne Ressource
+  // keep a harbour site: if water lies in the city area, one shallow tile stays without a resource
+  for (const s of starts) {
+    const water = area(size, s.x, s.y, 1).map((p) => tiles[idx(size, p.x, p.y)]).filter((t) => t.terrain === 'shallow');
+    if (water.length && water.every((t) => t.resource)) water[0].resource = null;
   }
 
   // Siedlungen: zuerst eine je Startpunkt im Abstand 3, dann der Rest / villages: one per start at distance 3, then the rest
@@ -323,5 +331,84 @@ function assignBiomes(seed: number, size: number, tiles: Tile[], factions: Facti
       path.push(idx(size, cx, cy));
     }
     if (path.length >= 2) for (const k of path) { tiles[k].river = true; if (tiles[k].biome === 'desert') tiles[k].biome = 'steppe'; }
+  }
+}
+
+/** Landmasse (8er-Nachbarschaft) ab einem Feld / landmass (8-neighbourhood) from a tile */
+function landmass(size: number, land: Uint8Array, start: number): number[] {
+  const seen = new Set<number>([start]);
+  const stack = [start];
+  while (stack.length) {
+    const k = stack.pop()!;
+    for (const p of neighbors(size, k % size, Math.floor(k / size))) {
+      const q = idx(size, p.x, p.y);
+      if (land[q] && !seen.has(q)) { seen.add(q); stack.push(q); }
+    }
+  }
+  return [...seen];
+}
+
+/**
+ * Keine Mini-Startinseln ohne Hafenplatz: zu kleine Startinseln wachsen entlang der hoechsten Erhebung, und kleine
+ * Inseln bekommen ein Kuestenfeld im 3x3-Stadtgebiet, damit dort ein Marinestuetzpunkt gebaut werden kann.
+ * No tiny start islands without a harbour site: too small start islands grow along the highest elevation, and small
+ * islands get a coastal tile inside the 3x3 city area so a naval base can be built there.
+ */
+function ensureStartIslands(size: number, land: Uint8Array, starts: Pos[], value: Float64Array) {
+  const startKeys = new Set(starts.map((s) => idx(size, s.x, s.y)));
+  /** Hafen-Einschnitte bleiben Wasser / harbour cuts stay water */
+  const carved = new Set<number>();
+  // zweimal: Hafen-Einschnitt und Nachbarinseln koennen die Groesse wieder senken / twice: harbour cut and neighbours may shrink it again
+  for (let pass = 0; pass < 2; pass++) for (const s of starts) {
+    const sk = idx(size, s.x, s.y);
+    let mass = landmass(size, land, sk);
+    // wachsen: Nachbarfelder der Insel mit der hoechsten Erhebung zuerst / grow: island neighbours with the highest elevation first
+    let guard = 0;
+    while (mass.length < MAPGEN.minStartIsland && guard++ < 200) {
+      let best = -1, bestV = -Infinity;
+      const inMass = new Set(mass);
+      for (const k of mass) {
+        for (const p of neighbors(size, k % size, Math.floor(k / size))) {
+          const q = idx(size, p.x, p.y);
+          if (land[q] || inMass.has(q) || carved.has(q)) continue;
+          const v = value[q] - dist(s, p) * 0.05;
+          if (v > bestV) { bestV = v; best = q; }
+        }
+      }
+      if (best < 0) break;
+      land[best] = 1;
+      mass = landmass(size, land, sk);
+    }
+    // kleine Insel: ein Wasserfeld im Stadtgebiet fuer den Hafen / small island: a water tile in the city area for the harbour
+    if (pass > 0 || mass.length >= MAPGEN.coastalStartBelow) continue;
+    const ring = area(size, s.x, s.y, 1).filter((p) => p.x !== s.x || p.y !== s.y);
+    if (ring.some((p) => !land[idx(size, p.x, p.y)])) continue;
+    // Ringfeld, das aussen an Wasser grenzt (oder am Kartenrand liegt) / ring tile bordering water outside (or at the map edge)
+    const coastal = ring.filter((p) => {
+      if (startKeys.has(idx(size, p.x, p.y))) return false;
+      const outside = neighbors(size, p.x, p.y).filter((q) => Math.max(Math.abs(q.x - s.x), Math.abs(q.y - s.y)) === 2);
+      return outside.some((q) => !land[idx(size, q.x, q.y)]);
+    });
+    if (coastal.length) {
+      const pick = coastal.sort((a, b) => value[idx(size, a.x, a.y)] - value[idx(size, b.x, b.y)])[0];
+      land[idx(size, pick.x, pick.y)] = 0;
+      carved.add(idx(size, pick.x, pick.y));
+      continue;
+    }
+    // sonst eine Bucht vom naechsten Wasser bis ans Stadtgebiet graben / otherwise dig a bay from the nearest water to the city area
+    let water: Pos | null = null, wd = Infinity;
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      if (land[idx(size, x, y)]) continue;
+      const d = dist(s, { x, y });
+      if (d < wd) { wd = d; water = { x, y }; }
+    }
+    if (!water) continue;
+    let cx = water.x, cy = water.y;
+    while (dist(s, { x: cx, y: cy }) > 1) {
+      cx += Math.sign(s.x - cx); cy += Math.sign(s.y - cy);
+      const k = idx(size, cx, cy);
+      if (startKeys.has(k)) break;
+      land[k] = 0; carved.add(k);
+    }
   }
 }
