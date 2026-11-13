@@ -271,3 +271,92 @@ export function jungle(variant: number): Builder {
   return b;
 }
 
+
+// ---------- Verlassene Forschungsstation / abandoned research facility ----------
+
+export function labRuin(variant: number): Builder {
+  const v = ((variant % 2) + 2) % 2;
+  const R = rng(2100 + v * 61);
+  const b = new Builder();
+  const m = v ? -1 : 1; // Spiegelung der Anordnung / layout mirror
+  const wall = mix(p.paper50, p.rock400, 0.35);
+  const wallDark = mix(p.rock400, p.ink700, 0.25);
+  const moss = C.leaf;
+  // Fundament / foundation
+  b.add(geo.cbox(0.82, 0.02, 0.7, 0.03), mix(p.rock400, p.rock600, 0.5), { p: [0, 0.01, 0] });
+  // Laborgebaeude mit eingestuerzter Ecke / lab building with collapsed corner
+  const bx = -0.04 * m, bz = -0.08;
+  b.add(geo.cbox(0.3, 0.24, 0.3, 0.012), wall, { p: [bx - 0.08 * m, 0.14, bz] });
+  b.add(geo.taper(0.18, 0.3, 0.18, 0.3, 0.13, 0, 0.0), wall, { p: [bx + 0.16 * m, 0.085, bz] });
+  b.add(geo.prismXZ([[0, -0.15], [0.18 * m, -0.15], [0.18 * m, 0.15], [0, 0.15]], 0.05), wall, { p: [bx + 0.07 * m, 0.15, bz], r: [0, 0, -0.35 * m] });
+  // Dachplatte gebrochen, Truemmer / broken roof slab, rubble
+  b.add(geo.cbox(0.32, 0.016, 0.32, 0.01), wallDark, { p: [bx - 0.08 * m, 0.268, bz] });
+  b.add(geo.cbox(0.16, 0.014, 0.2, 0.008), wallDark, { p: [bx + 0.15 * m, 0.17, bz + 0.02], r: [0.15, 0.2, 0.5 * m] });
+  for (let i = 0; i < 8; i++) b.add(geo.dodeca(0.02 + R() * 0.025), i % 2 ? wall : wallDark, { p: [bx + (0.22 + R() * 0.08) * m, 0.02, bz + (R() - 0.5) * 0.3], r: [R(), R() * 3, R()] });
+  // Fenster: kaputt, eines mit blinkender Konsole / windows: broken, one with a blinking console
+  for (let i = 0; i < 3; i++) {
+    const x = bx + (-0.18 + i * 0.08) * m;
+    b.box(0.05, 0.05, 0.006, mat.ink, [x, 0.17, bz + 0.152]);
+    if (i === 1) {
+      b.box(0.03, 0.02, 0.004, mat.cyanGlow, [x, 0.165, bz + 0.153]);
+      b.box(0.008, 0.008, 0.004, mat.green, [x + 0.016, 0.18, bz + 0.154]);
+    } else {
+      b.add(geo.profileXY([[-0.025, 0.025], [0.0, 0.0], [0.012, 0.025]], 0.004), mat.glass, { p: [x, 0.17, bz + 0.154] });
+    }
+  }
+  b.box(0.05, 0.09, 0.006, mix(p.rock600, p.ink700, 0.4), [bx - 0.18 * m, 0.065, bz + 0.152]);
+  // Moos und Ranken / moss and vines
+  for (let i = 0; i < 4; i++) b.add(geo.prismXZ(blob(R, bx + (-0.18 + R() * 0.18) * m, bz + (R() - 0.5) * 0.24, 0.04, 6, 0.5), 0.006), moss, { p: [0, 0.276, 0] });
+  for (let i = 0; i < 4; i++) {
+    const x = bx + (-0.22 + i * 0.07) * m;
+    b.tube([x, 0.27, bz + 0.153], [x + (R() - 0.5) * 0.02, 0.12 + R() * 0.08, bz + 0.155], 0.004, 3, C.fern);
+  }
+  b.box(0.006, 0.08, 0.1, moss, [bx - 0.235 * m, 0.05, bz + 0.02]);
+  // gekippte Schuessel auf dem Dach / tilted dish on the roof
+  b.group({ p: [bx - 0.12 * m, 0.276, bz - 0.04] }, () => {
+    b.cyl(0.008, 0.012, 0.05, 6, mat.metal, [0, 0.025, 0], [0, 0, 0.3 * m]);
+    b.group({ p: [0.012 * m, 0.06, 0], r: [0.9, 0, 0.5 * m] }, () => {
+      b.add(geo.cyl(0.09, 0.025, 0.035, 12), mix(p.white, p.rock400, 0.3), {});
+      b.add(geo.cyl(0.075, 0.075, 0.005, 12), mat.metalLight, { p: [0, 0.02, 0] });
+      b.tube([0, 0.02, 0], [0, 0.08, 0], 0.003, 4, mat.dark);
+    });
+  });
+  // rostiger Antennenmast, leicht schief / rusty antenna mast, slightly leaning
+  const mx = 0.28 * m, mz = -0.22;
+  b.group({ p: [mx, 0.02, mz], r: [0.08, 0, -0.1 * m] }, () => {
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2;
+      b.tube([Math.sin(a) * 0.035, 0, Math.cos(a) * 0.035], [Math.sin(a) * 0.01, 0.42, Math.cos(a) * 0.01], 0.005, 4, mat.rust);
+    }
+    for (let k = 0; k < 4; k++) {
+      const y = 0.06 + k * 0.09, r = 0.03 - k * 0.006;
+      b.tube([-r, y, -r * 0.5], [r, y + 0.04, r * 0.5], 0.003, 3, mat.rustDark);
+    }
+    b.box(0.08, 0.006, 0.006, mat.rustDark, [0.02, 0.38, 0], [0, 0, 0.5]);
+  });
+  // Container mit Cyan-Leck / container with cyan leak
+  b.add(geo.cbox(0.12, 0.07, 0.07, 0.01), mix(p.rock400, p.ink500, 0.4), { p: [0.15 * m, 0.055, 0.22], r: [0, 0.3 * m, 0.12] });
+  b.box(0.04, 0.012, 0.004, mat.cyanGlow, [0.15 * m, 0.07, 0.257]);
+  b.add(geo.prismXZ(blob(R, 0.2 * m, 0.29, 0.06, 8, 0.4), 0.004), mat.cyanGlow, { p: [0, 0.02, 0] });
+  for (let i = 0; i < 3; i++) b.add(geo.ico(0.006, 0), mat.cyanGlow, { p: [0.17 * m + R() * 0.04, 0.035 + R() * 0.02, 0.27 + R() * 0.03] });
+  // umgestuerzte Kisten und Faesser / overturned crates and barrels
+  b.add(geo.cbox(0.07, 0.06, 0.06, 0.01), mat.woodLight, { p: [-0.26 * m, 0.05, 0.17], r: [0.4, 0.6, 1.1] });
+  b.add(geo.cbox(0.06, 0.06, 0.06, 0.01), mat.wood, { p: [-0.2 * m, 0.05, 0.27], r: [0, 0.3, 0] });
+  b.cyl(0.026, 0.026, 0.07, 10, mat.rust, [-0.08 * m, 0.046, 0.25], [HALF_PI, 0.8, 0]);
+  b.cyl(0.026, 0.026, 0.07, 10, mat.yellow, [-0.3 * m, 0.055, 0.02]);
+  b.cyl(0.027, 0.027, 0.01, 10, mat.ink, [-0.3 * m, 0.07, 0.02]);
+  // kaputter Zaun / broken fence
+  for (let i = 0; i < 6; i++) {
+    const x = -0.36 + i * 0.145;
+    const lean = i === 3 ? -1.2 : i === 4 ? -0.4 : 0;
+    b.group({ p: [x, 0.02, 0.36], r: [lean, 0, 0] }, () => {
+      b.box(0.008, 0.12, 0.008, mat.metal, [0, 0.06, 0]);
+      if (i < 5 && i !== 2) {
+        b.box(0.14, 0.004, 0.004, mat.metalLight, [0.072, 0.11, 0]);
+        for (let k = 0; k < 4; k++) b.box(0.004, 0.1, 0.003, mat.metalLight, [0.02 + k * 0.034, 0.06, 0], [0, 0, 0.5]);
+      }
+    });
+  }
+  for (const s of [-1, 1]) b.box(0.008, 0.12, 0.008, mat.metal, [s * 0.38, 0.08, 0.0]);
+  return b;
+}

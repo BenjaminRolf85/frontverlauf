@@ -8,7 +8,7 @@ import {
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
-import { CRASH, UNITS } from '../data/balance';
+import { UNITS } from '../data/balance';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
@@ -364,11 +364,11 @@ export class Controller {
             }
             break;
           }
-          case 'crashSite': {
+          case 'salvage': {
             if (e.faction === this.viewer) {
-              this.play('levelUp');
+              this.play(e.tech ? 'research' : 'levelUp');
               const { t } = await import('../i18n/i18n');
-              this.ui.toast(t('hazards.salvaged', { n: CRASH.stars }), 'star');
+              this.ui.toast(e.tech ? t('hazards.salvagedTech', { tech: t(`techs.${e.tech}`) }) : t('hazards.salvaged', { n: e.stars ?? 0 }), e.tech ? 'research' : 'star');
             }
             break;
           }

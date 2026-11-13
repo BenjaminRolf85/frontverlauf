@@ -351,7 +351,7 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   // Xeno-Boden schuetzt Alien-Einheiten / xeno ground protects alien units
   if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
-  if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite' || t.feature === 'labRuin') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
   // Dschungel: Hinterhalt fuer Fusstruppen / jungle: ambush cover for foot troops
   if (isJungle(t) && !JUNGLE.vehicles.includes(def.type) && !isShip(def)) b = Math.max(b, JUNGLE.footDefense);
   return b;

@@ -412,7 +412,10 @@ function buildGoals(ctx: Ctx): Goal[] {
   }
   for (let k = 0; k < ctx.n; k++) {
     const t = s.tiles[k];
-    if (t.feature !== 'bunker' || !ctx.fa.explored[k]) continue;
+    if (!ctx.fa.explored[k]) continue;
+    // Bergung: Absturzstelle und Forschungseinrichtung wie ein Bunker anlaufen / salvage sites are visited like bunkers
+    const salvage = (t.feature === 'crashSite' || t.feature === 'labRuin') && !t.looted;
+    if (t.feature !== 'bunker' && !salvage) continue;
     const x = k % size, y = (k / size) | 0;
     const water = isWater(t);
     goals.push({ kind: 'bunker', x, y, value: 45, cap: 1, distW: 9, src: tileSrc(x, y, water), water });

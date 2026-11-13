@@ -386,19 +386,32 @@ function advance(s: GameState, ev: GameEvent[]) {
   startTurn(s, ev);
 }
 
-/** Absturzstelle bergen: Sterne und Aufklaerung, Zyrr bekommen eine Untertasse / salvage a crash site: stars and recon, Zyrr get a saucer */
-function salvageCrash(s: GameState, u: Unit, ev: GameEvent[]) {
+/**
+ * Bergung einer Absturzstelle oder verlassenen Forschungseinrichtung: eine Gratis-Technologie bis Stufe 3,
+ * sonst Sterne; Aufklaerung; Zyrr finden an Absturzstellen eine Untertasse.
+ * Salvage a crash site or abandoned research facility: a free tech up to tier 3, otherwise stars; recon;
+ * the Zyrr find a saucer at crash sites.
+ */
+function salvage(s: GameState, u: Unit, ev: GameEvent[]) {
   const t = tileAt(s, u.x, u.y)!;
+  const kind = t.feature as 'crashSite' | 'labRuin';
   t.looted = true;
   const f = u.owner;
-  s.factions[f].stars += CRASH.stars;
+  const fa = s.factions[f];
+  let tech: TechId | undefined;
+  if (ROSTERS[fa.id]?.research !== false) {
+    const options = TECH_IDS.filter((x) => TECHS[x].tier <= CRASH.maxTier && !fa.techs.includes(x) && (!TECHS[x].parent || fa.techs.includes(TECHS[x].parent!)));
+    if (options.length) { tech = options[randInt(s, options.length)]; fa.techs.push(tech); }
+  }
+  const stars = tech ? undefined : CRASH.stars;
+  if (stars) fa.stars += stars;
   reveal(s, f, u.x, u.y, CRASH.revealRadius, ev);
   let unit: number | undefined;
-  if (s.factions[f].id === XENO.faction) {
+  if (kind === 'crashSite' && fa.id === XENO.faction) {
     const p = freeNeighbor(s, u.x, u.y, false);
     if (p) unit = spawnUnit(s, CRASH.alienUnit, f, p.x, p.y, null).id;
   }
-  ev.push({ t: 'crashSite', x: u.x, y: u.y, faction: f, unit });
+  ev.push({ t: 'salvage', x: u.x, y: u.y, faction: f, kind, tech, stars, unit });
 }
 
 /** Vulkanausbrueche zu Rundenbeginn / volcano eruptions at the start of a round */
@@ -574,7 +587,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     }
   }
   if (t.feature === 'bunker') exploreBunker(s, u, ev);
-  else if (t.feature === 'crashSite' && !t.looted) salvageCrash(s, u, ev);
+  else if ((t.feature === 'crashSite' || t.feature === 'labRuin') && !t.looted) salvage(s, u, ev);
   return { ok: true, events: ev };
 }
 

@@ -41,6 +41,7 @@ const volcanoGeometry = (v: number) => safe(models.volcanoGeometry, semantic.bas
 const volcanoSmokeGeometry = () => safe(models.volcanoSmokeGeometry, null);
 const lavaGeometry = (v: number) => safe(models.lavaGeometry, semantic.lava, v);
 const crashSiteGeometry = (v: number) => safe(models.crashSiteGeometry, semantic.metal, v);
+const labRuinGeometry = (v: number) => safe(models.labRuinGeometry, semantic.neutral, v);
 const jungleDecoration = (v: number) => safe(models.jungleDecoration, semantic.biomeJungleDark, v);
 /** Deckkraft erschoepfter Einheiten / opacity of exhausted units */
 const DONE_OPACITY = 0.5;
@@ -320,7 +321,8 @@ export class Board {
         }
         if (t.grandProject) addDeco(buildingGeometry(t.grandProject, ownerFaction), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
         if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
-        if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
+        if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
+        else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;

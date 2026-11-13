@@ -14,7 +14,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, jungleDecoration, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -100,6 +100,7 @@ function sheet(): Sheet {
           { label: 'volcano', cells: [0, 1, 2].map((v) => ({ geo: smoke(v), ground: mt })) },
           { label: 'lava', cells: [0, 1, 2].map((v) => ({ geo: lavaGeometry(v), ground: mt })) },
           { label: 'crash site', cells: [0, 1].map((v) => ({ geo: crashSiteGeometry(v), ground: plainGround })) },
+          { label: 'lab ruin', cells: [0, 1].map((v) => ({ geo: labRuinGeometry(v), ground: plainGround })) },
           { label: 'jungle', cells: [0, 1, 2, 3].map((v) => ({ geo: jungleDecoration(v), ground: semantic.terrainForest })) },
           { label: 'forest (compare)', cells: [0, 1].map((v) => ({ geo: decorationGeometry('forest', null, v), ground: semantic.terrainForest })) },
         ],
@@ -346,7 +347,7 @@ function checkAll(): string[] {
   all.push(['bunker', featureGeometry('bunker')], ['radar', featureGeometry('radar')]);
   for (let v = -1; v < 8; v++) all.push([`xenoDeco ${v}`, xenoDecoration(v)]);
   for (let v = -1; v < 5; v++) {
-    all.push([`volcano ${v}`, volcanoGeometry(v)], [`lava ${v}`, lavaGeometry(v)], [`crash ${v}`, crashSiteGeometry(v)], [`jungle ${v}`, jungleDecoration(v)]);
+    all.push([`volcano ${v}`, volcanoGeometry(v)], [`lava ${v}`, lavaGeometry(v)], [`crash ${v}`, crashSiteGeometry(v)], [`jungle ${v}`, jungleDecoration(v)], [`labRuin ${v}`, labRuinGeometry(v)]);
   }
   all.push(['volcanoSmoke', volcanoSmokeGeometry()]);
   const terrains: TerrainId[] = ['plain', 'forest', 'mountain', 'shallow', 'ocean'];

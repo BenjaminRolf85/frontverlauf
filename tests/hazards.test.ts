@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, defenseBonus, erupts, reachable, roundsToEruption } from '../src/core';
-import { CRASH, JUNGLE, VOLCANO } from '../src/data/balance';
+import { CRASH, JUNGLE, TECHS, TECH_IDS, VOLCANO } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, ok, revealAll, setTerrain, tile, untilTurnOf } from './helpers';
 
 function g() {
@@ -17,6 +17,7 @@ describe('Kartenbesonderheiten / map gimmicks', () => {
     const many = createGame(defaultConfig({ seed: 4, size: 22, hazards: 'many' }));
     expect(many.tiles.some((t) => t.volcano)).toBe(true);
     expect(many.tiles.some((t) => t.feature === 'crashSite')).toBe(true);
+    expect(many.tiles.some((t) => t.feature === 'labRuin')).toBe(true);
     expect(many.tiles.filter((t) => t.remains?.kind === 'wreck').length).toBeGreaterThan(3);
     expect(many.tiles.some((t) => t.biome === 'jungle')).toBe(true);
     // gleicher Seed, gleiche Karte / same seed, same map
@@ -52,14 +53,40 @@ describe('Kartenbesonderheiten / map gimmicks', () => {
     expect(defenseBonus(s, inf)).toBeGreaterThanOrEqual(JUNGLE.footDefense);
   });
 
-  it('Absturzstelle: einmalig Sterne und Deckung / crash site: one-time stars and cover', () => {
-    const s = g();
-    setTerrain(s, 4, 4, 'plain', { feature: 'crashSite' });
-    const u = addUnit(s, 'infantry', 0, 3, 4);
-    const before = s.factions[0].stars;
+  it('Absturzstelle und Forschungseinrichtung: Gratis-Technologie bis Stufe 3, Deckung / free tech up to tier 3, cover', () => {
+    for (const feature of ['crashSite', 'labRuin'] as const) {
+      const s = g();
+      setTerrain(s, 4, 4, 'plain', { feature });
+      const u = addUnit(s, 'infantry', 0, 3, 4);
+      const techs = s.factions[0].techs.length, stars = s.factions[0].stars;
+      ok(s, { type: 'move', unit: u.id, to: { x: 4, y: 4 } });
+      expect(s.factions[0].techs.length).toBe(techs + 1);
+      expect(TECHS[s.factions[0].techs[s.factions[0].techs.length - 1]].tier).toBeLessThanOrEqual(CRASH.maxTier);
+      expect(s.factions[0].stars).toBe(stars);
+      expect(tile(s, 4, 4).looted).toBe(true);
+      expect(defenseBonus(s, u)).toBeGreaterThan(1);
+      // zweites Betreten bringt nichts / a second visit gives nothing
+      const v = addUnit(s, 'infantry', 0, 5, 5);
+      u.x = 3; u.y = 3;
+      ok(s, { type: 'move', unit: v.id, to: { x: 4, y: 4 } });
+      expect(s.factions[0].techs.length).toBe(techs + 1);
+    }
+  });
+
+  it('ohne erforschbare Technologie gibt es Sterne / without a researchable tech it gives stars', () => {
+    const s = blankGame({ stars: 10, factions: ['nexus', 'korvat'] });
+    addCity(s, 1, 1, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
+    setTerrain(s, 4, 4, 'plain', { feature: 'labRuin' });
+    const u = addUnit(s, 'android', 0, 3, 4);
     ok(s, { type: 'move', unit: u.id, to: { x: 4, y: 4 } });
-    expect(s.factions[0].stars).toBe(before + CRASH.stars);
-    expect(tile(s, 4, 4).looted).toBe(true);
-    expect(defenseBonus(s, u)).toBeGreaterThan(1);
+    expect(s.factions[0].stars).toBe(10 + CRASH.stars);
+    // alle Technologien bekannt: Sterne / all techs known: stars
+    const h = g();
+    h.factions[0].techs = [...TECH_IDS];
+    setTerrain(h, 4, 4, 'plain', { feature: 'crashSite' });
+    const w = addUnit(h, 'infantry', 0, 3, 4);
+    const st = h.factions[0].stars;
+    ok(h, { type: 'move', unit: w.id, to: { x: 4, y: 4 } });
+    expect(h.factions[0].stars).toBe(st + CRASH.stars);
   });
 });

@@ -21,7 +21,7 @@ import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
 import { artillery, heli, jeep, tank } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
-import { crashSite, jungle, lava, volcano, volcanoSmoke } from './terrain';
+import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terrain';
 import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
 
@@ -162,6 +162,12 @@ export function crashSiteGeometry(variant: number): THREE.BufferGeometry {
 export function jungleDecoration(variant: number): THREE.BufferGeometry {
   const v = ((Math.floor(variant) % 4) + 4) % 4;
   return memo(`jungle|${v}`, () => jungle(v).build());
+}
+
+/** Verlassene Forschungsstation (2 Varianten) / abandoned research facility (2 variants) */
+export function labRuinGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 2) + 2) % 2;
+  return memo(`labRuin|${v}`, () => labRuin(v).build());
 }
 
 export function cloudGeometry(variant: number): THREE.BufferGeometry {

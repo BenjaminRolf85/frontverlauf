@@ -1219,9 +1219,13 @@
     "jungle": "Dschungel",
     "jungleDesc": "Jeder Schritt hinein oder heraus beendet die Bewegung. Fahrzeuge nur als ersten Schritt. Fußtruppen: Deckung {def}.",
     "crash": "Absturzstelle",
-    "crashDesc": "Bergung: {n} Sterne und Aufklärung, Zyrr erhalten eine Untertasse. Deckung +1.",
+    "crashDesc": "Bergung: eine Gratis-Technologie bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung; Zyrr erhalten eine Untertasse. Deckung +1.",
     "crashLooted": "Absturzstelle (geborgen): Deckung +1",
     "eruption": "Vulkanausbruch!",
-    "salvaged": "Absturzstelle geborgen: +{n} Sterne"
+    "salvaged": "Absturzstelle geborgen: +{n} Sterne",
+    "lab": "Verlassene Forschungseinrichtung",
+    "labDesc": "Bergung: eine Gratis-Technologie bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
+    "labLooted": "Forschungseinrichtung (geborgen): Deckung +1",
+    "salvagedTech": "Geborgen: Technologie {tech}"
   }
 }

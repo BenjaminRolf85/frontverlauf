@@ -126,6 +126,7 @@ export const HAZARDS = {
   /** Anzahl je Stufe, skaliert mit der Kartengroesse (pro 100 Felder) / count per level, scaled per 100 tiles */
   volcanoes: { none: 0, normal: 0.35, many: 0.8 } as Record<HazardLevel, number>,
   crashSites: { none: 0, normal: 0.3, many: 0.7 } as Record<HazardLevel, number>,
+  labs: { none: 0, normal: 0.25, many: 0.6 } as Record<HazardLevel, number>,
   wrecks: { none: 0, normal: 2.5, many: 5 } as Record<HazardLevel, number>,
   /** Anteil der Waldfelder, die zu Dschungel werden / share of forest tiles that become jungle */
   jungle: { none: 0, normal: 0.3, many: 0.55 } as Record<HazardLevel, number>,
@@ -135,7 +136,9 @@ export const HAZARDS = {
 /** Vulkan: bricht alle `interval` Runden aus, Lava brennt `burnRounds` Runden / erupts every `interval` rounds, lava burns `burnRounds` rounds */
 export const VOLCANO = { interval: 5, firstRound: 4, burnRounds: 2, damage: 6, radius: 1 };
 /** Absturzstelle: einmalige Bergung / crash site: one-time salvage */
-export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitTypeId };
+/** Bergung (Absturzstelle, verlassene Forschungseinrichtung): Gratis-Technologie bis Stufe maxTier, sonst Sterne
+ *  salvage (crash site, abandoned research facility): free tech up to tier maxTier, otherwise stars */
+export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitTypeId, maxTier: 3 };
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
