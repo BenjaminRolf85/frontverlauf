@@ -149,7 +149,7 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
     // Fremdwesen mit Hut und Sonnenbrille / alien with hat and sunglasses
     alienHead(b, L, d, false);
     sunglasses(b, d);
-    b.cyl(0.1, 0.102, 0.01, ws, L.primary, [0, 0.142, -0.006]);
+    b.cyl(0.14, 0.142, 0.012, ws, L.primary, [0, 0.142, -0.006]);
     b.add(geo.cyl(0.056, 0.064, 0.055, ws), L.primary, { p: [0, 0.172, -0.006], s: [1, 1, 0.92] });
     ring(b, 0.065, 0.016, ws, L.secondary, [0, 0.155, -0.006], [1, 1, 0.93]);
     return;
@@ -158,38 +158,38 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
   sunglasses(b, d);
   switch (f) {
     case 'korvat':
-      // Schiebermuetze / flat cap with peak
-      b.add(geo.sphere(0.07, ws, 5), L.secondary, { p: [0, 0.098, -0.006], s: [1.08, 0.42, 1.12] });
-      b.add(geo.cyl(0.05, 0.05, 0.008, ws), shade(L.secondary, 0.7), { p: [0, 0.088, 0.055], s: [1.1, 1, 0.75], r: [0.15, 0, 0] });
-      b.cyl(0.008, 0.008, 0.006, 6, L.primary, [0, 0.127, -0.004]);
-      ring(b, 0.072, 0.012, ws, L.primary, [0, 0.09, -0.006], [1.04, 1, 1.08]);
+      // breiter Schlapphut mit Band / wide slouch hat with band
+      b.add(geo.cyl(0.142, 0.15, 0.014, ws), L.secondary, { p: [0, 0.094, 0], r: [0.08, 0, 0] });
+      b.add(geo.rtaper(0.11, 0.11, 0.09, 0.075, 0.07, 0.02), L.secondary, { p: [0, 0.135, -0.004] });
+      ring(b, 0.058, 0.018, ws, L.primary, [0, 0.112, -0.004], [1.02, 1, 1]);
+      b.box(0.018, 0.012, 0.06, shade(L.secondary, 0.75), [0, 0.171, -0.004]);
       break;
     case 'dravon':
       // schwarzer Fedora mit Goldband / black fedora with gold band
-      b.cyl(0.094, 0.096, 0.012, ws, L.helmet, [0, 0.092, 0]);
+      b.cyl(0.138, 0.142, 0.012, ws, L.helmet, [0, 0.092, 0]);
       b.add(geo.rtaper(0.11, 0.11, 0.095, 0.08, 0.065, 0.02), L.helmet, { p: [0, 0.13, 0] });
       ring(b, 0.058, 0.016, ws, L.secondary, [0, 0.108, 0], [1.02, 1, 1]);
       b.box(0.02, 0.012, 0.06, shade(L.helmet, 0.75), [0, 0.164, 0]);
       break;
     case 'alvenia':
       // weisser Breitkrempenhut mit blauem Band / white wide-brim hat with blue band
-      b.cyl(0.108, 0.11, 0.01, ws, L.secondary, [0, 0.092, 0]);
-      b.add(geo.cyl(0.052, 0.06, 0.06, ws), L.secondary, { p: [0, 0.128, 0], s: [1, 1, 0.92] });
-      ring(b, 0.061, 0.018, ws, L.primary, [0, 0.107, 0], [1, 1, 0.93]);
+      b.cyl(0.15, 0.152, 0.012, ws, shade(L.primary, 0.85), [0, 0.092, 0]);
+      b.add(geo.cyl(0.052, 0.06, 0.06, ws), shade(L.primary, 0.85), { p: [0, 0.128, 0], s: [1, 1, 0.92] });
+      ring(b, 0.061, 0.018, ws, L.secondary, [0, 0.107, 0], [1, 1, 0.93]);
       addEmblem(b, 'alvenia', 0.009, 0.004, L.secondary, { p: [-0.035, 0.108, 0.048], r: [0, -0.6, 0] });
       break;
     case 'meridon':
       // flacher Strohhut / flat straw hat
-      b.cyl(0.118, 0.12, 0.008, ws, mix(L.secondary, mat.sand, 0.45), [0, 0.092, 0]);
+      b.cyl(0.158, 0.16, 0.01, ws, mix(L.secondary, mat.sand, 0.45), [0, 0.092, 0]);
       b.cyl(0.055, 0.06, 0.04, ws, mix(L.secondary, mat.sand, 0.45), [0, 0.115, 0]);
       ring(b, 0.061, 0.016, ws, L.primary, [0, 0.104, 0]);
       break;
     case 'velkar':
-      // Strickmuetze mit Streifen und Bommel / knit cap with stripe and bobble
-      b.add(geo.hemi(0.07, ws, 4), L.primary, { p: [0, 0.075, -0.004], s: [1.06, 1.2, 1.08] });
-      ring(b, 0.075, 0.02, ws, shade(L.primary, 0.8), [0, 0.08, -0.004], [1, 1, 1.02]);
-      ring(b, 0.07, 0.012, ws, L.secondary, [0, 0.105, -0.004], [0.96, 1, 1]);
-      b.add(geo.ico(0.02, d >= 1 ? 1 : 0), mat.snow, { p: [0, 0.165, -0.004] });
+      // breiter Pelzhut mit Krempe und Bommel / wide fur hat with brim and bobble
+      b.cyl(0.14, 0.144, 0.014, ws, shade(L.primary, 0.6), [0, 0.09, -0.004]);
+      b.add(geo.hemi(0.07, ws, 4), L.primary, { p: [0, 0.092, -0.004], s: [1.06, 1.05, 1.08] });
+      ring(b, 0.072, 0.016, ws, L.secondary, [0, 0.1, -0.004], [1, 1, 1.02]);
+      b.add(geo.ico(0.02, d >= 1 ? 1 : 0), mat.snow, { p: [0, 0.172, -0.004] });
       break;
   }
 }

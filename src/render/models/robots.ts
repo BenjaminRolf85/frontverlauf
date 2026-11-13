@@ -78,10 +78,13 @@ export function android(f: FactionId, lite = false): Builder {
   joint(b, shR, 0.026, lite, L.primary);
   limb(b, shR, elR, 0.036, 0.04, plate, lite);
   joint(b, elR, 0.02, lite);
-  b.add(geo.rbox(0.042, 0.042, 0.1, 0.01), metal, { p: [0.1, 0.225, 0.1] });
-  b.cyl(0.012, 0.014, 0.12, lite ? 6 : 10, metal, [0.1, 0.228, 0.2], [HALF_PI, 0, 0]);
-  if (!lite) coils(b, 0.1, 0.228, 0.15, 0.25, 3, 0.017);
-  b.add(geo.ico(0.012, lite ? 0 : 1), glow, { p: [0.1, 0.228, 0.265] });
+  // uebergrosse Armkanone / oversized arm cannon
+  b.add(geo.rbox(0.056, 0.056, 0.12, 0.012), metal, { p: [0.1, 0.225, 0.11] });
+  b.add(geo.rbox(0.06, 0.016, 0.1, 0.005), plate, { p: [0.1, 0.258, 0.11] });
+  b.cyl(0.018, 0.02, 0.16, lite ? 6 : 12, metal, [0.1, 0.228, 0.24], [HALF_PI, 0, 0]);
+  if (!lite) coils(b, 0.1, 0.228, 0.18, 0.3, 4, 0.024);
+  b.cyl(0.024, 0.024, 0.02, lite ? 6 : 12, mat.dark, [0.1, 0.228, 0.32], [HALF_PI, 0, 0]);
+  b.add(geo.ico(0.016, lite ? 0 : 1), glow, { p: [0.1, 0.228, 0.33] });
   // linker Arm stuetzt / left arm supports
   const shL: V3 = [-0.09, 0.3, 0], elL: V3 = [-0.1, 0.23, 0.05], hL: V3 = [0.06, 0.215, 0.12];
   joint(b, shL, 0.026, lite, L.primary);

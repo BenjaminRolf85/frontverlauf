@@ -364,6 +364,14 @@ function checkAll(): string[] {
     const big = ['tank', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship'].some((u) => name.startsWith(`unit ${u} `));
     const limit = big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
+    if (name.startsWith('unit')) {
+      // Grundflaeche innerhalb der Kachel, Ursprung y=0 / footprint inside the tile, origin y=0
+      g.computeBoundingBox();
+      const bb = g.boundingBox!;
+      const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
+      if (ext > 0.46) errors.push(`${name}: footprint ${ext.toFixed(3)}`);
+      if (bb.min.y < -0.08) errors.push(`${name}: below ground ${bb.min.y.toFixed(3)}`);
+    }
   }
   errors.push(`checked ${all.length}`);
   return errors;

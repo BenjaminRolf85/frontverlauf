@@ -92,8 +92,10 @@ export function tracks(b: Builder, o: TrackOpts) {
 
 interface GunOpts { brake?: 'box' | 'ring' | 'big' | 'none'; sleeves?: number; lite: boolean; seg?: number }
 /** Kanonenrohr entlang +z / gun barrel along +z */
-export function gun(b: Builder, x: number, y: number, z0: number, len: number, r: number, c: ColorLike, o: GunOpts) {
+export function gun(b: Builder, x: number, y: number, z0: number, len0: number, r0: number, c: ColorLike, o: GunOpts) {
   const seg = o.lite ? 8 : (o.seg ?? 10);
+  // Comic: langes, dickes Rohr bis an den Kachelrand / comic: long, thick barrel up to the tile edge
+  const len = Math.max(len0, Math.min(len0 * 1.45, 0.43 - z0)), r = r0 * 1.25;
   b.cyl(r, r * 1.12, len, seg, c, [x, y, z0 + len / 2], [HALF_PI, 0, 0]);
   if (!o.lite) for (let i = 0; i < (o.sleeves ?? 0); i++) b.cyl(r * 1.3, r * 1.3, 0.03, seg, c, [x, y, z0 + len * (0.3 + i * 0.22)], [HALF_PI, 0, 0]);
   const zt = z0 + len;
@@ -136,11 +138,13 @@ export function antenna(b: Builder, x: number, y: number, z: number, h: number, 
 
 /** Leichtes MG auf Lafette / light MG on a mount */
 export function roofMg(b: Builder, L: Look, x: number, y: number, z: number, shield: ColorLike | null) {
-  b.cyl(0.006, 0.008, 0.03, 6, mat.dark, [x, y + 0.015, z]);
-  b.add(geo.cbox(0.016, 0.02, 0.05, 0.004), mat.dark, { p: [x, y + 0.035, z + 0.01] });
-  b.cyl(0.004, 0.004, 0.07, 6, mat.metal, [x, y + 0.038, z + 0.07], [HALF_PI, 0, 0]);
-  b.box(0.018, 0.016, 0.012, L.gear, [x + 0.016, y + 0.028, z]);
-  if (shield) b.box(0.05, 0.03, 0.004, shield, [x, y + 0.04, z + 0.035], [-0.1, 0, 0]);
+  b.cyl(0.008, 0.01, 0.04, 8, mat.dark, [x, y + 0.02, z]);
+  b.add(geo.cbox(0.024, 0.03, 0.075, 0.006), mat.dark, { p: [x, y + 0.05, z + 0.01] });
+  b.cyl(0.007, 0.007, 0.1, 8, mat.dark, [x, y + 0.054, z + 0.1], [HALF_PI, 0, 0]);
+  b.cyl(0.011, 0.011, 0.02, 8, mat.ink, [x, y + 0.054, z + 0.145], [HALF_PI, 0, 0]);
+  b.add(geo.cbox(0.026, 0.024, 0.02, 0.005), L.gear, { p: [x + 0.024, y + 0.04, z] });
+  b.box(0.006, 0.02, 0.006, mat.dark, [x, y + 0.035, z - 0.03], [0.4, 0, 0]);
+  if (shield) b.box(0.07, 0.045, 0.005, shield, [x, y + 0.055, z + 0.05], [-0.1, 0, 0]);
 }
 
 function sideEmblems(b: Builder, f: FactionId, L: Look, x: number, y: number, z: number, size: number, c: ColorLike = L.emblem) {
@@ -206,6 +210,9 @@ function korvat(b: Builder, L: Look, lite: boolean) {
     cupola(b, L, -0.05, ty + 0.09, tz - 0.04, 0.036, lite);
     commander(b, f, -0.05, ty + 0.1, tz - 0.04, 7);
     b.cyl(0.025, 0.028, 0.016, 10, L.hullDark, [0.055, ty + 0.098, tz - 0.02]);
+    roofMg(b, L, 0.055, ty + 0.106, tz - 0.02, L.trim);
+    // Winkelspiegel vorn am Turm / periscopes at the turret front
+    for (const x of [-0.07, 0.07]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.095, tz + 0.05] });
     antenna(b, 0.075, ty + 0.09, tz - 0.1, 0.2, L.trim);
     sideEmblems(b, f, L, 0.112, ty + 0.05, tz - 0.02, 0.032);
   }
@@ -304,6 +311,7 @@ function alvenia(b: Builder, L: Look, lite: boolean) {
     b.add(geo.rbox(0.04, 0.026, 0.034, 0.008), L.hullDark, { p: [0.055, ty + 0.122, tz - 0.03] });
     b.box(0.03, 0.012, 0.004, mat.glass, [0.055, ty + 0.124, tz - 0.012]);
     cupola(b, L, -0.05, ty + 0.07, tz - 0.04, 0.034, lite);
+    roofMg(b, L, 0.05, ty + 0.07, tz - 0.03, L.trim);
     commander(b, f, -0.05, ty + 0.08, tz - 0.04, 7);
     antenna(b, -0.09, ty + 0.07, tz - 0.1, 0.2, white);
     b.add(geo.cbox(0.16, 0.03, 0.035, 0.008), L.hullDark, { p: [0, ty + 0.035, tz - 0.135] });
@@ -365,6 +373,7 @@ function meridon(b: Builder, L: Look, lite: boolean) {
   if (!lite) {
     b.cyl(0.003, 0.003, 0.06, 6, mat.dark, [0.03, ty + 0.03, tz + 0.12], [HALF_PI, 0, 0]);
     cupola(b, L, -0.035, ty + 0.055, tz - 0.02, 0.03, lite);
+    roofMg(b, L, 0.04, ty + 0.055, tz - 0.02, null);
     commander(b, f, -0.035, ty + 0.065, tz - 0.02, 7);
     antenna(b, 0.05, ty + 0.055, tz - 0.06, 0.2, orange);
     b.add(geo.profileZY([[0, 0], [-0.05, -0.012], [0, -0.024]], 0.004), orange, { p: [0.05, ty + 0.255, tz - 0.084] });
