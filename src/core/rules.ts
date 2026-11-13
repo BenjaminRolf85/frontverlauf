@@ -9,6 +9,7 @@ import {
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, erupts } from './hazards';
+import { noteCapture, noteDeath, recordRound } from './history';
 import {
   recruitCheck, recruitHome,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -145,6 +146,7 @@ function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
 
 function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], leaveRemains = true) {
   s.units = s.units.filter((o) => o.id !== u.id);
+  if (leaveRemains) noteDeath(s, u); // Statistik / statistics
   const t = tileAt(s, u.x, u.y)!;
   let kind: 'wreck' | 'skeleton' | null = null;
   // Ueberreste nur an Land und nicht in Staedten / remains only on land and not in cities
@@ -368,7 +370,8 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (next === 0) wrapped = true;
     if (s.factions[next].alive) break;
   }
-  if (wrapped) { s.round++; processVolcanoes(s, ev); }
+  // Rundenende fuer die Statistik festhalten / record the round end for statistics
+  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -504,6 +507,7 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
     }
   }
   ev.push({ t: 'capture', city: c.id, faction: u.owner, from });
+  noteCapture(s, u.owner); // Statistik / statistics
   reveal(s, u.owner, c.x, c.y, c.radius + VISION.cityExtra, ev);
   updateConnections(s, u.owner, ev);
   if (from !== null) updateConnections(s, from, ev);

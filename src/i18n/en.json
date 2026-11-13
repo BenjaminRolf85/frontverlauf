@@ -613,6 +613,38 @@
     "toMenu": "Main menu",
     "continue": "Continue endlessly"
   },
+  "minimap": {
+    "label": "Overview map",
+    "hint": "Overview map: tap to move the camera there",
+    "show": "Show overview map",
+    "hide": "Hide overview map"
+  },
+  "history": {
+    "title": "War statistics",
+    "open": "Statistics",
+    "tabs": "Choose view",
+    "score": "Score",
+    "units": "Army",
+    "cities": "Cities",
+    "stars": "Stars",
+    "chartLabel": "History: {metric} per round",
+    "roundAxis": "Round",
+    "totals": "Balance",
+    "faction": "Faction",
+    "kills": "Kills",
+    "losses": "Losses",
+    "captures": "Captures",
+    "techs": "Techs",
+    "heroes": "Heroes of the battle",
+    "hero": "Hero of the battle",
+    "heroKills": "{n} kills",
+    "heroKill": "1 kill",
+    "fallen": "fell in round {n}",
+    "alive": "on duty",
+    "noHeroes": "No kills yet. The front is quiet.",
+    "midGame": "As of round {n}. Known factions only.",
+    "leader": "{name} leads"
+  },
   "credits": {
     "title": "Credits",
     "game": "Game idea, rules, code, models and sound: Frontverlauf project (own creation, CC0)",

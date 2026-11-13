@@ -48,6 +48,8 @@ const P: Record<string, string> = {
   helmet: '<path d="M3.5 15a8.5 8.5 0 0 1 17 0z"/><path d="M2 15h20v2.5H2zM12 6.5V15"/>',
   city: '<path d="M3 21V10l5-3v14M8 21V5l7 3v13M15 21V12l6 2.5V21M2 21h20"/>',
   eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  map: '<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M6.5 15.5l4-5 3.5 3 5.5-7"/><circle cx="19.5" cy="6.5" r="1.3" fill="currentColor"/>',
   lightning: '<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
   grand: '<path d="M4 21h16M6 21v-9M10 21v-9M14 21v-9M18 21v-9M3 12h18L12 4z"/>',
   play: '<path d="M7 4v16l13-8z" fill="currentColor"/>',

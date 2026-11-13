@@ -166,6 +166,8 @@ export interface GameState {
   winner: number | null;
   over: boolean;
   log: GameEvent[];
+  /** Spielverlauf fuer die Statistik (fehlt in alten Spielstaenden) / game history for statistics (missing in old saves) */
+  history?: import('./history').GameHistory;
 }
 
 export type GameEvent =

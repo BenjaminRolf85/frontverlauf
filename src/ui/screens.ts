@@ -17,6 +17,7 @@ import type { Settings } from '../save/save';
 import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, segmented } from './components';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { cityName, unitName } from './hud';
+import { mountStats, statsDialog, statsPanel } from './stats';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -260,6 +261,7 @@ export function pauseMenu(host: ScreenHost) {
   const d = openDialog(host.root, `${dialogTitle(t('menu.pause'))}
     <nav class="menu-list">
       ${button(t('menu.resume'), { icon: 'play', action: 'close', block: true })}
+      ${button(t('history.open'), { icon: 'chart', action: 'stats', block: true, variant: 'secondary' })}
       ${button(t('menu.save'), { icon: 'save', action: 'save', block: true, variant: 'secondary' })}
       ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
       ${button(t('menu.exportFile'), { icon: 'download', action: 'export', block: true, variant: 'secondary' })}
@@ -272,6 +274,7 @@ export function pauseMenu(host: ScreenHost) {
     </nav>`);
   bind(d.node, {
     close: () => d.close(),
+    stats: () => { d.close(); statsDialog(host.root, host.game.state!, host.game.viewer); },
     save: () => { host.saveNow(); d.close(); },
     slots: () => { d.close(); host.openSlots('save'); },
     export: () => host.exportGame(),
@@ -552,7 +555,9 @@ export function gameOverScreen(host: ScreenHost) {
     ${s.winner !== null ? `<p class="display">${esc(t('gameover.winner', { name: t(`factions.${s.factions[s.winner].id}.name`) }))}</p>` : ''}
     <h3 class="display">${esc(t('gameover.scores'))}</h3>
     <div class="score-list">${ranking.map((r, i) => `<div class="score-row"><span class="display">${i + 1}.</span>${factionChip(r.f.id, t(`factions.${r.f.id}.short`))}<span class="grow">${esc(t(`factions.${r.f.id}.short`))}</span><span>${esc(t('diplomacy.score', { n: r.sc }))}</span></div>`).join('')}</div>
-    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${s.factions.filter((f) => f.alive).length > 1 ? button(t('gameover.continue'), { action: 'endless', icon: 'hourglass', variant: 'secondary' }) : ''}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false });
+    ${statsPanel(s, host.game.viewer)}
+    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${s.factions.filter((f) => f.alive).length > 1 ? button(t('gameover.continue'), { action: 'endless', icon: 'hourglass', variant: 'secondary' }) : ''}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false, wide: true });
+  mountStats(d.node, s, host.game.viewer);
   bind(d.node, {
     endless: () => { d.close(); host.continueEndless(); },
     menu: () => { d.close(); host.showMenu(); },

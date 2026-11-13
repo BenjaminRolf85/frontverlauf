@@ -1,5 +1,6 @@
 /** Einstiegspunkt / entry point */
 import './ui/styles.css';
+import './ui/overview.css';
 import type { GameConfig, GameState } from './core';
 import { audio } from './audio/audio';
 import { Controller } from './game/controller';
@@ -19,6 +20,7 @@ import {
   researchDialog, rewardDialog, type ScreenHost,
 } from './ui/screens';
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
+import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
 
 function boot() {
@@ -133,12 +135,14 @@ function boot() {
     openDetails: () => { if (game.selected) detailsDialog(host, game.selected.x, game.selected.y); },
   });
   xr.actionsProvider = () => hud.currentActions();
+  // Lagekarte: nur im Spiel sichtbar / overview map: visible in game only
+  const minimap = new Minimap(root, game, () => !menuNode);
   const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); };
 
   let rewardOpen = false;
   let lastWeather: string | null = null;
   game.ui = {
-    update() { hud.render(); tutorial?.check(); xr.refreshPanels(); },
+    update() { hud.render(); tutorial?.check(); xr.refreshPanels(); minimap.invalidate(); },
     toast: (text, ic) => toast(root, text, ic),
     errorCode: (code) => toast(root, t(`errors.${code}`), 'warning'),
     event(e, s: GameState) {
