@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
+  type FactionId, type UnitTypeId, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNITS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
@@ -14,6 +14,7 @@ import {
 } from '../core';
 import type { Controller } from '../game/controller';
 import { t, tList } from '../i18n/i18n';
+import { Portrait } from './portrait';
 import {
   actionButton, esc, factionBadge, factionChip, iconButton, price, progress, resource, type ActionItem,
 } from './components';
@@ -53,6 +54,9 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** 3D-Portraet der gewaehlten Einheit / 3D portrait of the selected unit */
+  private portrait = new Portrait();
+  private portraitFor: { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null = null;
   /** offenes Rekrutier-Menue fuer diese Einheit / open recruit menu for this unit */
   private recruitFor: number | null = null;
 
@@ -156,6 +160,7 @@ export class Hud {
     } else this.banner.hidden = true;
 
     this.actions = [];
+    this.portraitFor = null;
     let sheet = '';
     if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
@@ -167,6 +172,10 @@ export class Hud {
         ${iconButton('next', t('hud.nextUnit'), 'nextUnit', { lg: true })}
         <button type="button" class="btn end" data-action="endTurn" ${humanTurn ? '' : 'disabled'}>${icon('endTurn')}<span>${esc(t('hud.endTurn'))}</span></button>
       </nav>`;
+    const pf = this.portraitFor as { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null;
+    this.portrait.animate = this.game.view.board.animations;
+    if (pf) this.portrait.attach(this.bottom.querySelector<HTMLElement>('[data-portrait]'), pf.type, pf.faction, pf.carried);
+    else this.portrait.stop();
   }
 
   private weatherChip(s: GameState): string {
@@ -194,7 +203,9 @@ export class Hud {
     } else if (tab === 'unit' && vUnit) {
       const fid = s.factions[vUnit.owner].id;
       const st = UNITS[vUnit.type];
-      head = `${factionBadge(fid, UNIT_ICON[vUnit.type])}<div class="grow"><h3 class="display">${esc(unitName(vUnit))}</h3>
+      // 3D-Portraet statt Symbol / 3D portrait instead of an icon
+      this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
+      head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display">${esc(unitName(vUnit))}</h3>
         <div class="muted">${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
         <div class="stats">
