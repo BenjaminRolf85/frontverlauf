@@ -218,6 +218,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
       <div class="field"><span class="label">${esc(t('settings.language'))}</span>${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}</div>
       <div class="field"><span class="label">${esc(t('settings.music'))}</span>${onOff('music', s.music)}</div>
       <div class="field"><span class="label">${esc(t('settings.effects'))}</span>${onOff('effects', s.effects)}</div>
+      <div class="field"><span class="label">${esc(t('settings.ambience'))}</span>${onOff('ambience', s.ambience)}</div>
       <div class="field"><span class="label">${esc(t('settings.animations'))}</span>${onOff('animations', s.animations)}</div>
       <div class="field"><span class="label">${esc(t('settings.barks'))}</span>${onOff('barks', s.barks)}</div>
       <div class="field"><span class="label">${esc(t('settings.aiSpeed'))}</span>${segmented('aiSpeed', ['slow', 'normal', 'fast', 'instant'].map((v) => ({ value: v, label: t(`settings.${v}`) })), s.aiSpeed)}</div>
@@ -231,7 +232,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
     if (!seg) return;
     const k = seg.dataset.seg!, v = seg.dataset.value!;
     if (k === 'lang') { s.lang = v as 'de' | 'en'; setLanguage(s.lang); }
-    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks') s[k] = v === 'on';
+    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks' || k === 'ambience') s[k] = v === 'on';
     else if (k === 'aiSpeed') s.aiSpeed = v as Settings['aiSpeed'];
     else if (k === 'quality') s.quality = v as Settings['quality'];
     host.applySettings();

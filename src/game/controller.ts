@@ -3,11 +3,12 @@
  * Controller: every input (mouse, touch, XR) becomes a command to the game core here.
  */
 import {
-  applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
+  isHostile, dist, weather, applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, radioTargets, terraformTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
+import { UNITS } from '../data/balance';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
@@ -74,6 +75,7 @@ export class Controller {
     const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer);
     if (hq) this.view.centerOn(this.view.board.tileCenter(s, hq.x, hq.y));
     audio.setTheme(this.viewer >= 0 ? s.factions[this.viewer].id : s.factions[0].id);
+    this.updateMood();
     this.ui.update();
     if (!s.factions[s.current].human) void this.runAi();
     else this.ui.rewards();
@@ -237,6 +239,27 @@ export class Controller {
 
   play(s: Sfx) { audio.play(s); }
 
+  /**
+   * Stimmung: Spannungsstufe der Musik und Wetter-Atmosphaere aus Sicht des Betrachters.
+   * Mood: music tension level and weather ambience from the viewer's point of view.
+   */
+  updateMood() {
+    const s = this.state;
+    if (!s) return;
+    const v = this.viewer >= 0 ? this.viewer : s.current;
+    const cities = s.cities.filter((c) => c.owner === v);
+    const own = s.units.filter((u) => u.owner === v);
+    let level: 0 | 1 | 2 = 0;
+    for (const e of s.units) {
+      if (e.owner === v || !isHostile(s, v, e.owner) || !canSeeUnit(s, v, e) || UNITS[e.type].attack <= 0) continue;
+      const nearCity = cities.reduce((m, c) => Math.min(m, dist(c, e)), 99);
+      if (nearCity <= 1) { level = 2; break; }
+      if (nearCity <= 3 || own.some((u) => dist(u, e) <= 2)) level = 1;
+    }
+    audio.setIntensity(level);
+    audio.setAmbience(weather(s));
+  }
+
   setTab(tab: Tab) {
     const s = this.state;
     if (!s || !this.selected) return;
@@ -252,7 +275,7 @@ export class Controller {
   /** Kommando ausfuehren und animieren / execute and animate a command */
   async exec(cmd: Command, opts: { ai?: boolean } = {}): Promise<CommandResult> {
     const s = this.state!;
-    const before = new Map(s.units.map((u) => [u.id, { x: u.x, y: u.y }]));
+    const before = new Map(s.units.map((u) => [u.id, { x: u.x, y: u.y, type: u.type, owner: u.owner }]));
     const res = applyCommand(s, cmd);
     this.onCommand?.(cmd, res);
     if (!res.ok) {
@@ -260,6 +283,8 @@ export class Controller {
       return res;
     }
     const board = this.view.board;
+    const killedIds = new Set(res.events.flatMap((e) => (e.t === 'killed' ? [e.unit] : [])));
+    const fid = (owner: number) => s.factions[owner]?.id;
     const animate = board.animations && !(opts.ai && (this.aiSpeed === 'instant' || this.speedUp));
     const visible = (x: number, y: number) => this.viewer < 0 || isExplored(s, this.viewer, x, y);
     this.busy = true;
@@ -278,10 +303,21 @@ export class Controller {
             const target = unitById(s, e.target) ?? null;
             const at = target ?? null;
             const pos = at ? { x: at.x, y: at.y } : before.get(e.target);
+            const ab = before.get(e.unit), tb = before.get(e.target);
+            const seen = (pos && visible(pos.x, pos.y)) || (ab && visible(ab.x, ab.y));
+            if (seen && ab) {
+              audio.weapon(ab.type);
+              // eigener Angriff: gelegentlich ein Kampfschrei / own attack: an occasional battle cry
+              if (ab.owner === this.viewer && Math.random() < 0.35) audio.battleCry(fid(ab.owner));
+            }
             if (animate && board.unitObject(e.unit) && board.unitObject(e.target)) {
-              this.play('attack');
               await board.animateAttack(e.unit, e.target);
-            } else this.play('hit');
+            }
+            if (seen && tb) {
+              if (!killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
+              // Gegenschlag / retaliation
+              if (e.ret > 0) window.setTimeout(() => audio.weapon(tb.type), 280);
+            }
             if (pos && visible(pos.x, pos.y)) {
               this.ui.fx('hit', pos.x, pos.y);
               this.ui.fx('num', pos.x, pos.y, `-${e.dmg}`);
@@ -294,13 +330,16 @@ export class Controller {
           }
           case 'killed': {
             const p = before.get(e.unit);
-            if (p && visible(p.x, p.y)) { this.play('kill'); this.ui.fx(e.remains === 'skeleton' ? 'splat' : e.remains === 'wreck' ? 'boom' : 'kill', p.x, p.y); }
+            if (p && visible(p.x, p.y)) { audio.impact(p.type, true, fid(p.owner)); this.ui.fx(e.remains === 'skeleton' ? 'splat' : e.remains === 'wreck' ? 'boom' : 'kill', p.x, p.y); }
             if (animate) await board.animateDeath(e.unit, e.remains ?? null);
             break;
           }
           case 'capture': {
             const c = s.cities.find((cc) => cc.id === e.city)!;
-            if (visible(c.x, c.y)) { this.play('capture'); this.ui.fx('capture', c.x, c.y); }
+            if (e.faction === this.viewer) audio.sting('cityWon', fid(e.faction));
+            else if (e.from !== null && e.from === this.viewer) audio.sting('cityLost');
+            else if (visible(c.x, c.y)) this.play('capture');
+            if (visible(c.x, c.y)) this.ui.fx('capture', c.x, c.y);
             break;
           }
           case 'cityLevel': {
@@ -324,12 +363,18 @@ export class Controller {
       this.busy = false;
     }
     this.refresh();
+    this.updateMood();
     this.ui.afterCommand?.(res.events);
     if (this.selectedUnit !== null && !unitById(s, this.selectedUnit)) { this.selectedUnit = null; this.pendingTarget = null; }
     if (this.pendingTarget !== null && !unitById(s, this.pendingTarget)) this.pendingTarget = null;
     this.updateHighlights();
     this.ui.update();
-    if (s.over) { this.autosave(); this.ui.gameOver(); }
+    if (s.over) {
+      this.autosave();
+      const me = this.viewer >= 0 ? this.viewer : s.winner ?? 0;
+      audio.gameOver(s.winner === me, fid(me));
+      this.ui.gameOver();
+    }
     else if (!opts.ai) this.ui.rewards();
     return res;
   }
@@ -376,6 +421,8 @@ export class Controller {
     this.viewer = s.current;
     audio.setTheme(s.factions[this.viewer].id);
     this.refresh();
+    this.updateMood();
+    audio.sting('turnStart');
     this.ui.update();
     this.ui.rewards();
     this.ui.turnStarted?.();

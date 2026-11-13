@@ -589,7 +589,8 @@
     "low": "Niedrig",
     "high": "Hoch",
     "showGrid": "Raster anzeigen",
-    "barks": "Sprechblasen"
+    "barks": "Sprechblasen",
+    "ambience": "Atmosphäre (Wetter, Gefechtslärm)"
   },
   "handover": {
     "title": "Wachwechsel",

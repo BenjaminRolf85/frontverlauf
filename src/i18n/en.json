@@ -589,7 +589,8 @@
     "low": "Low",
     "high": "High",
     "showGrid": "Show grid",
-    "barks": "Speech bubbles"
+    "barks": "Speech bubbles",
+    "ambience": "Ambience (weather, battle noise)"
   },
   "handover": {
     "title": "Change of watch",
