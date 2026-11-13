@@ -75,6 +75,9 @@
   --p-color-track500: #8a7c60;
   --p-color-cloud100: #ffffff;
   --p-color-cloud300: #dfe6f2;
+  --p-color-smoke400: #7d7987;
+  --p-color-smoke700: #45414d;
+  --p-color-dust300: #d8c592;
   --p-color-korvat-red: #c8372d;
   --p-color-korvat-olive: #6b7a3a;
   --p-color-dravon-anthracite: #3a3d42;
@@ -255,6 +258,13 @@
   --s-fx-debris: #2b2622;
   --s-fx-shell: #24212f;
   --s-fx-rocket: #4b5320;
+  --s-smoke: #7d7987;
+  --s-smoke-heavy: #45414d;
+  --s-dust: #d8c592;
+  --s-wake: #ffffff;
+  --s-flame: #ff8a1f;
+  --s-flame-core: #ffd23f;
+  --s-flame-tip: #e2412e;
   --faction-korvat-primary: #c8372d;
   --faction-korvat-secondary: #6b7a3a;
   --faction-korvat-terrain: #a6c95a;

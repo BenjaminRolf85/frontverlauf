@@ -15,6 +15,7 @@ import * as models from './models';
 import { WeatherFx } from './weather';
 import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
+import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
@@ -104,6 +105,8 @@ export class Board {
   readonly combat = new CombatFx();
   /** gemerkte Blickrichtung (rotation.y des Modells) je Einheit / remembered facing (model rotation.y) per unit */
   private facing = new Map<number, number>();
+  /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
+  readonly life = new UnitLife();
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
   private anims: Anim[] = [];
@@ -123,6 +126,8 @@ export class Board {
     clearer.onBeforeRender = (renderer) => renderer.clearDepth();
     clearer.raycast = () => {};
     this.unitLayer.add(clearer);
+    this.group.add(this.life.group);
+    this.life.busy = (id) => this.animating.has(id);
   }
 
   /** Mittelpunkt eines Feldes in Brett-Koordinaten / centre of a tile in board coordinates */
@@ -559,6 +564,7 @@ export class Board {
       const model = v.group.getObjectByName('model')!;
       model.position.y = (u.type === 'heli' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
+      this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
       const mat = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : done ? unitMaterial({ dim: true, transparent: true, opacity: DONE_OPACITY }) : unitMaterial();
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
@@ -568,6 +574,7 @@ export class Board {
     for (const [id, v] of this.units) {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); }
     }
+    this.life.endSync(seen);
     this.updateShadows();
     this.dirty = true;
   }
@@ -650,12 +657,14 @@ export class Board {
     // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
     const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
     this.facing.set(unitId, face(pts.length - 1));
+    this.life.startMove(s, unitId, [from, ...path]);
     return this.addAnim(dur, (t) => {
       const f = t * (pts.length - 1);
       const i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
       const local = f - i;
       v.group.position.lerpVectors(pts[i], pts[i + 1], local);
-      v.group.position.y += Math.sin(local * Math.PI) * 0.08;
+      // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
+      this.life.moveFrame(unitId, t, f);
       if (model) model.rotation.y = face(f);
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
@@ -692,6 +701,7 @@ export class Board {
     const v = this.units.get(unitId);
     if (!v) return Promise.resolve();
     this.animating.add(unitId);
+    this.life.untrack(unitId);
     const start = v.group.position.clone();
     const model = v.group.getObjectByName('model');
     if (v.badge) v.badge.visible = false;
@@ -816,7 +826,8 @@ export class Board {
   /** Animationen fortschreiben; true, wenn neu gezeichnet werden muss / advance animations; true if redraw needed */
   tick(now: number): boolean {
     const fx = this.combat.update();
-    if (!this.anims.length) { const d = this.dirty || fx; this.dirty = false; return d; }
+    const lived = this.life.update(now, this.animations);
+    if (!this.anims.length) { const d = this.dirty || fx || lived; this.dirty = false; return d; }
     for (const a of [...this.anims]) {
       // rAF-Zeit kann vor dem Start liegen: auf 0..1 begrenzen / rAF time can precede the start: clamp to 0..1
       const t = Math.max(0, Math.min(1, (now - a.start) / a.dur));

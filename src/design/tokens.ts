@@ -90,6 +90,10 @@ export const primitives = {
     track500: '#8a7c60',
     cloud100: '#ffffff',
     cloud300: '#dfe6f2',
+    // Rauch, Staub, Flammen / smoke, dust, flames
+    smoke400: '#7d7987',
+    smoke700: '#45414d',
+    dust300: '#d8c592',
     // Fraktionen / factions
     korvatRed: '#c8372d',
     korvatOlive: '#6b7a3a',
@@ -249,6 +253,14 @@ export const semantic = {
   fxDebris: c.char800,
   fxShell: c.ink800,
   fxRocket: c.olive600,
+  // Lebendige Einheiten / living units
+  smoke: c.smoke400,
+  smokeHeavy: c.smoke700,
+  dust: c.dust300,
+  wake: c.white,
+  flame: c.fire400,
+  flameCore: c.yellow400,
+  flameTip: c.red500,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
