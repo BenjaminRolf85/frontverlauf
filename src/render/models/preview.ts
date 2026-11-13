@@ -361,8 +361,8 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const big = ['tank', 'mech', 'tripod', 'doomCrawler', 'titan'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = big ? 4000 : name.startsWith('unit') ? 3600 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const big = ['tank', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship'].some((u) => name.startsWith(`unit ${u} `));
+    const limit = big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
   }
   errors.push(`checked ${all.length}`);

@@ -40,7 +40,10 @@ function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: 
   // Reling / rail
   for (const s of [-1, 1]) {
     b.box(0.004, 0.004, z1 - z0 + 0.04, mat.white, [s * (w * 0.93), top + 0.02, (z0 + z1) / 2]);
-    for (let i = 0; i <= 6; i++) b.box(0.004, 0.02, 0.004, mat.white, [s * (w * 0.93), top + 0.01, z0 + (i / 6) * (z1 - z0)]);
+    for (let i = 0; i <= 12; i++) b.box(0.004, 0.02, 0.004, mat.white, [s * (w * 0.93), top + 0.01, z0 + (i / 12) * (z1 - z0)]);
+    // zweite Portlochreihe + Scheuerleiste / second porthole row + rubbing strake
+    for (let i = 0; i < portholes; i++) b.box(0.004, 0.008, 0.008, mat.window, [s * (w + 0.002), top * 0.75, z0 + ((i + 0.5) / portholes) * (z1 - z0)]);
+    b.box(0.006, 0.006, z1 - z0, shade(L.hull, 0.8), [s * (w + 0.002), top * 0.25, (z0 + z1) / 2]);
     b.box(0.004, 0.004, z1 - z0 + 0.04, mat.white, [s * (w * 0.93), top + 0.011, (z0 + z1) / 2]);
     // Ankerkette / anchor chain
     b.box(0.006, 0.004, 0.08, mat.dark, [s * 0.02, top + 0.009, h - bow * 0.6], [0, s * 0.3, 0]);
@@ -288,7 +291,7 @@ export function destroyer(f: FactionId): Builder {
   const b = new Builder();
   const L = look(f);
   const top = 0.06;
-  hull(b, L, 0.84, 0.2, top, 0.22, mat.metalLight, 10);
+  hull(b, L, 0.84, 0.2, top, 0.22, mat.metalLight, 14);
   const d = top + 0.008;
   superBlock(b, f, L, 0, d, 0.06, 0.13, 0.07, 0.16);
   superBlock(b, f, L, 0, d + 0.07, 0.08, 0.1, 0.055, 0.08);
@@ -324,7 +327,9 @@ export function battleship(f: FactionId): Builder {
   const b = new Builder();
   const L = look(f);
   const top = 0.07;
-  hull(b, L, 0.88, 0.28, top, 0.24, mat.woodLight, 6);
+  hull(b, L, 0.88, 0.28, top, 0.24, mat.woodLight, 14);
+  // Deckplanken / deck planks
+  for (let i = 0; i < 9; i++) b.box(0.003, 0.002, 0.7, shade(mat.woodLight, 0.8), [-0.12 + i * 0.03, top + 0.009, -0.02]);
   const d = top + 0.008;
   // Mehrere Tuerme: zwei vorn (ueberhoehend), einer hinten / multiple turrets: two fore (superfiring), one aft
   turret(b, f, L, 0.222, d, 0.11, 2, 1);
@@ -344,6 +349,13 @@ export function battleship(f: FactionId): Builder {
     b.add(geo.cyl(0.02, 0.022, 0.025, 8), L.hull, { p: [s * 0.1, d + 0.0125, z] });
     b.cyl(0.005, 0.005, 0.05, 6, mat.dark, [s * 0.1, d + 0.018, z + 0.035], [HALF_PI, 0, 0]);
   }
+  // Flak-Geschuetze + Rettungsboote / anti-aircraft guns + lifeboats
+  for (const s of [-1, 1]) for (const z of [-0.12, 0.17]) {
+    b.cyl(0.012, 0.014, 0.012, 10, mat.darkMid, [s * 0.11, d + 0.006, z]);
+    for (const dx of [-0.004, 0.004]) b.cyl(0.0025, 0.0025, 0.035, 6, mat.dark, [s * 0.11 + dx, d + 0.02, z + 0.015], [0.8, 0, 0]);
+    b.box(0.02, 0.012, 0.004, mat.dark, [s * 0.11, d + 0.015, z + 0.012]);
+  }
+  lifeboats(b, L, 0.115, d + 0.045, -0.1);
   // Heckkran + Katapult / stern crane + catapult
   b.cyl(0.008, 0.01, 0.06, 8, mat.dark, [0.06, d + 0.03, -0.33]);
   b.box(0.008, 0.008, 0.09, mat.dark, [0.06, d + 0.06, -0.3], [0.5, 0, 0]);

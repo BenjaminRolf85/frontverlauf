@@ -119,18 +119,46 @@ function dropDegenerate(g: THREE.BufferGeometry): THREE.BufferGeometry {
   return out;
 }
 
+// ---------- Detailstufe / detail scope ----------
+
+/**
+ * Detailbereich: skaliert Rundungssegmente und fast Quader (fuer Einheiten).
+ * Detail scope: scales radial segments and bevels boxes (used for units).
+ */
+let DETAIL = { seg: 1, bevel: false };
+export function withDetail<T>(seg: number, bevel: boolean, fn: () => T): T {
+  const prev = DETAIL;
+  DETAIL = { seg, bevel };
+  try {
+    return fn();
+  } finally {
+    DETAIL = prev;
+  }
+}
+/** Segmentanzahl im aktuellen Detailbereich / segment count in the current detail scope */
+function S(n: number, min = 3): number {
+  return Math.max(min, Math.round(n * DETAIL.seg));
+}
+/** Quader, im Detailbereich mit Fasen / box, bevelled inside the detail scope */
+function detailBox(w: number, h: number, d: number): THREE.BufferGeometry {
+  const m = Math.min(w, h, d);
+  if (!DETAIL.bevel || m < 0.008) return new THREE.BoxGeometry(w, h, d);
+  if (m >= 0.025) return geo.rbox(w, h, d, m * 0.2);
+  return geo.cbox(w, h, d, Math.min(w, d) * 0.2);
+}
+
 // ---------- Grundkoerper / primitives (zentriert / centred) ----------
 
 export const geo = {
   box: (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d),
-  cyl: (rt: number, rb: number, h: number, seg = 8, open = false) => new THREE.CylinderGeometry(rt, rb, h, seg, 1, open),
-  cone: (r: number, h: number, seg = 8) => new THREE.ConeGeometry(r, h, seg, 1),
-  sphere: (r: number, ws = 8, hs = 6) => new THREE.SphereGeometry(r, ws, hs),
+  cyl: (rt: number, rb: number, h: number, seg = 8, open = false) => new THREE.CylinderGeometry(rt, rb, h, S(seg), 1, open),
+  cone: (r: number, h: number, seg = 8) => new THREE.ConeGeometry(r, h, S(seg), 1),
+  sphere: (r: number, ws = 8, hs = 6) => new THREE.SphereGeometry(r, S(ws), S(hs, 2)),
   ico: (r: number, detail = 0) => new THREE.IcosahedronGeometry(r, detail),
   dodeca: (r: number) => new THREE.DodecahedronGeometry(r, 0),
   /** Halbkugel, Boden bei y=0 / hemisphere, base at y=0 */
-  hemi: (r: number, ws = 8, hs = 3) => new THREE.SphereGeometry(r, ws, hs, 0, Math.PI * 2, 0, Math.PI / 2),
-  torus: (r: number, tube: number, rs = 4, ts = 12) => new THREE.TorusGeometry(r, tube, rs, ts),
+  hemi: (r: number, ws = 8, hs = 3) => new THREE.SphereGeometry(r, S(ws), S(hs, 2), 0, Math.PI * 2, 0, Math.PI / 2),
+  torus: (r: number, tube: number, rs = 4, ts = 12) => new THREE.TorusGeometry(r, tube, S(rs), S(ts)),
   /**
    * Quader mit verjuengter Oberseite / box with a tapered top.
    * Unten wb x db, oben wt x dt, Hoehe h, Oberseite um dz in z verschoben. Zentriert.
@@ -286,11 +314,11 @@ export class Builder {
 
   // Kurzformen; p = Mittelpunkt / shorthands; p = centre
   box(w: number, h: number, d: number, c: ColorLike, p: V3, r?: V3): this {
-    return this.add(geo.box(w, h, d), c, { p, r });
+    return this.add(detailBox(w, h, d), c, { p, r });
   }
   /** Quader mit Unterkante bei y / box with its bottom at y */
   block(x: number, y: number, z: number, w: number, h: number, d: number, c: ColorLike, ry = 0): this {
-    return this.add(geo.box(w, h, d), c, { p: [x, y + h / 2, z], r: [0, ry, 0] });
+    return this.add(detailBox(w, h, d), c, { p: [x, y + h / 2, z], r: [0, ry, 0] });
   }
   cyl(rt: number, rb: number, h: number, seg: number, c: ColorLike, p: V3, r?: V3): this {
     return this.add(geo.cyl(rt, rb, h, seg), c, { p, r });

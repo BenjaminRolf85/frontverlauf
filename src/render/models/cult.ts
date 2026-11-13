@@ -175,10 +175,6 @@ export function doomBuggy(f: FactionId, lite = false): Builder {
   const wr = 0.07;
   for (const sx of [-1, 1]) for (const z of [-0.13, 0.14]) {
     wheel(b, sx * 0.13, wr, z, wr, 0.05, { rim: L.trim, lite, seg: 12 });
-    if (!lite) for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      b.box(0.054, 0.012, 0.012, mat.ink, [sx * 0.13, wr + Math.cos(a) * wr, z + Math.sin(a) * wr], [a, 0, 0]);
-    }
   }
   const cy = wr + 0.01;
   b.box(0.2, 0.03, 0.38, mat.rustDark, [0, cy, 0]);

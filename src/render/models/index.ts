@@ -14,7 +14,13 @@ import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { BuildingId, FactionId, GrandProjectId, ResourceId, TerrainId, UnitTypeId } from '../../data/balance';
 import { building, feature } from './buildings';
 import { city } from './city';
-import { memo } from './kit';
+import { memo, withDetail } from './kit';
+
+/** Detailfaktor fuer Einheiten (Rundungssegmente) / detail factor for units (radial segments) */
+const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
+  // Wesen mit vielen Kugeln/Rohren etwas weniger / creatures with many spheres/tubes slightly less
+  terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
+};
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
 import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
@@ -27,7 +33,7 @@ import { android, quadDrone, railgun, spider, titan } from './robots';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
-  return memo(`unit|${type}|${faction}|${c ?? ''}`, () => {
+  return memo(`unit|${type}|${faction}|${c ?? ''}`, () => withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
       case 'sniper': return sniper(faction).build();
@@ -60,7 +66,7 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'railgun': return railgun(faction).build();
       case 'titan': return titan(faction).build();
     }
-  });
+  }));
 }
 
 /** Vereinfachte Ladung fuer das Landungsboot (ohne Besatzung/Embleme) / simplified cargo for the landing boat */

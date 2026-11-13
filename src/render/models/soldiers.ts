@@ -382,7 +382,7 @@ export function infantry(f: FactionId, lite = false): Builder {
 export function sniper(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  const d: Detail = lite ? 0 : 1;
+  const d: Detail = lite ? 0 : 2;
   // liegend, Koerper leicht schraeg zur Waffe / prone, body slightly angled to the weapon
   const yaw = 0.35;
   const G: V3 = [0.03, 0.078, 0.06];
@@ -418,7 +418,14 @@ export function sniper(f: FactionId, lite = false): Builder {
         const s = 0.026 + R() * 0.018;
         b.add(geo.ico(s, 0), tones[i % tones.length], { p: [x, y, -0.05 - R() * 0.02], r: [R() * 3, R() * 3, R() * 3], s: [1, 1, 0.6] });
       }
-      if (!lite) for (let i = 0; i < 14; i++) {
+      if (!lite) {
+        // Ghillie-Kapuze um den Kopf / ghillie hood around the head
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2;
+          b.add(geo.cone(0.014, 0.07, 4), tones[i % 4], { p: [Math.cos(a) * 0.07, 0.2 + Math.sin(a) * 0.03, -0.02 + Math.sin(a) * 0.04], r: [-0.6 + (R() - 0.5) * 0.6, 0, Math.cos(a) * 1.2] });
+        }
+      }
+      if (!lite) for (let i = 0; i < 24; i++) {
         const y = -0.05 + R() * 0.2;
         const x = (R() < 0.5 ? -1 : 1) * (0.07 + R() * 0.02);
         b.add(geo.cone(0.012, 0.06, 4), tones[(i + 1) % 4], { p: [x, y, -0.04], r: [R() - 0.5, 0, (x > 0 ? -1 : 1) * (1.2 + R() * 0.4)] });
@@ -499,11 +506,21 @@ export function mgTeam(f: FactionId, lite = false): Builder {
     // Munitionskasten + Gurt / ammo box + belt
     b.add(geo.cbox(0.07, 0.055, 0.045, 0.01), L.gear, { p: [0.085, 0.028, 0.0] });
     b.box(0.03, 0.012, 0.03, mat.dark, [0.085, 0.06, 0.0]);
-    const n = lite ? 3 : 9;
+    const n = lite ? 3 : 16;
     for (let i = 0; i < n; i++) {
       const t = i / (n - 1);
       const p: V3 = [0.075 - t * 0.05, 0.06 + Math.sin(t * Math.PI) * 0.06 + t * 0.03, 0.0];
       b.box(0.012, 0.026, 0.009, mat.gold, p, [0, 0, 0.6 - t * 0.9]);
+      if (!lite) b.box(0.014, 0.006, 0.011, mat.dark, [p[0], p[1] - 0.01, p[2]], [0, 0, 0.6 - t * 0.9]);
+    }
+    if (!lite) {
+      // Zweibein vorn am Lauf + Deckel am Kasten / bipod at the barrel front + box lid
+      for (const sx of [-1, 1]) b.tube([0, gy - 0.005, 0.25], [sx * 0.045, 0.004, 0.29], 0.004, 5, mat.dark);
+      b.cyl(0.008, 0.008, 0.02, 6, mat.dark, [0, gy - 0.005, 0.25], [0, 0, HALF_PI]);
+      b.add(geo.cbox(0.072, 0.008, 0.047, 0.006), shade(L.gear, 0.8), { p: [0.085, 0.058, 0.0] });
+      b.box(0.03, 0.006, 0.006, mat.dark, [0.085, 0.066, 0.0]);
+      // Ersatzlauf-Tasche / spare barrel bag
+      b.add(geo.cyl(0.014, 0.014, 0.16, 8), L.gear, { p: [-0.09, 0.016, 0.1], r: [HALF_PI, 0.5, 0] });
     }
   });
   // Schuetze kniend an den Griffen / gunner kneeling at the grips
@@ -526,6 +543,12 @@ export function medic(f: FactionId, lite = false): Builder {
     ...standPose([[-0.105, 0.155, 0.07], [0.125, 0.13, 0.03]]),
     twist: [0, -0.1, 0],
   }, { detail: d, pack: 'medbag', armband: true, seed: 51 });
+  // zusammengerollte Trage auf dem Rucksack / rolled stretcher on the pack
+  if (!lite) {
+    for (const dz of [-0.012, 0.012]) b.tube([-0.12, 0.335, -0.1 + dz], [0.12, 0.335, -0.1 + dz], 0.005, 6, mat.wood);
+    b.cyl(0.022, 0.022, 0.19, 12, mix(mat.white, mat.sand, 0.4), [0, 0.335, -0.1], [0, 0, HALF_PI]);
+    for (const x of [-0.06, 0.06]) b.add(geo.torus(0.024, 0.004, 3, 12), L.gear, { p: [x, 0.335, -0.1], r: [0, HALF_PI, 0] });
+  }
   // Umhaengetasche mit Riemen (kein Schutzzeichen) / shoulder satchel with strap (no protective emblem)
   b.box(0.018, 0.21, 0.012, mat.white, [0.0, 0.235, 0.054], [0, 0, 0.75]);
   b.add(geo.rbox(0.04, 0.07, 0.085, 0.01), mat.white, { p: [-0.1, 0.165, 0.0] });
