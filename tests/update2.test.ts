@@ -1,4 +1,3 @@
-import { CITY_UPGRADES } from '../src/data/balance';
 import { describe, expect, it } from 'vitest';
 import { cityIncome, continueEndless, createGame, defaultConfig, effectiveMove, healAmount, weatherFor } from '../src/core';
 import { CITY_UPGRADES, HEALING, MAP_SIZES, WEATHER } from '../src/data/balance';
