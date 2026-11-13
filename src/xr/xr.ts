@@ -94,6 +94,7 @@ export class XrSession {
     board.position.set(0, -(-0.42 - 0.55) * scale, 0); // Unterkante der Scholle auf Tischhoehe / slab bottom at table height
     board.quaternion.identity();
     v.board.showLabels = true;
+    v.board.life.lite = true;
     this.root.add(this.hover);
     v.scene.add(this.reticle);
     if (this.mode === 'vr') {
@@ -158,6 +159,7 @@ export class XrSession {
     this.root.visible = true;
     v.onFrame = null;
     v.resize();
+    v.board.life.lite = false;
     v.applyShadows(false);
     v.invalidate();
     if (this.rewardDone) { const d = this.rewardDone; this.rewardDone = null; d(); }

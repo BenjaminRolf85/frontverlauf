@@ -15,8 +15,15 @@ import * as models from './models';
 import { WeatherFx } from './weather';
 import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
+import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
+import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
+import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, withGlow, type GlowKind } from './atmosphere';
+import { WATER_BOX_TOP, buildWater } from './water';
+import { buildLandscape, cliffRock } from './landscape';
+import { TownFx, type TownInput } from './lights';
+import { FogFx } from './fog';
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
 const placeholderCache = new Map<string, THREE.BufferGeometry>();
@@ -99,6 +106,21 @@ export class Board {
   private labelLayer = new THREE.Group();
   readonly weatherFx = new WeatherFx();
   readonly ambient = new AmbientFx();
+  /** Kampfeffekte (Muendungsfeuer, Geschosse, Einschlaege) / combat effects (muzzle flashes, projectiles, impacts) */
+  readonly combat = new CombatFx();
+  /** gemerkte Blickrichtung (rotation.y des Modells) je Einheit / remembered facing (model rotation.y) per unit */
+  private facing = new Map<number, number>();
+  /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
+  readonly life = new UnitLife();
+  /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
+  readonly town = new TownFx();
+  /** Aufloesende Nebelwolken / dissolving fog clouds */
+  readonly fogFx = new FogFx((v) => cloudGeometry(v));
+  /** Runde des zuletzt gezeigten Zustands (fuer die Tageszeit) / round of the last shown state (for the time of day) */
+  round = 1;
+  /** Zaehlt Neuaufbauten der statischen Ebene (Schattenkarte) / counts static rebuilds (shadow map) */
+  staticVersion = 0;
+  private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
   private anims: Anim[] = [];
@@ -109,7 +131,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -118,6 +140,8 @@ export class Board {
     clearer.onBeforeRender = (renderer) => renderer.clearDepth();
     clearer.raycast = () => {};
     this.unitLayer.add(clearer);
+    this.group.add(this.life.group);
+    this.life.busy = (id) => this.animating.has(id);
   }
 
   /** Mittelpunkt eines Feldes in Brett-Koordinaten / centre of a tile in board coordinates */
@@ -128,6 +152,36 @@ export class Board {
   }
 
   private snowy = false;
+  /** Faerbung der Heimat einer Fraktion / home tint of a faction */
+  private tintOf(s: GameState, t: Tile): string | null {
+    const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
+    return homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null;
+  }
+  /** Ober- und Seitenfarbe eines Feldes / top and side colour of a tile */
+  private tileColors(terrain: TerrainId, tint: string | null, biome?: BiomeId, xeno = false): { top: string; side: string } {
+    let topColor: string;
+    let side: string = semantic.terrainPlainSide;
+    switch (terrain) {
+      case 'plain': topColor = semantic.terrainPlain; break;
+      case 'forest': topColor = semantic.terrainForest; break;
+      case 'mountain': topColor = semantic.terrainMountain; side = semantic.terrainMountainDark; break;
+      case 'shallow': topColor = semantic.terrainShallow; side = semantic.terrainOcean; break;
+      default: topColor = semantic.terrainOcean; side = semantic.terrainDeep; break;
+    }
+    const bt = biomeTop(terrain, biome);
+    const lush = !biome || biome === 'grassland' || biome === 'hills';
+    if (bt) { topColor = bt.top; if (bt.side) side = bt.side; }
+    if (tint && (terrain === 'plain' || terrain === 'forest')) topColor = mix(topColor, tint, lush ? 0.5 : 0.18);
+    if (tint && terrain === 'mountain') topColor = mix(topColor, tint, 0.15);
+    // Xeno-Boden: violett mit dunkler Kante / xeno ground: violet with a dark edge
+    if (xeno && terrain !== 'shallow' && terrain !== 'ocean') {
+      topColor = mix(semantic.xenoGround, topColor, terrain === 'mountain' ? 0.35 : 0.15);
+      side = semantic.xenoGroundDark;
+    } else if (xeno) topColor = mix(topColor, semantic.xenoGlow, 0.35);
+    // Schneewetter: Land leicht verschneit / snow weather: land lightly snow-covered
+    if (this.snowy && terrain !== 'shallow' && terrain !== 'ocean') topColor = mix(topColor, semantic.snow, 0.5);
+    return { top: topColor, side };
+  }
   private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false): THREE.BufferGeometry {
     const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}`;
     let g = this.tileGeoCache.get(key);
@@ -136,32 +190,16 @@ export class Board {
       g = coloredBox(0.98, 0.32, 0.98, semantic.cloudShade, semantic.neutralDark);
       g.translate(0, 0.32 / 2 + TILE_BOTTOM, 0);
     } else {
-      const top = TILE_TOP[terrain] + (biome && terrain !== 'shallow' && terrain !== 'ocean' ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0);
+      // Wasserfelder: Kasten unter der animierten Oberflaeche (water.ts) / water tiles: box below the animated surface
+      const top = terrain === 'shallow' || terrain === 'ocean' ? WATER_BOX_TOP
+        : TILE_TOP[terrain] + (biome ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0);
       const h = top - TILE_BOTTOM;
-      let topColor: string;
-      let side: string = semantic.terrainPlainSide;
-      switch (terrain) {
-        case 'plain': topColor = semantic.terrainPlain; break;
-        case 'forest': topColor = semantic.terrainForest; break;
-        case 'mountain': topColor = semantic.terrainMountain; side = semantic.terrainMountainDark; break;
-        case 'shallow': topColor = semantic.terrainShallow; side = semantic.terrainOcean; break;
-        default: topColor = semantic.terrainOcean; side = semantic.terrainDeep; break;
-      }
-      const bt = biomeTop(terrain, biome);
-      const lush = !biome || biome === 'grassland' || biome === 'hills';
-      if (bt) { topColor = bt.top; if (bt.side) side = bt.side; }
-      if (tint && (terrain === 'plain' || terrain === 'forest')) topColor = mix(topColor, tint, lush ? 0.5 : 0.18);
-      if (tint && terrain === 'mountain') topColor = mix(topColor, tint, 0.15);
-      // Xeno-Boden: violett mit dunkler Kante / xeno ground: violet with a dark edge
-      if (xeno && terrain !== 'shallow' && terrain !== 'ocean') {
-        topColor = mix(semantic.xenoGround, topColor, terrain === 'mountain' ? 0.35 : 0.15);
-        side = semantic.xenoGroundDark;
-      } else if (xeno) topColor = mix(topColor, semantic.xenoGlow, 0.35);
-      // Schneewetter: Land leicht verschneit / snow weather: land lightly snow-covered
-      if (this.snowy && terrain !== 'shallow' && terrain !== 'ocean') topColor = mix(topColor, semantic.snow, 0.5);
-      g = coloredBox(0.98, h, 0.98, topColor, side);
+      const c = this.tileColors(terrain, tint, biome, xeno);
+      g = coloredBox(0.98, h, 0.98, c.top, c.side);
       g.translate(0, TILE_BOTTOM + h / 2, 0);
     }
+    // Xeno-Boden glimmt nachts / xeno ground glimmers at night
+    withGlow(g, xeno && terrain !== 'fog' && terrain !== 'shallow' && terrain !== 'ocean' ? 'xenoGround' : 'none');
     this.tileGeoCache.set(key, g);
     return g;
   }
@@ -171,6 +209,8 @@ export class Board {
       g.remove(c);
       c.traverse((o) => {
         if ((o as THREE.InstancedMesh).isInstancedMesh) (o as THREE.InstancedMesh).dispose();
+        // eigene Geometrien je Neuaufbau (Wasser, Uebergaenge) / per-rebuild geometries (water, transitions)
+        if (o.userData.dispose) (o as THREE.Mesh).geometry.dispose();
       });
     }
   }
@@ -185,9 +225,13 @@ export class Board {
     this.pickMeshes = [];
     const size = s.size;
     const explored = (x: number, y: number) => viewer < 0 || isExplored(s, viewer, x, y);
+    this.round = s.round;
+    this.staticVersion++;
+    ATMO.uHazeHalf.value = size / 2;
+    this.revealFog(s, viewer, explored);
 
     // Scholle / slab
-    const slab = outlined(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), semantic.soil), OUTLINE.tile);
+    const slab = outlined(withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), semantic.soil), 'none'), OUTLINE.tile, landMaterial());
     slab.position.y = TILE_BOTTOM - SLAB_DEPTH / 2 + 0.001;
     this.staticLayer.add(slab);
 
@@ -201,8 +245,9 @@ export class Board {
     };
     const decoGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const swayGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
-    const addDeco = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, sway = false) => {
+    const addDeco = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, sway = false, kind: GlowKind = 'nature') => {
       if (!geo) return;
+      withGlow(geo, kind);
       const map = sway ? swayGroups : decoGroups;
       let list = map.get(geo);
       if (!list) { list = []; map.set(geo, list); }
@@ -210,7 +255,7 @@ export class Board {
     };
     const fishTiles: { x: number; z: number; y: number }[] = [];
     const occupied = new Set(s.units.filter((u) => viewer < 0 || canSeeUnit(s, viewer, u)).map((u) => u.y * size + u.x));
-    const coast: { x: number; z: number; y: number; nx: number; nz: number }[] = [];
+    const lavaSpots: TownInput['lava'] = [];
     const decals = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const roadSegs: THREE.Matrix4[] = [];
     const roadNodes: THREE.Matrix4[] = [];
@@ -252,7 +297,8 @@ export class Board {
         const jungle = t.terrain === 'forest' && t.biome === 'jungle';
         if (t.volcano) {
           // Vulkan statt Berggipfel, Rauch darueber / volcano instead of the peak, smoke above
-          addDeco(volcanoGeometry(variant), at());
+          addDeco(volcanoGeometry(variant), at(), false, 'lava');
+          lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.15 });
           addDeco(volcanoSmokeGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.78, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)), true);
         } else if (occ && t.terrain === 'mountain') {
           // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
@@ -265,20 +311,13 @@ export class Board {
           if (!hasStructure || t.building === 'road') addDeco(jungleDecoration((x * 5 + y * 11) % 4), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.8, 0.45)) : at(), true);
         } else if (!occ && (!hasStructure || t.building === 'road')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
         // brennende Lava nach einem Ausbruch / burning lava after an eruption
-        if (burning(s, t)) addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off));
-        if (!jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
-        // Fische und Kueste / fish and coast
-        if (t.terrain === 'shallow' || t.terrain === 'ocean') {
-          if (t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
-          if (!t.building) {
-            for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-              const nx = x + dx, ny = y + dy;
-              if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
-              const nt = s.tiles[ny * size + nx];
-              if (nt.terrain !== 'shallow' && nt.terrain !== 'ocean' && explored(nx, ny)) coast.push({ x: x - off, z: y - off, y: top, nx: dx, nz: dy });
-            }
-          }
+        if (burning(s, t)) {
+          addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
+          lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
+        if (!jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
+        if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken / craters and scorch marks
         for (const [i, mk] of (t.marks ?? []).entries()) {
           const geo = mk.k === 'crater' ? craterGeometry((x + y + i) % 3) : scorchGeometry((x * 3 + y + i) % 3);
@@ -317,13 +356,13 @@ export class Board {
             const landAt = (xx: number, yy: number) => xx >= 0 && yy >= 0 && xx < size && yy < size && !['shallow', 'ocean'].includes(s.tiles[yy * size + xx].terrain);
             if (landAt(x - 1, y) || landAt(x + 1, y)) rot = Math.PI / 2;
           }
-          addDeco(buildingGeometry(t.building, ownerFaction), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(1, 1, 1)));
+          addDeco(buildingGeometry(t.building, ownerFaction), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot), new THREE.Vector3(1, 1, 1)), false, 'built');
         }
-        if (t.grandProject) addDeco(buildingGeometry(t.grandProject, ownerFaction), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
-        if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        if (t.grandProject) addDeco(buildingGeometry(t.grandProject, ownerFaction), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+        if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
-        else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
+        else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;
           addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
@@ -398,7 +437,7 @@ export class Board {
     }
 
     for (const [geo, gr] of groups) {
-      const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile);
+      const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile, landMaterial());
       mesh.receiveShadow = true;
       gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
@@ -407,10 +446,12 @@ export class Board {
       this.pickMeshes.push({ mesh, tiles: gr.tiles });
     }
     for (const [geo, mats] of decoGroups) {
-      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building);
+      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building, landMaterial());
       mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.raycast = () => {};
+      // Gebaeude, Berge und Baeume werfen Schatten (nur bei hoher Qualitaet aktiv) / buildings, mountains and trees cast shadows (high quality only)
+      mesh.castShadow = true;
       this.staticLayer.add(mesh, line);
     }
     for (const [geo, mats] of swayGroups) {
@@ -418,12 +459,13 @@ export class Board {
       mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.raycast = () => {};
+      mesh.castShadow = true;
       this.staticLayer.add(mesh, line);
     }
-    this.ambient.build(fishTiles, coast);
-    const decalMat = new THREE.MeshBasicMaterial({ vertexColors: true, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    this.ambient.build(fishTiles);
     for (const [geo, mats] of decals) {
-      const mesh = new THREE.InstancedMesh(geo, decalMat, mats.length);
+      const mesh = new THREE.InstancedMesh(withGlow(geo, 'none'), decalMaterial(), mats.length);
+      mesh.receiveShadow = true;
       mats.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.raycast = () => {};
       this.staticLayer.add(mesh);
@@ -458,7 +500,7 @@ export class Board {
       clouds.forEach((m, i) => byVariant[i % 3].push(m));
       byVariant.forEach((list, v) => {
         if (!list.length) return;
-        const { mesh, line } = outlinedInstanced(geos[v], list.length, OUTLINE.cloud);
+        const { mesh, line } = outlinedInstanced(withGlow(geos[v], 'none'), list.length, OUTLINE.cloud, cloudMaterial(), cloudOutline(OUTLINE.cloud));
         list.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
         mesh.raycast = () => {};
         this.staticLayer.add(mesh, line);
@@ -467,21 +509,26 @@ export class Board {
 
     // Staedte / cities
     const names = tList('cityNames');
+    const townCities: TownInput['cities'] = [];
     for (const c of s.cities) {
       if (!explored(c.x, c.y)) continue;
       const fid = c.owner !== null ? s.factions[c.owner].id : null;
-      const g = cityGeometry(fid, c.owner === null ? 1 : c.level, { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter });
-      const obj = outlined(g, OUTLINE.building);
+      const level = c.owner === null ? 1 : c.level;
+      const flags = { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter };
+      // Fensterlicht: groessere Staedte haben mehr beleuchtete Fenster / window light: larger cities have more lit windows
+      const g = withGlow(cityGeometry(fid, level, flags), 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
+      const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
-      obj.traverse((o) => { o.raycast = () => {}; });
+      obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
+      townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g });
       // Stadt-Ausbauten / city upgrades
       for (const [slot, up] of (c.upgrades ?? []).entries()) {
-        const perk = outlined(perkGeometry(up, fid), OUTLINE.building);
+        const perk = outlined(withGlow(perkGeometry(up, fid), 'built'), OUTLINE.building, landMaterial());
         const [px, pz] = SLOT_SPOT[slot % SLOT_SPOT.length];
         perk.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(px, 0, pz));
         perk.scale.setScalar(PERK_SCALE);
-        perk.traverse((o) => { o.raycast = () => {}; });
+        perk.traverse((o) => { o.raycast = () => {}; if (o === perk.userData.mesh) o.castShadow = true; });
         this.staticLayer.add(perk);
       }
       if (this.showLabels && names.length) {
@@ -495,7 +542,54 @@ export class Board {
         this.labelLayer.add(label);
       }
     }
+
+    // Animiertes Wasser / animated water
+    const water = buildWater(s, explored);
+    if (water) this.staticLayer.add(water);
+    // Weiche Uebergaenge und Felsabbrueche / soft transitions and rock cliffs
+    const land = buildLandscape({
+      size, tiles: s.tiles, explored, top: tileTop,
+      topColor: (t) => (t.terrain === 'shallow' || t.terrain === 'ocean' ? null : this.tileColors(t.terrain, this.tintOf(s, t), t.biome, !!t.xeno).top),
+    });
+    if (land.strips) {
+      const strips = new THREE.Mesh(land.strips, landMaterial());
+      strips.receiveShadow = true;
+      strips.raycast = () => {};
+      strips.userData.dispose = true;
+      this.staticLayer.add(strips);
+    }
+    if (land.cliffs.length) {
+      const { mesh, line } = outlinedInstanced(cliffRock(), land.cliffs.length, OUTLINE.tile, landMaterial());
+      land.cliffs.forEach((c, i) => { mesh.setMatrixAt(i, c.m); line.setMatrixAt(i, c.m); mesh.setColorAt(i, c.color); });
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.raycast = () => {};
+      this.staticLayer.add(mesh, line);
+    }
+    // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
+    this.town.build({ cities: townCities, lava: lavaSpots });
     this.dirty = true;
+  }
+
+  /**
+   * Frisch aufgedeckte Felder: Wolke loest sich kurz auf (nur bei gleichem Betrachter und Spiel, mit Animationen).
+   * Freshly revealed tiles: the cloud dissolves briefly (only for the same viewer and game, with animations).
+   */
+  private revealFog(s: GameState, viewer: number, explored: (x: number, y: number) => boolean) {
+    const size = s.size, off = (size - 1) / 2;
+    const fog = new Set<number>();
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (!explored(x, y)) fog.add(y * size + x);
+    const prev = this.prevFog;
+    if (prev && this.animations && prev.viewer === viewer && prev.size === size && prev.seed === s.tiles) {
+      const list: { x: number; y: number; z: number; rot: number; variant: number }[] = [];
+      for (const k of prev.set) {
+        if (fog.has(k) || list.length >= 60) continue;
+        const x = k % size, y = Math.floor(k / size);
+        const v = (x * 7 + y * 13) % 3;
+        list.push({ x: x - off, y: CLOUD_Y + ((x + y) % 2) * 0.04, z: y - off, rot: (v * Math.PI) / 2, variant: list.length % 3 });
+      }
+      this.fogFx.reveal(list, performance.now());
+    } else if (!this.animations) this.fogFx.clear();
+    this.prevFog = { set: fog, viewer, size, seed: s.tiles };
   }
 
   /** Einheiten abgleichen / sync units */
@@ -521,6 +615,7 @@ export class Board {
         grp.add(base);
         model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
+        model.rotation.y = this.facing.get(u.id) ?? 0;
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
@@ -553,6 +648,7 @@ export class Board {
       const model = v.group.getObjectByName('model')!;
       model.position.y = (u.type === 'heli' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
+      this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
       const mat = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : done ? unitMaterial({ dim: true, transparent: true, opacity: DONE_OPACITY }) : unitMaterial();
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
@@ -560,8 +656,9 @@ export class Board {
       });
     }
     for (const [id, v] of this.units) {
-      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); }
     }
+    this.life.endSync(seen);
     this.updateShadows();
     this.dirty = true;
   }
@@ -639,36 +736,43 @@ export class Board {
     const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
     this.animating.add(unitId);
     const dur = Math.min(ANIM.maxTotal, ANIM.move * Math.max(1, path.length) * 0.6);
-    const last = pts[pts.length - 1], prev = pts[pts.length - 2];
+    const last = pts[pts.length - 1];
     const model = v.group.getObjectByName('model');
-    if (model) model.rotation.y = Math.atan2(last.x - prev.x, last.z - prev.z);
+    // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
+    const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
+    this.facing.set(unitId, face(pts.length - 1));
+    this.life.startMove(s, unitId, [from, ...path]);
     return this.addAnim(dur, (t) => {
       const f = t * (pts.length - 1);
       const i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
       const local = f - i;
       v.group.position.lerpVectors(pts[i], pts[i + 1], local);
-      v.group.position.y += Math.sin(local * Math.PI) * 0.08;
+      // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
+      this.life.moveFrame(unitId, t, f);
+      if (model) model.rotation.y = face(f);
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
   }
 
-  animateAttack(attackerId: number, targetId: number): Promise<void> {
-    const a = this.units.get(attackerId), d = this.units.get(targetId);
-    if (!a || !d) return Promise.resolve();
-    const start = a.group.position.clone();
-    const dir = d.group.position.clone().sub(start);
-    const model = a.group.getObjectByName('model');
-    if (model) model.rotation.y = Math.atan2(dir.x, dir.z);
-    dir.multiplyScalar(0.3);
-    const dStart = d.group.position.clone();
-    this.animating.add(attackerId); this.animating.add(targetId);
-    return this.addAnim(ANIM.attack, (t) => {
-      const k = Math.sin(Math.min(1, t) * Math.PI);
-      a.group.position.copy(start).addScaledVector(dir, k);
-      const shake = t > 0.4 ? Math.sin(t * 60) * 0.03 * (1 - t) : 0;
-      d.group.position.copy(dStart).add(new THREE.Vector3(shake, 0, -shake));
-      if (t >= 1) { a.group.position.copy(start); d.group.position.copy(dStart); this.animating.delete(attackerId); this.animating.delete(targetId); }
-    });
+  private fxHost: FxHost = {
+    unitObject: (id) => this.units.get(id)?.group,
+    anim: (dur, update) => this.addAnim(dur, update),
+    hold: (id, on) => { if (on) this.animating.add(id); else this.animating.delete(id); },
+    facing: (id) => this.facing.get(id) ?? 0,
+    setFacing: (id, a) => { this.facing.set(id, a); },
+  };
+
+  /**
+   * Angriff mit Waffeneffekten (siehe combat.ts); ohne Angaben nur Ausrichten und Ausfall.
+   * Attack with weapon effects (see combat.ts); without details only turning and a lunge.
+   */
+  animateAttack(attackerId: number, targetId: number, info?: AttackInfo): Promise<void> {
+    if (!this.animations) {
+      info?.onFire?.(); info?.onImpact?.();
+      if (info?.retaliate) { info.onReturnFire?.(); info.onReturnImpact?.(); }
+      return Promise.resolve();
+    }
+    return playAttack(this.fxHost, this.combat, attackerId, targetId, info);
   }
 
   /**
@@ -681,6 +785,7 @@ export class Board {
     const v = this.units.get(unitId);
     if (!v) return Promise.resolve();
     this.animating.add(unitId);
+    this.life.untrack(unitId);
     const start = v.group.position.clone();
     const model = v.group.getObjectByName('model');
     if (v.badge) v.badge.visible = false;
@@ -738,7 +843,7 @@ export class Board {
       }
       if (t >= 1) {
         this.unitLayer.remove(v.group); this.unitLayer.remove(fx);
-        this.units.delete(unitId); this.animating.delete(unitId);
+        this.units.delete(unitId); this.animating.delete(unitId); this.facing.delete(unitId);
       }
     });
   }
@@ -804,7 +909,9 @@ export class Board {
 
   /** Animationen fortschreiben; true, wenn neu gezeichnet werden muss / advance animations; true if redraw needed */
   tick(now: number): boolean {
-    if (!this.anims.length) { const d = this.dirty; this.dirty = false; return d; }
+    const fx = this.combat.update();
+    const lived = this.life.update(now, this.animations);
+    if (!this.anims.length) { const d = this.dirty || fx || lived; this.dirty = false; return d; }
     for (const a of [...this.anims]) {
       // rAF-Zeit kann vor dem Start liegen: auf 0..1 begrenzen / rAF time can precede the start: clamp to 0..1
       const t = Math.max(0, Math.min(1, (now - a.start) / a.dur));
@@ -815,9 +922,10 @@ export class Board {
     return true;
   }
 
-  get busy() { return this.anims.length > 0; }
+  get busy() { return this.anims.length > 0 || this.combat.active; }
 
   finishAnimations() {
+    this.combat.clear();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;
