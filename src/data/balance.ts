@@ -23,7 +23,7 @@ export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'tita
 export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
-  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn';
+  | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -78,10 +78,10 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   destroyer: { cost: 25, hp: 0, attack: 3, defense: 3, move: 3, range: 1, vision: 1, abilities: ['carry', 'dash'], tech: 'shipbuilding', ship: true },
   battleship: { cost: 75, hp: 0, attack: 3, defense: 2, move: 2, range: 3, vision: 1, abilities: ['carry', 'splash'], tech: 'navalArtillery', ship: true },
   // Ausserirdische: keine Forschung, dafuer teurer / aliens: no research, but more expensive
-  grey: { cost: 15, hp: 10, attack: 2.5, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'walker'], tech: null, ship: false, faction: 'zyrr' },
-  terraformer: { cost: 20, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: ['terraform', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  grey: { cost: 15, hp: 10, attack: 2.5, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+  terraformer: { cost: 20, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: ['terraform', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   skimmer: { cost: 40, hp: 12, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'zyrr' },
-  mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   zealot: { cost: 10, hp: 10, attack: 2, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
   torchbearer: { cost: 20, hp: 10, attack: 3.5, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn'], tech: 'forestry', ship: false, faction: 'vesper' },
   prophet: { cost: 30, hp: 10, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
@@ -93,7 +93,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   quadDrone: { cost: 35, hp: 10, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'nexus', compute: 2 },
   railgun: { cost: 45, hp: 10, attack: 4.5, defense: 0.5, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'nexus', compute: 3 },
   titan: { cost: 60, hp: 35, attack: 4.5, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'nexus', compute: 4 },
-  tripod: { cost: 55, hp: 25, attack: 4.5, defense: 2, move: 1, range: 2, vision: 2, abilities: ['deathRay', 'walker'], tech: null, ship: false, faction: 'zyrr' },
+  tripod: { cost: 55, hp: 25, attack: 4.5, defense: 2, move: 1, range: 2, vision: 2, abilities: ['deathRay', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
@@ -111,6 +111,14 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
   vesper: { units: CULT_UNITS, start: 'zealot', infantry: 'zealot', mg: 'zealot', tank: 'doomCrawler', research: true },
   nexus: { units: ROBOT_UNITS, start: 'android', infantry: 'android', mg: 'android', tank: 'titan', research: false },
 };
+
+/**
+ * Sold: laufende Kosten je Runde. Die ersten Einheiten (aelteste zuerst) sind frei, jede weitere kostet
+ * einen Anteil ihres Kaufpreises (aufgerundet); Panzer kosten pauschal.
+ * Upkeep: running cost per round. The first units (oldest first) are free, each further one costs
+ * a share of its price (rounded up); tanks cost a flat amount.
+ */
+export const UPKEEP = { freeUnits: 5, share: 0.2, flat: { tank: 10 } as Partial<Record<UnitTypeId, number>> };
 
 /** Kult: Rekrutieren neben Predigern statt in Staedten / cult: recruit next to preachers instead of in cities */
 export const CULT = { faction: 'vesper' as FactionId };
@@ -405,7 +413,7 @@ export const FACTIONS: Record<FactionId, FactionStats> = {
   meridon: { perk: 'boom', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
-  nexus: { perk: 'hivemind', discountUnit: 'android', discount: 0, startTech: null, home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
+  nexus: { perk: 'hivemind', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
   velkar: { perk: 'researchLead', discountUnit: 'pioneer', discount: 0.2, startTech: 'mountainTraining', home: { plain: 0.25, forest: 0.35, mountain: 0.35, water: 0.05, res: { ore: 0.2, supplies: 0.1 } } },
 };
 

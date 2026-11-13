@@ -3,13 +3,13 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
+  netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
 } from '../core';
 import {
-  ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
+  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
   type BuildingId, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -408,6 +408,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
   // Ausbildung / training
   const deficit = ctx.desiredArmy - ctx.my.length;
+  // Sold: neue Einheiten nur, wenn das Netto-Einkommen sie traegt / upkeep: new units only if net income carries them
+  const net = netIncome(s, f);
+  const upFor = (t: UnitTypeId) => (ctx.my.length >= UPKEEP.freeUnits ? UPKEEP.flat[t] ?? Math.ceil((UNITS[t].cost ?? 0) * UPKEEP.share) : 0);
   for (const c of ctx.myCities) {
     if (unitAt(s, c.x, c.y) || supportedUnits(s, c) >= unitLimit(s, c)) continue;
     const urgent = ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0);
@@ -417,6 +420,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     const mk = (t: UnitTypeId, factor: number) => {
       if (trainCheck(s, c, t) !== 'ok' && trainCheck(s, c, t) !== 'notEnoughStars') return;
       const cost = unitCost(s, f, t)!;
+      if (!urgent && net - upFor(t) < 0) return;
       let value: number;
       if (urgent) value = cost * 3.5;
       else if (deficit > 0) value = cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW;
@@ -443,6 +447,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
         if (!probe) return;
         const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y) === 'notEnoughStars')!;
         const cost = unitCost(s, f, t)!;
+        if (!urgent && net - upFor(t) < 0) return;
         let value = urgent ? cost * 3.5 : deficit > 0 ? cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW : cost * 0.25;
         value = value * (i === 0 ? 1 : 0.8) + cost * ctx.pf;
         buys.push({ cmd: { type: 'recruit', unit: u.id, unitType: t, x: p.x, y: p.y }, cost, value, save: !urgent });
