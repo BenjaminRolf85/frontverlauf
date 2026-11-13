@@ -44,9 +44,15 @@
     "start": "Einsatz starten",
     "addPlayer": "Fraktion hinzufügen",
     "removePlayer": "Entfernen",
-    "swapFaction": "Fraktion wechseln",
     "tiles": "{n} x {n} Felder",
-    "hotseatHint": "Mehrere Menschen spielen abwechselnd am selben Gerät."
+    "hotseatHint": "Mehrere Menschen spielen abwechselnd am selben Gerät.",
+    "slot": "Slot {n}",
+    "chooseFaction": "Fraktion wählen",
+    "chooseTitle": "Fraktion für Slot {n}",
+    "special": "Sonderfraktion",
+    "takenBy": "belegt von Slot {n}",
+    "swapHint": "Eine belegte Fraktion wird mit dem anderen Slot getauscht.",
+    "current": "gewählt"
   },
   "modes": {
     "points": "Punktemodus",
