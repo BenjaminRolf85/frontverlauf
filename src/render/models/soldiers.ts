@@ -449,7 +449,8 @@ export function sniper(f: FactionId, lite = false): Builder {
     }, { detail: d, armband: true, seed: 23 });
     // Ghillie-Tarnung auf Ruecken und Beinen / ghillie camo on back and legs
     const R = rng(77);
-    const tones = [mat.leaf, mat.leafDark, mat.grass, mix(mat.leaf, L.primary, 0.3)];
+    // dunkler als Gras, damit der Buckel sich abhebt / darker than grass so the hump stands out
+    const tones = [mat.leafDark, shade(mat.leaf, 0.78), mix(mat.leafDark, L.primary, 0.3), shade(mat.leafDark, 0.82)];
     const n = lite ? 8 : 38;
     b.group({ p: pelvis, r: body }, () => {
       // dicker Ghillie-Buckel / bulky ghillie hump

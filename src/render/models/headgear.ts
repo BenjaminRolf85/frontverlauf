@@ -173,9 +173,9 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
       break;
     case 'alvenia':
       // weisser Breitkrempenhut mit blauem Band / white wide-brim hat with blue band
-      b.cyl(0.15, 0.152, 0.012, ws, L.secondary, [0, 0.092, 0]);
-      b.add(geo.cyl(0.052, 0.06, 0.06, ws), L.secondary, { p: [0, 0.128, 0], s: [1, 1, 0.92] });
-      ring(b, 0.061, 0.018, ws, L.primary, [0, 0.107, 0], [1, 1, 0.93]);
+      b.cyl(0.15, 0.152, 0.012, ws, shade(L.primary, 0.85), [0, 0.092, 0]);
+      b.add(geo.cyl(0.052, 0.06, 0.06, ws), shade(L.primary, 0.85), { p: [0, 0.128, 0], s: [1, 1, 0.92] });
+      ring(b, 0.061, 0.018, ws, L.secondary, [0, 0.107, 0], [1, 1, 0.93]);
       addEmblem(b, 'alvenia', 0.009, 0.004, L.secondary, { p: [-0.035, 0.108, 0.048], r: [0, -0.6, 0] });
       break;
     case 'meridon':

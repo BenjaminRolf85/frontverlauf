@@ -210,6 +210,9 @@ function korvat(b: Builder, L: Look, lite: boolean) {
     cupola(b, L, -0.05, ty + 0.09, tz - 0.04, 0.036, lite);
     commander(b, f, -0.05, ty + 0.1, tz - 0.04, 7);
     b.cyl(0.025, 0.028, 0.016, 10, L.hullDark, [0.055, ty + 0.098, tz - 0.02]);
+    roofMg(b, L, 0.055, ty + 0.106, tz - 0.02, L.trim);
+    // Winkelspiegel vorn am Turm / periscopes at the turret front
+    for (const x of [-0.07, 0.07]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.095, tz + 0.05] });
     antenna(b, 0.075, ty + 0.09, tz - 0.1, 0.2, L.trim);
     sideEmblems(b, f, L, 0.112, ty + 0.05, tz - 0.02, 0.032);
   }
@@ -308,6 +311,7 @@ function alvenia(b: Builder, L: Look, lite: boolean) {
     b.add(geo.rbox(0.04, 0.026, 0.034, 0.008), L.hullDark, { p: [0.055, ty + 0.122, tz - 0.03] });
     b.box(0.03, 0.012, 0.004, mat.glass, [0.055, ty + 0.124, tz - 0.012]);
     cupola(b, L, -0.05, ty + 0.07, tz - 0.04, 0.034, lite);
+    roofMg(b, L, 0.05, ty + 0.07, tz - 0.03, L.trim);
     commander(b, f, -0.05, ty + 0.08, tz - 0.04, 7);
     antenna(b, -0.09, ty + 0.07, tz - 0.1, 0.2, white);
     b.add(geo.cbox(0.16, 0.03, 0.035, 0.008), L.hullDark, { p: [0, ty + 0.035, tz - 0.135] });
@@ -369,6 +373,7 @@ function meridon(b: Builder, L: Look, lite: boolean) {
   if (!lite) {
     b.cyl(0.003, 0.003, 0.06, 6, mat.dark, [0.03, ty + 0.03, tz + 0.12], [HALF_PI, 0, 0]);
     cupola(b, L, -0.035, ty + 0.055, tz - 0.02, 0.03, lite);
+    roofMg(b, L, 0.04, ty + 0.055, tz - 0.02, null);
     commander(b, f, -0.035, ty + 0.065, tz - 0.02, 7);
     antenna(b, 0.05, ty + 0.055, tz - 0.06, 0.2, orange);
     b.add(geo.profileZY([[0, 0], [-0.05, -0.012], [0, -0.024]], 0.004), orange, { p: [0.05, ty + 0.255, tz - 0.084] });

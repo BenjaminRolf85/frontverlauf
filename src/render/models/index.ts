@@ -19,7 +19,7 @@ import { memo, withDetail } from './kit';
 /** Detailfaktor fuer Einheiten (Rundungssegmente) / detail factor for units (radial segments) */
 const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   // Wesen mit vielen Kugeln/Rohren etwas weniger / creatures with many spheres/tubes slightly less
-  terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
+  jeep: 1.45, terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
 };
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
@@ -73,7 +73,7 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
 const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   infantry: 1.2, sniper: 1.2, pioneer: 1.2, mg: 1.15, medic: 1.25, spy: 1.25, artillery: 1.1, jeep: 1.2,
   zealot: 1.2, torchbearer: 1.2, prophet: 1.2, grey: 1.2, android: 1.2, doomBuggy: 1.2, rocketCart: 1.2, mech: 1.15,
-  terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
+  heli: 1.08, terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
