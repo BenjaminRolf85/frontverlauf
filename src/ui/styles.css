@@ -160,6 +160,10 @@ h1, h2, h3, .display {
   display: grid; place-items: center; border: var(--p-border-width-thick) solid var(--s-outline);
 }
 .unit-badge .icon { width: var(--c-layout-badge-icon); height: var(--c-layout-badge-icon); }
+/* 3D-Portraet: dunkler Grund, Rand in Fraktionsfarbe / 3D portrait: dark ground, faction-coloured rim */
+.unit-portrait { position: relative; overflow: hidden; background: var(--s-surface-inverse); border-color: var(--portrait-rim); color: var(--s-text-inverse); }
+.unit-portrait .portrait-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.unit-portrait:has(.portrait-canvas) .icon { display: none; }
 .stats { display: flex; flex-wrap: wrap; gap: var(--p-space-1) var(--p-space-3); font-size: var(--p-font-size-sm); }
 .stat { display: inline-flex; align-items: center; gap: var(--p-space-1); }
 .tag {
