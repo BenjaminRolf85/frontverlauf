@@ -16,6 +16,7 @@ import { WeatherFx } from './weather';
 import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
+import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
@@ -99,6 +100,10 @@ export class Board {
   private labelLayer = new THREE.Group();
   readonly weatherFx = new WeatherFx();
   readonly ambient = new AmbientFx();
+  /** Kampfeffekte (Muendungsfeuer, Geschosse, Einschlaege) / combat effects (muzzle flashes, projectiles, impacts) */
+  readonly combat = new CombatFx();
+  /** gemerkte Blickrichtung (rotation.y des Modells) je Einheit / remembered facing (model rotation.y) per unit */
+  private facing = new Map<number, number>();
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
   private anims: Anim[] = [];
@@ -109,7 +114,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -521,6 +526,7 @@ export class Board {
         grp.add(base);
         model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
+        model.rotation.y = this.facing.get(u.id) ?? 0;
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
@@ -560,7 +566,7 @@ export class Board {
       });
     }
     for (const [id, v] of this.units) {
-      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); }
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); }
     }
     this.updateShadows();
     this.dirty = true;
@@ -639,36 +645,41 @@ export class Board {
     const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
     this.animating.add(unitId);
     const dur = Math.min(ANIM.maxTotal, ANIM.move * Math.max(1, path.length) * 0.6);
-    const last = pts[pts.length - 1], prev = pts[pts.length - 2];
+    const last = pts[pts.length - 1];
     const model = v.group.getObjectByName('model');
-    if (model) model.rotation.y = Math.atan2(last.x - prev.x, last.z - prev.z);
+    // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
+    const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
+    this.facing.set(unitId, face(pts.length - 1));
     return this.addAnim(dur, (t) => {
       const f = t * (pts.length - 1);
       const i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
       const local = f - i;
       v.group.position.lerpVectors(pts[i], pts[i + 1], local);
       v.group.position.y += Math.sin(local * Math.PI) * 0.08;
+      if (model) model.rotation.y = face(f);
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
   }
 
-  animateAttack(attackerId: number, targetId: number): Promise<void> {
-    const a = this.units.get(attackerId), d = this.units.get(targetId);
-    if (!a || !d) return Promise.resolve();
-    const start = a.group.position.clone();
-    const dir = d.group.position.clone().sub(start);
-    const model = a.group.getObjectByName('model');
-    if (model) model.rotation.y = Math.atan2(dir.x, dir.z);
-    dir.multiplyScalar(0.3);
-    const dStart = d.group.position.clone();
-    this.animating.add(attackerId); this.animating.add(targetId);
-    return this.addAnim(ANIM.attack, (t) => {
-      const k = Math.sin(Math.min(1, t) * Math.PI);
-      a.group.position.copy(start).addScaledVector(dir, k);
-      const shake = t > 0.4 ? Math.sin(t * 60) * 0.03 * (1 - t) : 0;
-      d.group.position.copy(dStart).add(new THREE.Vector3(shake, 0, -shake));
-      if (t >= 1) { a.group.position.copy(start); d.group.position.copy(dStart); this.animating.delete(attackerId); this.animating.delete(targetId); }
-    });
+  private fxHost: FxHost = {
+    unitObject: (id) => this.units.get(id)?.group,
+    anim: (dur, update) => this.addAnim(dur, update),
+    hold: (id, on) => { if (on) this.animating.add(id); else this.animating.delete(id); },
+    facing: (id) => this.facing.get(id) ?? 0,
+    setFacing: (id, a) => { this.facing.set(id, a); },
+  };
+
+  /**
+   * Angriff mit Waffeneffekten (siehe combat.ts); ohne Angaben nur Ausrichten und Ausfall.
+   * Attack with weapon effects (see combat.ts); without details only turning and a lunge.
+   */
+  animateAttack(attackerId: number, targetId: number, info?: AttackInfo): Promise<void> {
+    if (!this.animations) {
+      info?.onFire?.(); info?.onImpact?.();
+      if (info?.retaliate) { info.onReturnFire?.(); info.onReturnImpact?.(); }
+      return Promise.resolve();
+    }
+    return playAttack(this.fxHost, this.combat, attackerId, targetId, info);
   }
 
   /**
@@ -738,7 +749,7 @@ export class Board {
       }
       if (t >= 1) {
         this.unitLayer.remove(v.group); this.unitLayer.remove(fx);
-        this.units.delete(unitId); this.animating.delete(unitId);
+        this.units.delete(unitId); this.animating.delete(unitId); this.facing.delete(unitId);
       }
     });
   }
@@ -804,7 +815,8 @@ export class Board {
 
   /** Animationen fortschreiben; true, wenn neu gezeichnet werden muss / advance animations; true if redraw needed */
   tick(now: number): boolean {
-    if (!this.anims.length) { const d = this.dirty; this.dirty = false; return d; }
+    const fx = this.combat.update();
+    if (!this.anims.length) { const d = this.dirty || fx; this.dirty = false; return d; }
     for (const a of [...this.anims]) {
       // rAF-Zeit kann vor dem Start liegen: auf 0..1 begrenzen / rAF time can precede the start: clamp to 0..1
       const t = Math.max(0, Math.min(1, (now - a.start) / a.dur));
@@ -815,9 +827,10 @@ export class Board {
     return true;
   }
 
-  get busy() { return this.anims.length > 0; }
+  get busy() { return this.anims.length > 0 || this.combat.active; }
 
   finishAnimations() {
+    this.combat.clear();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;
