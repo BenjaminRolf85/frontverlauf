@@ -616,7 +616,8 @@
     "noRetreatTile": "No free tile to retreat to.",
     "cannotRepair": "Only robots can repair themselves from wrecks.",
     "noWreck": "No wreck on or next to the tile.",
-    "noXenoGround": "Aliens only heal on terraformed xeno ground."
+    "noXenoGround": "Aliens only heal on terraformed xeno ground.",
+    "noRockets": "No rockets left. Reload in an own city with a depot."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2729,5 +2730,14 @@
   "repair": {
     "action": "Emergency repair from wreck +{n}",
     "desc": "Salvages a wreck on or next to the tile: 50 % more healing than normal, the unit does not fight this round. The wreck is used up."
+  },
+  "rockets": {
+    "action": "Rockets {n}/{max}",
+    "left": "Rockets {n}/{max}",
+    "desc": "Ranged attack two tiles away. Reload only in an own city with a depot (at turn start).",
+    "fx": "Rocket"
+  },
+  "cover": {
+    "ranged": "Cover against ranged attacks (troops and tanks)"
   }
 }

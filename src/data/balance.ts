@@ -294,6 +294,21 @@ export const HIT = {
   robotDamaged: { miss: 0.08, graze: 0.07, partial: 0.1, full: -0.25 } as Partial<Record<HitKind, number>>,
 };
 
+/** Mech-Raketen: Fernangriff aufs uebernaechste Feld, begrenzte Munition / mech rockets: ranged attack two tiles away, limited ammo */
+export const ROCKETS = {
+  units: ['mech'] as UnitTypeId[],
+  /** Abstand des Ziels / target distance */
+  range: 2,
+  /** Raketen pro Ladung / rockets per load */
+  max: 2,
+};
+
+/** Deckung gegen Fernangriffe: Panzer und Truppen in Wald und Stadt / cover against ranged attacks: tanks and troops in forests and cities */
+export const RANGED_COVER = {
+  /** Faktor auf die Verteidigung bei Angriffen aus 2+ Feldern / factor on defence against attacks from 2+ tiles */
+  factor: 1.4,
+};
+
 /** Notreparatur der Roboter aus Wracks / emergency repair of robots from wrecks */
 export const REPAIR = {
   /** Faktor auf die normale Heilung / factor on normal healing */

@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -439,6 +439,24 @@ export interface CombatPreview {
   retFull: number;
 }
 
+/** Deckungsfaktor gegen Fernangriffe (1 = keine) / cover factor against ranged attacks (1 = none) */
+export function rangedCover(s: GameState, att: Unit, def: Unit): number {
+  if (dist(att, def) < 2) return 1;
+  const cls = unitClass(def.type);
+  if (cls !== 'foot' && cls !== 'vehicle') return 1;
+  const t = tileAt(s, def.x, def.y)!;
+  return t.terrain === 'forest' || t.cityId !== null ? RANGED_COVER.factor : 1;
+}
+
+/** Verbleibende Raketen / rockets left */
+export const rocketsLeft = (u: Unit) => (ROCKETS.units.includes(u.type) ? u.rockets ?? ROCKETS.max : 0);
+
+/** Ziele fuer Raketen: sichtbare Feinde genau zwei Felder entfernt / rocket targets: visible enemies exactly two tiles away */
+export function rocketTargets(s: GameState, u: Unit): Unit[] {
+  if (rocketsLeft(u) <= 0 || !canAttackNow(u) || submerged(s, u)) return [];
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === ROCKETS.range && canSeeUnit(s, u.owner, o));
+}
+
 /** Trefferglueck aktiv? / hit luck active? */
 export const hitChanceOn = (s: GameState) => s.config.hitChance !== false;
 
@@ -531,7 +549,9 @@ export function rollHit(odds: Record<HitKind, number>, r: number): HitKind {
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
   const d = UNITS[def.type];
   // Todesstrahl ignoriert Deckung / death ray ignores cover
-  const bonus = (has(att, 'deathRay') || has(att, 'burn')) ? DEFENSE_BONUS.open : defenseBonus(s, def, att);
+  const ignoresCover = has(att, 'deathRay') || has(att, 'burn');
+  // Deckung gegen Fernangriffe: Panzer und Truppen in Wald oder Stadt / cover against ranged attacks: tanks and troops in forest or city
+  const bonus = ignoresCover ? DEFENSE_BONUS.open : defenseBonus(s, def, att) * rangedCover(s, att, def);
   const defense = effectiveDefense(s, def);
   const atk = effectiveAttack(s, att);
   const attackForce = atk * (att.hp / att.maxHp);

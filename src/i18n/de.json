@@ -616,7 +616,8 @@
     "noRetreatTile": "Kein freies Feld für den Rückzug.",
     "cannotRepair": "Nur Roboter können sich aus Wracks reparieren.",
     "noWreck": "Kein Wrack auf oder neben dem Feld.",
-    "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden."
+    "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden.",
+    "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -2729,5 +2730,14 @@
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
     "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: 50 % mehr Heilung als normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
+  },
+  "rockets": {
+    "action": "Raketen {n}/{max}",
+    "left": "Raketen {n}/{max}",
+    "desc": "Fernangriff auf das übernächste Feld. Nachladen nur in einer eigenen Stadt mit Depot (zu Rundenbeginn).",
+    "fx": "Rakete"
+  },
+  "cover": {
+    "ranged": "Deckung gegen Fernangriffe (Truppen und Panzer)"
   }
 }

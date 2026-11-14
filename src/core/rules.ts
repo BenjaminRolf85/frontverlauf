@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, RETREAT, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, PERKS2, RETREAT, ROCKETS, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -18,7 +18,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -358,6 +358,11 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     u.startX = u.x; u.startY = u.y; u.revealed = false;
     u.slowed = !!u.slowedNext; u.slowedNext = false;
     if (u.fuel !== null && isRefuelSpot(s, f, u.x, u.y)) u.fuel = FUEL.tank;
+    // Raketen nachladen nur in eigener Stadt mit Depot / reload rockets only in an own city with a depot
+    if (ROCKETS.units.includes(u.type) && (u.rockets ?? ROCKETS.max) < ROCKETS.max) {
+      const c = s.cities.find((cc) => cc.x === u.x && cc.y === u.y);
+      if (c && c.owner === f && (c.upgrades ?? []).includes('depot')) u.rockets = ROCKETS.max;
+    }
   }
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
   afterAction(s, f, ev);
@@ -693,9 +698,17 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
   return { ok: true, events: ev };
 }
 
-function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): CommandResult {
+function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket = false): CommandResult {
   if (target.owner !== u.owner && !isHostile(s, u.owner, target.owner)) return fail('peace');
-  if (!attackTargets(s, u).some((o) => o.id === target.id)) {
+  if (rocket) {
+    // Mech-Raketen: genau zwei Felder, Munition noetig / mech rockets: exactly two tiles, ammo needed
+    if (rocketsLeft(u) <= 0) return fail('noRockets');
+    if (!rocketTargets(s, u).some((o) => o.id === target.id)) {
+      if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
+      return fail('outOfRange');
+    }
+    u.rockets = rocketsLeft(u) - 1;
+  } else if (!attackTargets(s, u).some((o) => o.id === target.id)) {
     if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
     return fail('outOfRange');
   }
@@ -723,7 +736,7 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): Command
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
   addMark(s, target.x, target.y, markKind);
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch'); }
-  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
   let killed = false;
@@ -781,6 +794,14 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const target = unitById(s, cmd.target);
       if (!target || target.owner === f) return fail('invalidTarget');
       res = doAttack(s, u, target, ev);
+      break;
+    }
+    case 'rocket': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const target = unitById(s, cmd.target);
+      if (!target || target.owner === f) return fail('invalidTarget');
+      res = doAttack(s, u, target, ev, true);
       break;
     }
     case 'retreat': {

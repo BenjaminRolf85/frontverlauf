@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -100,6 +100,15 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
         const rc: Command = { type: 'retreat', unit: u.id, target: t.id };
         if (rv > bv && ok(failed, rc)) { bv = rv; best = rc; }
       }
+    }
+  }
+  // Mech-Raketen: nur lohnende Ziele, Munition ist knapp / mech rockets: only worthwhile targets, ammo is scarce
+  for (const u of ctx.my) {
+    if (lazyUnit(ctx, u)) continue;
+    for (const t of rocketTargets(s, u)) {
+      const v = attackValue(ctx, u, t) - 2;
+      const c: Command = { type: 'rocket', unit: u.id, target: t.id };
+      if (v > bv && ok(failed, c)) { bv = v; best = c; }
     }
   }
   return best && bv >= prof.attackMin ? best : null;
