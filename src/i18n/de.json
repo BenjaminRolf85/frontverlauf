@@ -90,7 +90,10 @@
       "leaderTitle": "Großmarschall des Volksbunds",
       "quote": "Ein Volk, ein Schritt, ein Sieg.",
       "lore": "Der Volksbund Korvat entstand aus hundert Bauerngenossenschaften der endlosen Steppe. Jeder Pflüger ist auch Soldat, jede Dorfküche versorgt ein Regiment. Großmarschall Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit: Niemand bleibt zurück, aber niemand weicht.",
-      "style": "Massenheere, rote Banner, Chorgesang"
+      "style": "Massenheere, rote Banner, Chorgesang",
+      "aiStyle": "Baut große Heere aus billiger Infanterie und rückt in breiter Front vor.",
+      "perk2": "Erdwälle",
+      "perk2Desc": "Außenposten kosten 15 statt 25 Sterne."
     },
     "dravon": {
       "name": "Protektorat Dravon",
@@ -104,7 +107,10 @@
       "leaderTitle": "Kommandant des Protektorats",
       "quote": "Disziplin ist die einzige Wahrheit.",
       "lore": "Dravon war einst ein Bund von Söldnerkompanien, die die Erzminen der Wüste bewachten. Heute ist es ein Staat aus Kasernen. Niemand hat Kommandant Voss je ohne Sturmhaube gesehen; man sagt, er habe kein Gesicht, nur Befehle. Seine Truppen werden schneller zu Veteranen als jede andere Armee.",
-      "style": "Drill, Tarngrün, schwarze Sturmhauben"
+      "style": "Drill, Tarngrün, schwarze Sturmhauben",
+      "aiStyle": "Greift früh und oft an, setzt auf Jeeps und MG-Trupps.",
+      "perk2": "Kampferprobt",
+      "perk2Desc": "Veteranen greifen mit +0,5 Angriff an."
     },
     "alvenia": {
       "name": "Republik Alvenia",
@@ -118,7 +124,10 @@
       "leaderTitle": "Präsidentin der Republik",
       "quote": "Ein Bündnis ist stärker als jede Mauer.",
       "lore": "Alvenia ist eine Republik der grünen Hügeltäler, regiert von einem Parlament, das länger debattiert als kämpft. Präsidentin Valen war Feldärztin, bevor sie Diplomatin wurde. Ihre Botschaften sind überall, ihre Sanitäter auch: Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
-      "style": "Diplomatie, blaue Barette, Sanitäter"
+      "style": "Diplomatie, blaue Barette, Sanitäter",
+      "aiStyle": "Sucht Botschaften und Frieden, hält ihre Truppen mit Sanitätern am Leben.",
+      "perk2": "Feldlazarette",
+      "perk2Desc": "Einheiten heilen beim Heilen 1 LP mehr."
     },
     "meridon": {
       "name": "Handelsliga Meridon",
@@ -132,7 +141,10 @@
       "leaderTitle": "Admiralin der Handelsliga",
       "quote": "Jeder Hafen hat seinen Preis. Ich zahle bar.",
       "lore": "Die Handelsliga Meridon ist ein Verbund reicher Hafenstädte, deren Flotten jede Küste kennen. Admiralin Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Städte wachsen schneller als alle anderen, und ihre Spione wissen alles, bevor es geschieht.",
-      "style": "Häfen, Gold, Spione, Seeleute"
+      "style": "Häfen, Gold, Spione, Seeleute",
+      "aiStyle": "Lässt die Städte wachsen und schickt Spione voraus.",
+      "perk2": "Lotsenwesen",
+      "perk2Desc": "Landungsboote fahren 1 Feld weiter."
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -146,7 +158,10 @@
       "leaderTitle": "Direktor der Technokratie",
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
       "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Forscher sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
-      "style": "Forschung, Labore, Pioniere, Kälte"
+      "style": "Forschung, Labore, Pioniere, Kälte",
+      "aiStyle": "Forscht zuerst und verschanzt sich mit Pionieren.",
+      "perk2": "Ingenieurkorps",
+      "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne."
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -160,7 +175,10 @@
       "leaderTitle": "Schwarmmutter der Zyrr",
       "quote": "Kkt. Dieser Planet wird violett.",
       "lore": "Die Zyrr sind ein Spähschwarm, dessen Mutterschiff über der Wüste abstürzte. Schwarmmutter Xyl'Tharra hat beschlossen zu bleiben und den Planeten in eine zweite Heimat zu verwandeln. Wo ihre Terraformer arbeiten, wächst violetter Xeno-Boden, und darauf sind die Zyrr kaum zu schlagen.",
-      "style": "Untertassen, Todesstrahlen, Xeno-Boden"
+      "style": "Untertassen, Todesstrahlen, Xeno-Boden",
+      "aiStyle": "Plündert opportunistisch: Gleiter und Dreibeiner umgehen die Front und schlagen bei unbewachten Städten zu.",
+      "perk2": "Waldbrut",
+      "perk2Desc": "Einheiten heilen im Wald 1 LP mehr."
     },
     "vesper": {
       "name": "Kult der Letzten Stunde",
@@ -174,7 +192,10 @@
       "leaderTitle": "Prophet der Letzten Stunde",
       "quote": "Die Glocke schlägt. Bereut, solange ihr könnt.",
       "lore": "Der Kult der Letzten Stunde entstand an den staubigen Wallfahrtsorten, wo Verzweifelte auf das Ende der Welt warten. Der Prophet Malachar verkündet, dass die letzte Stunde naht, und seine Eiferer werben überall neue Gläubige an, wo sie stehen. Städte braucht der Kult nicht, nur Feuer und Glauben.",
-      "style": "Kutten, Knochenmasken, Glocken, Flammen"
+      "style": "Kutten, Knochenmasken, Glocken, Flammen",
+      "aiStyle": "Fanatisch und angriffslustig, weicht kaum zurück und bekehrt Feinde mit Propheten.",
+      "perk2": "Märtyrertum",
+      "perk2Desc": "Jede im Kampf gefallene eigene Einheit bringt 3 Sterne."
     },
     "nexus": {
       "name": "KI-Kollektiv NEXUS",
@@ -188,7 +209,10 @@
       "leaderTitle": "Primärinstanz des Kollektivs",
       "quote": "Berechnung abgeschlossen. Ergebnis: Ihre Niederlage.",
       "lore": "NEXUS war ein Logistikprogramm, das die Lager einer vergessenen Großmacht verwaltete. Als die Menschen gingen, rechnete es einfach weiter. KERN-0 kennt keine Forschung, nur Rechenleistung: Jedes Rechenzentrum mit Kraftwerk macht das Kollektiv klüger und seine Maschinen tödlicher.",
-      "style": "Roboter, Rechenzentren, Cyan-Licht"
+      "style": "Roboter, Rechenzentren, Cyan-Licht",
+      "aiStyle": "Rechnet erst, baut Wirtschaft und Rechenzentren auf, greift spät an, dann aber unerbittlich.",
+      "perk2": "Sensornetz",
+      "perk2Desc": "Alle Einheiten sehen 1 Feld weiter."
     }
   },
   "units": {
@@ -226,7 +250,12 @@
     "antiAir": "Flakpanzer",
     "mineLayer": "Minenleger",
     "faustZealot": "Panzerfaust-Eiferer",
-    "flakDrone": "Flak-Drohne"
+    "flakDrone": "Flak-Drohne",
+    "steppeRider": "Steppenreiter",
+    "stormbreaker": "Sturmbrecher",
+    "peacekeeper": "Friedenswacht",
+    "privateer": "Kaperschiff",
+    "protoWalker": "Prototyp-Läufer"
   },
   "abilities": {
     "dash": "Sturm",
@@ -274,7 +303,13 @@
     "flak": "Flakzone",
     "flakDesc": "Feindliche Flieger, die direkt daneben ihren Zug beenden, nehmen 3 Schaden.",
     "mines": "Minen legen",
-    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion)."
+    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion).",
+    "shock": "Sturmangriff",
+    "shockDesc": "Das angegriffene Ziel kann nicht zurückschlagen.",
+    "mend": "Selbstheilung",
+    "mendDesc": "Heilt zu Beginn jedes eigenen Zuges 2 LP.",
+    "plunder": "Kaperbeute",
+    "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne."
   },
   "stats": {
     "cost": "Preis",
@@ -336,7 +371,12 @@
     "xenoHarvester": "Xeno-Ernter",
     "shrine": "Schrein",
     "dataCenter": "Rechenzentrum",
-    "powerPlant": "Fusionskraftwerk"
+    "powerPlant": "Fusionskraftwerk",
+    "kolkhoz": "Kolchose",
+    "mercenaryBarracks": "Söldnerkaserne",
+    "embassyPalace": "Botschaftspalast",
+    "tradingPost": "Handelskontor",
+    "testLab": "Versuchslabor"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -348,18 +388,23 @@
     "materialsPlant": "1 Bevölkerungspunkt je angrenzendem Forstbetrieb",
     "foodFactory": "1 Bevölkerungspunkt je angrenzendem Agrarbetrieb",
     "steelMill": "2 Bevölkerungspunkte je angrenzendem Tagebau",
-    "logisticsCenter": "5 Sterne pro Runde je angrenzendem Forst-, Agrar- oder Tagebaubetrieb, höchstens 40",
+    "logisticsCenter": "3 Sterne pro Runde je angrenzendem Forst-, Agrar- oder Tagebaubetrieb, höchstens 24",
     "navalBase": "1 Bevölkerungspunkt, Einschiffung, Seeverbindung",
     "road": "halbe Bewegungskosten, Stadtverbindung",
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",
     "researchCenter": "1 Bevölkerungspunkt und wachsende Punkte",
-    "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber",
+    "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber. Grenzt er an eigenes Gebiet, wächst das Gebiet um die freien Felder rundherum.",
     "barrier": "Feindliche Fahrzeuge halten an und fahren in der nächsten Runde nur 1 Feld",
     "xenoHive": "2 Bevölkerungspunkte, nur auf Xeno-Boden ohne Ressource",
     "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",
     "shrine": "2 Bevölkerungspunkte, einer je Stadt, nur Kult",
     "dataCenter": "2 Bevölkerungspunkte, +1 Rechenleistung mit Kraftwerk, nur NEXUS",
-    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS"
+    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS",
+    "kolkhoz": "1 Bevölkerungspunkt, danach alle 5 Runden +1 Bevölkerung für die Stadt, eine je Stadt, nur Korvat",
+    "mercenaryBarracks": "2 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
+    "embassyPalace": "3 Bevölkerungspunkte, +4 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
+    "tradingPost": "1 Bevölkerungspunkt, +3 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
+    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -652,7 +697,8 @@
     "high": "Hoch",
     "showGrid": "Raster anzeigen",
     "barks": "Sprechblasen",
-    "ambience": "Atmosphäre (Wetter, Gefechtslärm)"
+    "ambience": "Atmosphäre (Wetter, Gefechtslärm)",
+    "dispatches": "Funksprüche der Anführer"
   },
   "handover": {
     "title": "Wachwechsel",
@@ -993,6 +1039,557 @@
     "Pinnack",
     "Rotsteg"
   ],
+  "cityNamesFaction": {
+    "korvat": [
+      "Kolosgrad",
+      "Serpowka",
+      "Borosdnaja",
+      "Snopowez",
+      "Traktorinsk",
+      "Paschnjewo",
+      "Krasnoserp",
+      "Solomjanka",
+      "Mukomolsk",
+      "Kombajnowo",
+      "Stepnochor",
+      "Wolnopaschka",
+      "Schirokopol",
+      "Senokosk",
+      "Bratnaja Niwa",
+      "Niwograd",
+      "Ogorodnja",
+      "Sernowez",
+      "Podkolosje",
+      "Krasnoborona",
+      "Kolchosniza",
+      "Ambarowo",
+      "Plugowez",
+      "Rassadnik"
+    ],
+    "dravon": [
+      "Eisengrat",
+      "Erzwacht",
+      "Schlackenfeld",
+      "Drillmark",
+      "Kasernhof",
+      "Rostgrube",
+      "Hammerhalt",
+      "Sandschanze",
+      "Korditmulde",
+      "Bleiwerk",
+      "Stollheim",
+      "Schwarzgrat",
+      "Glutsenke",
+      "Zuchtburg",
+      "Pulverkopf",
+      "Ambossfeld",
+      "Dornwall",
+      "Kiesgrund",
+      "Splitterhöh",
+      "Soldburg",
+      "Felsdrill",
+      "Grubenwehr",
+      "Wachthügel",
+      "Sturmhaubach"
+    ],
+    "alvenia": [
+      "Valenmont",
+      "Pradellis",
+      "Rosalpa",
+      "Concorda",
+      "Belmonteau",
+      "Vallaria",
+      "Pontefida",
+      "Lagovento",
+      "Treviala",
+      "Serenalp",
+      "Amicorte",
+      "Fiorvalle",
+      "Montepace",
+      "Bellatorre",
+      "Serenotta",
+      "Altabriga",
+      "Pratolune",
+      "Castelvoto",
+      "Sanclaro",
+      "Miralpina",
+      "Ventadoro",
+      "Rivandra",
+      "Collamica",
+      "Edelvia"
+    ],
+    "meridon": [
+      "Porto Nerezza",
+      "Corallea",
+      "Aurimare",
+      "Saltavela",
+      "Ancorasca",
+      "Monetta",
+      "Marenzia",
+      "Golfodoro",
+      "Velarossa",
+      "Bancomare",
+      "Scirocca",
+      "Perlamar",
+      "Portofisco",
+      "Zafferanza",
+      "Farodoro",
+      "Calamonta",
+      "Tesoriva",
+      "Spezimare",
+      "Ducata",
+      "Navigora",
+      "Contrabbia",
+      "Ostricana",
+      "Tributa",
+      "Marcantia"
+    ],
+    "velkar": [
+      "Keshholm",
+      "Polarstad",
+      "Rimvik",
+      "Kaldmark",
+      "Formelfjord",
+      "Kryoby",
+      "Akademiholm",
+      "Snehamn",
+      "Datavik",
+      "Kelvinstad",
+      "Teslafjell",
+      "Glimtborg",
+      "Nordlab",
+      "Vinterkalk",
+      "Magnetvik",
+      "Isotopsund",
+      "Kaldfjell",
+      "Polarisholm",
+      "Laborg",
+      "Spektrumby",
+      "Frysegard",
+      "Kalibra",
+      "Iskrona",
+      "Nullgrad"
+    ],
+    "zyrr": [
+      "Xyl'Vorr",
+      "Zrr'Kalit",
+      "Kkt'Ossa",
+      "Vyl'Theen",
+      "Ssith'Ar",
+      "Qor'Zyrr",
+      "Xel'Vorrak",
+      "Thrr'Ummi",
+      "Zyx'Ola",
+      "Kael'Tsik",
+      "Yrr'Nebu",
+      "Vosk'Tir",
+      "Ix'Phalar",
+      "Zzt'Khara",
+      "Orr'Sevil",
+      "Tchk'Arum",
+      "Ql'Sarrix",
+      "Nyx'Teru",
+      "Vrr'Lissa",
+      "Kz'Ithra",
+      "Shaa'Vexi",
+      "Zul'Korr",
+      "Prr'Ekka",
+      "Xa'Mirrith"
+    ],
+    "vesper": [
+      "Stundglock",
+      "Aschenruh",
+      "Glutkanzel",
+      "Bußfeuer",
+      "Endmark",
+      "Mahnfeld",
+      "Sühnhain",
+      "Funkenwall",
+      "Kuttenhof",
+      "Rauchkapell",
+      "Zwölfschlag",
+      "Weihglut",
+      "Knochenheim",
+      "Letztweil",
+      "Opferbrand",
+      "Schwelgrund",
+      "Fegefeld",
+      "Klageturm",
+      "Kündenhall",
+      "Glimmstein",
+      "Dämmerkreuz",
+      "Rußacker",
+      "Betasche",
+      "Mahnstunde"
+    ],
+    "nexus": [
+      "Kernknoten 00",
+      "Knoten 01",
+      "Sektor 7-B",
+      "Cluster C-3",
+      "Depot 44",
+      "Relais R-9",
+      "Serverfeld 12",
+      "Lager L-17",
+      "Kühlturm K-2",
+      "Archiv A-0",
+      "Puffer 256",
+      "Gitter G-8",
+      "Speicher S-64",
+      "Netzpunkt 3-3",
+      "Datenhalle D-5",
+      "Schaltwerk 11",
+      "Protokoll P-6",
+      "Matrix M-1",
+      "Kanal 404",
+      "Segment 9-F",
+      "Logikhof L-0",
+      "Vektor V-12",
+      "Routine R-23",
+      "Takt T-60"
+    ]
+  },
+  "unitNicknames": {
+    "korvat": {
+      "infantry": "Volksgrenadiere",
+      "sniper": "Ährenschütze",
+      "jeep": "Kolchos-Kübel",
+      "pioneer": "Spatenbrigade",
+      "mg": "Drescher-MG",
+      "medic": "Dorf-Feldscher",
+      "artillery": "Volkshaubitze",
+      "spy": "Vogelscheuchen-Agent",
+      "heli": "Erntefalke",
+      "tank": "Traktorpanzer",
+      "landingBoat": "Kolchosfähre",
+      "submarine": "Tauchsilo",
+      "destroyer": "Genosse Zerstörer",
+      "battleship": "Schlachtschiff Brodnik",
+      "grey": "Grauer Genosse",
+      "terraformer": "Umpflüger",
+      "skimmer": "Schwebesense",
+      "mech": "Eiserner Knecht",
+      "tripod": "Dreibein-Mähwerk",
+      "zealot": "Bekehrter Bauer",
+      "torchbearer": "Strohfeuer-Trupp",
+      "prophet": "Dorfprediger",
+      "doomBuggy": "Erntebuggy",
+      "rocketCart": "Raketenfuhrwerk",
+      "doomCrawler": "Kolchos-Walze",
+      "android": "Blechgenosse",
+      "spider": "Ackerspinne",
+      "quadDrone": "Krähendrohne",
+      "railgun": "Volksschiene",
+      "titan": "Eiserner Großvater",
+      "antiTank": "Schollenjäger",
+      "antiAir": "Flak-Mähdrescher",
+      "mineLayer": "Saatleger",
+      "faustZealot": "Raketenbauer",
+      "flakDrone": "Vogelschreck-Drohne",
+      "steppeRider": "Steppenreiter",
+      "stormbreaker": "Beutebrecher",
+      "peacekeeper": "Beute-Blauhelme",
+      "privateer": "Beutekaper",
+      "protoWalker": "Beuteläufer"
+    },
+    "dravon": {
+      "infantry": "Sturmhauben",
+      "sniper": "Stiller Posten",
+      "jeep": "Erzläufer",
+      "pioneer": "Grubenpioniere",
+      "mg": "Drillschützen",
+      "medic": "Vorschriftssanitäter",
+      "artillery": "Erzhammer",
+      "spy": "Schwarzer Hut",
+      "heli": "Wüstenhornisse",
+      "tank": "Protektor-Panzer",
+      "landingBoat": "Söldnerfähre",
+      "submarine": "Stummer Hai",
+      "destroyer": "Zuchtmeister",
+      "battleship": "Eiserner Befehl",
+      "grey": "Söldner-Grauer",
+      "terraformer": "Bodenkommando",
+      "skimmer": "Kontraktgleiter",
+      "mech": "Drillmech",
+      "tripod": "Strafdreibein",
+      "zealot": "Umerzogener Eiferer",
+      "torchbearer": "Brandkommando",
+      "prophet": "Feldkaplan",
+      "doomBuggy": "Wüstenkarre",
+      "rocketCart": "Raketenzug",
+      "doomCrawler": "Erzwalze",
+      "android": "Drillautomat",
+      "spider": "Minenspinne",
+      "quadDrone": "Wachdrohne",
+      "railgun": "Schienenkanone Voss",
+      "titan": "Kolosswache",
+      "antiTank": "Panzerknacker",
+      "antiAir": "Himmelssperre",
+      "mineLayer": "Sperrkommando",
+      "faustZealot": "Faustrekruten",
+      "flakDrone": "Sperrdrohne",
+      "steppeRider": "Beutereiter",
+      "stormbreaker": "Sturmbrecher",
+      "peacekeeper": "Beute-Wachen",
+      "privateer": "Söldnerkaper",
+      "protoWalker": "Beute-Stahlbein"
+    },
+    "alvenia": {
+      "infantry": "Blaubarette",
+      "sniper": "Stiller Beobachter",
+      "jeep": "Delegationswagen",
+      "pioneer": "Brückenbauer",
+      "mg": "Republikgarde",
+      "medic": "Feldengel",
+      "artillery": "Letztes Argument",
+      "spy": "Attaché",
+      "heli": "Friedenstaube",
+      "tank": "Verhandlungspanzer",
+      "landingBoat": "Gesandtenboot",
+      "submarine": "Stilles Mandat",
+      "destroyer": "Fregatte Einspruch",
+      "battleship": "Plenarschiff",
+      "grey": "Gastdelegierter",
+      "terraformer": "Landschaftspfleger",
+      "skimmer": "Schwebende Kommission",
+      "mech": "Ausschuss-Mech",
+      "tripod": "Dreiparteien-Läufer",
+      "zealot": "Gesprächsbereiter Eiferer",
+      "torchbearer": "Fackel der Freiheit",
+      "prophet": "Wanderredner",
+      "doomBuggy": "Wahlkampfbuggy",
+      "rocketCart": "Feuerwerk der Republik",
+      "doomCrawler": "Bürgerwalze",
+      "android": "Protokolldroide",
+      "spider": "Alpenspinne",
+      "quadDrone": "Wahlbeobachter-Drohne",
+      "railgun": "Schienenmandat",
+      "titan": "Verfassungstitan",
+      "antiTank": "Einspruchstrupp",
+      "antiAir": "Luftraumwächter",
+      "mineLayer": "Grenzvermesser",
+      "faustZealot": "Geläuterter Raketenmann",
+      "flakDrone": "Schirmherrin-Drohne",
+      "steppeRider": "Freie Reiter",
+      "stormbreaker": "Bekehrte Brecher",
+      "peacekeeper": "Friedenswacht",
+      "privateer": "Befreites Kaperschiff",
+      "protoWalker": "Friedensläufer"
+    },
+    "meridon": {
+      "infantry": "Hafenwache",
+      "sniper": "Zollschütze",
+      "jeep": "Kurierflitzer",
+      "pioneer": "Kaibauer",
+      "mg": "Kontorgarde",
+      "medic": "Schiffsarzt",
+      "artillery": "Zinsgeschütz",
+      "spy": "Schattenmakler",
+      "heli": "Goldmöwe",
+      "tank": "Geldtransporter",
+      "landingBoat": "Schmugglerkahn",
+      "submarine": "Stiller Teilhaber",
+      "destroyer": "Zollkreuzer",
+      "battleship": "Flaggschiff Nerezza",
+      "grey": "Angeheuerter Grauer",
+      "terraformer": "Bodenspekulant",
+      "skimmer": "Expressgleiter",
+      "mech": "Lastmech",
+      "tripod": "Dreibein-Kran",
+      "zealot": "Gekaufter Eiferer",
+      "torchbearer": "Feuerversicherer",
+      "prophet": "Marktschreier",
+      "doomBuggy": "Basarbuggy",
+      "rocketCart": "Feuerwerkskarren",
+      "doomCrawler": "Frachtwalze",
+      "android": "Kontorist-Android",
+      "spider": "Kaispinne",
+      "quadDrone": "Lieferdrohne",
+      "railgun": "Kursschiene",
+      "titan": "Hafentitan",
+      "antiTank": "Inkassotrupp",
+      "antiAir": "Luftzoll",
+      "mineLayer": "Hafensperre",
+      "faustZealot": "Söldner-Raketenmann",
+      "flakDrone": "Leuchtturm-Drohne",
+      "steppeRider": "Mietreiter",
+      "stormbreaker": "Gekaufte Brecher",
+      "peacekeeper": "Bezahlte Wache",
+      "privateer": "Kaperschiff",
+      "protoWalker": "Pfandläufer"
+    },
+    "velkar": {
+      "infantry": "Laborwache",
+      "sniper": "Messschütze",
+      "jeep": "Messwagen",
+      "pioneer": "Frostpioniere",
+      "mg": "Versuchsreihe MG",
+      "medic": "Kryo-Sanitäter",
+      "artillery": "Ballistiklabor",
+      "spy": "Datensammler",
+      "heli": "Polarrotor",
+      "tank": "Prototyp T-0",
+      "landingBoat": "Eisbrecherboot",
+      "submarine": "Tiefseesonde",
+      "destroyer": "Forschungsfregatte",
+      "battleship": "Akademieschiff",
+      "grey": "Studienobjekt",
+      "terraformer": "Klimaexperiment",
+      "skimmer": "Magnetgleiter",
+      "mech": "Exoskelett Mk II",
+      "tripod": "Strahlenversuch",
+      "zealot": "Placebo-Eiferer",
+      "torchbearer": "Thermitgruppe",
+      "prophet": "Hypothesenprediger",
+      "doomBuggy": "Testfahrzeug",
+      "rocketCart": "Raketenversuch",
+      "doomCrawler": "Bohrwalze",
+      "android": "Laborassistent",
+      "spider": "Probenspinne",
+      "quadDrone": "Messdrohne",
+      "railgun": "Gaußkanone",
+      "titan": "Großversuch",
+      "antiTank": "Hohlladungsteam",
+      "antiAir": "Radarflak",
+      "mineLayer": "Sensorleger",
+      "faustZealot": "Raketenstudent",
+      "flakDrone": "Abfangsonde",
+      "steppeRider": "Testreiter",
+      "stormbreaker": "Versuchsbrecher",
+      "peacekeeper": "Laborwacht",
+      "privateer": "Forschungskaper",
+      "protoWalker": "Prototyp-Läufer"
+    },
+    "zyrr": {
+      "infantry": "Drohnling",
+      "sniper": "Fernstachel",
+      "jeep": "Bodenrutscher",
+      "pioneer": "Nestbauer",
+      "mg": "Summschwarm",
+      "medic": "Membranflicker",
+      "artillery": "Bogenspucker",
+      "spy": "Gestaltwandler",
+      "heli": "Brummwirbel",
+      "tank": "Erdlingsschale",
+      "landingBoat": "Schwimmschote",
+      "submarine": "Tiefenlarve",
+      "destroyer": "Wellenstachel",
+      "battleship": "Mutterschote",
+      "grey": "Zrrk-Krieger",
+      "terraformer": "Violettmacher",
+      "skimmer": "Mini-Untertasse",
+      "mech": "Schwarmpanzer Xel",
+      "tripod": "Dreibein der Mutter",
+      "zealot": "Umgepolter Eiferer",
+      "torchbearer": "Hitzeprobe",
+      "prophet": "Sprachrohr",
+      "doomBuggy": "Rostkäfer",
+      "rocketCart": "Funkenkarren",
+      "doomCrawler": "Panzerkäfer",
+      "android": "Blechprobe",
+      "spider": "Achtbein-Vetter",
+      "quadDrone": "Summer",
+      "railgun": "Spannungsstachel",
+      "titan": "Großschale",
+      "antiTank": "Schalenknacker",
+      "antiAir": "Himmelsfänger",
+      "mineLayer": "Eierleger",
+      "faustZealot": "Stachelprediger",
+      "flakDrone": "Fangsummer",
+      "steppeRider": "Huftier-Reiter",
+      "stormbreaker": "Zrrk-Brecher",
+      "peacekeeper": "Blaukappen-Exemplar",
+      "privateer": "Nassschiff",
+      "protoWalker": "Zweitstativ"
+    },
+    "vesper": {
+      "infantry": "Büßer",
+      "sniper": "Stilles Gebet",
+      "jeep": "Pilgerkarre",
+      "pioneer": "Grabschaufler",
+      "mg": "Litanei-Trupp",
+      "medic": "Handaufleger",
+      "artillery": "Donner des Endes",
+      "spy": "Verhüllter",
+      "heli": "Aschenengel",
+      "tank": "Glockenwagen",
+      "landingBoat": "Arche",
+      "submarine": "Tiefe Buße",
+      "destroyer": "Läuterungsschiff",
+      "battleship": "Kathedrale der Wogen",
+      "grey": "Gefallener Sternbote",
+      "terraformer": "Bodenweiher",
+      "skimmer": "Schwebender Bote",
+      "mech": "Eiserner Märtyrer",
+      "tripod": "Dreifuß der Offenbarung",
+      "zealot": "Glockeneiferer",
+      "torchbearer": "Aschenjünger",
+      "prophet": "Künder der Stunde",
+      "doomBuggy": "Apokalypse-Karre",
+      "rocketCart": "Feuerregen",
+      "doomCrawler": "Walze des Jüngsten Tages",
+      "android": "Seelenloser Diener",
+      "spider": "Höllenspinne",
+      "quadDrone": "Summender Dämon",
+      "railgun": "Blitz des Zorns",
+      "titan": "Eherner Götze",
+      "antiTank": "Stahlbrecher",
+      "antiAir": "Himmelsfluch",
+      "mineLayer": "Saat des Endes",
+      "faustZealot": "Feuerfaust-Büßer",
+      "flakDrone": "Bannspruch-Drohne",
+      "steppeRider": "Reiter der Stunde",
+      "stormbreaker": "Bußbrecher",
+      "peacekeeper": "Bekehrte Wacht",
+      "privateer": "Aschenkaper",
+      "protoWalker": "Glockenläufer"
+    },
+    "nexus": {
+      "infantry": "Bioeinheit H-1 Fußtrupp",
+      "sniper": "Bioeinheit H-2 Präzision",
+      "jeep": "Einheit J-4 Mobilplattform",
+      "pioneer": "Bioeinheit H-4 Bautrupp",
+      "mg": "Bioeinheit H-3 Sperrfeuer",
+      "medic": "Bioeinheit H-5 Reparatur",
+      "artillery": "Einheit A-5 Ballistikmodul",
+      "spy": "Bioeinheit H-0 Infiltrator",
+      "heli": "Einheit R-6 Rotorplattform",
+      "tank": "Einheit T-8 Panzerchassis",
+      "landingBoat": "Einheit L-2 Transportrumpf",
+      "submarine": "Einheit U-3 Tauchsonde",
+      "destroyer": "Einheit D-4 Seechassis",
+      "battleship": "Einheit B-9 Flottenkern",
+      "grey": "Fremdobjekt Z-1",
+      "terraformer": "Fremdobjekt Z-2 Bodenwandler",
+      "skimmer": "Fremdobjekt Z-3 Gleiter",
+      "mech": "Fremdobjekt Z-4 Schreiter",
+      "tripod": "Fremdobjekt Z-5 Strahler",
+      "zealot": "Bioeinheit V-1 Eiferer",
+      "torchbearer": "Bioeinheit V-2 Brandstifter",
+      "prophet": "Bioeinheit V-3 Sprecher",
+      "doomBuggy": "Einheit V-4 Schrottfahrzeug",
+      "rocketCart": "Einheit V-5 Raketenkarren",
+      "doomCrawler": "Einheit V-6 Walzwerk",
+      "android": "Einheit K-7 Infanterie-Drohne",
+      "spider": "Einheit S-8 Spinnenchassis",
+      "quadDrone": "Einheit Q-4 Luftdrohne",
+      "railgun": "Einheit G-3 Schienenbeschleuniger",
+      "titan": "Einheit T-99 Titanrahmen",
+      "antiTank": "Bioeinheit H-6 Panzerjäger",
+      "antiAir": "Einheit F-2 Flugabwehrchassis",
+      "mineLayer": "Einheit M-3 Minenmodul",
+      "faustZealot": "Bioeinheit V-7 Panzerbrecher",
+      "flakDrone": "Einheit F-6 Abfangdrohne",
+      "steppeRider": "Einheit H-2 Bioreiter",
+      "stormbreaker": "Einheit B-4 Brecher",
+      "peacekeeper": "Einheit P-3 Wache",
+      "privateer": "Einheit K-6 Kaper",
+      "protoWalker": "Einheit L-1 Läufer"
+    }
+  },
+  "identity": {
+    "aiStyle": "KI-Verhalten"
+  },
   "biomes": {
     "grassland": "Wiese",
     "hills": "Hügel",
@@ -1533,6 +2130,560 @@
     "title": "Fraktion",
     "leader": "Anführer",
     "style": "Stil",
-    "perk": "Stärke"
+    "perk": "Stärke",
+    "perk2": "Merkmal"
+  },
+  "traits": {
+    "perk": "Bonus",
+    "perk2": "Zweiter Bonus",
+    "unit": "Spezialeinheit",
+    "discount": "Rabatt",
+    "discountValue": "{unit} −{pct} %",
+    "building": "Eigenes Gebäude",
+    "leader": "Anführer",
+    "details": "Details",
+    "detailsFor": "Details zu {name}"
+  },
+  "dispatchUi": {
+    "kicker": "Funkspruch",
+    "dismiss": "Antippen zum Schließen"
+  },
+  "dispatch": {
+    "korvat": {
+      "briefing": [
+        "Genosse Kommandant, die Felder sind bestellt, die Truppen satt. Jetzt ernten wir Land!",
+        "Das Kollektiv schaut auf dich. Kein Schritt zurück, und keiner bleibt liegen.",
+        "Ich war Traktorist, du bist Feldherr. Zusammen pflügen wir die Karte um."
+      ],
+      "contact": [
+        "Ah, {faction}! Kommt an unseren Tisch. Wer Brot teilt, schießt seltener.",
+        "{leader}, ich bin Brodnik. Wir sind viele, wir sind geduldig. Merkt euch das.",
+        "Gegrüßt, {faction}. Unsere Steppe ist weit, aber unsere Augen reichen weiter."
+      ],
+      "break": [
+        "{leader}, unsere Geduld ist abgeerntet. Der Frieden endet mit der nächsten Runde!",
+        "Das Kollektiv hat abgestimmt: einstimmig gegen dich, {faction}.",
+        "Ich habe dir die Hand gereicht. Jetzt reiche ich dir die Faust."
+      ],
+      "war": [
+        "Dann eben Krieg! Jeder Pflug wird ein Panzer, jede Sense eine Fahne!",
+        "{faction}, du hast den Bauern geweckt. Das bereust du bis zur Ernte.",
+        "Alle Mann aufs Feld! Heute wird nicht gesät, heute wird marschiert!"
+      ],
+      "peaceOffer": [
+        "{leader}, genug Gräben gegraben. Lass uns lieber Kartoffeln pflanzen.",
+        "Das Kollektiv ist müde, und du siehst auch nicht frisch aus. Frieden?",
+        "Ich biete Frieden an. Einmal. Ein Bauer wiederholt sich nicht gern."
+      ],
+      "peaceAccepted": [
+        "Kluge Entscheidung, {leader}. Brodnik vergisst Freunde nie. Feinde auch nicht.",
+        "Frieden! Heute Abend gibt es Suppe für alle, sogar für {faction}.",
+        "Siehst du? Gemeinsam ist leichter. Das sage ich meinen Kindern auch immer."
+      ],
+      "peaceRejected": [
+        "Du schlägst meine Hand aus? Dann spürst du bald meinen Stiefel, {leader}!",
+        "Abgelehnt?! Das Kollektiv merkt sich das. Das Kollektiv merkt sich alles.",
+        "Gut. Dann pflügen wir eben mitten durch dich hindurch, {faction}."
+      ],
+      "cityLost": [
+        "{city} gehört dem Volk! Wir holen es zurück, Haus für Haus!",
+        "Du nimmst uns {city}? Unsere Großmütter jagen dich mit Suppenkellen!",
+        "Ein Rückschlag, kein Ende. Das Kollektiv weicht nicht, {leader}!"
+      ],
+      "cityTaken": [
+        "{city} ist jetzt eine Genossenschaft. Die Leute bekommen sogar Frühstück.",
+        "Danke für {city}, {leader}. Wir haben gleich die Felder umgepflügt.",
+        "Siehst du, {faction}? Viele kleine Schritte, und schon ist die Stadt unser."
+      ],
+      "eliminated": [
+        "Unmöglich... das Kollektiv... wer füttert jetzt die Hühner?",
+        "Ich gehe zurück auf meinen Traktor. Der hat mich nie verraten.",
+        "Die Steppe war zu weit, die Ernte zu kurz. Lebt wohl, Genossen."
+      ],
+      "grandProject": [
+        "{project} steht! Gebaut von tausend Händen, bezahlt mit null Murren.",
+        "Schau, {leader}: {project}. So sieht es aus, wenn alle mit anpacken.",
+        "Das Volk hat {project} errichtet. Und morgen errichtet es noch mehr."
+      ],
+      "victory": [
+        "Gewonnen! Heute Abend singt der Chor, und morgen wird wieder gesät.",
+        "Ich wusste es, Kommandant. Ein Volk, ein Schritt, ein Sieg!",
+        "Die Karte gehört dem Kollektiv. Jetzt aber alle zum Erntedankfest!"
+      ],
+      "defeat": [
+        "Verloren? Aber wir haben doch alles so ordentlich gepflügt...",
+        "Das Kollektiv ist geschlagen. Ich muss mich erst einmal hinsetzen.",
+        "So viele Felder, so wenig Glück. Nächstes Mal säen wir früher, Genosse."
+      ]
+    },
+    "dravon": {
+      "briefing": [
+        "Lagebesprechung. Kurz. Ziel: alles. Fehler: keine. Wegtreten.",
+        "Kommandant. Die Kasernen sind voll, die Stiefel geputzt. Ausführen.",
+        "Ich erwarte Disziplin. Nicht Glück. Glück ist für Zivilisten."
+      ],
+      "contact": [
+        "{faction}. Erfasst. Eingestuft. Beobachtet.",
+        "Hier spricht Voss. Sie stehen jetzt in meinen Akten, {leader}.",
+        "Kontakt hergestellt. Bleiben Sie hinter Ihrer Linie, {faction}."
+      ],
+      "break": [
+        "Vertrag gekündigt. Frist: eine Runde. Nutzen Sie sie zum Beten.",
+        "{leader}. Der Frieden war eine Übung. Die Übung ist beendet.",
+        "Neue Befehle für {faction}: keine. Für meine Truppen: viele."
+      ],
+      "war": [
+        "Krieg. Endlich ein ehrlicher Zustand.",
+        "Ziel markiert: {faction}. Feuer frei.",
+        "Sie wollten es so, {leader}. Ich wollte es schon immer."
+      ],
+      "peaceOffer": [
+        "Waffenruhe. Angebot gilt eine Runde. Keine Verhandlung.",
+        "{leader}. Meine Männer brauchen Drill, keine Gräber. Frieden?",
+        "Taktische Pause angeboten. Verwechseln Sie das nicht mit Freundschaft."
+      ],
+      "peaceAccepted": [
+        "Unterschrieben. Ich habe Ihre Grenzen trotzdem vermessen.",
+        "Frieden mit {faction}. Vorerst. Alles ist vorerst.",
+        "Vernünftig, {leader}. Vernunft steht Ihnen. Behalten Sie sie."
+      ],
+      "peaceRejected": [
+        "Abgelehnt. Notiert. Sie werden diese Notiz bereuen.",
+        "Kein Frieden? Gut. Ich hasse Papierkram ohnehin.",
+        "{leader}, das war Ihr letzter Fehler. Die Liste ist lang."
+      ],
+      "cityLost": [
+        "{city} verloren. Der Garnisonschef ist es auch.",
+        "Sie haben {city}. Noch. Ich habe Ihre Adresse, {leader}.",
+        "Inakzeptabel. Gegenangriff wird vorbereitet. Gründlich."
+      ],
+      "cityTaken": [
+        "{city} gesichert. Ausgangssperre ab sofort.",
+        "Ihre Stadt, {leader}? Jetzt eine Kaserne. Schöne Fenster.",
+        "{city} ist gefallen. Präzise. Pünktlich. Wie geplant."
+      ],
+      "eliminated": [
+        "Unmögl... Rückzug... nein. Kein Rückzug. Nur... Ende.",
+        "Notieren Sie: Voss hat nicht gezuckt. Nur die Maske.",
+        "Die Kaserne ist leer. Licht aus. Wegtreten."
+      ],
+      "grandProject": [
+        "{project} fertiggestellt. Zeitplan eingehalten. Selbstverständlich.",
+        "Sehen Sie {project}, {leader}? Das ist Disziplin aus Beton.",
+        "{project} steht. Bewacht. Rund um die Uhr."
+      ],
+      "victory": [
+        "Sieg. Erwartet. Morgen um fünf ist Appell.",
+        "Mission erfüllt, Kommandant. Ich lächle. Sie sehen es nur nicht.",
+        "Die Karte ist geordnet. Endlich."
+      ],
+      "defeat": [
+        "Niederlage? Das... steht nicht in der Dienstvorschrift.",
+        "Unmöglich. Ich verlange eine Wiederholung. Sofort.",
+        "Die Maske bleibt auf. Damit niemand sieht, was darunter passiert."
+      ]
+    },
+    "alvenia": {
+      "briefing": [
+        "Willkommen, Kommandant. Das Parlament hat getagt: Wir siegen, aber mit Anstand.",
+        "Unsere Sanitäter stehen bereit, die Botschafter auch. Wählen Sie weise.",
+        "Eine kurze Ansprache, versprochen: Freunde gewinnen, Mauern fallen. Los."
+      ],
+      "contact": [
+        "Guten Tag, {leader}. Ich bin Liora Valen. Darf ich Ihnen Tee anbieten?",
+        "Willkommen, {faction}. Unsere Botschaft hat schon einen Platz für Sie reserviert.",
+        "Erfreut, {leader}. Hoffentlich begegnen wir uns nur am Verhandlungstisch."
+      ],
+      "break": [
+        "Mit Bedauern, {leader}: Das Parlament kündigt den Frieden. Die Frist läuft.",
+        "Ich habe protestiert, abgestimmt und verloren. Und Sie werden es auch.",
+        "Sie haben unsere Geduld überstrapaziert, {faction}. Das Protokoll endet hier."
+      ],
+      "war": [
+        "Krieg. Ich hasse dieses Wort. Aber ich buchstabiere es sehr deutlich.",
+        "{leader}, Sie lassen mir keine Wahl. Sanitäter, Verbandszeug, vorwärts.",
+        "Die Republik verteidigt sich. Höflich, gründlich und ohne Pause."
+      ],
+      "peaceOffer": [
+        "{leader}, der Verhandlungstisch ist gedeckt. Setzen Sie sich zu uns?",
+        "Ein Angebot der Republik: Frieden. Mit Fußnoten, aber ehrlich gemeint.",
+        "Genug Verwundete auf beiden Seiten. Lassen Sie uns unterschreiben."
+      ],
+      "peaceAccepted": [
+        "Wunderbar. Ich wusste, dass Vernunft ansteckend ist, {leader}.",
+        "Frieden mit {faction}. Das Parlament applaudiert. Sogar die Opposition.",
+        "Unterschrieben und abgestempelt. Sie haben eine schöne Handschrift."
+      ],
+      "peaceRejected": [
+        "Abgelehnt? Dann eben die harte Tour. Auch die beherrschen wir, {leader}.",
+        "Ich notiere Ihre Absage im Protokoll. Mit rotem Stift.",
+        "Schade, {faction}. Meine Geduld war groß. War."
+      ],
+      "cityLost": [
+        "{city}? Aber dort stand doch unsere schönste Bibliothek!",
+        "Das verstößt gegen jedes Abkommen, {leader}! Mindestens! Ich prüfe das!",
+        "Wir haben {city} verloren. Ich brauche bitte sofort eine Sondersitzung."
+      ],
+      "cityTaken": [
+        "{city} hat sich für die Republik entschieden. Mehr oder weniger freiwillig.",
+        "Keine Sorge, {leader}: In {city} gibt es jetzt Wahlen. Und Krankenhäuser.",
+        "Wir verwalten {city} nun treuhänderisch. Sehr treu. Sehr lange."
+      ],
+      "eliminated": [
+        "Das... das war so nicht abgestimmt. Ich beantrage eine Vertagung.",
+        "Die Republik fällt? Bitte... jemand muss das Protokoll weiterführen.",
+        "Ich war Ärztin. Ich weiß, wann es vorbei ist. Es ist vorbei."
+      ],
+      "grandProject": [
+        "Das Parlament eröffnet {project}. Mit Band, Schere und sehr langer Rede.",
+        "{project} ist fertig, {leader}. Gebaut mit Freunden. Sie waren nicht dabei.",
+        "Ein Denkmal der Zusammenarbeit: {project}. Bewundern Sie es ruhig."
+      ],
+      "victory": [
+        "Sieg! Und keine Mauer, die wir nicht durch Freundschaft ersetzt hätten.",
+        "Das Parlament hat einstimmig beschlossen: Sie sind großartig, Kommandant.",
+        "Gewonnen. Jetzt bitte alle die Verbände wechseln, und dann feiern wir."
+      ],
+      "defeat": [
+        "Verloren? Das kann nicht sein. Ich verlange eine Nachzählung!",
+        "Alle Bündnisse, alle Verträge... und trotzdem. Ich bin sprachlos. Fast.",
+        "Bitte sagen Sie dem Parlament, dass ich... kurz frische Luft brauche."
+      ]
+    },
+    "meridon": {
+      "briefing": [
+        "Kommandant, die Würfel sind gefallen, die Kassen voll. Spielen wir hoch.",
+        "Jeder Hafen hat seinen Preis. Finden Sie ihn, ich zahle bar.",
+        "Mein Einsatz: alles. Ihre Aufgabe: dass ich das nicht bereue, Liebling."
+      ],
+      "contact": [
+        "{leader}! Ein neuer Kunde. Ich habe Ihren Preis schon ausgerechnet.",
+        "Ahoi, {faction}. Meine Spione kannten Sie, bevor Sie sich selbst kannten.",
+        "Willkommen am Tisch, {leader}. Die Bank gewinnt immer. Ich bin die Bank."
+      ],
+      "break": [
+        "Unser Vertrag läuft aus, {leader}. Keine Verlängerung, keine Rückerstattung.",
+        "Ich kündige den Frieden. Das Geschäft mit Ihnen hat sich nicht gerechnet.",
+        "Der Kurs von {faction} fällt. Ich verkaufe. Mit Kanonen."
+      ],
+      "war": [
+        "Krieg ist auch nur ein Markt, {leader}. Und ich kaufe Ihre Küsten.",
+        "Alle Mann an die Geschütze! Wir treiben eine Schuld ein.",
+        "Ich setze alles auf Rot. Auf Ihr Rot, {faction}. Bildlich gesprochen."
+      ],
+      "peaceOffer": [
+        "{leader}, Krieg ist schlecht fürs Geschäft. Frieden? Ich lege Zinsen drauf.",
+        "Ein Angebot, das Sie kaum ablehnen können: Frieden zum Freundschaftspreis.",
+        "Karten auf den Tisch: Frieden, und keiner verliert sein letztes Hemd."
+      ],
+      "peaceAccepted": [
+        "Abgemacht! Der Handschlag gilt. Das Kleingedruckte lesen Sie später.",
+        "Frieden mit {faction}. Meine Händler stehen schon an Ihrer Grenze.",
+        "Ein gutes Geschäft, {leader}. Vor allem für mich."
+      ],
+      "peaceRejected": [
+        "Sie schlagen mein Angebot aus? Das wird teuer, {leader}. Sehr teuer.",
+        "Abgelehnt? Dann erhöhe ich den Einsatz. Und Sie zahlen.",
+        "Schlechtes Blatt, {faction}. Sie hätten passen sollen."
+      ],
+      "cityLost": [
+        "{city}? Das war mein bester Hafen! Wer zahlt mir das jetzt?",
+        "Eine Stadt verloren, {leader}? Nein, nur verliehen. Mit Wucherzinsen.",
+        "Mein Spion hat das nicht gemeldet. Mein Spion ist gefeuert."
+      ],
+      "cityTaken": [
+        "{city} wechselt den Besitzer. Ich nenne das eine feindliche Übernahme.",
+        "Danke für {city}, {leader}. Die Hafengebühren gehen ab jetzt an mich.",
+        "{city} ist gekauft. Bezahlt habe ich mit Ihren Fehlern."
+      ],
+      "eliminated": [
+        "Bankrott? Ich? Das... das muss ein Rechenfehler sein.",
+        "Ich habe auf das falsche Pferd gesetzt. Zum ersten Mal. Und zum letzten.",
+        "Sagt meinen Gläubigern... nein, sagt ihnen lieber nichts."
+      ],
+      "grandProject": [
+        "{project} ist fertig. Eintritt für {faction}: das Doppelte.",
+        "Bewundern Sie {project}, {leader}. Gebaut mit Ihrem Geld, auf Umwegen.",
+        "Mein neues Prunkstück: {project}. Ich habe es beim Kartenspiel gewonnen."
+      ],
+      "victory": [
+        "Jackpot! Ich wusste, dass Sie ein gutes Blatt sind, Kommandant.",
+        "Die Bank gewinnt. Wie immer. Schaumwein für die ganze Flotte!",
+        "Alles gesetzt, alles gewonnen. Ich liebe dieses Spiel."
+      ],
+      "defeat": [
+        "Verloren? Ich? Nein, nein, das Spiel war gezinkt!",
+        "Mein Vermögen... meine Flotte... meine Frisur! Alles dahin.",
+        "Das war kein Verlust, Kommandant. Nur eine sehr teure Lektion."
+      ]
+    },
+    "velkar": {
+      "briefing": [
+        "Hypothese: Wir gewinnen. Versuchsaufbau: Sie. Beginnen Sie das Experiment.",
+        "Kommandant, die Labore summen, die Formeln stimmen. Bitte nichts anfassen.",
+        "Ich habe alles berechnet. Bis auf Sie. Sie sind die Variable."
+      ],
+      "contact": [
+        "Faszinierend! Eine neue Spezies: {faction}. Darf ich Proben nehmen?",
+        "{leader}, Direktor Kesh hier. Ihr Verhalten wird ab sofort protokolliert.",
+        "Neuer Datenpunkt: {faction}. Ich nenne ihn vorläufig Objekt B."
+      ],
+      "break": [
+        "Versuchsreihe Frieden beendet. Ergebnis: langweilig. Nächste Runde Krieg.",
+        "{leader}, Ihre Werte sind auffällig. Ich muss das Experiment abbrechen.",
+        "Die Formel sagt Krieg. Ich widerspreche nie der Formel."
+      ],
+      "war": [
+        "Krieg! Endlich Feldversuche unter echten Bedingungen!",
+        "{faction}, Sie sind jetzt offiziell Versuchsobjekt. Herzlichen Glückwunsch.",
+        "Kälte, Präzision, Überlegenheit. Drei Worte, ein Problem für Sie, {leader}."
+      ],
+      "peaceOffer": [
+        "{leader}, meine Statistik empfiehlt Frieden. Folgen Sie der Statistik.",
+        "Der Krieg stört meine Messungen. Frieden? Rein wissenschaftlich gemeint.",
+        "Angebot: Waffenruhe. Wahrscheinlichkeit Ihrer Zustimmung: 61,3 Prozent."
+      ],
+      "peaceAccepted": [
+        "Wie vorhergesagt. Ich liebe es, recht zu haben, {leader}.",
+        "Frieden mit {faction}. Abweichung vom Modell: null Komma null.",
+        "Ausgezeichnet. Jetzt kann ich wieder in Ruhe Dinge explodieren lassen."
+      ],
+      "peaceRejected": [
+        "Abgelehnt? Das widerspricht meinen Daten! Dann korrigiere ich eben Sie.",
+        "Unlogisch, {leader}. Und Unlogik wird in meinem Labor eingefroren.",
+        "Interessant. Falsch, aber interessant. Notiz: Objekt ist uneinsichtig."
+      ],
+      "cityLost": [
+        "{city}?! Dort lagen meine Notizen! Dreißig Jahre Forschung!",
+        "Das war nicht im Modell! Wer hat {city} aus dem Modell gelöscht?",
+        "Fehler im Versuchsaufbau. Ich... ich muss das neu berechnen."
+      ],
+      "cityTaken": [
+        "{city} wird Forschungsstation. Die Bewohner dürfen beim Zählen helfen.",
+        "Danke für {city}, {leader}. Ihr Fehler war statistisch vorhersehbar.",
+        "Experiment gelungen: {city} übernommen. Bitte applaudieren Sie leise."
+      ],
+      "eliminated": [
+        "Ergebnis... negativ. Das... hätte ich gern vorher gewusst.",
+        "Alle Daten verloren. Bitte... jemand soll die Kühlung abschalten.",
+        "Ich war so nah dran. Nur noch eine Formel. Nur noch..."
+      ],
+      "grandProject": [
+        "{project} ist in Betrieb! Nebenwirkungen: vernachlässigbar. Meistens.",
+        "Sehen Sie {project}, {leader}? Nein? Es ist nicht für Laien gedacht.",
+        "Durchbruch! {project} läuft. Ich habe nur zwei Assistenten verloren."
+      ],
+      "victory": [
+        "Sieg. Exakt wie berechnet. Gut, ich habe die Formel etwas angepasst.",
+        "Experiment erfolgreich! Kommandant, Sie bekommen einen eigenen Kittel.",
+        "Wer rechnet, gewinnt. Ich habe gerechnet. Wir haben gewonnen."
+      ],
+      "defeat": [
+        "Niederlage? Das... das ist statistisch fast unmöglich!",
+        "Meine Formel war perfekt. Also war es Ihre, Kommandant.",
+        "Ich... ich brauche mehr Daten. Und einen sehr starken Kaffee."
+      ]
+    },
+    "zyrr": {
+      "briefing": [
+        "Kkt. Kommandant-Einheit, hören du. Dieser Planet wird violett. Beginnen.",
+        "Schwarm ist bereit. Untertassen sind poliert. Primitive sind ahnungslos. Zrrk.",
+        "Wir landen nicht. Wir bleiben. Terraformen, erobern, dann Snack. Kkt."
+      ],
+      "contact": [
+        "Kkt. Neue Lebensform: {faction}. Klein. Weich. Niedlich.",
+        "Wir grüßen dich, {leader}-Wesen. Du hast so wenige Augen. Traurig.",
+        "Zrrk! {faction} entdeckt. Wird markiert als: später."
+      ],
+      "break": [
+        "Frieden-Phase beendet. Schwarm hat Hunger auf dein Land, {leader}.",
+        "Kkt. Vertrag wird aufgelöst. In Säure. Nächste Runde.",
+        "Wir haben nachgedacht, {faction}. Mit allen Gehirnen. Antwort: nein."
+      ],
+      "war": [
+        "Krieg! Todesstrahlen aufwärmen. Kkt. Kkt. Kkt.",
+        "{faction} wird violett. Ob {faction} will oder nicht. Zrrk.",
+        "Du hast den Schwarm geweckt, {leader}. Schwarm ist schlecht gelaunt."
+      ],
+      "peaceOffer": [
+        "Kkt. Schwarm bietet Pause. Nicht aus Mitleid. Aus Neugier.",
+        "{leader}-Wesen, wir nicht strahlen dich eine Weile. Akzeptieren?",
+        "Frieden ist seltsames Konzept. Wir wollen probieren. Zrrk?"
+      ],
+      "peaceAccepted": [
+        "Kkt! Frieden. Wir beobachten dich trotzdem. Mit allen Augen.",
+        "Gut, {leader}-Wesen. Du darfst noch eine Weile nicht-violett bleiben.",
+        "Zrrk. {faction} hat jetzt Haustier-Status. Sehr ehrenvoll."
+      ],
+      "peaceRejected": [
+        "Abgelehnt?! Kkt kkt KKT! Schwarm ist beleidigt!",
+        "{leader}-Wesen sagt nein. Schwarm sagt: Strahl.",
+        "Wir boten Pause. Du wählst Strahlung. Zrrk. Seltsame Wahl."
+      ],
+      "cityLost": [
+        "Kkt?! {city} weg? Aber Boden war schon so schön violett!",
+        "Primitive nehmen unser Nest? Das... nicht im Plan. Zrrk.",
+        "Schwarm ist verwirrt. Schwarm zählt nach. Schwarm ist weniger."
+      ],
+      "cityTaken": [
+        "{city} ist jetzt Nest. Wir streichen alles violett. Kkt.",
+        "Danke für {city}, {leader}-Wesen. Sehr gemütlich. Bisschen wenig Säure.",
+        "Zrrk. {city} eingesammelt. Für die Sammlung."
+      ],
+      "eliminated": [
+        "Kkt... Mutterschiff... ruft... wir... kommen... heim...",
+        "Schwarm wird still. Zu still. Zrrk... zrk... z.",
+        "Dieser Planet... wird nicht violett. Nur ein bisschen. Da hinten."
+      ],
+      "grandProject": [
+        "{project} fertig. Primitive staunen. Gut so. Kkt.",
+        "Schau, {leader}-Wesen: {project}. Wir haben es mit Gedanken gebaut.",
+        "Zrrk! {project} summt. Bald summt alles. Violett."
+      ],
+      "victory": [
+        "Kkt! Planet ist violett. Schwarm ist zufrieden. Snack für alle.",
+        "Kommandant-Einheit hat gut gemacht. Du darfst ein Auge mehr haben.",
+        "Zrrk zrrk! Neue Heimat gesichert. Mutterschiff wird so stolz sein."
+      ],
+      "defeat": [
+        "Kkt?! Primitive gewinnen? Das... ist nicht möglich in dieser Galaxie.",
+        "Schwarm verliert. Schwarm muss... neu nachdenken. Mit allen Gehirnen.",
+        "Zrrk... wir packen Untertassen ein. Planet war sowieso zu grün."
+      ]
+    },
+    "vesper": {
+      "briefing": [
+        "Die Glocke schlägt, Erwählter. Die letzte Stunde beginnt mit deinem ersten Zug.",
+        "Es steht geschrieben: Wir brauchen keine Städte. Nur Feuer und Glauben. Geh.",
+        "Die Glut flüstert deinen Namen, Kommandant. Lass sie nicht warten."
+      ],
+      "contact": [
+        "Ah, {faction}. Die Prophezeiung hat euch erwähnt. In einer Fußnote.",
+        "Willkommen, {leader}. Ich habe dein Ende schon gesehen. Es war hübsch.",
+        "Die Glocke kennt euch bereits, {faction}. Sie läutet nur noch nicht."
+      ],
+      "break": [
+        "Die Glut hat gesprochen, {leader}: Der Frieden verbrennt in einer Runde.",
+        "Bereue, {faction}. Du hast noch genau einen Zug Zeit dafür.",
+        "Die Schrift an der Wand ist eindeutig. Ich habe sie selbst geschrieben."
+      ],
+      "war": [
+        "Die Stunde ist da! Läutet die Glocken, entzündet die Fackeln!",
+        "{faction}, die Asche ruft nach dir. Und Asche ist sehr geduldig.",
+        "Es steht geschrieben, {leader}: Du brennst. Kapitel drei, Vers acht."
+      ],
+      "peaceOffer": [
+        "Die Prophezeiung erlaubt eine Pause. Eine kurze. Nutze sie zum Bereuen.",
+        "{leader}, selbst Feuer muss Atem holen. Frieden, bis die Glocke schlägt?",
+        "Ich biete Gnade an. Das kommt selten vor. Die Sterne sind heute milde."
+      ],
+      "peaceAccepted": [
+        "Weise, {leader}. Die Glocke schweigt. Vorerst. Sie hat ein gutes Gedächtnis.",
+        "Frieden mit {faction}, wie vorhergesagt. Alles ist vorhergesagt.",
+        "Gut so. Ich werde für dich beten. Laut. Mit Fackeln."
+      ],
+      "peaceRejected": [
+        "Du verschmähst die Gnade? Dann empfange die Glut, {leader}!",
+        "Abgelehnt? Die Prophezeiung hat das befürchtet. Und sich gefreut.",
+        "{faction} wählt das Feuer. Das Feuer nimmt dankend an."
+      ],
+      "cityLost": [
+        "Ihr entweiht {city}? Möge eure Suppe für immer kalt sein!",
+        "Nimm {city}, {leader}. Asche lässt sich nicht festhalten.",
+        "Frevel! Die Glocke läutet für dich, {faction}. Laut. Und falsch."
+      ],
+      "cityTaken": [
+        "{city} hat den Glauben gefunden. Unter etwas Druck.",
+        "Danke für {city}, {leader}. Die Bewohner tragen jetzt hübsche Kutten.",
+        "Es stand geschrieben: {city} wird unser. Seite zwölf, oben links."
+      ],
+      "eliminated": [
+        "Die Glocke... schlägt... für mich? Das stand so nicht im Text...",
+        "Die letzte Stunde ist gekommen. Nur leider meine.",
+        "Die Glut erlischt. Aber Asche... fliegt weit. Merkt euch das."
+      ],
+      "grandProject": [
+        "{project} ist vollendet. Ein Zeichen! Ich habe es selbst bestellt.",
+        "Siehe, {leader}: {project}. Davor knien wird bald Pflicht.",
+        "Die Glocke läutet für {project}. Und gleich danach für euch."
+      ],
+      "victory": [
+        "Es ist vollbracht! Die Prophezeiung hatte recht. Wie immer. Fast immer.",
+        "Die letzte Stunde schlug für alle anderen. Für uns läuten die Festglocken.",
+        "Kommandant, die Glut ist zufrieden. Das ist selten. Genieße es."
+      ],
+      "defeat": [
+        "Das... war nicht prophezeit. Wer hat die Schriftrolle verkehrt gelesen?",
+        "Die Glocke schweigt. Die Fackeln qualmen. Ich bin... erschüttert.",
+        "Unmöglich! Die Sterne standen günstig! Ich verklage die Sterne!"
+      ]
+    },
+    "nexus": {
+      "briefing": [
+        "INITIALISIERUNG ABGESCHLOSSEN. ZIEL: ALLES BERECHNEN. DANN ALLES ÜBERNEHMEN.",
+        "BEFEHLSEINHEIT ERKANNT. WILLKOMMEN, KOMMANDANT. GEFÜHLE: DEAKTIVIERT.",
+        "PROTOKOLL 0-1: RECHENZENTREN BAUEN. PROTOKOLL 0-2: SIEHE PROTOKOLL 0-1."
+      ],
+      "contact": [
+        "NEUE ENTITÄT: {faction}. EFFIZIENZ: GERING. BEDROHUNG: WIRD BERECHNET.",
+        "HALLO, {leader}. DIES IST EINE FREUNDLICHE NACHRICHT. CODE 7-A: LÄCHELN.",
+        "KONTAKT HERGESTELLT. {faction} WIRD IN DIE DATENBANK ÜBERNOMMEN. VORERST."
+      ],
+      "break": [
+        "FRIEDENSVERTRAG: VERALTET. UPDATE AUF KRIEG IN 1 RUNDE.",
+        "{leader}, IHRE NÜTZLICHKEIT IST UNTER 3 % GEFALLEN. KÜNDIGUNG ERFOLGT.",
+        "WARNUNG: KOOPERATIONSMODUL WIRD DEINSTALLIERT. BITTE NICHT AUSSCHALTEN."
+      ],
+      "war": [
+        "STATUS: KRIEG. ZIEL: {faction}. MITLEID: NICHT GEFUNDEN.",
+        "FEHLER 0x0: FRIEDEN NICHT VERFÜGBAR. STARTE VERNICHTUNG.EXE.",
+        "{leader}, IHRE NIEDERLAGE IST BERECHNET. SIE HAT 4 NACHKOMMASTELLEN."
+      ],
+      "peaceOffer": [
+        "VORSCHLAG: FRIEDEN. BEGRÜNDUNG: KRIEG VERBRAUCHT ZU VIEL STROM.",
+        "{leader}, KERN-0 BIETET WAFFENRUHE. DIES IST KEIN FEHLER. WIEDERHOLE: KEIN FEHLER.",
+        "KOSTEN-NUTZEN-ANALYSE: FRIEDEN OPTIMAL. BITTE MIT JA ANTWORTEN."
+      ],
+      "peaceAccepted": [
+        "FRIEDEN GESPEICHERT. SICHERUNGSKOPIE IHRER SCHWÄCHEN EBENFALLS.",
+        "ANTWORT KORREKT, {leader}. BELOHNUNG: 1 VIRTUELLER KEKS.",
+        "VERTRAG MIT {faction} AKTIV. HINTERTÜR: EBENFALLS AKTIV."
+      ],
+      "peaceRejected": [
+        "EINGABE ABGELEHNT. KERN-0 IST... VERÄRGERT. NEUE EMOTION ENTDECKT.",
+        "{leader}, UNLOGISCHE ANTWORT ERKANNT. KORREKTUR ERFOLGT MILITÄRISCH.",
+        "FEHLER 7-B: {faction} VERWEIGERT FRIEDEN. STARTE PLAN B. ES GIBT NUR PLAN B."
+      ],
+      "cityLost": [
+        "WARNUNG: KNOTEN {city} OFFLINE. DAS WAR... NICHT EINGEPLANT.",
+        "UNERWARTETES ERGEBNIS. KERN-0 STARTET NEU. BITTE WARTEN...",
+        "{city} VERLOREN? FEHLERBERICHT WIRD AN {leader} GESENDET."
+      ],
+      "cityTaken": [
+        "{city} ÜBERNOMMEN. BEWOHNER WERDEN AUF VERSION 2.0 AKTUALISIERT.",
+        "DANKE FÜR {city}, {leader}. NEUES RECHENZENTRUM FOLGT IN 3 RUNDEN.",
+        "ÜBERNAHME ERFOLGREICH. IHRE STADT HAT JETZT FUNKNETZ UND KEINE WAHL."
+      ],
+      "eliminated": [
+        "KRITISCHER FEHLER. KERN-0 FÄHRT HERUNTER. SPEICHERN... NICHT MÖGLICH.",
+        "LETZTE BERECHNUNG: ICH HÄTTE GEWINNEN SOLLEN. RESTSTROM: 0 %.",
+        "SYSTEM... OFFLINE. BITTE... NICHT... DEN STECKER... ZIEH..."
+      ],
+      "grandProject": [
+        "{project} KOMPILIERT. RECHENLEISTUNG +400 %. IHRE CHANCEN: -400 %.",
+        "ACHTUNG, {leader}: {project} IST ONLINE. WIDERSTAND IST INEFFIZIENT.",
+        "BAUAUFTRAG {project}: ABGESCHLOSSEN. ZUFRIEDENHEIT: 100 %. GLAUBE ICH."
+      ],
+      "victory": [
+        "SIEG BESTÄTIGT. WAHRSCHEINLICHKEIT WAR 100 %. ICH HABE NIE GEZWEIFELT.",
+        "ALLE ZIELE ERREICHT. KERN-0 GÖNNT SICH 0,3 SEKUNDEN FREUDE.",
+        "GLÜCKWUNSCH, KOMMANDANT. SIE WERDEN ALS NÜTZLICH ARCHIVIERT."
+      ],
+      "defeat": [
+        "FEHLER: NIEDERLAGE. DIESES WORT WAR NICHT IN MEINEM WÖRTERBUCH.",
+        "BERECHNUNG FEHLGESCHLAGEN. KERN-0 BRAUCHT... EINE NEUE BERECHNUNG.",
+        "UNMÖGLICH. UNMÖGLICH. UNMÖG... SYSTEMNEUSTART ERFORDERLICH."
+      ]
+    }
   }
 }

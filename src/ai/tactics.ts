@@ -209,7 +209,7 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   if (r && canAttackAfter(u, r)) v += Math.max(0, bestAttackFrom(ctx, u, x, y)) * 0.8;
   else if (!r && canAttackNow(u)) v += Math.max(0, bestAttackFrom(ctx, u, x, y)) * 0.8;
   // Fernkampf: in Reichweite fuer die naechste Runde / ranged: in range for next round
-  if (type === 'artillery' || type === 'sniper' || type === 'battleship') {
+  if (type === 'artillery' || type === 'sniper' || type === 'battleship' || type === 'protoWalker') {
     const range = UNITS[type].range;
     if (ctx.enemies.some((e) => dist(e, { x, y }) <= range)) v += dmg > 0 ? 3 : 10;
     if (ctx.hostileCities.some((c) => dist(c, { x, y }) <= range)) v += 4;

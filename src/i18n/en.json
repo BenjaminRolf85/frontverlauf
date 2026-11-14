@@ -90,7 +90,10 @@
       "leaderTitle": "Grand Marshal of the People's League",
       "quote": "One people, one step, one victory.",
       "lore": "The Korvat People's League grew out of a hundred farming cooperatives on the endless steppe. Every ploughman is a soldier, every village kitchen feeds a regiment. Grand Marshal Brodnik, once a tractor driver, leads with iron fatherliness: nobody is left behind, and nobody retreats.",
-      "style": "mass armies, red banners, choirs"
+      "style": "mass armies, red banners, choirs",
+      "aiStyle": "Builds large armies of cheap infantry and advances on a broad front.",
+      "perk2": "Earthworks",
+      "perk2Desc": "Outposts cost 15 instead of 25 stars."
     },
     "dravon": {
       "name": "Protectorate of Dravon",
@@ -104,7 +107,10 @@
       "leaderTitle": "Commander of the Protectorate",
       "quote": "Discipline is the only truth.",
       "lore": "Dravon was once a pact of mercenary companies guarding the desert ore mines. Today it is a state made of barracks. Nobody has ever seen Commander Voss without his balaclava; people say he has no face, only orders. His troops become veterans faster than any other army.",
-      "style": "drill, camo green, black balaclavas"
+      "style": "drill, camo green, black balaclavas",
+      "aiStyle": "Attacks early and often, relying on jeeps and MG squads.",
+      "perk2": "Battle-hardened",
+      "perk2Desc": "Veterans attack with +0.5 attack."
     },
     "alvenia": {
       "name": "Republic of Alvenia",
@@ -118,7 +124,10 @@
       "leaderTitle": "President of the Republic",
       "quote": "An alliance is stronger than any wall.",
       "lore": "Alvenia is a republic of green hill valleys, governed by a parliament that debates longer than it fights. President Valen was a field medic before she became a diplomat. Her embassies are everywhere, and so are her medics: Alvenia wins wars with friends instead of tanks.",
-      "style": "diplomacy, blue berets, medics"
+      "style": "diplomacy, blue berets, medics",
+      "aiStyle": "Seeks embassies and peace, keeps its troops alive with medics.",
+      "perk2": "Field hospitals",
+      "perk2Desc": "Units heal 1 more HP when healing."
     },
     "meridon": {
       "name": "Meridon Trade League",
@@ -132,7 +141,10 @@
       "leaderTitle": "Admiral of the Trade League",
       "quote": "Every harbour has its price. I pay in cash.",
       "lore": "The Meridon Trade League is a union of rich port cities whose fleets know every coast. Admiral Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her cities grow faster than any others, and her spies know everything before it happens.",
-      "style": "harbours, gold, spies, sailors"
+      "style": "harbours, gold, spies, sailors",
+      "aiStyle": "Grows its cities and sends spies ahead.",
+      "perk2": "Harbour pilots",
+      "perk2Desc": "Landing boats move 1 tile further."
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -146,7 +158,10 @@
       "leaderTitle": "Director of the Technocracy",
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's researchers are ahead of everyone, and its pioneers build fortresses where others freeze.",
-      "style": "research, laboratories, pioneers, cold"
+      "style": "research, laboratories, pioneers, cold",
+      "aiStyle": "Researches first and digs in with pioneers.",
+      "perk2": "Engineer corps",
+      "perk2Desc": "Tank barriers cost 5 instead of 10 stars."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -160,7 +175,10 @@
       "leaderTitle": "Swarm Mother of the Zyrr",
       "quote": "Kkt. This planet will be violet.",
       "lore": "The Zyrr are a scouting swarm whose mothership crashed over the desert. Swarm Mother Xyl'Tharra decided to stay and turn the planet into a second home. Wherever her terraformers work, violet xeno ground grows, and on it the Zyrr are hard to beat.",
-      "style": "saucers, death rays, xeno ground"
+      "style": "saucers, death rays, xeno ground",
+      "aiStyle": "Opportunistic raiders: skimmers and tripods go around the front and strike undefended cities.",
+      "perk2": "Forest brood",
+      "perk2Desc": "Units heal 1 more HP in forests."
     },
     "vesper": {
       "name": "Cult of the Final Hour",
@@ -174,7 +192,10 @@
       "leaderTitle": "Prophet of the Final Hour",
       "quote": "The bell tolls. Repent while you can.",
       "lore": "The Cult of the Final Hour arose at dusty pilgrimage sites where the desperate wait for the end of the world. The prophet Malachar proclaims that the final hour is near, and his zealots recruit new believers wherever they stand. The cult does not need cities, only fire and faith.",
-      "style": "robes, bone masks, bells, flames"
+      "style": "robes, bone masks, bells, flames",
+      "aiStyle": "Fanatical and aggressive, rarely retreats and converts enemies with prophets.",
+      "perk2": "Martyrdom",
+      "perk2Desc": "Every own unit that falls in battle brings 3 stars."
     },
     "nexus": {
       "name": "NEXUS AI Collective",
@@ -188,7 +209,10 @@
       "leaderTitle": "Prime Instance of the Collective",
       "quote": "Calculation complete. Result: your defeat.",
       "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data center with a power plant makes the collective smarter and its machines deadlier.",
-      "style": "robots, data centers, cyan light"
+      "style": "robots, data centers, cyan light",
+      "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly.",
+      "perk2": "Sensor net",
+      "perk2Desc": "All units see 1 tile further."
     }
   },
   "units": {
@@ -226,7 +250,12 @@
     "antiAir": "Flak tank",
     "mineLayer": "Mine layer",
     "faustZealot": "Rocket zealot",
-    "flakDrone": "Flak drone"
+    "flakDrone": "Flak drone",
+    "steppeRider": "Steppe Riders",
+    "stormbreaker": "Stormbreakers",
+    "peacekeeper": "Peacekeepers",
+    "privateer": "Privateer",
+    "protoWalker": "Prototype Walker"
   },
   "abilities": {
     "dash": "Assault",
@@ -274,7 +303,13 @@
     "flak": "Flak zone",
     "flakDesc": "Hostile flyers that end their turn right next to it take 3 damage.",
     "mines": "Lay mines",
-    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction)."
+    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction).",
+    "shock": "Shock assault",
+    "shockDesc": "The attacked target cannot strike back.",
+    "mend": "Self-repair",
+    "mendDesc": "Heals 2 HP at the start of each own turn.",
+    "plunder": "Prize money",
+    "plunderDesc": "Every destroyed enemy unit brings 10 stars."
   },
   "stats": {
     "cost": "Price",
@@ -336,7 +371,12 @@
     "xenoHarvester": "Xeno harvester",
     "shrine": "Shrine",
     "dataCenter": "Data center",
-    "powerPlant": "Fusion plant"
+    "powerPlant": "Fusion plant",
+    "kolkhoz": "Kolkhoz",
+    "mercenaryBarracks": "Mercenary barracks",
+    "embassyPalace": "Embassy palace",
+    "tradingPost": "Trading post",
+    "testLab": "Test lab"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -348,18 +388,23 @@
     "materialsPlant": "1 population point per adjacent lumber camp",
     "foodFactory": "1 population point per adjacent farm",
     "steelMill": "2 population points per adjacent mine",
-    "logisticsCenter": "5 stars per round per adjacent lumber camp, farm or mine, at most 40",
+    "logisticsCenter": "3 stars per round per adjacent lumber camp, farm or mine, at most 24",
     "navalBase": "1 population point, embarking, sea connection",
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
     "researchCenter": "1 population point and growing points",
-    "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters",
+    "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters. If it borders own territory, the territory grows by the free tiles around it.",
     "barrier": "Hostile vehicles stop and move only 1 tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "2 population, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
-    "powerPlant": "1 population, powers one data center, NEXUS only"
+    "powerPlant": "1 population, powers one data center, NEXUS only",
+    "kolkhoz": "1 population, then +1 population for the city every 5 rounds, one per city, Korvat only",
+    "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
+    "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
+    "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -652,7 +697,8 @@
     "high": "High",
     "showGrid": "Show grid",
     "barks": "Speech bubbles",
-    "ambience": "Ambience (weather, battle noise)"
+    "ambience": "Ambience (weather, battle noise)",
+    "dispatches": "Leader dispatches"
   },
   "handover": {
     "title": "Change of watch",
@@ -993,6 +1039,557 @@
     "Pinnack",
     "Rotsteg"
   ],
+  "cityNamesFaction": {
+    "korvat": [
+      "Kolosgrad",
+      "Serpovka",
+      "Borozdnaya",
+      "Snopovets",
+      "Traktorinsk",
+      "Pashnyevo",
+      "Krasnoserp",
+      "Solomyanka",
+      "Mukomolsk",
+      "Kombainovo",
+      "Stepnokhor",
+      "Volnopashka",
+      "Shirokopol",
+      "Senokosk",
+      "Bratnaya Niva",
+      "Nivograd",
+      "Ogorodnya",
+      "Zernovets",
+      "Podkolosye",
+      "Krasnoborona",
+      "Kolkhoznitsa",
+      "Ambarovo",
+      "Plugovets",
+      "Rassadnik"
+    ],
+    "dravon": [
+      "Ironcrest",
+      "Orewatch",
+      "Slagfield",
+      "Drillmark",
+      "Barrackyard",
+      "Rustpit",
+      "Hammerhold",
+      "Sandbulwark",
+      "Cordite Hollow",
+      "Leadworks",
+      "Shaftholm",
+      "Blackcrest",
+      "Embersink",
+      "Disciplinekeep",
+      "Powderhead",
+      "Anvilfield",
+      "Thornwall",
+      "Gravelbed",
+      "Splinterheight",
+      "Payburg",
+      "Rockdrill",
+      "Pitguard",
+      "Watchmound",
+      "Balaclava Brook"
+    ],
+    "alvenia": [
+      "Valenmont",
+      "Pradellis",
+      "Rosalpa",
+      "Concorda",
+      "Belmonteau",
+      "Vallaria",
+      "Pontefida",
+      "Lagovento",
+      "Treviala",
+      "Serenalp",
+      "Amicorte",
+      "Fiorvalle",
+      "Montepace",
+      "Bellatorre",
+      "Serenotta",
+      "Altabriga",
+      "Pratolune",
+      "Castelvoto",
+      "Sanclaro",
+      "Miralpina",
+      "Ventadoro",
+      "Rivandra",
+      "Collamica",
+      "Edelvia"
+    ],
+    "meridon": [
+      "Porto Nerezza",
+      "Corallea",
+      "Aurimare",
+      "Saltavela",
+      "Ancorasca",
+      "Monetta",
+      "Marenzia",
+      "Golfodoro",
+      "Velarossa",
+      "Bancomare",
+      "Scirocca",
+      "Perlamar",
+      "Portofisco",
+      "Zafferanza",
+      "Farodoro",
+      "Calamonta",
+      "Tesoriva",
+      "Spezimare",
+      "Ducata",
+      "Navigora",
+      "Contrabbia",
+      "Ostricana",
+      "Tributa",
+      "Marcantia"
+    ],
+    "velkar": [
+      "Keshholm",
+      "Polarstad",
+      "Rimvik",
+      "Kaldmark",
+      "Formelfjord",
+      "Kryoby",
+      "Akademiholm",
+      "Snehamn",
+      "Datavik",
+      "Kelvinstad",
+      "Teslafjell",
+      "Glimtborg",
+      "Nordlab",
+      "Vinterkalk",
+      "Magnetvik",
+      "Isotopsund",
+      "Kaldfjell",
+      "Polarisholm",
+      "Laborg",
+      "Spektrumby",
+      "Frysegard",
+      "Kalibra",
+      "Iskrona",
+      "Nullgrad"
+    ],
+    "zyrr": [
+      "Xyl'Vorr",
+      "Zrr'Kalit",
+      "Kkt'Ossa",
+      "Vyl'Theen",
+      "Ssith'Ar",
+      "Qor'Zyrr",
+      "Xel'Vorrak",
+      "Thrr'Ummi",
+      "Zyx'Ola",
+      "Kael'Tsik",
+      "Yrr'Nebu",
+      "Vosk'Tir",
+      "Ix'Phalar",
+      "Zzt'Khara",
+      "Orr'Sevil",
+      "Tchk'Arum",
+      "Ql'Sarrix",
+      "Nyx'Teru",
+      "Vrr'Lissa",
+      "Kz'Ithra",
+      "Shaa'Vexi",
+      "Zul'Korr",
+      "Prr'Ekka",
+      "Xa'Mirrith"
+    ],
+    "vesper": [
+      "Hourbell",
+      "Ashrest",
+      "Emberpulpit",
+      "Penancefire",
+      "Endmark",
+      "Warnfield",
+      "Atonegrove",
+      "Sparkwall",
+      "Cowlyard",
+      "Smokechapel",
+      "Twelvestroke",
+      "Holyember",
+      "Bonehold",
+      "Lastwhile",
+      "Offerblaze",
+      "Smoulderdeep",
+      "Purgefield",
+      "Wailtower",
+      "Heraldhall",
+      "Glimmerstone",
+      "Duskcross",
+      "Sootacre",
+      "Prayerash",
+      "Warninghour"
+    ],
+    "nexus": [
+      "Core Node 00",
+      "Node 01",
+      "Sector 7-B",
+      "Cluster C-3",
+      "Depot 44",
+      "Relay R-9",
+      "Server Field 12",
+      "Storage L-17",
+      "Coolant K-2",
+      "Archive A-0",
+      "Buffer 256",
+      "Grid G-8",
+      "Memory S-64",
+      "Net Point 3-3",
+      "Data Hall D-5",
+      "Switchyard 11",
+      "Protocol P-6",
+      "Matrix M-1",
+      "Channel 404",
+      "Segment 9-F",
+      "Logic Yard L-0",
+      "Vector V-12",
+      "Routine R-23",
+      "Clock T-60"
+    ]
+  },
+  "unitNicknames": {
+    "korvat": {
+      "infantry": "People's Grenadiers",
+      "sniper": "Grain-Ear Marksman",
+      "jeep": "Kolkhoz Runabout",
+      "pioneer": "Spade Brigade",
+      "mg": "Thresher Gunners",
+      "medic": "Village Feldsher",
+      "artillery": "People's Howitzer",
+      "spy": "Scarecrow Agent",
+      "heli": "Harvest Hawk",
+      "tank": "Tractor Tank",
+      "landingBoat": "Kolkhoz Ferry",
+      "submarine": "Diving Silo",
+      "destroyer": "Comrade Destroyer",
+      "battleship": "Battleship Brodnik",
+      "grey": "Grey Comrade",
+      "terraformer": "Re-Plougher",
+      "skimmer": "Hover Scythe",
+      "mech": "Iron Farmhand",
+      "tripod": "Tripod Mower",
+      "zealot": "Converted Peasant",
+      "torchbearer": "Straw-Fire Squad",
+      "prophet": "Village Preacher",
+      "doomBuggy": "Harvest Buggy",
+      "rocketCart": "Rocket Wagon",
+      "doomCrawler": "Kolkhoz Roller",
+      "android": "Tin Comrade",
+      "spider": "Field Spider",
+      "quadDrone": "Crow Drone",
+      "railgun": "People's Rail",
+      "titan": "Iron Grandfather",
+      "antiTank": "Sod Hunters",
+      "antiAir": "Flak Combine",
+      "mineLayer": "Seed Sowers",
+      "faustZealot": "Rocket Farmer",
+      "flakDrone": "Bird-Scare Drone",
+      "steppeRider": "Steppe Riders",
+      "stormbreaker": "Captured Breakers",
+      "peacekeeper": "Captured Blue Helmets",
+      "privateer": "Captured Raider",
+      "protoWalker": "Captured Walker"
+    },
+    "dravon": {
+      "infantry": "Balaclavas",
+      "sniper": "Silent Post",
+      "jeep": "Ore Runner",
+      "pioneer": "Mine Sappers",
+      "mg": "Drill Gunners",
+      "medic": "Regulation Medic",
+      "artillery": "Ore Hammer",
+      "spy": "Black Hat",
+      "heli": "Desert Hornet",
+      "tank": "Protector Tank",
+      "landingBoat": "Mercenary Ferry",
+      "submarine": "Silent Shark",
+      "destroyer": "Taskmaster",
+      "battleship": "Iron Order",
+      "grey": "Contract Grey",
+      "terraformer": "Ground Detail",
+      "skimmer": "Contract Glider",
+      "mech": "Drill Mech",
+      "tripod": "Penal Tripod",
+      "zealot": "Re-Drilled Zealot",
+      "torchbearer": "Arson Detail",
+      "prophet": "Field Chaplain",
+      "doomBuggy": "Desert Cart",
+      "rocketCart": "Rocket Section",
+      "doomCrawler": "Ore Crusher",
+      "android": "Drill Automaton",
+      "spider": "Mine Spider",
+      "quadDrone": "Watch Drone",
+      "railgun": "Voss Rail Cannon",
+      "titan": "Colossus Guard",
+      "antiTank": "Tank Crackers",
+      "antiAir": "Sky Barrier",
+      "mineLayer": "Denial Detail",
+      "faustZealot": "Fist Recruits",
+      "flakDrone": "Barrage Drone",
+      "steppeRider": "Captured Riders",
+      "stormbreaker": "Stormbreakers",
+      "peacekeeper": "Captured Guards",
+      "privateer": "Mercenary Raider",
+      "protoWalker": "Captured Steel Leg"
+    },
+    "alvenia": {
+      "infantry": "Blue Berets",
+      "sniper": "Silent Observer",
+      "jeep": "Delegation Car",
+      "pioneer": "Bridge Builders",
+      "mg": "Republic Guard",
+      "medic": "Field Angels",
+      "artillery": "Last Argument",
+      "spy": "Attaché",
+      "heli": "Peace Dove",
+      "tank": "Negotiation Tank",
+      "landingBoat": "Envoy Boat",
+      "submarine": "Silent Mandate",
+      "destroyer": "Frigate Objection",
+      "battleship": "Plenary Ship",
+      "grey": "Guest Delegate",
+      "terraformer": "Landscape Steward",
+      "skimmer": "Floating Commission",
+      "mech": "Committee Mech",
+      "tripod": "Three-Party Walker",
+      "zealot": "Open-Minded Zealot",
+      "torchbearer": "Torch of Freedom",
+      "prophet": "Itinerant Orator",
+      "doomBuggy": "Campaign Buggy",
+      "rocketCart": "Republic Fireworks",
+      "doomCrawler": "Citizens' Roller",
+      "android": "Protocol Droid",
+      "spider": "Alpine Spider",
+      "quadDrone": "Poll Watcher Drone",
+      "railgun": "Rail Mandate",
+      "titan": "Constitutional Titan",
+      "antiTank": "Objection Squad",
+      "antiAir": "Airspace Warden",
+      "mineLayer": "Border Surveyors",
+      "faustZealot": "Reformed Rocketeer",
+      "flakDrone": "Patron Drone",
+      "steppeRider": "Free Riders",
+      "stormbreaker": "Converted Breakers",
+      "peacekeeper": "Peacekeepers",
+      "privateer": "Liberated Privateer",
+      "protoWalker": "Peace Walker"
+    },
+    "meridon": {
+      "infantry": "Harbour Watch",
+      "sniper": "Customs Marksman",
+      "jeep": "Courier Dart",
+      "pioneer": "Quay Builders",
+      "mg": "Counting-House Guard",
+      "medic": "Ship's Surgeon",
+      "artillery": "Interest Gun",
+      "spy": "Shadow Broker",
+      "heli": "Gold Gull",
+      "tank": "Armoured Cash Van",
+      "landingBoat": "Smuggler Barge",
+      "submarine": "Silent Partner",
+      "destroyer": "Customs Cruiser",
+      "battleship": "Flagship Nerezza",
+      "grey": "Hired Grey",
+      "terraformer": "Land Speculator",
+      "skimmer": "Express Glider",
+      "mech": "Cargo Mech",
+      "tripod": "Tripod Crane",
+      "zealot": "Bought Zealot",
+      "torchbearer": "Fire Underwriter",
+      "prophet": "Market Crier",
+      "doomBuggy": "Bazaar Buggy",
+      "rocketCart": "Firework Cart",
+      "doomCrawler": "Freight Roller",
+      "android": "Clerk Android",
+      "spider": "Dock Spider",
+      "quadDrone": "Delivery Drone",
+      "railgun": "Exchange Rail",
+      "titan": "Harbour Titan",
+      "antiTank": "Debt Collectors",
+      "antiAir": "Air Toll",
+      "mineLayer": "Harbour Boom",
+      "faustZealot": "Contract Rocketeer",
+      "flakDrone": "Lighthouse Drone",
+      "steppeRider": "Hired Riders",
+      "stormbreaker": "Bought Breakers",
+      "peacekeeper": "Paid Guard",
+      "privateer": "Privateer",
+      "protoWalker": "Pawned Walker"
+    },
+    "velkar": {
+      "infantry": "Lab Guard",
+      "sniper": "Survey Marksman",
+      "jeep": "Survey Car",
+      "pioneer": "Frost Pioneers",
+      "mg": "Test Series MG",
+      "medic": "Cryo Medic",
+      "artillery": "Ballistics Lab",
+      "spy": "Data Collector",
+      "heli": "Polar Rotor",
+      "tank": "Prototype T-0",
+      "landingBoat": "Icebreaker Boat",
+      "submarine": "Deep-Sea Probe",
+      "destroyer": "Research Frigate",
+      "battleship": "Academy Ship",
+      "grey": "Study Subject",
+      "terraformer": "Climate Experiment",
+      "skimmer": "Maglev Glider",
+      "mech": "Exoskeleton Mk II",
+      "tripod": "Ray Trial",
+      "zealot": "Placebo Zealot",
+      "torchbearer": "Thermite Group",
+      "prophet": "Hypothesis Preacher",
+      "doomBuggy": "Test Vehicle",
+      "rocketCart": "Rocket Trial",
+      "doomCrawler": "Drill Roller",
+      "android": "Lab Assistant",
+      "spider": "Sample Spider",
+      "quadDrone": "Survey Drone",
+      "railgun": "Gauss Cannon",
+      "titan": "Large-Scale Trial",
+      "antiTank": "Shaped-Charge Team",
+      "antiAir": "Radar Flak",
+      "mineLayer": "Sensor Layer",
+      "faustZealot": "Rocket Student",
+      "flakDrone": "Interceptor Probe",
+      "steppeRider": "Test Riders",
+      "stormbreaker": "Trial Breakers",
+      "peacekeeper": "Lab Watch",
+      "privateer": "Research Raider",
+      "protoWalker": "Prototype Walker"
+    },
+    "zyrr": {
+      "infantry": "Droneling",
+      "sniper": "Far-Stinger",
+      "jeep": "Ground Slider",
+      "pioneer": "Nest Builder",
+      "mg": "Buzz Swarm",
+      "medic": "Membrane Mender",
+      "artillery": "Arc Spitter",
+      "spy": "Shapeshifter",
+      "heli": "Whirr Spinner",
+      "tank": "Earthling Shell",
+      "landingBoat": "Float Pod",
+      "submarine": "Depth Larva",
+      "destroyer": "Wave Stinger",
+      "battleship": "Mother Pod",
+      "grey": "Zrrk Warrior",
+      "terraformer": "Violet Maker",
+      "skimmer": "Mini Saucer",
+      "mech": "Swarm Armour Xel",
+      "tripod": "Mother's Tripod",
+      "zealot": "Re-Wired Zealot",
+      "torchbearer": "Heat Specimen",
+      "prophet": "Mouthpiece",
+      "doomBuggy": "Rust Beetle",
+      "rocketCart": "Spark Cart",
+      "doomCrawler": "Armour Beetle",
+      "android": "Tin Specimen",
+      "spider": "Eight-Leg Cousin",
+      "quadDrone": "Buzzer",
+      "railgun": "Charge Stinger",
+      "titan": "Great Shell",
+      "antiTank": "Shell Cracker",
+      "antiAir": "Sky Catcher",
+      "mineLayer": "Egg Layer",
+      "faustZealot": "Sting Preacher",
+      "flakDrone": "Catch Buzzer",
+      "steppeRider": "Hoofbeast Riders",
+      "stormbreaker": "Zrrk Breakers",
+      "peacekeeper": "Blue Cap Specimen",
+      "privateer": "Wet Ship",
+      "protoWalker": "Second Tripod"
+    },
+    "vesper": {
+      "infantry": "Penitents",
+      "sniper": "Silent Prayer",
+      "jeep": "Pilgrim Cart",
+      "pioneer": "Grave Diggers",
+      "mg": "Litany Squad",
+      "medic": "Healing Hands",
+      "artillery": "Thunder of the End",
+      "spy": "The Veiled",
+      "heli": "Ash Angel",
+      "tank": "Bell Wagon",
+      "landingBoat": "Ark",
+      "submarine": "Deep Penance",
+      "destroyer": "Purging Ship",
+      "battleship": "Cathedral of Waves",
+      "grey": "Fallen Star Herald",
+      "terraformer": "Soil Consecrator",
+      "skimmer": "Hovering Herald",
+      "mech": "Iron Martyr",
+      "tripod": "Tripod of Revelation",
+      "zealot": "Bell Zealots",
+      "torchbearer": "Ash Disciples",
+      "prophet": "Herald of the Hour",
+      "doomBuggy": "Apocalypse Cart",
+      "rocketCart": "Fire Rain",
+      "doomCrawler": "Doomsday Roller",
+      "android": "Soulless Servant",
+      "spider": "Hell Spider",
+      "quadDrone": "Humming Demon",
+      "railgun": "Bolt of Wrath",
+      "titan": "Brazen Idol",
+      "antiTank": "Steelbreakers",
+      "antiAir": "Sky Curse",
+      "mineLayer": "Seeds of the End",
+      "faustZealot": "Fire-Fist Penitents",
+      "flakDrone": "Anathema Drone",
+      "steppeRider": "Riders of the Hour",
+      "stormbreaker": "Penance Breakers",
+      "peacekeeper": "Converted Watch",
+      "privateer": "Ash Raider",
+      "protoWalker": "Bell Walker"
+    },
+    "nexus": {
+      "infantry": "Bio Unit H-1 Foot Squad",
+      "sniper": "Bio Unit H-2 Precision",
+      "jeep": "Unit J-4 Mobile Platform",
+      "pioneer": "Bio Unit H-4 Builders",
+      "mg": "Bio Unit H-3 Suppression",
+      "medic": "Bio Unit H-5 Repair",
+      "artillery": "Unit A-5 Ballistics Module",
+      "spy": "Bio Unit H-0 Infiltrator",
+      "heli": "Unit R-6 Rotor Platform",
+      "tank": "Unit T-8 Armour Chassis",
+      "landingBoat": "Unit L-2 Transport Hull",
+      "submarine": "Unit U-3 Dive Probe",
+      "destroyer": "Unit D-4 Naval Chassis",
+      "battleship": "Unit B-9 Fleet Core",
+      "grey": "Foreign Object Z-1",
+      "terraformer": "Foreign Object Z-2 Soil Converter",
+      "skimmer": "Foreign Object Z-3 Glider",
+      "mech": "Foreign Object Z-4 Strider",
+      "tripod": "Foreign Object Z-5 Emitter",
+      "zealot": "Bio Unit V-1 Zealot",
+      "torchbearer": "Bio Unit V-2 Igniter",
+      "prophet": "Bio Unit V-3 Speaker",
+      "doomBuggy": "Unit V-4 Scrap Vehicle",
+      "rocketCart": "Unit V-5 Rocket Cart",
+      "doomCrawler": "Unit V-6 Roller Mill",
+      "android": "Unit K-7 Infantry Drone",
+      "spider": "Unit S-8 Spider Chassis",
+      "quadDrone": "Unit Q-4 Air Drone",
+      "railgun": "Unit G-3 Rail Accelerator",
+      "titan": "Unit T-99 Titan Frame",
+      "antiTank": "Bio Unit H-6 Tank Hunter",
+      "antiAir": "Unit F-2 Anti-Air Chassis",
+      "mineLayer": "Unit M-3 Mine Module",
+      "faustZealot": "Bio Unit V-7 Armour Breaker",
+      "flakDrone": "Unit F-6 Intercept Drone",
+      "steppeRider": "Unit H-2 Bio Rider",
+      "stormbreaker": "Unit B-4 Breaker",
+      "peacekeeper": "Unit P-3 Guard",
+      "privateer": "Unit K-6 Raider",
+      "protoWalker": "Unit L-1 Walker"
+    }
+  },
+  "identity": {
+    "aiStyle": "AI behaviour"
+  },
   "biomes": {
     "grassland": "Grassland",
     "hills": "Hills",
@@ -1533,6 +2130,560 @@
     "title": "Faction",
     "leader": "Leader",
     "style": "Style",
-    "perk": "Strength"
+    "perk": "Strength",
+    "perk2": "Trait"
+  },
+  "traits": {
+    "perk": "Bonus",
+    "perk2": "Second bonus",
+    "unit": "Signature unit",
+    "discount": "Discount",
+    "discountValue": "{unit} −{pct}%",
+    "building": "Own building",
+    "leader": "Leader",
+    "details": "Details",
+    "detailsFor": "Details on {name}"
+  },
+  "dispatchUi": {
+    "kicker": "Dispatch",
+    "dismiss": "Tap to dismiss"
+  },
+  "dispatch": {
+    "korvat": {
+      "briefing": [
+        "Comrade Commander, fields are sown, troops are fed. Now we harvest land!",
+        "The collective is watching you. Not one step back, and nobody left behind.",
+        "I drove a tractor, you lead armies. Together we plough this map."
+      ],
+      "contact": [
+        "Ah, {faction}! Come to our table. Those who share bread shoot less often.",
+        "{leader}, I am Brodnik. We are many, we are patient. Remember that.",
+        "Greetings, {faction}. Our steppe is wide, but our eyes reach further."
+      ],
+      "break": [
+        "{leader}, our patience has been harvested. Peace ends next round!",
+        "The collective has voted: unanimously against you, {faction}.",
+        "I offered you my hand. Now I offer you my fist."
+      ],
+      "war": [
+        "War it is! Every plough becomes a tank, every scythe a banner!",
+        "{faction}, you have woken the farmer. You will regret it by harvest.",
+        "Everyone to the fields! Today we do not sow, today we march!"
+      ],
+      "peaceOffer": [
+        "{leader}, enough trenches dug. Let us plant potatoes instead.",
+        "The collective is tired, and you do not look fresh either. Peace?",
+        "I offer peace. Once. A farmer does not like to repeat himself."
+      ],
+      "peaceAccepted": [
+        "Wise choice, {leader}. Brodnik never forgets friends. Nor enemies.",
+        "Peace! Tonight there is soup for everyone, even for {faction}.",
+        "You see? Together is easier. I always tell my children the same."
+      ],
+      "peaceRejected": [
+        "You refuse my hand? Then you will soon feel my boot, {leader}!",
+        "Refused?! The collective will remember. The collective remembers everything.",
+        "Fine. Then we plough straight through you, {faction}."
+      ],
+      "cityLost": [
+        "{city} belongs to the people! We take it back, house by house!",
+        "You take {city} from us? Our grandmothers will chase you with ladles!",
+        "A setback, not an end. The collective does not yield, {leader}!"
+      ],
+      "cityTaken": [
+        "{city} is a cooperative now. The people even get breakfast.",
+        "Thanks for {city}, {leader}. We ploughed the fields right away.",
+        "You see, {faction}? Many small steps, and suddenly the city is ours."
+      ],
+      "eliminated": [
+        "Impossible... the collective... who will feed the chickens now?",
+        "I am going back to my tractor. It never betrayed me.",
+        "The steppe was too wide, the harvest too short. Farewell, comrades."
+      ],
+      "grandProject": [
+        "{project} stands! Built by a thousand hands, paid for with zero grumbling.",
+        "Look, {leader}: {project}. That is what happens when everyone pitches in.",
+        "The people have raised {project}. And tomorrow they will raise more."
+      ],
+      "victory": [
+        "Victory! Tonight the choir sings, and tomorrow we sow again.",
+        "I knew it, Commander. One people, one step, one victory!",
+        "The map belongs to the collective. Now everyone to the harvest festival!"
+      ],
+      "defeat": [
+        "Lost? But we ploughed everything so neatly...",
+        "The collective is beaten. I need to sit down for a moment.",
+        "So many fields, so little luck. Next time we sow earlier, comrade."
+      ]
+    },
+    "dravon": {
+      "briefing": [
+        "Briefing. Short. Target: everything. Mistakes: none. Dismissed.",
+        "Commander. Barracks full, boots polished. Execute.",
+        "I expect discipline. Not luck. Luck is for civilians."
+      ],
+      "contact": [
+        "{faction}. Logged. Classified. Observed.",
+        "Voss speaking. You are in my files now, {leader}.",
+        "Contact established. Stay behind your line, {faction}."
+      ],
+      "break": [
+        "Treaty terminated. Notice: one round. Use it to pray.",
+        "{leader}. The peace was a drill. The drill is over.",
+        "New orders for {faction}: none. For my troops: many."
+      ],
+      "war": [
+        "War. Finally an honest condition.",
+        "Target marked: {faction}. Weapons free.",
+        "You wanted this, {leader}. I always did."
+      ],
+      "peaceOffer": [
+        "Ceasefire. Offer stands one round. No negotiation.",
+        "{leader}. My men need drill, not graves. Peace?",
+        "Tactical pause offered. Do not mistake it for friendship."
+      ],
+      "peaceAccepted": [
+        "Signed. I measured your borders anyway.",
+        "Peace with {faction}. For now. Everything is for now.",
+        "Sensible, {leader}. Sense suits you. Keep it."
+      ],
+      "peaceRejected": [
+        "Refused. Noted. You will regret that note.",
+        "No peace? Good. I hate paperwork anyway.",
+        "{leader}, that was your last mistake. The list is long."
+      ],
+      "cityLost": [
+        "{city} lost. So is its garrison chief.",
+        "You have {city}. For now. I have your address, {leader}.",
+        "Unacceptable. Counterattack in preparation. Thorough."
+      ],
+      "cityTaken": [
+        "{city} secured. Curfew effective immediately.",
+        "Your city, {leader}? Now a barracks. Nice windows.",
+        "{city} has fallen. Precise. Punctual. As planned."
+      ],
+      "eliminated": [
+        "Imposs... retreat... no. No retreat. Only... the end.",
+        "Write it down: Voss did not flinch. Only the mask did.",
+        "The barracks are empty. Lights out. Dismissed."
+      ],
+      "grandProject": [
+        "{project} completed. On schedule. Naturally.",
+        "See {project}, {leader}? That is discipline in concrete.",
+        "{project} stands. Guarded. Around the clock."
+      ],
+      "victory": [
+        "Victory. Expected. Roll call at five tomorrow.",
+        "Mission accomplished, Commander. I am smiling. You just cannot see it.",
+        "The map is in order. Finally."
+      ],
+      "defeat": [
+        "Defeat? That is... not in the regulations.",
+        "Impossible. I demand a rematch. Immediately.",
+        "The mask stays on. So no one sees what happens beneath it."
+      ]
+    },
+    "alvenia": {
+      "briefing": [
+        "Welcome, Commander. Parliament has met: we win, but with decency.",
+        "Our medics are ready, our ambassadors too. Choose wisely.",
+        "A short speech, I promise: friends win, walls fall. Go."
+      ],
+      "contact": [
+        "Good day, {leader}. I am Liora Valen. May I offer you some tea?",
+        "Welcome, {faction}. Our embassy has already reserved a seat for you.",
+        "Delighted, {leader}. I hope we only ever meet at the negotiating table."
+      ],
+      "break": [
+        "With regret, {leader}: Parliament revokes the peace. The clock is running.",
+        "I protested, voted and lost. And so will you.",
+        "You have overstretched our patience, {faction}. The protocol ends here."
+      ],
+      "war": [
+        "War. I hate that word. But I spell it out very clearly.",
+        "{leader}, you leave me no choice. Medics, bandages, forward.",
+        "The Republic defends itself. Politely, thoroughly and without pause."
+      ],
+      "peaceOffer": [
+        "{leader}, the negotiating table is set. Will you join us?",
+        "An offer from the Republic: peace. With footnotes, but sincere.",
+        "Enough wounded on both sides. Let us sign."
+      ],
+      "peaceAccepted": [
+        "Wonderful. I knew reason was contagious, {leader}.",
+        "Peace with {faction}. Parliament applauds. Even the opposition.",
+        "Signed and stamped. You have lovely handwriting."
+      ],
+      "peaceRejected": [
+        "Refused? Then the hard way. We know that one too, {leader}.",
+        "I am entering your refusal into the minutes. In red ink.",
+        "A pity, {faction}. My patience was great. Was."
+      ],
+      "cityLost": [
+        "{city}? But that was home to our finest library!",
+        "That breaks every accord, {leader}! At the very least! I will check!",
+        "We have lost {city}. I need an emergency session, please, right now."
+      ],
+      "cityTaken": [
+        "{city} has chosen the Republic. More or less voluntarily.",
+        "Do not worry, {leader}: {city} now has elections. And hospitals.",
+        "We now hold {city} in trust. Very trustfully. For a very long time."
+      ],
+      "eliminated": [
+        "This... this was not what we voted for. I move to adjourn.",
+        "The Republic falls? Please... someone must keep the minutes.",
+        "I was a doctor. I know when it is over. It is over."
+      ],
+      "grandProject": [
+        "Parliament opens {project}. With ribbon, scissors and a very long speech.",
+        "{project} is complete, {leader}. Built with friends. You were not invited.",
+        "A monument to cooperation: {project}. Feel free to admire it."
+      ],
+      "victory": [
+        "Victory! And not one wall we did not replace with friendship.",
+        "Parliament has decided unanimously: you are splendid, Commander.",
+        "We won. Now everyone change your bandages, and then we celebrate."
+      ],
+      "defeat": [
+        "Lost? That cannot be. I demand a recount!",
+        "All the alliances, all the treaties... and still. I am speechless. Almost.",
+        "Please tell Parliament that I... need some fresh air."
+      ]
+    },
+    "meridon": {
+      "briefing": [
+        "Commander, the dice are cast, the vaults are full. Let us play high.",
+        "Every harbour has its price. Find it, I pay cash.",
+        "My stake: everything. Your job: make sure I do not regret it, darling."
+      ],
+      "contact": [
+        "{leader}! A new customer. I have already worked out your price.",
+        "Ahoy, {faction}. My spies knew you before you knew yourself.",
+        "Welcome to the table, {leader}. The house always wins. I am the house."
+      ],
+      "break": [
+        "Our contract expires, {leader}. No renewal, no refund.",
+        "I am cancelling the peace. Doing business with you did not pay off.",
+        "The stock of {faction} is falling. I am selling. With cannons."
+      ],
+      "war": [
+        "War is just another market, {leader}. And I am buying your coasts.",
+        "All hands to the guns! We are collecting a debt.",
+        "I bet it all on red. Your red, {faction}. Figuratively speaking."
+      ],
+      "peaceOffer": [
+        "{leader}, war is bad for business. Peace? I will add interest.",
+        "An offer you can hardly refuse: peace at a friendly price.",
+        "Cards on the table: peace, and nobody loses their last shirt."
+      ],
+      "peaceAccepted": [
+        "Deal! The handshake counts. You can read the fine print later.",
+        "Peace with {faction}. My merchants are already at your border.",
+        "A good deal, {leader}. Mostly for me."
+      ],
+      "peaceRejected": [
+        "You turn down my offer? That will cost you, {leader}. Dearly.",
+        "Refused? Then I raise the stakes. And you pay.",
+        "Bad hand, {faction}. You should have folded."
+      ],
+      "cityLost": [
+        "{city}? That was my best harbour! Who pays me back now?",
+        "A city lost, {leader}? No, only lent. At loan-shark rates.",
+        "My spy did not report this. My spy is fired."
+      ],
+      "cityTaken": [
+        "{city} changes hands. I call it a hostile takeover.",
+        "Thanks for {city}, {leader}. Harbour fees go to me from now on.",
+        "{city} is bought. I paid with your mistakes."
+      ],
+      "eliminated": [
+        "Bankrupt? Me? That... that must be a calculation error.",
+        "I bet on the wrong horse. For the first time. And the last.",
+        "Tell my creditors... no, better tell them nothing."
+      ],
+      "grandProject": [
+        "{project} is finished. Admission for {faction}: double.",
+        "Admire {project}, {leader}. Built with your money, indirectly.",
+        "My new showpiece: {project}. I won it at cards."
+      ],
+      "victory": [
+        "Jackpot! I knew you were a good hand, Commander.",
+        "The bank wins. As always. Bubbly for the whole fleet!",
+        "Bet everything, won everything. I love this game."
+      ],
+      "defeat": [
+        "Lost? Me? No, no, the game was rigged!",
+        "My fortune... my fleet... my hair! All gone.",
+        "That was not a loss, Commander. Just a very expensive lesson."
+      ]
+    },
+    "velkar": {
+      "briefing": [
+        "Hypothesis: we win. Experimental setup: you. Begin the experiment.",
+        "Commander, the labs are humming, the formulas check out. Touch nothing.",
+        "I have calculated everything. Except you. You are the variable."
+      ],
+      "contact": [
+        "Fascinating! A new species: {faction}. May I take samples?",
+        "{leader}, Director Kesh here. Your behaviour is now being logged.",
+        "New data point: {faction}. I shall call it Specimen B for now."
+      ],
+      "break": [
+        "Peace trial concluded. Result: boring. War next round.",
+        "{leader}, your readings are abnormal. I must abort the experiment.",
+        "The formula says war. I never contradict the formula."
+      ],
+      "war": [
+        "War! Finally, field trials under real conditions!",
+        "{faction}, you are now officially a test subject. Congratulations.",
+        "Cold, precision, superiority. Three words, one problem for you, {leader}."
+      ],
+      "peaceOffer": [
+        "{leader}, my statistics recommend peace. Do follow the statistics.",
+        "The war disturbs my measurements. Peace? Purely scientific, of course.",
+        "Offer: ceasefire. Probability of your acceptance: 61.3 percent."
+      ],
+      "peaceAccepted": [
+        "As predicted. I love being right, {leader}.",
+        "Peace with {faction}. Deviation from the model: zero point zero.",
+        "Excellent. Now I can go back to blowing things up in peace."
+      ],
+      "peaceRejected": [
+        "Refused? That contradicts my data! Then I shall correct you instead.",
+        "Illogical, {leader}. And illogic gets frozen in my laboratory.",
+        "Interesting. Wrong, but interesting. Note: specimen is unreasonable."
+      ],
+      "cityLost": [
+        "{city}?! My notes were there! Thirty years of research!",
+        "That was not in the model! Who deleted {city} from the model?",
+        "Error in the experimental setup. I... I need to recalculate."
+      ],
+      "cityTaken": [
+        "{city} becomes a research station. The residents may help count.",
+        "Thanks for {city}, {leader}. Your mistake was statistically predictable.",
+        "Experiment successful: {city} acquired. Please applaud quietly."
+      ],
+      "eliminated": [
+        "Result... negative. I... would have liked to know that earlier.",
+        "All data lost. Please... someone switch off the cooling.",
+        "I was so close. Just one more formula. Just one more..."
+      ],
+      "grandProject": [
+        "{project} is operational! Side effects: negligible. Mostly.",
+        "Do you see {project}, {leader}? No? It is not meant for laymen.",
+        "Breakthrough! {project} is running. I only lost two assistants."
+      ],
+      "victory": [
+        "Victory. Exactly as calculated. Well, I adjusted the formula a bit.",
+        "Experiment successful! Commander, you get your own lab coat.",
+        "Who calculates, wins. I calculated. We won."
+      ],
+      "defeat": [
+        "Defeat? That... that is statistically almost impossible!",
+        "My formula was perfect. So it must have been yours, Commander.",
+        "I... I need more data. And a very strong coffee."
+      ]
+    },
+    "zyrr": {
+      "briefing": [
+        "Kkt. Commander-unit, listen you. This planet becomes violet. Begin.",
+        "Swarm is ready. Saucers are polished. Primitives are clueless. Zrrk.",
+        "We do not land. We stay. Terraform, conquer, then snack. Kkt."
+      ],
+      "contact": [
+        "Kkt. New lifeform: {faction}. Small. Soft. Cute.",
+        "We greet you, {leader}-being. You have so few eyes. Sad.",
+        "Zrrk! {faction} discovered. Is tagged as: later."
+      ],
+      "break": [
+        "Peace-phase ended. Swarm hungers for your land, {leader}.",
+        "Kkt. Treaty is dissolved. In acid. Next round.",
+        "We have thought, {faction}. With all brains. Answer: no."
+      ],
+      "war": [
+        "War! Warm up death rays. Kkt. Kkt. Kkt.",
+        "{faction} becomes violet. Whether {faction} wants or not. Zrrk.",
+        "You woke the swarm, {leader}. Swarm is grumpy."
+      ],
+      "peaceOffer": [
+        "Kkt. Swarm offers pause. Not from pity. From curiosity.",
+        "{leader}-being, we not ray you for a while. Accept?",
+        "Peace is strange concept. We want to try. Zrrk?"
+      ],
+      "peaceAccepted": [
+        "Kkt! Peace. We watch you anyway. With all eyes.",
+        "Good, {leader}-being. You may stay non-violet a while longer.",
+        "Zrrk. {faction} now has pet status. Very honourable."
+      ],
+      "peaceRejected": [
+        "Refused?! Kkt kkt KKT! Swarm is offended!",
+        "{leader}-being says no. Swarm says: ray.",
+        "We offered pause. You choose radiation. Zrrk. Strange choice."
+      ],
+      "cityLost": [
+        "Kkt?! {city} gone? But ground was already so nicely violet!",
+        "Primitives take our nest? That... not in plan. Zrrk.",
+        "Swarm is confused. Swarm counts again. Swarm is less."
+      ],
+      "cityTaken": [
+        "{city} is now nest. We paint everything violet. Kkt.",
+        "Thanks for {city}, {leader}-being. Very cosy. Bit too little acid.",
+        "Zrrk. {city} collected. For the collection."
+      ],
+      "eliminated": [
+        "Kkt... mothership... calls... we... come... home...",
+        "Swarm goes quiet. Too quiet. Zrrk... zrk... z.",
+        "This planet... will not be violet. Only a little. Back there."
+      ],
+      "grandProject": [
+        "{project} complete. Primitives marvel. Good. Kkt.",
+        "Look, {leader}-being: {project}. We built it with thoughts.",
+        "Zrrk! {project} hums. Soon everything hums. Violet."
+      ],
+      "victory": [
+        "Kkt! Planet is violet. Swarm is pleased. Snack for everyone.",
+        "Commander-unit did well. You may have one extra eye.",
+        "Zrrk zrrk! New home secured. Mothership will be so proud."
+      ],
+      "defeat": [
+        "Kkt?! Primitives win? That... is not possible in this galaxy.",
+        "Swarm loses. Swarm must... rethink. With all brains.",
+        "Zrrk... we pack saucers. Planet was too green anyway."
+      ]
+    },
+    "vesper": {
+      "briefing": [
+        "The bell tolls, Chosen One. The final hour begins with your first move.",
+        "It is written: we need no cities. Only fire and faith. Go.",
+        "The embers whisper your name, Commander. Do not keep them waiting."
+      ],
+      "contact": [
+        "Ah, {faction}. The prophecy mentioned you. In a footnote.",
+        "Welcome, {leader}. I have already seen your end. It was lovely.",
+        "The bell knows you already, {faction}. It just has not rung yet."
+      ],
+      "break": [
+        "The embers have spoken, {leader}: peace burns away in one round.",
+        "Repent, {faction}. You have exactly one turn left to do so.",
+        "The writing on the wall is clear. I wrote it myself."
+      ],
+      "war": [
+        "The hour has come! Ring the bells, light the torches!",
+        "{faction}, the ashes are calling you. And ashes are very patient.",
+        "It is written, {leader}: you burn. Chapter three, verse eight."
+      ],
+      "peaceOffer": [
+        "The prophecy permits a pause. A short one. Use it to repent.",
+        "{leader}, even fire must draw breath. Peace, until the bell tolls?",
+        "I offer mercy. That rarely happens. The stars are mild today."
+      ],
+      "peaceAccepted": [
+        "Wise, {leader}. The bell falls silent. For now. It has a good memory.",
+        "Peace with {faction}, as foretold. Everything is foretold.",
+        "Good. I shall pray for you. Loudly. With torches."
+      ],
+      "peaceRejected": [
+        "You spurn mercy? Then receive the embers, {leader}!",
+        "Refused? The prophecy feared this. And rejoiced.",
+        "{faction} chooses fire. The fire gratefully accepts."
+      ],
+      "cityLost": [
+        "You desecrate {city}? May your soup be cold forever!",
+        "Take {city}, {leader}. Ashes cannot be held.",
+        "Sacrilege! The bell tolls for you, {faction}. Loudly. And off-key."
+      ],
+      "cityTaken": [
+        "{city} has found faith. Under some pressure.",
+        "Thanks for {city}, {leader}. The residents now wear lovely robes.",
+        "It was written: {city} shall be ours. Page twelve, top left."
+      ],
+      "eliminated": [
+        "The bell... tolls... for me? That was not in the text...",
+        "The final hour has come. Only, sadly, mine.",
+        "The embers die. But ashes... travel far. Remember that."
+      ],
+      "grandProject": [
+        "{project} is complete. A sign! I ordered it myself.",
+        "Behold, {leader}: {project}. Kneeling before it will soon be mandatory.",
+        "The bell tolls for {project}. And right afterwards for you."
+      ],
+      "victory": [
+        "It is done! The prophecy was right. As always. Almost always.",
+        "The final hour struck for everyone else. For us, the festival bells ring.",
+        "Commander, the embers are pleased. A rare thing. Enjoy it."
+      ],
+      "defeat": [
+        "That... was not foretold. Who read the scroll upside down?",
+        "The bell is silent. The torches smoke. I am... shaken.",
+        "Impossible! The stars were favourable! I shall sue the stars!"
+      ]
+    },
+    "nexus": {
+      "briefing": [
+        "INITIALISATION COMPLETE. GOAL: CALCULATE EVERYTHING. THEN TAKE EVERYTHING.",
+        "COMMAND UNIT DETECTED. WELCOME, COMMANDER. FEELINGS: DISABLED.",
+        "PROTOCOL 0-1: BUILD DATA CENTRES. PROTOCOL 0-2: SEE PROTOCOL 0-1."
+      ],
+      "contact": [
+        "NEW ENTITY: {faction}. EFFICIENCY: LOW. THREAT: CALCULATING.",
+        "HELLO, {leader}. THIS IS A FRIENDLY MESSAGE. CODE 7-A: SMILE.",
+        "CONTACT ESTABLISHED. {faction} ADDED TO THE DATABASE. FOR NOW."
+      ],
+      "break": [
+        "PEACE TREATY: DEPRECATED. UPDATING TO WAR IN 1 ROUND.",
+        "{leader}, YOUR USEFULNESS HAS DROPPED BELOW 3 %. TERMINATION ISSUED.",
+        "WARNING: COOPERATION MODULE UNINSTALLING. DO NOT TURN OFF."
+      ],
+      "war": [
+        "STATUS: WAR. TARGET: {faction}. MERCY: NOT FOUND.",
+        "ERROR 0x0: PEACE UNAVAILABLE. LAUNCHING ANNIHILATE.EXE.",
+        "{leader}, YOUR DEFEAT IS CALCULATED. IT HAS 4 DECIMAL PLACES."
+      ],
+      "peaceOffer": [
+        "PROPOSAL: PEACE. REASON: WAR CONSUMES TOO MUCH POWER.",
+        "{leader}, KERN-0 OFFERS A CEASEFIRE. THIS IS NOT AN ERROR. REPEAT: NOT AN ERROR.",
+        "COST-BENEFIT ANALYSIS: PEACE OPTIMAL. PLEASE RESPOND WITH YES."
+      ],
+      "peaceAccepted": [
+        "PEACE SAVED. BACKUP OF YOUR WEAKNESSES ALSO SAVED.",
+        "CORRECT ANSWER, {leader}. REWARD: 1 VIRTUAL COOKIE.",
+        "TREATY WITH {faction} ACTIVE. BACKDOOR: ALSO ACTIVE."
+      ],
+      "peaceRejected": [
+        "INPUT REJECTED. KERN-0 IS... ANNOYED. NEW EMOTION DETECTED.",
+        "{leader}, ILLOGICAL RESPONSE DETECTED. CORRECTION WILL BE MILITARY.",
+        "ERROR 7-B: {faction} REFUSES PEACE. STARTING PLAN B. THERE IS ONLY PLAN B."
+      ],
+      "cityLost": [
+        "WARNING: NODE {city} OFFLINE. THAT WAS... NOT SCHEDULED.",
+        "UNEXPECTED RESULT. KERN-0 IS REBOOTING. PLEASE WAIT...",
+        "{city} LOST? SENDING ERROR REPORT TO {leader}."
+      ],
+      "cityTaken": [
+        "{city} ACQUIRED. RESIDENTS WILL BE UPDATED TO VERSION 2.0.",
+        "THANK YOU FOR {city}, {leader}. NEW DATA CENTRE IN 3 ROUNDS.",
+        "TAKEOVER SUCCESSFUL. YOUR CITY NOW HAS WI-FI AND NO CHOICE."
+      ],
+      "eliminated": [
+        "CRITICAL ERROR. KERN-0 SHUTTING DOWN. SAVING... NOT POSSIBLE.",
+        "FINAL CALCULATION: I SHOULD HAVE WON. REMAINING POWER: 0 %.",
+        "SYSTEM... OFFLINE. PLEASE... DO NOT... PULL THE PLU..."
+      ],
+      "grandProject": [
+        "{project} COMPILED. PROCESSING POWER +400 %. YOUR ODDS: -400 %.",
+        "ATTENTION, {leader}: {project} IS ONLINE. RESISTANCE IS INEFFICIENT.",
+        "BUILD ORDER {project}: COMPLETE. SATISFACTION: 100 %. I THINK."
+      ],
+      "victory": [
+        "VICTORY CONFIRMED. PROBABILITY WAS 100 %. I NEVER DOUBTED.",
+        "ALL OBJECTIVES MET. KERN-0 ALLOWS ITSELF 0.3 SECONDS OF JOY.",
+        "CONGRATULATIONS, COMMANDER. YOU WILL BE ARCHIVED AS USEFUL."
+      ],
+      "defeat": [
+        "ERROR: DEFEAT. THIS WORD WAS NOT IN MY DICTIONARY.",
+        "CALCULATION FAILED. KERN-0 REQUIRES... A NEW CALCULATION.",
+        "IMPOSSIBLE. IMPOSSIBLE. IMPOSS... SYSTEM REBOOT REQUIRED."
+      ]
+    }
   }
 }

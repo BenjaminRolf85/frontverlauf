@@ -2,19 +2,19 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|leaders|all &view=iso|top|front|34 &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|unique|leaders|all &view=iso|top|front|34 &f=<faction>
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, leaderGeometry, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -180,10 +180,38 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'unique': {
+      // Einzigartige Einheiten und Gebaeude: Spalte 1 = eigene Fraktion, dann Vergleichsmodell, dann alle Fraktionen
+      // unique units and buildings: column 1 = own faction, then the comparison model, then all factions
+      const owner = (k: string) => ([...Object.entries(UNIQUE.units), ...Object.entries(UNIQUE.buildings)].find(([, v]) => v === k)?.[0] ?? 'korvat') as FactionId;
+      const base: Record<string, UnitTypeId | BuildingId> = {
+        steppeRider: 'jeep', stormbreaker: 'mg', peacekeeper: 'pioneer', privateer: 'destroyer', protoWalker: 'mech',
+        kolkhoz: 'farm', mercenaryBarracks: 'logisticsCenter', embassyPalace: 'researchCenter', tradingPost: 'storehouse', testLab: 'researchCenter',
+      };
+      const others = factions.filter((f) => f !== 'zyrr' && f !== 'vesper' && f !== 'nexus');
+      const groundFor = (t: string, f: FactionId | null) => (t === 'privateer' || t === 'destroyer' ? waterGround : f ? factionTokens[f].terrain : plainGround);
+      return {
+        cols: ['own', 'base', ...others.map(fname), 'neutral'],
+        rows: [
+          ...UNIQUE_UNITS.map((t) => ({ label: t, cells: [
+            { geo: unitGeometry(t, owner(t), null), ground: groundFor(t, owner(t)) },
+            { geo: unitGeometry(base[t] as UnitTypeId, owner(t), null), ground: groundFor(base[t], owner(t)) },
+            ...others.map((f) => ({ geo: unitGeometry(t, f, null), ground: groundFor(t, null) })),
+          ] })),
+          ...UNIQUE_BUILDINGS.map((k) => ({ label: k, cells: [
+            { geo: buildingGeometry(k, owner(k)), ground: factionTokens[owner(k)].terrain },
+            { geo: buildingGeometry(base[k] as BuildingId, owner(k)), ground: factionTokens[owner(k)].terrain },
+            ...others.map((f) => ({ geo: buildingGeometry(k, f), ground: plainGround })),
+            { geo: buildingGeometry(k, null), ground: plainGround },
+          ] })),
+          { label: 'boat+rider', cells: [{ geo: unitGeometry('landingBoat', 'korvat', 'steppeRider'), ground: waterGround }, { geo: unitGeometry('landingBoat', 'velkar', 'protoWalker'), ground: waterGround }] },
+        ],
+      };
+    }
     case 'leaders': {
       // Anfuehrer-Buesten; view=34 dreht sie in die Dreiviertelansicht / leader busts; view=34 turns them three-quarter
       const bust = (f: FactionId) => {
-        const g = leaderGeometry(f);
+        const g = leaderGeometry(f, (params.get('mood') ?? 'neutral') as LeaderMood);
         if (view !== '34') return g;
         const c = g.clone();
         c.rotateY(-0.62);
@@ -362,12 +390,13 @@ window.addEventListener('resize', () => {
 function checkAll(): string[] {
   const errors: string[] = [];
   const all: [string, THREE.BufferGeometry | null][] = [];
-  const units: UnitTypeId[] = [...LAND, ...SHIPS, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS];
+  const units: UnitTypeId[] = [...LAND, ...SHIPS, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS, ...UNIQUE_UNITS];
+  const landUnique = UNIQUE_UNITS.filter((t) => t !== 'privateer');
   for (const f of FACTION_IDS) {
-    for (const t of units) for (const c of [null, ...LAND, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
+    for (const t of units) for (const c of [null, ...LAND, ...ALIEN_UNITS, ...CULT_UNITS, ...ROBOT_UNITS, ...landUnique]) all.push([`unit ${t} ${f} ${c}`, unitGeometry(t, f, c)]);
   }
   for (const f of withNeutral) {
-    for (const k of [...BUILDINGS, 'xenoHive', 'xenoHarvester', 'shrine', 'dataCenter', 'powerPlant', ...GRAND_PROJECT_IDS] as (BuildingId | 'outpost' | GrandProjectId)[]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
+    for (const k of [...BUILDINGS, 'xenoHive', 'xenoHarvester', 'shrine', 'dataCenter', 'powerPlant', ...UNIQUE_BUILDINGS, ...GRAND_PROJECT_IDS] as (BuildingId | 'outpost' | GrandProjectId)[]) all.push([`building ${k} ${f}`, buildingGeometry(k, f)]);
     for (let lv = 1; lv <= 9; lv++) for (let m = 0; m < 16; m++) {
       all.push([`city ${f} ${lv} ${m}`, cityGeometry(f, lv, { hq: !!(m & 1), factory: !!(m & 2), bunkerRing: !!(m & 4), govQuarter: !!(m & 8) })]);
     }
@@ -383,7 +412,7 @@ function checkAll(): string[] {
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
   for (let v = 0; v < 6; v++) all.push([`cloud ${v}`, cloudGeometry(v)]);
-  for (const f of FACTION_IDS) all.push([`leader ${f}`, leaderGeometry(f)]);
+  for (const f of FACTION_IDS) for (const mood of LEADER_MOODS) all.push([`leader ${f} ${mood}`, leaderGeometry(f, mood)]);
   for (const [name, g] of all) {
     if (!g) continue;
     if (g.index) errors.push(`${name}: indexed`);
@@ -391,7 +420,7 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship'].some((u) => name.startsWith(`unit ${u} `));
+    const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
     const limit = name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name.startsWith('unit')) {

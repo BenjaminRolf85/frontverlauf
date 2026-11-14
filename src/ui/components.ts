@@ -55,12 +55,26 @@ export function factionChip(f: FactionId, label: string): string {
 }
 
 /** Aktionsknopf in der Aktionsleiste / action in the action bar */
-export interface ActionItem { id: string; label: string; icon: string; cost?: number; enabled: boolean; reason?: string; variant?: 'primary' | 'danger'; run: () => void }
+/** sub: kleine Zweitzeile unter dem Namen (z. B. Fraktions-Spitzname) / small second line below the label (e.g. faction nickname) */
+export interface ActionItem { id: string; label: string; sub?: string; icon: string; cost?: number; enabled: boolean; reason?: string; variant?: 'primary' | 'danger'; run: () => void }
 export function actionButton(a: ActionItem): string {
-  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc(a.reason ?? a.label)}">${icon(a.icon)}<span>${esc(a.label)}</span>${a.cost !== undefined ? price(a.cost) : ''}</button>`;
+  const sub = a.sub && a.sub !== a.label ? `<small class="action-sub">${esc(a.sub)}</small>` : '';
+  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc(a.reason ?? (a.sub ? `${a.label} (${a.sub})` : a.label))}">${icon(a.icon)}<span>${esc(a.label)}</span>${sub}${a.cost !== undefined ? price(a.cost) : ''}</button>`;
 }
 
 /** Dialog / dialog */
+/** Offene Dialoge, oberster zuletzt; Escape schliesst nur den obersten / open dialogs, topmost last; Escape closes only the topmost */
+const dialogStack: { overlay: HTMLElement; close: () => void; dismissable: boolean }[] = [];
+if (typeof document !== 'undefined') {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    // entfernte Dialoge aufraeumen / clean up removed dialogs
+    for (let i = dialogStack.length - 1; i >= 0; i--) if (!dialogStack[i].overlay.isConnected) dialogStack.splice(i, 1);
+    const top = dialogStack[dialogStack.length - 1];
+    if (top?.dismissable) { e.preventDefault(); top.close(); }
+  });
+}
+
 export function openDialog(root: HTMLElement, html: string, opts: { wide?: boolean; onClose?: () => void; dismissable?: boolean } = {}): { close: () => void; node: HTMLElement } {
   const overlay = el('div', 'overlay');
   overlay.setAttribute('role', 'dialog');
@@ -68,10 +82,14 @@ export function openDialog(root: HTMLElement, html: string, opts: { wide?: boole
   const box = el('div', `panel dialog ${opts.wide ? 'wide' : ''}`, html);
   overlay.appendChild(box);
   root.appendChild(overlay);
-  const close = () => { overlay.remove(); opts.onClose?.(); };
+  const close = () => {
+    const i = dialogStack.findIndex((d) => d.overlay === overlay);
+    if (i >= 0) dialogStack.splice(i, 1);
+    overlay.remove(); opts.onClose?.();
+  };
+  dialogStack.push({ overlay, close, dismissable: opts.dismissable !== false });
   if (opts.dismissable !== false) {
     overlay.addEventListener('pointerdown', (e) => { if (e.target === overlay) close(); });
-    overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
   }
   const focusable = box.querySelector<HTMLElement>('button, [tabindex]');
   focusable?.focus();

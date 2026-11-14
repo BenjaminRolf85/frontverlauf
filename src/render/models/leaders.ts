@@ -10,7 +10,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
-import { Sculpt, blob, browStrands, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, ribbon, smoothstep, strand } from './sculpt';
+import { Sculpt, blob, browStrands, type EyeOpts, type FaceShape, type InkOpts, type LipOpts, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, ribbon, smoothstep, strand } from './sculpt';
 
 const HALF_PI = Math.PI / 2;
 
@@ -115,9 +115,67 @@ function medal(b: Builder, x: number, y: number, z: number, ribbon: ColorLike, d
 /** Gemeinsame Hautfarbe je Figur / skin tone per character */
 const skinOf = (k: number, warm = 0) => mix(shade(mat.skin, k), mat.orange, warm);
 
+// ---------- Mimik / facial expressions ----------
+
+/** Gesichtsausdruck der Bueste / facial expression of the bust */
+export type LeaderMood = 'neutral' | 'angry' | 'smug' | 'shocked';
+export const LEADER_MOODS: readonly LeaderMood[] = ['neutral', 'angry', 'smug', 'shocked'];
+type BrowOpts = Parameters<typeof browStrands>[3];
+
+/**
+ * Mimik als Parameter-Aenderungen an Augen, Brauen, Mund und Tusche; 'neutral' laesst alles unveraendert.
+ * Expression as parameter changes to eyes, brows, mouth and ink; 'neutral' leaves everything unchanged.
+ * `side` = Seite der hochgezogenen Braue beim Grinsen / side of the raised brow when smug.
+ */
+class Mood {
+  constructor(readonly id: LeaderMood, readonly side: -1 | 1 = 1) {}
+  is(m: LeaderMood) { return this.id === m; }
+  eye(side: -1 | 1, o: EyeOpts): EyeOpts {
+    const lid = o.lid ?? 68, low = o.lower ?? 62, tilt = o.tilt ?? 0;
+    switch (this.id) {
+      case 'angry': return { ...o, lid: lid + 8, lower: low + 9, tilt: tilt + 0.22 };
+      case 'smug': return side === this.side ? { ...o, lid: Math.min(lid, 70) + 4, lower: low + 2 } : { ...o, lid: Math.max(lid, 70) + 12, lower: low + 7, tilt: tilt - 0.06 };
+      case 'shocked': return { ...o, lid: Math.min(lid, 56) - 8, lower: Math.min(low, 56) - 8, tilt: tilt - 0.1, irisSize: (o.irisSize ?? 1) * 0.72, look: [0, 0] };
+      default: return o;
+    }
+  }
+  brow(S: Sculpt, side: -1 | 1, o: BrowOpts): BrowOpts {
+    const y = o.y ?? S.f.eyeY + 0.2, ang = o.ang ?? 0, arch = o.arch ?? 0.04;
+    switch (this.id) {
+      case 'angry': return { ...o, y: y - 0.07, ang: ang + 0.22, arch: arch * 0.2, x0: 0.05 };
+      case 'smug': return side === this.side ? { ...o, y: y + 0.08, arch: arch + 0.07, ang: ang - 0.04 } : { ...o, y: y - 0.025, ang: ang * 0.5 + 0.04 };
+      case 'shocked': return { ...o, y: y + 0.08, arch: arch + 0.09, ang: ang - 0.1 };
+      default: return o;
+    }
+  }
+  face(f: Partial<FaceShape>): Partial<FaceShape> {
+    switch (this.id) {
+      case 'angry': return { ...f, smile: -0.05, asym: 0 };
+      case 'smug': return { ...f, smile: 0.02, asym: this.side * 0.09 };
+      case 'shocked': return { ...f, smile: 0, asym: 0 };
+      default: return f;
+    }
+  }
+  lips(S: Sculpt, o: LipOpts): LipOpts {
+    switch (this.id) {
+      case 'angry': return { ...o, open: 0.1, teeth: mat.bone, snarl: this.side * 0.05 };
+      case 'shocked': return { ...o, open: 0.15, w: S.f.mouthW * 0.55, bow: 0 };
+      default: return o;
+    }
+  }
+  ink(o: InkOpts): InkOpts {
+    switch (this.id) {
+      case 'angry': return { ...o, frown: (o.frown ?? 0) + 1.4, smile: 0 };
+      case 'smug': return { ...o, smile: Math.max(o.smile ?? 0, 1.4) };
+      case 'shocked': return { ...o, frown: 0, smile: 0, age: Math.max(o.age ?? 0, 0.6) };
+      default: return o;
+    }
+  }
+}
+
 // ---------- Korvat: Grossmarschall Ilja Brodnik ----------
 
-function korvat(b: Builder, L: Look) {
+function korvat(b: Builder, L: Look, m: Mood) {
   const coat = L.primary, gold = mat.gold, grey = mat.concrete, greyL = mat.concreteLight;
   const skin = skinOf(0.97, 0.08);
   torso(b, coat, { w: 0.45, d: 0.22, slope: 0.05, neckR: 0.11, square: 0.3 });
@@ -146,7 +204,7 @@ function korvat(b: Builder, L: Look) {
   neck(b, skin, { r: 0.088, y0: 0.36, h: 0.2, adam: 0.25 });
 
   // ---- Kopf: breit, schwerer Kiefer, streng-vaeterlich / head: broad, heavy jaw, stern but fatherly ----
-  const S = new Sculpt([0, 0.665, 0.03], [0.175, 0.19, 0.172], {
+  const S = new Sculpt([0, 0.665, 0.03], [0.175, 0.19, 0.172], m.face({
     jaw: -0.06, chin: 0.26, chinDown: 0.08, lowY: 0.14, socket: 0.13, brow: 0.12, cheek: 0.1, temple: 0.03,
     noseBridge: 0.12, noseLen: 0.4, noseW: 1.45, noseY: -0.22, lipU: 0.015, lipL: 0.02, mouthDepth: 0, mouthW: 0.4, mouthY: -0.58,
     smile: -0.015, fold: 0.035, age: 1.1, frown: 1.2, eyeY: 0.12, flat: 0.12,
@@ -155,21 +213,27 @@ function korvat(b: Builder, L: Look) {
       { c: [0.5, -0.55, 0.7], s: [0.18, 0.18, 0.4], a: 0.07 }, { c: [-0.5, -0.55, 0.7], s: [0.18, 0.18, 0.4], a: 0.07 },
       { c: [0, -0.85, 0.6], s: [0.35, 0.15, 0.4], a: 0.06 },
     ],
-  });
+    // wuetend/erschrocken: Mund etwas tiefer, damit er unter dem Bart sichtbar wird / mouth slightly lower to show below the moustache
+    ...(m.is('angry') || m.is('shocked') ? { mouthY: -0.64 } : {}),
+  }));
   b.addSmooth(S.mesh(skin, { hair: { c: grey, at: (p) => (p.z < 0.15 && p.y > -0.3 ? 1 : 0) } }));
-  faceInk(b, S, { nose: 1, fold: 1.1, age: 1, frown: 1.1, bags: 0.9, chin: 0.8 });
-  lips(b, S, { c: shade(skin, 0.82), hU: 0.035, hL: 0.05, thick: 0.04 });
+  faceInk(b, S, m.ink({ nose: 1, fold: 1.1, age: 1, frown: 1.1, bags: 0.9, chin: 0.8 }));
+  lips(b, S, m.lips(S, { c: shade(skin, 0.82), hU: 0.035, hL: 0.05, thick: 0.04 }));
   ear(b, S, -1, skin, { size: 1.1 });
   ear(b, S, 1, skin, { size: 1.1 });
-  for (const s of [-1, 1] as const) eye(b, S, s, { iris: mat.blue, lid: 77, lower: 66, tilt: 0.14, lidCol: skin, look: [0, -0.15] });
-  for (const s of [-1, 1] as const) browStrands(b, S, s, { c: greyL, c1: grey, n: 24, thick: 0.05, ang: 0.14, arch: 0.02, w: 0.38, wild: 0.05, y: 0.3 });
+  for (const s of [-1, 1] as const) eye(b, S, s, m.eye(s, { iris: mat.blue, lid: 77, lower: 66, tilt: 0.14, lidCol: skin, look: [0, -0.15] }));
+  // Brauen bleiben unter dem Muetzenschirm sichtbar / brows stay visible below the cap peak
+  const capBrow = (o: BrowOpts): BrowOpts => ({ ...o, y: Math.min(o.y ?? 0, 0.3), arch: Math.min(o.arch ?? 0, 0.05) });
+  for (const s of [-1, 1] as const) browStrands(b, S, s, capBrow(m.brow(S, s, { c: greyL, c1: grey, n: 24, thick: 0.05, ang: 0.14, arch: 0.02, w: 0.38, wild: 0.05, y: 0.3 })));
   // grosser Schnurrbart mit gezwirbelten Enden / big moustache with curled ends
   const R = mulberry(5);
   for (const s of [-1, 1]) for (let i = 0; i < 18; i++) {
     const t = i / 17;
     const x0 = s * (0.02 + t * 0.2), y0 = -0.38 - t * 0.04 + (R() - 0.5) * 0.03;
     const reach = 0.25 + (1 - t) * 0.1 + R() * 0.06;
-    const xe = s * (0.2 + reach), ye = -0.6 - R() * 0.04;
+    // Bart hebt sich mit dem Mund, straeubt sich bei Zorn / moustache lifts with the mouth, bristles when angry
+    const lift = m.is('shocked') ? 0.08 : m.is('angry') ? 0.05 + (R() - 0.5) * 0.08 : m.is('smug') && s === m.side ? 0.07 : 0;
+    const xe = s * (0.2 + reach * (m.is('angry') ? 1.12 : 1)), ye = -0.6 - R() * 0.04 + lift;
     const curl = i % 3 === 0;
     const pts: V3[] = [S.surf(x0, y0, 0.02), S.surf((x0 + xe) / 2, (y0 + ye) / 2 - 0.04, 0.08 + (1 - t) * 0.03), S.surf(xe, ye, 0.06)];
     if (curl) pts.push(S.surf(xe + s * 0.07, ye + 0.08, 0.06), S.surf(xe + s * 0.03, ye + 0.15, 0.06));
@@ -203,7 +267,7 @@ function korvat(b: Builder, L: Look) {
 
 // ---------- Dravon: Kommandant Sarek Voss ----------
 
-function dravon(b: Builder, L: Look) {
+function dravon(b: Builder, L: Look, m: Mood) {
   const black = col(L.helmet), green = L.jacket, gold = L.secondary;
   const skin = skinOf(0.9, 0.02);
   const camo = (p: THREE.Vector3) => {
@@ -242,21 +306,23 @@ function dravon(b: Builder, L: Look) {
       { c: [0, -0.07, 0.95], s: [0.55, 0.03, 0.5], a: 0.03 },
     ],
   });
-  const slitTop = (x: number) => 0.2 + 0.04 * Math.abs(x);
-  const scar = mix(skin, mat.white, 0.45);
+  // Schlitzkante folgt der Mimik (Stoff ueber den Brauen) / slit edge follows the expression (fabric over the brows)
+  const slitTop = (x: number) => m.is('angry') ? 0.13 + 0.16 * Math.abs(x) : m.is('shocked') ? 0.27 + 0.03 * Math.abs(x) : m.is('smug') ? 0.2 + 0.04 * Math.abs(x) + 0.09 * Math.max(0, m.side * x) : 0.2 + 0.04 * Math.abs(x);
+  const slitBot = m.is('shocked') ? -0.1 : -0.06;
+  const scar = m.is('angry') ? mix(skin, mat.red, 0.35) : mix(skin, mat.white, 0.45);
   // Haut darunter, Sturmhaube als Schale mit ausgeschnittenem Schlitz (saubere Kante mit Kontur)
   // skin underneath, balaclava as a shell with a cut-out slit (clean edge with outline)
   b.addSmooth(S.mesh(skin, { ws: 64, hs: 48 }));
   const SB = new Sculpt(S.centre, [S.radii[0] * 1.03, S.radii[1] * 1.03, S.radii[2] * 1.03], { ...S.f });
   b.addSmooth(SB.mesh(black, {
     paint: () => col(black),
-    cut: (p) => p.z > 0.4 && p.y < slitTop(p.x) && p.y > -0.06 && Math.abs(p.x) < 0.6,
+    cut: (p) => p.z > 0.4 && p.y < slitTop(p.x) && p.y > slitBot && Math.abs(p.x) < 0.6,
   }));
   ear(b, S, -1, black, { size: 0.9 });
   ear(b, S, 1, black, { size: 0.9 });
   const pale = mix(mat.white, mat.glass, 0.6);
-  eye(b, S, -1, { iris: pale, lid: 80, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 });
-  eye(b, S, 1, { iris: pale, lid: 82, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 });
+  eye(b, S, -1, m.eye(-1, { iris: pale, lid: 80, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 }));
+  eye(b, S, 1, m.eye(1, { iris: pale, lid: 82, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 }));
   // helle Narbe quer ueber Lid und Schlitz, mit Stichen / light scar across lid and slit, with stitch marks
   const ex = S.f.eyeX, ey = S.f.eyeY, lidR = 0.2 * 1.08;
   const scarLift = (x: number, y: number) => {
@@ -274,15 +340,15 @@ function dravon(b: Builder, L: Look) {
     ribbon(b, [S.surf(x - 0.04, y - 0.028, scarLift(x - 0.04, y - 0.028) + 0.003), S.surf(x, y, scarLift(x, y) + 0.003), S.surf(x + 0.04, y + 0.028, scarLift(x + 0.04, y + 0.028) + 0.003)], S.centre, S.len(0.009), shade(scar, 0.88), 0.6, 8);
   }
   // Gasmaskenfilter vor dem Mund / gas mask filter over the mouth
-  const m = S.surf(0, -0.5, 0.02);
-  b.add(geo.rtaper(0.16, 0.1, 0.1, 0.06, 0.1, 0.022), mat.darkMid, { p: [m[0], m[1], m[2]], r: [HALF_PI - 0.3, 0, 0] });
-  b.cyl(0.046, 0.05, 0.06, 40, mat.dark, [m[0], m[1] - 0.012, m[2] + 0.06], [HALF_PI - 0.25, 0, 0]);
-  for (let i = 0; i < 7; i++) b.add(geo.rbox(0.07, 0.005, 0.01, 0.002), mat.ink, { p: [m[0], m[1] - 0.04 + i * 0.011, m[2] + 0.092], r: [-0.25, 0, 0] });
-  b.add(geo.torus(0.048, 0.007, 8, 40), gold, { p: [m[0], m[1] - 0.012, m[2] + 0.088], r: [-0.25, 0, 0] });
+  const gm = S.surf(0, -0.5, 0.02);
+  b.add(geo.rtaper(0.16, 0.1, 0.1, 0.06, 0.1, 0.022), mat.darkMid, { p: [gm[0], gm[1], gm[2]], r: [HALF_PI - 0.3, 0, 0] });
+  b.cyl(0.046, 0.05, 0.06, 40, mat.dark, [gm[0], gm[1] - 0.012, gm[2] + 0.06], [HALF_PI - 0.25, 0, 0]);
+  for (let i = 0; i < 7; i++) b.add(geo.rbox(0.07, 0.005, 0.01, 0.002), mat.ink, { p: [gm[0], gm[1] - 0.04 + i * 0.011, gm[2] + 0.092], r: [-0.25, 0, 0] });
+  b.add(geo.torus(0.048, 0.007, 8, 40), gold, { p: [gm[0], gm[1] - 0.012, gm[2] + 0.088], r: [-0.25, 0, 0] });
   for (const s of [-1, 1]) {
-    b.cyl(0.03, 0.03, 0.055, 32, mat.dark, [s * 0.1, m[1] - 0.025, m[2] - 0.01], [0, 0, s * 1.2]);
-    b.add(geo.torus(0.03, 0.005, 6, 28), gold, { p: [s * 0.123, m[1] - 0.035, m[2] - 0.01], r: [0, s * HALF_PI, s * 1.2 - HALF_PI] });
-    for (let i = 0; i < 4; i++) b.add(geo.torus(0.026, 0.003, 4, 20), mat.ink, { p: [s * (0.09 + i * 0.008), m[1] - 0.022 + i * 0.002, m[2] - 0.01], r: [0, s * HALF_PI, s * 1.2 - HALF_PI] });
+    b.cyl(0.03, 0.03, 0.055, 32, mat.dark, [s * 0.1, gm[1] - 0.025, gm[2] - 0.01], [0, 0, s * 1.2]);
+    b.add(geo.torus(0.03, 0.005, 6, 28), gold, { p: [s * 0.123, gm[1] - 0.035, gm[2] - 0.01], r: [0, s * HALF_PI, s * 1.2 - HALF_PI] });
+    for (let i = 0; i < 4; i++) b.add(geo.torus(0.026, 0.003, 4, 20), mat.ink, { p: [s * (0.09 + i * 0.008), gm[1] - 0.022 + i * 0.002, gm[2] - 0.01], r: [0, s * HALF_PI, s * 1.2 - HALF_PI] });
   }
   // Goldmarke auf der Stirn / gold tag on the forehead
   b.add(geo.rbox(0.05, 0.022, 0.012, 0.004), gold, { p: S.surf(0, 0.5, 0.03), r: [-0.5, 0, 0] });
@@ -291,7 +357,7 @@ function dravon(b: Builder, L: Look) {
 
 // ---------- Alvenia: Praesidentin Liora Valen ----------
 
-function alvenia(b: Builder, L: Look) {
+function alvenia(b: Builder, L: Look, m: Mood) {
   const blue = L.primary, white = L.secondary, gold = mat.gold, hair = mat.dark, hairL = mat.darkMid;
   const skin = skinOf(1.0, 0.05);
   torso(b, blue, { w: 0.41, d: 0.2, slope: 0.08, neckR: 0.09 });
@@ -317,19 +383,19 @@ function alvenia(b: Builder, L: Look) {
   b.add(geo.cyl(0.1, 0.11, 0.05, 48, true), white, { p: [0, 0.43, 0.0] });
   neck(b, skin, { r: 0.066, y0: 0.36, h: 0.2 });
   // ---- Kopf: ruhig, selbstsicheres Halblaecheln / head: calm, confident half-smile ----
-  const S = new Sculpt([0, 0.665, 0.03], [0.152, 0.178, 0.158], {
+  const S = new Sculpt([0, 0.665, 0.03], [0.152, 0.178, 0.158], m.face({
     jaw: 0.44, chin: 0.12, chinDown: 0.0, lowY: -0.06, socket: 0.09, brow: 0.03, cheek: 0.11, temple: 0.02,
     noseBridge: 0.1, noseLen: 0.25, noseW: 0.82, noseY: -0.19, lipU: 0.012, lipL: 0.016, mouthDepth: 0, mouthW: 0.44, mouthY: -0.46,
     smile: 0.06, asym: 0.03, fold: 0.0, eyeY: 0.1,
-  });
+  }));
   b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.5 ? 1 : 0) } }));
-  faceInk(b, S, { nose: 0.9, smile: 1, chin: 0.8, width: 1.0 });
-  lips(b, S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.06, hL: 0.08, thick: 0.06, bow: 0.016 });
+  faceInk(b, S, m.ink({ nose: 0.9, smile: 1, chin: 0.8, width: 1.0 }));
+  lips(b, S, m.lips(S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.06, hL: 0.08, thick: 0.06, bow: 0.016 }));
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   const iris = mix(mat.wood, mat.green, 0.45);
-  for (const s of [-1, 1] as const) eye(b, S, s, { iris, lid: 69, lower: 60, tilt: -0.06, lidCol: skin, lashes: true, look: [0.2, 0], r: 0.16, irisSize: 1.05 });
-  for (const s of [-1, 1] as const) browStrands(b, S, s, { c: hair, n: 14, thick: 0.022, ang: -0.02, arch: 0.06, w: 0.33, wild: 0.01, y: 0.29 });
+  for (const s of [-1, 1] as const) eye(b, S, s, m.eye(s, { iris, lid: 69, lower: 60, tilt: -0.06, lidCol: skin, lashes: true, look: [0.2, 0], r: 0.16, irisSize: 1.05 }));
+  for (const s of [-1, 1] as const) browStrands(b, S, s, m.brow(S, s, { c: hair, n: 14, thick: 0.022, ang: -0.02, arch: 0.06, w: 0.33, wild: 0.01, y: 0.29 }));
   // kurzer Bob mit Pony / short bob with fringe
   blob(b, hair, { p: [0, 0.69, -0.03], s: [0.168, 0.19, 0.16] }, 44, 32);
   for (let i = 0; i < 34; i++) {
@@ -358,7 +424,7 @@ function alvenia(b: Builder, L: Look) {
 
 // ---------- Meridon: Admiralin Coralie Nerezza ----------
 
-function meridon(b: Builder, L: Look) {
+function meridon(b: Builder, L: Look, m: Mood) {
   const teal = L.primary, gold = mat.gold, hair = shade(mat.wood, 0.7), hairL = shade(mat.wood, 0.95), orange = L.secondary;
   const skin = skinOf(0.95, 0.12);
   torso(b, teal, { w: 0.42, d: 0.2, slope: 0.07 });
@@ -377,15 +443,15 @@ function meridon(b: Builder, L: Look) {
   addEmblem(b, 'meridon', 0.045, 0.01, gold, { p: [-0.18, 0.3, 0.21] });
   neck(b, skin, { r: 0.064, y0: 0.36, h: 0.2 });
   // ---- Kopf: schiefes Grinsen, zugekniffenes Auge / head: sly lopsided grin, squinting eye ----
-  const S = new Sculpt([0, 0.665, 0.03], [0.15, 0.178, 0.156], {
+  const S = new Sculpt([0, 0.665, 0.03], [0.15, 0.178, 0.156], m.face({
     jaw: 0.42, chin: 0.15, chinDown: 0.05, socket: 0.1, brow: 0.04, cheek: 0.12, temple: 0.03,
     noseBridge: 0.11, noseLen: 0.27, noseW: 0.78, noseY: -0.2, lipU: 0.012, lipL: 0.016, mouthDepth: 0, mouthW: 0.46, mouthY: -0.47, lowY: -0.05,
     smile: 0.03, asym: 0.07, fold: 0.0, eyeY: 0.1,
     bumps: [{ c: [0.45, -0.25, 0.8], s: [0.12, 0.1, 0.3], a: 0.04 }],
-  });
+  }));
   b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.48 ? 1 : 0) } }));
-  faceInk(b, S, { nose: 0.9, smile: 1.2, chin: 0.8, width: 1.0 });
-  lips(b, S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.055, hL: 0.075, thick: 0.06, bow: 0.016 });
+  faceInk(b, S, m.ink({ nose: 0.9, smile: 1.2, chin: 0.8, width: 1.0 }));
+  lips(b, S, m.lips(S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.055, hL: 0.075, thick: 0.06, bow: 0.016 }));
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   b.add(geo.torus(0.024, 0.005, 8, 28), gold, { p: [0.15, 0.6, 0.02], r: [0, HALF_PI, 0] });
@@ -393,10 +459,10 @@ function meridon(b: Builder, L: Look) {
   const iris = mix(teal, mat.wood, 0.35);
   // rechtes Auge weit offen mit hochgezogener Braue, linkes zusammengekniffen hinter dem Monokel
   // right eye wide open with raised brow, left squinting behind the monocle
-  const lc = eye(b, S, -1, { iris, lid: 84, lower: 76, tilt: 0.15, lidCol: skin, lashes: true, look: [0.4, 0] });
-  eye(b, S, 1, { iris, lid: 62, lower: 60, tilt: -0.05, lidCol: skin, lashes: true, look: [0.4, 0] });
-  browStrands(b, S, -1, { c: hair, n: 13, thick: 0.022, ang: 0.12, arch: 0.02, w: 0.32, y: 0.26 });
-  browStrands(b, S, 1, { c: hair, n: 13, thick: 0.022, ang: -0.04, arch: 0.08, w: 0.32, y: 0.34 });
+  const lc = eye(b, S, -1, m.eye(-1, { iris, lid: 84, lower: 76, tilt: 0.15, lidCol: skin, lashes: true, look: [0.4, 0] }));
+  eye(b, S, 1, m.eye(1, { iris, lid: 62, lower: 60, tilt: -0.05, lidCol: skin, lashes: true, look: [0.4, 0] }));
+  browStrands(b, S, -1, m.brow(S, -1, { c: hair, n: 13, thick: 0.022, ang: 0.12, arch: 0.02, w: 0.32, y: 0.26 }));
+  browStrands(b, S, 1, m.brow(S, 1, { c: hair, n: 13, thick: 0.022, ang: -0.04, arch: 0.08, w: 0.32, y: 0.34 }));
   // Monokel mit Kette / monocle with chain
   const mp: V3 = [lc[0], lc[1], lc[2] + S.len(0.2)];
   b.add(geo.torus(0.042, 0.0065, 10, 48), gold, { p: mp });
@@ -456,7 +522,7 @@ function meridon(b: Builder, L: Look) {
 
 // ---------- Velkar: Direktor Aurel Kesh ----------
 
-function velkar(b: Builder, L: Look) {
+function velkar(b: Builder, L: Look, m: Mood) {
   const coat = mix(mat.paper, L.primary, 0.35), armour = L.gear, green = L.secondary, hair = mat.paper, hairD = shade(mat.paper, 0.82);
   const skin = skinOf(0.98, 0.04);
   torso(b, coat, { w: 0.39, d: 0.19, slope: 0.1, neckR: 0.08 });
@@ -480,7 +546,7 @@ function velkar(b: Builder, L: Look) {
   b.add(geo.cyl(0.075, 0.08, 0.04, 48), armour, { p: [0, 0.42, -0.01] });
   neck(b, skin, { r: 0.056, y0: 0.38, h: 0.2, adam: 0.45 });
   // ---- schmaler alter Kopf, analytischer Blick / narrow old head, analytical look ----
-  const S = new Sculpt([0, 0.665, 0.03], [0.128, 0.2, 0.15], {
+  const S = new Sculpt([0, 0.665, 0.03], [0.128, 0.2, 0.15], m.face({
     jaw: 0.36, chin: 0.26, chinDown: 0.1, lowY: 0.12, socket: 0.13, brow: 0.08, cheek: 0.12, hollow: 0.1, temple: 0.06, flat: 0.1,
     noseBridge: 0.16, noseLen: 0.42, noseW: 0.78, noseY: -0.27, lipU: 0.01, lipL: 0.012, mouthDepth: 0, mouthW: 0.34, mouthY: -0.6,
     smile: -0.015, asym: 0.03, fold: 0.035, age: 1.4, frown: 0.6, eyeY: 0.1,
@@ -489,18 +555,20 @@ function velkar(b: Builder, L: Look) {
       { c: [0, -0.06, 1], s: [0.05, 0.06, 0.3], a: 0.07 },
       { c: [0, -0.33, 1], s: [0.05, 0.04, 0.3], a: 0.09 },
     ],
-  });
+  }));
   b.addSmooth(S.mesh(skin));
-  faceInk(b, S, { nose: 1.1, fold: 1, age: 1.1, bags: 1, frown: 0.8, cheek: 1, chin: 0.7, width: 1.1 });
-  lips(b, S, { c: shade(skin, 0.8), hU: 0.035, hL: 0.045, thick: 0.04, bow: 0.008 });
+  faceInk(b, S, m.ink({ nose: 1.1, fold: 1, age: 1.1, bags: 1, frown: 0.8, cheek: 1, chin: 0.7, width: 1.1 }));
+  lips(b, S, m.lips(S, { c: shade(skin, 0.8), hU: 0.035, hL: 0.045, thick: 0.04, bow: 0.008 }));
   ear(b, S, -1, skin, { size: 1.05 });
   ear(b, S, 1, skin, { size: 1.05 });
   const iris = mix(green, mat.dark, 0.35);
-  eye(b, S, -1, { iris, lid: 63, lower: 64, tilt: -0.08, lidCol: skin, look: [-0.35, 0.05], r: 0.185 });
-  eye(b, S, 1, { iris, lid: 78, lower: 66, tilt: 0.1, lidCol: skin, look: [-0.35, 0.05], r: 0.185 });
+  eye(b, S, -1, m.eye(-1, { iris, lid: 63, lower: 64, tilt: -0.08, lidCol: skin, look: [-0.35, 0.05], r: 0.185 }));
+  eye(b, S, 1, m.eye(1, { iris, lid: 78, lower: 66, tilt: 0.1, lidCol: skin, look: [-0.35, 0.05], r: 0.185 }));
   // linke Braue weit hochgezogen / left brow raised high
-  browStrands(b, S, -1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: -0.12, arch: 0.15, w: 0.34, wild: 0.06, y: 0.44 });
-  browStrands(b, S, 1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: 0.16, arch: 0.01, w: 0.34, wild: 0.06, y: 0.27 });
+  // die hochgezogene Braue wird bei jeder Mimik noch uebertrieben / the raised brow is exaggerated further in every mood
+  const kb = (o: BrowOpts): BrowOpts => (m.is('neutral') ? o : { ...o, y: (o.y ?? 0) + (m.is('shocked') ? -0.03 : 0.04), arch: (o.arch ?? 0) + 0.04 });
+  browStrands(b, S, -1, kb(m.brow(S, -1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: -0.12, arch: 0.15, w: 0.34, wild: 0.06, y: 0.44 })));
+  browStrands(b, S, 1, m.brow(S, 1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: 0.16, arch: 0.01, w: 0.34, wild: 0.06, y: 0.27 }));
   // Spitzbart / goatee
   const R = mulberry(8);
   for (let i = 0; i < 18; i++) {
@@ -546,7 +614,7 @@ function velkar(b: Builder, L: Look) {
 
 // ---------- Zyrr: Schwarmmutter Xyl'Tharra ----------
 
-function zyrr(b: Builder, L: Look) {
+function zyrr(b: Builder, L: Look, m: Mood) {
   const skin = mat.alienSkin, violet = L.primary, acid = mat.acid, glow = mat.xenoGlow;
   torso(b, shade(violet, 0.7), { w: 0.38, d: 0.19, slope: 0.12, neckR: 0.07 });
   for (let row = 0; row < 3; row++) for (let i = 0; i < 9; i++) {
@@ -561,7 +629,7 @@ function zyrr(b: Builder, L: Look) {
   neck(b, skin, { r: 0.052, y0: 0.36, h: 0.24 });
   for (let i = 0; i < 4; i++) fold(b, [[-0.05, 0.43 + i * 0.04, 0.035], [0, 0.42 + i * 0.04, 0.05], [0.05, 0.43 + i * 0.04, 0.035]], 0.006, shade(skin, 0.75));
   // ---- grosser Fremdwesenkopf / large alien head ----
-  const S = new Sculpt([0, 0.7, 0.03], [0.19, 0.21, 0.17], {
+  const S = new Sculpt([0, 0.7, 0.03], [0.19, 0.21, 0.17], m.face({
     jaw: 0.58, chin: 0.1, chinDown: 0.12, back: 0.25, crown: 0.22, socket: 0.22, brow: 0.07, cheek: 0.05, temple: 0.05,
     noseBridge: 0.02, noseLen: 0.015, noseW: 0.6, noseY: -0.28, lipU: 0.008, lipL: 0.01, mouthW: 0.2, mouthY: -0.55, mouthDepth: 0.05,
     smile: -0.01, fold: 0.02, age: 0.8, frown: 0.8, ageGeo: 0.8, frownGeo: 0.8, eyeX: 0.37, eyeY: 0.0, nostrils: 0,
@@ -571,7 +639,7 @@ function zyrr(b: Builder, L: Look) {
       { a: [-0.6, -0.3], b: [-0.35, -0.5], w: 0.015, d: 0.02 },
       { a: [0.6, -0.3], b: [0.35, -0.5], w: 0.015, d: 0.02 },
     ],
-  });
+  }));
   const skinD = shade(skin, 0.7), mark = mix(acid, skin, 0.25);
   b.addSmooth(S.mesh(skin, {
     paint: (p, w) => {
@@ -586,14 +654,26 @@ function zyrr(b: Builder, L: Look) {
   for (const s of [-1, 1] as const) {
     const c = S.surf(s * 0.37, 0.0, 0.07);
     const ez = S.len(0.1);
-    b.addSmooth(paint(new THREE.SphereGeometry(1, 64, 40), (p) => col(mat.ink).lerp(col(violet), smoothstep(-0.3, -0.95, p.y) * 0.3)), { p: c, s: [S.len(0.36), S.len(0.2), ez], r: [0.05, s * 0.35, s * 0.42] });
+    // Augenform je Mimik / eye shape per mood
+    const [esx, esy, erz] = m.is('angry') ? [0.36, 0.13, 0.62] : m.is('shocked') ? [0.3, 0.28, 0.2] : m.is('smug') ? (s === m.side ? [0.36, 0.2, 0.42] : [0.36, 0.11, 0.3]) : [0.36, 0.2, 0.42];
+    b.addSmooth(paint(new THREE.SphereGeometry(1, 64, 40), (p) => col(mat.ink).lerp(col(violet), smoothstep(-0.3, -0.95, p.y) * 0.3)), { p: c, s: [S.len(esx), S.len(esy), ez], r: [0.05, s * 0.35, s * erz] });
     blob(b, mat.white, { p: [c[0] - s * 0.012 - 0.008, c[1] + 0.016, c[2] + ez * 0.95], s: [0.013, 0.009, 0.004] }, 14, 10);
     blob(b, mat.white, { p: [c[0] + s * 0.016, c[1] - 0.002, c[2] + ez * 0.98], s: [0.005, 0.005, 0.003] }, 10, 8);
     blob(b, glow, { p: [c[0] + s * 0.025, c[1] - 0.014, c[2] + ez * 0.8], s: [0.014, 0.004, 0.003], r: [0, s * 0.4, s * 0.42] }, 12, 8);
     // Lidfalte ueber dem Auge / lid fold above the eye
-    strand(b, [S.surf(s * 0.18, 0.12, 0.02), S.surf(s * 0.38, 0.2, 0.05), S.surf(s * 0.6, 0.16, 0.03)], S.len(0.03), S.len(0.012), shade(skin, 0.85), skin);
+    // Brauenwulst je Mimik / brow ridge per mood
+    const [fi, fm, fo] = m.is('angry') ? [0.02, 0.14, 0.2] : m.is('shocked') ? [0.24, 0.32, 0.26] : m.is('smug') && s === m.side ? [0.2, 0.3, 0.24] : [0.12, 0.2, 0.16];
+    strand(b, [S.surf(s * 0.18, fi, 0.02), S.surf(s * 0.38, fm, 0.05), S.surf(s * 0.6, fo, 0.03)], S.len(0.03), S.len(0.012), shade(skin, 0.85), skin);
   }
   for (const s of [-1, 1]) blob(b, shade(skin, 0.45), { p: S.surf(s * 0.04, -0.3, 0.0), s: [0.003, 0.009, 0.003], r: [0, 0, s * 0.3] }, 8, 6);
+  // Mundschlitz je Mimik / mouth slit per mood
+  if (!m.is('neutral')) {
+    const pts: [number, number][] = [];
+    const mw = m.is('shocked') ? 0.07 : 0.12;
+    for (let i = 0; i <= 6; i++) { const x = (-1 + i / 3) * mw; pts.push([x, S.mouthLine(x)]); }
+    ink(b, S, pts, m.is('shocked') ? 0.06 : m.is('angry') ? 0.022 : 0.012, { c: mix(mat.ink, violet, 0.2), taper: m.is('shocked') ? 0.05 : 0.15 });
+    if (m.is('angry')) ink(b, S, pts.slice(1, -1), 0.007, { c: acid, lift: 0.012 });
+  }
   // Krone aus leuchtenden Stacheln / crown of glowing spines
   for (let i = 0; i < 13; i++) {
     const a = -1.5 + (i / 12) * 3.0;
@@ -612,7 +692,7 @@ function zyrr(b: Builder, L: Look) {
 
 // ---------- Vesper: Prophet Malachar ----------
 
-function vesper(b: Builder, L: Look) {
+function vesper(b: Builder, L: Look, m: Mood) {
   const robe = L.jacket, red = L.primary, bone = mat.bone, ember = mat.ember;
   torso(b, robe, { w: 0.44, d: 0.21, slope: 0.05 });
   for (const s of [-1, 1]) for (let i = 0; i < 3; i++) fold(b, [[s * (0.2 + i * 0.07), 0.02, 0.17 - i * 0.03], [s * (0.22 + i * 0.07), 0.2, 0.18 - i * 0.03], [s * (0.2 + i * 0.06), 0.36, 0.13 - i * 0.03]], 0.013, shade(robe, 0.6));
@@ -650,7 +730,7 @@ function vesper(b: Builder, L: Look) {
   b.add(geo.torus(0.188, 0.027, 10, 64), red, { p: [0, 0.655, 0.12], s: [1, 1.24, 1], r: [-0.12, 0, 0] });
   stitch(b, [-0.12, 0.88, 0.12], [0.12, 0.88, 0.12], 10, ember, 0.01);
   // ---- Gesicht: Knochenmaske oben, Kinn und Lippen sichtbar / face: bone mask on top, chin and lips visible ----
-  const S = new Sculpt([0, 0.645, 0.085], [0.125, 0.155, 0.115], {
+  const S = new Sculpt([0, 0.645, 0.085], [0.125, 0.155, 0.115], m.face({
     jaw: 0.3, chin: 0.18, chinDown: 0.05, socket: 0.24, brow: 0.12, cheek: 0.1, hollow: 0.06,
     noseBridge: 0.1, noseLen: 0.12, noseW: 0.9, noseY: -0.22, lipU: 0.01, lipL: 0.012, mouthDepth: 0, mouthW: 0.36, mouthY: -0.6,
     smile: -0.035, fold: 0.0, eyeY: 0.1,
@@ -659,7 +739,7 @@ function vesper(b: Builder, L: Look) {
       { a: [0.15, 0.7], b: [0.3, 0.35], w: 0.012, d: 0.02 }, { a: [0.3, 0.35], b: [0.25, 0.2], w: 0.012, d: 0.02 },
       { a: [-0.5, 0.45], b: [-0.6, 0.15], w: 0.012, d: 0.02 }, { a: [-0.05, -0.1], b: [-0.2, -0.3], w: 0.01, d: 0.015 },
     ],
-  });
+  }));
   const pale = mix(skinOf(0.7), mat.concreteDark, 0.45);
   const maskEdge = -0.38;
   b.addSmooth(S.mesh(pale, {
@@ -674,16 +754,19 @@ function vesper(b: Builder, L: Look) {
     ink(b, S, pts, 0.016, { c: mat.dark, lift: 0.006 });
   }
   // grimmige Lippen und Kinn unter der Maske / grim lips and chin below the mask
-  lips(b, S, { c: mix(pale, mat.ink, 0.35), cl: mix(pale, mat.ink, 0.2), hU: 0.03, hL: 0.04, thick: 0.04, bow: 0.006 });
-  faceInk(b, S, { nose: 0, chin: 1 });
+  lips(b, S, m.lips(S, { c: mix(pale, mat.ink, 0.35), cl: mix(pale, mat.ink, 0.2), hU: 0.03, hL: 0.04, thick: 0.04, bow: 0.006 }));
+  faceInk(b, S, m.ink({ nose: 0, chin: 1 }));
   // glimmende Augenschlitze tief in den Hoehlen / burning eye slits deep in the sockets
   for (const s of [-1, 1] as const) {
     // dunkle Augenhoehle als Mandelform / dark socket as an almond shape
     const ex = s * S.f.eyeX, ey = S.f.eyeY;
     ink(b, S, [[ex - s * 0.17, ey + 0.045], [ex, ey + 0.0], [ex + s * 0.17, ey - 0.06]], 0.085, { c: mat.ink, lift: 0.07, taper: 0.25 });
     const c = S.surf(ex, ey - 0.005, 0.085);
-    blob(b, ember, { p: c, s: [S.len(0.13), S.len(0.035), S.len(0.03)], r: [0, s * 0.3, s * -0.25] }, 24, 16);
-    blob(b, mat.yellow, { p: [c[0], c[1], c[2] + S.len(0.02)], s: [S.len(0.065), S.len(0.016), S.len(0.02)], r: [0, s * 0.3, s * -0.25] }, 16, 12);
+    // Glutschlitze je Mimik: zornig gross und schraeg, ueberheblich einer schmal, erschrocken rund
+    // ember slits per mood: angry big and slanted, smug one narrowed, shocked round
+    const [gx, gy, gr] = m.is('angry') ? [0.16, 0.06, -0.55] : m.is('shocked') ? [0.1, 0.1, 0] : m.is('smug') && s !== m.side ? [0.13, 0.014, -0.1] : [0.13, 0.035, -0.25];
+    blob(b, ember, { p: c, s: [S.len(gx), S.len(gy), S.len(0.03)], r: [0, s * 0.3, s * gr] }, 24, 16);
+    blob(b, mat.yellow, { p: [c[0], c[1], c[2] + S.len(0.02)], s: [S.len(gx * 0.5), S.len(m.is('neutral') ? 0.016 : gy * 0.46), S.len(0.02)], r: [0, s * 0.3, s * gr] }, 16, 12);
   }
   addEmblem(b, 'vesper', 0.024, 0.006, red, { p: S.surf(0, 0.55, 0.02), r: [-0.5, 0, 0] });
   for (let i = 0; i < 7; i++) b.add(geo.rbox(0.004, 0.012, 0.006, 0.001), shade(bone, 0.6), { p: S.surf(-0.3 + i * 0.1, -0.37, 0.03) });
@@ -691,7 +774,7 @@ function vesper(b: Builder, L: Look) {
 
 // ---------- Nexus: KERN-0 ----------
 
-function nexus(b: Builder, L: Look) {
+function nexus(b: Builder, L: Look, m: Mood) {
   const plate = L.jacket, metal = mat.gunmetal, glow = mat.cyanGlow, seam = mat.ink;
   torso(b, metal, { w: 0.43, d: 0.21, slope: 0.02, square: 0.5 });
   for (const s of [-1, 1]) {
@@ -725,17 +808,36 @@ function nexus(b: Builder, L: Look) {
   // Gesichtsbildschirm mit stilisiertem Gesicht / face screen with a stylised face
   b.add(geo.rbox(0.24, 0.2, 0.02, 0.02), mat.ink, { p: [0, 0.7, 0.152] });
   b.add(geo.rbox(0.26, 0.22, 0.014, 0.02), metal, { p: [0, 0.7, 0.146] });
-  for (const s of [-1, 1]) {
-    b.add(geo.rbox(0.058, 0.04, 0.008, 0.016), glow, { p: [s * 0.055, 0.728, 0.164] });
-    b.add(geo.rbox(0.022, 0.016, 0.004, 0.006), mat.white, { p: [s * 0.055 - 0.012, 0.736, 0.169] });
-    b.add(geo.rbox(0.05, 0.009, 0.008, 0.004), glow, { p: [s * 0.058, 0.775, 0.164], r: [0, 0, s * 0.18] });
-    b.add(geo.cyl(0.008, 0.008, 0.004, 16), shade(glow, 0.6), { p: [s * 0.09, 0.67, 0.164], r: [HALF_PI, 0, 0] });
+  // Bildschirm-Glyphen je Mimik; zornig mit rotem Leuchten / screen glyphs per mood; angry with a red glow
+  const fg = m.is('angry') ? mix(glow, mat.red, 0.88) : glow;
+  for (const s of [-1, 1] as const) {
+    const x = s * 0.055;
+    if (m.is('angry')) {
+      b.add(geo.rbox(0.064, 0.02, 0.008, 0.008), fg, { p: [x, 0.725, 0.164], r: [0, 0, s * -0.38] });
+      b.add(geo.rbox(0.058, 0.01, 0.008, 0.004), fg, { p: [s * 0.052, 0.768, 0.164], r: [0, 0, s * -0.5] });
+    } else if (m.is('shocked')) {
+      b.add(geo.torus(0.024, 0.006, 8, 32), fg, { p: [x, 0.728, 0.164] });
+      b.add(geo.cyl(0.007, 0.007, 0.004, 16), mat.white, { p: [x, 0.728, 0.168], r: [HALF_PI, 0, 0] });
+      b.add(geo.rbox(0.04, 0.008, 0.008, 0.004), fg, { p: [s * 0.058, 0.79, 0.164], r: [0, 0, s * -0.25] });
+    } else if (m.is('smug') && s !== m.side) {
+      b.add(geo.rbox(0.058, 0.009, 0.008, 0.004), fg, { p: [x, 0.725, 0.164] });
+      b.add(geo.rbox(0.05, 0.009, 0.008, 0.004), fg, { p: [s * 0.058, 0.765, 0.164], r: [0, 0, s * 0.05] });
+    } else {
+      b.add(geo.rbox(0.058, 0.04, 0.008, 0.016), fg, { p: [x, 0.728, 0.164] });
+      b.add(geo.rbox(0.022, 0.016, 0.004, 0.006), mat.white, { p: [x - 0.012, 0.736, 0.169] });
+      b.add(geo.rbox(0.05, 0.009, 0.008, 0.004), fg, { p: [s * 0.058, m.is('smug') ? 0.79 : 0.775, 0.164], r: [0, 0, s * (m.is('smug') ? -0.15 : 0.18)] });
+    }
+    b.add(geo.cyl(0.008, 0.008, 0.004, 16), shade(fg, 0.6), { p: [s * 0.09, 0.67, 0.164], r: [HALF_PI, 0, 0] });
   }
-  for (let i = 0; i < 9; i++) {
+  if (m.is('shocked')) b.add(geo.torus(0.02, 0.006, 8, 32), fg, { p: [0, 0.655, 0.164], s: [0.9, 1.15, 1] });
+  else for (let i = 0; i < 9; i++) {
     const u = i / 8 - 0.5;
-    b.add(geo.rbox(0.016, 0.009, 0.008, 0.003), glow, { p: [u * 0.11, 0.65 + u * u * 0.08, 0.164], r: [0, 0, u * 1.2] });
+    // neutral: Bogen, zornig: Zickzack, ueberheblich: schiefes Laecheln / neutral arc, angry zigzag, smug lopsided smile
+    const y = m.is('angry') ? 0.648 + (i % 2) * 0.012 : m.is('smug') ? 0.655 + Math.max(0, m.side * u) ** 2 * 0.28 + m.side * u * 0.02 : 0.65 + u * u * 0.08;
+    const rz = m.is('angry') ? (i % 2 ? -0.8 : 0.8) : m.is('smug') ? Math.atan((0.56 * Math.max(0, m.side * u) * m.side + m.side * 0.02) / 0.11) : u * 1.2;
+    b.add(geo.rbox(0.016, 0.009, 0.008, 0.003), fg, { p: [u * 0.11, y, 0.164], r: [0, 0, rz] });
   }
-  for (let i = 0; i < 7; i++) b.box(0.22, 0.002, 0.004, shade(glow, 0.35), [0, 0.615 + i * 0.028, 0.163]);
+  for (let i = 0; i < 7; i++) b.box(0.22, 0.002, 0.004, shade(fg, 0.35), [0, 0.615 + i * 0.028, 0.163]);
   for (const s of [-1, 1]) {
     b.cyl(0.06, 0.06, 0.04, 40, metal, [s * 0.16, 0.71, 0.0], [0, 0, HALF_PI]);
     b.add(geo.torus(0.045, 0.007, 8, 40), glow, { p: [s * 0.182, 0.71, 0.0], r: [0, HALF_PI, 0] });
@@ -748,18 +850,20 @@ function nexus(b: Builder, L: Look) {
 }
 
 /** Bueste bauen / build the bust */
-export function leader(f: FactionId): Builder {
+export function leader(f: FactionId, mood: LeaderMood = 'neutral'): Builder {
   const b = new Builder();
   const L = look(f);
+  // Seite der hochgezogenen Braue je Figur / raised-brow side per character
+  const m = new Mood(mood, f === 'velkar' || f === 'meridon' ? -1 : 1);
   switch (f) {
-    case 'korvat': korvat(b, L); break;
-    case 'dravon': dravon(b, L); break;
-    case 'alvenia': alvenia(b, L); break;
-    case 'meridon': meridon(b, L); break;
-    case 'velkar': velkar(b, L); break;
-    case 'zyrr': zyrr(b, L); break;
-    case 'vesper': vesper(b, L); break;
-    case 'nexus': nexus(b, L); break;
+    case 'korvat': korvat(b, L, m); break;
+    case 'dravon': dravon(b, L, m); break;
+    case 'alvenia': alvenia(b, L, m); break;
+    case 'meridon': meridon(b, L, m); break;
+    case 'velkar': velkar(b, L, m); break;
+    case 'zyrr': zyrr(b, L, m); break;
+    case 'vesper': vesper(b, L, m); break;
+    case 'nexus': nexus(b, L, m); break;
   }
   return b;
 }

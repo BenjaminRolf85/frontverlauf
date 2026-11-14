@@ -40,3 +40,30 @@ describe('Startinseln / start islands', () => {
     }, 120000);
   }
 });
+
+describe('Heimatsiedlung / home village', () => {
+  for (const mapType of ['islands', 'waterworld'] as MapType[]) {
+    it(`${mapType}: jede Startinsel hat mindestens eine Siedlung / every start island has at least one village`, () => {
+      for (let seed = 1; seed <= 30; seed++) {
+        for (const size of [11, 16, 22] as const) {
+          const s = createGame(defaultConfig({ seed, size, mapType, factions: [
+            { id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' },
+            { id: 'nexus', human: false, difficulty: 'normal' }, { id: 'meridon', human: false, difficulty: 'normal' }] }));
+          for (const c of s.cities.filter((cc) => cc.isHQ)) {
+            const start = c.y * s.size + c.x;
+            const seen = new Set([start]); const stack = [start];
+            while (stack.length) {
+              const k = stack.pop()!;
+              for (const p of neighbors(s.size, k % s.size, Math.floor(k / s.size))) {
+                const q = p.y * s.size + p.x;
+                if (isLand(s, q) && !seen.has(q)) { seen.add(q); stack.push(q); }
+              }
+            }
+            const villages = s.cities.filter((v) => !v.isHQ && seen.has(v.y * s.size + v.x)).length;
+            expect(villages, `seed ${seed} size ${size} hq ${c.x},${c.y}`).toBeGreaterThan(0);
+          }
+        }
+      }
+    }, 120000);
+  }
+});

@@ -4,8 +4,8 @@
  */
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
-  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
+  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
+  UNIQUE, VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -28,6 +28,10 @@ export function stats(u: Unit): UnitStats {
   return UNITS[u.type];
 }
 export const has = (u: Unit, a: UnitStats['abilities'][number]) => UNITS[u.type].abilities.includes(a);
+/** Zweites Fraktionsmerkmal der Fraktion f / second faction trait of faction f */
+export const perk2Of = (s: GameState, f: number): Perk2Id | null => (s.factions[f] ? FACTIONS[s.factions[f].id].perk2 : null);
+/** Einzigartige Einheit der Fraktion (nur klassische Fraktionen) / unique unit of the faction (classic factions only) */
+export const uniqueUnitOf = (id: FactionId): UnitTypeId | null => UNIQUE.units[id] ?? null;
 export const isShip = (u: Unit) => UNITS[u.type].ship;
 
 /** Gebiet der Fraktion? / territory of faction? */
@@ -82,6 +86,9 @@ export function researchCost(s: GameState, f: number, tech: TechId): number {
   let factor = 1;
   if (FACTIONS[s.factions[f].id].perk === 'researchLead') factor *= 1 - PERKS.researchLeadDiscount;
   if (hasTech(s, f, 'cybernetics')) factor *= 1 - ECON.cyberneticsDiscount;
+  // Versuchslabore / test labs
+  const labs = Math.min(UNIQUE.testLabMax, countBuildings(s, f, 'testLab'));
+  if (labs) factor *= 1 - UNIQUE.testLabDiscount * labs;
   return Math.ceil(cost * factor - 1e-9);
 }
 
@@ -111,8 +118,38 @@ export function logisticsIncome(s: GameState, x: number, y: number): number {
 
 export function cityTiles(s: GameState, c: City): Pos[] {
   const out: Pos[] = [];
-  for (const p of area(s.size, c.x, c.y, c.radius)) if (tileAt(s, p.x, p.y)!.territory === c.id) out.push(p);
+  // + Reichweite der Aussenposten, die das Gebiet erweitern / + reach of outposts that extend the territory
+  for (const p of area(s.size, c.x, c.y, c.radius + OUTPOST_REACH)) if (tileAt(s, p.x, p.y)!.territory === c.id) out.push(p);
   return out;
+}
+
+/** Wie weit ein Aussenposten das Gebiet ueber den Stadtradius hinaus tragen kann / how far an outpost can extend territory beyond the city radius */
+const OUTPOST_REACH = 2;
+
+/**
+ * Gebietserweiterung durch einen Aussenposten auf (x, y): nur wenn das Feld im eigenen Gebiet liegt oder daran grenzt.
+ * Erweitert wird die angrenzende eigene Stadt (die naechste), um freie Felder im 3x3 um den Posten.
+ * Territory extension by an outpost at (x, y): only if the tile lies in or borders own territory.
+ * The adjacent own city (the nearest) gains the free tiles in the 3x3 around the outpost.
+ */
+export function outpostClaim(s: GameState, f: number, x: number, y: number): { city: number; tiles: number[] } | null {
+  let city: City | null = null, best = Infinity;
+  for (const p of area(s.size, x, y, 1)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (territoryOwner(s, t) !== f) continue;
+    const c = cityById(s, t.territory!)!;
+    // nicht weiter als die Reichweite von der Stadt / not further than the reach from the city
+    if (dist(c, { x, y }) > c.radius + OUTPOST_REACH - 1) continue;
+    const d = dist(c, { x, y });
+    if (d < best) { best = d; city = c; }
+  }
+  if (!city) return null;
+  const tiles: number[] = [];
+  for (const p of area(s.size, x, y, 1)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (t.territory === null && t.cityId === null) tiles.push(p.y * s.size + p.x);
+  }
+  return { city: city.id, tiles };
 }
 
 export function cityIncome(s: GameState, c: City): number {
@@ -138,10 +175,42 @@ export function embassyIncome(s: GameState, f: number): number {
   return inc;
 }
 
+/** Gebaeude eines Typs im Gebiet der Fraktion / buildings of a type in the faction's territory */
+export function countBuildings(s: GameState, f: number, b: BuildingId): number {
+  let n = 0;
+  for (const t of s.tiles) if (t.building === b && territoryOwner(s, t) === f) n++;
+  return n;
+}
+
+/** Aktive Friedensvertraege / active peace treaties */
+export function peaceTreaties(s: GameState, f: number): number {
+  const fa = s.factions[f];
+  return fa.relations.filter((r, g) => g !== f && r === 'peace' && s.factions[g]?.alive).length;
+}
+
+/** Verbundene Hafenstaedte (Marinestuetzpunkt im Stadtgebiet, mit dem HQ verbunden) / connected harbour cities */
+export function harbourCities(s: GameState, f: number): number {
+  let n = 0;
+  for (const c of ownCities(s, f)) {
+    if (!(c.connected || (c.isHQ && c.hqOf === f))) continue;
+    if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'navalBase')) n++;
+  }
+  return n;
+}
+
+/** Einkommen aus Botschaftspalast und Handelskontor / income from embassy palace and trading post */
+export function uniqueBuildingIncome(s: GameState, f: number): number {
+  let inc = 0;
+  if (countBuildings(s, f, 'embassyPalace')) inc += UNIQUE.palacePerPeace * peaceTreaties(s, f);
+  if (countBuildings(s, f, 'tradingPost')) inc += UNIQUE.tradingPostPerHarbour * harbourCities(s, f);
+  return inc;
+}
+
 export function income(s: GameState, f: number): number {
   let inc = 0;
   for (const c of ownCities(s, f)) inc += cityIncome(s, c);
   inc += embassyIncome(s, f);
+  inc += uniqueBuildingIncome(s, f);
   const fa = s.factions[f];
   if (!fa.human) inc += INCOME.aiBonus[fa.difficulty];
   return inc;
@@ -360,19 +429,27 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
 export interface CombatPreview { toDefender: number; toAttacker: number; kills: boolean; retaliates: boolean }
 
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
-  const a = UNITS[att.type], d = UNITS[def.type];
+  const d = UNITS[def.type];
   // Todesstrahl ignoriert Deckung / death ray ignores cover
   const bonus = (has(att, 'deathRay') || has(att, 'burn')) ? DEFENSE_BONUS.open : defenseBonus(s, def, att);
   const defense = effectiveDefense(s, def);
-  const attackForce = a.attack * (att.hp / att.maxHp);
+  const atk = effectiveAttack(s, att);
+  const attackForce = atk * (att.hp / att.maxHp);
   const defenseForce = defense * (def.hp / def.maxHp) * bonus;
   const total = attackForce + defenseForce;
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
-  const toDefender = total > 0 ? Math.round((attackForce / total) * a.attack * COMBAT.damageFactor * counterFactor(att.type, def.type)) : 0;
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type)) : 0;
   const kills = toDefender >= def.hp;
-  const retaliates = !kills && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
+  // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
+  const retaliates = !kills && !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
   const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
   return { toDefender, toAttacker, kills, retaliates };
+}
+
+/** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
+export function effectiveAttack(s: GameState, u: Unit): number {
+  const a = UNITS[u.type].attack;
+  return u.veteran && a > 0 && perk2Of(s, u.owner) === 'battleHardened' ? a + PERKS2.battleHardenedAttack : a;
 }
 
 /** Watende Einheit unter Wasser: greift nicht an, schlaegt nicht zurueck / wading unit under water: no attack, no retaliation */
@@ -400,6 +477,10 @@ export function healAmount(s: GameState, u: Unit): number {
   if (t.xeno && isAlien(u)) h += XENO.groundHeal;
   // Lazarett auf oder neben der Stadt / hospital on or next to the city
   if (s.cities.some((c) => c.owner === u.owner && dist(c, u) <= 1 && (c.upgrades ?? []).includes('hospital'))) h += CITY_UPGRADES.hospitalHeal;
+  // Zweite Merkmale: Feldlazarette (Alvenia), Waldbrut im Wald (Zyrr) / second traits: field hospitals, forest spawn in forests
+  const p2 = perk2Of(s, u.owner);
+  if (p2 === 'fieldHospitals') h += PERKS2.fieldHospitalsHeal;
+  if (p2 === 'forestSpawn' && t.terrain === 'forest') h += PERKS2.forestSpawnHeal;
   return h;
 }
 
@@ -520,6 +601,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
     const c = cityById(s, t.territory!)!;
     if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === b)) return { ok: false, error: 'onePerCity', cost };
   }
+  if (st.onePerFaction && countBuildings(s, f, b) > 0) return { ok: false, error: 'alreadyBuilt', cost };
   if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
   return { ok: true, cost };
 }
@@ -555,8 +637,18 @@ export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'inv
   const t = tileAt(s, u.x, u.y)!;
   if (!['plain', 'forest', 'mountain'].includes(t.terrain)) return 'invalidTile';
   if (t.cityId !== null || t.outpost || t.building || t.feature || t.grandProject) return 'invalidTile';
-  if (s.factions[u.owner].stars < ECON.outpostCost) return 'notEnoughStars';
+  if (s.factions[u.owner].stars < outpostCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
+}
+
+/** Aussenposten-Preis (Korvat, Erdwaelle: billiger) / outpost price (Korvat, earthworks: cheaper) */
+export function outpostCost(s: GameState, f: number): number {
+  return perk2Of(s, f) === 'earthworks' ? PERKS2.earthworksOutpostCost : ECON.outpostCost;
+}
+
+/** Panzersperren-Preis (Velkar, Ingenieurkorps: billiger) / tank barrier price (Velkar, engineer corps: cheaper) */
+export function barrierCost(s: GameState, f: number): number {
+  return perk2Of(s, f) === 'engineerCorps' ? PERKS2.engineerCorpsBarrierCost : BARRIER.cost;
 }
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId):
@@ -582,6 +674,8 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
 export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' {
   if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat') return 'invalid';
   if (u.fresh) return 'invalid';
+  // Fraktionsschiffe (Kaperschiff) nur fuer ihre Fraktion / faction ships (privateer) only for their faction
+  if (UNITS[to].faction && UNITS[to].faction !== s.factions[u.owner].id) return 'invalid';
   const t = tileAt(s, u.x, u.y)!;
   if (territoryOwner(s, t) !== u.owner) return 'notInTerritory';
   if (UNITS[to].tech && !hasTech(s, u.owner, UNITS[to].tech!)) return 'techMissing';
@@ -605,7 +699,9 @@ export function visionRadius(s: GameState, u: Unit): number {
 /** Sichtweite der Einheit, wenn sie auf (x, y) stuende / vision of the unit if it stood on (x, y) */
 export function visionRadiusAt(s: GameState, u: Unit, x: number, y: number): number {
   const t = tileAt(s, x, y)!;
-  return Math.max(UNITS[u.type].vision, t.terrain === 'mountain' ? VISION.mountain : VISION.unit);
+  const v = Math.max(UNITS[u.type].vision, t.terrain === 'mountain' ? VISION.mountain : VISION.unit);
+  // NEXUS, Sensornetz / sensor net
+  return perk2Of(s, u.owner) === 'sensorNet' ? v + PERKS2.sensorNetVision : v;
 }
 
 export function contactStars(s: GameState, g: number): number {
@@ -615,9 +711,11 @@ export function contactStars(s: GameState, g: number): number {
 
 export function techUnlocks(tech: TechId, faction?: FactionId): { units: UnitTypeId[]; buildings: BuildingId[] } {
   // Menschen sehen Menschen-Einheiten, Sonderfraktionen ihre eigenen / humans see human units, special factions their own
+  // klassische Fraktionen sehen zusaetzlich ihre einzigartige Einheit / classic factions also see their unique unit
   const roster = faction ? ROSTERS[faction] : undefined;
-  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech && (roster ? UNITS[k].faction === faction || UNITS[k].ship : !UNITS[k].faction));
-  const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech);
+  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech &&
+    (roster ? UNITS[k].faction === faction || (UNITS[k].ship && !UNITS[k].faction) : !UNITS[k].faction || UNITS[k].faction === faction));
+  const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech && (!FACTION_BUILDINGS[k] || FACTION_BUILDINGS[k] === faction));
   for (const [terr, t] of Object.entries(RESEARCH_CENTER_TECH)) if (t === tech && terr) buildings.push('researchCenter');
   return { units, buildings };
 }
@@ -639,7 +737,7 @@ export function barrierCheck(s: GameState, u: Unit, x: number, y: number): Barri
   const t = tileAt(s, x, y)!;
   if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
-  if (s.factions[u.owner].stars < BARRIER.cost) return 'notEnoughStars';
+  if (s.factions[u.owner].stars < barrierCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
 }
 
@@ -675,6 +773,8 @@ export function effectiveMove(s: GameState, u: Unit): number {
   let m = UNITS[u.type].move;
   if (weather(s) === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.rain.moveDelta);
   if (weather(s) === 'snow' && WEATHER.snow.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.snow.moveDelta);
+  // Meridon, Lotsenwesen: Landungsboote weiter / harbour pilots: landing boats further
+  if (u.type === 'landingBoat' && perk2Of(s, u.owner) === 'harbourPilots') m += PERKS2.harbourPilotsMove;
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
   return m;
 }
@@ -768,6 +868,7 @@ export function terraformTargets(s: GameState, u: Unit): Pos[] {
 /** Fraktionsgebaeude / faction buildings */
 export const FACTION_BUILDINGS: Partial<Record<BuildingId, string>> = {
   xenoHive: XENO.faction, xenoHarvester: XENO.faction, shrine: CULT.faction, dataCenter: NEXUS.faction, powerPlant: NEXUS.faction,
+  ...Object.fromEntries(Object.entries(UNIQUE.buildings).map(([f, b]) => [b, f])),
 };
 export const isCultFaction = (s: GameState, f: number) => s.factions[f]?.id === CULT.faction;
 export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id === NEXUS.faction;
@@ -775,7 +876,12 @@ export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id ===
 export const canResearch = (s: GameState, f: number) => ROSTERS[s.factions[f].id]?.research !== false;
 /** Kaufbare Landeinheiten einer Fraktion / purchasable land units of a faction */
 export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
-  return ROSTERS[s.factions[f].id]?.units ?? LAND_UNITS;
+  const id = s.factions[f].id;
+  const roster = ROSTERS[id]?.units;
+  if (roster) return roster;
+  // klassische Fraktionen: Grundliste plus einzigartige Landeinheit / classic factions: base list plus unique land unit
+  const u = uniqueUnitOf(id);
+  return u && !UNITS[u].ship ? [...LAND_UNITS, u] : LAND_UNITS;
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */

@@ -83,10 +83,10 @@ describe('Fraktionen / factions', () => {
     s.factions[0].embassies = [1];
     k.factions[0].embassies = [1];
     expect(embassyCost(s, 0)).toBe(25); // ceil(50*0.5)
-    expect(embassyIncome(s, 0)).toBe(20);
-    expect(embassyIncome(k, 0)).toBe(10);
+    expect(embassyIncome(s, 0)).toBe(12);
+    expect(embassyIncome(k, 0)).toBe(6);
     // die Gastgeberseite bekommt normales Einkommen / the host side gets normal income
-    expect(embassyIncome(s, 1)).toBe(10);
+    expect(embassyIncome(s, 1)).toBe(6);
   });
 
   it('Meridon (boom): each level-up needs one population point less, at least 1', () => {

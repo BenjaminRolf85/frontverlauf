@@ -8,7 +8,8 @@
  * - weapon sounds per unit type, impacts, death screams, battle-cry choirs
  * - ambience per weather (rain, wind, snow, birds, surf) and distant battle noise
  */
-import type { FactionId, UnitTypeId } from '../data/balance';
+import { UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { unitClass } from '../core/queries';
 import { MusicPlayer, type MusicMood } from './music';
 
 export type Sfx = 'select' | 'move' | 'attack' | 'hit' | 'kill' | 'endTurn' | 'capture' | 'levelUp' | 'error' | 'build' | 'research' | 'click';
@@ -29,10 +30,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   android: 'energy', spider: 'buzz', quadDrone: 'laser', railgun: 'railgun', titan: 'plasma',
   // Konter-Einheiten / counter units
   antiTank: 'rocket', antiAir: 'mg', mineLayer: 'rifle', faustZealot: 'rocket', flakDrone: 'mg',
+  // Einzigartige Einheiten / unique units
+  steppeRider: 'rifle', stormbreaker: 'mg', peacekeeper: 'rifle', privateer: 'naval', protoWalker: 'cannon',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {
@@ -90,6 +93,8 @@ class AudioEngine {
   private ambNodes: AudioNode[] = [];
   private lastWeapon = 0;
   private lastCry = 0;
+  private lastUnitVoice = 0;
+  private radioCurve: Float32Array | null = null;
 
   private ensure(): AudioContext | null {
     if (this.ctx) return this.ctx;
@@ -464,6 +469,8 @@ class AudioEngine {
   bark(faction: FactionId, text: string) {
     const ctx = this.ready();
     if (!ctx) return;
+    // laeuft gerade ein Funkspruch, nicht doppelt brabbeln / a radio call is playing: do not babble twice
+    if (ctx.currentTime - this.lastUnitVoice < 1.2) return;
     const v = VOICES[faction];
     let t = ctx.currentTime + 0.02;
     const words = Math.max(2, Math.min(7, text.split(/\s+/).length));
@@ -487,6 +494,161 @@ class AudioEngine {
       this.noise(t + 0.02, 0.12, 0.25, 3000, this.voiceBus!);
       [1.8, 1.2, 2.1, 0.9].forEach((m, i) => this.tone(v.pitch * m, t + 0.03 + i * 0.05, 0.05, 'square', 0.15, this.voiceBus!, 0.6));
     }
+  }
+
+  // ---------- Auswahl-Geraeusche / selection sounds ----------
+
+  /**
+   * Geraeusch beim Anklicken einer eigenen Einheit: Funkspruch fuer Fusstruppen, Motor fuer Fahrzeuge,
+   * Rotor fuer Hubschrauber, Horn oder Sonar fuer Schiffe, Servos fuer Roboter, Summen fuer Ausserirdische.
+   * Sound when clicking an own unit: radio call for foot troops, engine for vehicles, rotor for helicopters,
+   * horn or sonar for ships, servos for robots, humming for aliens.
+   */
+  unitVoice(type: UnitTypeId, f: FactionId) {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    if (now - this.lastUnitVoice < 0.45) return;
+    this.lastUnitVoice = now;
+    const t = now + 0.03;
+    const out = ctx.createGain(); out.gain.value = 0.9; out.connect(this.sfxBus!); this.wetSend(out, 0.2);
+    window.setTimeout(() => out.disconnect(), 4000);
+    const u = UNITS[type];
+    const kind = VOICES[f].kind;
+    const walker = u.abilities.includes('walker');
+    if (u.ship) {
+      if (type === 'submarine') this.sonar(t, out);
+      else this.horn(t, type === 'battleship' ? 62 : type === 'landingBoat' ? 110 : 82, out);
+      if (kind === 'human') this.radio(f, t + 0.6, 2);
+      return;
+    }
+    if (u.abilities.includes('fly')) {
+      if (kind === 'alien') this.hover(t, out);
+      else if (kind === 'robot') this.buzz(t, out);
+      else { this.rotor(t, 0.9, out); this.tone(900, t, 0.9, 'sawtooth', 0.04, out, 1.3, 0.2); this.radio(f, t + 0.5, 2); }
+      return;
+    }
+    if (walker) { this.servo(t, out, kind === 'robot' ? 1.4 : 1); if (kind === 'alien') this.hover(t + 0.25, out); return; }
+    if (unitClass(type) === 'vehicle') {
+      const heavy = u.hp >= 20;
+      this.engine(t, heavy ? 38 : 62, heavy ? 1.1 : 0.8, heavy, out);
+      if (kind === 'human' || kind === 'cult') this.radio(f, t + 0.55, 2);
+      else if (kind === 'robot') this.chirps(t + 0.5, out, 3);
+      return;
+    }
+    // Fusstruppen / foot troops
+    if (kind === 'robot') { this.servo(t, out, 1.6); this.chirps(t + 0.2, out, 4); return; }
+    if (kind === 'alien') { this.hover(t, out); this.chirps(t + 0.1, out, 3, 0.6); return; }
+    if (kind === 'cult') { this.bell(t, out); this.radio(f, t + 0.25, 3); return; }
+    this.radio(f, t, 3 + Math.floor(Math.random() * 2));
+  }
+
+  /** Funkspruch: Rauschen, gebrabbelte Silben durch ein Funkfilter, Quittungston / radio call: static, babbled syllables through a radio filter, roger beep */
+  private radio(f: FactionId, t: number, words: number) {
+    const ctx = this.ctx!;
+    if (!this.radioCurve) {
+      const c = new Float32Array(256);
+      for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 3); }
+      this.radioCurve = c;
+    }
+    const v = VOICES[f];
+    const g = ctx.createGain(); g.gain.value = 0.5;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 450;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    const ws = ctx.createWaveShaper(); ws.curve = this.radioCurve as Float32Array<ArrayBuffer>;
+    g.connect(hp); hp.connect(ws); ws.connect(lp); lp.connect(this.voiceBus!);
+    window.setTimeout(() => lp.disconnect(), 5000);
+    // Sprechtaste / push-to-talk click
+    this.noise(t, 0.035, 0.35, 2500, g, { type: 'highpass' });
+    let at = t + 0.06;
+    const start = at;
+    for (let i = 0; i < words; i++) {
+      const syl = 1 + Math.floor(Math.random() * 2);
+      for (let k = 0; k < syl; k++) {
+        const dur = 0.05 + Math.random() * 0.07;
+        this.tone(v.pitch * (0.9 + Math.random() * 0.35), at, dur, v.wave, 0.32, g, 0.8 + Math.random() * 0.5);
+        at += dur + 0.015;
+      }
+      at += 0.05;
+    }
+    // Rauschen unter der Stimme / static under the voice
+    this.noise(start, at - start, 0.05, 1800, g, { type: 'bandpass', q: 0.8 });
+    // Quittungston und Rauschschwanz / roger beep and static tail
+    this.tone(1250, at + 0.02, 0.06, 'sine', 0.12, g);
+    this.noise(at + 0.08, 0.12, 0.2, 2000, g, { type: 'bandpass', q: 0.6 });
+  }
+
+  /** Motor anlassen und hochdrehen / start and rev an engine */
+  private engine(t: number, base: number, dur: number, heavy: boolean, out: AudioNode) {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(base * 0.7, t);
+    o.frequency.linearRampToValueAtTime(base * 1.9, t + dur * 0.35);
+    o.frequency.linearRampToValueAtTime(base * 1.2, t + dur);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = heavy ? 380 : 650; lp.Q.value = 3;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(heavy ? 0.5 : 0.38, t + 0.08);
+    g.gain.setValueAtTime(heavy ? 0.5 : 0.38, t + dur * 0.6);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(lp); lp.connect(g); g.connect(out);
+    o.start(t); o.stop(t + dur + 0.05);
+    // Anlasser und Brummen / starter and rumble
+    this.noise(t, 0.12, 0.18, 1400, out, { type: 'bandpass', q: 3 });
+    this.noise(t, dur, heavy ? 0.3 : 0.18, 180, out, { type: 'lowpass' });
+    // Kettengerassel / track clatter
+    if (heavy) for (let i = 0; i < Math.floor(dur / 0.07); i++) this.noise(t + 0.2 + i * 0.07, 0.025, 0.12, 3200, out, { type: 'highpass' });
+  }
+
+  /** Schiffshorn / ship horn */
+  private horn(t: number, freq: number, out: AudioNode) {
+    this.tone(freq, t, 1.0, 'sawtooth', 0.22, out, 1, 0.08);
+    this.tone(freq * 1.5, t, 1.0, 'sawtooth', 0.12, out, 1, 0.08);
+    this.noise(t, 1.0, 0.05, 300, out, { type: 'lowpass' });
+  }
+
+  /** Sonar-Ping / sonar ping */
+  private sonar(t: number, out: AudioNode) {
+    this.tone(1180, t, 0.7, 'sine', 0.25, out, 0.98, 0.005);
+    this.tone(1180, t + 0.45, 0.6, 'sine', 0.08, out, 0.98, 0.005);
+    this.wetSend(out, 0.6);
+  }
+
+  /** Servo-Surren und Hydraulik / servo whir and hydraulics */
+  private servo(t: number, out: AudioNode, pitch: number) {
+    this.tone(320 * pitch, t, 0.22, 'square', 0.08, out, 1.6);
+    this.tone(480 * pitch, t + 0.24, 0.18, 'square', 0.07, out, 0.7);
+    this.noise(t + 0.4, 0.18, 0.18, 5000, out, { type: 'highpass' });
+    this.tone(70, t + 0.42, 0.2, 'sine', 0.3, out, 0.5, 0.005);
+  }
+
+  /** Datenzirpen / data chirps */
+  private chirps(t: number, out: AudioNode, n: number, vol = 1) {
+    for (let i = 0; i < n; i++) this.tone(1400 + Math.random() * 1600, t + i * 0.07, 0.04, 'square', 0.07 * vol, out);
+  }
+
+  /** Schwebendes Summen (Ausserirdische) / hovering hum (aliens) */
+  private hover(t: number, out: AudioNode) {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(420, t); o.frequency.linearRampToValueAtTime(620, t + 0.6);
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 9;
+    const lg = ctx.createGain(); lg.gain.value = 60; lfo.connect(lg); lg.connect(o.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+    o.connect(g); g.connect(out);
+    o.start(t); o.stop(t + 0.8); lfo.start(t); lfo.stop(t + 0.8);
+  }
+
+  /** Drohnen-Brummen / drone buzz */
+  private buzz(t: number, out: AudioNode) {
+    for (let i = 0; i < 10; i++) this.tone(180 + (i % 2) * 12, t + i * 0.06, 0.06, 'sawtooth', 0.08, out);
+    this.chirps(t + 0.65, out, 2);
+  }
+
+  /** Kleine Glocke (Kult) / small bell (cult) */
+  private bell(t: number, out: AudioNode) {
+    [1, 2.76, 5.4].forEach((m, i) => this.tone(420 * m, t, 1.1 - i * 0.3, 'sine', 0.16 / (i + 1), out, 1, 0.003));
   }
 
   // ---------- Stinger / stingers ----------

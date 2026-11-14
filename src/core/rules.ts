@@ -3,8 +3,8 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
+  COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  MODES, PERKS2, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -18,10 +18,11 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
-import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Unit } from './types';
+import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Tile, Unit } from './types';
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
 
@@ -92,6 +93,28 @@ function addCity(s: GameState, x: number, y: number, owner: number | null, nameI
   const t = tileAt(s, x, y)!;
   t.cityId = c.id; t.resource = null; t.feature = null; t.road = false;
   return c;
+}
+
+/** Aussenposten erweitert das Gebiet, wenn er an eigenes Gebiet grenzt / outpost extends territory if it borders own territory */
+function claimOutpost(s: GameState, f: number, x: number, y: number) {
+  const t = tileAt(s, x, y)!;
+  const claim = outpostClaim(s, f, x, y);
+  if (!claim || !t.outpost) return;
+  for (const k of claim.tiles) s.tiles[k].territory = claim.city;
+  t.outpost.city = claim.city;
+  t.outpost.claims = claim.tiles;
+}
+
+/** Vom Aussenposten erweiterte Felder wieder freigeben / release the tiles an outpost added */
+function releaseOutpost(s: GameState, t: Tile) {
+  const o = t.outpost;
+  if (!o?.claims) return;
+  for (const k of o.claims) {
+    const q = s.tiles[k];
+    // nur freigeben, wenn das Feld noch zu dieser Stadt gehoert und kein Gebaeude traegt
+    // only release if the tile still belongs to that city and carries no building
+    if (q.territory === o.city && !q.building) q.territory = null;
+  }
 }
 
 function claimTerritory(s: GameState, c: City, radius: number) {
@@ -169,11 +192,15 @@ function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], lea
     }
   }
   ev.push({ t: 'killed', unit: u.id, by, remains: kind, x: u.x, y: u.y });
+  // Vesper, Maertyrertum: im Kampf Gefallene bringen Sterne / martyrdom: units fallen in battle bring stars
+  if (by !== null && leaveRemains && perk2Of(s, u.owner) === 'martyrdom' && s.factions[u.owner].alive) s.factions[u.owner].stars += PERKS2.martyrdomStars;
 }
 
 function gainKill(s: GameState, u: Unit, ev: GameEvent[]) {
   u.kills++;
   s.factions[u.owner].kills++;
+  // Kaperschiff: Beute je Abschuss / privateer: prize money per kill
+  if (has(u, 'plunder')) s.factions[u.owner].stars += UNIQUE.plunderStars;
   if (!u.veteran && u.kills >= veteranKills(s, u)) {
     u.veteran = true;
     u.maxHp += VETERAN.bonusHp;
@@ -313,8 +340,20 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     fa.stars = Math.max(0, fa.stars + inc);
   }
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
+  // Kolchose: alle paar Runden Bevoelkerung fuer ihre Stadt / kolkhoz: population for its city every few rounds
+  if (s.round > 1 && s.round % UNIQUE.kolkhozInterval === 0) {
+    for (const c of ownCities(s, f)) {
+      if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'kolkhoz')) addPop(s, c, UNIQUE.kolkhozPop, ev);
+    }
+  }
   for (const u of s.units) {
     if (u.owner !== f) continue;
+    // Selbstheilung (Friedenswacht) / self-repair (peacekeepers)
+    if (has(u, 'mend') && u.hp < u.maxHp) {
+      const amount = Math.min(UNIQUE.mendHp, u.maxHp - u.hp);
+      u.hp += amount;
+      ev.push({ t: 'heal', unit: u.id, amount });
+    }
     u.moved = false; u.attacked = false; u.moveDone = false; u.exhausted = false; u.fresh = false;
     u.startX = u.x; u.startY = u.y; u.revealed = false;
     u.slowed = !!u.slowedNext; u.slowedNext = false;
@@ -780,7 +819,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       u.exhausted = true;
       const t = tileAt(s, u.x, u.y)!;
       if (kind === 'outpost') {
+        releaseOutpost(s, t);
         t.outpost = { owner: f };
+        claimOutpost(s, f, u.x, u.y);
         ev.push({ t: 'outpostCapture', x: u.x, y: u.y, faction: f });
       } else {
         captureCity(s, u, cityById(s, t.cityId!)!, ev);
@@ -796,8 +837,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       fa.stars -= unitCost(s, f, cmd.unitType)!;
       const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, c.id);
       ev.push({ t: 'train', unit: u.id, city: c.id });
-      // Kaserne: Einheit startet als Veteran / barracks: unit starts as a veteran
-      if (hasCityUpgrade(c, 'barracks')) {
+      // Kaserne oder Soeldnerkaserne: Einheit startet als Veteran / barracks or mercenary barracks: unit starts as a veteran
+      if (hasCityUpgrade(c, 'barracks') || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks')) {
         u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
         ev.push({ t: 'veteran', unit: u.id });
       }
@@ -888,7 +929,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (typeof u === 'string') return fail(u);
       const check = barrierCheck(s, u, cmd.x, cmd.y);
       if (check !== 'ok') return fail(check === 'cannotCapture' ? 'unitExhausted' : check);
-      fa.stars -= BARRIER.cost;
+      fa.stars -= barrierCost(s, f);
       tileAt(s, cmd.x, cmd.y)!.barrier = { owner: f };
       u.exhausted = true;
       ev.push({ t: 'barrier', x: cmd.x, y: cmd.y, faction: f });
@@ -912,8 +953,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (typeof u === 'string') return fail(u);
       const check = outpostCheck(s, u);
       if (check !== 'ok') return fail(check);
-      fa.stars -= ECON.outpostCost;
+      fa.stars -= outpostCost(s, f);
       tileAt(s, u.x, u.y)!.outpost = { owner: f };
+      claimOutpost(s, f, u.x, u.y);
       u.exhausted = true;
       ev.push({ t: 'build', building: 'outpost', x: u.x, y: u.y, faction: f });
       res = { ok: true, events: ev };

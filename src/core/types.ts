@@ -17,7 +17,11 @@ export interface Tile {
   feature: 'bunker' | 'radar' | 'crashSite' | 'labRuin' | null;
   /** Index der Fraktion, deren Heimatgebiet hier liegt / index of the faction whose home region is here */
   home: number | null;
-  outpost: { owner: number } | null;
+  /**
+   * Aussenposten; claims = Felder (Index), die er dem Gebiet von Stadt city hinzugefuegt hat.
+   * Outpost; claims = tiles (index) it added to the territory of city city.
+   */
+  outpost: { owner: number; city?: number; claims?: number[] } | null;
   grandProject: GrandProjectId | null;
   /** Runde, in der das Forschungszentrum gebaut wurde / round in which the research centre was built */
   researchBuilt: number | null;

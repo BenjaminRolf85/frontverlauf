@@ -14,6 +14,7 @@ import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
 import { Fx } from './ui/fx';
 import { Barks } from './ui/barks';
+import { Dispatches } from './ui/dispatch';
 import { Hud, cityName, unitName } from './ui/hud';
 import {
   slotsDialog, confirmDialog, detailsDialog, diplomacyDialog, gameOverScreen, grandDialog, handoverScreen, mainMenu, pauseMenu,
@@ -42,9 +43,12 @@ function boot() {
   const game = new Controller(view);
   const fx = new Fx(root, view);
   const barks = new Barks(root, view);
+  const dispatches = new Dispatches(root, () => game.viewer);
   let tutorial: Tutorial | null = null;
   let menuNode: HTMLElement | null = null;
   const xr = new XrSession(view, game);
+  // im Tutorial und in XR keine Funksprueche / no dispatches in the tutorial and in XR
+  dispatches.blocked = () => !!tutorial || view.renderer.xr.isPresenting;
 
   const host: ScreenHost = {
     root, game, settings,
@@ -56,6 +60,9 @@ function boot() {
       view.board.animations = settings.animations;
       fx.enabled = settings.animations;
       barks.enabled = settings.barks;
+      dispatches.enabled = settings.dispatches;
+      dispatches.animations = settings.animations;
+      if (!settings.dispatches) dispatches.clear();
       app.classList.toggle('no-anim', !settings.animations);
       game.aiSpeed = settings.aiSpeed;
       view.setQuality(settings.quality);
@@ -63,8 +70,11 @@ function boot() {
     startGame(cfg: GameConfig) {
       tutorial?.finish(); tutorial = null;
       hideMenu();
+      dispatches.reset(true);
       game.newGame(cfg);
       game.autosave();
+      // erster Zug eines Menschen: Lagebesprechung / first human turn: briefing
+      if (game.isHumanTurn && game.state) dispatches.turnStart(game.state, game.viewer);
     },
     continueGame() {
       const s = loadGame();
@@ -113,6 +123,7 @@ function boot() {
     startTutorial() {
       host.startGame(TUTORIAL_CONFIG);
       tutorial = new Tutorial(root, game, () => { settings.tutorialDone = true; saveSettings(settings); tutorial = null; });
+      dispatches.reset(false);
     },
     xr: {
       get vr() { return xr.supported.vr; },
@@ -122,6 +133,7 @@ function boot() {
     showMenu() {
       tutorial?.finish(); tutorial = null;
       barks.clear();
+      dispatches.reset(false);
       hud.show(false);
       objectives.show(false);
       root.querySelectorAll('.screen, .overlay, .headline').forEach((n) => n.remove());
@@ -143,7 +155,7 @@ function boot() {
   const minimap = new Minimap(root, game, () => !menuNode);
   // Einsatzziele (nur Kampagne) / objectives (campaign only)
   const objectives = new ObjectivePanel(root);
-  const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); objectives.show(true); };
+  const hideMenu = () => { dispatches.reset(false); menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); objectives.show(true); };
 
   let rewardOpen = false;
   let lastWeather: string | null = null;
@@ -190,11 +202,12 @@ function boot() {
         case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
       }
+      dispatches.onEvent(e, s);
     },
     fx: (kind, x, y, text) => { if (game.state) fx.show(game.state, kind, x, y, text); },
     afterCommand(events) { if (game.state) barks.onEvents(game.state, events, game.viewer, new Map()); },
-    unitSelected(u) { if (game.state) barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); },
-    turnStarted() { if (game.state) barks.onTurnStart(game.state, game.viewer); },
+    unitSelected(u) { if (game.state) { audio.unitVoice(u.type, game.state.factions[u.owner].id); barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); } },
+    turnStarted() { if (game.state) { barks.onTurnStart(game.state, game.viewer); dispatches.turnStart(game.state, game.viewer); } },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
     gameOver: () => { if (game.state?.campaign) campaignResult(host); else gameOverScreen(host); clearSave(); },
@@ -226,7 +239,7 @@ function boot() {
     else if (e.key === '+') view.setZoom(view.zoom * 1.25);
     else if (e.key === '-') view.setZoom(view.zoom / 1.25);
     else if (e.key === 'Enter') void game.endTurn();
-    else if (e.key === 'Escape') { game.clearSelection(); hud.render(); }
+    else if (e.key === 'Escape') { if (!dispatches.dismiss()) { game.clearSelection(); hud.render(); } }
   });
   onLanguageChange(() => { clearLabelCache(); game.refresh(); hud.render(); xr.refreshPanels(); });
   document.addEventListener('pointerdown', () => audio.unlock(), { once: true });

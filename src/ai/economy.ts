@@ -6,10 +6,10 @@ import {
   unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, type City, type Command, type GameState, type Unit,
+  unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
 } from '../core';
 import {
-  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LAND_UNITS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNITS,
+  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   type BuildingId, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -255,6 +255,10 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
     mil += m * 2;
   }
   if ((t === 'shipbuilding' || t === 'diving') && ctx.navalNeed) mil += 10;
+  // Technik der einzigartigen Einheit oder des einzigartigen Gebaeudes / tech of the unique unit or building
+  const uu = UNIQUE.units[ctx.fa.id], ub = UNIQUE.buildings[ctx.fa.id];
+  if (uu && UNITS[uu].tech === t) mil += 12 * prof.militaryW;
+  if (ub && BUILDINGS[ub].tech === t) mil += 8;
   if (ctx.points && ctx.roundsLeft >= 6 && Object.values(RESEARCH_CENTER_TECH).includes(t)) mil += 10;
   return econ + mil;
 }
@@ -320,26 +324,33 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     medic: army >= 4 ? 0.08 : 0,
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,
     heli: army >= 4 ? 0.1 : 0,
+    // einzigartige Einheiten / unique units
+    steppeRider: unexplored ? 0.18 : 0.1,
+    stormbreaker: ctx.hostileCities.length || ctx.enemies.length ? 0.22 : 0.1,
+    peacekeeper: 0.2,
+    protoWalker: ctx.hostileCities.length ? 0.15 : 0.06,
   };
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
+    steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
   // Bedrohung der Stadt: Fahrzeuge oder Flieger in der Naehe / threat to the city: vehicles or flyers nearby
   const local = enemyMix(ctx, c, 3);
   let best: UnitTypeId | null = null;
   let bs = -Infinity;
-  for (const t of LAND_UNITS) {
+  const list = rosterUnits(s, f);
+  for (const t of list) {
     if (!avail(t)) continue;
     const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper'].includes(t) && !counterUrgent) continue;
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
-    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' ? 2 : t === 'pioneer' ? 1.6 : t === 'infantry' ? 1.2 : 1;
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? 1.6 : t === 'infantry' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery')) sc -= 0.6;
-    if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, LAND_UNITS.indexOf(t)) - 0.5) * prof.sloppy * 2;
+    if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
     if (sc > bs) { bs = sc; best = t; }
   }
@@ -362,7 +373,7 @@ function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
     const bonus = UNITS[t].bonusVs;
     if (bonus?.vehicle && bonus.vehicle > 1) return Math.max(0.04, ct.antiVehicle);
     if (bonus?.air && bonus.air > 1) return Math.max(0.04, ct.antiAir);
-    return (ROSTER_SHARE[t] ?? 0.1) * (1 - 0.4 * Math.min(1, ct.vehRatio + ct.airRatio));
+    return (ROSTER_SHARE[t] ?? 0.1) * (ctx.prof.pref[t] ?? 1) * (1 - 0.4 * Math.min(1, ct.vehRatio + ct.airRatio));
   };
   const avail = (t: UnitTypeId) => (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && (UNITS[t].compute === undefined || computePower(s, f) >= UNITS[t].compute!);
   let best: UnitTypeId | null = null, bs = -Infinity;
@@ -389,7 +400,7 @@ function chooseAlienUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
   };
   let best: UnitTypeId | null = null, bs = -Infinity;
   for (const t of ALIEN_UNITS) {
-    const sc = ((share[t] ?? 0) - count(t) / army) * 4 - UNITS[t].cost! / 250;
+    const sc = ((share[t] ?? 0) * (ctx.prof.pref[t] ?? 1) - count(t) / army) * 4 - UNITS[t].cost! / 250;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;
@@ -534,6 +545,26 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       }
     }
   }
+  // Einzigartiges Gebaeude der Fraktion / the faction's unique building
+  const ub = UNIQUE.buildings[fa.id];
+  if (ub) {
+    const horizon = ctx.points ? ctx.roundsLeft : 20;
+    for (const c of ctx.myCities) {
+      for (const p of cityTiles(s, c)) {
+        const chk = buildCheck(s, f, ub, p.x, p.y);
+        if (!chk.ok && chk.error !== 'notEnoughStars') continue;
+        let value = popVal;
+        if (ub === 'kolkhoz') value += popVal * 0.6 * Math.floor(Math.min(horizon, 24) / UNIQUE.kolkhozInterval);
+        else if (ub === 'mercenaryBarracks') value = hasCityUpgrade(c, 'barracks') || c.level < 2 ? 0 : value + chk.cost * (0.3 + 0.08 * Math.min(4, c.level)) * prof.militaryW;
+        else if (ub === 'embassyPalace') value += UNIQUE.palacePerPeace * peaceTreaties(s, f) * Math.min(horizon, 15) * 0.45;
+        else if (ub === 'tradingPost') value += UNIQUE.tradingPostPerHarbour * harbourCities(s, f) * Math.min(horizon, 15) * 0.45;
+        else if (ub === 'testLab') value += TECH_IDS.filter((t) => !fa.techs.includes(t)).length * UNIQUE.testLabDiscount * 45 * Math.min(1, horizon / 12);
+        if (value <= 0) continue;
+        if (prof.sloppy > 0) value *= 1 + (hashNoise(p.x, p.y, s.round, 7) - 0.5) * prof.sloppy;
+        buys.push({ cmd: { type: 'build', building: ub, x: p.x, y: p.y }, cost: chk.cost, value, save: true });
+      }
+    }
+  }
   // Strassen / roads
   if (hasTech(s, f, 'roadbuilding')) {
     for (const r of roadPlans(ctx)) {
@@ -611,7 +642,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       else if (up === 'depot') value = CITY_UPGRADES.depotIncome * Math.min(ctx.points ? ctx.roundsLeft : 20, 20) * 0.45;
       else if (up === 'hospital') value = front ? cost * 1.2 : cost * 0.3;
       else if (up === 'flak') value = ctx.enemies.some((e) => e.type === 'heli' && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
-      else if (up === 'barracks') value = cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
+      else if (up === 'barracks') value = cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'mercenaryBarracks') ? 0 : cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
       else {
         const targets = radioTargets(s, f, c);
         if (!targets.length) continue;
@@ -675,8 +706,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
 function bestShip(ctx: Ctx, u: Unit): UnitTypeId | null {
   const { s, f } = ctx;
-  const order: UnitTypeId[] = ['battleship', 'destroyer', 'submarine'];
-  const rank = (t: UnitTypeId) => (t === 'landingBoat' ? 0 : 3 - order.indexOf(t));
+  // Meridon: Kaperschiff vor Zerstoerer / Meridon: privateer before destroyer
+  const order: UnitTypeId[] = UNIQUE.units[ctx.fa.id] === 'privateer' ? ['battleship', 'privateer', 'destroyer', 'submarine'] : ['battleship', 'destroyer', 'submarine'];
+  const rank = (t: UnitTypeId) => (t === 'landingBoat' ? 0 : order.length - order.indexOf(t));
   for (const t of order) {
     const tech = UNITS[t].tech;
     if (tech && !hasTech(s, f, tech)) continue;

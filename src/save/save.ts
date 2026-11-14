@@ -14,12 +14,14 @@ export interface Settings {
   quality: 'low' | 'high';
   tutorialDone: boolean;
   barks: boolean;
+  /** Funksprueche der Anfuehrer / leader dispatches */
+  dispatches: boolean;
   /** Atmosphaere: Wetter, Voegel, ferner Gefechtslaerm / ambience: weather, birds, distant battle */
   ambience: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: 'high', tutorialDone: false, barks: true, ambience: true,
+  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: 'high', tutorialDone: false, barks: true, dispatches: true, ambience: true,
 };
 
 export function loadSettings(): Settings {

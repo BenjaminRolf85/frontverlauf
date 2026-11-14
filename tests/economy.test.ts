@@ -77,7 +77,7 @@ describe('Einkommen / income', () => {
     expect(cityIncome(s, v)).toBe(0);
   });
 
-  it('logistics centre: 5 stars per adjacent lumber camp / farm / mine, at most 40', () => {
+  it('logistics centre: 3 stars per adjacent lumber camp / farm / mine, at most 24', () => {
     const s = blankGame();
     const c = addCity(s, 5, 5, 0, { radius: 2 });
     setTerrain(s, 4, 4, 'plain', { building: 'logisticsCenter' });
@@ -85,13 +85,13 @@ describe('Einkommen / income', () => {
     setTerrain(s, 4, 3, 'plain', { building: 'farm' });
     setTerrain(s, 5, 3, 'mountain', { building: 'mine' });
     setTerrain(s, 3, 4, 'plain', { building: 'storehouse' }); // zaehlt nicht / does not count
-    expect(logisticsIncome(s, 4, 4)).toBe(15);
-    expect(cityIncome(s, c)).toBe(INCOME.perCityLevel + 15);
-    // Deckel 40 / cap 40
-    expect(INCOME.logisticsMax).toBe(40);
+    expect(logisticsIncome(s, 4, 4)).toBe(9);
+    expect(cityIncome(s, c)).toBe(INCOME.perCityLevel + 9);
+    // Deckel 24 / cap 24
+    expect(INCOME.logisticsMax).toBe(24);
     const s2 = blankGame();
     for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) if (x !== 1 || y !== 1) setTerrain(s2, x, y, 'plain', { building: 'farm' });
-    expect(logisticsIncome(s2, 1, 1)).toBe(40);
+    expect(logisticsIncome(s2, 1, 1)).toBe(24);
   });
 
   it('AI on hard/extreme gets an income bonus, easy/normal and humans do not', () => {

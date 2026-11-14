@@ -559,9 +559,9 @@ export function hairLock(b: Builder, S: Sculpt, path: V3[], lift: number, r0: nu
  * Ink stroke on the face surface as an open one-sided ribbon (brush shape). An open ribbon gets no rim from
  * the inverted-hull outline, so it stays as fine as drawn.
  */
-export function ink(b: Builder, S: Sculpt, pts: [number, number][], w: number, o: { lift?: number; c?: ColorLike; taper?: number } = {}) {
+export function ink(b: Builder, S: Sculpt, pts: [number, number][], w: number, o: { lift?: number; c?: ColorLike; taper?: number; samples?: number } = {}) {
   const lift = o.lift ?? 0.008;
-  ribbon(b, pts.map(([x, y]) => S.surf(x, y, lift)), S.centre, S.len(w), o.c ?? mat.ink, o.taper ?? 0.15);
+  ribbon(b, pts.map(([x, y]) => S.surf(x, y, lift)), S.centre, S.len(w), o.c ?? mat.ink, o.taper ?? 0.15, o.samples ?? 0);
 }
 
 /** Offenes Band entlang von Weltpunkten, Vorderseite weg von `centre` / open ribbon along world points, front facing away from `centre` */
@@ -682,6 +682,12 @@ export interface LipOpts {
   bow?: number;
   line?: ColorLike;
   lineW?: number;
+  /** Mundoeffnung in der Mitte (normiert) / mouth opening at the centre (normalised) */
+  open?: number;
+  /** Zahnreihe in der Oeffnung / tooth row in the opening */
+  teeth?: ColorLike;
+  /** Oberlippe auf einer Seite hochgezogen (Fletschen) / upper lip raised on one side (snarl) */
+  snarl?: number;
 }
 
 /** Ober- und Unterlippe als eigene glatte Formen mit Mundlinie / upper and lower lip as separate smooth shapes with mouth line */
@@ -698,7 +704,8 @@ export function lips(b: Builder, S: Sculpt, o: LipOpts) {
       const taper = Math.sqrt(Math.max(0, 1 - u * u));
       const yl = S.mouthLine(px);
       const h = (upper ? hU : hL) * (0.25 + 0.75 * taper);
-      let py = upper ? yl + 0.004 + h * (0.5 + 0.5 * v) : yl - 0.004 - h * (0.5 - 0.5 * v);
+      const gap = ((o.open ?? 0) / 2) * taper + (upper ? Math.max(0, (o.snarl ?? 0) * u) * taper * 0.6 : 0);
+      let py = upper ? yl + 0.004 + gap + h * (0.5 + 0.5 * v) : yl - 0.004 - gap - h * (0.5 - 0.5 * v);
       if (upper && v > 0) py -= (o.bow ?? 0.012) * Math.exp(-((px / 0.035) ** 2)) * v;
       // Volumen nach vorn, an den Mundwinkeln flach / volume forward, flat at the corners
       const vol = Math.sqrt(Math.max(0, 1 - v * v));
@@ -718,5 +725,22 @@ export function lips(b: Builder, S: Sculpt, o: LipOpts) {
     const x = (-0.56 + (i / 10) * 1.12) * w;
     pts.push([x, S.mouthLine(x)]);
   }
-  ink(b, S, pts, o.lineW ?? 0.008, { c: o.line ?? mat.ink, lift: th * 0.55 });
+  const open = (o.open ?? 0) + (o.snarl ?? 0) * 0.3;
+  if (open <= 0) {
+    ink(b, S, pts, o.lineW ?? 0.008, { c: o.line ?? mat.ink, lift: th * 0.55 });
+    return;
+  }
+  // offener Mund: dunkles Inneres, optional Zaehne / open mouth: dark interior, optional teeth
+  const inner: [number, number][] = pts.map(([x, y]) => [x * 0.98, y + Math.max(0, (o.snarl ?? 0) * (x / (w / 2))) * 0.3 * 0.6]);
+  ink(b, S, inner, open / 2 + 0.012, { c: mix(mat.ink, mat.red, 0.25), lift: th * 0.05, taper: 0.08, samples: 30 });
+  if (o.teeth) {
+    const tw = open * 0.36 + 0.004;
+    ink(b, S, inner.slice(1, -1), tw, { c: o.teeth, lift: th * 0.12, taper: 0.3, samples: 24 });
+    // Zahnfugen / gaps between teeth
+    for (let i = 2; i < inner.length - 2; i++) {
+      const [x, y] = inner[i];
+      ink(b, S, [[x, y + tw * 0.9], [x, y], [x, y - tw * 0.9]], 0.0035, { c: shade(o.teeth, 0.6), lift: th * 0.14, taper: 0.5, samples: 4 });
+    }
+    ink(b, S, inner.slice(1, -1), 0.0035, { c: shade(o.teeth, 0.6), lift: th * 0.15, taper: 0.5, samples: 20 });
+  }
 }

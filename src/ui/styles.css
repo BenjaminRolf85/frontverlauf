@@ -149,6 +149,11 @@ h1, h2, h3, .display {
 .action[aria-disabled="true"] { opacity: 0.5; }
 .action .price { display: inline-flex; align-items: center; gap: var(--p-space-half); font-size: var(--p-font-size-xs); }
 .action .icon { width: var(--c-action-icon-size); height: var(--c-action-icon-size); }
+/* Fraktions-Spitzname unter dem allgemeinen Typnamen / faction nickname below the generic type name */
+.action .action-sub { display: block; max-width: var(--c-action-sub-max-width); font-size: var(--c-action-sub-font-size); font-weight: var(--p-font-weight-regular); color: var(--s-text-muted); line-height: 1.1; overflow-wrap: anywhere; }
+.action.danger .action-sub { color: inherit; }
+.sheet-head .unit-sub { font-size: var(--p-font-size-sm); }
+.sheet-head .unit-type { font-style: italic; }
 .nav-bar { display: flex; gap: var(--p-space-2); max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; }
 .nav-bar .btn { flex: 1; padding: 0 var(--p-space-2); font-size: var(--p-font-size-md); min-height: var(--p-size-touch-lg); }
 .nav-bar .btn.end { flex: 1.6; font-size: var(--p-font-size-lg); }
@@ -339,19 +344,20 @@ h1, h2, h3, .display {
 .player-row.slot { grid-template-columns: 1fr; }
 .slot-head { display: flex; align-items: center; justify-content: space-between; gap: var(--p-space-2); }
 .slot-no { font-size: var(--p-font-size-sm); color: var(--s-text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
-.slot-pick, .faction-card {
+.slot-pick, .faction-pick {
   display: flex; align-items: center; gap: var(--p-space-3); width: 100%; min-height: var(--p-size-touch); padding: var(--p-space-2) var(--p-space-3);
   font: inherit; color: var(--s-text); text-align: left; cursor: pointer;
   background: var(--s-surface-raised); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md);
 }
-.slot-pick:hover, .faction-card:hover { background: var(--s-surface); }
-.slot-pick:focus-visible, .faction-card:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); }
-.slot-pick .col, .faction-card .col { display: flex; flex-direction: column; gap: var(--p-space-1); min-width: 0; }
+.slot-pick:hover, .faction-pick:hover { background: var(--s-surface); }
+.slot-pick:focus-visible, .faction-pick:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); }
+.slot-pick .col, .faction-pick .col { display: flex; flex-direction: column; gap: var(--p-space-1); min-width: 0; }
 .slot-cta { flex: none; display: inline-flex; align-items: center; gap: var(--p-space-1); font-size: var(--p-font-size-sm); font-weight: 700; padding: var(--p-space-1) var(--p-space-2); border-radius: var(--p-radius-sm); background: var(--c-button-bg); color: var(--c-button-text); border: var(--p-border-width-thick) solid var(--s-outline); }
 .faction-grid { display: grid; grid-template-columns: 1fr; gap: var(--p-space-2); }
 @media (min-width: 720px) { .faction-grid { grid-template-columns: 1fr 1fr; } }
-.faction-card { align-items: flex-start; }
-.faction-card[aria-pressed="true"] { border-color: var(--s-accent); box-shadow: inset 0 0 0 var(--p-border-width-thick) var(--s-accent); }
+.faction-card { display: flex; flex-direction: column; gap: var(--p-space-1); }
+.faction-pick { align-items: flex-start; }
+.faction-pick[aria-pressed="true"] { border-color: var(--s-accent); box-shadow: inset 0 0 0 var(--p-border-width-thick) var(--s-accent); }
 @media (max-width: 420px) { .slot-cta .label { display: none; } }
 .swatch { width: var(--p-size-touch); height: var(--p-size-touch); border-radius: var(--p-radius-md); border: var(--p-border-width-thick) solid var(--s-outline); display: grid; place-items: center; }
 input[type="text"], select {
@@ -432,3 +438,36 @@ input[type="text"], select {
 .leader-quote { font-style: italic; font-weight: 700; }
 .faction-btn { display: inline-flex; align-items: center; gap: var(--p-space-1); padding: 0; background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
 @media (max-width: 560px) { .leader-card { flex-direction: column; align-items: center; text-align: center; } }
+
+/* ---------- Fraktionsmerkmale / faction traits ---------- */
+.trait-list { list-style: none; margin: var(--p-space-1) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--p-space-1); }
+.trait {
+  display: inline-flex; align-items: flex-start; gap: var(--p-space-1); max-width: 100%;
+  padding: var(--p-space-1) var(--p-space-2); border-radius: var(--p-radius-sm);
+  border: var(--p-border-width-thin) solid var(--s-outline); border-left: var(--p-border-width-thick) solid var(--trait-accent, var(--s-accent));
+  background: var(--s-surface-sunken); font-size: var(--p-font-size-sm); line-height: 1.3;
+}
+.trait .icon { flex: none; margin-top: 0.1em; color: var(--s-text); }
+.trait-text { display: flex; flex-wrap: wrap; column-gap: var(--p-space-1); min-width: 0; }
+.trait-label { color: var(--s-text-muted); }
+.trait-desc { flex-basis: 100%; color: var(--s-text-muted); }
+.faction-details .trait-list { flex-direction: column; align-items: stretch; }
+.details-link {
+  align-self: flex-end; display: inline-flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-size-touch);
+  padding: 0 var(--p-space-2); font: inherit; font-size: var(--p-font-size-sm); font-weight: 700; color: var(--s-text);
+  background: none; border: none; text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer;
+}
+.details-link:hover { color: var(--s-text-muted); }
+.details-link:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); border-radius: var(--p-radius-sm); }
+.slot-head .row { gap: var(--p-space-1); align-items: center; }
+.slot-faction { font-size: var(--p-font-size-md); }
+.slot-leader { font-size: var(--p-font-size-sm); }
+.slot-pick { align-items: flex-start; }
+.slot-pick .leader-portrait { align-self: center; }
+@media (min-width: 720px) { .slot-pick .leader-portrait.md { width: calc(var(--p-size-touch-lg) * 2); height: calc(var(--p-size-touch-lg) * 2); } }
+@media (max-width: 560px) {
+  .slot-pick { flex-wrap: wrap; }
+  .slot-pick .slot-cta { width: 100%; justify-content: center; }
+  .slot-pick .slot-cta .label { display: inline; }
+}
+.faction-details .trait { text-align: left; }
