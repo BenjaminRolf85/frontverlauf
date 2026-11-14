@@ -21,6 +21,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet,
+  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -28,7 +29,10 @@ import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, Game
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
 
-export function createGame(config: GameConfig): GameState {
+export function createGame(cfg: GameConfig): GameState {
+  // neue Spiele: Trefferglueck und Fraktionssiege ausdruecklich an, wenn nicht anders gewaehlt (alte Spielstaende ohne Feld: aus, siehe save.ts)
+  // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
+  const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
   const map = generateMap(config.seed, config.size, config.mapType, ids);
   const n = config.size * config.size;
@@ -113,9 +117,12 @@ function releaseOutpost(s: GameState, t: Tile) {
   if (!o?.claims) return;
   for (const k of o.claims) {
     const q = s.tiles[k];
-    // nur freigeben, wenn das Feld noch zu dieser Stadt gehoert und kein Gebaeude traegt
-    // only release if the tile still belongs to that city and carries no building
-    if (q.territory === o.city && !q.building) q.territory = null;
+    // nur freigeben, wenn das Feld noch zu dieser Stadt gehoert, kein Gebaeude traegt und ausserhalb des Stadtradius liegt
+    // only release if the tile still belongs to that city, carries no building and lies outside the city radius
+    if (q.territory !== o.city || q.building) continue;
+    const c = cityById(s, o.city!);
+    if (c && dist(c, { x: k % s.size, y: Math.floor(k / s.size) }) <= c.radius) continue;
+    q.territory = null;
   }
 }
 
@@ -252,6 +259,8 @@ function processFactionVictory(s: GameState, f: number, stillDrills: Set<number>
       continue;
     }
     const w = u.wonder ?? (u.wonder = { stage: 0, progress: 0 });
+    // Fortschritt ruht, solange das Ankerfeld nicht im eigenen Gebiet liegt / progress pauses while the anchor tile is not own territory
+    if (!wonderGroundOk(s, u)) continue;
     const phases = wonderPhases(u.type as WonderUnitId);
     w.progress++;
     if (w.progress < phases[w.stage]) continue;
@@ -383,7 +392,8 @@ function checkElimination(s: GameState, ev: GameEvent[]) {
     if (ownCities(s, f.index).length === 0) {
       f.alive = false;
       f.eliminatedRound = s.round;
-      s.units = s.units.filter((u) => u.owner !== f.index);
+      // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
+      for (const u of s.units.filter((o) => o.owner === f.index)) killUnit(s, u, null, ev, false);
       clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
       ev.push({ t: 'eliminated', faction: f.index });
@@ -413,8 +423,16 @@ function startTurn(s: GameState, ev: GameEvent[]) {
   });
   let inc = 0;
   if (s.round > 1) {
+    const gross = income(s, f);
+    // Sold nicht bezahlbar: die neuesten bezahlten Einheiten desertieren, bis der Rest bezahlbar ist (Wunder nie)
+    // upkeep unaffordable: the newest paid units desert until the rest is affordable (never wonders)
+    for (let paid = paidUnits(s, f); paid.length && fa.stars + gross - upkeep(s, f) < 0; paid = paidUnits(s, f)) {
+      const u = paid[paid.length - 1];
+      killUnit(s, u, null, ev, false);
+      ev.push({ t: 'deserted', unit: u.id, unitType: u.type, faction: f, x: u.x, y: u.y });
+    }
     // Einkommen minus Sold; Sterne fallen nie unter 0 / income minus upkeep; stars never drop below 0
-    inc = income(s, f) - upkeep(s, f);
+    inc = gross - upkeep(s, f);
     fa.stars = Math.max(0, fa.stars + inc);
   }
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
@@ -423,7 +441,7 @@ function startTurn(s: GameState, ev: GameEvent[]) {
   // Kolchose: alle paar Runden Bevoelkerung fuer ihre Stadt / kolkhoz: population for its city every few rounds
   if (s.round > 1 && s.round % UNIQUE.kolkhozInterval === 0) {
     for (const c of ownCities(s, f)) {
-      if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'kolkhoz')) addPop(s, c, UNIQUE.kolkhozPop, ev);
+      if (buildingWorksFor(s, f, 'kolkhoz') && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'kolkhoz')) addPop(s, c, UNIQUE.kolkhozPop, ev);
     }
   }
   for (const u of s.units) {
@@ -619,6 +637,7 @@ function processVolcanoes(s: GameState, ev: GameEvent[]) {
       if (!u) continue;
       u.hp -= VOLCANO.damage;
       if (u.hp <= 0) killUnit(s, u, null, ev);
+      else interruptWonder(s, u, ev); // Lava unterbricht Wunder wie ein Treffer / lava interrupts wonders like a hit
     }
   }
 }
@@ -716,8 +735,9 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
   ev.push({ t: 'reward', city: c.id, choice, level });
 }
 
-function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEvent[]): CommandResult {
-  const options = reachable(s, u);
+/** Bewegung; step = Rueckzugsschritt als Teil des Rueckzugs (ohne Bewegungsstatus) / move; step = retreat step as part of the retreat (ignoring movement state) */
+function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEvent[], step = false): CommandResult {
+  const options = step ? reachable(s, u, true).filter((o) => o.path.length === 1) : reachable(s, u);
   const found = options.find((o) => o.x === to.x && o.y === to.y);
   if (!found) return fail('unreachable');
   // Minen beenden die Bewegung vorzeitig / mines end the move early
@@ -796,14 +816,15 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
     if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
     return fail('outOfRange');
   }
-  const pre = combatPreview(s, u, target);
+  const pre = combatPreview(s, u, target, rocket);
   // Trefferglueck des Angreifers / attacker's hit luck
   const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
   const dealt = hitDamage(pre.toDefender, hit);
   const kills = dealt >= target.hp;
-  // Gegenschlag nur, wenn das Ziel ueberlebt; eigenes Trefferglueck des Verteidigers / return fire only if the target survives; defender's own hit luck
-  const retBase = kills ? 0 : pre.retFull;
-  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, target), nextRandom(s)) : 'full';
+  // Gegenschlag nur, wenn das Ziel ueberlebt, mit den LP nach dem Treffer; eigenes Trefferglueck des Verteidigers
+  // return fire only if the target survives, with the HP left after the hit; defender's own hit luck
+  const retBase = kills ? 0 : returnFire(s, u, target, target.hp - dealt);
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, { ...target, hp: target.hp - dealt }), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   const splash: { unit: number; dmg: number }[] = [];
   if (has(u, 'splash')) {
@@ -816,9 +837,10 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   }
   target.hp -= dealt;
   if (ret > 0) u.hp -= ret;
-  // Angriffe unterbrechen Wunder (auch Flaechenschaden) / attacks interrupt wonders (splash included)
-  if (target.hp > 0) interruptWonder(s, target, ev);
-  for (const sp of splash) { const o = unitById(s, sp.unit); if (o && o.hp > 0) interruptWonder(s, o, ev); }
+  // Angriffe mit Schaden unterbrechen Wunder (auch Flaechenschaden); ein Fehlschuss nicht
+  // attacks that deal damage interrupt wonders (splash included); a miss does not
+  if (dealt > 0 && target.hp > 0) interruptWonder(s, target, ev);
+  for (const sp of splash) { const o = unitById(s, sp.unit); if (sp.dmg > 0 && o && o.hp > 0) interruptWonder(s, o, ev); }
   // Kriegsspuren / war marks
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
   addMark(s, target.x, target.y, markKind);
@@ -905,15 +927,15 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       target.hp -= dmg;
       addMark(s, target.x, target.y, 'scorch');
       ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
-      if (target.hp > 0) interruptWonder(s, target, ev);
+      if (dmg > 0 && target.hp > 0) interruptWonder(s, target, ev);
       fa.lastAttackRound = s.round;
       if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); }
-      // Schritt zurueck mit normaler Bewegungslogik (Minen, Sperren, Sicht) / step back with the normal move logic (mines, barriers, vision)
-      if (unitById(s, u.id)) {
-        u.moved = false; u.moveDone = false; u.attacked = false;
-        doMove(s, u, to, ev);
-      }
-      u.attacked = true; u.moved = true; u.exhausted = true;
+      // Schritt zurueck als Teil des Rueckzugs (auch nach einer Bewegung), mit normaler Bewegungslogik (Minen, Sperren, Sicht);
+      // er setzt keinen Bewegungsstatus zurueck, danach ist die Einheit erschoepft
+      // step back as part of the retreat (also after a move), with the normal move logic (mines, barriers, vision);
+      // it resets no movement state, afterwards the unit is exhausted
+      if (unitById(s, u.id)) doMove(s, u, to, ev, true);
+      u.attacked = true; u.moved = true; u.moveDone = true; u.exhausted = true;
       u.retreatReady = s.round + RETREAT.cooldown + 1;
       res = { ok: true, events: ev };
       break;
@@ -938,6 +960,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     case 'heal': {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
+      if (isWonderStructure(u)) return fail('invalid'); // Bauwerke heilen nicht / structures do not heal
       if (!canHeal(u)) return fail('unitExhausted');
       if (alienHealBlocked(s, u)) return fail('noXenoGround');
       const amount = Math.min(healAmount(s, u), u.maxHp - u.hp);
@@ -951,7 +974,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (typeof u === 'string') return fail(u);
       if (!has(u, 'heal') || !canActStill(u)) return fail('unitExhausted');
       for (const o of s.units) {
-        if (o.owner !== f || dist(o, u) !== 1 || o.hp >= o.maxHp) continue;
+        // keine Bauwerke, keine Ausserirdischen abseits von Xeno-Boden / no structures, no aliens off xeno ground
+        if (o.owner !== f || dist(o, u) !== 1 || !medicCanHeal(s, o)) continue;
         const amount = Math.min(HEALING.medic, o.maxHp - o.hp);
         o.hp += amount;
         ev.push({ t: 'heal', unit: o.id, amount });
@@ -1004,7 +1028,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         break;
       }
       // Kaserne oder Soeldnerkaserne: Einheit startet als Veteran / barracks or mercenary barracks: unit starts as a veteran
-      if (hasCityUpgrade(c, 'barracks') || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks')) {
+      if (hasCityUpgrade(c, 'barracks') || (buildingWorksFor(s, f, 'mercenaryBarracks') && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks'))) {
         u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
         ev.push({ t: 'veteran', unit: u.id });
       }

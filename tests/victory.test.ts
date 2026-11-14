@@ -11,6 +11,7 @@ import {
   AI, ALL_TECH_IDS, FACTION_IDS, TECHS, TECH_IDS, UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderKind,
 } from '../src/data/balance';
 import { planNextCommand } from '../src/ai/ai';
+import { migrateState } from '../src/save/save';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile, untilTurnOf } from './helpers';
 
 /** Spiel mit zwei Fraktionen, Hauptquartier bei (2,2) bzw. (8,8), Radius 2 / game with two factions, HQs at (2,2) and (8,8), radius 2 */
@@ -384,14 +385,19 @@ describe('Regeln rund um Wunder / rules around wonders', () => {
     expect(techVisible(s, 0, 'dimensionalRift')).toBe(false);
   });
 
-  it('alte Spielstaende ohne Schalter: an; neue Partien: an / old saves without the switch: on; new games: on', () => {
+  it('alte Spielstaende ohne Schalter: aus; neue Partien: an / old saves without the switch: off; new games: on', () => {
     expect(defaultConfig().factionVictory).toBe(true);
-    const s = game('meridon');
-    delete s.config.factionVictory;
+    const fresh = game('meridon');
+    expect(fresh.config.factionVictory).toBe(true);
+    // Spielstand von vor den Fraktionssiegen: beim Laden aus / save from before faction victories: off when loaded
+    const old = game('meridon');
+    delete old.config.factionVictory;
+    const s = migrateState(JSON.parse(JSON.stringify(old)));
+    expect(s.config.factionVictory).toBe(false);
     giveTech(s, 0);
     s.factions[0].stars = 2000;
     rounds(s, 0, 1);
-    expect(s.victory?.kind).toBe('faction');
+    expect(s.victory?.kind).not.toBe('faction');
   });
 
   it('Endlos weiter nach Fraktionssieg schaltet Fraktionssiege ab / continuing endlessly after a faction victory turns them off', () => {

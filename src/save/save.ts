@@ -45,6 +45,21 @@ export function isValidState(s: unknown): s is GameState {
     Array.isArray(g.cities) && typeof g.size === 'number' && g.tiles.length === g.size * g.size && !!g.config;
 }
 
+/**
+ * Alte Spielstaende angleichen: Trefferglueck und Fraktionssiege gab es damals nicht, fehlende Felder bedeuten also AUS
+ * (neue Spiele setzen beide ausdruecklich, siehe createGame/defaultConfig).
+ * Bring old saves up to date: hit luck and faction victories did not exist back then, so missing fields mean OFF
+ * (new games set both explicitly, see createGame/defaultConfig).
+ */
+export function migrateState(s: GameState): GameState {
+  if (s.config.hitChance === undefined) s.config.hitChance = false;
+  if (s.config.factionVictory === undefined) s.config.factionVictory = false;
+  return s;
+}
+
+/** Gueltigen Spielstand pruefen und angleichen, sonst null / validate and migrate a save, otherwise null */
+const loaded = (s: unknown): GameState | null => (isValidState(s) ? migrateState(s) : null);
+
 export function saveGame(s: GameState): boolean {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(s)); return true; } catch { return false; }
 }
@@ -53,8 +68,7 @@ export function loadGame(): GameState | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return null;
-    const s = JSON.parse(raw);
-    return isValidState(s) ? s : null;
+    return loaded(JSON.parse(raw));
   } catch {
     return null;
   }
@@ -89,8 +103,7 @@ export function importFile(): Promise<GameState | null> {
       const file = input.files?.[0];
       if (!file) return resolve(null);
       try {
-        const s = JSON.parse(await file.text());
-        resolve(isValidState(s) ? s : null);
+        resolve(loaded(JSON.parse(await file.text())));
       } catch {
         resolve(null);
       }
@@ -132,7 +145,7 @@ export function loadFromSlot(i: number): GameState | null {
     const raw = localStorage.getItem(SLOT_KEY(i));
     if (!raw) return null;
     const d = JSON.parse(raw) as { state: unknown };
-    return isValidState(d.state) ? d.state : null;
+    return loaded(d.state);
   } catch {
     return null;
   }

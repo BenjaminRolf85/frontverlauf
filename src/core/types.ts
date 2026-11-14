@@ -251,6 +251,8 @@ export type GameEvent =
   | { t: 'radar'; index: number; faction: number }
   | { t: 'contact'; a: number; b: number; stars: number }
   | { t: 'crash'; unit: number }
+  /** Sold nicht bezahlt: die Einheit desertiert (vorher als 'killed' entfernt) / upkeep unpaid: the unit deserts (removed as 'killed' before) */
+  | { t: 'deserted'; unit: number; unitType: UnitTypeId; faction: number; x: number; y: number }
   | { t: 'flak'; city: number; unit: number; dmg: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
@@ -317,7 +319,8 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets';
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
+  | 'enemyTerritory';
 
 export interface CommandResult {
   ok: boolean;

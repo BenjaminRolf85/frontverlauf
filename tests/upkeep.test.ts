@@ -20,13 +20,14 @@ describe('Sold / upkeep', () => {
     expect(netIncome(s, 0)).toBe(income(s, 0) - artUp - 12);
   });
   it('wird zu Rundenbeginn abgezogen, Sterne fallen nicht unter 0 / deducted at turn start, never below 0', () => {
-    const s = blankGame({ stars: 3, factions: ['korvat', 'dravon'] });
+    // genug Sterne fuer den vollen Sold (unbezahlter Sold: siehe audit-fixes.test.ts) / enough stars for the full upkeep (unpaid upkeep: see audit-fixes.test.ts)
+    const s = blankGame({ stars: 60, factions: ['korvat', 'dravon'] });
     addCity(s, 2, 2, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
     for (let i = 0; i < 5; i++) addUnit(s, 'infantry', 0, 1 + i, 5);
     for (let i = 0; i < 4; i++) addUnit(s, 'tank', 0, 1 + i, 7);
     const due = upkeep(s, 0);
     expect(due).toBe(Math.ceil(UNITS.infantry.cost! * 0.3) + 4 * 12);
     endTurn(s); untilTurnOf(s, 0);
-    expect(s.factions[0].stars).toBe(Math.max(0, 3 + income(s, 0) - due));
+    expect(s.factions[0].stars).toBe(Math.max(0, 60 + income(s, 0) - due));
   });
 });

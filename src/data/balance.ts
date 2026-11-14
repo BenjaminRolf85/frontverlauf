@@ -91,8 +91,11 @@ export interface UnitStats {
 
 /** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
 export type CounterClass = 'foot' | 'vehicle' | 'air';
-/** Einheitenklasse (Schiffe bekommen nie Konter-Boni) / unit class (ships never receive counter bonuses) */
-export type UnitClass = CounterClass | 'ship';
+/**
+ * Einheitenklasse (Schiffe bekommen nie Konter-Boni; Bauwerke = Wunder-Bauwerke, fuer Konter wie COUNTER.structureAs)
+ * unit class (ships never receive counter bonuses; structures = wonder structures, for counters like COUNTER.structureAs)
+ */
+export type UnitClass = CounterClass | 'ship' | 'structure';
 
 /**
  * Fraktions-Siegbedingungen (zusaetzlich zu Punkten und Eroberung). Runden zaehlen zu Beginn des eigenen Zuges.
@@ -213,6 +216,19 @@ export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'pea
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
 
 /**
+ * Die eine Fahrzeugliste (Klasse 'vehicle', inkl. Laeufer, Mechs und Erdkernbohrer). Konter, Panzersperre, Schnee,
+ * Dschungel und Wracks lesen alle diese Liste. Wunder-Bauwerke (auch der Waal) sind Klasse 'structure', nicht hier.
+ * The one vehicle list (class 'vehicle', incl. walkers, mechs and the earth-core drill). Counters, tank barrier, snow,
+ * jungle and wrecks all read this list. Wonder structures (the Waal too) are class 'structure', not listed here.
+ */
+export const VEHICLE_UNITS: UnitTypeId[] = [
+  'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
+  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill',
+];
+/** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
+export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
+
+/**
  * Einzigartige Einheiten und Gebaeude der klassischen Fraktionen.
  * Unique units and buildings of the classic factions.
  */
@@ -278,7 +294,8 @@ export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitT
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
-  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone', 'protoWalker', 'coreDrill'] as UnitTypeId[],
+  // alle Fahrzeuge (VEHICLE_UNITS) / all vehicles (VEHICLE_UNITS)
+  vehicles: VEHICLE_UNITS,
   footDefense: 1.5,
 };
 
@@ -328,6 +345,11 @@ export const HIT_KINDS: HitKind[] = ['miss', 'graze', 'partial', 'full', 'crit']
 export const HIT = {
   /** Schadensfaktor je Trefferart / damage factor per hit kind */
   mult: { miss: 0, graze: 0.5, partial: 0.8, full: 1, crit: 1.5 } as Record<HitKind, number>,
+  /**
+   * Rasse je Fraktion (Fraktionseinheiten nach Bauart, Schiffe nach Besitzer); fehlt = Menschen
+   * race per faction (faction units by type, ships by owner); missing = humans
+   */
+  race: { zyrr: 'alien', nexus: 'robot', vesper: 'cult' } as Partial<Record<FactionId, HitRace>>,
   /** Grundwahrscheinlichkeiten je Rasse (Summe 1) / base odds per race (sum 1) */
   odds: {
     // Menschen: solide, gelegentlich kritisch / humans: solid, occasionally critical
@@ -400,7 +422,8 @@ export const DEFENSE_BONUS = {
 export const REMAINS = {
   /** Wracks geben +1 auf den Verteidigungsbonus / wrecks add +1 to the defense bonus */
   wreckDefenseBonus: 1,
-  wreckUnits: ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer', 'protoWalker'] as UnitTypeId[],
+  /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
+  wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
   skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper'] as UnitTypeId[],
 };
 
@@ -408,8 +431,8 @@ export const REMAINS = {
 export const BARRIER = {
   cost: 10,
   builders: ['pioneer'] as UnitTypeId[],
-  /** betroffene Fahrzeuge / affected vehicles */
-  vehicles: ['tank', 'jeep', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[],
+  /** betroffene Fahrzeuge: alle (VEHICLE_UNITS) / affected vehicles: all (VEHICLE_UNITS) */
+  vehicles: VEHICLE_UNITS,
   /** Bewegung in der naechsten Runde / movement in the next round */
   slowedMove: 1,
   terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
@@ -417,16 +440,17 @@ export const BARRIER = {
 
 /**
  * Konter-Einheiten (Schere-Stein-Papier) / counter units (rock-paper-scissors).
- * Klassen: Flieger = Faehigkeit 'fly', Schiffe = ship, Fahrzeuge = Liste unten (inkl. Laeufer und Mechs), sonst Fusstruppen.
- * Classes: air = ability 'fly', ships = ship, vehicles = list below (incl. walkers and mechs), otherwise foot troops.
+ * Klassen: Flieger = Faehigkeit 'fly', Schiffe = ship, Bauwerke = Wunder-Bauwerke, Fahrzeuge = VEHICLE_UNITS (inkl. Laeufer
+ * und Mechs), sonst Fusstruppen.
+ * Classes: air = ability 'fly', ships = ship, structures = wonder structures, vehicles = VEHICLE_UNITS (incl. walkers and
+ * mechs), otherwise foot troops.
  * Der Faktor bonusVs der Einheit multipliziert den Schaden gegen die Klasse (Angriff und Gegenschlag).
  * The unit's bonusVs factor multiplies its damage against the class (attack and retaliation).
  */
 export const COUNTER = {
-  vehicles: [
-    'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'waal', 'coreDrill',
-  ] as UnitTypeId[],
+  vehicles: VEHICLE_UNITS,
+  /** Wunder-Bauwerke nehmen Konter-Schaden wie diese Klasse / wonder structures take counter damage like this class */
+  structureAs: 'vehicle' as CounterClass,
   /** Flak-Feuerzone: feindliche Flieger, die im Umkreis ihren Zug beenden, nehmen Schaden / flak zone: hostile flyers ending their turn within range take damage */
   flak: { range: 1, damage: 3 },
   /**
@@ -457,8 +481,8 @@ export const WEATHER = {
   weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
-  /** Schnee: Fahrzeuge 1 Feld weniger / snow: vehicles 1 tile less */
-  snow: { moveUnits: ['jeep', 'tank', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[], moveDelta: -1 },
+  /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
+  snow: { moveUnits: VEHICLE_UNITS, moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
   wind: { fuelBurn: 2 },
 };
