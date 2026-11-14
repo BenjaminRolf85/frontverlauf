@@ -173,8 +173,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     const d = openDialog(n, html, { wide: true });
     d.node.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-action="close"]')) { d.close(); return; }
-      const det = (e.target as HTMLElement).closest<HTMLElement>('[data-details]');
-      if (det) { factionDialog(n, det.dataset.details as FactionId); return; }
+      // Details oeffnet der Klick-Handler des Einrichtungsbildschirms (der Dialog liegt darin) / details are opened by the setup screen's handler (the dialog lives inside it)
+      if ((e.target as HTMLElement).closest('[data-details]')) return;
       const card = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
       if (!card) return;
       const f = card.dataset.pick as FactionId;

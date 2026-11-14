@@ -470,3 +470,4 @@ input[type="text"], select {
   .slot-pick .slot-cta { width: 100%; justify-content: center; }
   .slot-pick .slot-cta .label { display: inline; }
 }
+.faction-details .trait { text-align: left; }
