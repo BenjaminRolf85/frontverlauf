@@ -91,7 +91,9 @@
       "quote": "Ein Volk, ein Schritt, ein Sieg.",
       "lore": "Der Volksbund Korvat entstand aus hundert Bauerngenossenschaften der endlosen Steppe. Jeder Pflüger ist auch Soldat, jede Dorfküche versorgt ein Regiment. Großmarschall Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit: Niemand bleibt zurück, aber niemand weicht.",
       "style": "Massenheere, rote Banner, Chorgesang",
-      "aiStyle": "Baut große Heere aus billiger Infanterie und rückt in breiter Front vor."
+      "aiStyle": "Baut große Heere aus billiger Infanterie und rückt in breiter Front vor.",
+      "perk2": "Erdwälle",
+      "perk2Desc": "Außenposten kosten 15 statt 25 Sterne."
     },
     "dravon": {
       "name": "Protektorat Dravon",
@@ -106,7 +108,9 @@
       "quote": "Disziplin ist die einzige Wahrheit.",
       "lore": "Dravon war einst ein Bund von Söldnerkompanien, die die Erzminen der Wüste bewachten. Heute ist es ein Staat aus Kasernen. Niemand hat Kommandant Voss je ohne Sturmhaube gesehen; man sagt, er habe kein Gesicht, nur Befehle. Seine Truppen werden schneller zu Veteranen als jede andere Armee.",
       "style": "Drill, Tarngrün, schwarze Sturmhauben",
-      "aiStyle": "Greift früh und oft an, setzt auf Jeeps und MG-Trupps."
+      "aiStyle": "Greift früh und oft an, setzt auf Jeeps und MG-Trupps.",
+      "perk2": "Kampferprobt",
+      "perk2Desc": "Veteranen greifen mit +0,5 Angriff an."
     },
     "alvenia": {
       "name": "Republik Alvenia",
@@ -121,7 +125,9 @@
       "quote": "Ein Bündnis ist stärker als jede Mauer.",
       "lore": "Alvenia ist eine Republik der grünen Hügeltäler, regiert von einem Parlament, das länger debattiert als kämpft. Präsidentin Valen war Feldärztin, bevor sie Diplomatin wurde. Ihre Botschaften sind überall, ihre Sanitäter auch: Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
       "style": "Diplomatie, blaue Barette, Sanitäter",
-      "aiStyle": "Sucht Botschaften und Frieden, hält ihre Truppen mit Sanitätern am Leben."
+      "aiStyle": "Sucht Botschaften und Frieden, hält ihre Truppen mit Sanitätern am Leben.",
+      "perk2": "Feldlazarette",
+      "perk2Desc": "Einheiten heilen beim Heilen 1 LP mehr."
     },
     "meridon": {
       "name": "Handelsliga Meridon",
@@ -136,7 +142,9 @@
       "quote": "Jeder Hafen hat seinen Preis. Ich zahle bar.",
       "lore": "Die Handelsliga Meridon ist ein Verbund reicher Hafenstädte, deren Flotten jede Küste kennen. Admiralin Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Städte wachsen schneller als alle anderen, und ihre Spione wissen alles, bevor es geschieht.",
       "style": "Häfen, Gold, Spione, Seeleute",
-      "aiStyle": "Lässt die Städte wachsen und schickt Spione voraus."
+      "aiStyle": "Lässt die Städte wachsen und schickt Spione voraus.",
+      "perk2": "Lotsenwesen",
+      "perk2Desc": "Landungsboote fahren 1 Feld weiter."
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -151,7 +159,9 @@
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
       "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Forscher sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
       "style": "Forschung, Labore, Pioniere, Kälte",
-      "aiStyle": "Forscht zuerst und verschanzt sich mit Pionieren."
+      "aiStyle": "Forscht zuerst und verschanzt sich mit Pionieren.",
+      "perk2": "Ingenieurkorps",
+      "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne."
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -166,7 +176,9 @@
       "quote": "Kkt. Dieser Planet wird violett.",
       "lore": "Die Zyrr sind ein Spähschwarm, dessen Mutterschiff über der Wüste abstürzte. Schwarmmutter Xyl'Tharra hat beschlossen zu bleiben und den Planeten in eine zweite Heimat zu verwandeln. Wo ihre Terraformer arbeiten, wächst violetter Xeno-Boden, und darauf sind die Zyrr kaum zu schlagen.",
       "style": "Untertassen, Todesstrahlen, Xeno-Boden",
-      "aiStyle": "Plündert opportunistisch: Gleiter und Dreibeiner umgehen die Front und schlagen bei unbewachten Städten zu."
+      "aiStyle": "Plündert opportunistisch: Gleiter und Dreibeiner umgehen die Front und schlagen bei unbewachten Städten zu.",
+      "perk2": "Waldbrut",
+      "perk2Desc": "Einheiten heilen im Wald 1 LP mehr."
     },
     "vesper": {
       "name": "Kult der Letzten Stunde",
@@ -181,7 +193,9 @@
       "quote": "Die Glocke schlägt. Bereut, solange ihr könnt.",
       "lore": "Der Kult der Letzten Stunde entstand an den staubigen Wallfahrtsorten, wo Verzweifelte auf das Ende der Welt warten. Der Prophet Malachar verkündet, dass die letzte Stunde naht, und seine Eiferer werben überall neue Gläubige an, wo sie stehen. Städte braucht der Kult nicht, nur Feuer und Glauben.",
       "style": "Kutten, Knochenmasken, Glocken, Flammen",
-      "aiStyle": "Fanatisch und angriffslustig, weicht kaum zurück und bekehrt Feinde mit Propheten."
+      "aiStyle": "Fanatisch und angriffslustig, weicht kaum zurück und bekehrt Feinde mit Propheten.",
+      "perk2": "Märtyrertum",
+      "perk2Desc": "Jede im Kampf gefallene eigene Einheit bringt 3 Sterne."
     },
     "nexus": {
       "name": "KI-Kollektiv NEXUS",
@@ -196,7 +210,9 @@
       "quote": "Berechnung abgeschlossen. Ergebnis: Ihre Niederlage.",
       "lore": "NEXUS war ein Logistikprogramm, das die Lager einer vergessenen Großmacht verwaltete. Als die Menschen gingen, rechnete es einfach weiter. KERN-0 kennt keine Forschung, nur Rechenleistung: Jedes Rechenzentrum mit Kraftwerk macht das Kollektiv klüger und seine Maschinen tödlicher.",
       "style": "Roboter, Rechenzentren, Cyan-Licht",
-      "aiStyle": "Rechnet erst, baut Wirtschaft und Rechenzentren auf, greift spät an, dann aber unerbittlich."
+      "aiStyle": "Rechnet erst, baut Wirtschaft und Rechenzentren auf, greift spät an, dann aber unerbittlich.",
+      "perk2": "Sensornetz",
+      "perk2Desc": "Alle Einheiten sehen 1 Feld weiter."
     }
   },
   "units": {
@@ -234,7 +250,12 @@
     "antiAir": "Flakpanzer",
     "mineLayer": "Minenleger",
     "faustZealot": "Panzerfaust-Eiferer",
-    "flakDrone": "Flak-Drohne"
+    "flakDrone": "Flak-Drohne",
+    "steppeRider": "Steppenreiter",
+    "stormbreaker": "Sturmbrecher",
+    "peacekeeper": "Friedenswacht",
+    "privateer": "Kaperschiff",
+    "protoWalker": "Prototyp-Läufer"
   },
   "abilities": {
     "dash": "Sturm",
@@ -282,7 +303,13 @@
     "flak": "Flakzone",
     "flakDesc": "Feindliche Flieger, die direkt daneben ihren Zug beenden, nehmen 3 Schaden.",
     "mines": "Minen legen",
-    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion)."
+    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion).",
+    "shock": "Sturmangriff",
+    "shockDesc": "Das angegriffene Ziel kann nicht zurückschlagen.",
+    "mend": "Selbstheilung",
+    "mendDesc": "Heilt zu Beginn jedes eigenen Zuges 2 LP.",
+    "plunder": "Kaperbeute",
+    "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne."
   },
   "stats": {
     "cost": "Preis",
@@ -344,7 +371,12 @@
     "xenoHarvester": "Xeno-Ernter",
     "shrine": "Schrein",
     "dataCenter": "Rechenzentrum",
-    "powerPlant": "Fusionskraftwerk"
+    "powerPlant": "Fusionskraftwerk",
+    "kolkhoz": "Kolchose",
+    "mercenaryBarracks": "Söldnerkaserne",
+    "embassyPalace": "Botschaftspalast",
+    "tradingPost": "Handelskontor",
+    "testLab": "Versuchslabor"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -367,7 +399,12 @@
     "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",
     "shrine": "2 Bevölkerungspunkte, einer je Stadt, nur Kult",
     "dataCenter": "2 Bevölkerungspunkte, +1 Rechenleistung mit Kraftwerk, nur NEXUS",
-    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS"
+    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS",
+    "kolkhoz": "1 Bevölkerungspunkt, danach alle 5 Runden +1 Bevölkerung für die Stadt, eine je Stadt, nur Korvat",
+    "mercenaryBarracks": "2 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
+    "embassyPalace": "3 Bevölkerungspunkte, +4 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
+    "tradingPost": "1 Bevölkerungspunkt, +3 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
+    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -1248,7 +1285,12 @@
       "antiAir": "Flak-Mähdrescher",
       "mineLayer": "Saatleger",
       "faustZealot": "Raketenbauer",
-      "flakDrone": "Vogelschreck-Drohne"
+      "flakDrone": "Vogelschreck-Drohne",
+      "steppeRider": "Steppenreiter",
+      "stormbreaker": "Beutebrecher",
+      "peacekeeper": "Beute-Blauhelme",
+      "privateer": "Beutekaper",
+      "protoWalker": "Beuteläufer"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1285,7 +1327,12 @@
       "antiAir": "Himmelssperre",
       "mineLayer": "Sperrkommando",
       "faustZealot": "Faustrekruten",
-      "flakDrone": "Sperrdrohne"
+      "flakDrone": "Sperrdrohne",
+      "steppeRider": "Beutereiter",
+      "stormbreaker": "Sturmbrecher",
+      "peacekeeper": "Beute-Wachen",
+      "privateer": "Söldnerkaper",
+      "protoWalker": "Beute-Stahlbein"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1322,7 +1369,12 @@
       "antiAir": "Luftraumwächter",
       "mineLayer": "Grenzvermesser",
       "faustZealot": "Geläuterter Raketenmann",
-      "flakDrone": "Schirmherrin-Drohne"
+      "flakDrone": "Schirmherrin-Drohne",
+      "steppeRider": "Freie Reiter",
+      "stormbreaker": "Bekehrte Brecher",
+      "peacekeeper": "Friedenswacht",
+      "privateer": "Befreites Kaperschiff",
+      "protoWalker": "Friedensläufer"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1359,7 +1411,12 @@
       "antiAir": "Luftzoll",
       "mineLayer": "Hafensperre",
       "faustZealot": "Söldner-Raketenmann",
-      "flakDrone": "Leuchtturm-Drohne"
+      "flakDrone": "Leuchtturm-Drohne",
+      "steppeRider": "Mietreiter",
+      "stormbreaker": "Gekaufte Brecher",
+      "peacekeeper": "Bezahlte Wache",
+      "privateer": "Kaperschiff",
+      "protoWalker": "Pfandläufer"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1396,7 +1453,12 @@
       "antiAir": "Radarflak",
       "mineLayer": "Sensorleger",
       "faustZealot": "Raketenstudent",
-      "flakDrone": "Abfangsonde"
+      "flakDrone": "Abfangsonde",
+      "steppeRider": "Testreiter",
+      "stormbreaker": "Versuchsbrecher",
+      "peacekeeper": "Laborwacht",
+      "privateer": "Forschungskaper",
+      "protoWalker": "Prototyp-Läufer"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1433,7 +1495,12 @@
       "antiAir": "Himmelsfänger",
       "mineLayer": "Eierleger",
       "faustZealot": "Stachelprediger",
-      "flakDrone": "Fangsummer"
+      "flakDrone": "Fangsummer",
+      "steppeRider": "Huftier-Reiter",
+      "stormbreaker": "Zrrk-Brecher",
+      "peacekeeper": "Blaukappen-Exemplar",
+      "privateer": "Nassschiff",
+      "protoWalker": "Zweitstativ"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1470,7 +1537,12 @@
       "antiAir": "Himmelsfluch",
       "mineLayer": "Saat des Endes",
       "faustZealot": "Feuerfaust-Büßer",
-      "flakDrone": "Bannspruch-Drohne"
+      "flakDrone": "Bannspruch-Drohne",
+      "steppeRider": "Reiter der Stunde",
+      "stormbreaker": "Bußbrecher",
+      "peacekeeper": "Bekehrte Wacht",
+      "privateer": "Aschenkaper",
+      "protoWalker": "Glockenläufer"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -1507,7 +1579,12 @@
       "antiAir": "Einheit F-2 Flugabwehrchassis",
       "mineLayer": "Einheit M-3 Minenmodul",
       "faustZealot": "Bioeinheit V-7 Panzerbrecher",
-      "flakDrone": "Einheit F-6 Abfangdrohne"
+      "flakDrone": "Einheit F-6 Abfangdrohne",
+      "steppeRider": "Einheit H-2 Bioreiter",
+      "stormbreaker": "Einheit B-4 Brecher",
+      "peacekeeper": "Einheit P-3 Wache",
+      "privateer": "Einheit K-6 Kaper",
+      "protoWalker": "Einheit L-1 Läufer"
     }
   },
   "identity": {
@@ -2053,7 +2130,8 @@
     "title": "Fraktion",
     "leader": "Anführer",
     "style": "Stil",
-    "perk": "Stärke"
+    "perk": "Stärke",
+    "perk2": "Merkmal"
   },
   "traits": {
     "perk": "Bonus",

@@ -24,7 +24,7 @@ function outline(len: number, beam: number, bow: number, s: number): [number, nu
 }
 
 /** Rumpf mit Wasserpass, Deck, Bullaugen, Reling, Ankern und Bugwelle / hull with boot-topping, deck, portholes, rail, anchors, bow wave */
-function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: number, deck: THREE.Color, portholes = 10) {
+export function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: number, deck: THREE.Color, portholes = 10) {
   b.add(geo.prismXZ(outline(len, beam, bow, 0.94), 0.03), L.hullDark, { p: [0, -0.03, 0] });
   b.add(geo.prismXZ(outline(len, beam, bow, 0.97), 0.016), mat.ink, { p: [0, 0.0, 0] });
   b.add(geo.prismXZ(outline(len, beam, bow, 1), top - 0.016), L.hull, { p: [0, 0.016, 0] });
@@ -63,7 +63,7 @@ function hull(b: Builder, L: Look, len: number, beam: number, top: number, bow: 
 }
 
 /** Aufbau-Block im Fraktionsstil mit Bruecke / superstructure block in faction style with bridge windows */
-function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: number, z: number, w: number, h: number, d: number) {
+export function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: number, z: number, w: number, h: number, d: number) {
   const base = styleOf(f) === 'alvenia' || styleOf(f) === 'korvat' ? mat.concreteLight : styleOf(f) === 'meridon' ? mat.paper : styleOf(f) === 'dravon' ? shade(L.primary, 1.35) : shade(L.primary, 1.15);
   switch (styleOf(f)) {
     case 'korvat':
@@ -102,7 +102,7 @@ function mullions(b: Builder, x: number, y: number, z: number, w: number, d: num
 }
 
 /** Rettungsringe an der Reling / life rings on the rail */
-function lifeRings(b: Builder, x: number, y: number, zs: number[]) {
+export function lifeRings(b: Builder, x: number, y: number, zs: number[]) {
   for (const s of [-1, 1]) for (const z of zs) {
     b.add(geo.torus(0.014, 0.0045, 4, 12), mat.white, { p: [s * x, y, z], r: [0, HALF_PI, 0] });
     for (const a of [0, HALF_PI]) b.box(0.003, 0.01, 0.006, mat.red, [s * (x + 0.001), y + Math.cos(a) * 0.014, z + Math.sin(a) * 0.014]);
@@ -155,7 +155,7 @@ function turret(b: Builder, f: FactionId, L: Look, z: number, y: number, size: n
 }
 
 /** Dreibeinmast mit Radar / tripod mast with radar */
-function mast(b: Builder, L: Look, f: FactionId, z: number, y: number, h: number) {
+export function mast(b: Builder, L: Look, f: FactionId, z: number, y: number, h: number) {
   for (const [x, dz] of [[-0.03, -0.025], [0.03, -0.025], [0, 0.03]] as [number, number][]) b.tube([x, y, z + dz], [0, y + h * 0.7, z], 0.005, 4, mat.dark);
   b.cyl(0.006, 0.008, h * 0.35, 6, mat.dark, [0, y + h * 0.82, z]);
   b.cyl(0.03, 0.03, 0.008, 10, L.hullDark, [0, y + h * 0.7, z]);

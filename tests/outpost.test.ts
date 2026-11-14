@@ -4,7 +4,8 @@ import { DEFENSE_BONUS, ECON, INFANTRY_TYPES, type UnitTypeId } from '../src/dat
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile, unit, untilTurnOf } from './helpers';
 
 function og() {
-  const s = blankGame({ stars: 100 });
+  // Meridon statt Korvat: Korvat baut Aussenposten billiger (Erdwaelle) / Meridon instead of Korvat: Korvat builds outposts cheaper (earthworks)
+  const s = blankGame({ stars: 100, factions: ['meridon', 'dravon'] });
   addCity(s, 1, 1, 0, { hq: true });
   addCity(s, 9, 9, 1, { hq: true });
   s.factions[0].techs.push('fortification');

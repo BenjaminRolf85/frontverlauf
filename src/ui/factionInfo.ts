@@ -11,10 +11,12 @@ import { icon } from './icons';
 
 /** Kennzeichnende Einheit je Fraktion / signature unit per faction */
 const SIGNATURE_UNIT: Partial<Record<FactionId, UnitTypeId>> = {
+  korvat: 'steppeRider', dravon: 'stormbreaker', alvenia: 'peacekeeper', meridon: 'privateer', velkar: 'protoWalker',
   zyrr: 'tripod', vesper: 'zealot', nexus: 'titan',
 };
 /** Eigenes Gebaeude je Fraktion / own building per faction */
 const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
+  korvat: 'kolkhoz', dravon: 'mercenaryBarracks', alvenia: 'embassyPalace', meridon: 'tradingPost', velkar: 'testLab',
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 

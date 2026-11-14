@@ -69,6 +69,18 @@ const P: Record<string, string> = {
   defector: '<circle cx="8" cy="7" r="3"/><path d="M2.5 20c.6-4 2.6-6 5.5-6s4.9 2 5.5 6"/><path d="M14 11h7M18 8l3 3-3 3"/>',
   chest: '<path d="M3 10h18v10H3z"/><path d="M3 10c0-3.5 2-5.5 4.5-5.5h9C19 4.5 21 6.5 21 10"/><path d="M3 13.5h18"/><path d="M10.5 12h3v4h-3z" fill="currentColor"/>',
   drought: '<circle cx="12" cy="8" r="3.5"/><path d="M12 1.5V3M5.5 8H4M20 8h-1.5M7.4 3.4l1 1M16.6 3.4l-1 1"/><path d="M3 15h18M7 15l2 3-1.5 3M15 15l-1.5 2.5 2 3.5M11.5 15l.5 2"/>',
+  // Einzigartige Einheiten / unique units
+  horse: '<path d="M4 20l1.5-6.5L4 11l3-2.5 2.5 1H15l2.5-5 2 1-.5 2.5 2 2.5-1.5 1.5-2-1-1 2.5V20"/><path d="M8.5 14v6M15 14.5v5.5"/><path d="M4 11c-1.5 0-2 1.5-2 3"/>',
+  hammer: '<path d="M5 3.5h9v6H5z" fill="currentColor"/><path d="M14 6.5h3l2.5-2v10l-2.5-2h-3"/><path d="M9.5 9.5V21"/>',
+  barrier: '<path d="M4 21V8M2.5 21h3"/><path d="M4 9.5l17-5v3l-17 5z"/><path d="M8.5 8.2v3M13 6.9v3M17.5 5.6v3"/>',
+  sail: '<path d="M12 2.5v14"/><path d="M12 3.5L4.5 14.5H12z" fill="currentColor"/><path d="M13.5 6l5 8.5h-5z"/><path d="M3 17.5h18l-2.5 3.5h-13z"/>',
+  walker: '<path d="M6 4h12v7H6z"/><path d="M18 6.5h4"/><path d="M9.5 7h5" stroke-width="1.6"/><path d="M8.5 11l-2 4.5 2.5 4M15.5 11l2 4.5-2.5 4M6.5 20.5h4M14 20.5h4"/>',
+  // Einzigartige Gebaeude / unique buildings
+  wheat: '<path d="M12 21V8"/><path d="M12 9c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 9c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4zM12 14c-2.5 0-4-1.5-4-4 2.5 0 4 1.5 4 4zM12 14c2.5 0 4-1.5 4-4-2.5 0-4 1.5-4 4zM12 3v2"/><path d="M4 21h16"/>',
+  tent: '<path d="M2.5 20L12 4l9.5 16z"/><path d="M12 4v16M9 20l3-6 3 6"/><path d="M12 4V1.5l3 1.2-3 1.2"/>',
+  columns: '<path d="M3 9.5L12 3l9 6.5z"/><path d="M5 11.5v7M9.7 11.5v7M14.3 11.5v7M19 11.5v7M3 21h18"/>',
+  scale: '<path d="M12 3.5V20M7.5 20.5h9M4 6.5h16"/><path d="M6 6.5l-3 7h6zM18 6.5l-3 7h6z"/><path d="M3 13.5a3 2 0 0 0 6 0M15 13.5a3 2 0 0 0 6 0"/>',
+  tesla: '<circle cx="12" cy="5" r="2.8" fill="currentColor"/><path d="M12 8v13M9 11h6M8 14h8M7 17h10M6 21h12"/><path d="M15.5 3.5l3-1.5-1 2.5 3-.5M8.5 3.5l-3-1.5 1 2.5-3-.5"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

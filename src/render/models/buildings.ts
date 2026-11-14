@@ -14,11 +14,12 @@ import { look, mat } from './look';
 import { cattle } from './nature';
 import { dataCenter, powerPlant, shrine } from './specials';
 import { xenoHarvester, xenoHive } from './xeno';
+import { embassyPalace, kolkhoz, mercenaryBarracks, testLab, tradingPost } from './unique';
 
 type Kind = BuildingId | 'outpost' | GrandProjectId;
 
 /** Kleine Halle mit Satteldach / small hall with gable roof */
-function hall(b: Builder, f: FactionId | null, x: number, z: number, w: number, d: number, h: number, ry = 0, wall = look(f).wall) {
+export function hall(b: Builder, f: FactionId | null, x: number, z: number, w: number, d: number, h: number, ry = 0, wall = look(f).wall) {
   const L = look(f);
   b.group({ p: [x, 0, z], r: [0, ry, 0] }, () => {
     b.block(0, 0, 0, w, h, d, wall);
@@ -60,7 +61,7 @@ function tree(b: Builder, x: number, z: number, s: number, seed: number) {
   b.add(geo.cone(0.055 * s, 0.1 * s, 6), mat.leaf, { p: [x, 0.17 * s, z], r: [0, R() * 3, 0] });
 }
 
-function tractor(b: Builder, f: FactionId | null, x: number, z: number, ry: number) {
+export function tractor(b: Builder, f: FactionId | null, x: number, z: number, ry: number) {
   const L = look(f);
   b.group({ p: [x, 0, z], r: [0, ry, 0] }, () => {
     b.block(0, 0.03, 0.02, 0.06, 0.04, 0.1, L.primary);
@@ -548,6 +549,12 @@ export function building(kind: Kind, f: FactionId | null): Builder {
     case 'dataCenter': dataCenter(b, f); break;
     case 'powerPlant': powerPlant(b, f); break;
     case 'xenoHarvester': xenoHarvester(b, f); break;
+    // Einzigartige Gebaeude / unique buildings
+    case 'kolkhoz': kolkhoz(b, f); break;
+    case 'mercenaryBarracks': mercenaryBarracks(b, f); break;
+    case 'embassyPalace': embassyPalace(b, f); break;
+    case 'tradingPost': tradingPost(b, f); break;
+    case 'testLab': testLab(b, f); break;
     default: grandProject(b, kind, f); break;
   }
   return b;

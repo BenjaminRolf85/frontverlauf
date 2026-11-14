@@ -22,12 +22,17 @@ export type AlienUnitId = 'grey' | 'terraformer' | 'skimmer' | 'mech' | 'tripod'
 export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler' | 'faustZealot';
 /** Robotereinheiten (nur NEXUS) / robot units (NEXUS only) */
 export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId;
+/** Einzigartige Einheiten der fuenf klassischen Fraktionen (je eine) / unique units of the five classic factions (one each) */
+export type UniqueUnitId = 'steppeRider' | 'stormbreaker' | 'peacekeeper' | 'privateer' | 'protoWalker';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
   // Konter: Flugabwehr-Feuerzone, Minen legen / counters: anti-air fire zone, lay mines
-  | 'flak' | 'mines';
+  | 'flak' | 'mines'
+  // Einzigartige Einheiten: Sturmangriff ohne Gegenschlag, Selbstheilung, Kaperbeute
+  // unique units: shock assault without retaliation, self-repair, prize money
+  | 'shock' | 'mend' | 'plunder';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -38,7 +43,9 @@ export type BuildingId =
   | 'storehouse' | 'ranch' | 'fishery' | 'lumberCamp' | 'farm' | 'mine'
   | 'materialsPlant' | 'foodFactory' | 'steelMill' | 'logisticsCenter'
   | 'navalBase' | 'road' | 'bridge' | 'researchCenter'
-  | 'xenoHive' | 'xenoHarvester' | 'shrine' | 'dataCenter' | 'powerPlant';
+  | 'xenoHive' | 'xenoHarvester' | 'shrine' | 'dataCenter' | 'powerPlant'
+  // Einzigartige Gebaeude der klassischen Fraktionen / unique buildings of the classic factions
+  | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab';
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
@@ -120,12 +127,50 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   faustZealot: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
   // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
   flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
+  // Einzigartige Einheiten (siehe UNIQUE) / unique units (see UNIQUE)
+  // Korvat: Steppenreiter, billig und schnell, Fusstruppe (kein Fahrzeug) / Steppe Riders, cheap and fast, foot troops (no vehicle)
+  steppeRider: { cost: 14, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash'], tech: 'livestock', ship: false, faction: 'korvat' },
+  // Dravon: Sturmbrecher, Angriffe ohne Gegenschlag, aber verwundbar / Stormbreakers, attacks draw no retaliation, but vulnerable
+  stormbreaker: { cost: 30, hp: 15, attack: 4, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'shock'], tech: 'mining', ship: false, faction: 'dravon' },
+  // Alvenia: Friedenswacht, Verteidiger mit Selbstheilung / Peacekeepers, defenders with self-repair
+  peacekeeper: { cost: 20, hp: 15, attack: 2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify', 'mend'], tech: 'fortification', ship: false, faction: 'alvenia' },
+  // Meridon: Kaperschiff (Aufruestung wie andere Schiffe), Beute je Abschuss / Privateer (upgrade like other ships), prize per kill
+  privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: 'coastalEconomy', ship: true, faction: 'meridon' },
+  // Velkar: Prototyp-Laeufer, Flaechenschaden auf Reichweite 2, teuer / Prototype Walker, splash at range 2, expensive
+  protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: 'cybernetics', ship: false, faction: 'velkar' },
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
 export const ALIEN_UNITS: AlienUnitId[] = ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'];
 export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'faustZealot'];
 export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'railgun', 'titan', 'flakDrone'];
+export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
+export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
+
+/**
+ * Einzigartige Einheiten und Gebaeude der klassischen Fraktionen.
+ * Unique units and buildings of the classic factions.
+ */
+export const UNIQUE = {
+  /** Einheit je Fraktion / unit per faction */
+  units: { korvat: 'steppeRider', dravon: 'stormbreaker', alvenia: 'peacekeeper', meridon: 'privateer', velkar: 'protoWalker' } as Partial<Record<FactionId, UniqueUnitId>>,
+  /** Gebaeude je Fraktion / building per faction */
+  buildings: { korvat: 'kolkhoz', dravon: 'mercenaryBarracks', alvenia: 'embassyPalace', meridon: 'tradingPost', velkar: 'testLab' } as Partial<Record<FactionId, BuildingId>>,
+  /** Selbstheilung zu Beginn des eigenen Zuges / self-repair at the start of the own turn */
+  mendHp: 2,
+  /** Kaperbeute je vernichteter Einheit / prize money per destroyed unit */
+  plunderStars: 10,
+  /** Kolchose: +1 Bevoelkerung alle 5 Runden / kolkhoz: +1 population every 5 rounds */
+  kolkhozInterval: 5,
+  kolkhozPop: 1,
+  /** Botschaftspalast: Sterne je Friedensvertrag und Runde / embassy palace: stars per peace treaty and round */
+  palacePerPeace: 4,
+  /** Handelskontor: Sterne je verbundener Hafenstadt und Runde / trading post: stars per connected harbour city and round */
+  tradingPostPerHarbour: 3,
+  /** Versuchslabor: Forschungsrabatt je Labor, hoechstens so viele Labore / test lab: research discount per lab, at most this many labs */
+  testLabDiscount: 0.05,
+  testLabMax: 3,
+};
 
 /**
  * Ersatzeinheiten der Sonderfraktionen fuer Start, Belohnungen und Aufstaende.
@@ -168,7 +213,7 @@ export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitT
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
-  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone'] as UnitTypeId[],
+  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone', 'protoWalker'] as UnitTypeId[],
   footDefense: 1.5,
 };
 
@@ -217,8 +262,8 @@ export const DEFENSE_BONUS = {
 export const REMAINS = {
   /** Wracks geben +1 auf den Verteidigungsbonus / wrecks add +1 to the defense bonus */
   wreckDefenseBonus: 1,
-  wreckUnits: ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer'] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank'] as UnitTypeId[],
+  wreckUnits: ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer', 'protoWalker'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -242,7 +287,7 @@ export const BARRIER = {
 export const COUNTER = {
   vehicles: [
     'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod',
+    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker',
   ] as UnitTypeId[],
   /** Flak-Feuerzone: feindliche Flieger, die im Umkreis ihren Zug beenden, nehmen Schaden / flak zone: hostile flyers ending their turn within range take damage */
   flak: { range: 1, damage: 3 },
@@ -387,6 +432,8 @@ export interface BuildingStats {
   terrain: TerrainId[];
   resource?: ResourceId;
   onePerCity?: boolean;
+  /** nur einmal je Fraktion / only once per faction */
+  onePerFaction?: boolean;
   /** Bevoelkerung je angrenzendem Gebaeude dieses Typs / population per adjacent building of this type */
   adjacency?: { building: BuildingId; pop: number };
 }
@@ -412,6 +459,12 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   dataCenter: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest'] },
   powerPlant: { cost: 15, pop: 1, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
   xenoHarvester: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
+  // Einzigartige Gebaeude (siehe UNIQUE) / unique buildings (see UNIQUE)
+  kolkhoz: { cost: 35, pop: 1, tech: 'livestock', terrain: ['plain'], onePerCity: true },
+  mercenaryBarracks: { cost: 35, pop: 2, tech: 'motorization', terrain: ['plain', 'forest'], onePerCity: true },
+  embassyPalace: { cost: 30, pop: 3, tech: 'supply', terrain: ['plain', 'forest'], onePerFaction: true },
+  tradingPost: { cost: 30, pop: 1, tech: 'coastalEconomy', terrain: ['plain'], onePerFaction: true },
+  testLab: { cost: 30, pop: 1, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], onePerCity: true },
 };
 
 /** Basisgebaeude der Werke, die das Logistikzentrum zaehlt / base buildings counted by the logistics centre */
@@ -481,8 +534,13 @@ export const TERRAIN_DEFENSE_TECH: Partial<Record<TerrainId, TechId>> = {
   ocean: 'coastalDefense',
 };
 
+/** Zweites Fraktionsmerkmal / second faction trait */
+export type Perk2Id = 'earthworks' | 'battleHardened' | 'fieldHospitals' | 'harbourPilots' | 'engineerCorps' | 'forestSpawn' | 'martyrdom' | 'sensorNet';
+
 export interface FactionStats {
   perk: 'massMobilization' | 'drill' | 'alliancePolicy' | 'boom' | 'researchLead' | 'xenotech' | 'zealotry' | 'hivemind';
+  /** zweites Merkmal (kleiner Dauerbonus) / second trait (small passive bonus) */
+  perk2: Perk2Id;
   discountUnit: UnitTypeId;
   discount: number;
   startTech: TechId | null;
@@ -495,14 +553,14 @@ export interface FactionStats {
 export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar', 'zyrr', 'vesper', 'nexus'];
 
 export const FACTIONS: Record<FactionId, FactionStats> = {
-  korvat: { perk: 'massMobilization', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
-  dravon: { perk: 'drill', discountUnit: 'jeep', discount: 0.2, startTech: 'motorization', home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
-  alvenia: { perk: 'alliancePolicy', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
-  meridon: { perk: 'boom', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
-  zyrr: { perk: 'xenotech', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
-  vesper: { perk: 'zealotry', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
-  nexus: { perk: 'hivemind', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
-  velkar: { perk: 'researchLead', discountUnit: 'pioneer', discount: 0.2, startTech: 'mountainTraining', home: { plain: 0.25, forest: 0.35, mountain: 0.35, water: 0.05, res: { ore: 0.2, supplies: 0.1 } } },
+  korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
+  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.2, startTech: 'motorization', home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
+  alvenia: { perk: 'alliancePolicy', perk2: 'fieldHospitals', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
+  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
+  zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
+  vesper: { perk: 'zealotry', perk2: 'martyrdom', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
+  nexus: { perk: 'hivemind', perk2: 'sensorNet', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
+  velkar: { perk: 'researchLead', perk2: 'engineerCorps', discountUnit: 'pioneer', discount: 0.2, startTech: 'mountainTraining', home: { plain: 0.25, forest: 0.35, mountain: 0.35, water: 0.05, res: { ore: 0.2, supplies: 0.1 } } },
 };
 
 export const PERKS = {
@@ -512,6 +570,26 @@ export const PERKS = {
   allianceEmbassyIncomeFactor: 2,
   boomLevelReduction: 1,
   researchLeadDiscount: 0.2,
+};
+
+/** Zweite Fraktionsmerkmale / second faction traits */
+export const PERKS2 = {
+  /** Korvat, Erdwaelle: Aussenposten-Preis / earthworks: outpost price */
+  earthworksOutpostCost: 15,
+  /** Dravon, kampferprobt: Angriff der Veteranen / battle-hardened: veteran attack bonus */
+  battleHardenedAttack: 0.5,
+  /** Alvenia, Feldlazarette: zusaetzliche Heilung / field hospitals: extra healing */
+  fieldHospitalsHeal: 1,
+  /** Meridon, Lotsenwesen: Landungsboote fahren weiter / harbour pilots: landing boats move further */
+  harbourPilotsMove: 1,
+  /** Velkar, Ingenieurkorps: Panzersperren-Preis / engineer corps: tank barrier price */
+  engineerCorpsBarrierCost: 5,
+  /** Zyrr, Waldbrut: zusaetzliche Heilung im Wald / forest spawn: extra healing in forests */
+  forestSpawnHeal: 1,
+  /** Vesper, Maertyrertum: Sterne je im Kampf gefallener eigener Einheit / martyrdom: stars per own unit fallen in battle */
+  martyrdomStars: 3,
+  /** NEXUS, Sensornetz: Sichtweite aller Einheiten / sensor net: vision of all units */
+  sensorNetVision: 1,
 };
 
 export const SCORE = {

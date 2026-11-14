@@ -91,7 +91,9 @@
       "quote": "One people, one step, one victory.",
       "lore": "The Korvat People's League grew out of a hundred farming cooperatives on the endless steppe. Every ploughman is a soldier, every village kitchen feeds a regiment. Grand Marshal Brodnik, once a tractor driver, leads with iron fatherliness: nobody is left behind, and nobody retreats.",
       "style": "mass armies, red banners, choirs",
-      "aiStyle": "Builds large armies of cheap infantry and advances on a broad front."
+      "aiStyle": "Builds large armies of cheap infantry and advances on a broad front.",
+      "perk2": "Earthworks",
+      "perk2Desc": "Outposts cost 15 instead of 25 stars."
     },
     "dravon": {
       "name": "Protectorate of Dravon",
@@ -106,7 +108,9 @@
       "quote": "Discipline is the only truth.",
       "lore": "Dravon was once a pact of mercenary companies guarding the desert ore mines. Today it is a state made of barracks. Nobody has ever seen Commander Voss without his balaclava; people say he has no face, only orders. His troops become veterans faster than any other army.",
       "style": "drill, camo green, black balaclavas",
-      "aiStyle": "Attacks early and often, relying on jeeps and MG squads."
+      "aiStyle": "Attacks early and often, relying on jeeps and MG squads.",
+      "perk2": "Battle-hardened",
+      "perk2Desc": "Veterans attack with +0.5 attack."
     },
     "alvenia": {
       "name": "Republic of Alvenia",
@@ -121,7 +125,9 @@
       "quote": "An alliance is stronger than any wall.",
       "lore": "Alvenia is a republic of green hill valleys, governed by a parliament that debates longer than it fights. President Valen was a field medic before she became a diplomat. Her embassies are everywhere, and so are her medics: Alvenia wins wars with friends instead of tanks.",
       "style": "diplomacy, blue berets, medics",
-      "aiStyle": "Seeks embassies and peace, keeps its troops alive with medics."
+      "aiStyle": "Seeks embassies and peace, keeps its troops alive with medics.",
+      "perk2": "Field hospitals",
+      "perk2Desc": "Units heal 1 more HP when healing."
     },
     "meridon": {
       "name": "Meridon Trade League",
@@ -136,7 +142,9 @@
       "quote": "Every harbour has its price. I pay in cash.",
       "lore": "The Meridon Trade League is a union of rich port cities whose fleets know every coast. Admiral Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her cities grow faster than any others, and her spies know everything before it happens.",
       "style": "harbours, gold, spies, sailors",
-      "aiStyle": "Grows its cities and sends spies ahead."
+      "aiStyle": "Grows its cities and sends spies ahead.",
+      "perk2": "Harbour pilots",
+      "perk2Desc": "Landing boats move 1 tile further."
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -151,7 +159,9 @@
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's researchers are ahead of everyone, and its pioneers build fortresses where others freeze.",
       "style": "research, laboratories, pioneers, cold",
-      "aiStyle": "Researches first and digs in with pioneers."
+      "aiStyle": "Researches first and digs in with pioneers.",
+      "perk2": "Engineer corps",
+      "perk2Desc": "Tank barriers cost 5 instead of 10 stars."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -166,7 +176,9 @@
       "quote": "Kkt. This planet will be violet.",
       "lore": "The Zyrr are a scouting swarm whose mothership crashed over the desert. Swarm Mother Xyl'Tharra decided to stay and turn the planet into a second home. Wherever her terraformers work, violet xeno ground grows, and on it the Zyrr are hard to beat.",
       "style": "saucers, death rays, xeno ground",
-      "aiStyle": "Opportunistic raiders: skimmers and tripods go around the front and strike undefended cities."
+      "aiStyle": "Opportunistic raiders: skimmers and tripods go around the front and strike undefended cities.",
+      "perk2": "Forest brood",
+      "perk2Desc": "Units heal 1 more HP in forests."
     },
     "vesper": {
       "name": "Cult of the Final Hour",
@@ -181,7 +193,9 @@
       "quote": "The bell tolls. Repent while you can.",
       "lore": "The Cult of the Final Hour arose at dusty pilgrimage sites where the desperate wait for the end of the world. The prophet Malachar proclaims that the final hour is near, and his zealots recruit new believers wherever they stand. The cult does not need cities, only fire and faith.",
       "style": "robes, bone masks, bells, flames",
-      "aiStyle": "Fanatical and aggressive, rarely retreats and converts enemies with prophets."
+      "aiStyle": "Fanatical and aggressive, rarely retreats and converts enemies with prophets.",
+      "perk2": "Martyrdom",
+      "perk2Desc": "Every own unit that falls in battle brings 3 stars."
     },
     "nexus": {
       "name": "NEXUS AI Collective",
@@ -196,7 +210,9 @@
       "quote": "Calculation complete. Result: your defeat.",
       "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data center with a power plant makes the collective smarter and its machines deadlier.",
       "style": "robots, data centers, cyan light",
-      "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly."
+      "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly.",
+      "perk2": "Sensor net",
+      "perk2Desc": "All units see 1 tile further."
     }
   },
   "units": {
@@ -234,7 +250,12 @@
     "antiAir": "Flak tank",
     "mineLayer": "Mine layer",
     "faustZealot": "Rocket zealot",
-    "flakDrone": "Flak drone"
+    "flakDrone": "Flak drone",
+    "steppeRider": "Steppe Riders",
+    "stormbreaker": "Stormbreakers",
+    "peacekeeper": "Peacekeepers",
+    "privateer": "Privateer",
+    "protoWalker": "Prototype Walker"
   },
   "abilities": {
     "dash": "Assault",
@@ -282,7 +303,13 @@
     "flak": "Flak zone",
     "flakDesc": "Hostile flyers that end their turn right next to it take 3 damage.",
     "mines": "Lay mines",
-    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction)."
+    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction).",
+    "shock": "Shock assault",
+    "shockDesc": "The attacked target cannot strike back.",
+    "mend": "Self-repair",
+    "mendDesc": "Heals 2 HP at the start of each own turn.",
+    "plunder": "Prize money",
+    "plunderDesc": "Every destroyed enemy unit brings 10 stars."
   },
   "stats": {
     "cost": "Price",
@@ -344,7 +371,12 @@
     "xenoHarvester": "Xeno harvester",
     "shrine": "Shrine",
     "dataCenter": "Data center",
-    "powerPlant": "Fusion plant"
+    "powerPlant": "Fusion plant",
+    "kolkhoz": "Kolkhoz",
+    "mercenaryBarracks": "Mercenary barracks",
+    "embassyPalace": "Embassy palace",
+    "tradingPost": "Trading post",
+    "testLab": "Test lab"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -367,7 +399,12 @@
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "2 population, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
-    "powerPlant": "1 population, powers one data center, NEXUS only"
+    "powerPlant": "1 population, powers one data center, NEXUS only",
+    "kolkhoz": "1 population, then +1 population for the city every 5 rounds, one per city, Korvat only",
+    "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
+    "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
+    "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -1248,7 +1285,12 @@
       "antiAir": "Flak Combine",
       "mineLayer": "Seed Sowers",
       "faustZealot": "Rocket Farmer",
-      "flakDrone": "Bird-Scare Drone"
+      "flakDrone": "Bird-Scare Drone",
+      "steppeRider": "Steppe Riders",
+      "stormbreaker": "Captured Breakers",
+      "peacekeeper": "Captured Blue Helmets",
+      "privateer": "Captured Raider",
+      "protoWalker": "Captured Walker"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1285,7 +1327,12 @@
       "antiAir": "Sky Barrier",
       "mineLayer": "Denial Detail",
       "faustZealot": "Fist Recruits",
-      "flakDrone": "Barrage Drone"
+      "flakDrone": "Barrage Drone",
+      "steppeRider": "Captured Riders",
+      "stormbreaker": "Stormbreakers",
+      "peacekeeper": "Captured Guards",
+      "privateer": "Mercenary Raider",
+      "protoWalker": "Captured Steel Leg"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1322,7 +1369,12 @@
       "antiAir": "Airspace Warden",
       "mineLayer": "Border Surveyors",
       "faustZealot": "Reformed Rocketeer",
-      "flakDrone": "Patron Drone"
+      "flakDrone": "Patron Drone",
+      "steppeRider": "Free Riders",
+      "stormbreaker": "Converted Breakers",
+      "peacekeeper": "Peacekeepers",
+      "privateer": "Liberated Privateer",
+      "protoWalker": "Peace Walker"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1359,7 +1411,12 @@
       "antiAir": "Air Toll",
       "mineLayer": "Harbour Boom",
       "faustZealot": "Contract Rocketeer",
-      "flakDrone": "Lighthouse Drone"
+      "flakDrone": "Lighthouse Drone",
+      "steppeRider": "Hired Riders",
+      "stormbreaker": "Bought Breakers",
+      "peacekeeper": "Paid Guard",
+      "privateer": "Privateer",
+      "protoWalker": "Pawned Walker"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1396,7 +1453,12 @@
       "antiAir": "Radar Flak",
       "mineLayer": "Sensor Layer",
       "faustZealot": "Rocket Student",
-      "flakDrone": "Interceptor Probe"
+      "flakDrone": "Interceptor Probe",
+      "steppeRider": "Test Riders",
+      "stormbreaker": "Trial Breakers",
+      "peacekeeper": "Lab Watch",
+      "privateer": "Research Raider",
+      "protoWalker": "Prototype Walker"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1433,7 +1495,12 @@
       "antiAir": "Sky Catcher",
       "mineLayer": "Egg Layer",
       "faustZealot": "Sting Preacher",
-      "flakDrone": "Catch Buzzer"
+      "flakDrone": "Catch Buzzer",
+      "steppeRider": "Hoofbeast Riders",
+      "stormbreaker": "Zrrk Breakers",
+      "peacekeeper": "Blue Cap Specimen",
+      "privateer": "Wet Ship",
+      "protoWalker": "Second Tripod"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1470,7 +1537,12 @@
       "antiAir": "Sky Curse",
       "mineLayer": "Seeds of the End",
       "faustZealot": "Fire-Fist Penitents",
-      "flakDrone": "Anathema Drone"
+      "flakDrone": "Anathema Drone",
+      "steppeRider": "Riders of the Hour",
+      "stormbreaker": "Penance Breakers",
+      "peacekeeper": "Converted Watch",
+      "privateer": "Ash Raider",
+      "protoWalker": "Bell Walker"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -1507,7 +1579,12 @@
       "antiAir": "Unit F-2 Anti-Air Chassis",
       "mineLayer": "Unit M-3 Mine Module",
       "faustZealot": "Bio Unit V-7 Armour Breaker",
-      "flakDrone": "Unit F-6 Intercept Drone"
+      "flakDrone": "Unit F-6 Intercept Drone",
+      "steppeRider": "Unit H-2 Bio Rider",
+      "stormbreaker": "Unit B-4 Breaker",
+      "peacekeeper": "Unit P-3 Guard",
+      "privateer": "Unit K-6 Raider",
+      "protoWalker": "Unit L-1 Walker"
     }
   },
   "identity": {
@@ -2053,7 +2130,8 @@
     "title": "Faction",
     "leader": "Leader",
     "style": "Style",
-    "perk": "Strength"
+    "perk": "Strength",
+    "perk2": "Trait"
   },
   "traits": {
     "perk": "Bonus",
