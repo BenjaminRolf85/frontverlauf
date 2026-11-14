@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, ROCKETS, RESEARCH_CENTER_TECH, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
@@ -54,7 +54,23 @@ export function counterTags(type: UnitTypeId): { text: string; good: boolean }[]
 export const BUILD_ICON: Partial<Record<BuildingId, string>> = {
   road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown',
   kolkhoz: 'wheat', mercenaryBarracks: 'tent', embassyPalace: 'columns', tradingPost: 'scale', testLab: 'tesla',
+  // Ressourcengebaeude der Fraktionen / faction resource buildings
+  tractorStation: 'tractor', deepMine: 'headframe', hillVineyard: 'grapes', tradeHarbour: 'crane',
+  polarStation: 'polar', wreckSmelter: 'furnace', pilgrimSite: 'bell', depotNode: 'drone',
 };
+
+/**
+ * Gebaeudebeschreibung mit Zahlen aus balance.ts (Platzhalter in buildingDesc).
+ * Building description with numbers from balance.ts (placeholders in buildingDesc).
+ */
+export function buildingDescText(b: BuildingId): string {
+  const st = BUILDINGS[b];
+  return t(`buildingDesc.${b}`, {
+    pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0,
+    pct: Math.round(RESOURCE.polarDiscount * 100), max: RESOURCE.polarMax,
+    emb: RESOURCE.vineyardPerEmbassy, embMax: RESOURCE.vineyardEmbassyMax, naval: RESOURCE.harbourNavalBonus,
+  });
+}
 
 /** Allgemeiner Typname (fuer Vergleiche) / generic type name (for comparison) */
 export function unitName(u: Unit): string {
@@ -411,7 +427,7 @@ export class Hud {
         if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
         if (isRobotFaction(s, city.owner)) {
           const cs = computeStats(s, city.owner);
-          body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t('nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants }))}</p>`;
+          body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</p>`;
         }
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
@@ -685,10 +701,12 @@ export class Hud {
         continue;
       }
       if (!chk.ok && chk.error !== 'notEnoughStars' && chk.error !== 'onePerCity') continue;
+      // Ressourcengebaeude als Ausbau eines Grundgebaeudes / resource building as upgrade of a base building
+      const upgrade = !!BUILDINGS[b].upgrades && s.tiles[y * s.size + x].building === BUILDINGS[b].upgrades;
       this.actions.push({
-        id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: chk.ok,
-        desc: t(`buildingDesc.${b}`),
-        reason: chk.ok ? t(`buildingDesc.${b}`) : t(`errors.${chk.error}`),
+        id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), sub: upgrade ? t('resource.upgrade') : undefined, cost: chk.cost, enabled: chk.ok,
+        desc: buildingDescText(b),
+        reason: chk.ok ? buildingDescText(b) : t(`errors.${chk.error}`),
         run: () => void g.exec({ type: 'build', building: b, x, y }),
       });
     }

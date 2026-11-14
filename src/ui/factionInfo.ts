@@ -2,12 +2,12 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { FACTIONS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { FACTIONS, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
 import { loreButton } from './lore';
-import { BUILD_ICON, UNIT_ICON } from './hud';
+import { BUILD_ICON, UNIT_ICON, buildingDescText } from './hud';
 import { icon } from './icons';
 import { victoryGoalText, victoryShortText } from './victory';
 
@@ -22,7 +22,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -38,7 +38,10 @@ export function factionTraits(f: FactionId): FactionTrait[] {
       value: t('traits.discountValue', { unit: t(`units.${fs.discountUnit}`), pct: Math.round(fs.discount * 100) }), desc: '' });
   }
   const b = SIGNATURE_BUILDING[f];
-  if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? t(`buildingDesc.${b}`) : '' });
+  if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? buildingDescText(b) : '' });
+  // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme
+  const rb = RESOURCE.buildings[f];
+  out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
   // Treffsicherheit der Rasse / race accuracy
   const race = f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
   out.push({ kind: 'aim', icon: 'dice', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });

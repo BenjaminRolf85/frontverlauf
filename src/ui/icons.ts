@@ -87,6 +87,15 @@ const P: Record<string, string> = {
   // Siegverfolgung und Trefferglueck / victory tracker and hit luck
   trophy: '<path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M7 5.5H3.5c0 3 1.5 4.5 3.8 4.8M17 5.5h3.5c0 3-1.5 4.5-3.8 4.8"/><path d="M12 13.5v3.5M8 21h8M9 17h6v4H9z"/>',
   dice: '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor"/>',
+  // Ressourcengebaeude der Fraktionen / faction resource buildings
+  tractor: '<circle cx="7.5" cy="16" r="4"/><circle cx="18" cy="17.5" r="2.5"/><path d="M4.5 12.5V6h6l2 6.5h7v3"/><path d="M15.5 12.5V8.5"/><circle cx="7.5" cy="16" r="1" fill="currentColor"/>',
+  headframe: '<path d="M3 21h18M5.5 21L10 7M18.5 21L14 7M7.5 15h9M9 10.5h6"/><circle cx="12" cy="5" r="2.5"/><path d="M12 7.5V21"/>',
+  grapes: '<path d="M12 6V3M12 4.5c1.8-1.8 4.6-1.8 6 0-1.8 1.2-4 1.2-6 0z"/><circle cx="8" cy="9" r="2"/><circle cx="12" cy="9" r="2"/><circle cx="16" cy="9" r="2"/><circle cx="10" cy="13" r="2"/><circle cx="14" cy="13" r="2"/><circle cx="12" cy="17" r="2"/>',
+  crane: '<path d="M3 21h18M6 21V4h13M6 4l3-1.5M19 4v6"/><path d="M6 8l4-4M6 12l4-4M6 16l4-4"/><path d="M16.5 10h5v4.5h-5z" fill="currentColor"/><circle cx="12" cy="18" r="1.4" fill="currentColor"/>',
+  polar: '<path d="M2.5 20.5h19"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/><path d="M12 13V3M9 5.5L12 3l3 2.5"/><path d="M8.5 20.5v-2.5h3v2.5"/>',
+  furnace: '<path d="M5 8.5h14l-2.5 7h-9z"/><path d="M9 15.5l-3 5.5M15 15.5l3 5.5M12 15.5v5.5"/><path d="M12 2.5c1.6 1.6 1.6 3.2 0 4.5-1.6-1.3-1.6-2.9 0-4.5z" fill="currentColor"/>',
+  bell: '<path d="M4 21V3.5h16V21"/><path d="M12 3.5V6"/><path d="M8.5 15.5C8.5 10 9.8 6.5 12 6.5s3.5 3.5 3.5 9z"/><path d="M7.5 15.5h9"/><circle cx="12" cy="17.8" r="1.2" fill="currentColor"/>',
+  drone: '<path d="M3.5 14h17v7h-17z"/><path d="M9 14v7M15 14v7"/><path d="M10 6.5h4v3h-4z" fill="currentColor"/><path d="M10 7.5L6.5 5M14 7.5l3.5-2.5M4 4.5h5M15 4.5h5M12 9.5v2.5"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

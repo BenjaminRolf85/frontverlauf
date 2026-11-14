@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -90,6 +90,9 @@ export function researchCost(s: GameState, f: number, tech: TechId): number {
   // Versuchslabore / test labs
   const labs = Math.min(UNIQUE.testLabMax, countBuildings(s, f, 'testLab'));
   if (labs) factor *= 1 - UNIQUE.testLabDiscount * labs;
+  // Polarstationen (eigene Grenze) / polar stations (own cap)
+  const polar = Math.min(RESOURCE.polarMax, countBuildings(s, f, 'polarStation'));
+  if (polar) factor *= 1 - RESOURCE.polarDiscount * polar;
   return Math.ceil(cost * factor - 1e-9);
 }
 
@@ -108,11 +111,17 @@ export function embassyCost(s: GameState, f: number): number {
   return cost;
 }
 
+/**
+ * Grundgebaeude, als das ein Gebaeude fuer Werke, Logistikzentrum und Duerre zaehlt (Tiefbauzeche = Tagebau usw.).
+ * Base building a building counts as for works, logistics centre and drought (deep mine = mine etc.).
+ */
+export const baseBuilding = (b: BuildingId): BuildingId => BUILDINGS[b].countsAs ?? b;
+
 export function logisticsIncome(s: GameState, x: number, y: number): number {
   let n = 0;
   for (const p of neighbors(s.size, x, y)) {
     const b = tileAt(s, p.x, p.y)!.building;
-    if (b && LOGISTICS_SOURCES.includes(b)) n++;
+    if (b && LOGISTICS_SOURCES.includes(baseBuilding(b))) n++;
   }
   return Math.min(INCOME.logisticsMax, n * INCOME.logisticsPerAdjacent);
 }
@@ -161,9 +170,31 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
   for (const p of cityTiles(s, c)) {
-    if (tileAt(s, p.x, p.y)!.building === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
+    const b = tileAt(s, p.x, p.y)!.building;
+    if (b === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
+    else if (b && BUILDINGS[b].stars) inc += resourceBuildingStars(s, c, b);
   }
   return inc;
+}
+
+/**
+ * Sterne eines Ressourcengebaeudes im Gebiet der Stadt c pro Runde (0, wenn es fuer den Besitzer nicht wirkt).
+ * Stars per round of a resource building in the territory of city c (0 if it does not work for the owner).
+ */
+export function resourceBuildingStars(s: GameState, c: City, b: BuildingId): number {
+  const st = BUILDINGS[b];
+  if (c.owner === null || !st.stars || !buildingWorksFor(s, c.owner, b)) return 0;
+  let n = st.stars;
+  // Handelshafen: mehr mit Marinestuetzpunkt der Stadt / trade harbour: more with a naval base of the city
+  if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'navalBase')) n += RESOURCE.harbourNavalBonus;
+  // Huegelweingut: Handel mit Freunden, je aktiver eigener Botschaft / hill vineyard: trade with friends, per active own embassy
+  if (b === 'hillVineyard') n += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, c.owner));
+  return n;
+}
+
+/** Eigene Botschaften bei lebenden Fraktionen (mit Hauptquartier) / own embassies at living factions (with HQ) */
+export function activeEmbassies(s: GameState, f: number): number {
+  return s.factions[f].embassies.filter((g) => hqOf(s, g)).length;
 }
 
 export function embassyIncome(s: GameState, f: number): number {
@@ -792,6 +823,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   // Fraktionsgebaeude nur fuer ihre Fraktion / faction buildings only for their faction
   const own = FACTION_BUILDINGS[b];
   if (own && own !== s.factions[f].id) return { ok: false, error: 'wrongFaction', cost };
+  // Ressourcengebaeude der Fraktion: eigene Ortsregeln / the faction's resource building: own site rules
+  if (RESOURCE_BUILDINGS.includes(b)) return resourceBuildCheck(s, f, b, x, y);
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
   const xenoB = b === 'xenoHive' || b === 'xenoHarvester';
   if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
@@ -829,6 +862,75 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (st.onePerFaction && countBuildings(s, f, b) > 0) return { ok: false, error: 'alreadyBuilt', cost };
   if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
   return { ok: true, cost };
+}
+
+/**
+ * Baupruefung der Ressourcengebaeude (Gebiet und Fraktion sind schon geprueft). Regeln je Gebaeude in BUILDINGS:
+ * Gelaende, Ressource, Landschaft oder Vulkannachbar, Wrack, Ausbau eines eigenen Grundgebaeudes.
+ * Build check of the resource buildings (territory and faction already checked). Rules per building in BUILDINGS:
+ * terrain, resource, biome or volcano neighbour, wreck, upgrade of an own base building.
+ */
+function resourceBuildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
+  const st = BUILDINGS[b];
+  const t = tileAt(s, x, y)!;
+  const cost = upgradeCost(b, t.building);
+  if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
+  if (t.building && t.building !== st.upgrades) return { ok: false, error: 'alreadyBuilt', cost };
+  if (!resourceSiteOk(s, b, x, y)) return { ok: false, error: 'invalidTile', cost };
+  if (st.onePerCity) {
+    const c = cityById(s, t.territory!)!;
+    if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === b)) return { ok: false, error: 'onePerCity', cost };
+  }
+  if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
+  return { ok: true, cost };
+}
+
+/** Preis eines Ressourcengebaeudes; als Ausbau nur die Differenz / price of a resource building; as an upgrade only the difference */
+export function upgradeCost(b: BuildingId, existing: BuildingId | null): number {
+  const st = BUILDINGS[b];
+  return existing && existing === st.upgrades ? Math.max(0, st.cost - BUILDINGS[existing].cost) : st.cost;
+}
+
+/**
+ * Passt das Feld (x, y) zu den Ortsregeln des Ressourcengebaeudes b (ohne Gebiet, Technik und Sterne)?
+ * Ein Feld mit dem Grundgebaeude, das b ausbaut, zaehlt als frei.
+ * Does tile (x, y) match the site rules of resource building b (without territory, tech and stars)?
+ * A tile holding the base building that b upgrades counts as free.
+ */
+export function resourceSiteOk(s: GameState, b: BuildingId, x: number, y: number): boolean {
+  const st = BUILDINGS[b];
+  const t = tileAt(s, x, y);
+  if (!t || t.cityId !== null || t.grandProject || t.outpost || t.wonderOf || t.road) return false;
+  if (t.building && t.building !== st.upgrades) return false;
+  if (!st.terrain.includes(t.terrain)) return false;
+  if (st.wreck) {
+    // Wrack oder geborgene Absturzstelle, Ressource egal / wreck or salvaged crash site, resource does not matter
+    const salvaged = t.feature === 'crashSite' && !!t.looted;
+    return (t.remains?.kind === 'wreck' && !t.feature) || salvaged;
+  }
+  if (t.feature !== null) return false;
+  if (st.resource ? t.resource !== st.resource : t.resource !== null) return false;
+  if (st.biomes || st.nearVolcano) {
+    const biomeOk = !!st.biomes && !!t.biome && st.biomes.includes(t.biome);
+    const volcanoOk = !!st.nearVolcano && neighbors(s.size, x, y).some((p) => !!tileAt(s, p.x, p.y)!.volcano);
+    if (!biomeOk && !volcanoOk) return false;
+  }
+  return true;
+}
+
+/** Ressourcengebaeude einer Fraktion / resource building of a faction */
+export const resourceBuildingOf = (id: FactionId): BuildingId => RESOURCE.buildings[id];
+
+/**
+ * Pilgerstaette: Rekruten auf (x, y) oder daneben starten als Veteranen (nur fuer die eigene Fraktion).
+ * Pilgrimage site: recruits on (x, y) or next to it start as veterans (own faction only).
+ */
+export function pilgrimVeteranAt(s: GameState, f: number, x: number, y: number): boolean {
+  if (!buildingWorksFor(s, f, 'pilgrimSite')) return false;
+  return area(s.size, x, y, 1).some((p) => {
+    const t = tileAt(s, p.x, p.y)!;
+    return t.building === 'pilgrimSite' && territoryOwner(s, t) === f;
+  });
 }
 
 export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x: number, y: number): boolean {
@@ -1115,6 +1217,7 @@ export function terraformTargets(s: GameState, u: Unit): Pos[] {
 export const FACTION_BUILDINGS: Partial<Record<BuildingId, string>> = {
   xenoHive: XENO.faction, xenoHarvester: XENO.faction, shrine: CULT.faction, dataCenter: NEXUS.faction, powerPlant: NEXUS.faction,
   ...Object.fromEntries(Object.entries(UNIQUE.buildings).map(([f, b]) => [b, f])),
+  ...Object.fromEntries(Object.entries(RESOURCE.buildings).map(([f, b]) => [b, f])),
 };
 export const isCultFaction = (s: GameState, f: number) => s.factions[f]?.id === CULT.faction;
 export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id === NEXUS.faction;
@@ -1131,14 +1234,16 @@ export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
-export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; compute: number } {
+export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; depotNodes: number; compute: number } {
   let dataCenters = 0, powerPlants = 0;
   for (const t of s.tiles) {
     if (t.building !== 'dataCenter' && t.building !== 'powerPlant') continue;
     if (territoryOwner(s, t) !== f) continue;
     if (t.building === 'dataCenter') dataCenters++; else powerPlants++;
   }
-  return { dataCenters, powerPlants, compute: Math.min(dataCenters, powerPlants) };
+  // Depotknoten: eigene Rechenleistung ohne Kraftwerk / depot nodes: own compute without a power plant
+  const depotNodes = countBuildings(s, f, 'depotNode');
+  return { dataCenters, powerPlants, depotNodes, compute: Math.min(dataCenters, powerPlants) + depotNodes * (BUILDINGS.depotNode.compute ?? 0) };
 }
 export const computePower = (s: GameState, f: number) => computeStats(s, f).compute;
 
@@ -1170,8 +1275,9 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
 }
 /** Freies Nachbarfeld fuer eine Rekrutierung / free adjacent tile for a recruit */
 export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
-  for (const p of neighbors(s.size, u.x, u.y)) if (recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok') return p;
-  return null;
+  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok');
+  // zuerst neben einer Pilgerstaette (Veteranen) / next to a pilgrimage site first (veterans)
+  return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots[0] ?? null;
 }
 
 // ---------- Konter-Einheiten / counter units ----------
