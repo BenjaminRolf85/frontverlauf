@@ -1,6 +1,6 @@
 import type {
   BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
-  UnitTypeId, BunkerReward,
+  UnitTypeId, BunkerReward, HitKind,
 } from '../data/balance';
 
 export interface Pos { x: number; y: number }
@@ -154,6 +154,8 @@ export interface GameConfig {
   roundLimit: number | null;
   /** Zufallsereignisse an (Einrichtung: Standard an) / random events on (setup: default on) */
   events?: boolean;
+  /** Trefferglueck an (fehlt = an) / hit luck on (missing = on) */
+  hitChance?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
 }
@@ -208,7 +210,7 @@ export interface GameState {
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
-  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[] }
+  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   | { t: 'capture'; city: number; faction: number; from: number | null }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }

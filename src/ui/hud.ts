@@ -3,13 +3,13 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -68,6 +68,25 @@ export function unitDisplayName(s: GameState, u: Unit): string {
 /** Stadtname, fuer alle Stellen gleich (regionale Listen) / city name, the same everywhere (regional lists) */
 export function cityName(s: GameState, cityId: number): string {
   return cityById(s, cityId) ? cityNameOf(s, cityId) : '';
+}
+
+/** Text der Angriffsvorschau mit Trefferglueck / attack preview text with hit luck */
+function attackLabel(s: GameState, p: CombatPreview): string {
+  if (!hitChanceOn(s)) return p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker });
+  const pct = Math.round(p.killChance * 100);
+  const ret = Math.round(p.expectedRet / Math.max(0.01, 1 - p.killChance));
+  if (pct >= 100) return t('actions.previewKill');
+  const dmg = t('hit.previewDmg', { exp: Math.round(p.expected), min: p.min, max: p.max });
+  const kill = pct > 0 ? ` · ${t('hit.killChance', { pct })}` : '';
+  return `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}`;
+}
+
+/** Treffsicherheit einer Einheit als Kurztext und Tooltip / accuracy of a unit as short text and tooltip */
+function accuracyStat(s: GameState, u: Unit): string {
+  if (!hitChanceOn(s)) return '';
+  const o = hitOdds(s, u);
+  const tip = HIT_KINDS.map((k) => `${t(`hit.${k}`)} ${Math.round(o[k] * 100)} %`).join(' · ');
+  return `<span class="stat" title="${esc(tip)}">${icon('range', 'icon-sm')}${esc(t(`hit.race.${hitRace(u.type)}`))}</span>`;
 }
 
 export interface HudCallbacks {
@@ -257,6 +276,7 @@ export class Hud {
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
+          ${accuracyStat(s, vUnit)}
         </div>
         <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
@@ -331,11 +351,12 @@ export class Hud {
     const errText = (code: string) => t(`errors.${code}`);
     if (g.pendingTarget !== null) {
       const target = unitById(s, g.pendingTarget);
-      if (target) {
+      // nur, solange der Angriff noch moeglich ist / only while the attack is still possible
+      if (target && attackTargets(s, u).some((o) => o.id === target.id)) {
         const p = combatPreview(s, u, target);
         this.actions.push({
           id: 'attack', icon: 'attack', variant: 'danger', enabled: true,
-          label: `${t('actions.attack')}: ${p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker })}`,
+          label: `${t('actions.attack')}: ${attackLabel(s, p)}`,
           run: () => void g.exec({ type: 'attack', unit: u.id, target: target.id }),
         });
       }

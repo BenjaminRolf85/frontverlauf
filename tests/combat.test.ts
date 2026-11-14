@@ -30,7 +30,7 @@ describe('Kampfformel / combat formula', () => {
     const d = addUnit(s, 'infantry', 1, 6, 5);
     expect(formula(2, 10, 10, 2, 10, 10, 1)).toEqual({ toDef: 5, toAtt: 5 });
     const p = combatPreview(s, a, d);
-    expect(p).toEqual({ toDefender: 5, toAttacker: 5, kills: false, retaliates: true });
+    expect(p).toMatchObject({ toDefender: 5, toAttacker: 5, kills: false, retaliates: true });
     ok(s, { type: 'attack', unit: a.id, target: d.id });
     expect(unit(s, d.id)!.hp).toBe(5);
     expect(unit(s, a.id)!.hp).toBe(5);

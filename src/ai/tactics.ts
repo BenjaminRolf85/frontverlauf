@@ -24,13 +24,18 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   const { s } = ctx;
   const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay };
   const p = combatPreview(s, att, d);
-  let v = p.kills ? worth(d) + 8 : (p.toDefender / d.hp) * worth(d) * 0.75;
-  if (p.retaliates) v -= p.toAttacker >= a.hp ? worth(a) + 6 : (p.toAttacker / a.hp) * worth(a) * 0.7;
+  // Trefferglueck: Vernichtungschance und Erwartungswerte statt fester Treffer / hit luck: kill chance and expected values instead of fixed hits
+  const dmgNoKill = p.killChance < 1 ? (p.expected - p.killChance * d.hp) / (1 - p.killChance) : 0;
+  let v = p.killChance * (worth(d) + 8) + (1 - p.killChance) * Math.min(1, Math.max(0, dmgNoKill) / d.hp) * worth(d) * 0.75;
+  if (p.retFull > 0) {
+    const ret = p.expectedRet / Math.max(0.01, 1 - p.killChance);
+    v -= (1 - p.killChance) * (ret >= a.hp ? worth(a) + 6 : (ret / a.hp) * worth(a) * 0.7);
+  }
   const t = s.tiles[idx(s.size, d.x, d.y)];
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId);
     if (c && c.owner === ctx.f) v += 30; // Feind in eigener Stadt / enemy inside own city
-    else if (c) v += p.kills ? 14 : 4; // Verteidiger einer Zielstadt / defender of a target city
+    else if (c) v += 4 + p.killChance * 10; // Verteidiger einer Zielstadt / defender of a target city
   }
   for (const c of ctx.myCities) if (dist(c, d) === 1) { v += 6; break; }
   return v;

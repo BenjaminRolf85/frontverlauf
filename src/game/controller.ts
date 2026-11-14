@@ -8,7 +8,8 @@ import {
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
-import { UNITS } from '../data/balance';
+import { UNITS, type HitKind } from '../data/balance';
+import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
@@ -346,7 +347,7 @@ export class Controller {
               if (seen && tb && !killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
               if (!shown || !pos) return;
               this.ui.fx('hit', pos.x, pos.y);
-              this.ui.fx('num', pos.x, pos.y, `-${e.dmg}`);
+              this.ui.fx('num', pos.x, pos.y, hitText(e.hit, e.dmg));
               for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
             };
             // Gegenschlag / retaliation
@@ -354,7 +355,7 @@ export class Controller {
             const returnHit = () => {
               const att = unitById(s, e.unit) ?? null;
               const ap = att ? { x: att.x, y: att.y } : before.get(e.unit);
-              if (shown && e.ret && ap) this.ui.fx('num', ap.x, ap.y, `-${e.ret}`);
+              if (shown && ap && (e.ret || e.retHit === 'miss')) this.ui.fx('num', ap.x, ap.y, hitText(e.retHit, e.ret));
             };
             if (animate && ab && tb && board.unitObject(e.unit) && board.unitObject(e.target)) {
               const water = (p: { x: number; y: number }) => { const tt = s.tiles[p.y * s.size + p.x].terrain; return tt === 'shallow' || tt === 'ocean'; };
@@ -554,4 +555,11 @@ export class Controller {
   }
 
   canCapture(u: Unit) { return this.state ? captureKind(this.state, u) : null; }
+}
+
+/** Schadenszahl mit Trefferart (voller Treffer ohne Zusatz) / damage number with hit kind (full hit without label) */
+function hitText(hit: HitKind | undefined, dmg: number): string {
+  if (hit === 'miss') return t('hit.miss');
+  if (!hit || hit === 'full') return `-${dmg}`;
+  return `${t(`hit.${hit}`)} -${dmg}`;
 }

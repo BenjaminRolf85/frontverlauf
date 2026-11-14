@@ -2687,5 +2687,29 @@
         "IMPOSSIBLE. IMPOSSIBLE. IMPOSS... SYSTEM REBOOT REQUIRED."
       ]
     }
+  },
+  "hit": {
+    "title": "Hit luck",
+    "setupHint": "Attacks can miss, graze, partly hit or land a critical hit (0 to 150 % damage). Weather and race change the odds.",
+    "miss": "Miss",
+    "graze": "Graze",
+    "partial": "Partial hit",
+    "full": "Full hit",
+    "crit": "Critical",
+    "previewDmg": "≈{exp} damage ({min}–{max})",
+    "killChance": "Kill {pct} %",
+    "previewRet": "Return fire ≈{ret}",
+    "race": {
+      "human": "Solid shooters",
+      "alien": "Powerful, inaccurate",
+      "robot": "Precise, rarely critical",
+      "cult": "Fanatic, unpredictable"
+    },
+    "raceDesc": {
+      "human": "Mostly full hits, occasionally critical.",
+      "alien": "Many critical hits but also many misses; snow makes them even less accurate.",
+      "robot": "Almost always full hits, hardly any misses or crits; weather barely matters.",
+      "cult": "Often critical, often off target: fanatic and unpredictable."
+    }
   }
 }

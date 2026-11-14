@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -426,7 +426,55 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   return b;
 }
 
-export interface CombatPreview { toDefender: number; toAttacker: number; kills: boolean; retaliates: boolean }
+/**
+ * Kampfvorschau. toDefender/toAttacker = Schaden bei vollem Treffer; expected = Erwartungswert mit Trefferglueck;
+ * killChance = Wahrscheinlichkeit, das Ziel zu vernichten; odds = Wahrscheinlichkeiten der Trefferarten des Angreifers.
+ * Combat preview. toDefender/toAttacker = damage on a full hit; expected = expected value with hit luck;
+ * killChance = chance to destroy the target; odds = attacker's hit-kind odds.
+ */
+export interface CombatPreview {
+  toDefender: number; toAttacker: number; kills: boolean; retaliates: boolean;
+  expected: number; expectedRet: number; killChance: number; min: number; max: number; odds: Record<HitKind, number>;
+  /** Gegenschlag bei vollem Treffer, falls das Ziel ueberlebt / return fire on a full hit if the target survives */
+  retFull: number;
+}
+
+/** Trefferglueck aktiv? / hit luck active? */
+export const hitChanceOn = (s: GameState) => s.config.hitChance !== false;
+
+/** Rasse einer Einheit fuer die Treffsicherheit (nach Bauart, nicht nach Besitzer) / race of a unit for accuracy (by type, not owner) */
+export function hitRace(type: UnitTypeId): HitRace {
+  const f = UNITS[type].faction;
+  return f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
+}
+
+/** Wahrscheinlichkeiten der Trefferarten fuer einen Angreifer bei aktuellem Wetter / hit-kind odds for an attacker in the current weather */
+export function hitOdds(s: GameState, u: Unit): Record<HitKind, number> {
+  if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
+  const race = hitRace(u.type);
+  const base = HIT.odds[race];
+  const w = weather(s);
+  // Wind trifft nur Fernkaempfer und Flieger / wind only affects ranged units and fliers
+  const windOk = w !== 'wind' || UNITS[u.type].range >= 2 || has(u, 'fly');
+  let f = windOk ? HIT.weatherFactor[race] : 0;
+  if (race === 'alien' && w === 'snow') f *= HIT.alienSnowFactor;
+  const shift = HIT.weather[w];
+  const out = {} as Record<HitKind, number>;
+  let sum = 0;
+  for (const k of HIT_KINDS) { out[k] = Math.max(0, base[k] + (shift[k] ?? 0) * f); sum += out[k]; }
+  for (const k of HIT_KINDS) out[k] /= sum || 1;
+  return out;
+}
+
+/** Schaden nach Trefferart (gerundet) / damage by hit kind (rounded) */
+export const hitDamage = (base: number, k: HitKind) => Math.round(base * HIT.mult[k]);
+
+/** Trefferart aus einer Zufallszahl 0..1 / hit kind from a random number 0..1 */
+export function rollHit(odds: Record<HitKind, number>, r: number): HitKind {
+  let acc = 0;
+  for (const k of HIT_KINDS) { acc += odds[k]; if (r < acc) return k; }
+  return 'full';
+}
 
 export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
   const d = UNITS[def.type];
@@ -442,8 +490,23 @@ export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview
   const kills = toDefender >= def.hp;
   // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
   const retaliates = !kills && !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
-  const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
-  return { toDefender, toAttacker, kills, retaliates };
+  const retBase = !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def) && total > 0
+    ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
+  const toAttacker = retaliates ? retBase : 0;
+  // Trefferglueck: Erwartungswert, Spanne und Vernichtungschance / hit luck: expected value, range and kill chance
+  const odds = hitOdds(s, att);
+  const defOdds = hitOdds(s, def);
+  let expected = 0, killChance = 0, expectedRet = 0, min = Infinity, max = 0;
+  const defMean = HIT_KINDS.reduce((a, k) => a + defOdds[k] * hitDamage(retBase, k), 0);
+  for (const k of HIT_KINDS) {
+    if (odds[k] <= 0) continue;
+    const dmg = hitDamage(toDefender, k);
+    expected += odds[k] * dmg;
+    min = Math.min(min, dmg); max = Math.max(max, dmg);
+    if (dmg >= def.hp) killChance += odds[k];
+    else if (retBase > 0) expectedRet += odds[k] * defMean;
+  }
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull: retBase };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */

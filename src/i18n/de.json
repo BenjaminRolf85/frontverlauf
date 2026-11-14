@@ -2687,5 +2687,29 @@
         "UNMÖGLICH. UNMÖGLICH. UNMÖG... SYSTEMNEUSTART ERFORDERLICH."
       ]
     }
+  },
+  "hit": {
+    "title": "Trefferglück",
+    "setupHint": "Angriffe können danebengehen, streifen, teilweise oder kritisch treffen (0 bis 150 % Schaden). Wetter und Rasse verändern die Chancen.",
+    "miss": "Daneben",
+    "graze": "Streifschuss",
+    "partial": "Teiltreffer",
+    "full": "Voller Treffer",
+    "crit": "Kritisch",
+    "previewDmg": "≈{exp} Schaden ({min}–{max})",
+    "killChance": "Vernichtung {pct} %",
+    "previewRet": "Gegenschlag ≈{ret}",
+    "race": {
+      "human": "Solide Schützen",
+      "alien": "Wuchtig, ungenau",
+      "robot": "Präzise, selten kritisch",
+      "cult": "Fanatisch, unberechenbar"
+    },
+    "raceDesc": {
+      "human": "Meist volle Treffer, gelegentlich kritisch.",
+      "alien": "Viele kritische Treffer, aber auch viele Fehlschüsse; Schnee macht sie noch ungenauer.",
+      "robot": "Fast immer volle Treffer, kaum Fehlschüsse und kaum kritische; Wetter stört wenig.",
+      "cult": "Oft kritisch, oft daneben: fanatisch und unberechenbar."
+    }
   }
 }

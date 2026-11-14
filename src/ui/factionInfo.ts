@@ -20,7 +20,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2' | 'aim'; icon: string; label: string; value: string; desc: string }
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -37,6 +37,9 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   }
   const b = SIGNATURE_BUILDING[f];
   if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? t(`buildingDesc.${b}`) : '' });
+  // Treffsicherheit der Rasse / race accuracy
+  const race = f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
+  out.push({ kind: 'aim', icon: 'range', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });
   return out;
 }
 

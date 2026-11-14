@@ -250,6 +250,44 @@ export const COMBAT = {
   splashFactor: 0.5, // Kriegsschiff: Anteil des Schadens auf Nachbarfelder / share of damage on neighbours
 };
 
+/** Trefferart eines Angriffs / hit kind of an attack */
+export type HitKind = 'miss' | 'graze' | 'partial' | 'full' | 'crit';
+/** Rasse fuer die Treffsicherheit / race for accuracy */
+export type HitRace = 'human' | 'alien' | 'robot' | 'cult';
+export const HIT_KINDS: HitKind[] = ['miss', 'graze', 'partial', 'full', 'crit'];
+
+/**
+ * Trefferglueck: jede Rasse hat eigene Wahrscheinlichkeiten, das Wetter verschiebt sie.
+ * Hit luck: each race has its own odds, the weather shifts them.
+ */
+export const HIT = {
+  /** Schadensfaktor je Trefferart / damage factor per hit kind */
+  mult: { miss: 0, graze: 0.5, partial: 0.8, full: 1, crit: 1.5 } as Record<HitKind, number>,
+  /** Grundwahrscheinlichkeiten je Rasse (Summe 1) / base odds per race (sum 1) */
+  odds: {
+    // Menschen: solide, gelegentlich kritisch / humans: solid, occasionally critical
+    human: { miss: 0.06, graze: 0.1, partial: 0.2, full: 0.54, crit: 0.1 },
+    // Ausserirdische: wuchtig, aber ungenau / aliens: powerful but inaccurate
+    alien: { miss: 0.16, graze: 0.1, partial: 0.08, full: 0.38, crit: 0.28 },
+    // Roboter: praezise, kaum kritisch / robots: precise, hardly ever critical
+    robot: { miss: 0.02, graze: 0.03, partial: 0.12, full: 0.8, crit: 0.03 },
+    // Kult: fanatisch und unberechenbar / cult: fanatic and unpredictable
+    cult: { miss: 0.1, graze: 0.12, partial: 0.12, full: 0.44, crit: 0.22 },
+  } as Record<HitRace, Record<HitKind, number>>,
+  /** Wetter: Verschiebung der Wahrscheinlichkeiten / weather: shift of the odds */
+  weather: {
+    clear: {},
+    rain: { miss: 0.05, graze: 0.05, full: -0.1 },
+    snow: { miss: 0.04, partial: 0.08, full: -0.08, crit: -0.04 },
+    // Wind trifft nur Fernkaempfer und Flieger / wind only affects ranged units and fliers
+    wind: { miss: 0.08, graze: 0.04, full: -0.12 },
+  } as Record<WeatherId, Partial<Record<HitKind, number>>>,
+  /** Wie stark das Wetter je Rasse wirkt / how strongly weather affects each race */
+  weatherFactor: { human: 1, alien: 1, robot: 0.4, cult: 1 } as Record<HitRace, number>,
+  /** Ausserirdische frieren: Schnee wirkt staerker / aliens freeze: snow hits harder */
+  alienSnowFactor: 1.6,
+};
+
 export const DEFENSE_BONUS = {
   open: 1.0,
   terrainWithTech: 1.5,

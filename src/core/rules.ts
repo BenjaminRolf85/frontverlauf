@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
+  MODES, PERKS2, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -18,7 +18,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -700,22 +700,30 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): Command
     return fail('outOfRange');
   }
   const pre = combatPreview(s, u, target);
+  // Trefferglueck des Angreifers / attacker's hit luck
+  const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
+  const dealt = hitDamage(pre.toDefender, hit);
+  const kills = dealt >= target.hp;
+  // Gegenschlag nur, wenn das Ziel ueberlebt; eigenes Trefferglueck des Verteidigers / return fire only if the target survives; defender's own hit luck
+  const retBase = kills ? 0 : pre.retFull;
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, target), nextRandom(s)) : 'full';
+  const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   const splash: { unit: number; dmg: number }[] = [];
   if (has(u, 'splash')) {
-    const dmg = Math.round(pre.toDefender * COMBAT.splashFactor);
+    const dmg = Math.round(dealt * COMBAT.splashFactor);
     for (const o of s.units.slice()) {
       if (o.id === target.id || o.owner === u.owner || !isHostile(s, u.owner, o.owner) || dist(o, target) !== 1) continue;
       o.hp -= dmg;
       splash.push({ unit: o.id, dmg });
     }
   }
-  target.hp -= pre.toDefender;
-  if (pre.retaliates) u.hp -= pre.toAttacker;
+  target.hp -= dealt;
+  if (ret > 0) u.hp -= ret;
   // Kriegsspuren / war marks
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
   addMark(s, target.x, target.y, markKind);
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch'); }
-  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: pre.toDefender, ret: pre.retaliates ? pre.toAttacker : 0, splash });
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
   let killed = false;
@@ -1093,6 +1101,7 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     weather: partial.weather ?? true,
     hazards: partial.hazards ?? 'none',
     events: partial.events ?? false,
+    hitChance: partial.hitChance ?? true,
     ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }
