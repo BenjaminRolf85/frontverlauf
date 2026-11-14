@@ -2063,7 +2063,6 @@
     "building": "Own building",
     "leader": "Leader",
     "details": "Details",
-    "detailsFor": "Details on {name}",
-    "aiStyle": "As AI"
+    "detailsFor": "Details on {name}"
   }
 }

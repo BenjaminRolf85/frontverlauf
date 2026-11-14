@@ -2063,7 +2063,6 @@
     "building": "Eigenes Gebäude",
     "leader": "Anführer",
     "details": "Details",
-    "detailsFor": "Details zu {name}",
-    "aiStyle": "Als KI"
+    "detailsFor": "Details zu {name}"
   }
 }

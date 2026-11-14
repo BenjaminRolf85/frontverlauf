@@ -64,7 +64,7 @@ export function factionDetails(f: FactionId): string {
       ${traitChips(f, { desc: true })}
       <p>${k('lore')}</p>
       ${opt('style', t('leaders.style'))}
-      ${opt('aiStyle', t('traits.aiStyle'))}
+      ${opt('aiStyle', t('identity.aiStyle'))}
     </div>
   </div>`;
 }
