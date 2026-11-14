@@ -388,7 +388,7 @@
     "materialsPlant": "1 Bevölkerungspunkt je angrenzendem Forstbetrieb",
     "foodFactory": "1 Bevölkerungspunkt je angrenzendem Agrarbetrieb",
     "steelMill": "2 Bevölkerungspunkte je angrenzendem Tagebau",
-    "logisticsCenter": "5 Sterne pro Runde je angrenzendem Forst-, Agrar- oder Tagebaubetrieb, höchstens 40",
+    "logisticsCenter": "3 Sterne pro Runde je angrenzendem Forst-, Agrar- oder Tagebaubetrieb, höchstens 24",
     "navalBase": "1 Bevölkerungspunkt, Einschiffung, Seeverbindung",
     "road": "halbe Bewegungskosten, Stadtverbindung",
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",

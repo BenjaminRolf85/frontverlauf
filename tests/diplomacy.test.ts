@@ -171,17 +171,17 @@ describe('Botschaft / embassy', () => {
     fails(s, { type: 'diplomacy', action: 'embassy', target: 3 }, 'alreadyBuilt');
   });
 
-  it('brings both sides 10 stars per round', () => {
+  it('brings both sides 6 stars per round', () => {
     const s = eg();
     const before1 = s.factions[1].stars;
     ok(s, { type: 'diplomacy', action: 'embassy', target: 1 });
-    expect(embassyIncome(s, 0)).toBe(10);
-    expect(embassyIncome(s, 1)).toBe(10);
+    expect(embassyIncome(s, 0)).toBe(6);
+    expect(embassyIncome(s, 1)).toBe(6);
     expect(embassyIncome(s, 2)).toBe(0);
     endTurn(s);
-    expect(s.factions[1].stars).toBe(before1 + INCOME.perCityLevel + INCOME.hq + 10); // HQ + Botschaft 10 / HQ + embassy 10
+    expect(s.factions[1].stars).toBe(before1 + INCOME.perCityLevel + INCOME.hq + 6); // HQ + Botschaft 6 / HQ + embassy 6
     untilTurnOf(s, 0);
-    expect(s.factions[0].stars).toBe(475 + INCOME.perCityLevel + INCOME.hq + 10);
+    expect(s.factions[0].stars).toBe(475 + INCOME.perCityLevel + INCOME.hq + 6);
   });
 
   it('an embassy ends when the host HQ is lost', () => {

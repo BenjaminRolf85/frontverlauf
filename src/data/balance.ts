@@ -189,7 +189,7 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * Upkeep: running cost per round. The first units (oldest first) are free, each further one costs
  * a share of its price (rounded up); tanks cost a flat amount.
  */
-export const UPKEEP = { freeUnits: 5, share: 0.2, flat: { tank: 10 } as Partial<Record<UnitTypeId, number>> };
+export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12 } as Partial<Record<UnitTypeId, number>> };
 
 /** Kartenbesonderheiten / map hazards and gimmicks */
 export type HazardLevel = 'none' | 'normal' | 'many';
@@ -392,9 +392,9 @@ export const INCOME = {
   hq: 4,
   factory: 4,
   govQuarter: 4,
-  logisticsPerAdjacent: 5,
-  logisticsMax: 40,
-  embassy: 10,
+  logisticsPerAdjacent: 3,
+  logisticsMax: 24,
+  embassy: 6,
   embassyAlveniaMultiplier: 2,
   aiBonus: { easy: 0, normal: 0, hard: 3, extreme: 6 } as Record<Difficulty, number>,
 };

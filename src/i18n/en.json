@@ -388,7 +388,7 @@
     "materialsPlant": "1 population point per adjacent lumber camp",
     "foodFactory": "1 population point per adjacent farm",
     "steelMill": "2 population points per adjacent mine",
-    "logisticsCenter": "5 stars per round per adjacent lumber camp, farm or mine, at most 40",
+    "logisticsCenter": "3 stars per round per adjacent lumber camp, farm or mine, at most 24",
     "navalBase": "1 population point, embarking, sea connection",
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
