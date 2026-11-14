@@ -10,7 +10,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
-import { Sculpt, blob, browStrands, type EyeOpts, type FaceShape, type InkOpts, type LipOpts, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, ribbon, smoothstep, strand } from './sculpt';
+import { Sculpt, blob, browStrands, hdLevel, type EyeOpts, type FaceShape, type InkOpts, type LipOpts, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, ribbon, smoothstep, strand } from './sculpt';
 
 const HALF_PI = Math.PI / 2;
 
@@ -113,7 +113,7 @@ function medal(b: Builder, x: number, y: number, z: number, ribbon: ColorLike, d
 }
 
 /** Gemeinsame Hautfarbe je Figur / skin tone per character */
-const skinOf = (k: number, warm = 0) => mix(shade(mat.skin, k), mat.orange, warm);
+export const skinOf = (k: number, warm = 0) => mix(shade(mat.skin, k), mat.orange, warm);
 
 // ---------- Mimik / facial expressions ----------
 
@@ -571,7 +571,14 @@ function velkar(b: Builder, L: Look, m: Mood) {
   browStrands(b, S, 1, m.brow(S, 1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: 0.16, arch: 0.01, w: 0.34, wild: 0.06, y: 0.27 }));
   // Spitzbart / goatee
   const R = mulberry(8);
-  for (let i = 0; i < 18; i++) {
+  if (hdLevel() >= 2) {
+    // Mockup: geordneter Spitzbart aus wenigen Locken / mockup: tidy goatee of a few locks
+    const tip = S.surf(0, -0.98, 0.14);
+    for (let i = 0; i < 7; i++) {
+      const x = (i / 6 - 0.5) * 0.2, y = -0.72 - Math.abs(x) * 0.2;
+      strand(b, [S.surf(x, y, 0.01), S.surf(x * 0.55, y - 0.12, 0.07), [tip[0] + x * 0.04, tip[1] - 0.03, tip[2]]], S.len(0.05), S.len(0.008), i % 2 ? hair : hairD, hair, { seg: 7, band: { t0: 0.35, t1: 0.5, c: mat.white } });
+    }
+  } else for (let i = 0; i < 18; i++) {
     const x = (R() - 0.5) * 0.2, y = -0.72 - R() * 0.06;
     strand(b, [S.surf(x, y, 0.01), S.surf(x * 0.6, y - 0.12, 0.08), [S.surf(0, -0.95, 0.12)[0] + x * 0.05, S.surf(0, -0.95, 0.12)[1] - 0.025, S.surf(0, -0.95, 0.12)[2] + 0.01]], S.len(0.035), S.len(0.006), hairD, hair, { seg: 5 });
   }

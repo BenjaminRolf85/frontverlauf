@@ -27,6 +27,18 @@ export function segDist(x: number, y: number, a: [number, number], b: [number, n
   return Math.hypot(x - a[0] - vx * t, y - a[1] - vy * t);
 }
 
+/**
+ * Detailstufe fuer Mockups (0 = Spiel). Nur die Vorschau setzt sie; das Spiel bleibt auf 0.
+ * Detail level for mockups (0 = game). Only the preview sets it; the game stays at 0.
+ */
+let HD = 0;
+export function withHD<T>(level: number, fn: () => T): T {
+  const prev = HD;
+  HD = level;
+  try { return fn(); } finally { HD = prev; }
+}
+export const hdLevel = () => HD;
+
 export interface Bump { c: V3; s: V3; a: number }
 export interface Groove { a: [number, number]; b: [number, number]; w: number; d: number }
 
@@ -69,6 +81,11 @@ export class Sculpt {
   readonly f: FaceShape;
   constructor(readonly centre: V3, readonly radii: V3, f: Partial<FaceShape>) {
     this.f = { ...BASE_FACE, ...f };
+    if (HD >= 2) {
+      // Mockup: kraeftigere Gesichtsflaechen / mockup: stronger facial planes
+      const k = this.f;
+      this.f = { ...k, cheek: k.cheek * 1.5, noseBridge: k.noseBridge * 1.3, noseLen: k.noseLen * 1.15, brow: k.brow * 1.35, socket: k.socket * 1.15, temple: k.temple * 1.5 };
+    }
   }
 
   /** Mundlinie y(x) / mouth line y(x) */
@@ -235,7 +252,7 @@ export class Sculpt {
   }
 
   mesh(skin: ColorLike, o: { paint?: Painter; ws?: number; hs?: number; hair?: { c: ColorLike; at: (p: THREE.Vector3) => number }; soften?: number; cut?: (p: THREE.Vector3) => boolean } = {}): THREE.BufferGeometry {
-    const g = new THREE.SphereGeometry(1, o.ws ?? 96, o.hs ?? 72);
+    const g = new THREE.SphereGeometry(1, o.ws ?? (HD >= 2 ? 150 : 96), o.hs ?? (HD >= 2 ? 112 : 72));
     const pos = g.getAttribute('position');
     const cols = new Float32Array(pos.count * 3);
     const base = col(skin);
@@ -344,7 +361,7 @@ export function blob(b: Builder, c: ColorLike, xf: Xf, ws = 32, hs = 24) {
  * Verjuengte Straehne entlang einer Kurve (Haar, Bart, Braue) / tapered strand along a curve.
  * r0 an der Wurzel, r1 an der Spitze; Farbe von c0 nach c1.
  */
-export function strand(b: Builder, pts: V3[], r0: number, r1: number, c0: ColorLike, c1: ColorLike = c0, o: { seg?: number; samples?: number; flat?: number; brush?: boolean; up?: THREE.Vector3 } = {}) {
+export function strand(b: Builder, pts: V3[], r0: number, r1: number, c0: ColorLike, c1: ColorLike = c0, o: { seg?: number; samples?: number; flat?: number; brush?: boolean; up?: THREE.Vector3; band?: { t0: number; t1: number; c: ColorLike; side?: number } } = {}) {
   const curve = new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(q[0], q[1], q[2])));
   const n = o.samples ?? Math.max(6, Math.round(pts.length * 2.5)), seg = o.seg ?? 5;
   const fr = curve.computeFrenetFrames(n, false);
@@ -357,6 +374,7 @@ export function strand(b: Builder, pts: V3[], r0: number, r1: number, c0: ColorL
     // leicht bauchig, zur Spitze duenn / slightly bulging, thin at the tip
     const r = o.brush ? r0 * (0.15 + 0.85 * Math.sin(Math.PI * t) ** 0.6) : (r0 + (r1 - r0) * t) * (1 + 0.25 * Math.sin(Math.PI * t * 0.8));
     cc.copy(a).lerp(bcol, t);
+    const inBand = o.band && t >= o.band.t0 && t <= o.band.t1;
     let N = fr.normals[i], B = fr.binormals[i];
     if (o.up) {
       // Flachseite zur Oberflaeche / flat side towards the surface
@@ -368,7 +386,8 @@ export function strand(b: Builder, pts: V3[], r0: number, r1: number, c0: ColorL
       const ang = (k / seg) * Math.PI * 2;
       const x = Math.cos(ang) * r, y = Math.sin(ang) * r * flat;
       verts.push(P.x + N.x * x + B.x * y, P.y + N.y * x + B.y * y, P.z + N.z * x + B.z * y);
-      cols.push(cc.r, cc.g, cc.b);
+      // Glanzstreifen nur auf der Lichtseite / highlight stripe only on the lit side
+      if (inBand && (N.y * x + B.y * y) * (o.band!.side ?? 1) + (N.z * x + B.z * y) * 0.6 > 0) { const hc = col(o.band!.c); cols.push(hc.r, hc.g, hc.b); } else cols.push(cc.r, cc.g, cc.b);
     }
   }
   for (let i = 0; i < n; i++) for (let k = 0; k < seg; k++) {
@@ -416,9 +435,24 @@ export function eye(b: Builder, S: Sculpt, side: -1 | 1, o: EyeOpts) {
   const look = new THREE.Vector3((o.look?.[0] ?? 0) * 0.35, (o.look?.[1] ?? 0) * 0.3, 1).normalize();
   const irisA = Math.cos(0.5 * (o.irisSize ?? 1)), pupA = Math.cos(0.22 * (o.irisSize ?? 1)), limA = Math.cos(0.54 * (o.irisSize ?? 1));
   const white = col(o.white ?? mat.white), iris = col(o.iris), irisD = shade(o.iris, 0.6), pupil = col(mat.ink);
-  const ball = paint(new THREE.SphereGeometry(r, 32, 24), (p) => {
+  // Hilfsachsen fuer das radiale Irismuster / helper axes for the radial iris pattern
+  const ax1 = new THREE.Vector3(0, 1, 0).cross(look).normalize(), ax2 = look.clone().cross(ax1).normalize();
+  const ball = paint(new THREE.SphereGeometry(r, HD >= 2 ? 72 : 32, HD >= 2 ? 54 : 24), (p) => {
     const d = p.clone().normalize().dot(look);
     if (d > pupA) return pupil;
+    if (d > irisA && HD >= 2) {
+      // Iris mit Strahlen, dunklem Rand und hellem Ring / iris with rays, dark rim and light ring
+      const q = p.clone().normalize();
+      const ang = Math.atan2(q.dot(ax2), q.dot(ax1));
+      const ray = Math.sin(ang * 22) * 0.5 + 0.5 > 0.62 ? 1 : 0;
+      const tt = (d - irisA) / (pupA - irisA);
+      let c = iris.clone();
+      if (tt < 0.22) c = irisD.clone();
+      else if (tt > 0.72) c = iris.clone().lerp(mat.white, 0.35);
+      else if (ray) c = iris.clone().lerp(irisD, 0.45);
+      if (tt > 0.3 && tt < 0.42 && ray) c = shade(o.iris, 1.25);
+      return c;
+    }
     if (d > irisA) return iris.clone().lerp(irisD, smoothstep(irisA + (1 - irisA) * 0.6, irisA, d) * 0.6 + smoothstep(pupA + 0.02, pupA, d) * 0.3);
     if (d > limA) return irisD;
     return white.clone().lerp(shade(white, 0.85), smoothstep(0.3, -0.2, p.y / r));
@@ -447,6 +481,35 @@ export function eye(b: Builder, S: Sculpt, side: -1 | 1, o: EyeOpts) {
     return th > lowA - 0.07 ? shade(o.lidCol, 0.78) : shade(o.lidCol, 0.97);
   });
   b.addSmooth(lower, { p: c, r: [-0.1, 0, -tilt * 0.4] });
+  if (HD >= 2) {
+    // Lidkante mit Dicke und Wimpernbueschel / lid rim with thickness and lash clumps
+    b.group({ p: c, r: [0.04, 0, tilt] }, () => {
+      const rim: V3[] = [];
+      for (let i = 0; i <= 10; i++) {
+        const phi = 0.08 * Math.PI + (i / 10) * 0.84 * Math.PI;
+        rim.push([-Math.cos(phi) * Math.sin(lidA) * r * 1.1, Math.cos(lidA) * r * 1.1, Math.sin(phi) * Math.sin(lidA) * r * 1.1]);
+      }
+      strand(b, rim, r * 0.075, r * 0.06, lash, lash, { seg: 6, samples: 24 });
+      const clumps = o.lashes ? 7 : 4;
+      for (let k = 0; k < clumps; k++) {
+        const u = (k + 0.5) / clumps;
+        // aussen laenger / longer at the outer corner
+        const outer = side < 0 ? 1 - u : u;
+        const phi = 0.12 * Math.PI + u * 0.76 * Math.PI;
+        const p0: V3 = [-Math.cos(phi) * Math.sin(lidA) * r * 1.12, Math.cos(lidA) * r * 1.12, Math.sin(phi) * Math.sin(lidA) * r * 1.12];
+        const len = r * (o.lashes ? 0.3 + outer * 0.35 : 0.14 + outer * 0.12);
+        const p1: V3 = [p0[0] * 1.15, p0[1] + len * 0.6, p0[2] + len * 0.45];
+        const p2: V3 = [p0[0] * 1.3 + side * len * 0.15 * outer, p0[1] + len * 1.0, p0[2] + len * 0.35];
+        strand(b, [p0, p1, p2], r * (o.lashes ? 0.07 : 0.05), r * 0.01, lash, lash, { seg: 5, samples: 6 });
+      }
+    });
+    // Traenenkanal am inneren Augenwinkel / tear duct at the inner corner
+    blob(b, mix(o.lidCol, mat.red, 0.45), { p: [c[0] - side * r * 0.92, c[1] - r * 0.12, c[2] + r * 0.38], s: [r * 0.14, r * 0.1, r * 0.1] }, 12, 8);
+    if (HD >= 3) {
+      // feuchter Glanz am Unterlid / wet highlight along the lower lid
+      blob(b, mat.white, { p: [c[0] + side * r * 0.1, c[1] - r * 0.55, c[2] + r * 0.86], s: [r * 0.32, r * 0.05, r * 0.05], r: [0, 0, side * 0.1] }, 16, 8);
+    }
+  }
   // Wimpern / eyelashes
   if (o.lashes) {
     for (let i = 0; i < 6; i++) {
@@ -466,7 +529,7 @@ export function eye(b: Builder, S: Sculpt, side: -1 | 1, o: EyeOpts) {
  * Eyebrow made of strands; arch = curvature, ang = angle (positive = outer end up = stern).
  */
 export function browStrands(b: Builder, S: Sculpt, side: -1 | 1, o: { y?: number; w?: number; ang?: number; arch?: number; n?: number; thick?: number; c: ColorLike; c1?: ColorLike; wild?: number; x0?: number }) {
-  const f = S.f, n = o.n ?? 14, w = o.w ?? 0.34, x0 = o.x0 ?? 0.1;
+  const f = S.f, n = Math.round((o.n ?? 14) * (HD >= 2 ? 1.6 : 1)), w = o.w ?? 0.34, x0 = o.x0 ?? 0.1;
   const y0 = (o.y ?? f.eyeY + 0.2);
   const R = mulberry(Math.round(side * 17 + n * 3));
   for (let i = 0; i < n; i++) {
@@ -506,6 +569,22 @@ export function ear(b: Builder, S: Sculpt, side: -1 | 1, skin: ColorLike, o: { s
   g.computeVertexNormals();
   const at = S.dir([side, o.y ?? -0.02, -0.08], -0.04);
   b.addSmooth(g, { p: at, r: [0, side * 0.3, side * 0.12], s: [side * S.len(0.24) * s, S.len(0.3) * s, S.len(0.24) * s] });
+  if (HD >= 2) {
+    // Ohrfalten: Helix-Rand und Anthelix / ear folds: helix rim and antihelix
+    b.group({ p: at, r: [0, side * 0.3, side * 0.12], s: [side * S.len(0.24) * s, S.len(0.3) * s, S.len(0.24) * s] }, () => {
+      const helix: V3[] = [], anti: V3[] = [];
+      for (let i = 0; i <= 12; i++) {
+        const t = -0.15 * Math.PI + (i / 12) * 1.25 * Math.PI;
+        helix.push([0.2, Math.cos(t - Math.PI / 2) * -0.86 + 0.02, Math.sin(t - Math.PI / 2) * -0.5 + 0.02]);
+      }
+      for (let i = 0; i <= 8; i++) {
+        const t = (i / 8) * Math.PI * 0.9;
+        anti.push([0.06, Math.cos(t) * 0.45 + 0.05, -Math.sin(t) * 0.28 + 0.12]);
+      }
+      strand(b, helix, 0.07, 0.05, shade(skin, 1.03), skin, { seg: 6, samples: 30 });
+      strand(b, anti, 0.06, 0.03, mix(skin, mat.red, 0.12), skin, { seg: 6, samples: 20 });
+    });
+  }
 }
 
 /** Hals mit optionalem Adamsapfel / neck with optional Adam's apple */
@@ -548,6 +627,13 @@ export function mulberry(seed: number): () => number {
  */
 export function hairLock(b: Builder, S: Sculpt, path: V3[], lift: number, r0: number, r1: number, c0: ColorLike, c1: ColorLike, seg = 5) {
   const pts = path.map((d, i) => S.dir(d, lift * (0.6 + 0.4 * Math.sin((i / Math.max(1, path.length - 1)) * Math.PI)) + 0.01));
+  if (HD >= 2) {
+    // Comic-Glanzband auf jeder Straehne / comic highlight band on every lock
+    const R = mulberry(Math.round((path[0][0] + path[0][2] * 3) * 1000) + 7);
+    const t0 = 0.36 + R() * 0.14;
+    strand(b, pts, S.len(r0) * 1.05, S.len(r1), c0, c1, { seg: 8, samples: Math.max(10, path.length * 4), band: { t0, t1: t0 + 0.14, c: mix(c0, mat.white, 0.6) } });
+    return;
+  }
   strand(b, pts, S.len(r0), S.len(r1), c0, c1, { seg, samples: Math.max(8, path.length * 3) });
 }
 
@@ -719,6 +805,11 @@ export function lips(b: Builder, S: Sculpt, o: LipOpts) {
   };
   make(true, o.c);
   make(false, o.cl ?? shade(o.c, 1.12));
+  if (HD >= 2 && !(o.open ?? 0)) {
+    // Glanzlicht auf der Unterlippe / highlight on the lower lip
+    const hy = S.mouthLine(0) - hL * 0.55;
+    blob(b, mix(o.cl ?? o.c, mat.white, 0.55), { p: S.surf(-0.04, hy, th * 0.82), s: [S.len(w * 0.14), S.len(hL * 0.18), S.len(0.012)] }, 16, 8);
+  }
   // Mundlinie mit Winkeln / mouth line with corners
   const pts: [number, number][] = [];
   for (let i = 0; i <= 10; i++) {
