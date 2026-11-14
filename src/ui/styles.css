@@ -500,3 +500,13 @@ input[type="text"], select {
 @media (max-width: 560px) /* --p-breakpoint-sm */ {
   body:has(.sheet) .minimap { display: none; }
 }
+
+/* ---------- Comic-Seiten der Fraktionen / faction comic pages ---------- */
+.lore-btn { align-self: flex-start; }
+.lore-page { margin: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }
+.lore-page img { width: 100%; height: auto; display: block; border-radius: var(--p-radius-md); border: var(--p-border-width-thick) solid var(--s-outline); cursor: zoom-in; }
+.lore-page.zoomed { overflow-x: auto; }
+.lore-page.zoomed img { width: 220%; max-width: none; cursor: zoom-out; }
+.lore-page figcaption { font-size: var(--p-font-size-sm); color: var(--s-text-muted); }
+.lore-page summary { cursor: pointer; min-height: var(--p-size-touch); display: flex; align-items: center; }
+@media (min-width: 900px) { .lore-page.zoomed img { width: 100%; } }

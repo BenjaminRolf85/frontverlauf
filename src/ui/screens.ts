@@ -20,6 +20,7 @@ import { cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
+import { openLore } from './lore';
 import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
@@ -667,5 +668,10 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
 /** Fraktionsfenster mit Anfuehrer und Hintergrund / faction window with leader and background */
 export function factionDialog(root: HTMLElement, f: FactionId) {
   const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionDetails(f)}`, { wide: true });
-  d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
+  d.node.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-action="close"]')) { d.close(); return; }
+    const lore = el.closest<HTMLElement>('[data-lore]');
+    if (lore) openLore(root, lore.dataset.lore as FactionId);
+  });
 }

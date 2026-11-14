@@ -2877,5 +2877,14 @@
     },
     "armed": "Bewaffnet",
     "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück."
+  },
+  "lore": {
+    "button": "Geschichte als Comic",
+    "title": "{name}: Geschichte",
+    "textToggle": "Text der Comic-Seite",
+    "text": {
+      "korvat": "Volksbund Korvat, Menschen. Anführer: Großmarschall Ilja Brodnik. Massenheere, rote Banner, Chorgesang. Geboren aus hundert Bauerngenossenschaften der Steppe. Im Volksbund ist jeder Pflüger auch Soldat. Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit. Aus Ackerfurchen werden Frontlinien.",
+      "zyrr": "Zyrr-Schwarm, außerirdische Rasse. Schwarmmutter Xyl'Tharra. Einst war der Zyrr-Schwarm nur ein Erkundungsverband, eine Vorhut auf der Suche nach neuen Welten. Doch über der Wüste schlug ihr Mutterschiff schwer beschädigt auf. Statt zu weichen, taten die Zyrr das Unvorstellbare: Sie begannen, die Welt zu verändern. Unter der Führung der Schwarmmutter Xyl'Tharra wurde aus einem Notlandeplatz eine neue Heimat, die zweite Welt des Zyrr-Schwarms."
+    }
   }
 }
