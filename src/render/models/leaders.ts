@@ -260,12 +260,12 @@ function dravon(b: Builder, L: Look) {
   for (let i = 0; i < 26; i++) {
     const x = (R() - 0.5) * 0.7, y = 0.03 + R() * 0.33;
     const c = i % 3 === 0 ? shade(green, 0.55) : i % 3 === 1 ? mix(green, black, 0.4) : shade(green, 0.8);
-    b.add(geo.rbox(0.05 + R() * 0.07, 0.03 + R() * 0.04, 0.012, 0.006), c, { p: [x, y, 0.2 - Math.abs(x) * 0.12], r: [0, x * 0.4, R() * 1.5] });
+    b.add(geo.rbox(0.05 + R() * 0.07, 0.03 + R() * 0.04, 0.03, 0.006), c, { p: [x, y, 0.185 - Math.abs(x) * 0.2], r: [0, x * 0.9, R() * 1.5] });
   }
   // kantige Schulterpanzer mit Goldkante / angular shoulder armour with gold edge
   for (const s of [-1, 1]) {
-    b.add(geo.profileXY([[0, 0], [0.24, -0.04], [0.26, 0.04], [0.12, 0.12], [0.0, 0.1]], 0.3), shade(green, 0.7), { p: [s * 0.2, 0.33, -0.15], s: [s, 1, 1] });
-    b.add(geo.profileXY([[0.24, -0.04], [0.27, -0.035], [0.285, 0.05], [0.26, 0.04]], 0.31), gold, { p: [s * 0.2, 0.33, -0.155], s: [s, 1, 1] });
+    b.add(geo.profileXY([[0, 0], [0.21, -0.03], [0.235, 0.04], [0.11, 0.11], [0.0, 0.1]], 0.26), shade(green, 0.7), { p: [s * 0.2, 0.33, -0.13], s: [s, 1, 1] });
+    b.add(geo.profileXY([[0.21, -0.03], [0.24, -0.025], [0.255, 0.05], [0.235, 0.04]], 0.27), gold, { p: [s * 0.2, 0.33, -0.135], s: [s, 1, 1] });
     b.add(geo.rbox(0.05, 0.016, 0.06, 0.005), gold, { p: [s * 0.33, 0.43, 0.02], r: [0, 0, s * -0.55] });
   }
   // hoher kantiger Kragen / high angular collar
@@ -570,8 +570,8 @@ function vesper(b: Builder, L: Look) {
     b.add(geo.torus(0.012, 0.004, 4, 10), mat.rustDark, { p: [0, 0.14, 0] });
   });
   // tiefe Kapuze / deep hood
-  b.add(geo.sphere(1, 40, 26), shade(robe, 1.12), { p: [0, 0.66, -0.08], s: [0.25, 0.3, 0.25] });
-  b.add(geo.cone(0.14, 0.2, 24), shade(robe, 1.12), { p: [0, 0.94, -0.17], r: [-0.6, 0, 0] });
+  b.add(geo.sphere(1, 40, 26), mix(robe, L.primary, 0.12), { p: [0, 0.66, -0.08], s: [0.25, 0.3, 0.25] });
+  b.add(geo.cone(0.14, 0.2, 24), mix(robe, L.primary, 0.12), { p: [0, 0.94, -0.17], r: [-0.6, 0, 0] });
   b.add(geo.rtaper(0.5, 0.36, 0.34, 0.3, 0.14, 0.05), shade(robe, 1.15), { p: [0, 0.42, -0.02] });
   // dunkle Oeffnung / dark opening
   b.add(geo.sphere(1, 36, 24), mat.ink, { p: [0, 0.65, 0.0], s: [0.18, 0.23, 0.18] });
