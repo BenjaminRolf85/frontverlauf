@@ -52,7 +52,8 @@
     "special": "Sonderfraktion",
     "takenBy": "belegt von Slot {n}",
     "swapHint": "Eine belegte Fraktion wird mit dem anderen Slot getauscht.",
-    "current": "gewählt"
+    "current": "gewählt",
+    "advanced": "Erweitert"
   },
   "modes": {
     "points": "Punktemodus",
@@ -549,7 +550,9 @@
     "needParent": "Erst {tech} erforschen.",
     "notYourTurn": "Forschen geht nur im eigenen Zug.",
     "confirm": "Erforschen",
-    "done": "Bereits erforscht."
+    "done": "Bereits erforscht.",
+    "legendVictory": "Siegtechnologie (gestrichelt)",
+    "victoryGroup": "Siegtechnologie"
   },
   "rewards": {
     "title": "{city} steigt auf Stufe {level}",
@@ -611,7 +614,11 @@
     "upkeepFree": "Kein Sold (Stammtruppe)",
     "moreInfo": "Mehr Werte anzeigen",
     "lessInfo": "Weniger Werte anzeigen",
-    "upkeepRule": "Die {free} ältesten Einheiten sind frei; jede weitere kostet {pct} % ihres Preises (aufgerundet), Panzer {tank}."
+    "upkeepRule": "Die {free} ältesten Einheiten sind frei; jede weitere kostet {pct} % ihres Preises (aufgerundet), Panzer {tank}.",
+    "needsTech": "Benötigt: {tech}",
+    "hintPrompt": "Aktion gedrückt halten oder darauf zeigen: Hier steht, was sie tut.",
+    "hintExpand": "Erklärung ganz anzeigen",
+    "moreActions": "Weitere Aktionen"
   },
   "actions": {
     "move": "Bewegen",
@@ -868,7 +875,11 @@
     "s6": "Sterne sind die einzige Währung. Öffne die Forschung und erforsche eine Technologie.",
     "s7": "Tippe auf ein Feld mit Ressource in deinem Stadtgebiet und baue etwas. Gebäude bringen Bevölkerung, Städte wachsen.",
     "s8": "Tippe auf dein Hauptquartier und bilde eine Einheit aus.",
-    "s9": "Das war's! Erkunde die Karte, nimm Siedlungen ein und besiege den Gegner. Viel Erfolg!"
+    "s9": "Das war's! Erkunde die Karte, nimm Siedlungen ein und besiege den Gegner. Viel Erfolg!",
+    "goal": "Das Ziel: Im Punktemodus gewinnt nach {rounds} Runden der höchste Punktestand (Medaille oben). In der Eroberung gewinnt, wer als Letzter Städte hält, so wie hier. Mit Fraktionssiegen kann jede Fraktion zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü.",
+    "goalOpen": "Siegverfolgung öffnen",
+    "upkeep": "Sold: Deine ersten {free} Einheiten sind Stammtruppe und kosten nichts. Jede weitere kostet pro Runde etwa {pct} % ihres Preises. Oben neben den Sternen steht dein Netto-Einkommen pro Runde, also Einkommen minus Sold.",
+    "attack": "Kampf: Wähle eine Einheit und tippe auf einen Gegner in Reichweite. Der Angriffsknopf zeigt vorher die Vorschau, etwa „≈4 Schaden (0–6)“, und die Chance, das Ziel zu vernichten. Trefferglück: Ein Schuss kann danebengehen oder kritisch treffen ({min} bis {max} % Schaden). Wer überlebt, schlägt zurück. Halte eine Aktion gedrückt, dann erklärt die Zeile unter der Leiste, was sie tut."
   },
   "a11y": {
     "map": "Spielkarte",
@@ -2837,7 +2848,8 @@
       "cult": "Oft kritisch, oft daneben: fanatisch und unberechenbar."
     },
     "frenzy": "Raserei: mehr kritische Treffer",
-    "worn": "beschädigt: ungenauer"
+    "worn": "beschädigt: ungenauer",
+    "hintLuck": "Trefferglück: Das Ergebnis reicht von daneben bis kritisch."
   },
   "retreat": {
     "action": "Geordneter Rückzug (−{dmg})",
@@ -2928,6 +2940,63 @@
     "armed": "Bewaffnet",
     "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück.",
     "leagueUnavailable": "Erst ab 3 Fraktionen im Spiel möglich",
-    "paused": "Ruht: Bauplatz nicht im eigenen Gebiet"
+    "paused": "Ruht: Bauplatz nicht im eigenen Gebiet",
+    "modeTitle": "Spielziel",
+    "modePoints": "Runde {round}/{max}, du bist auf Platz {rank}. Nach Runde {max} gewinnt der höchste Punktestand."
+  },
+  "onboarding": {
+    "title": "Tutorial spielen?",
+    "text": "Dein erster Einsatz. Das Tutorial führt in wenigen Zügen durch Ziel, Bewegen, Einnehmen, Forschen, Bauen, Ausbilden, Sold und Kampf.",
+    "play": "Tutorial spielen",
+    "playDesc": "Kurze Übungspartie gegen eine leichte KI. Du kannst jederzeit abbrechen.",
+    "skip": "Überspringen",
+    "skipDesc": "Direkt zur Einsatzplanung.",
+    "later": "Tutorial und Regeln findest du jederzeit im Hauptmenü."
+  },
+  "rules": {
+    "menu": "Regeln",
+    "title": "Regeln",
+    "intro": "Das Wichtigste in Kürze. Tippe auf einen Abschnitt, um ihn auf- oder zuzuklappen.",
+    "decimal": ",",
+    "goal": {
+      "title": "Ziel & Spielmodi",
+      "text": "Punktemodus: Nach {rounds} Runden gewinnt der höchste Punktestand (Medaille oben). Punkte gibt es unter anderem für erkundete Felder ({tile}), Gebietsfelder ({territory}), Stadtstufen ({level}) und Technologien ({tech} je Stufe). Eroberung: Es gewinnt, wer als Letzter Städte besitzt. Endlos und Sandkasten laufen ohne Rundenlimit. Fraktionssiege (abschaltbar): Jede Fraktion kann zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü."
+    },
+    "turn": {
+      "title": "Runde & Sterne",
+      "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Forschung und Ausbauten. Du startest mit {start} Sternen."
+    },
+    "upkeep": {
+      "title": "Sold",
+      "text": "Die ersten {free} Einheiten sind Stammtruppe und kosten keinen Sold. Jede weitere kostet pro Runde {pct} % ihres Preises (aufgerundet), Panzer pauschal {tank}. Der Sold wird vom Einkommen abgezogen. Oben neben den Sternen steht das Netto-Einkommen pro Runde, im Einheitenfeld der Sold jeder Einheit."
+    },
+    "combat": {
+      "title": "Kampf & Trefferglück",
+      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden."
+    },
+    "cover": {
+      "title": "Deckung",
+      "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Forschung verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+    },
+    "abilities": {
+      "title": "Fähigkeiten (Rückzug, Reparatur, Raketen)",
+      "text": "Geordneter Rückzug (menschliche Bodentruppen): feuert mit {retreat} % Schaden ohne Gegenschlag und weicht ein Feld zurück, danach {cooldown} Runden gesperrt. Notreparatur (Roboter): schlachtet ein Wrack auf oder neben dem Feld aus und heilt {repair} % der normalen Heilung; die Einheit kämpft in dieser Runde nicht. Raketen (Mechs): Fernangriff auf Ziele genau {range} Felder entfernt, {max} Raketen, Nachladen zu Rundenbeginn in einer eigenen Stadt mit {depot}."
+    },
+    "cities": {
+      "title": "Städte & Forschung",
+      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+    },
+    "outposts": {
+      "title": "Außenposten",
+      "text": "Mit {tech} bauen Fußtruppen für {cost} Sterne einen Außenposten auf ihrem Feld. Fußtruppen darauf verteidigen ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
+    },
+    "diplomacy": {
+      "title": "Diplomatie",
+      "text": "Fraktionen, die du noch nicht getroffen hast, bleiben verborgen. Nach dem ersten Kontakt herrscht Krieg. Du kannst Frieden anbieten, die andere Seite nimmt an oder lehnt ab. Ein Friedensbruch wird eine Runde vorher angekündigt. Mit {tech} und entdecktem Hauptquartier eröffnest du Botschaften (die erste kostet {cost} Sterne, jede weitere {step} mehr); jede bringt beiden Seiten {income} Sterne pro Runde."
+    },
+    "factions": {
+      "title": "Fraktionssiege",
+      "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegtechnologie (Stufe 3), in der Forschung gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
+    }
   }
 }

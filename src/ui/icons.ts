@@ -83,6 +83,9 @@ const P: Record<string, string> = {
   columns: '<path d="M3 9.5L12 3l9 6.5z"/><path d="M5 11.5v7M9.7 11.5v7M14.3 11.5v7M19 11.5v7M3 21h18"/>',
   scale: '<path d="M12 3.5V20M7.5 20.5h9M4 6.5h16"/><path d="M6 6.5l-3 7h6zM18 6.5l-3 7h6z"/><path d="M3 13.5a3 2 0 0 0 6 0M15 13.5a3 2 0 0 0 6 0"/>',
   tesla: '<circle cx="12" cy="5" r="2.8" fill="currentColor"/><path d="M12 8v13M9 11h6M8 14h8M7 17h10M6 21h12"/><path d="M15.5 3.5l3-1.5-1 2.5 3-.5M8.5 3.5l-3-1.5 1 2.5-3-.5"/>',
+  // Siegverfolgung und Trefferglueck / victory tracker and hit luck
+  trophy: '<path d="M7 3.5h10v5a5 5 0 0 1-10 0z"/><path d="M7 5.5H3.5c0 3 1.5 4.5 3.8 4.8M17 5.5h3.5c0 3-1.5 4.5-3.8 4.8"/><path d="M12 13.5v3.5M8 21h8M9 17h6v4H9z"/>',
+  dice: '<rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.4" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

@@ -409,6 +409,11 @@
   --c-action-icon-size: 24px;
   --c-action-sub-font-size: 10px;
   --c-action-sub-max-width: 96px;
+  --c-action-sub-max-width-wide: 148px;
+  --c-action-hint-bg: #e2d4a6;
+  --c-action-hint-blocked: #f08a24;
+  --c-action-hint-font-size: 12px;
+  --c-action-hint-accent: 3px;
   --c-layout-sheet-max-width: 760px;
   --c-layout-dialog-wide: 980px;
   --c-layout-toast-offset: 56px;
@@ -439,6 +444,8 @@
   --c-tech-tree-stroke: 3;
   --c-tech-tree-stroke-done: 5;
   --c-tech-tree-stroke-selected: 6;
+  --c-tech-tree-label-halo: 4;
+  --c-tech-tree-dash: 6 3;
   --c-minimap-size: 136px;
   --c-minimap-size-desktop: 184px;
   --c-minimap-bg: #262c18;

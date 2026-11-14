@@ -21,7 +21,11 @@ const PRIORITY: BarkContext[] = ['kill', 'hurt', 'corpse', 'wreck', 'forest', 'a
 const SHOW_MS = 2600;
 const COOLDOWN_MS = 1400;
 
-interface Bubble { node: HTMLElement; unitId: number; x: number; y: number; until: number }
+/** Abstand zum Bildschirmrand und Zipfel-Einzug (px) / distance to the screen edge and tail inset (px) */
+const BUBBLE_MARGIN = 8;
+const TAIL_INSET = 8;
+
+interface Bubble { node: HTMLElement; unitId: number; x: number; y: number; until: number; w?: number; h?: number }
 
 export class Barks {
   private layer: HTMLElement;
@@ -76,8 +80,18 @@ export class Barks {
     const p = obj ? obj.getWorldPosition(new THREE.Vector3()) : this.view.board.tileCenter(s, b.x, b.y).applyMatrix4(this.view.board.group.matrixWorld);
     p.y += 0.75;
     const scr = this.view.toScreen(p);
-    b.node.style.left = `${scr.x}px`;
-    b.node.style.top = `${scr.y}px`;
+    // im sichtbaren Bereich halten (Blase sitzt bei -30 % / -100 %), Zipfel zeigt weiter auf die Einheit
+    // keep inside the viewport (bubble sits at -30 % / -100 %), the tail keeps pointing at the unit
+    const w = b.w ??= b.node.offsetWidth;
+    const h = b.h ??= b.node.offsetHeight;
+    const vw = this.layer.clientWidth || window.innerWidth;
+    const m = BUBBLE_MARGIN;
+    const x = Math.max(m + w * 0.3, Math.min(vw - m - w * 0.7, scr.x));
+    const y = Math.max(m + h, scr.y);
+    b.node.style.left = `${x}px`;
+    b.node.style.top = `${y}px`;
+    const tail = Math.max(TAIL_INSET, Math.min(w - TAIL_INSET * 2, scr.x - (x - w * 0.3) - TAIL_INSET));
+    b.node.style.setProperty('--bark-tail', `${tail}px`);
   }
 
   private tick(s: GameState) {
