@@ -13,7 +13,7 @@ import { outlined, unitMaterial } from '../render/toon';
 import { esc, factionBadge } from './components';
 
 /** Bildgroesse in Pixeln / image size in pixels */
-const SIZE = 320;
+const SIZE = 512;
 const cache = new Map<FactionId, string>();
 let renderer: THREE.WebGLRenderer | null = null;
 
