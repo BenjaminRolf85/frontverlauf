@@ -3,7 +3,7 @@
  * Controller: every input (mouse, touch, XR) becomes a command to the game core here.
  */
 import {
-  score, isHostile, dist, weather, applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
+  score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
@@ -154,6 +154,7 @@ export class Controller {
         list.push({ x: r.x, y: r.y, kind });
       }
       for (const t of attackTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
+      for (const t of rocketTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
       for (const t of convertTargets(s, u)) list.push({ x: t.x, y: t.y, kind: 'attack' });
       if (u.fuel !== null) {
         for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) {
@@ -221,6 +222,13 @@ export class Controller {
       if (target && target.owner !== u.owner && canSeeUnit(s, s.current, target)) {
         if (attackTargets(s, u).some((t) => t.id === target.id)) {
           if (this.pendingTarget === target.id) { await this.exec({ type: 'attack', unit: u.id, target: target.id }); return; }
+          this.pendingTarget = target.id; this.tab = 'unit';
+          this.play('select'); this.updateHighlights(); this.ui.update();
+          return;
+        }
+        // Mech-Raketen aufs uebernaechste Feld / mech rockets two tiles away
+        if (rocketTargets(s, u).some((t) => t.id === target.id)) {
+          if (this.pendingTarget === target.id) { await this.exec({ type: 'rocket', unit: u.id, target: target.id }); return; }
           this.pendingTarget = target.id; this.tab = 'unit';
           this.play('select'); this.updateHighlights(); this.ui.update();
           return;
@@ -347,7 +355,7 @@ export class Controller {
               if (seen && tb && !killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
               if (!shown || !pos) return;
               this.ui.fx('hit', pos.x, pos.y);
-              this.ui.fx('num', pos.x, pos.y, e.retreat ? `${t('retreat.fx')} -${e.dmg}` : hitText(e.hit, e.dmg));
+              this.ui.fx('num', pos.x, pos.y, e.retreat ? `${t('retreat.fx')} -${e.dmg}` : e.rocket && (!e.hit || e.hit === 'full') ? `${t('rockets.fx')} -${e.dmg}` : hitText(e.hit, e.dmg));
               for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
             };
             // Gegenschlag / retaliation
