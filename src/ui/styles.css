@@ -420,3 +420,15 @@ input[type="text"], select {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: var(--p-duration-instant) !important; transition-duration: var(--p-duration-instant) !important; }
 }
+
+/* ---------- Anfuehrer / leaders ---------- */
+.leader-portrait { flex: none; border-radius: var(--p-radius-md); border: var(--p-border-width-thick) solid var(--leader-rim, var(--s-outline)); background: var(--s-surface-inverse); object-fit: cover; box-shadow: var(--c-shadow-pop, none); }
+.leader-portrait.xs { width: var(--p-size-touch); height: var(--p-size-touch); border-radius: 50%; }
+.leader-portrait.sm { width: var(--p-size-touch-lg); height: var(--p-size-touch-lg); }
+.leader-portrait.md { width: calc(var(--p-size-touch-lg) * 1.5); height: calc(var(--p-size-touch-lg) * 1.5); }
+.leader-portrait.lg { width: min(40vw, calc(var(--p-size-touch-lg) * 3)); height: min(40vw, calc(var(--p-size-touch-lg) * 3)); }
+.leader-card { display: flex; gap: var(--p-space-3); align-items: flex-start; }
+.leader-card .col { display: flex; flex-direction: column; gap: var(--p-space-2); min-width: 0; }
+.leader-quote { font-style: italic; font-weight: 700; }
+.faction-btn { display: inline-flex; align-items: center; gap: var(--p-space-1); padding: 0; background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
+@media (max-width: 560px) { .leader-card { flex-direction: column; align-items: center; text-align: center; } }

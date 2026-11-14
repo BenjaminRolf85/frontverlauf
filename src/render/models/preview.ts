@@ -2,7 +2,7 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|all &view=iso|top|front &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|leaders|all &view=iso|top|front|34 &f=<faction>
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
@@ -14,7 +14,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, jungleDecoration, leaderGeometry, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -25,6 +25,8 @@ type Row = { label: string; cells: Cell[] };
 type Sheet = { cols: string[]; rows: Row[] };
 
 const params = new URLSearchParams(location.search);
+// ?labels=0 blendet Beschriftung und Navigation aus / hides labels and navigation
+if (params.get('labels') === '0') document.querySelector('nav')?.remove();
 const cat = params.get('cat') ?? 'units';
 const view = params.get('view') ?? 'iso';
 const onlyFaction = params.get('f') as FactionId | null;
@@ -178,6 +180,18 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'leaders': {
+      // Anfuehrer-Buesten; view=34 dreht sie in die Dreiviertelansicht / leader busts; view=34 turns them three-quarter
+      const bust = (f: FactionId) => {
+        const g = leaderGeometry(f);
+        if (view !== '34') return g;
+        const c = g.clone();
+        c.rotateY(-0.62);
+        c.computeBoundingBox();
+        return c;
+      };
+      return { cols: factions.map(fname), rows: [{ label: 'leader', cells: factions.map((f) => ({ geo: bust(f), ground: null })) }] };
+    }
     case 'helmets': {
       // Koepfe vergroessert (x4) / heads enlarged (x4)
       const head = (f: FactionId, d: 0 | 1 | 2, hat: boolean) => {
@@ -205,7 +219,8 @@ function sheet(): Sheet {
 // ---------- Szene / scene ----------
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
+// ?dpr= hoehere Pixeldichte fuer Detailbilder / higher pixel density for detail shots
+renderer.setPixelRatio(Number(params.get('dpr') ?? window.devicePixelRatio));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -271,7 +286,7 @@ async function buildScene() {
     const [lx, lz] = at(-0.85, ri);
     lab.position.set(lx, 0.1, lz);
     lab.center.set(1, 0.5);
-    content.add(lab);
+    if (params.get('labels') !== '0') content.add(lab);
     row.cells.forEach((cell, ci) => {
       const [x, z] = at(ci, ri);
       if (cell.ground) {
@@ -292,9 +307,9 @@ async function buildScene() {
   });
   sh.cols.forEach((c, ci) => {
     const l = label(c);
-    const [x, z] = at(ci, -0.75);
-    l.position.set(x, 0.1, z);
-    content.add(l);
+    const [x, z] = at(ci, cat === 'leaders' ? 0.6 : -0.75);
+    l.position.set(x, cat === 'leaders' ? -0.12 : 0.1, z);
+    if (params.get('labels') !== '0') content.add(l);
   });
 }
 
@@ -304,7 +319,8 @@ const controls = new OrbitControls(camera, renderer.domElement);
 function fit() {
   const box = new THREE.Box3().setFromObject(content);
   const centre = box.getCenter(new THREE.Vector3());
-  const dir = view === 'top' ? new THREE.Vector3(0, 1, 0.0001) : view === 'front' ? new THREE.Vector3(0, 0.35, 1) : new THREE.Vector3(1, 1.15, 1);
+  if (params.get('cy')) centre.y = Number(params.get('cy'));
+  const dir = view === 'top' ? new THREE.Vector3(0, 1, 0.0001) : cat === 'leaders' ? new THREE.Vector3(0, 0.12, 1) : view === 'front' ? new THREE.Vector3(0, 0.35, 1) : new THREE.Vector3(1, 1.15, 1);
   camera.position.copy(centre).addScaledVector(dir.normalize(), 50);
   camera.lookAt(centre);
   camera.updateMatrixWorld();
@@ -367,6 +383,7 @@ function checkAll(): string[] {
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
   for (let v = 0; v < 6; v++) all.push([`cloud ${v}`, cloudGeometry(v)]);
+  for (const f of FACTION_IDS) all.push([`leader ${f}`, leaderGeometry(f)]);
   for (const [name, g] of all) {
     if (!g) continue;
     if (g.index) errors.push(`${name}: indexed`);
@@ -374,8 +391,8 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const big = ['tank', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship'].some((u) => name.startsWith(`unit ${u} `));
+    const limit = name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name.startsWith('unit')) {
       // Grundflaeche innerhalb der Kachel, Ursprung y=0 / footprint inside the tile, origin y=0

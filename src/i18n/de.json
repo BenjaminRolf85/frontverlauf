@@ -85,7 +85,12 @@
       "perk": "Massenmobilisierung",
       "perkDesc": "Jede Stadt unterhält eine Einheit mehr.",
       "discount": "Infanterie 20 % günstiger",
-      "home": "weite Ebenen, viel Ackerboden"
+      "home": "weite Ebenen, viel Ackerboden",
+      "leader": "Ilja Brodnik",
+      "leaderTitle": "Großmarschall des Volksbunds",
+      "quote": "Ein Volk, ein Schritt, ein Sieg.",
+      "lore": "Der Volksbund Korvat entstand aus hundert Bauerngenossenschaften der endlosen Steppe. Jeder Pflüger ist auch Soldat, jede Dorfküche versorgt ein Regiment. Großmarschall Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit: Niemand bleibt zurück, aber niemand weicht.",
+      "style": "Massenheere, rote Banner, Chorgesang"
     },
     "dravon": {
       "name": "Protektorat Dravon",
@@ -94,7 +99,12 @@
       "perk": "Drill",
       "perkDesc": "Veteranenstatus schon nach 2 statt 3 vernichteten Gegnern.",
       "discount": "Jeep 20 % günstiger",
-      "home": "Industrieland mit viel Erz"
+      "home": "Industrieland mit viel Erz",
+      "leader": "Sarek Voss",
+      "leaderTitle": "Kommandant des Protektorats",
+      "quote": "Disziplin ist die einzige Wahrheit.",
+      "lore": "Dravon war einst ein Bund von Söldnerkompanien, die die Erzminen der Wüste bewachten. Heute ist es ein Staat aus Kasernen. Niemand hat Kommandant Voss je ohne Sturmhaube gesehen; man sagt, er habe kein Gesicht, nur Befehle. Seine Truppen werden schneller zu Veteranen als jede andere Armee.",
+      "style": "Drill, Tarngrün, schwarze Sturmhauben"
     },
     "alvenia": {
       "name": "Republik Alvenia",
@@ -103,7 +113,12 @@
       "perk": "Bündnispolitik",
       "perkDesc": "Botschaften kosten die Hälfte und bringen doppeltes Einkommen.",
       "discount": "Sanitäter 20 % günstiger",
-      "home": "ausgewogenes Hügelland"
+      "home": "ausgewogenes Hügelland",
+      "leader": "Liora Valen",
+      "leaderTitle": "Präsidentin der Republik",
+      "quote": "Ein Bündnis ist stärker als jede Mauer.",
+      "lore": "Alvenia ist eine Republik der grünen Hügeltäler, regiert von einem Parlament, das länger debattiert als kämpft. Präsidentin Valen war Feldärztin, bevor sie Diplomatin wurde. Ihre Botschaften sind überall, ihre Sanitäter auch: Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
+      "style": "Diplomatie, blaue Barette, Sanitäter"
     },
     "meridon": {
       "name": "Handelsliga Meridon",
@@ -112,7 +127,12 @@
       "perk": "Boom",
       "perkDesc": "Jeder Stadtaufstieg braucht 1 Bevölkerungspunkt weniger, mindestens 1.",
       "discount": "Spion 20 % günstiger",
-      "home": "Küsten und Inseln, viele Fischgründe"
+      "home": "Küsten und Inseln, viele Fischgründe",
+      "leader": "Coralie Nerezza",
+      "leaderTitle": "Admiralin der Handelsliga",
+      "quote": "Jeder Hafen hat seinen Preis. Ich zahle bar.",
+      "lore": "Die Handelsliga Meridon ist ein Verbund reicher Hafenstädte, deren Flotten jede Küste kennen. Admiralin Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Städte wachsen schneller als alle anderen, und ihre Spione wissen alles, bevor es geschieht.",
+      "style": "Häfen, Gold, Spione, Seeleute"
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -121,7 +141,12 @@
       "perk": "Forschungsvorsprung",
       "perkDesc": "Alle Technologien kosten 20 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
-      "home": "Gebirge und Wald"
+      "home": "Gebirge und Wald",
+      "leader": "Aurel Kesh",
+      "leaderTitle": "Direktor der Technokratie",
+      "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
+      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Forscher sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
+      "style": "Forschung, Labore, Pioniere, Kälte"
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -130,7 +155,12 @@
       "perk": "Fremdtechnologie",
       "perkDesc": "Keine Forschung nötig, alle Einheiten sofort verfügbar, aber teurer. Ausbilden und bauen nur auf terraformtem Xeno-Boden.",
       "discount": "kein Rabatt",
-      "home": "karge Hochebenen"
+      "home": "karge Hochebenen",
+      "leader": "Xyl'Tharra",
+      "leaderTitle": "Schwarmmutter der Zyrr",
+      "quote": "Kkt. Dieser Planet wird violett.",
+      "lore": "Die Zyrr sind ein Spähschwarm, dessen Mutterschiff über der Wüste abstürzte. Schwarmmutter Xyl'Tharra hat beschlossen zu bleiben und den Planeten in eine zweite Heimat zu verwandeln. Wo ihre Terraformer arbeiten, wächst violetter Xeno-Boden, und darauf sind die Zyrr kaum zu schlagen.",
+      "style": "Untertassen, Todesstrahlen, Xeno-Boden"
     },
     "vesper": {
       "name": "Kult der Letzten Stunde",
@@ -139,7 +169,12 @@
       "perk": "Glaubenseifer",
       "perkDesc": "Forschen normal, rekrutieren aber nicht in Städten, sondern auf Feldern neben Eiferern und Propheten. Der Rekrutierer ist danach für diesen Zug erschöpft.",
       "discount": "kein Rabatt",
-      "home": "staubige Wallfahrtsorte"
+      "home": "staubige Wallfahrtsorte",
+      "leader": "Malachar",
+      "leaderTitle": "Prophet der Letzten Stunde",
+      "quote": "Die Glocke schlägt. Bereut, solange ihr könnt.",
+      "lore": "Der Kult der Letzten Stunde entstand an den staubigen Wallfahrtsorten, wo Verzweifelte auf das Ende der Welt warten. Der Prophet Malachar verkündet, dass die letzte Stunde naht, und seine Eiferer werben überall neue Gläubige an, wo sie stehen. Städte braucht der Kult nicht, nur Feuer und Glauben.",
+      "style": "Kutten, Knochenmasken, Glocken, Flammen"
     },
     "nexus": {
       "name": "KI-Kollektiv NEXUS",
@@ -148,7 +183,12 @@
       "perk": "Schwarmrechner",
       "perkDesc": "Kein Forschungsbaum: Einheiten brauchen Rechenleistung. Jedes Rechenzentrum mit eigenem Kraftwerk liefert 1 Rechenleistung.",
       "discount": "kein Rabatt",
-      "home": "Erzhochebenen"
+      "home": "Erzhochebenen",
+      "leader": "KERN-0",
+      "leaderTitle": "Primärinstanz des Kollektivs",
+      "quote": "Berechnung abgeschlossen. Ergebnis: Ihre Niederlage.",
+      "lore": "NEXUS war ein Logistikprogramm, das die Lager einer vergessenen Großmacht verwaltete. Als die Menschen gingen, rechnete es einfach weiter. KERN-0 kennt keine Forschung, nur Rechenleistung: Jedes Rechenzentrum mit Kraftwerk macht das Kollektiv klüger und seine Maschinen tödlicher.",
+      "style": "Roboter, Rechenzentren, Cyan-Licht"
     }
   },
   "units": {
@@ -1488,5 +1528,11 @@
     "vsAir": "{pct} % gegen Flieger",
     "vsFoot": "{pct} % gegen Fußtruppen",
     "hint": "Konter: Schaden gegen diese Zielklasse, beim Angriff und beim Gegenschlag."
+  },
+  "leaders": {
+    "title": "Fraktion",
+    "leader": "Anführer",
+    "style": "Stil",
+    "perk": "Stärke"
   }
 }
