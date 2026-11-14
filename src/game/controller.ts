@@ -150,6 +150,8 @@ export class Controller {
         }
       }
     }
+    // Kampagnenziele markieren / mark campaign targets
+    if (s.campaign && !s.campaign.result) for (const p of s.campaign.targets) list.push({ ...p, kind: 'hint' });
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);
   }

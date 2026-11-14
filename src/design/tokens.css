@@ -425,4 +425,21 @@
   --c-tech-tree-stroke: 3;
   --c-tech-tree-stroke-done: 5;
   --c-tech-tree-stroke-selected: 6;
+  --c-campaign-panel-width: 300px;
+  --c-campaign-panel-max-height: 46vh;
+  --c-campaign-card-max-width: 720px;
+  --c-campaign-star-size: 40px;
+  --c-campaign-star-size-sm: 18px;
+  --c-campaign-headline-size: 32px;
+  --c-campaign-banner-width: 540px;
+  --c-campaign-panel-gap: 14px;
+  --c-campaign-tilt: -1.5deg;
+  --c-campaign-tilt-alt: 1.2deg;
+  --c-campaign-banner-ms: 4200ms;
+  --c-campaign-pending-ink: #3a3647;
+  --c-campaign-done-ink: #2a7a32;
+  --c-campaign-failed-ink: #e2412e;
+  --c-campaign-star-on: #f5b700;
+  --c-campaign-star-off: #cdb97e;
+  --c-campaign-news-ink: #a3271c;
 }

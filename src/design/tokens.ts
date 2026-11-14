@@ -374,6 +374,13 @@ export const components = {
   fx: { burstSize: '120px', burstStroke: '3' },
   bark: { maxWidth: '220px' },
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
+  /** Kampagne und Ereignisse / campaign and events */
+  campaign: {
+    panelWidth: '300px', panelMaxHeight: '46vh', cardMaxWidth: '720px', starSize: '40px', starSizeSm: '18px',
+    headlineSize: '32px', bannerWidth: '540px', panelGap: '14px', tilt: '-1.5deg', tiltAlt: '1.2deg',
+    bannerMs: '4200ms', pendingInk: semantic.textMuted, doneInk: c.green700, failedInk: semantic.dangerBright,
+    starOn: semantic.accentStrong, starOff: c.paper300, newsInk: semantic.stamp,
+  },
 } as const;
 
 // ---------- Ausgabe / output ----------
