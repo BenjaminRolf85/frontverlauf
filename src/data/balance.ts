@@ -58,7 +58,9 @@ export type BuildingId =
   | 'navalBase' | 'road' | 'bridge' | 'researchCenter'
   | 'xenoHive' | 'xenoHarvester' | 'shrine' | 'dataCenter' | 'powerPlant'
   // Einzigartige Gebaeude der klassischen Fraktionen / unique buildings of the classic factions
-  | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab';
+  | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab'
+  // Ressourcengebaeude der Fraktionen (je eins, siehe RESOURCE) / faction resource buildings (one each, see RESOURCE)
+  | 'tractorStation' | 'deepMine' | 'hillVineyard' | 'tradeHarbour' | 'polarStation' | 'wreckSmelter' | 'pilgrimSite' | 'depotNode';
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
@@ -598,6 +600,21 @@ export interface BuildingStats {
   onePerFaction?: boolean;
   /** Bevoelkerung je angrenzendem Gebaeude dieses Typs / population per adjacent building of this type */
   adjacency?: { building: BuildingId; pop: number };
+  // Ressourcengebaeude (siehe RESOURCE) / resource buildings (see RESOURCE)
+  /** nur in diesen Landschaften / only in these biomes */
+  biomes?: BiomeId[];
+  /** alternativ zur Landschaft: neben einem Vulkan / alternatively to the biome: next to a volcano */
+  nearVolcano?: boolean;
+  /** nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie / only on a wreck or a salvaged crash site, consumes it */
+  wreck?: boolean;
+  /** darf dieses eigene Gebaeude ersetzen (Ausbau, Preis = Differenz) / may replace this own building (upgrade, price = difference) */
+  upgrades?: BuildingId;
+  /** zaehlt fuer Werke, Logistikzentrum und Duerre als dieses Grundgebaeude / counts as this base building for works, logistics centre and drought */
+  countsAs?: BuildingId;
+  /** Sterne pro Runde fuer die Stadt / stars per round for the city */
+  stars?: number;
+  /** Rechenleistung (NEXUS) / compute (NEXUS) */
+  compute?: number;
 }
 
 export const BUILDINGS: Record<BuildingId, BuildingStats> = {
@@ -627,7 +644,47 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   embassyPalace: { cost: 30, pop: 3, tech: 'supply', terrain: ['plain', 'forest'], onePerFaction: true },
   tradingPost: { cost: 30, pop: 1, tech: 'coastalEconomy', terrain: ['plain'], onePerFaction: true },
   testLab: { cost: 30, pop: 1, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], onePerCity: true },
+  // Ressourcengebaeude der Fraktionen (siehe RESOURCE) / faction resource buildings (see RESOURCE)
+  // Korvat: Traktorstation auf Ackerland, Ausbau des Agrarbetriebs / tractor station on farmland, upgrade of the farm
+  tractorStation: { cost: 35, pop: 3, tech: 'agritech', terrain: ['plain'], resource: 'farmland', upgrades: 'farm', countsAs: 'farm', adjacency: { building: 'farm', pop: 1 } },
+  // Dravon: Tiefbauzeche auf Erz, Ausbau des Tagebaus / deep mine on ore, upgrade of the mine
+  deepMine: { cost: 40, pop: 3, tech: 'mining', terrain: ['mountain'], resource: 'ore', upgrades: 'mine', countsAs: 'mine', stars: 2 },
+  // Alvenia: Huegelweingut auf Ebenen im Huegelland / hill vineyard on plains in the hills
+  hillVineyard: { cost: 30, pop: 2, tech: 'agritech', terrain: ['plain'], biomes: ['hills'], onePerCity: true, stars: 2 },
+  // Meridon: Handelshafen auf Fischgruenden, Ausbau der Fischerei / trade harbour on fish, upgrade of the fishery
+  tradeHarbour: { cost: 30, pop: 2, tech: 'shipbuilding', terrain: ['shallow'], resource: 'fish', upgrades: 'fishery', countsAs: 'fishery', stars: 2 },
+  // Velkar: Polarstation in der Tundra / polar station in the tundra
+  polarStation: { cost: 25, pop: 2, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], biomes: ['tundra'] },
+  // Zyrr: Wrackschmelze auf einem Wrack oder einer geborgenen Absturzstelle, ohne Xeno-Boden / wreck smelter on a wreck or salvaged crash site, without xeno ground
+  wreckSmelter: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain'], wreck: true, stars: 3 },
+  // Vesper: Pilgerstaette in Wueste oder Steppe oder neben einem Vulkan / pilgrimage site in desert or steppe or next to a volcano
+  pilgrimSite: { cost: 25, pop: 2, tech: 'camouflage', terrain: ['plain', 'forest'], biomes: ['desert', 'steppe'], nearVolcano: true, onePerCity: true, stars: 2 },
+  // NEXUS: Depotknoten auf Erz / depot node on ore
+  depotNode: { cost: 25, pop: 1, tech: null, terrain: ['mountain'], resource: 'ore', compute: 1 },
 };
+
+/**
+ * Ressourcengebaeude: je Fraktion ein Gebaeude zum Rohstoff-Thema ihrer Comics. Nur die eigene Fraktion baut es und nur ihr
+ * wirkt es; erobert gibt es nur die beim Bau erhaltene Bevoelkerung.
+ * Resource buildings: one building per faction on the resource theme of its comics. Only the own faction builds it and only
+ * for it does it work; captured, it gives nothing but the population gained on construction.
+ */
+export const RESOURCE = {
+  /** Gebaeude je Fraktion / building per faction */
+  buildings: {
+    korvat: 'tractorStation', dravon: 'deepMine', alvenia: 'hillVineyard', meridon: 'tradeHarbour',
+    velkar: 'polarStation', zyrr: 'wreckSmelter', vesper: 'pilgrimSite', nexus: 'depotNode',
+  } as Record<FactionId, BuildingId>,
+  /** Polarstation: Forschungsrabatt je Station, hoechstens so viele (eigene Grenze neben dem Versuchslabor) / polar station: research discount per station, at most this many (own cap beside the test lab) */
+  polarDiscount: 0.03,
+  polarMax: 3,
+  /** Handelshafen: Zusatzsterne, wenn seine Stadt einen Marinestuetzpunkt hat / trade harbour: extra stars if its city has a naval base */
+  harbourNavalBonus: 1,
+  /** Huegelweingut: Zusatzsterne je aktiver eigener Botschaft, hoechstens so viele / hill vineyard: extra stars per active own embassy, at most this many */
+  vineyardPerEmbassy: 1,
+  vineyardEmbassyMax: 3,
+};
+export const RESOURCE_BUILDINGS: BuildingId[] = Object.values(RESOURCE.buildings);
 
 /** Basisgebaeude der Werke, die das Logistikzentrum zaehlt / base buildings counted by the logistics centre */
 export const LOGISTICS_SOURCES: BuildingId[] = ['lumberCamp', 'farm', 'mine'];

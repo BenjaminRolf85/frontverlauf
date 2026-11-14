@@ -430,7 +430,15 @@
     "mercenaryBarracks": "Mercenary barracks",
     "embassyPalace": "Embassy palace",
     "tradingPost": "Trading post",
-    "testLab": "Test lab"
+    "testLab": "Test lab",
+    "tractorStation": "Tractor station",
+    "deepMine": "Deep mine",
+    "hillVineyard": "Hill vineyard",
+    "tradeHarbour": "Trade harbour",
+    "polarStation": "Polar station",
+    "wreckSmelter": "Wreck smelter",
+    "pilgrimSite": "Pilgrimage site",
+    "depotNode": "Depot node"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -458,7 +466,18 @@
     "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
     "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
     "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
-    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
+    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
+    "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
+    "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
+    "hillVineyard": "{pop} population, +{stars} stars per round and +{emb} per active own embassy (at most +{embMax}). Only on plains in the hills biome without a resource, one per city, Alvenia only",
+    "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
+    "polarStation": "{pop} population, research {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
+    "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
+    "pilgrimSite": "{pop} population and +{stars} stars per round; recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
+    "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only"
+  },
+  "resource": {
+    "upgrade": "Upgrade, only the difference"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -2220,7 +2239,8 @@
     "compute": "Compute",
     "computeNeed": "Needs {n} compute",
     "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
-    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)"
+    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)",
+    "computeStateDepot": "Compute {have} ({dc} data centers, {pp} power plants, {dn} depot nodes)"
   },
   "hazards": {
     "title": "Map features",
@@ -2266,6 +2286,7 @@
     "discount": "Discount",
     "discountValue": "{unit} −{pct}%",
     "building": "Own building",
+    "resource": "Resource building",
     "leader": "Leader",
     "details": "Details",
     "detailsFor": "Details on {name}",

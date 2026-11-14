@@ -21,7 +21,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet,
-  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk,
+  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -1042,24 +1042,34 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const t = tileAt(s, cmd.x, cmd.y)!;
       const st = BUILDINGS[cmd.building];
       const city = cityById(s, t.territory!)!;
+      // Ausbau eines Grundgebaeudes (Ressourcengebaeude): nur die Differenz an Bevoelkerung
+      // upgrade of a base building (resource buildings): only the population difference
+      const replaced = t.building && t.building === st.upgrades ? t.building : null;
       if (cmd.building === 'road') t.road = true;
       else {
         t.building = cmd.building;
         if (cmd.building === 'bridge') t.road = true;
         if (cmd.building === 'researchCenter') t.researchBuilt = s.round;
       }
-      if (st.pop) addPop(s, city, st.pop, ev);
+      // Wrackschmelze verbraucht Wrack oder Absturzstelle / wreck smelter consumes the wreck or crash site
+      if (st.wreck) {
+        t.remains = null;
+        if (t.feature === 'crashSite') t.feature = null;
+      }
+      const pop = replaced ? st.pop - BUILDINGS[replaced].pop : st.pop;
+      if (pop > 0) addPop(s, city, pop, ev);
       if (st.adjacency) {
         let n = 0;
-        for (const p of neighbors(s.size, cmd.x, cmd.y)) if (tileAt(s, p.x, p.y)!.building === st.adjacency.building) n++;
+        for (const p of neighbors(s.size, cmd.x, cmd.y)) { const nb = tileAt(s, p.x, p.y)!.building; if (nb && baseBuilding(nb) === st.adjacency.building) n++; }
         if (n) addPop(s, city, n * st.adjacency.pop, ev);
       }
-      // Basisgebaeude neben bestehendem Werk / base building next to existing works
-      for (const p of neighbors(s.size, cmd.x, cmd.y)) {
+      // Basisgebaeude neben bestehendem Werk (nicht beim Ausbau, das Grundgebaeude zaehlte schon; eroberte Fraktionsgebaeude nie)
+      // base building next to existing works (not on an upgrade, the base building already counted; never captured faction buildings)
+      for (const p of replaced ? [] : neighbors(s.size, cmd.x, cmd.y)) {
         const nt = tileAt(s, p.x, p.y)!;
-        if (!nt.building) continue;
+        if (!nt.building || !buildingWorksFor(s, f, nt.building)) continue;
         const adj = BUILDINGS[nt.building].adjacency;
-        if (adj && adj.building === cmd.building && nt.territory !== null) {
+        if (adj && adj.building === baseBuilding(cmd.building) && nt.territory !== null) {
           const wc = cityById(s, nt.territory);
           if (wc && wc.owner === f) addPop(s, wc, adj.pop, ev);
         }
@@ -1111,6 +1121,11 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const home = recruitHome(s, f, cmd.x, cmd.y)!;
       const nu = spawnUnit(s, cmd.unitType, f, cmd.x, cmd.y, home.id);
       ev.push({ t: 'train', unit: nu.id, city: home.id });
+      // Pilgerstaette: Rekruten daneben starten als Veteranen / pilgrimage site: recruits next to it start as veterans
+      if (pilgrimVeteranAt(s, f, cmd.x, cmd.y)) {
+        nu.veteran = true; nu.maxHp += VETERAN.bonusHp; nu.hp = nu.maxHp;
+        ev.push({ t: 'veteran', unit: nu.id });
+      }
       res = { ok: true, events: ev };
       break;
     }

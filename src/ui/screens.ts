@@ -16,7 +16,7 @@ import { getLanguage, setLanguage, t } from '../i18n/i18n';
 import type { Settings } from '../save/save';
 import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, segmented } from './components';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
-import { cityName, unitDisplayName, unitName } from './hud';
+import { buildingDescText, cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
@@ -427,7 +427,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>
       <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${price !== null ? ` · ${price} ${esc(t('hud.stars'))}` : ''}</span></li>`;
   });
-  const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(t(`buildingDesc.${b}`))}</span></li>`);
+  const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b))}</span></li>`);
   const vf = TECHS[tech].faction;
   const extra = t(`techExtra.${tech}`, vf ? victoryParams(vf) : {});
   const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon(vf ? 'crown' : 'lightning', 'icon-sm')}${vf ? `<strong>${esc(t('traits.victory'))}</strong><span class="muted">${esc(extra)}</span>` : `<strong>${esc(extra)}</strong>`}</li>`];
@@ -579,7 +579,7 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
   if (c) {
     html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t('features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(t('hud.level', { n: c.level }))}`}</p>`;
   }
-  html += `<h3 class="display">${esc(t(`terrain.${tile.terrain}`))}${tile.biome ? ` · ${esc(t(`biomes.${tile.biome}`))}` : ''}${tile.river ? ` · ${esc(t('biomes.river'))}` : ''}</h3><p>${[tile.resource ? t(`resources.${tile.resource}`) : '', tile.building ? `${t(`buildings.${tile.building}`)}: ${t(`buildingDesc.${tile.building}`)}` : '', tile.feature ? t(`features.${tile.feature}`) : ''].filter(Boolean).map(esc).join(' · ')}</p>`;
+  html += `<h3 class="display">${esc(t(`terrain.${tile.terrain}`))}${tile.biome ? ` · ${esc(t(`biomes.${tile.biome}`))}` : ''}${tile.river ? ` · ${esc(t('biomes.river'))}` : ''}</h3><p>${[tile.resource ? t(`resources.${tile.resource}`) : '', tile.building ? `${t(`buildings.${tile.building}`)}: ${buildingDescText(tile.building)}` : '', tile.feature ? t(`features.${tile.feature}`) : ''].filter(Boolean).map(esc).join(' · ')}</p>`;
   const d = openDialog(host.root, html);
   bind(d.node, { close: () => d.close() });
 }

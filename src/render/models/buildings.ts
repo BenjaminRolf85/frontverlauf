@@ -15,6 +15,7 @@ import { cattle } from './nature';
 import { dataCenter, powerPlant, shrine } from './specials';
 import { xenoHarvester, xenoHive } from './xeno';
 import { embassyPalace, kolkhoz, mercenaryBarracks, testLab, tradingPost } from './unique';
+import { deepMine, depotNode, hillVineyard, pilgrimSite, polarStation, tractorStation, tradeHarbour, wreckSmelter } from './resource';
 
 type Kind = BuildingId | 'outpost' | GrandProjectId;
 
@@ -555,6 +556,15 @@ export function building(kind: Kind, f: FactionId | null): Builder {
     case 'embassyPalace': embassyPalace(b, f); break;
     case 'tradingPost': tradingPost(b, f); break;
     case 'testLab': testLab(b, f); break;
+    // Ressourcengebaeude der Fraktionen / faction resource buildings
+    case 'tractorStation': tractorStation(b, f); break;
+    case 'deepMine': deepMine(b, f); break;
+    case 'hillVineyard': hillVineyard(b, f); break;
+    case 'tradeHarbour': tradeHarbour(b, f); break;
+    case 'polarStation': polarStation(b, f); break;
+    case 'wreckSmelter': wreckSmelter(b, f); break;
+    case 'pilgrimSite': pilgrimSite(b, f); break;
+    case 'depotNode': depotNode(b, f); break;
     default: grandProject(b, kind, f); break;
   }
   return b;

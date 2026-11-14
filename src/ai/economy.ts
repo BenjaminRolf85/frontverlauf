@@ -8,9 +8,10 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
+  activeEmbassies, baseBuilding, countBuildings, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
-  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -216,7 +217,7 @@ function siteOk(s: GameState, f: number, b: BuildingId, x: number, y: number): b
 function popGain(s: GameState, f: number, b: BuildingId, x: number, y: number): number {
   const st = BUILDINGS[b];
   let p = st.pop;
-  if (st.adjacency) for (const n of neighbors(s.size, x, y)) if (s.tiles[idx(s.size, n.x, n.y)].building === st.adjacency.building) p += st.adjacency.pop;
+  if (st.adjacency) for (const n of neighbors(s.size, x, y)) { const nb = s.tiles[idx(s.size, n.x, n.y)].building; if (nb && baseBuilding(nb) === st.adjacency.building) p += st.adjacency.pop; }
   for (const n of neighbors(s.size, x, y)) {
     const nt = s.tiles[idx(s.size, n.x, n.y)];
     if (!nt.building) continue;
@@ -286,8 +287,53 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   const uu = UNIQUE.units[ctx.fa.id], ub = UNIQUE.buildings[ctx.fa.id];
   if (uu && UNITS[uu].tech === t) mil += 12 * prof.militaryW;
   if (ub && BUILDINGS[ub].tech === t) mil += 8;
+  // Technik des Ressourcengebaeudes, je passendem Feld im eigenen Gebiet / tech of the resource building, per fitting own tile
+  const rb = RESOURCE.buildings[ctx.fa.id];
+  if (BUILDINGS[rb].tech === t) mil += 6 + Math.min(3, resourceSites(ctx, rb)) * 6;
   if (ctx.points && ctx.roundsLeft >= 6 && Object.values(RESEARCH_CENTER_TECH).includes(t)) mil += 10;
   return econ + mil;
+}
+
+/** Passende Felder fuer das Ressourcengebaeude im eigenen Gebiet (ohne Technik und Sterne) / fitting own tiles for the resource building (ignoring tech and stars) */
+function resourceSites(ctx: Ctx, b: BuildingId): number {
+  let n = 0;
+  for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (resourceSiteOk(ctx.s, b, p.x, p.y)) n++;
+  return n;
+}
+
+/**
+ * Wert eines Ressourcengebaeudes auf (x, y): Bevoelkerung (beim Ausbau nur die Differenz), Sterne ueber den Horizont,
+ * Forschungsrabatt, Veteranen-Rekruten, Rechenleistung.
+ * Worth of a resource building at (x, y): population (on an upgrade only the difference), stars over the horizon,
+ * research discount, veteran recruits, compute.
+ */
+function resourceValue(ctx: Ctx, c: City, b: BuildingId, x: number, y: number, popVal: number, horizon: number): number {
+  const { s, f, fa } = ctx;
+  const st = BUILDINGS[b];
+  const t = s.tiles[idx(s.size, x, y)];
+  const replaced = t.building && t.building === st.upgrades ? t.building : null;
+  let pop = st.pop - (replaced ? BUILDINGS[replaced].pop : 0);
+  if (st.adjacency) for (const n of neighbors(s.size, x, y)) { const nb = s.tiles[idx(s.size, n.x, n.y)].building; if (nb && baseBuilding(nb) === st.adjacency.building) pop += st.adjacency.pop; }
+  if (!replaced) {
+    for (const n of neighbors(s.size, x, y)) {
+      const nt = s.tiles[idx(s.size, n.x, n.y)];
+      const adj = nt.building ? BUILDINGS[nt.building].adjacency : undefined;
+      if (adj && adj.building === baseBuilding(b) && territoryOwner(s, nt) === f) pop += adj.pop;
+    }
+  }
+  let value = pop * popVal;
+  let stars = st.stars ?? 0;
+  if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'navalBase')) stars += RESOURCE.harbourNavalBonus;
+  if (b === 'hillVineyard') stars += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, f));
+  value += stars * Math.min(horizon, 15) * 0.45;
+  if (b === 'polarStation' && countBuildings(s, f, b) < RESOURCE.polarMax) {
+    value += TECH_IDS.filter((tt) => !fa.techs.includes(tt)).length * RESOURCE.polarDiscount * 45 * Math.min(1, horizon / 12);
+  }
+  // Pilgerstaette: Veteranen, wenn noch keine in Reichweite / pilgrimage site: veterans if none in reach yet
+  if (b === 'pilgrimSite' && !pilgrimVeteranAt(s, f, x, y)) value += 8 * ctx.prof.militaryW;
+  // Depotknoten: Rechenleistung fuer groessere Roboter / depot node: compute for bigger robots
+  if (b === 'depotNode') value += computeStats(s, f).compute < 4 ? 40 : 15;
+  return value;
 }
 
 function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconnected: number): number {
@@ -592,6 +638,23 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       }
     }
   }
+  // Ressourcengebaeude der Fraktion (auch als Ausbau) / the faction's resource building (also as an upgrade)
+  {
+    const rb = RESOURCE.buildings[fa.id];
+    const horizon = ctx.points ? ctx.roundsLeft : 20;
+    for (const c of ctx.myCities) {
+      for (const p of cityTiles(s, c)) {
+        if (!resourceSiteOk(s, rb, p.x, p.y)) continue;
+        const chk = buildCheck(s, f, rb, p.x, p.y);
+        if (!chk.ok && chk.error !== 'notEnoughStars') continue;
+        let value = resourceValue(ctx, c, rb, p.x, p.y, popVal, horizon);
+        if (value <= 0) continue;
+        if (prof.sloppy > 0) value *= 1 + (hashNoise(p.x, p.y, s.round, 11) - 0.5) * prof.sloppy;
+        buys.push({ cmd: { type: 'build', building: rb, x: p.x, y: p.y }, cost: chk.cost, value, save: true });
+      }
+    }
+  }
+
   // Strassen / roads
   if (hasTech(s, f, 'roadbuilding')) {
     for (const r of roadPlans(ctx)) {

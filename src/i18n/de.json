@@ -430,7 +430,15 @@
     "mercenaryBarracks": "Söldnerkaserne",
     "embassyPalace": "Botschaftspalast",
     "tradingPost": "Handelskontor",
-    "testLab": "Versuchslabor"
+    "testLab": "Versuchslabor",
+    "tractorStation": "Traktorstation",
+    "deepMine": "Tiefbauzeche",
+    "hillVineyard": "Hügelweingut",
+    "tradeHarbour": "Handelshafen",
+    "polarStation": "Polarstation",
+    "wreckSmelter": "Wrackschmelze",
+    "pilgrimSite": "Pilgerstätte",
+    "depotNode": "Depotknoten"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -458,7 +466,18 @@
     "mercenaryBarracks": "2 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
     "embassyPalace": "3 Bevölkerungspunkte, +4 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
     "tradingPost": "1 Bevölkerungspunkt, +3 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
-    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar"
+    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
+    "tractorStation": "{pop} Bevölkerungspunkte, dazu +{adj} je angrenzendem Agrarbetrieb oder angrenzender Traktorstation. Nur auf Ackerland; baut einen eigenen Agrarbetrieb aus (Preis und Bevölkerung: nur die Differenz). Zählt als Agrarbetrieb, nur Korvat",
+    "deepMine": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf Erz; baut einen eigenen Tagebau aus (Preis und Bevölkerung: nur die Differenz). Zählt als Tagebau, nur Dravon",
+    "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde und +{emb} je aktiver eigener Botschaft (höchstens +{embMax}). Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
+    "tradeHarbour": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde, +{naval} mit Marinestützpunkt in der Stadt. Nur auf Fischgründen; baut eine eigene Fischerei aus (Preis und Bevölkerung: nur die Differenz), nur Meridon",
+    "polarStation": "{pop} Bevölkerungspunkte, Forschung je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
+    "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
+    "pilgrimSite": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde; Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
+    "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS"
+  },
+  "resource": {
+    "upgrade": "Ausbau, nur die Differenz"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -2220,7 +2239,8 @@
     "compute": "Rechenleistung",
     "computeNeed": "Benötigt {n} Rechenleistung",
     "noResearch": "NEXUS forscht nicht. Baue Rechenzentren und Kraftwerke für mehr Rechenleistung.",
-    "computeState": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke)"
+    "computeState": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke)",
+    "computeStateDepot": "Rechenleistung {have} ({dc} Rechenzentren, {pp} Kraftwerke, {dn} Depotknoten)"
   },
   "hazards": {
     "title": "Besonderheiten",
@@ -2266,6 +2286,7 @@
     "discount": "Rabatt",
     "discountValue": "{unit} −{pct} %",
     "building": "Eigenes Gebäude",
+    "resource": "Ressourcengebäude",
     "leader": "Anführer",
     "details": "Details",
     "detailsFor": "Details zu {name}",

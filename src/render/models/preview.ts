@@ -2,14 +2,14 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|unique|leaders|all &view=iso|top|front|34 &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|resource|grand|cities|nature|counters|unique|leaders|all &view=iso|top|front|34 &f=<faction>
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
@@ -40,8 +40,14 @@ const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleshi
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
   'logisticsCenter', 'navalBase', 'road', 'bridge', 'researchCenter', 'outpost',
+  // Ressourcengebaeude der Fraktionen / faction resource buildings
+  ...RESOURCE_BUILDINGS,
 ];
-const WATER_BUILDINGS = new Set(['fishery', 'navalBase', 'bridge']);
+const WATER_BUILDINGS = new Set(['fishery', 'navalBase', 'bridge', 'tradeHarbour']);
+const MOUNTAIN_BUILDINGS = new Set(['mine', 'deepMine', 'depotNode']);
+/** Boden einer Gebaeudezelle / ground of a building cell */
+const buildingGround = (k: string, fallback: string) =>
+  WATER_BUILDINGS.has(k) ? waterGround : MOUNTAIN_BUILDINGS.has(k) ? semantic.terrainMountain : k === 'polarStation' ? semantic.snow : fallback;
 
 const plainGround = semantic.terrainPlain;
 const waterGround = semantic.terrainShallow;
@@ -62,9 +68,27 @@ function sheet(): Sheet {
         cols: withNeutral.map(fname),
         rows: BUILDINGS.map((k) => ({
           label: k,
-          cells: withNeutral.map((f) => ({ geo: buildingGeometry(k, f), ground: WATER_BUILDINGS.has(k) ? waterGround : k === 'mine' ? semantic.terrainMountain : plainGround })),
+          cells: withNeutral.map((f) => ({ geo: buildingGeometry(k, f), ground: buildingGround(k, plainGround) })),
         })),
       };
+    case 'resource': {
+      // Ressourcengebaeude: Spalte 1 = eigene Fraktion, dann Grundgebaeude zum Vergleich, dann alle Fraktionen
+      // resource buildings: column 1 = own faction, then the base building for comparison, then all factions
+      const owner = (k: BuildingId) => (Object.entries(RESOURCE.buildings).find(([, v]) => v === k)?.[0] ?? 'korvat') as FactionId;
+      const base: Partial<Record<BuildingId, BuildingId>> = {
+        tractorStation: 'farm', deepMine: 'mine', hillVineyard: 'ranch', tradeHarbour: 'fishery',
+        polarStation: 'testLab', wreckSmelter: 'xenoHarvester', pilgrimSite: 'shrine', depotNode: 'dataCenter',
+      };
+      return {
+        cols: ['own', 'base', ...factions.map(fname), 'neutral'],
+        rows: RESOURCE_BUILDINGS.map((k) => ({ label: k, cells: [
+          { geo: buildingGeometry(k, owner(k)), ground: buildingGround(k, factionTokens[owner(k)].terrain) },
+          { geo: buildingGeometry(base[k]!, owner(k)), ground: buildingGround(base[k]!, factionTokens[owner(k)].terrain) },
+          ...factions.map((f) => ({ geo: buildingGeometry(k, f), ground: buildingGround(k, plainGround) })),
+          { geo: buildingGeometry(k, null), ground: buildingGround(k, plainGround) },
+        ] })),
+      };
+    }
     case 'grand':
       return {
         cols: withNeutral.map(fname),
