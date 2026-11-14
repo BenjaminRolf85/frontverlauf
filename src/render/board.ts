@@ -38,8 +38,8 @@ function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null,
 }
 const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2], stage = 0) =>
   safe(models.unitGeometry, factionTokens[f].primary, type, f, c, stage)!;
-/** Fusionskraftwerk steht mittig auf seiner 2x2-Flaeche (Anker + rechts/unten) / the fusion plant sits centred on its 2x2 footprint (anchor + right/down) */
-const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = { fusionPlant: { x: 0.5, z: 0.5 } };
+/** Versatz je Bauwerk; das Fusionskraftwerk-Modell deckt seine 2x2-Flaeche selbst ab / offset per wonder; the fusion plant model covers its 2x2 footprint itself */
+const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
   safe(models.cityGeometry, f ? factionTokens[f].primary : semantic.neutral, f, l, fl)!;
 const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: Parameters<typeof models.buildingGeometry>[1]) =>
@@ -622,7 +622,8 @@ export class Board {
         grp.add(base);
         model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
-        model.rotation.y = this.facing.get(u.id) ?? 0;
+        // Fusionskraftwerk nie drehen, sonst passt die 2x2-Flaeche nicht / never rotate the fusion plant or its 2x2 footprint breaks
+        model.rotation.y = u.type === 'fusionPlant' ? 0 : this.facing.get(u.id) ?? 0;
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
