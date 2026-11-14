@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, PERKS2, RETREAT, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -18,7 +18,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -783,10 +783,54 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = doAttack(s, u, target, ev);
       break;
     }
+    case 'retreat': {
+      // Geordneter Rueckzug: 20 % Schaden, kein Gegenschlag, ein Schritt zurueck / orderly retreat: 20 % damage, no return fire, one step back
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const target = unitById(s, cmd.target);
+      if (!target || target.owner === f) return fail('invalidTarget');
+      if (!isHostile(s, f, target.owner)) return fail('peace');
+      const check = retreatCheck(s, u, target);
+      if (check !== 'ok') return fail(check);
+      const to = retreatTile(s, u, target)!;
+      const dmg = retreatDamage(s, u, target);
+      target.hp -= dmg;
+      addMark(s, target.x, target.y, 'scorch');
+      ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
+      fa.lastAttackRound = s.round;
+      if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); }
+      // Schritt zurueck mit normaler Bewegungslogik (Minen, Sperren, Sicht) / step back with the normal move logic (mines, barriers, vision)
+      if (unitById(s, u.id)) {
+        u.moved = false; u.moveDone = false; u.attacked = false;
+        doMove(s, u, to, ev);
+      }
+      u.attacked = true; u.moved = true; u.exhausted = true;
+      u.retreatReady = s.round + RETREAT.cooldown + 1;
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'repair': {
+      // Notreparatur: Roboter schlachten ein Wrack aus, ganze Runde, kein Kampf / emergency repair: robots salvage a wreck, whole turn, no combat
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = repairCheck(s, u);
+      if (check !== 'ok') return fail(check);
+      const w = repairWreck(s, u)!;
+      const amount = repairAmount(s, u);
+      u.hp += amount; u.exhausted = true;
+      // Wrack verbraucht; gefallene Fusstruppen bleiben als Gebeine / wreck used up; fallen foot soldiers remain as bones
+      const wt = tileAt(s, w.x, w.y)!;
+      const r = wt.remains!;
+      wt.remains = r.skeletons ? { kind: 'skeleton', unit: r.unit, faction: r.skeletonFaction ?? r.faction, round: r.round, skeletons: r.skeletons, skeletonFaction: r.skeletonFaction } : null;
+      ev.push({ t: 'heal', unit: u.id, amount, repair: true });
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'heal': {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
       if (!canHeal(u)) return fail('unitExhausted');
+      if (alienHealBlocked(s, u)) return fail('noXenoGround');
       const amount = Math.min(healAmount(s, u), u.maxHp - u.hp);
       u.hp += amount; u.exhausted = true;
       ev.push({ t: 'heal', unit: u.id, amount });

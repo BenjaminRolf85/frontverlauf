@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -461,9 +461,61 @@ export function hitOdds(s: GameState, u: Unit): Record<HitKind, number> {
   const shift = HIT.weather[w];
   const out = {} as Record<HitKind, number>;
   let sum = 0;
-  for (const k of HIT_KINDS) { out[k] = Math.max(0, base[k] + (shift[k] ?? 0) * f); sum += out[k]; }
+  const hpShare = u.hp / Math.max(1, u.maxHp);
+  // Roboter: je beschaedigter, desto ungenauer (0 bei vollen LP, 1 bei 20 % LP) / robots: less accurate the more damaged
+  const worn = race === 'robot' ? Math.min(1, Math.max(0, (1 - hpShare) / (1 - HIT.robotDamagedAt))) : 0;
+  for (const k of HIT_KINDS) {
+    out[k] = Math.max(0, base[k] + (shift[k] ?? 0) * f + (HIT.robotDamaged[k] ?? 0) * worn);
+    sum += out[k];
+  }
   for (const k of HIT_KINDS) out[k] /= sum || 1;
+  // Fanatiker in Lebensgefahr: 50 % mehr kritische Treffer, auf Kosten voller Treffer / fanatics near death: 50 % more crits, taken from full hits
+  if (race === 'cult' && hpShare < HIT.cultFrenzyHp) {
+    const extra = Math.min(out.full, out.crit * HIT.cultFrenzyCrit);
+    out.crit += extra; out.full -= extra;
+  }
   return out;
+}
+
+/** Rasender Fanatiker (unter 20 % LP)? / frenzied fanatic (below 20 % HP)? */
+export const cultFrenzy = (u: Unit) => hitRace(u.type) === 'cult' && u.hp / Math.max(1, u.maxHp) < HIT.cultFrenzyHp;
+
+/** Kann die Einheit sich geordnet zurueckziehen (menschliche Bodentruppen)? / can the unit retreat in order (human ground troops)? */
+export function canOrderlyRetreat(u: Unit): boolean {
+  const st = UNITS[u.type];
+  return hitRace(u.type) === 'human' && !st.ship && !has(u, 'fly') && st.attack > 0;
+}
+
+/** Feld fuer den Rueckzug: ein Schritt weg vom Ziel, sonst null / tile for the retreat: one step away from the target, else null */
+export function retreatTile(s: GameState, u: Unit, target: Unit): Pos | null {
+  const d0 = dist(u, target);
+  let best: Pos | null = null, bestScore = -Infinity;
+  for (const r of reachable(s, u, true)) {
+    if (r.path.length !== 1 || r.embark || r.disembark) continue;
+    const t = tileAt(s, r.x, r.y)!;
+    if (!walkable(t)) continue;
+    const d = dist(r, target);
+    if (d <= d0) continue;
+    // weiter weg, eigenes Gebiet und Deckung bevorzugt / further away, own territory and cover preferred
+    const score = d * 10 + (territoryOwner(s, t) === u.owner ? 3 : 0) + (t.terrain === 'forest' || t.terrain === 'mountain' ? 2 : 0) - idx(s.size, r.x, r.y) * 1e-6;
+    if (score > bestScore) { bestScore = score; best = { x: r.x, y: r.y }; }
+  }
+  return best;
+}
+
+/** Schaden beim Rueckzug (20 % des vollen Treffers, mindestens 1) / damage of a retreat (20 % of a full hit, at least 1) */
+export function retreatDamage(s: GameState, u: Unit, target: Unit): number {
+  const full = combatPreview(s, u, target).toDefender;
+  return full > 0 ? Math.max(1, Math.round(full * RETREAT.damage)) : 0;
+}
+
+/** Pruefung des geordneten Rueckzugs / check of the orderly retreat */
+export function retreatCheck(s: GameState, u: Unit, target: Unit): 'ok' | 'cannotRetreat' | 'retreatCooldown' | 'outOfRange' | 'noRetreatTile' {
+  if (!canOrderlyRetreat(u)) return 'cannotRetreat';
+  if ((u.retreatReady ?? 0) > s.round) return 'retreatCooldown';
+  if (!attackTargets(s, u).some((o) => o.id === target.id)) return 'outOfRange';
+  if (!retreatTile(s, u, target)) return 'noRetreatTile';
+  return 'ok';
 }
 
 /** Schaden nach Trefferart (gerundet) / damage by hit kind (rounded) */
@@ -533,7 +585,11 @@ export function convertTargets(s: GameState, u: Unit): Unit[] {
   return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o));
 }
 
+/** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
+export const alienHealBlocked = (s: GameState, u: Unit) => isAlien(u) && !tileAt(s, u.x, u.y)!.xeno;
+
 export function healAmount(s: GameState, u: Unit): number {
+  if (alienHealBlocked(s, u)) return 0;
   const t = tileAt(s, u.x, u.y)!;
   const own = territoryOwner(s, t) === u.owner || (t.outpost !== null && t.outpost.owner === u.owner);
   let h = own ? HEALING.ownTerritory : HEALING.elsewhere;
@@ -545,6 +601,25 @@ export function healAmount(s: GameState, u: Unit): number {
   if (p2 === 'fieldHospitals') h += PERKS2.fieldHospitalsHeal;
   if (p2 === 'forestSpawn' && t.terrain === 'forest') h += PERKS2.forestSpawnHeal;
   return h;
+}
+
+/** Wrack fuer die Notreparatur: eigenes Feld zuerst, dann Nachbarn / wreck for the emergency repair: own tile first, then neighbours */
+export function repairWreck(s: GameState, u: Unit): Pos | null {
+  for (const p of [{ x: u.x, y: u.y }, ...neighbors(s.size, u.x, u.y)]) {
+    if (tileAt(s, p.x, p.y)!.remains?.kind === 'wreck') return p;
+  }
+  return null;
+}
+
+/** Heilung der Notreparatur (50 % mehr als normal) / healing of the emergency repair (50 % more than normal) */
+export const repairAmount = (s: GameState, u: Unit) => Math.min(Math.round(healAmount(s, u) * REPAIR.factor), u.maxHp - u.hp);
+
+/** Pruefung der Notreparatur (nur Roboter) / check of the emergency repair (robots only) */
+export function repairCheck(s: GameState, u: Unit): 'ok' | 'cannotRepair' | 'unitExhausted' | 'noWreck' {
+  if (hitRace(u.type) !== 'robot' || UNITS[u.type].ship) return 'cannotRepair';
+  if (!canHeal(u)) return 'unitExhausted';
+  if (!repairWreck(s, u)) return 'noWreck';
+  return 'ok';
 }
 
 export function canHeal(u: Unit): boolean {

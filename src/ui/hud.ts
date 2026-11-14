@@ -9,7 +9,7 @@ import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -86,7 +86,10 @@ function accuracyStat(s: GameState, u: Unit): string {
   if (!hitChanceOn(s)) return '';
   const o = hitOdds(s, u);
   const tip = HIT_KINDS.map((k) => `${t(`hit.${k}`)} ${Math.round(o[k] * 100)} %`).join(' · ');
-  return `<span class="stat" title="${esc(tip)}">${icon('range', 'icon-sm')}${esc(t(`hit.race.${hitRace(u.type)}`))}</span>`;
+  const race = hitRace(u.type);
+  const note = race === 'cult' && cultFrenzy(u) ? ` · ${t('hit.frenzy')}` : race === 'robot' && u.hp < u.maxHp ? ` · ${t('hit.worn')}` : '';
+  const ready = canOrderlyRetreat(u) && (u.retreatReady ?? 0) > s.round ? ` · ${t('retreat.cooldown', { n: (u.retreatReady ?? 0) - s.round })}` : '';
+  return `<span class="stat ${note ? 'tag warn' : ''}" title="${esc(tip)}">${icon('range', 'icon-sm')}${esc(t(`hit.race.${race}`) + note + ready)}</span>`;
 }
 
 export interface HudCallbacks {
@@ -359,13 +362,36 @@ export class Hud {
           label: `${t('actions.attack')}: ${attackLabel(s, p)}`,
           run: () => void g.exec({ type: 'attack', unit: u.id, target: target.id }),
         });
+        // Menschen: geordneter Rueckzug / humans: orderly retreat
+        if (canOrderlyRetreat(u)) {
+          const rc = retreatCheck(s, u, target);
+          if (rc !== 'cannotRetreat' && rc !== 'outOfRange') {
+            const wait = (u.retreatReady ?? 0) - s.round;
+            this.actions.push({
+              id: 'retreat', icon: 'move', enabled: rc === 'ok',
+              label: t('retreat.action', { dmg: retreatDamage(s, u, target) }),
+              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? t('retreat.cooldown', { n: wait }) : errText(rc),
+              run: () => void g.exec({ type: 'retreat', unit: u.id, target: target.id }),
+            });
+          }
+        }
       }
     }
     const cap = captureKind(s, u);
     if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: t('actions.capture'), variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
     if (u.hp < u.maxHp) {
-      const ok = canHeal(u);
-      this.actions.push({ id: 'heal', icon: 'heal', label: `${t('actions.heal')} +${Math.min(healAmount(s, u), u.maxHp - u.hp)}`, enabled: ok, reason: ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'heal', unit: u.id }) });
+      const blocked = alienHealBlocked(s, u);
+      const ok = canHeal(u) && !blocked;
+      this.actions.push({ id: 'heal', icon: 'heal', label: `${t('actions.heal')} +${Math.min(healAmount(s, u), u.maxHp - u.hp)}`, enabled: ok,
+        reason: blocked ? errText('noXenoGround') : ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'heal', unit: u.id }) });
+    }
+    // Roboter: Notreparatur aus einem Wrack / robots: emergency repair from a wreck
+    if (u.hp < u.maxHp) {
+      const rc = repairCheck(s, u);
+      if (rc === 'ok' || rc === 'unitExhausted') {
+        this.actions.push({ id: 'repair', icon: 'build', label: t('repair.action', { n: repairAmount(s, u) }), enabled: rc === 'ok',
+          reason: rc === 'ok' ? t('repair.desc') : errText('unitExhausted'), run: () => void g.exec({ type: 'repair', unit: u.id }) });
+      }
     }
     if (has(u, 'heal')) {
       const ok = canActStill(u);

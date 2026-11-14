@@ -316,6 +316,8 @@ describe('Zweite Fraktionsmerkmale / second faction traits', () => {
   it('Zyrr (forest brood): +1 healing in forests only', () => {
     const { s } = duel('zyrr');
     setTerrain(s, 5, 5, 'forest');
+    // Ausserirdische heilen nur auf Xeno-Boden / aliens heal only on xeno ground
+    s.tiles[5 * s.size + 5].xeno = true; s.tiles[6 * s.size + 6].xeno = true;
     const inForest = addUnit(s, 'grey', 0, 5, 5, { hp: 3 });
     const inPlain = addUnit(s, 'grey', 0, 6, 6, { hp: 3 });
     expect(healAmount(s, inForest)).toBe(healAmount(s, inPlain) + PERKS2.forestSpawnHeal);
@@ -345,10 +347,17 @@ describe('Zweite Fraktionsmerkmale / second faction traits', () => {
 describe('KI / AI', () => {
   it('trains unique units and builds unique buildings', () => {
     const ids: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon'];
-    const s = createGame(defaultConfig({ seed: 7, size: 14, mode: 'points', mapType: 'continent', factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' })) }));
-    for (let i = 0; i < 4 * 20 && !s.over; i++) playAiTurn(s);
-    const types = new Set([...s.units.map((u) => u.type), ...(s.history?.fallen ?? []).map((r) => r.type)]);
-    const built = new Set(s.tiles.map((t) => t.building));
+    // zwei Partien, weil das Trefferglueck den Verlauf einer einzelnen Partie stark veraendert
+    // two games, because hit luck changes the course of a single game a lot
+    const types = new Set<string>();
+    const built = new Set<string | null>();
+    for (const seed of [7, 8]) {
+      const s = createGame(defaultConfig({ seed, size: 14, mode: 'points', mapType: 'continent', factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' })) }));
+      for (let i = 0; i < 4 * 20 && !s.over; i++) playAiTurn(s);
+      for (const u of s.units) types.add(u.type);
+      for (const r of s.history?.fallen ?? []) types.add(r.type);
+      for (const t of s.tiles) built.add(t.building);
+    }
     const units = UNIQUE_UNITS.filter((u) => types.has(u));
     const buildings = UNIQUE_BUILDINGS.filter((b) => built.has(b));
     expect(units.length).toBeGreaterThanOrEqual(2);

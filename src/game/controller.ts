@@ -347,7 +347,7 @@ export class Controller {
               if (seen && tb && !killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
               if (!shown || !pos) return;
               this.ui.fx('hit', pos.x, pos.y);
-              this.ui.fx('num', pos.x, pos.y, hitText(e.hit, e.dmg));
+              this.ui.fx('num', pos.x, pos.y, e.retreat ? `${t('retreat.fx')} -${e.dmg}` : hitText(e.hit, e.dmg));
               for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
             };
             // Gegenschlag / retaliation

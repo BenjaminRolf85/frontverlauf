@@ -286,6 +286,26 @@ export const HIT = {
   weatherFactor: { human: 1, alien: 1, robot: 0.4, cult: 1 } as Record<HitRace, number>,
   /** Ausserirdische frieren: Schnee wirkt staerker / aliens freeze: snow hits harder */
   alienSnowFactor: 1.6,
+  /** Fanatiker in Lebensgefahr: unter diesem LP-Anteil mehr kritische Treffer / fanatics near death: more crits below this HP share */
+  cultFrenzyHp: 0.2,
+  cultFrenzyCrit: 0.5,
+  /** Roboter: Verschiebung bei 20 % LP, linear ab vollen LP / robots: shift at 20 % HP, linear from full HP */
+  robotDamagedAt: 0.2,
+  robotDamaged: { miss: 0.08, graze: 0.07, partial: 0.1, full: -0.25 } as Partial<Record<HitKind, number>>,
+};
+
+/** Notreparatur der Roboter aus Wracks / emergency repair of robots from wrecks */
+export const REPAIR = {
+  /** Faktor auf die normale Heilung / factor on normal healing */
+  factor: 1.5,
+};
+
+/** Geordneter Rueckzug (menschliche Truppen) / orderly retreat (human troops) */
+export const RETREAT = {
+  /** Anteil des vollen Schadens / share of full damage */
+  damage: 0.2,
+  /** Runden, in denen die Faehigkeit danach gesperrt ist / rounds the ability is locked afterwards */
+  cooldown: 2,
 };
 
 export const DEFENSE_BONUS = {
