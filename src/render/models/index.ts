@@ -15,6 +15,7 @@ import type { BuildingId, FactionId, GrandProjectId, ResourceId, TerrainId, Unit
 import { building, feature } from './buildings';
 import { city } from './city';
 import { memo, withDetail } from './kit';
+import { leader } from './leaders';
 
 /** Detailfaktor fuer Einheiten (Rundungssegmente) / detail factor for units (radial segments) */
 const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
@@ -120,6 +121,14 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   }
   colr.needsUpdate = true;
   return g;
+}
+
+/**
+ * Anfuehrer-Bueste der Fraktion (Kopf und Schultern, Blick +z, Ursprung unten mittig, ca. 1.0 hoch, 0.9 breit).
+ * Faction leader bust (head and shoulders, facing +z, origin bottom centre, about 1.0 tall and 0.9 wide).
+ */
+export function leaderGeometry(faction: FactionId): THREE.BufferGeometry {
+  return memo(`leader|${faction}`, () => withDetail(1, true, () => leader(faction).build()));
 }
 
 /** Vereinfachte Ladung fuer das Landungsboot (ohne Besatzung/Embleme) / simplified cargo for the landing boat */

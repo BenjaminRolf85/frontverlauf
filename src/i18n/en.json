@@ -85,7 +85,12 @@
       "perk": "Mass mobilisation",
       "perkDesc": "Every city supports one more unit.",
       "discount": "Infantry 20 % cheaper",
-      "home": "wide plains, lots of farmland"
+      "home": "wide plains, lots of farmland",
+      "leader": "Ilja Brodnik",
+      "leaderTitle": "Grand Marshal of the People's League",
+      "quote": "One people, one step, one victory.",
+      "lore": "The Korvat People's League grew out of a hundred farming cooperatives on the endless steppe. Every ploughman is a soldier, every village kitchen feeds a regiment. Grand Marshal Brodnik, once a tractor driver, leads with iron fatherliness: nobody is left behind, and nobody retreats.",
+      "style": "mass armies, red banners, choirs"
     },
     "dravon": {
       "name": "Protectorate of Dravon",
@@ -94,7 +99,12 @@
       "perk": "Drill",
       "perkDesc": "Veteran status after 2 instead of 3 destroyed enemies.",
       "discount": "Jeep 20 % cheaper",
-      "home": "industrial land rich in ore"
+      "home": "industrial land rich in ore",
+      "leader": "Sarek Voss",
+      "leaderTitle": "Commander of the Protectorate",
+      "quote": "Discipline is the only truth.",
+      "lore": "Dravon was once a pact of mercenary companies guarding the desert ore mines. Today it is a state made of barracks. Nobody has ever seen Commander Voss without his balaclava; people say he has no face, only orders. His troops become veterans faster than any other army.",
+      "style": "drill, camo green, black balaclavas"
     },
     "alvenia": {
       "name": "Republic of Alvenia",
@@ -103,7 +113,12 @@
       "perk": "Alliance policy",
       "perkDesc": "Embassies cost half and yield double income.",
       "discount": "Medic 20 % cheaper",
-      "home": "balanced hill country"
+      "home": "balanced hill country",
+      "leader": "Liora Valen",
+      "leaderTitle": "President of the Republic",
+      "quote": "An alliance is stronger than any wall.",
+      "lore": "Alvenia is a republic of green hill valleys, governed by a parliament that debates longer than it fights. President Valen was a field medic before she became a diplomat. Her embassies are everywhere, and so are her medics: Alvenia wins wars with friends instead of tanks.",
+      "style": "diplomacy, blue berets, medics"
     },
     "meridon": {
       "name": "Meridon Trade League",
@@ -112,7 +127,12 @@
       "perk": "Boom",
       "perkDesc": "Every city level-up needs 1 population point less, at least 1.",
       "discount": "Spy 20 % cheaper",
-      "home": "coasts and islands, many fishing grounds"
+      "home": "coasts and islands, many fishing grounds",
+      "leader": "Coralie Nerezza",
+      "leaderTitle": "Admiral of the Trade League",
+      "quote": "Every harbour has its price. I pay in cash.",
+      "lore": "The Meridon Trade League is a union of rich port cities whose fleets know every coast. Admiral Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her cities grow faster than any others, and her spies know everything before it happens.",
+      "style": "harbours, gold, spies, sailors"
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -121,7 +141,12 @@
       "perk": "Research lead",
       "perkDesc": "All technologies cost 20 % less.",
       "discount": "Pioneer squad 20 % cheaper",
-      "home": "mountains and forest"
+      "home": "mountains and forest",
+      "leader": "Aurel Kesh",
+      "leaderTitle": "Director of the Technocracy",
+      "quote": "Who calculates, wins. Who guesses, loses.",
+      "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's researchers are ahead of everyone, and its pioneers build fortresses where others freeze.",
+      "style": "research, laboratories, pioneers, cold"
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -130,7 +155,12 @@
       "perk": "Xenotech",
       "perkDesc": "No research needed, all units available right away, but more expensive. Training and building only on terraformed xeno ground.",
       "discount": "no discount",
-      "home": "barren highlands"
+      "home": "barren highlands",
+      "leader": "Xyl'Tharra",
+      "leaderTitle": "Swarm Mother of the Zyrr",
+      "quote": "Kkt. This planet will be violet.",
+      "lore": "The Zyrr are a scouting swarm whose mothership crashed over the desert. Swarm Mother Xyl'Tharra decided to stay and turn the planet into a second home. Wherever her terraformers work, violet xeno ground grows, and on it the Zyrr are hard to beat.",
+      "style": "saucers, death rays, xeno ground"
     },
     "vesper": {
       "name": "Cult of the Final Hour",
@@ -139,7 +169,12 @@
       "perk": "Zeal",
       "perkDesc": "Research normally, but do not recruit in cities: they recruit on tiles next to zealots and prophets. The recruiter is exhausted for this turn.",
       "discount": "no discount",
-      "home": "dusty pilgrimage sites"
+      "home": "dusty pilgrimage sites",
+      "leader": "Malachar",
+      "leaderTitle": "Prophet of the Final Hour",
+      "quote": "The bell tolls. Repent while you can.",
+      "lore": "The Cult of the Final Hour arose at dusty pilgrimage sites where the desperate wait for the end of the world. The prophet Malachar proclaims that the final hour is near, and his zealots recruit new believers wherever they stand. The cult does not need cities, only fire and faith.",
+      "style": "robes, bone masks, bells, flames"
     },
     "nexus": {
       "name": "NEXUS AI Collective",
@@ -148,7 +183,12 @@
       "perk": "Hive computing",
       "perkDesc": "No research tree: units need compute. Each data center backed by its own power plant gives 1 compute.",
       "discount": "no discount",
-      "home": "ore highlands"
+      "home": "ore highlands",
+      "leader": "KERN-0",
+      "leaderTitle": "Prime Instance of the Collective",
+      "quote": "Calculation complete. Result: your defeat.",
+      "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data center with a power plant makes the collective smarter and its machines deadlier.",
+      "style": "robots, data centers, cyan light"
     }
   },
   "units": {
@@ -1488,5 +1528,11 @@
     "vsAir": "{pct} % vs flyers",
     "vsFoot": "{pct} % vs foot troops",
     "hint": "Counter: damage against this target class, when attacking and retaliating."
+  },
+  "leaders": {
+    "title": "Faction",
+    "leader": "Leader",
+    "style": "Style",
+    "perk": "Strength"
   }
 }

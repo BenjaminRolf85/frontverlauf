@@ -15,6 +15,8 @@ import {
 import type { Controller } from '../game/controller';
 import { t, tList } from '../i18n/i18n';
 import { Portrait } from './portrait';
+import { leaderPortrait } from './leaders';
+import { factionDialog } from './screens';
 import {
   actionButton, esc, factionBadge, factionChip, iconButton, price, progress, resource, type ActionItem,
 } from './components';
@@ -123,6 +125,11 @@ export class Hud {
       }
       case 'diplomacy': this.cb.openDiplomacy(); break;
       case 'menu': this.cb.openMenu(); break;
+      case 'faction': {
+        const st = this.game.state;
+        if (st) factionDialog(this.top.parentElement ?? document.body, st.factions[this.game.viewer >= 0 ? this.game.viewer : st.current].id);
+        break;
+      }
       case 'grand': this.cb.openGrand(); break;
       case 'details': this.cb.openDetails(); break;
       case 'speedUp': this.game.speedUp = true; this.game.view.board.finishAnimations(); break;
@@ -154,7 +161,7 @@ export class Hud {
     const up = upkeep(s, viewerIdx);
     const limit = s.config.roundLimit;
     this.top.innerHTML = `
-      ${factionChip(f.id, t(`factions.${f.id}.short`))}
+      <button type="button" class="faction-btn" data-action="faction" aria-label="${esc(t('leaders.title'))}: ${esc(t(`factions.${f.id}.name`))}">${leaderPortrait(f.id, 'xs')}${factionChip(f.id, t(`factions.${f.id}.short`))}</button>
       ${resource('medal', score(s, viewerIdx), '', t('hud.points'))}
       ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: (inc - up >= 0 ? '+' : '') + (inc - up) }) : t('hud.perRound', { n: inc }), t('hud.stars'))}
       ${resource('hourglass', limit ? `${Math.min(s.round, limit)}/${limit}` : s.round, '', t('hud.round'))}

@@ -19,6 +19,7 @@ import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { cityName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
+import { factionCard, leaderPortrait } from './leaders';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -154,8 +155,11 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
         const current = cfg.players[slot].id === f;
         return `<button type="button" class="faction-card" data-pick="${f}" aria-pressed="${current}">
-          ${factionBadge(f)}
+          ${leaderPortrait(f, 'md')}
           <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
+            <span>${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
+            <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
+            <span class="muted">${esc(t(`factions.${f}.lore`))}</span>
             <span class="muted">${esc(t(`factions.${f}.perk`))}: ${esc(t(`factions.${f}.perkDesc`))}</span>
             <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
               ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
@@ -452,7 +456,7 @@ export function diplomacyDialog(host: ScreenHost) {
         }
         actions = `<div class="row">${tags.join('')}</div><div class="row">${btns.join('')}</div>`;
       }
-      return `<div class="player-row">${factionBadge(o.id)}<div class="col"><strong>${esc(name)}</strong><span class="muted">${esc(t(`factions.${o.id}.alignment`))} · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}</span></div><div class="col span-all">${actions}</div></div>`;
+      return `<div class="player-row">${leaderPortrait(o.id, 'sm')}<div class="col"><strong>${esc(name)}</strong><span>${esc(t(`factions.${o.id}.leaderTitle`))} ${esc(t(`factions.${o.id}.leader`))}</span><span class="muted">${esc(t(`factions.${o.id}.alignment`))} · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}</span></div><div class="col span-all">${actions}</div></div>`;
     }).join('');
     return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint'))}</p>`;
   };
@@ -611,4 +615,10 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
     else if (kind === 'load') { d.close(); act.load(i); }
     else if (kind === 'del') { act.remove(i); slots[i] = null; d.node.innerHTML = html(); }
   });
+}
+
+/** Fraktionsfenster mit Anfuehrer und Hintergrund / faction window with leader and background */
+export function factionDialog(root: HTMLElement, f: FactionId) {
+  const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionCard(f)}`, { wide: true });
+  d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
 }
