@@ -9,6 +9,7 @@
  * - ambience per weather (rain, wind, snow, birds, surf) and distant battle noise
  */
 import type { FactionId, UnitTypeId } from '../data/balance';
+import { MusicPlayer, type MusicMood } from './music';
 
 export type Sfx = 'select' | 'move' | 'attack' | 'hit' | 'kill' | 'endTurn' | 'capture' | 'levelUp' | 'error' | 'build' | 'research' | 'click';
 export type Sting = 'cityWon' | 'cityLost' | 'alarm' | 'victory' | 'defeat' | 'turnStart' | 'levelUp';
@@ -70,7 +71,13 @@ class AudioEngine {
   private ambBus: GainNode | null = null;
   private reverb: ConvolverNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
-  musicOn = true;
+  /** Musik aus Dateien; prozedurale Musik nur als Ersatz / music from files; procedural music only as fallback */
+  readonly music = new MusicPlayer();
+  private musicEnabled = true;
+  get musicOn() { return this.musicEnabled; }
+  set musicOn(on: boolean) { this.musicEnabled = on; this.music.setEnabled(on); }
+  /** Spieler liegt deutlich vorn (ruhige Runden spielen das Siegesnahe-Stueck) / player clearly leads */
+  private leading = false;
   effectsOn = true;
   ambienceOn = true;
   private theme: FactionId | null = null;
@@ -113,6 +120,7 @@ class AudioEngine {
 
   /** Nach einer Nutzergeste aufrufen / call after a user gesture */
   unlock() {
+    this.music.unlock();
     const ctx = this.ensure();
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
     this.applyAmbience();
@@ -505,6 +513,12 @@ class AudioEngine {
     this.duckUntil = ctx.currentTime + 2.2;
     this.duck();
     const out = this.fxOut(0.45);
+    // Stinger aus Dateien, falls vorhanden / stingers from files when available
+    if (this.music.available && this.musicEnabled && (kind === 'cityWon' || kind === 'cityLost')) {
+      this.music.sting(kind);
+      if (kind === 'cityWon' && f) this.battleCry(f, true);
+      return;
+    }
     switch (kind) {
       case 'cityWon':
         this.fanfare(t, true);
@@ -560,6 +574,7 @@ class AudioEngine {
   setTheme(f: FactionId | null) {
     this.theme = f;
     this.step = 0;
+    this.music.set(this.moodFor(), f);
     if (this.timer === null) this.timer = window.setInterval(() => this.schedule(), 110);
   }
 
@@ -568,13 +583,31 @@ class AudioEngine {
     if (level === this.intensity) return;
     const rising = level > this.intensity;
     this.intensity = level;
+    this.music.set(this.moodFor());
     const ctx = this.ctx;
     if (ctx && this.musicBus && ctx.currentTime > this.duckUntil) this.musicBus.gain.setTargetAtTime(this.musicLevel(), ctx.currentTime, 0.5);
     if (rising && level === 2) this.sting('alarm');
     this.applyAmbience();
   }
 
+  private moodFor(): MusicMood {
+    return this.intensity === 2 ? 'battle' : this.intensity === 1 ? 'tense' : this.leading ? 'leading' : 'calm';
+  }
+
+  /** Spieler liegt kurz vor dem Sieg / player is close to victory */
+  setLeading(on: boolean) {
+    if (on === this.leading) return;
+    this.leading = on;
+    this.music.set(this.moodFor());
+  }
+
+  /** Hauptmenue- und Briefing-Musik / main menu and briefing music */
+  menuMusic() { this.theme = null; this.music.set('menu', null); }
+  briefingMusic() { this.music.set('briefing', null); }
+
   private schedule() {
+    // Dateimusik hat Vorrang; prozedural nur als Ersatz / file music first; procedural only as fallback
+    if (this.music.available) return;
     if (!this.musicOn || !this.theme) return;
     const ctx = this.ctx;
     if (!ctx || ctx.state !== 'running' || !this.musicBus) return;
@@ -627,6 +660,7 @@ class AudioEngine {
   gameOver(win: boolean, f?: FactionId) {
     this.setIntensity(0);
     this.sting(win ? 'victory' : 'defeat', f);
+    this.music.set(win ? 'victory' : 'defeat');
   }
 
   // ---------- Atmosphaere / ambience ----------

@@ -2,6 +2,7 @@
  * Kampagne in der Oberflaeche: Einsatzliste, Comic-Besprechung, Ziel-Panel im Spiel und Ergebnis mit Sternen.
  * Campaign UI: mission list, comic briefing, in-game objective panel and result screen with stars.
  */
+import { audio } from '../audio/audio';
 import './campaign.css';
 import {
   MISSIONS, MISSION_IDS, missionById, missionConfig, objectiveProgress, isHoldObjective,
@@ -120,6 +121,7 @@ export function campaignScreen(host: ScreenHost): HTMLElement {
 export function briefingDialog(host: ScreenHost, id: string) {
   const m = missionById(id);
   if (!m) return;
+  audio.briefingMusic();
   const texts = tList(`campaign.missions.${id}.brief`);
   const panels = m.briefing.map((speaker, i) => ({ speaker, text: texts[i] ?? '' }));
   const best = loadProgress().missions[id]?.stars ?? 0;

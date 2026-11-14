@@ -666,13 +666,14 @@
     "title": "Mitwirkende",
     "game": "Spielidee, Regeln, Code, Modelle und Klang: Frontverlauf-Projekt (eigene Schöpfung, CC0)",
     "models": "3D-Modelle: prozedural per Skript erzeugt (eigene Schöpfung, CC0)",
-    "sound": "Klang und Musik: prozedural per WebAudio erzeugt (eigene Schöpfung, CC0)",
+    "sound": "Klangeffekte: prozedural per WebAudio erzeugt (eigene Schöpfung, CC0)",
     "fontBangers": "Schrift Bangers: Vernon Adams, SIL Open Font License 1.1",
     "fontComicNeue": "Schrift Comic Neue: Craig Rozynski, SIL Open Font License 1.1",
     "three": "Three.js: three.js authors, MIT-Lizenz",
     "vite": "Vite: Evan You und Mitwirkende, MIT-Lizenz",
     "disclaimer": "Alle Fraktionen sind frei erfunden und haben keinen Bezug zu realen Staaten, Armeen oder Parteien.",
-    "fontBlackOps": "Schrift Black Ops One: James Grieshaber und Eben Sorkin, SIL Open Font License 1.1"
+    "fontBlackOps": "Schrift Black Ops One: James Grieshaber und Eben Sorkin, SIL Open Font License 1.1",
+    "music": "Musik: vom Projektinhaber mit Suno erstellt; prozedurale Ersatzmusik, falls die Dateien nicht laden"
   },
   "xr": {
     "notSupported": "WebXR wird von diesem Browser nicht unterstützt.",
