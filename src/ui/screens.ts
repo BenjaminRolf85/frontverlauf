@@ -94,6 +94,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   const cfg = {
     weather: true,
     events: true,
+    hitChance: true,
     hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
@@ -125,6 +126,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('randomEvents.title'))}</span>
           ${segmented('events', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.events ? 'on' : 'off')}
           <span class="muted">${esc(t('randomEvents.setupHint'))}</span></div>
+        <div class="field"><span class="label">${esc(t('hit.title'))}</span>
+          ${segmented('hitChance', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.hitChance ? 'on' : 'off')}
+          <span class="muted">${esc(t('hit.setupHint'))}</span></div>
         ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
           ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
@@ -201,6 +205,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'weather') cfg.weather = v === 'on';
       else if (key === 'hazards') cfg.hazards = v as HazardLevel;
       else if (key === 'events') cfg.events = v === 'on';
+      else if (key === 'hitChance') cfg.hitChance = v === 'on';
       else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
       else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
@@ -230,6 +235,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         weather: cfg.weather,
         hazards: cfg.hazards,
         events: cfg.events,
+        hitChance: cfg.hitChance,
       });
       n.remove();
       host.startGame(config);

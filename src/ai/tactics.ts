@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  canSeeMine, mineTargets, erupts, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -24,13 +24,18 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   const { s } = ctx;
   const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay };
   const p = combatPreview(s, att, d);
-  let v = p.kills ? worth(d) + 8 : (p.toDefender / d.hp) * worth(d) * 0.75;
-  if (p.retaliates) v -= p.toAttacker >= a.hp ? worth(a) + 6 : (p.toAttacker / a.hp) * worth(a) * 0.7;
+  // Trefferglueck: Vernichtungschance und Erwartungswerte statt fester Treffer / hit luck: kill chance and expected values instead of fixed hits
+  const dmgNoKill = p.killChance < 1 ? (p.expected - p.killChance * d.hp) / (1 - p.killChance) : 0;
+  let v = p.killChance * (worth(d) + 8) + (1 - p.killChance) * Math.min(1, Math.max(0, dmgNoKill) / d.hp) * worth(d) * 0.75;
+  if (p.retFull > 0) {
+    const ret = p.expectedRet / Math.max(0.01, 1 - p.killChance);
+    v -= (1 - p.killChance) * (ret >= a.hp ? worth(a) + 6 : (ret / a.hp) * worth(a) * 0.7);
+  }
   const t = s.tiles[idx(s.size, d.x, d.y)];
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId);
     if (c && c.owner === ctx.f) v += 30; // Feind in eigener Stadt / enemy inside own city
-    else if (c) v += p.kills ? 14 : 4; // Verteidiger einer Zielstadt / defender of a target city
+    else if (c) v += 4 + p.killChance * 10; // Verteidiger einer Zielstadt / defender of a target city
   }
   for (const c of ctx.myCities) if (dist(c, d) === 1) { v += 6; break; }
   return v;
@@ -89,6 +94,12 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
       if (UNITS[u.type].range > 1) v += 1;
       const c: Command = { type: 'attack', unit: u.id, target: t.id };
       if (v > bv && ok(failed, c)) { bv = v; best = c; }
+      // Menschen: geordneter Rueckzug, wenn angeschlagen oder der Angriff sich nicht lohnt / humans: orderly retreat when battered or the attack is not worth it
+      if ((u.hp < u.maxHp * 0.45 || v < 0) && retreatCheck(s, u, t) === 'ok') {
+        const rv = (retreatDamage(s, u, t) / t.hp) * worth(t) * 0.6 + (u.hp < u.maxHp * 0.45 ? 4 : 1);
+        const rc: Command = { type: 'retreat', unit: u.id, target: t.id };
+        if (rv > bv && ok(failed, rc)) { bv = rv; best = rc; }
+      }
     }
   }
   return best && bv >= prof.attackMin ? best : null;
@@ -286,11 +297,18 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     // Heilen statt Bewegen / heal instead of moving
     // Hubschrauber mit wenig Sprit heilt nicht abseits der Tankstelle / low-fuel helicopter never heals away from refuel
     const heliLow = u.fuel !== null && u.fuel <= 2 && !isRefuelSpot(s, u.owner, u.x, u.y);
-    if (canHeal(u) && !u.moved && stay > -1e5 && !heliLow) {
+    if (canHeal(u) && !u.moved && stay > -1e5 && !heliLow && !alienHealBlocked(s, u)) {
       const amt = Math.min(healAmount(s, u), u.maxHp - u.hp);
       const hv = stay + (amt / u.maxHp) * worth(u) * 1.6 + (u.hp < u.maxHp / 2 ? 4 : 0);
       const c: Command = { type: 'heal', unit: u.id };
       if (hv > bestV + 0.5 && ok(failed, c)) { bestV = hv; bestCmd = c; }
+    }
+    // Roboter: Notreparatur aus einem Wrack heilt mehr / robots: emergency repair from a wreck heals more
+    if (repairCheck(s, u) === 'ok' && stay > -1e5) {
+      const amt = repairAmount(s, u);
+      const rv = stay + (amt / u.maxHp) * worth(u) * 1.6 + (u.hp < u.maxHp / 2 ? 4 : 0);
+      const c: Command = { type: 'repair', unit: u.id };
+      if (rv > bestV + 0.5 && ok(failed, c)) { bestV = rv; bestCmd = c; }
     }
     // Sanitaeter heilt Nachbarn / medic heals neighbours
     if (has(u, 'heal') && canActStill(u)) {

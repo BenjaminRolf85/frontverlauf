@@ -610,7 +610,13 @@
     "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
     "cultRecruit": "Der Kult rekrutiert nicht in Städten.",
     "cityLevel": "Die Stadt braucht eine höhere Stufe.",
-    "mineLimit": "Höchstens {n} Minen je Fraktion."
+    "mineLimit": "Höchstens {n} Minen je Fraktion.",
+    "cannotRetreat": "Nur menschliche Bodentruppen können sich geordnet zurückziehen.",
+    "retreatCooldown": "Der Rückzug ist noch nicht wieder bereit.",
+    "noRetreatTile": "Kein freies Feld für den Rückzug.",
+    "cannotRepair": "Nur Roboter können sich aus Wracks reparieren.",
+    "noWreck": "Kein Wrack auf oder neben dem Feld.",
+    "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -2081,7 +2087,7 @@
     "terraform": "Terraformen",
     "terraformHint": "Tippe auf ein markiertes Feld, um es in Xeno-Boden umzuwandeln.",
     "ground": "Xeno-Boden",
-    "groundDesc": "Alien-Einheiten: Verteidigung 1,5 und +2 Heilung",
+    "groundDesc": "Alien-Einheiten: Verteidigung 1,5 und +2 Heilung. Außerirdische heilen nur auf Xeno-Boden.",
     "cityNeedsTerraform": "Erst terraformen: Ausbilden nur auf Xeno-Boden.",
     "noResearch": "Die Zyrr brauchen keine Forschung. Ihre Einheiten sind sofort verfügbar."
   },
@@ -2687,5 +2693,41 @@
         "UNMÖGLICH. UNMÖGLICH. UNMÖG... SYSTEMNEUSTART ERFORDERLICH."
       ]
     }
+  },
+  "hit": {
+    "title": "Trefferglück",
+    "setupHint": "Angriffe können danebengehen, streifen, teilweise oder kritisch treffen (0 bis 150 % Schaden). Wetter und Rasse verändern die Chancen.",
+    "miss": "Daneben",
+    "graze": "Streifschuss",
+    "partial": "Teiltreffer",
+    "full": "Voller Treffer",
+    "crit": "Kritisch",
+    "previewDmg": "≈{exp} Schaden ({min}–{max})",
+    "killChance": "Vernichtung {pct} %",
+    "previewRet": "Gegenschlag ≈{ret}",
+    "race": {
+      "human": "Solide Schützen",
+      "alien": "Wuchtig, ungenau",
+      "robot": "Präzise, selten kritisch",
+      "cult": "Fanatisch, unberechenbar"
+    },
+    "raceDesc": {
+      "human": "Meist volle Treffer, gelegentlich kritisch.",
+      "alien": "Viele kritische Treffer, aber auch viele Fehlschüsse; Schnee macht sie noch ungenauer.",
+      "robot": "Fast immer volle Treffer, kaum Fehlschüsse und kaum kritische; Wetter stört wenig.",
+      "cult": "Oft kritisch, oft daneben: fanatisch und unberechenbar."
+    },
+    "frenzy": "Raserei: mehr kritische Treffer",
+    "worn": "beschädigt: ungenauer"
+  },
+  "retreat": {
+    "action": "Geordneter Rückzug (−{dmg})",
+    "desc": "Feuert mit 20 % Schaden ohne Gegenschlag und weicht ein Feld zurück. Danach 2 Runden Abkühlung.",
+    "cooldown": "Rückzug bereit in {n} Runden",
+    "fx": "Rückzug"
+  },
+  "repair": {
+    "action": "Notreparatur aus Wrack +{n}",
+    "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: 50 % mehr Heilung als normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
   }
 }

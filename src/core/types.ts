@@ -1,6 +1,6 @@
 import type {
   BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
-  UnitTypeId, BunkerReward,
+  UnitTypeId, BunkerReward, HitKind,
 } from '../data/balance';
 
 export interface Pos { x: number; y: number }
@@ -88,6 +88,8 @@ export interface Unit {
   homeCity: number | null;
   kills: number;
   veteran: boolean;
+  /** Geordneter Rueckzug wieder moeglich ab dieser Runde / orderly retreat available again from this round */
+  retreatReady?: number;
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -154,6 +156,8 @@ export interface GameConfig {
   roundLimit: number | null;
   /** Zufallsereignisse an (Einrichtung: Standard an) / random events on (setup: default on) */
   events?: boolean;
+  /** Trefferglueck an (fehlt = an) / hit luck on (missing = on) */
+  hitChance?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
 }
@@ -208,7 +212,7 @@ export interface GameState {
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
-  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[] }
+  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   | { t: 'capture'; city: number; faction: number; from: number | null }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
@@ -217,7 +221,7 @@ export type GameEvent =
   | { t: 'train'; unit: number; city: number }
   | { t: 'build'; building: BuildingId | 'outpost' | GrandProjectId; x: number; y: number; faction: number }
   | { t: 'research'; tech: TechId; faction: number }
-  | { t: 'heal'; unit: number; amount: number }
+  | { t: 'heal'; unit: number; amount: number; repair?: boolean }
   | { t: 'convert'; unit: number; target: number }
   | { t: 'veteran'; unit: number }
   | { t: 'bunker'; x: number; y: number; reward: BunkerReward; faction: number }
@@ -259,7 +263,9 @@ export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 
 export type Command =
   | { type: 'move'; unit: number; to: Pos }
   | { type: 'attack'; unit: number; target: number }
+  | { type: 'retreat'; unit: number; target: number }
   | { type: 'heal'; unit: number }
+  | { type: 'repair'; unit: number }
   | { type: 'medicHeal'; unit: number }
   | { type: 'convert'; unit: number; target: number }
   | { type: 'capture'; unit: number }
@@ -284,7 +290,7 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel';
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround';
 
 export interface CommandResult {
   ok: boolean;

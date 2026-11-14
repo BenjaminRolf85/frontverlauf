@@ -21,6 +21,7 @@ export interface BlankOptions {
   seed?: number;
   roundLimit?: number | null;
   weather?: boolean;
+  hitChance?: boolean;
 }
 
 /**
@@ -32,6 +33,8 @@ export function blankGame(o: BlankOptions = {}): GameState {
   const s = createGame(defaultConfig({
     seed: o.seed ?? 1, size: o.size ?? 11, mapType: 'continent', mode: o.mode ?? 'sandbox', factions,
     startStars: o.stars ?? 0, roundLimit: o.roundLimit, weather: o.weather ?? false,
+    // feste Schadenswerte in Regeltests; Trefferglueck eigens getestet / fixed damage in rule tests; hit luck tested separately
+    hitChance: o.hitChance ?? false,
   }));
   const n = s.size * s.size;
   for (const t of s.tiles) {

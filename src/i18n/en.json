@@ -610,7 +610,13 @@
     "computeMissing": "Not enough compute. Build data centers and power plants.",
     "cultRecruit": "The cult does not recruit in cities.",
     "cityLevel": "The city needs a higher level.",
-    "mineLimit": "At most {n} mines per faction."
+    "mineLimit": "At most {n} mines per faction.",
+    "cannotRetreat": "Only human ground troops can retreat in order.",
+    "retreatCooldown": "The retreat is not ready yet.",
+    "noRetreatTile": "No free tile to retreat to.",
+    "cannotRepair": "Only robots can repair themselves from wrecks.",
+    "noWreck": "No wreck on or next to the tile.",
+    "noXenoGround": "Aliens only heal on terraformed xeno ground."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2081,7 +2087,7 @@
     "terraform": "Terraform",
     "terraformHint": "Tap a highlighted tile to turn it into xeno ground.",
     "ground": "Xeno ground",
-    "groundDesc": "Alien units: defence 1.5 and +2 healing",
+    "groundDesc": "Alien units: defence 1.5 and +2 healing. Aliens only heal on xeno ground.",
     "cityNeedsTerraform": "Terraform first: training only on xeno ground.",
     "noResearch": "The Zyrr need no research. Their units are available right away."
   },
@@ -2687,5 +2693,41 @@
         "IMPOSSIBLE. IMPOSSIBLE. IMPOSS... SYSTEM REBOOT REQUIRED."
       ]
     }
+  },
+  "hit": {
+    "title": "Hit luck",
+    "setupHint": "Attacks can miss, graze, partly hit or land a critical hit (0 to 150 % damage). Weather and race change the odds.",
+    "miss": "Miss",
+    "graze": "Graze",
+    "partial": "Partial hit",
+    "full": "Full hit",
+    "crit": "Critical",
+    "previewDmg": "≈{exp} damage ({min}–{max})",
+    "killChance": "Kill {pct} %",
+    "previewRet": "Return fire ≈{ret}",
+    "race": {
+      "human": "Solid shooters",
+      "alien": "Powerful, inaccurate",
+      "robot": "Precise, rarely critical",
+      "cult": "Fanatic, unpredictable"
+    },
+    "raceDesc": {
+      "human": "Mostly full hits, occasionally critical.",
+      "alien": "Many critical hits but also many misses; snow makes them even less accurate.",
+      "robot": "Almost always full hits, hardly any misses or crits; weather barely matters.",
+      "cult": "Often critical, often off target: fanatic and unpredictable."
+    },
+    "frenzy": "Frenzy: more critical hits",
+    "worn": "damaged: less accurate"
+  },
+  "retreat": {
+    "action": "Orderly retreat (−{dmg})",
+    "desc": "Fires with 20 % damage without return fire and falls back one tile. Then a 2-round cooldown.",
+    "cooldown": "Retreat ready in {n} rounds",
+    "fx": "Retreat"
+  },
+  "repair": {
+    "action": "Emergency repair from wreck +{n}",
+    "desc": "Salvages a wreck on or next to the tile: 50 % more healing than normal, the unit does not fight this round. The wreck is used up."
   }
 }
