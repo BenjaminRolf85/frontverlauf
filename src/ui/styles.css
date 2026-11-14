@@ -378,6 +378,14 @@ input[type="text"], select {
 .tech-node.locked .disc { fill: var(--c-tech-node-locked); }
 .tech-node.expensive .disc { fill: var(--c-tech-node-expensive); }
 .tech-node.selected .disc { stroke: var(--s-focus); stroke-width: var(--c-tech-tree-stroke-selected); }
+/* Siegtechnologie: doppelter Rand / victory tech: double rim */
+.tech-node.victory .disc { stroke-width: var(--c-tech-tree-stroke-selected); stroke-dasharray: 6 3; }
+/* Wunder-Infofeld und Siegverfolgung / wonder info panel and victory tracker */
+.wonder-info { display: flex; flex-direction: column; gap: var(--p-space-1); margin-top: var(--p-space-1); }
+.wonder-info p { margin: 0; }
+.victory-list .score-row .col { min-width: 0; gap: var(--p-space-1); }
+.victory-list .progress { width: 100%; }
+.victory-reason { text-align: center; }
 .tech-node text { font-family: var(--p-font-body); font-weight: var(--p-font-weight-bold); fill: var(--s-text); }
 .tech-node .name { font-size: var(--c-tech-tree-font-size); }
 .tech-node .cost { font-size: var(--c-tech-tree-cost-size); font-family: var(--p-font-display); }

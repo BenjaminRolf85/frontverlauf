@@ -152,7 +152,8 @@ function defector({ s, ev }: Ctx): boolean {
   if (f === undefined) return false;
   const home = hqOf(s, f) ?? ownCities(s, f)[0];
   if (!home) return false;
-  const cands = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && !UNITS[u.type].ship && u.fuel === null && u.carried === null &&
+  // Wunder laufen nie ueber / wonders never defect
+  const cands = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && !UNITS[u.type].ship && u.fuel === null && u.carried === null && !has(u, 'wonder') &&
     tileAt(s, u.x, u.y)!.cityId === null);
   if (!cands.length) return false;
   const u = cands.sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] as Unit;

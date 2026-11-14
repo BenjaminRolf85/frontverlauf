@@ -4,8 +4,9 @@
  */
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
-  neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome } from '../core';
-import { AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, XENO, type UnitTypeId } from '../data/balance';
+  neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
+  isWonder, waalArmed, victoryStatus } from '../core';
+import { AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
 export type GoalKind =
@@ -71,6 +72,8 @@ export interface Ctx {
 const fieldCache = new WeakMap<GameState, { key: string; fields: Map<string, Float32Array> }>();
 
 export function worth(u: Unit): number {
+  // Wunder: sehr wertvolles Ziel / wonders: a very valuable target
+  if (isWonder(u)) return WONDERS.aiWorth;
   const base = (t: UnitTypeId) => (t === 'tank' ? 60 : UNITS[t].cost ?? 10);
   let w = u.carried ? base(u.carried) + (UNITS[u.type].cost ?? 0) : base(u.type);
   if (u.veteran) w += 8;
@@ -90,7 +93,8 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const n = size * size;
   const my = s.units.filter((u) => u.owner === f);
   const myCities = s.cities.filter((c) => c.owner === f);
-  const enemies = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && canSeeUnit(s, f, u));
+  // feindliche Wunder sind allen bekannt (Riesenbauwerke, gemeldet) / hostile wonders are known to all (huge structures, announced)
+  const enemies = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && (canSeeUnit(s, f, u) || isWonder(u)));
   // Ab Runde AI.intelRound kennt die KI alle feindlichen Staedte (Aufklaerung), damit Partien nicht im Nebel stocken
   // from round AI.intelRound the AI knows all hostile cities (intelligence) so games do not stall in the fog
   const intel = s.round >= AI.intelRound;
@@ -100,6 +104,8 @@ export function buildCtx(s: GameState, f: number): Ctx {
   enemies.forEach((e, i) => {
     const st = UNITS[e.type];
     if (st.attack <= 0 || st.range <= 0) return;
+    // unbewaffneter Waal ist keine Gefahr / an unarmed Waal is no danger
+    if (e.type === 'waal' && !waalArmed(e)) return;
     const reach = st.move + st.range;
     for (const p of area(size, e.x, e.y, reach)) threat[idx(size, p.x, p.y)].push(i);
   });
@@ -135,7 +141,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     }
     if (water && !bridge && wader) lok = true;
     // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
-    if (t.volcano || (t.lava !== undefined && t.lava >= s.round)) lok = false;
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf) lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
@@ -426,7 +432,20 @@ function buildGoals(ctx: Ctx): Goal[] {
     const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + 8 * near.length;
     goals.push({ kind: 'defend', x: c.x, y: c.y, value, cap: Math.min(3, near.length + 1), distW: 12, src: tileSrc(c.x, c.y), water: false });
   }
+  // Feindliche Wunder: hoechster Vorrang, jeder Treffer unterbricht oder schwaecht / hostile wonders: top priority, every hit interrupts or weakens
   for (const e of ctx.enemies) {
+    if (!isWonder(e)) continue;
+    const ratio = victoryStatus(s, e.owner).ratio;
+    goals.push({ kind: 'hunt', x: e.x, y: e.y, value: 95 + ratio * 80, cap: 6, distW: 3, src: tileSrc(e.x, e.y), water: false, targetId: e.id });
+  }
+  // Eigene Wunder bewachen / guard own wonders
+  for (const u of ctx.my) {
+    if (!isWonder(u) || u.type === 'coreDrill') continue;
+    const near = ctx.enemies.filter((e) => dist(e, u) <= 4 && UNITS[e.type].attack > 0).length;
+    goals.push({ kind: 'defend', x: u.x, y: u.y, value: 60 + 12 * near + victoryStatus(s, f).ratio * 30, cap: 2 + Math.min(3, near), distW: 8, src: tileSrc(u.x, u.y), water: false });
+  }
+  for (const e of ctx.enemies) {
+    if (isWonder(e)) continue;
     let nearOwn = 99;
     for (const c of ctx.myCities) nearOwn = Math.min(nearOwn, dist(c, e));
     const onOwnCity = ctx.myCities.some((c) => c.x === e.x && c.y === e.y);
@@ -468,7 +487,7 @@ function assignGoals(ctx: Ctx) {
   const { s, f, prof } = ctx;
   const goals = buildGoals(ctx);
   // Hauptziel: erreichbare Stadt, auf die sich die Armee konzentriert / main target: a reachable city the army concentrates on
-  const fighters = ctx.my.filter((u) => isCombat(u) && canCaptureType(u) && !isShip(u));
+  const fighters = ctx.my.filter((u) => isCombat(u) && canCaptureType(u) && !isShip(u) && !isWonder(u));
   let main: Goal | null = null, bestMain = -Infinity;
   for (const g of goals) {
     if (g.kind !== 'city') continue;
@@ -480,7 +499,8 @@ function assignGoals(ctx: Ctx) {
   }
   if (main) { main.value += 25; main.cap = ctx.siege ? 14 : 8; main.distW = 2; }
   const pairs: { u: Unit; g: number; sc: number }[] = [];
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines');
+  // Wunder planen eigens (planWonderUnits) / wonders are planned separately (planWonderUnits)
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -514,7 +534,7 @@ function assignGoals(ctx: Ctx) {
   // Rest: Sammeln an der Front oder Heimat / rest: stage at the front or home
   const front = frontGoal(ctx);
   for (const u of ctx.my) {
-    if (ctx.goals.has(u.id)) continue;
+    if (ctx.goals.has(u.id) || isWonder(u)) continue;
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }
     if (has(u, 'mines')) { ctx.goals.set(u.id, minerGoal(ctx)); continue; }

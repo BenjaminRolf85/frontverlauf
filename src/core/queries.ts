@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -72,7 +72,8 @@ export function unitLimit(s: GameState, c: City): number {
     ? PERKS.massMobilizationExtraUnits : 0;
   return c.level + CITY.unitLimitExtra + extra;
 }
-export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner).length;
+// Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
+export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
 
 export function levelUpCost(s: GameState, c: City): number {
   let cost = CITY.levelUpCost(c.level);
@@ -218,6 +219,7 @@ export function income(s: GameState, f: number): number {
 
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
+  if (isWonder(u)) return 0;
   const flat = UPKEEP.flat[u.type];
   if (flat !== undefined) return flat;
   // Landungsboot: Wert der getragenen Einheit / landing boat: value of the carried unit
@@ -228,7 +230,8 @@ export function unitUpkeep(u: Unit): number {
 }
 /** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
 export function paidUnits(s: GameState, f: number): Unit[] {
-  return s.units.filter((u) => u.owner === f).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
+  // Wunder kosten keinen Sold und belegen kein Freikontingent / wonders cost no upkeep and take no free slot
+  return s.units.filter((u) => u.owner === f && !isWonder(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
 }
 /** Gesamtsold pro Runde / total upkeep per round */
 export function upkeep(s: GameState, f: number): number {
@@ -246,6 +249,7 @@ export function researchCenterPoints(s: GameState, t: Tile): number {
 }
 
 export function unitScore(u: Unit): number {
+  if (isWonder(u)) return 0;
   if (u.type === 'tank') return SCORE.tankUnit;
   if (u.carried) return (UNITS[u.carried].cost ?? (u.carried === 'tank' ? SCORE.tankUnit : 0)) + (UNITS[u.type].cost ?? 0);
   return UNITS[u.type].cost ?? 0;
@@ -288,6 +292,8 @@ export function canMove(u: Unit): boolean {
 
 export function canAttackNow(u: Unit): boolean {
   if (u.fresh || u.exhausted || u.attacked) return false;
+  // Waal schiesst erst nach der ersten Bauphase / the Waal fires only after its first build phase
+  if (u.type === 'waal' && !waalArmed(u)) return false;
   if (UNITS[u.type].attack <= 0 || UNITS[u.type].range <= 0) return false;
   if (u.moved && !has(u, 'dash')) return false;
   return true;
@@ -346,7 +352,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
         if (has(u, 'wade') && !walkable(t)) {
           stop = true;
         } else if (!walkable(t)) {
-          if (t.building === 'navalBase' && territoryOwner(s, t) === f && hasTech(s, f, 'coastalEconomy')) {
+          if (t.building === 'navalBase' && territoryOwner(s, t) === f && hasTech(s, f, 'coastalEconomy') && !has(u, 'wonder')) {
             embark = true; stop = true;
           } else continue;
         } else {
@@ -357,8 +363,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       }
       // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
       if (has(u, 'wade') && !walkable(fromTile)) stop = true;
-      // Lava und Vulkangipfel sind unpassierbar / lava and volcano peaks are impassable
-      if (t.volcano || burning(s, t)) continue;
+      // Lava, Vulkangipfel und Wunder-Grundflaechen sind unpassierbar / lava, volcano peaks and wonder footprints are impassable
+      if (t.volcano || burning(s, t) || t.wonderOf) continue;
       // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
       // jungle: vehicles only as the first step, every step in or out ends the move
       if (!fly && !ship) {
@@ -501,7 +507,7 @@ export const cultFrenzy = (u: Unit) => hitRace(u.type) === 'cult' && u.hp / Math
 /** Kann die Einheit sich geordnet zurueckziehen (menschliche Bodentruppen)? / can the unit retreat in order (human ground troops)? */
 export function canOrderlyRetreat(u: Unit): boolean {
   const st = UNITS[u.type];
-  return hitRace(u.type) === 'human' && !st.ship && !has(u, 'fly') && st.attack > 0;
+  return hitRace(u.type) === 'human' && !st.ship && !has(u, 'fly') && st.attack > 0 && !has(u, 'wonder');
 }
 
 /** Feld fuer den Rueckzug: ein Schritt weg vom Ziel, sonst null / tile for the retreat: one step away from the target, else null */
@@ -602,7 +608,8 @@ export function attackTargets(s: GameState, u: Unit): Unit[] {
 
 export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o));
+  // Wunder lassen sich nicht bekehren / wonders cannot be converted
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o));
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
@@ -656,7 +663,7 @@ export type CaptureKind = 'village' | 'city' | 'outpost';
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;
-  if (isShip(u) || has(u, 'fly') || has(u, 'uprising')) return null;
+  if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder')) return null;
   const t = tileAt(s, u.x, u.y)!;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
@@ -739,7 +746,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
     const terr = t.terrain === 'ocean' ? null : (t.terrain as 'plain' | 'forest' | 'mountain' | 'shallow');
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
   } else if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
-  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost) return { ok: false, error: 'invalidTile', cost };
+  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf) return { ok: false, error: 'invalidTile', cost };
   if (!st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
   if (b === 'road') {
     if (t.road) return { ok: false, error: 'alreadyBuilt', cost };
@@ -771,7 +778,7 @@ export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return false;
   if (!isLand(t) || t.terrain === 'mountain') return false;
-  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource);
+  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf);
 }
 
 export function grandProjectConditionMet(s: GameState, f: number, id: GrandProjectId): boolean {
@@ -782,6 +789,7 @@ export function grandProjectConditionMet(s: GameState, f: number, id: GrandProje
     case 'victoryColumn': return fa.kills >= GRAND_PROJECTS.kills;
     case 'worldTradeCenter': return ownCities(s, f).filter((c) => c.connected && !(c.isHQ && c.hqOf === f)).length >= GRAND_PROJECTS.connectedCities;
     case 'governmentPalace': return ownCities(s, f).some((c) => c.level >= GRAND_PROJECTS.palaceLevel);
+    // nur allgemeine Technologien (ohne Siegtechnologien) / common techs only (without victory techs)
     case 'academy': return TECH_IDS.every((t) => fa.techs.includes(t));
     case 'satelliteCenter': return fa.radarsFound.length >= s.radars.length;
   }
@@ -810,7 +818,7 @@ export function barrierCost(s: GameState, f: number): number {
 }
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId):
-  'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' {
+  'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' {
   if (c.owner === null) return 'invalid';
   const st = UNITS[type];
   if (st.ship || st.cost === null) return 'invalid';
@@ -818,6 +826,16 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
   const alien = isAlienFaction(s, c.owner);
   const roster = ROSTERS[s.factions[c.owner].id];
   if ((st.faction && st.faction !== s.factions[c.owner].id) || (roster && !st.faction)) return 'invalid';
+  // Erdkernbohrer: in der Stadt, auch beim Kult; nur einer zugleich; ohne Stadtlimit
+  // earth-core drill: in a city, also for the cult; only one at a time; no city limit
+  if (st.abilities.includes('wonder')) {
+    if (!factionVictoryOn(s)) return 'invalid';
+    if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
+    if (s.units.filter((u) => u.owner === c.owner && u.type === type).length >= WONDERS.drillMax) return 'alreadyBuilt';
+    if (unitAt(s, c.x, c.y)) return 'occupied';
+    if (s.factions[c.owner].stars < unitCost(s, c.owner, type)!) return 'notEnoughStars';
+    return 'ok';
+  }
   // Kult rekrutiert nicht in Staedten / the cult does not recruit in cities
   if (isCultFaction(s, c.owner)) return 'cultRecruit';
   if (st.compute !== undefined && computePower(s, c.owner) < st.compute) return 'computeMissing';
@@ -868,6 +886,11 @@ export function contactStars(s: GameState, g: number): number {
 }
 
 export function techUnlocks(tech: TechId, faction?: FactionId): { units: UnitTypeId[]; buildings: BuildingId[] } {
+  // Siegtechnologie: ihr Wunder / victory tech: its wonder
+  if (TECHS[tech].faction) {
+    const w = WONDERS.ofFaction[TECHS[tech].faction!];
+    return { units: w ? [w] : [], buildings: [] };
+  }
   // Menschen sehen Menschen-Einheiten, Sonderfraktionen ihre eigenen / humans see human units, special factions their own
   // klassische Fraktionen sehen zusaetzlich ihre einzigartige Einheit / classic factions also see their unique unit
   const roster = faction ? ROSTERS[faction] : undefined;
@@ -893,7 +916,7 @@ export function barrierCheck(s: GameState, u: Unit, x: number, y: number): Barri
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature) return 'invalidTile';
+  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (s.factions[u.owner].stars < barrierCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
@@ -921,6 +944,8 @@ export const weather = (s: GameState): WeatherId => (s.config.weather === false 
 
 /** Reichweite inkl. Wetter / range including weather */
 export function effectiveRange(s: GameState, u: Unit): number {
+  // unbewaffneter Waal: keine Reichweite, kein Gegenschlag / unarmed Waal: no range, no return fire
+  if (u.type === 'waal' && !waalArmed(u)) return 0;
   const base = UNITS[u.type].range;
   if (base > 0 && weather(s) === 'rain' && WEATHER.rain.rangeUnits.includes(u.type)) return Math.max(1, base + WEATHER.rain.rangeDelta);
   return base;
@@ -1068,12 +1093,12 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   if (!u || u.owner !== f || !has(u, 'preach')) return 'notPreacher';
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   const st = UNITS[type];
-  if (st.faction !== CULT.faction || st.ship || st.cost === null) return 'invalid';
+  if (st.faction !== CULT.faction || st.ship || st.cost === null || st.abilities.includes('wonder')) return 'invalid';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
   if (!isLand(t)) return 'invalidTile';
   if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) return 'invalidTile';
-  if (unitAt(s, x, y)) return 'occupied';
+  if (unitAt(s, x, y) || t.wonderOf) return 'occupied';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
   const home = recruitHome(s, f, x, y);
   if (!home || supportedUnits(s, home) >= unitLimit(s, home)) return 'unitLimit';
@@ -1129,7 +1154,7 @@ export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineChec
   if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano) return 'invalidTile';
+  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (mineCount(s, u.owner) >= COUNTER.mine.maxPerFaction) return 'unitLimit';
   if (s.factions[u.owner].stars < COUNTER.mine.cost) return 'notEnoughStars';
@@ -1138,4 +1163,164 @@ export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineChec
 
 export function mineTargets(s: GameState, u: Unit): Pos[] {
   return neighbors(s.size, u.x, u.y).filter((p) => mineCheck(s, u, p.x, p.y) === 'ok');
+}
+
+// ---------- Fraktions-Siegbedingungen / faction victory conditions ----------
+
+/** Wunder-Einheit (Bauwerk oder Bohrer)? / wonder unit (structure or drill)? */
+export function isWonder(u: Unit): boolean {
+  return UNITS[u.type].abilities.includes('wonder');
+}
+/** Ist die Einheit ein unbewegliches Wunder-Bauwerk? / is the unit an immobile wonder structure? */
+export function isWonderStructure(u: Unit): boolean {
+  return isWonder(u) && u.type !== 'coreDrill';
+}
+/** Waal bewaffnet (erste Bauphase fertig)? / Waal armed (first build phase done)? */
+export function waalArmed(u: Unit): boolean {
+  return (u.wonder?.stage ?? 0) >= 1;
+}
+/** Fraktions-Siegbedingungen aktiv? Fehlt = an, Kampagnen immer aus / faction victories active? missing = on, campaigns always off */
+export function factionVictoryOn(s: GameState): boolean {
+  return s.config.factionVictory !== false && !s.config.campaign;
+}
+/** Siegtechnologie der Fraktion / the faction's victory tech */
+export const victoryTechOf = (s: GameState, f: number): TechId => VICTORY_TECH[s.factions[f].id];
+/** Darf Fraktion f diese Technologie sehen? / may faction f see this tech? */
+export function techVisible(s: GameState, f: number, tech: TechId): boolean {
+  const own = TECHS[tech].faction;
+  if (own) return own === s.factions[f].id && factionVictoryOn(s);
+  return canResearch(s, f);
+}
+/** Darf Fraktion f diese Technologie erforschen (ohne Sterne/Vorgaenger)? / may faction f research this tech (ignoring stars/parent)? */
+export function researchAllowed(s: GameState, f: number, tech: TechId): 'ok' | 'noResearch' | 'wrongFaction' | 'invalid' {
+  const own = TECHS[tech].faction;
+  if (own) {
+    if (own !== s.factions[f].id) return 'wrongFaction';
+    return factionVictoryOn(s) ? 'ok' : 'invalid';
+  }
+  return canResearch(s, f) ? 'ok' : 'noResearch';
+}
+/** Wunder der Fraktion (Bauwerk oder Bohrer), sonst null / the faction's wonder (structure or drill), otherwise null */
+export const wonderKindOf = (s: GameState, f: number): WonderUnitId | null => WONDERS.ofFaction[s.factions[f].id] ?? null;
+/** Lebende Wunder einer Fraktion / living wonders of a faction */
+export const wondersOf = (s: GameState, f: number): Unit[] => s.units.filter((u) => u.owner === f && isWonder(u));
+/** Phasenlaengen eines Wunders (Bohrer: eine Phase) / phase lengths of a wonder (drill: one phase) */
+export function wonderPhases(type: WonderUnitId): number[] {
+  return type === 'coreDrill' ? [WONDERS.drillRounds] : WONDERS.phases[type];
+}
+
+/** Grundflaeche eines Wunders ab dem Ankerfeld (Kraftwerk 2x2) / footprint of a wonder from its anchor (power plant 2x2) */
+export function wonderFootprint(kind: WonderKind, x: number, y: number): Pos[] {
+  return kind === 'fusionPlant' ? [{ x, y }, { x: x + 1, y }, { x, y: y + 1 }, { x: x + 1, y: y + 1 }] : [{ x, y }];
+}
+
+export type WonderCheck = 'ok' | 'invalid' | 'wrongFaction' | 'techMissing' | 'alreadyBuilt' | 'invalidTile' | 'notInTerritory' | 'occupied' | 'notEnoughStars';
+
+/**
+ * Kann Fraktion f das Wunder auf (x, y) bauen? Portal und Waal: freies Land im eigenen Gebiet; Relais: Berg im eigenen Gebiet
+ * oder mit eigenem Aussenposten; Kraftwerk: 2x2 freies Land im eigenen Gebiet (Anker + rechts, unten, diagonal).
+ * Can faction f build the wonder at (x, y)? Portal and Waal: free land in own territory; relay: mountain in own territory
+ * or with an own outpost; power plant: 2x2 free land in own territory (anchor + right, down, diagonal).
+ */
+export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number, y: number): WonderCheck {
+  if (!factionVictoryOn(s) || !(WONDERS.phases as Record<string, number[]>)[kind]) return 'invalid';
+  if (WONDERS.faction[kind] !== s.factions[f].id) return 'wrongFaction';
+  if (!hasTech(s, f, UNITS[kind].tech!)) return 'techMissing';
+  if (wondersOf(s, f).length > 0) return 'alreadyBuilt';
+  for (const p of wonderFootprint(kind, x, y)) {
+    if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
+    const t = tileAt(s, p.x, p.y)!;
+    const terrainOk = kind === 'hackRelay' ? t.terrain === 'mountain' : t.terrain === 'plain' || t.terrain === 'forest';
+    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.volcano || burning(s, t)) return 'invalidTile';
+    // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
+    if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
+    const own = territoryOwner(s, t) === f || (kind === 'hackRelay' && t.outpost?.owner === f);
+    if (!own) return 'notInTerritory';
+    if (unitAt(s, p.x, p.y)) return 'occupied';
+  }
+  if (s.factions[f].stars < WONDERS.cost[kind]) return 'notEnoughStars';
+  return 'ok';
+}
+
+/** Moegliche Bauplaetze eines Wunders (fuer KI und Oberflaeche) / possible sites of a wonder (for AI and UI) */
+export function wonderSites(s: GameState, f: number, kind: WonderKind, ignoreStars = false): Pos[] {
+  const out: Pos[] = [];
+  for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) {
+    const t = s.tiles[y * s.size + x];
+    if (territoryOwner(s, t) !== f && !(kind === 'hackRelay' && t.outpost?.owner === f)) continue;
+    const c = wonderCheck(s, f, kind, x, y);
+    if (c === 'ok' || (ignoreStars && c === 'notEnoughStars')) out.push({ x, y });
+  }
+  return out;
+}
+
+/** Art der Siegbedingung je Fraktion / kind of victory condition per faction */
+export type VictoryGoal = 'portal' | 'coreDrill' | 'hackRelay' | 'fusionPlant' | 'waal' | 'cities' | 'stars' | 'league';
+export const VICTORY_GOAL: Record<FactionId, VictoryGoal> = {
+  korvat: 'cities', dravon: 'waal', alvenia: 'league', meridon: 'stars', velkar: 'fusionPlant', zyrr: 'portal', vesper: 'coreDrill', nexus: 'hackRelay',
+};
+
+/** Stand der Siegbedingung (Siegverfolgung, KI) / state of the victory condition (victory tracker, AI) */
+export interface VictoryStatus {
+  faction: number;
+  goal: VictoryGoal;
+  /** Siegtechnologie bekannt / victory tech known */
+  tech: boolean;
+  /** Phase: none = noch kein Wunder; build, charge, hack, armed, drill; cities, stars, league / phase */
+  phase: 'none' | 'build' | 'charge' | 'hack' | 'armed' | 'drill' | 'cities' | 'stars' | 'league';
+  /** Fortschritt der Phase / progress of the phase */
+  have: number;
+  need: number;
+  /** Gesamtfortschritt 0..1 / overall progress 0..1 */
+  ratio: number;
+  /** Runden bis zum Sieg (falls planbar) / rounds to victory (if predictable) */
+  roundsLeft: number | null;
+  unit?: number;
+}
+
+/** Benoetigte Staedte fuer Korvat: mehr als die Haelfte aller Staedte / cities Korvat needs: more than half of all cities */
+export const korvatNeed = (s: GameState) => Math.floor(s.cities.length * WONDERS.korvatShare) + 1;
+
+/** Voelkerbund-Bedingung jetzt erfuellt? / League of Nations condition met now? */
+export function leagueMet(s: GameState, f: number): boolean {
+  const fa = s.factions[f];
+  const known = fa.contacts.filter((g) => g !== f && s.factions[g]?.alive);
+  if (known.length < WONDERS.alveniaMinFactions) return false;
+  return known.every((g) => fa.relations[g] === 'peace' && fa.embassies.includes(g));
+}
+
+export function victoryStatus(s: GameState, f: number): VictoryStatus {
+  const fa = s.factions[f];
+  const goal = VICTORY_GOAL[fa.id];
+  const tech = hasTech(s, f, VICTORY_TECH[fa.id]);
+  const base = { faction: f, goal, tech };
+  switch (goal) {
+    case 'cities': {
+      const have = ownCities(s, f).length, need = korvatNeed(s);
+      return { ...base, phase: 'cities', have, need, ratio: Math.min(1, have / need), roundsLeft: null };
+    }
+    case 'stars': {
+      const need = WONDERS.meridonStars;
+      return { ...base, phase: 'stars', have: fa.stars, need, ratio: Math.min(1, fa.stars / need), roundsLeft: null };
+    }
+    case 'league': {
+      const have = fa.league ?? 0, need = WONDERS.alveniaRounds;
+      return { ...base, phase: 'league', have, need, ratio: have / need, roundsLeft: leagueMet(s, f) ? need - have : null };
+    }
+    default: {
+      const u = s.units.find((o) => o.owner === f && o.type === goal);
+      const phases = wonderPhases(goal);
+      const total = phases.reduce((a, b) => a + b, 0);
+      if (!u) return { ...base, phase: 'none', have: 0, need: phases[0], ratio: 0, roundsLeft: null };
+      if (goal === 'coreDrill') {
+        const have = u.stillRounds ?? 0;
+        return { ...base, phase: 'drill', have, need: total, ratio: have / total, roundsLeft: total - have, unit: u.id };
+      }
+      const stage = Math.min(u.wonder?.stage ?? 0, phases.length - 1);
+      const have = u.wonder?.progress ?? 0;
+      const done = phases.slice(0, stage).reduce((a, b) => a + b, 0) + have;
+      const phase = stage === 0 ? 'build' : goal === 'portal' ? 'charge' : goal === 'hackRelay' ? 'hack' : 'armed';
+      return { ...base, phase, have, need: phases[stage], ratio: done / total, roundsLeft: total - done, unit: u.id };
+    }
+  }
 }

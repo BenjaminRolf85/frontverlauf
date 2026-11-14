@@ -36,8 +36,10 @@ function placeholder(color: string, h = 0.3): THREE.BufferGeometry {
 function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null, fallback: string | null, ...args: T): THREE.BufferGeometry | null {
   try { return fn(...args); } catch { return fallback ? placeholder(fallback) : null; }
 }
-const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2]) =>
-  safe(models.unitGeometry, factionTokens[f].primary, type, f, c)!;
+const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2], stage = 0) =>
+  safe(models.unitGeometry, factionTokens[f].primary, type, f, c, stage)!;
+/** Fusionskraftwerk steht mittig auf seiner 2x2-Flaeche (Anker + rechts/unten) / the fusion plant sits centred on its 2x2 footprint (anchor + right/down) */
+const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = { fusionPlant: { x: 0.5, z: 0.5 } };
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
   safe(models.cityGeometry, f ? factionTokens[f].primary : semantic.neutral, f, l, fl)!;
 const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: Parameters<typeof models.buildingGeometry>[1]) =>
@@ -603,7 +605,8 @@ export class Board {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
-      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}`;
+      const stage = u.wonder?.stage ?? 0;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
@@ -611,7 +614,7 @@ export class Board {
         // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
         // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit, unitMaterial());
+        const model = outlined(unitGeometry(u.type, f, u.carried, stage), OUTLINE.unit, unitMaterial());
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
         base.name = 'base';
@@ -632,6 +635,8 @@ export class Board {
       }
       if (!this.isAnimating(u.id)) {
         v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        const wo = WONDER_OFFSET[u.type];
+        if (wo) { v.group.position.x += wo.x; v.group.position.z += wo.z; }
         // Zyrr unter Wasser: halb eingetaucht / Zyrr under water: half submerged
         if (isWading(s, u)) v.group.position.y -= WADE_SINK;
         v.group.scale.setScalar(1);

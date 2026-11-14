@@ -4,12 +4,12 @@
  * Screens and dialogs.
  */
 import {
-  CITY_UPGRADES, CITY_UPGRADE_IDS, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, type GameConfig,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, type GameConfig,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, setLanguage, t } from '../i18n/i18n';
@@ -22,6 +22,7 @@ import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
 import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
+import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -95,6 +96,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     weather: true,
     events: true,
     hitChance: true,
+    factionVictory: true,
     hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
@@ -129,6 +131,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('hit.title'))}</span>
           ${segmented('hitChance', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.hitChance ? 'on' : 'off')}
           <span class="muted">${esc(t('hit.setupHint'))}</span></div>
+        <div class="field"><span class="label">${esc(t('victory.setupTitle'))}</span>
+          ${segmented('factionVictory', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.factionVictory ? 'on' : 'off')}
+          <span class="muted">${esc(t('victory.setupHint'))}</span></div>
         ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
           ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
@@ -206,6 +211,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'hazards') cfg.hazards = v as HazardLevel;
       else if (key === 'events') cfg.events = v === 'on';
       else if (key === 'hitChance') cfg.hitChance = v === 'on';
+      else if (key === 'factionVictory') cfg.factionVictory = v === 'on';
       else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
       else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
@@ -236,6 +242,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         hazards: cfg.hazards,
         events: cfg.events,
         hitChance: cfg.hitChance,
+        factionVictory: cfg.factionVictory,
       });
       n.remove();
       host.startGame(config);
@@ -291,6 +298,7 @@ export function pauseMenu(host: ScreenHost) {
     <nav class="menu-list">
       ${button(t('menu.resume'), { icon: 'play', action: 'close', block: true })}
       ${button(t('history.open'), { icon: 'chart', action: 'stats', block: true, variant: 'secondary' })}
+      ${button(t('victory.open'), { icon: 'crown', action: 'victory', block: true, variant: 'secondary' })}
       ${button(t('menu.save'), { icon: 'save', action: 'save', block: true, variant: 'secondary' })}
       ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
       ${button(t('menu.exportFile'), { icon: 'download', action: 'export', block: true, variant: 'secondary' })}
@@ -304,6 +312,7 @@ export function pauseMenu(host: ScreenHost) {
   bind(d.node, {
     close: () => d.close(),
     stats: () => { d.close(); statsDialog(host.root, host.game.state!, host.game.viewer); },
+    victory: () => { d.close(); victoryTrackerDialog(host.root, host.game.state!, host.game.viewer); },
     save: () => { host.saveNow(); d.close(); },
     slots: () => { d.close(); host.openSlots('save'); },
     export: () => host.exportGame(),
@@ -337,25 +346,41 @@ export function researchDialog(host: ScreenHost) {
       }
     });
   });
+  // Siegtechnologie der Fraktion: neben ihrem Vorgaenger (ohne Vorgaenger: oben) / the faction's victory tech: next to its parent (no parent: on top)
+  {
+    const s0 = g.state!;
+    const f0 = g.viewer >= 0 ? g.viewer : s0.current;
+    const vt = VICTORY_TECH[s0.factions[f0].id];
+    const parent = TECHS[vt].parent;
+    if (parent) {
+      const root = TECHS[parent].parent!;
+      const b = roots.indexOf(root);
+      const k = TECH_IDS.filter((id) => TECHS[id].parent === root).indexOf(parent);
+      const a = -Math.PI / 2 + (b * 2 * Math.PI) / roots.length + (k === 0 ? -0.62 : 0.62);
+      layout.set(vt, { x: C + Math.cos(a) * 330, y: C + Math.sin(a) * 330 });
+    } else layout.set(vt, { x: C, y: C - 225 });
+  }
   const html = () => {
     const s = g.state!;
     const f = g.viewer >= 0 ? g.viewer : s.current;
+    // sichtbar: allgemeine Technologien (wenn die Fraktion forscht) und die eigene Siegtechnologie / visible: common techs (if the faction researches) and the own victory tech
+    const ids = [...TECH_IDS, VICTORY_TECH[s.factions[f].id]].filter((id) => techVisible(s, f, id));
     let links = '', nodes = '';
-    for (const id of TECH_IDS) {
+    for (const id of ids) {
       const p = layout.get(id)!;
       const parent = TECHS[id].parent;
       const from = parent ? layout.get(parent)! : { x: C, y: C };
       const done = s.factions[f].techs.includes(id);
       links += `<line class="tech-link ${done ? 'done' : ''}" x1="${from.x}" y1="${from.y}" x2="${p.x}" y2="${p.y}"/>`;
     }
-    for (const id of TECH_IDS) {
+    for (const id of ids) {
       const p = layout.get(id)!;
       const st = techState(s, f, id);
       const cost = researchCost(s, f, id);
       const name = t(`techs.${id}`);
       const words = name.split(/[\s-]/);
       const lines = words.length > 1 && name.length > 12 ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [name];
-      nodes += `<g class="tech-node ${st} ${selected === id ? 'selected' : ''}" data-tech="${id}" role="button" tabindex="0" aria-label="${esc(name)}: ${esc(t(`tech.${st}`))}, ${cost}">
+      nodes += `<g class="tech-node ${st} ${selected === id ? 'selected' : ''} ${TECHS[id].faction ? 'victory' : ''}" data-tech="${id}" role="button" tabindex="0" aria-label="${esc(name)}: ${esc(t(`tech.${st}`))}, ${cost}">
         <circle class="disc" cx="${p.x}" cy="${p.y}" r="30"/>
         ${st === 'researched' ? iconAt('check', p.x - 14, p.y - 14, 28) : st === 'locked' ? iconAt('lock', p.x - 12, p.y - 12, 24) : `<text x="${p.x}" y="${p.y + 6}" text-anchor="middle" class="cost">${cost}</text>`}
         ${lines.map((l, i) => `<text class="name" x="${p.x}" y="${p.y + 46 + i * 13}" text-anchor="middle">${esc(l)}</text>`).join('')}
@@ -365,7 +390,8 @@ export function researchDialog(host: ScreenHost) {
     return `${dialogTitle(t('tech.title'))}
       <div class="row"><span class="res"><span class="star">${icon('star')}</span><span class="val">${s.factions[f].stars}</span></span><span class="muted">${esc(t('tech.costFormula'))}</span></div>
       <div class="legend">${legend}</div>
-      <div class="tech-wrap"><svg class="tech-svg" viewBox="0 0 800 800" role="group" aria-label="${esc(t('tech.title'))}">
+      ${!canResearch(s, f) ? `<p class="muted">${esc(t('victory.researchOnly'))}</p>` : ''}
+      <div class="tech-wrap"><svg class="tech-svg" viewBox="${canResearch(s, f) ? '0 0 800 800' : `${C - 160} ${C - 300} 320 360`}" role="group" aria-label="${esc(t('tech.title'))}">
         ${links}<circle cx="${C}" cy="${C}" r="44" class="tech-center"/>
         ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>`;
   };
@@ -400,8 +426,9 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
       <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${us.cost !== null ? ` · ${us.cost} ${esc(t('hud.stars'))}` : ''}</span></li>`;
   });
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(t(`buildingDesc.${b}`))}</span></li>`);
-  const extra = t(`techExtra.${tech}`);
-  const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon('lightning', 'icon-sm')}<strong>${esc(extra)}</strong></li>`];
+  const vf = TECHS[tech].faction;
+  const extra = t(`techExtra.${tech}`, vf ? victoryParams(vf) : {});
+  const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon(vf ? 'crown' : 'lightning', 'icon-sm')}${vf ? `<strong>${esc(t('traits.victory'))}</strong><span class="muted">${esc(extra)}</span>` : `<strong>${esc(extra)}</strong>`}</li>`];
   // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
   for (const up of CITY_UPGRADE_IDS) {
     if (CITY_UPGRADES.tech[up] !== tech) continue;
@@ -474,7 +501,8 @@ export function diplomacyDialog(host: ScreenHost) {
       }
       return `<div class="player-row">${leaderPortrait(o.id, 'sm')}<div class="col"><strong>${esc(name)}</strong><span>${esc(t(`factions.${o.id}.leaderTitle`))} ${esc(t(`factions.${o.id}.leader`))}</span><span class="muted">${esc(t(`factions.${o.id}.alignment`))} · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}</span></div><div class="col span-all">${actions}</div></div>`;
     }).join('');
-    return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint'))}</p>`;
+    return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint'))}</p>
+      ${button(t('victory.open'), { icon: 'crown', action: 'victory', variant: 'secondary', block: true })}`;
   };
   const d = openDialog(host.root, html());
   d.node.addEventListener('click', async (e) => {
@@ -482,6 +510,7 @@ export function diplomacyDialog(host: ScreenHost) {
     if (!b) return;
     const a = b.dataset.action!;
     if (a === 'close') { d.close(); return; }
+    if (a === 'victory') { victoryTrackerDialog(host.root, g.state!, g.viewer); return; }
     const [kind, idx] = a.split('-');
     const map: Record<string, 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy'> = {
       peace: 'proposePeace', accept: 'acceptPeace', decline: 'declinePeace', break: 'announceBreak', embassy: 'embassy',
@@ -587,6 +616,7 @@ export function gameOverScreen(host: ScreenHost) {
   const d = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t('gameover.title'))}</h2></div>
     <h1 class="logo">${esc(!anyHuman || humanWon ? t('gameover.victory') : t('gameover.defeat'))}</h1>
     ${s.winner !== null ? `<p class="display">${esc(t('gameover.winner', { name: t(`factions.${s.factions[s.winner].id}.name`) }))}</p>` : ''}
+    ${victoryReasonHtml(s.victory)}
     ${gameOverDispatchHtml(s, host.game.viewer)}
     <h3 class="display">${esc(t('gameover.scores'))}</h3>
     <div class="score-list">${ranking.map((r, i) => `<div class="score-row"><span class="display">${i + 1}.</span>${factionChip(r.f.id, t(`factions.${r.f.id}.short`))}<span class="grow">${esc(t(`factions.${r.f.id}.short`))}</span><span>${esc(t('diplomacy.score', { n: r.sc }))}</span></div>`).join('')}</div>

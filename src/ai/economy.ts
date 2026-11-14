@@ -7,10 +7,11 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
 } from '../core';
 import {
   UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
-  type BuildingId, type TechId, type UnitTypeId,
+  WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { hashNoise } from './profile';
@@ -30,6 +31,8 @@ export function chooseReward(ctx: Ctx, c: City, level: number): 'a' | 'b' {
     // bunker ring only when threatened, in conquest only for the HQ (avoids trench stalemates)
     case 3: return threatened && (!ctx.conquest || c.isHQ) ? 'a' : 'b';
     case 4: {
+      // Velkar mit Kernfusion: Platz fuer das 2x2-Kraftwerk / Velkar with fusion: room for the 2x2 power plant
+      if (ctx.fa.id === 'velkar' && factionVictoryOn(s) && !wondersOf(s, ctx.f).length && !wonderSites(s, ctx.f, 'fusionPlant', true).length) return 'a';
       // Ausdehnung, wenn genug neue Felder / expand if enough new tiles
       let free = 0;
       for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
@@ -85,13 +88,13 @@ export function strength(ctx: Ctx, g: number): number {
   const { s, f } = ctx;
   if (g === f) {
     let v = 25 * ctx.myCities.length;
-    for (const u of ctx.my) v += worth(u);
+    for (const u of ctx.my) if (!isWonder(u)) v += worth(u);
     return v;
   }
   let v = 0;
   for (const c of s.cities) if (c.owner === g && ctx.fa.explored[idx(s.size, c.x, c.y)]) v += 25;
   for (const u of s.units) {
-    if (u.owner !== g) continue;
+    if (u.owner !== g || isWonder(u)) continue;
     // nur sichtbare Einheiten / only visible units
     if (ctx.enemies.includes(u) || (ctx.fa.explored[idx(s.size, u.x, u.y)] && !UNITS[u.type].abilities.includes('invisible') && !UNITS[u.type].abilities.includes('submerged'))) v += worth(u) * 1.3;
   }
@@ -120,13 +123,27 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
     if (!ctx.s.factions[g]?.alive || !fa.contacts.includes(g) || fa.relations[g] !== 'war') continue;
     const mine = strength(ctx, ctx.f), theirs = strength(ctx, g);
     let accept: boolean;
-    if (prof.difficulty === 'easy') accept = true;
+    if (prof.difficulty === 'easy' || leagueSeeker(ctx)) accept = true;
+    // keinen Frieden mit einer Fraktion kurz vor dem Sieg / no peace with a faction close to victory
+    else if (nearVictory(ctx, g)) accept = false;
     else if (ctx.conquest) accept = focusPeace(ctx, g) || (mine < theirs * 0.7 && aliveFactions(ctx.s).length > 2 && ctx.s.round <= 60);
     else accept = mine < theirs * 1.4 || warCount(ctx) >= 2;
     const cmd: Command = { type: 'diplomacy', action: accept ? 'acceptPeace' : 'declinePeace', target: g };
     if (!failed.has(cmdKey(cmd))) return cmd;
   }
   return null;
+}
+
+/** Alvenia mit Voelkerbund-Charta: sucht Frieden und Botschaften / Alvenia with the League Charter: seeks peace and embassies */
+function leagueSeeker(ctx: Ctx): boolean {
+  return ctx.fa.id === 'alvenia' && factionVictoryOn(ctx.s) && hasTech(ctx.s, ctx.f, victoryTechOf(ctx.s, ctx.f));
+}
+
+/** Steht Fraktion g kurz vor ihrem Fraktionssieg? / is faction g close to its faction victory? */
+export function nearVictory(ctx: Ctx, g: number): boolean {
+  if (!factionVictoryOn(ctx.s) || ctx.prof.difficulty === 'easy') return false;
+  const st = victoryStatus(ctx.s, g);
+  return st.tech && st.ratio >= 0.5;
 }
 
 function warCount(ctx: Ctx): number {
@@ -143,7 +160,12 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     if (!ga.alive) continue;
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
-    if (rel === 'war' && prof.difficulty !== 'easy' && (s.round + f) % 4 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
+    // Voelkerbund: Alvenia bietet jede Runde allen Kriegsgegnern Frieden an / League: Alvenia offers peace to every enemy each round
+    if (rel === 'war' && leagueSeeker(ctx) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
+      const cmd: Command = { type: 'diplomacy', action: 'proposePeace', target: g };
+      if (!failed.has(cmdKey(cmd))) return cmd;
+    }
+    if (rel === 'war' && prof.difficulty !== 'easy' && (s.round + f) % 4 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g) && !nearVictory(ctx, g)) {
       // Frieden anbieten, wenn schwach und bedroht oder zur Schwerpunktbildung
       // propose peace when weak and threatened, or to focus on one enemy
       const pressed = ctx.enemies.some((e) => e.owner === g && ctx.myCities.some((c) => dist(c, e) <= 3));
@@ -156,9 +178,11 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     if (rel === 'peace') {
       // Frieden brechen: Eroberung erzwingt am Ende Krieg / break peace: conquest eventually forces war
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
-      const brk = ctx.conquest
+      // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
+      // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
+      const brk = leagueSeeker(ctx) ? false : nearVictory(ctx, g) || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
-        : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8;
+        : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {
         const cmd: Command = { type: 'diplomacy', action: 'announceBreak', target: g };
         if (!failed.has(cmdKey(cmd))) return cmd;
@@ -170,7 +194,8 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
 
 // ---------- Kaeufe / purchases ----------
 
-interface Buy { cmd: Command; cost: number; value: number; save: boolean }
+/** horizon: so viele Runden Einkommen darf die KI ansparen (Standard 1,5) / horizon: rounds of income the AI may save up (default 1.5) */
+interface Buy { cmd: Command; cost: number; value: number; save: boolean; horizon?: number }
 
 const POP_BUILDINGS: BuildingId[] = ['storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill', 'logisticsCenter', 'navalBase', 'researchCenter'];
 
@@ -247,7 +272,9 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
     const ct = counterShares(ctx);
     mil += (t === 'armsIndustry' ? ct.antiVehicle : ct.antiAir) * 70 * prof.militaryW;
   }
-  if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW;
+  if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW * (leagueSeeker(ctx) ? 3 : 1);
+  // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
+  if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
   if (t === 'mountainTraining' || t === 'highAltitude') {
     let m = 0;
@@ -615,6 +642,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
 
+  // Siegbedingung: Technologie, Wunder, Bohrer / victory condition: tech, wonder, drill
+  victoryBuys(ctx, buys);
+
   // Forschung / research
   const sites = siteCounts(ctx);
   const unconnected = ctx.myCities.filter((c) => !c.connected && !c.isHQ).length;
@@ -671,7 +701,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (fa.embassies.includes(g) || !s.factions[g].alive) continue;
       const hq = hqOf(s, g);
       if (!hq || !fa.explored[idx(s.size, hq.x, hq.y)]) continue;
-      const value = 10 * mult * Math.min(ctx.roundsLeft, 15) * 0.45 * prof.embassyW;
+      const value = 10 * mult * Math.min(ctx.roundsLeft, 15) * 0.45 * prof.embassyW * (leagueSeeker(ctx) ? 4 : 1);
       buys.push({ cmd: { type: 'diplomacy', action: 'embassy', target: g }, cost: embassyCost(s, f), value, save: true });
     }
   }
@@ -693,15 +723,64 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   buys.sort((a, b) => b.value / Math.max(1, b.cost) - a.value / Math.max(1, a.cost) || (cmdKey(a.cmd) < cmdKey(b.cmd) ? -1 : 1));
   // Reichtum senkt die Schwelle / wealth lowers the threshold
   const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars));
+  // Meridon mit Monopol und vollem Speicher: nur noch Dringendes kaufen / Meridon with the monopoly and a full treasury: only urgent buys
+  const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= WONDERS.meridonStars * 0.6;
   for (const b of buys) {
     if (failed.has(cmdKey(b.cmd))) continue;
     const ratio = b.value / Math.max(1, b.cost);
+    if (hoard && ratio < 3) continue;
     if (ratio < minRatio) break;
     if (b.cost <= stars) return b.cmd;
     // sparen fuer Lohnendes / save for something worthwhile
-    if (prof.saving && b.save && !finalRound && ratio >= 1 && b.cost <= stars + inc * 1.5) return null;
+    if (prof.saving && b.save && !finalRound && ratio >= 1 && b.cost <= stars + inc * (b.horizon ?? 1.5)) return null;
   }
   return null;
+}
+
+/**
+ * Siegbedingung der KI: Siegtechnologie ab der Spielmitte, dann das Wunder auf einem sicheren Bauplatz bzw. den Bohrer in einer ruhigen Stadt.
+ * AI victory condition: the victory tech from mid game, then the wonder on a safe site or the drill in a quiet city.
+ */
+function victoryBuys(ctx: Ctx, buys: Buy[]) {
+  const { s, f, fa } = ctx;
+  if (!factionVictoryOn(s)) return;
+  const tech = victoryTechOf(s, f);
+  if (!fa.techs.includes(tech)) {
+    const parent = TECHS[tech].parent;
+    if (s.round < WONDERS.aiResearchRound || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
+    // Korvat: nur, wenn die Stadtmehrheit in Reichweite ist / Korvat: only when the city majority is within reach
+    if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * 0.5) return;
+    const cost = researchCost(s, f, tech);
+    buys.push({ cmd: { type: 'research', tech }, cost, value: cost * 2.5, save: true, horizon: WONDERS.aiSaveRounds });
+    return;
+  }
+  const kind = wonderKindOf(s, f);
+  if (!kind || wondersOf(s, f).length) return;
+  if (kind === 'coreDrill') {
+    // ruhigste Stadt (weit weg von Gegnern) / quietest city (far from enemies)
+    let best: City | null = null, bd = -1;
+    for (const c of ctx.myCities) {
+      const chk = trainCheck(s, c, 'coreDrill');
+      if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+      let d = 20;
+      for (const e of ctx.enemies) d = Math.min(d, dist(e, c));
+      if (d > bd) { bd = d; best = c; }
+    }
+    if (best) buys.push({ cmd: { type: 'train', city: best.id, unitType: 'coreDrill' }, cost: unitCost(s, f, 'coreDrill')!, value: WONDERS.cost.coreDrill * 3, save: true, horizon: WONDERS.aiSaveRounds });
+    return;
+  }
+  const sites = wonderSites(s, f, kind as WonderKind, true);
+  let best: { x: number; y: number } | null = null, bv = -Infinity;
+  for (const p of sites) {
+    let de = 12, dh = 12, dc = 12;
+    for (const e of ctx.enemies) if (UNITS[e.type].attack > 0) de = Math.min(de, dist(e, p));
+    for (const c of ctx.hostileCities) dh = Math.min(dh, dist(c, p));
+    for (const c of ctx.myCities) dc = Math.min(dc, dist(c, p));
+    const v = Math.min(6, de) * 3 + Math.min(6, dh) * 2 - dc * 1.5 - ctx.threat[p.y * s.size + p.x].length * 5;
+    if (v > bv) { bv = v; best = p; }
+  }
+  if (!best) return;
+  buys.push({ cmd: { type: 'wonder', kind: kind as WonderKind, x: best.x, y: best.y }, cost: WONDERS.cost[kind], value: WONDERS.cost[kind] * 3, save: true, horizon: WONDERS.aiSaveRounds });
 }
 
 function bestShip(ctx: Ctx, u: Unit): UnitTypeId | null {
