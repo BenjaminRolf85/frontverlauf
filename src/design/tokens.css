@@ -422,6 +422,18 @@
   --c-fx-burst-size: 120px;
   --c-fx-burst-stroke: 3;
   --c-bark-max-width: 220px;
+  --c-dispatch-width: 500px;
+  --c-dispatch-portrait: 88px;
+  --c-dispatch-portrait-sm: 68px;
+  --c-dispatch-portrait-game-over: 104px;
+  --c-dispatch-accent: 8px;
+  --c-dispatch-show-ms: 5200ms;
+  --c-dispatch-gap-ms: 240ms;
+  --c-dispatch-tilt: -0.8deg;
+  --c-dispatch-bubble-bg: #f8f2dc;
+  --c-dispatch-kicker-ink: #a3271c;
+  --c-dispatch-angry-ink: #e2412e;
+  --c-dispatch-offset-gap: 8px;
   --c-tech-tree-font-size: 11px;
   --c-tech-tree-cost-size: 20px;
   --c-tech-tree-stroke: 3;
