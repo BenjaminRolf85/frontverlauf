@@ -20,6 +20,7 @@ import { cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
+import { openLore, openPrologue } from './lore';
 import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
@@ -66,6 +67,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
         ${button(t('campaign.menu'), { icon: 'map', action: 'campaign', block: true, variant: 'secondary' })}
         ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', variant: 'secondary', cls: 'grow' })}${button(t('rules.menu'), { icon: 'info', action: 'rules', variant: 'secondary', cls: 'grow', title: t('menu.help') })}</div>
+        ${button(t('lore.menu'), { icon: 'book', action: 'story', block: true, variant: 'secondary' })}
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.settings'), { icon: 'settings', action: 'settings', variant: 'secondary', cls: 'grow' })}${button(t('menu.credits'), { icon: 'info', action: 'credits', variant: 'secondary', cls: 'grow' })}</div>
         ${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}
@@ -86,7 +88,15 @@ export function mainMenu(host: ScreenHost): HTMLElement {
     import: () => host.loadFromFile(),
     settings: () => settingsDialog(host, render),
     credits: () => creditsDialog(host),
+    story: () => openPrologue(host.root),
   });
+  // Prolog einmal beim ersten Start zeigen / show the prologue once on first start
+  if (!host.settings.prologueSeen) {
+    host.settings.prologueSeen = true;
+    host.applySettings();
+    // an die UI-Wurzel haengen: das Menue wird nach der VR-Erkennung neu aufgebaut / attach to the UI root: the menu is rebuilt after XR detection
+    setTimeout(() => openPrologue(host.root), 300);
+  }
   n.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-seg="lang"]');
     if (b) { host.settings.lang = b.dataset.value as 'de' | 'en'; setLanguage(host.settings.lang); host.applySettings(); render(); }
@@ -761,5 +771,10 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
 /** Fraktionsfenster mit Anfuehrer und Hintergrund / faction window with leader and background */
 export function factionDialog(root: HTMLElement, f: FactionId) {
   const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionDetails(f)}`, { wide: true });
-  d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
+  d.node.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-action="close"]')) { d.close(); return; }
+    const lore = el.closest<HTMLElement>('[data-lore]');
+    if (lore) openLore(root, lore.dataset.lore as FactionId);
+  });
 }

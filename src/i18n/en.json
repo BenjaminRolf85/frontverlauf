@@ -2998,5 +2998,24 @@
       "title": "Faction victories",
       "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
     }
+  },
+  "lore": {
+    "button": "Story as a comic",
+    "title": "{name}: Story",
+    "textToggle": "Text of the comic page",
+    "text": {
+      "korvat": "People's League of Korvat, humans. Leader: Grand Marshal Ilja Brodnik. Mass armies, red banners, choir song. Born from a hundred farming cooperatives of the steppe. In the League every ploughman is also a soldier. Brodnik, once a tractor driver, leads with iron paternalism. Furrows become front lines.",
+      "zyrr": "Zyrr Swarm, alien race. Swarm Mother Xyl'Tharra. Once the Zyrr Swarm was only a scouting force, a vanguard searching for new worlds. But over the desert their mothership crashed, badly damaged. Instead of retreating, the Zyrr did the unthinkable: they began to change the world. Led by Swarm Mother Xyl'Tharra, an emergency landing site became a new home, the second world of the Zyrr Swarm.",
+      "vesper": "Cult of the Final Hour, fanatics. Prophet Malachar. Robes, bone masks, bells, flames. At dusty pilgrimage sites the desperate gathered, the exiled, the sick, the guilty and the lost, waiting for the end of the world, for the Final Hour in which everything old passes away. From these gatherings rose Malachar, the prophet. He proclaimed: the end is no catastrophe, it is salvation. The cult needs no cities, no industry and no laws, only fire, faith and the certainty that the Final Hour will come.",
+      "dravon": "Protectorate of Dravon, humans. Commander Sarek Voss. Drill, camouflage green, balaclavas, barracks state. Mercenary companies guarded the ore mines of the desert, for anyone who paid. When the Standstill came, nobody paid anymore. The mercenaries kept the mines. Camps became barracks, barracks became a state. Nobody has ever seen Voss without his balaclava. In Dravon every recruit becomes a veteran, or is forgotten.",
+      "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
+      "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
+      "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Research, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
+      "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
+    },
+    "menu": "Story",
+    "prologueTitle": "Prologue: The Starfall",
+    "prologueContinue": "To the front",
+    "prologueText": "Once the empire of Verdan ruled the whole continent with machines. Then the Great Standstill: overnight all the lights went out. Rusting wrecks recall the war that followed. For two generations, borders drawn in chalk on old maps held. Until the sky burned: the Zyrr mothership crashes into the desert, the bell tolls by itself, and the front begins to move again."
   }
 }

@@ -6,6 +6,7 @@ import { FACTIONS, type BuildingId, type FactionId, type UnitTypeId } from '../d
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
+import { loreButton } from './lore';
 import { BUILD_ICON, UNIT_ICON } from './hud';
 import { icon } from './icons';
 import { victoryGoalText, victoryShortText } from './victory';
@@ -73,6 +74,7 @@ export function factionDetails(f: FactionId): string {
       <q class="leader-quote">${k('quote')}</q>
       ${traitChips(f, { desc: true })}
       <p>${k('lore')}</p>
+      ${loreButton(f)}
       ${opt('style', t('leaders.style'))}
       ${opt('aiStyle', t('identity.aiStyle'))}
     </div>

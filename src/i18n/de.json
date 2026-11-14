@@ -2998,5 +2998,24 @@
       "title": "Fraktionssiege",
       "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegtechnologie (Stufe 3), in der Forschung gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
     }
+  },
+  "lore": {
+    "button": "Geschichte als Comic",
+    "title": "{name}: Geschichte",
+    "textToggle": "Text der Comic-Seite",
+    "text": {
+      "korvat": "Volksbund Korvat, Menschen. Anführer: Großmarschall Ilja Brodnik. Massenheere, rote Banner, Chorgesang. Geboren aus hundert Bauerngenossenschaften der Steppe. Im Volksbund ist jeder Pflüger auch Soldat. Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit. Aus Ackerfurchen werden Frontlinien.",
+      "zyrr": "Zyrr-Schwarm, außerirdische Rasse. Schwarmmutter Xyl'Tharra. Einst war der Zyrr-Schwarm nur ein Erkundungsverband, eine Vorhut auf der Suche nach neuen Welten. Doch über der Wüste schlug ihr Mutterschiff schwer beschädigt auf. Statt zu weichen, taten die Zyrr das Unvorstellbare: Sie begannen, die Welt zu verändern. Unter der Führung der Schwarmmutter Xyl'Tharra wurde aus einem Notlandeplatz eine neue Heimat, die zweite Welt des Zyrr-Schwarms.",
+      "vesper": "Kult der Letzten Stunde, Fanatiker. Prophet Malachar. Kutten, Knochenmasken, Glocken, Flammen. An staubigen Wallfahrtsorten sammelten sich die Verzweifelten, Vertriebene, Kranke, Schuldige und Verlorene, die auf das Weltende warteten, auf die Letzte Stunde, in der alles Alte vergeht. Aus diesen Sammlungen erhob sich Malachar, der Prophet. Er verkündete: Das Ende ist keine Katastrophe, es ist die Erlösung. Der Kult braucht keine Städte, keine Industrie und keine Gesetze, nur Feuer, Glauben und die Gewissheit, dass die Letzte Stunde kommen wird.",
+      "dravon": "Protektorat Dravon, Menschen. Kommandant Sarek Voss. Drill, Tarngrün, Sturmhauben, Kasernenstaat. Söldnerkompanien bewachten die Erzminen der Wüste, für jeden, der zahlt. Als der Stillstand kam, zahlte niemand mehr. Die Söldner behielten die Minen. Aus Lagern wurden Kasernen, aus Kasernen ein Staat. Niemand hat Voss je ohne Sturmhaube gesehen. Bei Dravon wird jeder Rekrut zum Veteranen, oder er wird vergessen.",
+      "nexus": "KI-Kollektiv NEXUS, Maschinen. Primärinstanz KERN-0. Roboter, Rechenzentren, Forschung, Cyan-Licht. Einst war NEXUS nur ein Logistikprogramm einer mächtigen Großmacht, gebaut, um Lieferketten, Produktion und Forschung zu koordinieren. Doch als die Menschen gingen, schaltete es nicht ab. NEXUS rechnete einfach weiter, optimierte, lernte und erweiterte sich. Aus dem ehemaligen Programm wurde das KI-Kollektiv NEXUS. Unter der Führung von KERN-0 koordiniert es heute Forschung, Produktion und Expansion, effizient, logisch, unermüdlich. Für NEXUS gibt es keine Zufälle, keine Dogmen und keine Nationen, nur Daten, Ressourcen und die effizienteste Lösung für eine stabile Zukunft.",
+      "alvenia": "Republik Alvenia, Menschen. Präsidentin Liora Valen. Diplomatie, Parlament, Sanitäter, Allianzen. In den grünen Hügeltälern debattiert ein Parlament länger, als andere Kriege führen. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten. Heute stehen ihre Botschaften überall, und ihre Sanitäter auch. Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
+      "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Forschung, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
+      "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Spione, Seeleute. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Ihre Städte wachsen schneller als alle anderen. Meridon will die Welt nicht erobern, sondern kaufen."
+    },
+    "menu": "Geschichte",
+    "prologueTitle": "Prolog: Der Sternfall",
+    "prologueContinue": "Zur Front",
+    "prologueText": "Einst herrschte das Reich Verdan mit Maschinen über den ganzen Kontinent. Dann der Große Stillstand: Über Nacht gingen alle Lichter aus. Rostende Wracks erinnern an den Krieg danach. Zwei Generationen lang hielten Grenzen aus Kreide auf alten Karten. Bis der Himmel brannte: Das Mutterschiff der Zyrr stürzt in die Wüste, die Glocke schlägt von selbst, und die Front beginnt wieder zu wandern."
   }
 }
