@@ -10,7 +10,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
-import { Sculpt, blob, browStrands, ear, eye, faceInk, hairLock, ink, lips, mulberry, neck, paint, smoothstep, strand } from './sculpt';
+import { Sculpt, blob, browStrands, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, smoothstep, strand } from './sculpt';
 
 const HALF_PI = Math.PI / 2;
 
@@ -118,7 +118,7 @@ const skinOf = (k: number, warm = 0) => mix(shade(mat.skin, k), mat.orange, warm
 // ---------- Korvat: Grossmarschall Ilja Brodnik ----------
 
 function korvat(b: Builder, L: Look) {
-  const coat = L.primary, gold = mat.gold, grey = mat.concrete, greyL = mat.concreteLight, greyD = shade(mat.concrete, 0.75);
+  const coat = L.primary, gold = mat.gold, grey = mat.concrete, greyL = mat.concreteLight;
   const skin = skinOf(0.97, 0.08);
   torso(b, coat, { w: 0.45, d: 0.22, slope: 0.05, neckR: 0.11, square: 0.3 });
   // Mantelfalten / coat folds
@@ -325,7 +325,7 @@ function alvenia(b: Builder, L: Look) {
     noseBridge: 0.1, noseLen: 0.25, noseW: 0.82, noseY: -0.19, lipU: 0.012, lipL: 0.016, mouthDepth: 0, mouthW: 0.44, mouthY: -0.46,
     smile: 0.06, asym: 0.03, fold: 0.0, eyeY: 0.1,
   });
-  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => p.y + 0.35 * (1 - p.z) - 0.5 + 0.5 } }));
+  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.5 ? 1 : 0) } }));
   faceInk(b, S, { nose: 0.85, smile: 1, chin: 0.9, cheek: 0.55 });
   lips(b, S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.04, hL: 0.055, thick: 0.05, bow: 0.012 });
   ear(b, S, -1, skin, { size: 0.85 });
@@ -386,7 +386,7 @@ function meridon(b: Builder, L: Look) {
     smile: 0.03, asym: 0.07, fold: 0.0, eyeY: 0.1,
     bumps: [{ c: [0.45, -0.25, 0.8], s: [0.12, 0.1, 0.3], a: 0.04 }],
   });
-  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => p.y + 0.35 * (1 - p.z) - 0.48 + 0.5 } }));
+  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.48 ? 1 : 0) } }));
   faceInk(b, S, { nose: 0.85, smile: 1.2, chin: 0.9, cheek: 0.65 });
   lips(b, S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.038, hL: 0.05, thick: 0.05, bow: 0.012 });
   ear(b, S, -1, skin, { size: 0.85 });
@@ -577,7 +577,6 @@ function zyrr(b: Builder, L: Look) {
   });
   const skinD = shade(skin, 0.7), mark = mix(acid, skin, 0.25);
   b.addSmooth(S.mesh(skin, {
-    lip: shade(skin, 0.55),
     paint: (p, w) => {
       const c = col(skin).lerp(skinD, 0.5 * w.socket + 0.3 * smoothstep(0.2, -0.8, p.z));
       // Stirnzeichnung und Wangenpunkte / forehead marking and cheek dots
@@ -655,9 +654,9 @@ function vesper(b: Builder, L: Look) {
   stitch(b, [-0.12, 0.88, 0.12], [0.12, 0.88, 0.12], 10, ember, 0.01);
   // ---- Gesicht: Knochenmaske oben, Kinn und Lippen sichtbar / face: bone mask on top, chin and lips visible ----
   const S = new Sculpt([0, 0.645, 0.085], [0.125, 0.155, 0.115], {
-    jaw: 0.3, chin: 0.15, chinDown: 0.05, socket: 0.24, brow: 0.12, cheek: 0.1, hollow: 0.06,
-    noseBridge: 0.1, noseLen: 0.12, noseW: 0.9, noseY: -0.22, lipU: 0.02, lipL: 0.03, mouthW: 0.36, mouthY: -0.6,
-    smile: -0.03, fold: 0.02, eyeY: 0.1,
+    jaw: 0.3, chin: 0.18, chinDown: 0.05, socket: 0.24, brow: 0.12, cheek: 0.1, hollow: 0.06,
+    noseBridge: 0.1, noseLen: 0.12, noseW: 0.9, noseY: -0.22, lipU: 0.01, lipL: 0.012, mouthDepth: 0, mouthW: 0.36, mouthY: -0.6,
+    smile: -0.035, fold: 0.0, eyeY: 0.1,
     bumps: [{ c: [0, -0.4, 0.9], s: [0.6, 0.035, 0.5], a: 0.04 }],
     grooves: [
       { a: [0.15, 0.7], b: [0.3, 0.35], w: 0.012, d: 0.02 }, { a: [0.3, 0.35], b: [0.25, 0.2], w: 0.012, d: 0.02 },
@@ -665,25 +664,25 @@ function vesper(b: Builder, L: Look) {
     ],
   });
   const pale = mix(skinOf(0.7), mat.concreteDark, 0.45);
-  const crack = (p: THREE.Vector3) => [[[0.15, 0.7], [0.3, 0.35]], [[0.3, 0.35], [0.25, 0.2]], [[-0.5, 0.45], [-0.6, 0.15]], [[-0.05, -0.1], [-0.2, -0.3]], [[0.3, 0.35], [0.42, 0.3]]]
-    .some(([a, c]) => segDist(p.x, p.y, a as [number, number], c as [number, number]) < 0.016);
+  const maskEdge = -0.38;
   b.addSmooth(S.mesh(pale, {
-    lip: shade(pale, 0.6),
-    paint: (p, w) => {
-      const mask = p.y > -0.4 && p.z > 0.1;
-      if (mask) {
-        for (const sx of [-1, 1]) {
-          const e = Math.hypot((p.x - sx * S.f.eyeX) / 0.17, (p.y - S.f.eyeY + sx * (p.x - sx * S.f.eyeX) * 0.25) / 0.1);
-          if (e < 1) return col(mat.ink).lerp(col(ember), smoothstep(0.75, 0.2, e) * 0.5);
-        }
-        if (crack(p)) return col(mat.dark);
-        const edge = smoothstep(-0.34, -0.4, p.y);
-        const c = col(bone).lerp(shade(bone, 0.7), 0.6 * w.socket + 0.3 * smoothstep(0.4, 0.1, p.z) + 0.5 * edge);
-        return c;
+    paint: (p) => {
+      if (p.y <= maskEdge || p.z <= 0.1) return null;
+      for (const sx of [-1, 1]) {
+        const e = Math.hypot((p.x - sx * S.f.eyeX) / 0.17, (p.y - S.f.eyeY + sx * (p.x - sx * S.f.eyeX) * 0.25) / 0.1);
+        if (e < 1) return col(mat.ink);
       }
-      return null;
+      // scharfe Maskenkante / crisp mask edge
+      return p.y < maskEdge + 0.035 ? shade(bone, 0.78) : col(bone);
     },
   }));
+  // Risse als Tusche / cracks as ink
+  for (const pts of [[[0.15, 0.7], [0.24, 0.5], [0.3, 0.35], [0.25, 0.2]], [[0.3, 0.35], [0.42, 0.3]], [[-0.5, 0.45], [-0.56, 0.3], [-0.6, 0.15]], [[-0.05, -0.1], [-0.12, -0.2], [-0.2, -0.3]]] as [number, number][][]) {
+    ink(b, S, pts, 0.016, { c: mat.dark, lift: 0.006 });
+  }
+  // grimmige Lippen und Kinn unter der Maske / grim lips and chin below the mask
+  lips(b, S, { c: mix(pale, mat.ink, 0.35), cl: mix(pale, mat.ink, 0.2), hU: 0.03, hL: 0.04, thick: 0.04, bow: 0.006 });
+  faceInk(b, S, { nose: 0, chin: 1 });
   // glimmende Augenschlitze tief in den Hoehlen / burning eye slits deep in the sockets
   for (const s of [-1, 1] as const) {
     const c = S.surf(s * S.f.eyeX, S.f.eyeY, 0.0);
