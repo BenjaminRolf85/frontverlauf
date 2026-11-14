@@ -10,7 +10,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
-import { Sculpt, blob, browStrands, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, smoothstep, strand } from './sculpt';
+import { Sculpt, blob, browStrands, ear, eye, faceInk, gauss, hairLock, ink, lips, mulberry, neck, paint, ribbon, smoothstep, strand } from './sculpt';
 
 const HALF_PI = Math.PI / 2;
 
@@ -242,18 +242,15 @@ function dravon(b: Builder, L: Look) {
       { c: [0, -0.07, 0.95], s: [0.55, 0.03, 0.5], a: 0.03 },
     ],
   });
-  const slitTop = (x: number) => 0.13 + 0.25 * Math.abs(x);
+  const slitTop = (x: number) => 0.2 + 0.04 * Math.abs(x);
   const scar = mix(skin, mat.white, 0.45);
-  b.addSmooth(S.mesh(skin, {
-    paint: (p) => {
-      const inSlit = p.z > 0.45 && p.y < slitTop(p.x) && p.y > -0.05 && Math.abs(p.x) < 0.62;
-      if (inSlit) {
-        return col(skin);
-      }
-      // Strickmuster: feine Rippen / knit pattern: fine ribs
-      const rib = Math.sin(p.x * 90) > 0.7 && p.y < -0.05 ? 1.25 : 1;
-      return shade(black, rib * (1 + 0.25 * smoothstep(0.3, 1, p.y)));
-    },
+  // Haut darunter, Sturmhaube als Schale mit ausgeschnittenem Schlitz (saubere Kante mit Kontur)
+  // skin underneath, balaclava as a shell with a cut-out slit (clean edge with outline)
+  b.addSmooth(S.mesh(skin, { ws: 64, hs: 48 }));
+  const SB = new Sculpt(S.centre, [S.radii[0] * 1.03, S.radii[1] * 1.03, S.radii[2] * 1.03], { ...S.f });
+  b.addSmooth(SB.mesh(black, {
+    paint: () => col(black),
+    cut: (p) => p.z > 0.4 && p.y < slitTop(p.x) && p.y > -0.06 && Math.abs(p.x) < 0.6,
   }));
   ear(b, S, -1, black, { size: 0.9 });
   ear(b, S, 1, black, { size: 0.9 });
@@ -271,10 +268,10 @@ function dravon(b: Builder, L: Look) {
     const t = i / 14, x = 0.25 + t * 0.22, y = 0.25 - t * 0.33;
     scarPts.push(S.surf(x, y, scarLift(x, y)));
   }
-  strand(b, scarPts, S.len(0.022), S.len(0.02), scar, scar, { seg: 6, flat: 0.35, brush: true, samples: 40, up: new THREE.Vector3(0.4, 0.1, 1).normalize() });
+  ribbon(b, scarPts, S.centre, S.len(0.024), scar, 0.3, 40);
   for (const t of [0.2, 0.45, 0.75]) {
     const x = 0.25 + t * 0.22, y = 0.25 - t * 0.33;
-    strand(b, [S.surf(x - 0.035, y - 0.025, scarLift(x - 0.035, y - 0.025) + 0.004), S.surf(x + 0.035, y + 0.025, scarLift(x + 0.035, y + 0.025) + 0.004)], S.len(0.008), S.len(0.008), shade(scar, 0.85), shade(scar, 0.85), { seg: 4, samples: 6 });
+    ribbon(b, [S.surf(x - 0.04, y - 0.028, scarLift(x - 0.04, y - 0.028) + 0.003), S.surf(x, y, scarLift(x, y) + 0.003), S.surf(x + 0.04, y + 0.028, scarLift(x + 0.04, y + 0.028) + 0.003)], S.centre, S.len(0.009), shade(scar, 0.88), 0.6, 8);
   }
   // Gasmaskenfilter vor dem Mund / gas mask filter over the mouth
   const m = S.surf(0, -0.5, 0.02);
@@ -326,8 +323,8 @@ function alvenia(b: Builder, L: Look) {
     smile: 0.06, asym: 0.03, fold: 0.0, eyeY: 0.1,
   });
   b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.5 ? 1 : 0) } }));
-  faceInk(b, S, { nose: 0.85, smile: 1, chin: 0.9, cheek: 0.55 });
-  lips(b, S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.04, hL: 0.055, thick: 0.05, bow: 0.012 });
+  faceInk(b, S, { nose: 0.9, smile: 1, chin: 0.8, width: 1.0 });
+  lips(b, S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.06, hL: 0.08, thick: 0.06, bow: 0.016 });
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   const iris = mix(mat.wood, mat.green, 0.45);
@@ -387,8 +384,8 @@ function meridon(b: Builder, L: Look) {
     bumps: [{ c: [0.45, -0.25, 0.8], s: [0.12, 0.1, 0.3], a: 0.04 }],
   });
   b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => (p.y + 0.35 * (1 - p.z) > 0.48 ? 1 : 0) } }));
-  faceInk(b, S, { nose: 0.85, smile: 1.2, chin: 0.9, cheek: 0.65 });
-  lips(b, S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.038, hL: 0.05, thick: 0.05, bow: 0.012 });
+  faceInk(b, S, { nose: 0.9, smile: 1.2, chin: 0.8, width: 1.0 });
+  lips(b, S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.055, hL: 0.075, thick: 0.06, bow: 0.016 });
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   b.add(geo.torus(0.024, 0.005, 8, 28), gold, { p: [0.15, 0.6, 0.02], r: [0, HALF_PI, 0] });
@@ -416,8 +413,8 @@ function meridon(b: Builder, L: Look) {
   blob(b, mat.dark, { p: S.surf(0.3, -0.35, 0.005), s: 0.005 }, 8, 6);
   // langes Haar, Mittelscheitel, Zopf ueber der Schulter / long hair, centre parting, braid over the shoulder
   blob(b, hair, { p: [0, 0.69, -0.045], s: [0.165, 0.188, 0.155] }, 44, 32);
-  for (let i = 0; i < 24; i++) {
-    const a = -2.7 + (i / 23) * 5.4;
+  for (let i = 0; i < 20; i++) {
+    const a = -2.7 + (i / 19) * 5.4;
     if (Math.abs(a) < 0.85) continue;
     const sx = Math.sin(a), cz = Math.cos(a);
     hairLock(b, S, [[0.02 * Math.sign(sx), 1, 0.1], [sx * 0.75, 0.6, cz * 0.75], [sx, 0.0, cz], [sx * 0.9, -0.55, cz * 0.9 - 0.15]], 0.07, 0.075, 0.03, hair, hairL);
@@ -434,7 +431,7 @@ function meridon(b: Builder, L: Look) {
     const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tan);
     const e = new THREE.Euler().setFromQuaternion(q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), i % 2 ? 0.55 : -0.55)));
     const r = 0.034 - t * 0.01;
-    blob(b, i % 2 ? hair : shade(hair, 0.85), { p: [p.x + (i % 2 ? 0.008 : -0.008), p.y, p.z], r: [e.x, e.y, e.z], s: [r * 0.75, r * 1.25, r * 0.7] }, 18, 12);
+    blob(b, i % 2 ? hair : shade(hair, 0.85), { p: [p.x + (i % 2 ? 0.008 : -0.008), p.y, p.z], r: [e.x, e.y, e.z], s: [r * 0.75, r * 1.25, r * 0.7] }, 14, 10);
   }
   b.add(geo.cyl(0.02, 0.016, 0.03, 24), orange, { p: [0.24, 0.155, 0.19] });
   for (let i = 0; i < 9; i++) {
@@ -494,8 +491,8 @@ function velkar(b: Builder, L: Look) {
     ],
   });
   b.addSmooth(S.mesh(skin));
-  faceInk(b, S, { nose: 1.15, fold: 1, age: 1.2, bags: 1, frown: 0.8, cheek: 1.1, chin: 0.7 });
-  lips(b, S, { c: shade(skin, 0.8), hU: 0.022, hL: 0.03, thick: 0.035, bow: 0.006 });
+  faceInk(b, S, { nose: 1.1, fold: 1, age: 1.1, bags: 1, frown: 0.8, cheek: 1, chin: 0.7, width: 1.1 });
+  lips(b, S, { c: shade(skin, 0.8), hU: 0.035, hL: 0.045, thick: 0.04, bow: 0.008 });
   ear(b, S, -1, skin, { size: 1.05 });
   ear(b, S, 1, skin, { size: 1.05 });
   const iris = mix(green, mat.dark, 0.35);
@@ -668,10 +665,6 @@ function vesper(b: Builder, L: Look) {
   b.addSmooth(S.mesh(pale, {
     paint: (p) => {
       if (p.y <= maskEdge || p.z <= 0.1) return null;
-      for (const sx of [-1, 1]) {
-        const e = Math.hypot((p.x - sx * S.f.eyeX) / 0.17, (p.y - S.f.eyeY + sx * (p.x - sx * S.f.eyeX) * 0.25) / 0.1);
-        if (e < 1) return col(mat.ink);
-      }
       // scharfe Maskenkante / crisp mask edge
       return p.y < maskEdge + 0.035 ? shade(bone, 0.78) : col(bone);
     },
@@ -685,7 +678,10 @@ function vesper(b: Builder, L: Look) {
   faceInk(b, S, { nose: 0, chin: 1 });
   // glimmende Augenschlitze tief in den Hoehlen / burning eye slits deep in the sockets
   for (const s of [-1, 1] as const) {
-    const c = S.surf(s * S.f.eyeX, S.f.eyeY, 0.0);
+    // dunkle Augenhoehle als Mandelform / dark socket as an almond shape
+    const ex = s * S.f.eyeX, ey = S.f.eyeY;
+    ink(b, S, [[ex - s * 0.17, ey + 0.045], [ex, ey + 0.0], [ex + s * 0.17, ey - 0.06]], 0.085, { c: mat.ink, lift: 0.07, taper: 0.25 });
+    const c = S.surf(ex, ey - 0.005, 0.085);
     blob(b, ember, { p: c, s: [S.len(0.13), S.len(0.035), S.len(0.03)], r: [0, s * 0.3, s * -0.25] }, 24, 16);
     blob(b, mat.yellow, { p: [c[0], c[1], c[2] + S.len(0.02)], s: [S.len(0.065), S.len(0.016), S.len(0.02)], r: [0, s * 0.3, s * -0.25] }, 16, 12);
   }

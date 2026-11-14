@@ -234,14 +234,16 @@ export class Sculpt {
     return clamp(v) * fr;
   }
 
-  mesh(skin: ColorLike, o: { paint?: Painter; ws?: number; hs?: number; hair?: { c: ColorLike; at: (p: THREE.Vector3) => number }; soften?: number } = {}): THREE.BufferGeometry {
+  mesh(skin: ColorLike, o: { paint?: Painter; ws?: number; hs?: number; hair?: { c: ColorLike; at: (p: THREE.Vector3) => number }; soften?: number; cut?: (p: THREE.Vector3) => boolean } = {}): THREE.BufferGeometry {
     const g = new THREE.SphereGeometry(1, o.ws ?? 96, o.hs ?? 72);
     const pos = g.getAttribute('position');
     const cols = new Float32Array(pos.count * 3);
     const base = col(skin);
     const p = new THREE.Vector3();
+    const ref = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       p.set(pos.getX(i), pos.getY(i), pos.getZ(i)).normalize();
+      ref.set([p.x, p.y, p.z], i * 3);
       const w = this.weights(p);
       let c = o.paint?.(p, w) ?? null;
       // eine flache Hautfarbe; Schattierung kommt aus der Form / one flat skin colour; shading comes from the form
@@ -255,6 +257,20 @@ export class Sculpt {
     g.deleteAttribute('uv');
     g.computeVertexNormals();
     smoothNormals(g, o.soften ?? 14);
+    if (o.cut && g.index) {
+      // Dreiecke ausschneiden (z. B. Augenschlitz) / cut out triangles (e.g. eye slit)
+      const src = g.index.array, keep: number[] = [], q = new THREE.Vector3();
+      for (let t = 0; t < src.length; t += 3) {
+        let all = true;
+        for (let k = 0; k < 3; k++) {
+          const vi = src[t + k];
+          q.set(ref[vi * 3], ref[vi * 3 + 1], ref[vi * 3 + 2]);
+          if (!o.cut(q)) { all = false; break; }
+        }
+        if (!all) keep.push(src[t], src[t + 1], src[t + 2]);
+      }
+      g.setIndex(keep);
+    }
     g.translate(this.centre[0], this.centre[1], this.centre[2]);
     return g;
   }
@@ -400,7 +416,7 @@ export function eye(b: Builder, S: Sculpt, side: -1 | 1, o: EyeOpts) {
   const look = new THREE.Vector3((o.look?.[0] ?? 0) * 0.35, (o.look?.[1] ?? 0) * 0.3, 1).normalize();
   const irisA = Math.cos(0.5 * (o.irisSize ?? 1)), pupA = Math.cos(0.22 * (o.irisSize ?? 1)), limA = Math.cos(0.54 * (o.irisSize ?? 1));
   const white = col(o.white ?? mat.white), iris = col(o.iris), irisD = shade(o.iris, 0.6), pupil = col(mat.ink);
-  const ball = paint(new THREE.SphereGeometry(r, 40, 28), (p) => {
+  const ball = paint(new THREE.SphereGeometry(r, 32, 24), (p) => {
     const d = p.clone().normalize().dot(look);
     if (d > pupA) return pupil;
     if (d > irisA) return iris.clone().lerp(irisD, smoothstep(irisA + (1 - irisA) * 0.6, irisA, d) * 0.6 + smoothstep(pupA + 0.02, pupA, d) * 0.3);
@@ -537,14 +553,48 @@ export function hairLock(b: Builder, S: Sculpt, path: V3[], lift: number, r0: nu
 
 // ---------- Comic-Tusche und Lippen / comic ink and lips ----------
 
-/** Tuschestrich auf der Gesichtsoberflaeche (Pinselform, an beiden Enden duenn) / ink stroke on the face surface (brush shape) */
-export function ink(b: Builder, S: Sculpt, pts: [number, number][], w: number, o: { lift?: number; c?: ColorLike } = {}) {
-  const lift = o.lift ?? 0.012;
-  const world = pts.map(([x, y]) => S.surf(x, y, lift));
-  // Flachseite zeigt nach vorn-aussen / flat side faces outward
-  const mid = pts[Math.floor(pts.length / 2)];
-  const n = new THREE.Vector3(mid[0] * 0.8, mid[1] * 0.6, 1).normalize();
-  strand(b, world, S.len(w), 0, o.c ?? mat.ink, o.c ?? mat.ink, { seg: 6, flat: 0.25, brush: true, up: n, samples: Math.max(8, pts.length * 4) });
+/**
+ * Tuschestrich auf der Gesichtsoberflaeche als offenes, einseitiges Band (Pinselform, an beiden Enden duenn).
+ * Ein offenes Band bekommt von der Inverted-Hull-Kontur keinen Rand, bleibt also so fein wie gezeichnet.
+ * Ink stroke on the face surface as an open one-sided ribbon (brush shape). An open ribbon gets no rim from
+ * the inverted-hull outline, so it stays as fine as drawn.
+ */
+export function ink(b: Builder, S: Sculpt, pts: [number, number][], w: number, o: { lift?: number; c?: ColorLike; taper?: number } = {}) {
+  const lift = o.lift ?? 0.008;
+  ribbon(b, pts.map(([x, y]) => S.surf(x, y, lift)), S.centre, S.len(w), o.c ?? mat.ink, o.taper ?? 0.15);
+}
+
+/** Offenes Band entlang von Weltpunkten, Vorderseite weg von `centre` / open ribbon along world points, front facing away from `centre` */
+export function ribbon(b: Builder, pts: V3[], centre: V3, half: number, c: ColorLike, taper = 0.15, samples = 0) {
+  const curve = new THREE.CatmullRomCurve3(pts.map((q) => new THREE.Vector3(q[0], q[1], q[2])));
+  const n = samples || Math.max(10, pts.length * 6);
+  const C = new THREE.Vector3(centre[0], centre[1], centre[2]);
+  const verts: number[] = [], idx: number[] = [], nors: number[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const P = curve.getPointAt(t), T = curve.getTangentAt(t);
+    const N = P.clone().sub(C).normalize();
+    const side = N.clone().cross(T).normalize();
+    const h = half * (taper + (1 - taper) * Math.sin(Math.PI * t) ** 0.7);
+    verts.push(P.x + side.x * h, P.y + side.y * h, P.z + side.z * h, P.x - side.x * h, P.y - side.y * h, P.z - side.z * h);
+    nors.push(N.x, N.y, N.z, N.x, N.y, N.z);
+  }
+  for (let i = 0; i < n; i++) {
+    const a0 = i * 2, a1 = a0 + 1, b0 = a0 + 2, b1 = a0 + 3;
+    idx.push(a0, a1, b0, a1, b1, b0);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nors, 3));
+  g.setIndex(idx);
+  // Wicklung pruefen: Dreiecksnormale soll nach aussen zeigen / check winding: face normal should point outward
+  const A = new THREE.Vector3().fromArray(verts, 0), B = new THREE.Vector3().fromArray(verts, 3), D = new THREE.Vector3().fromArray(verts, 6);
+  const fn = B.clone().sub(A).cross(D.clone().sub(A));
+  if (fn.dot(new THREE.Vector3().fromArray(nors, 0)) < 0) {
+    for (let k = 0; k < idx.length; k += 3) { const tmp = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = tmp; }
+    g.setIndex(idx);
+  }
+  b.addSmooth(paint(g, c));
 }
 
 /** Bogen als Punktliste / arc as a point list */
@@ -569,6 +619,8 @@ export interface InkOpts {
   chin?: number;
   cheek?: number;
   bags?: number;
+  /** Strichstaerke / stroke weight */
+  width?: number;
 }
 
 /**
@@ -576,47 +628,47 @@ export interface InkOpts {
  * Comic ink strokes for a face built as geometry (crisp, not painted).
  */
 export function faceInk(b: Builder, S: Sculpt, o: InkOpts = {}) {
-  const f = S.f, c = o.c ?? mat.ink, nw = f.noseW, side = o.noseSide ?? 1;
+  const f = S.f, c = o.c ?? mat.ink, nw = f.noseW, side = o.noseSide ?? 1, W = o.width ?? 1.2;
   const k = o.nose ?? 1;
   if (k > 0) {
     // Nasenruecken-Strich auf der Schattenseite / nose bridge stroke on the shadow side
     const yTop = f.eyeY - 0.06, yBot = f.noseY + 0.02;
-    ink(b, S, [[side * 0.05 * nw, yTop], [side * 0.065 * nw, (yTop + yBot) / 2], [side * 0.075 * nw, yBot + 0.02], [side * 0.06 * nw, yBot]], 0.014 * k, { c, lift: 0.02 + f.noseBridge * 0.6 });
+    ink(b, S, [[side * 0.05 * nw, yTop], [side * 0.065 * nw, (yTop + yBot) / 2], [side * 0.075 * nw, yBot + 0.02], [side * 0.06 * nw, yBot]], 0.024 * k * W, { c, lift: 0.02 + f.noseBridge * 0.6 });
     // Nasenfluegel / nostril wings
-    for (const s of [-1, 1]) ink(b, S, arc(s * 0.1 * nw, f.noseY - 0.035, 0.05 * nw, 0.045, s > 0 ? 1.2 : 1.94, s > 0 ? -0.6 : 3.74, 6), 0.012 * k, { c, lift: 0.02 + f.noseLen * 0.3 });
+    for (const s of [-1, 1]) ink(b, S, arc(s * 0.1 * nw, f.noseY - 0.035, 0.05 * nw, 0.045, s > 0 ? 1.2 : 1.94, s > 0 ? -0.6 : 3.74, 6), 0.016 * k * W, { c, lift: 0.02 + f.noseLen * 0.3 });
     // Nasenloecher und Spitze unten / nostrils and tip underside
-    for (const s of [-1, 1]) ink(b, S, [[s * 0.035 * nw, f.noseY - 0.09], [s * 0.065 * nw, f.noseY - 0.085], [s * 0.085 * nw, f.noseY - 0.07]], 0.013 * k, { c, lift: 0.015 + f.noseLen * 0.15 });
+    for (const s of [-1, 1]) ink(b, S, [[s * 0.035 * nw, f.noseY - 0.09], [s * 0.065 * nw, f.noseY - 0.085], [s * 0.085 * nw, f.noseY - 0.07]], 0.013 * k * W, { c, lift: 0.015 + f.noseLen * 0.15 });
   }
   if ((o.fold ?? 0) > 0) for (const s of [-1, 1]) {
     const x0 = s * 0.2 * nw, y0 = f.noseY - 0.03, x1 = s * f.mouthW * 0.62, y1 = S.mouthLine(s * f.mouthW * 0.5) - 0.07;
-    ink(b, S, [[x0, y0], [(x0 + x1) / 2 + s * 0.035, (y0 + y1) / 2], [x1, y1]], 0.011 * (o.fold ?? 0), { c });
+    ink(b, S, [[x0, y0], [(x0 + x1) / 2 + s * 0.035, (y0 + y1) / 2], [x1, y1]], 0.011 * (o.fold ?? 0) * W, { c });
   }
   if ((o.smile ?? 0) > 0) for (const s of [-1, 1]) {
     const cx = s * f.mouthW * 0.56, cy = S.mouthLine(s * f.mouthW * 0.5);
     const strength = (o.smile ?? 0) * (1 + s * f.asym * 6);
-    if (strength > 0.2) ink(b, S, [[cx, cy + 0.04], [cx + s * 0.03, cy], [cx + s * 0.01, cy - 0.04]], 0.009 * Math.min(1.4, strength), { c });
+    if (strength > 0.2) ink(b, S, [[cx + s * 0.005, cy + 0.025], [cx + s * 0.02, cy], [cx + s * 0.008, cy - 0.025]], 0.008 * Math.min(1.4, strength) * W, { c });
   }
   if ((o.chin ?? 0) > 0) {
     const y = S.mouthLine(0) - 0.13;
-    ink(b, S, [[-0.07, y + 0.01], [0, y - 0.006], [0.07, y + 0.01]], 0.011 * (o.chin ?? 0), { c });
+    ink(b, S, [[-0.07, y + 0.01], [0, y - 0.006], [0.07, y + 0.01]], 0.011 * (o.chin ?? 0) * W, { c });
   }
   if ((o.cheek ?? 0) > 0) for (const s of [-1, 1]) {
     // Wangenknochen-Kante / cheekbone plane edge
-    ink(b, S, [[s * (f.eyeX + 0.22), f.eyeY - 0.2], [s * (f.eyeX + 0.14), f.eyeY - 0.32], [s * (f.eyeX + 0.02), f.eyeY - 0.4]], 0.01 * (o.cheek ?? 0), { c });
+    ink(b, S, [[s * (f.eyeX + 0.22), f.eyeY - 0.2], [s * (f.eyeX + 0.14), f.eyeY - 0.32], [s * (f.eyeX + 0.02), f.eyeY - 0.4]], 0.01 * (o.cheek ?? 0) * W, { c });
   }
   const age = o.age ?? 0;
   if (age > 0) {
     for (const s of [-1, 1]) for (const a of [-0.4, 0, 0.4]) {
       const ax = s * (f.eyeX + 0.21), ay = f.eyeY - 0.01;
-      ink(b, S, [[ax, ay], [ax + s * Math.cos(a) * 0.05, ay + Math.sin(a) * 0.05], [ax + s * Math.cos(a) * 0.1, ay + Math.sin(a) * 0.1 - 0.005]], 0.008 * age, { c });
+      ink(b, S, [[ax, ay], [ax + s * Math.cos(a) * 0.05, ay + Math.sin(a) * 0.05], [ax + s * Math.cos(a) * 0.1, ay + Math.sin(a) * 0.1 - 0.005]], 0.008 * age * W, { c });
     }
-    for (const [yk, wk] of [[0.52, 0.3], [0.61, 0.26], [0.7, 0.2]]) ink(b, S, [[-wk, yk + 0.02], [-wk / 2, yk - 0.01], [0, yk], [wk / 2, yk - 0.01], [wk, yk + 0.02]], 0.008 * age, { c });
+    for (const [yk, wk] of [[0.52, 0.3], [0.61, 0.26], [0.7, 0.2]]) ink(b, S, [[-wk, yk + 0.02], [-wk / 2, yk - 0.01], [0, yk], [wk / 2, yk - 0.01], [wk, yk + 0.02]], 0.008 * age * W, { c });
   }
   if ((o.bags ?? 0) > 0) for (const s of [-1, 1]) {
     const ex = s * f.eyeX;
-    ink(b, S, [[ex - s * 0.09, f.eyeY - 0.16], [ex, f.eyeY - 0.19], [ex + s * 0.09, f.eyeY - 0.17]], 0.008 * (o.bags ?? 0), { c });
+    ink(b, S, [[ex - s * 0.09, f.eyeY - 0.16], [ex, f.eyeY - 0.19], [ex + s * 0.09, f.eyeY - 0.17]], 0.008 * (o.bags ?? 0) * W, { c });
   }
-  if ((o.frown ?? 0) > 0) for (const s of [-1, 1]) ink(b, S, [[s * 0.04, f.eyeY + 0.12], [s * 0.05, f.eyeY + 0.2], [s * 0.065, f.eyeY + 0.28]], 0.01 * (o.frown ?? 0), { c });
+  if ((o.frown ?? 0) > 0) for (const s of [-1, 1]) ink(b, S, [[s * 0.04, f.eyeY + 0.12], [s * 0.05, f.eyeY + 0.2], [s * 0.065, f.eyeY + 0.28]], 0.01 * (o.frown ?? 0) * W, { c });
 }
 
 export interface LipOpts {
@@ -629,13 +681,14 @@ export interface LipOpts {
   thick?: number;
   bow?: number;
   line?: ColorLike;
+  lineW?: number;
 }
 
 /** Ober- und Unterlippe als eigene glatte Formen mit Mundlinie / upper and lower lip as separate smooth shapes with mouth line */
 export function lips(b: Builder, S: Sculpt, o: LipOpts) {
   const w = o.w ?? S.f.mouthW, hU = o.hU ?? 0.05, hL = o.hL ?? 0.065, th = o.thick ?? 0.05;
   const make = (upper: boolean, c: ColorLike) => {
-    const g = new THREE.SphereGeometry(1, 48, 20);
+    const g = new THREE.SphereGeometry(1, 36, 14);
     const pos = g.getAttribute('position');
     const p = new THREE.Vector3();
     for (let i = 0; i < pos.count; i++) {
@@ -665,5 +718,5 @@ export function lips(b: Builder, S: Sculpt, o: LipOpts) {
     const x = (-0.56 + (i / 10) * 1.12) * w;
     pts.push([x, S.mouthLine(x)]);
   }
-  ink(b, S, pts, 0.012, { c: o.line ?? mat.ink, lift: th * 0.55 });
+  ink(b, S, pts, o.lineW ?? 0.008, { c: o.line ?? mat.ink, lift: th * 0.55 });
 }
