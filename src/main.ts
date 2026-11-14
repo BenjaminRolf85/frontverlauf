@@ -193,7 +193,7 @@ function boot() {
     },
     fx: (kind, x, y, text) => { if (game.state) fx.show(game.state, kind, x, y, text); },
     afterCommand(events) { if (game.state) barks.onEvents(game.state, events, game.viewer, new Map()); },
-    unitSelected(u) { if (game.state) barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); },
+    unitSelected(u) { if (game.state) { audio.unitVoice(u.type, game.state.factions[u.owner].id); barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); } },
     turnStarted() { if (game.state) barks.onTurnStart(game.state, game.viewer); },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
