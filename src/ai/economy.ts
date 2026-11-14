@@ -610,7 +610,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
           if (terraformCheck(s, f, p.x, p.y) !== 'ok' && terraformCheck(s, f, p.x, p.y) !== 'notEnoughStars') continue;
           // Stadtfeld zuerst (sonst keine Ausbildung), dann Ressourcen, dann der Rest
           // city tile first (otherwise no training), then resources, then the rest
-          const value = t.cityId !== null ? 200 : t.resource ? 2 * popVal * 0.6 + 6 : popVal * 0.5 + 4;
+          // Terraformen ohne Ressource erst, wenn die Armee steht / terraforming without a resource only once the army stands
+          const armyOk = ctx.my.length >= ctx.myCities.length * ctx.prof.armyPerCity;
+          const value = t.cityId !== null ? 200 : t.resource ? 2 * popVal * 0.6 + 6 : armyOk ? popVal * 0.5 + 4 : popVal * 0.15;
           buys.push({ cmd: { type: 'terraform', x: p.x, y: p.y }, cost: XENO.terraformCost, value, save: t.cityId !== null ? false : true });
           continue;
         }

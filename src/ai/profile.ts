@@ -73,7 +73,9 @@ export function profileFor(s: GameState, f: number): Profile {
     case 'velkar': p.researchW += 0.1; p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung / research lead
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte
     // Zyrr: opportunistic raiders, skimmers and tripods go around the front and look for undefended cities
-    case 'zyrr': p.aggression += 0.1; p.caution *= 0.9; p.explorers += 1; p.raid = 15; p.pref = { skimmer: 1.5, tripod: 1.25, grey: 1.1 }; break;
+    // Zyrr: Invasoren. Grosse Armee, wenig Vorsicht, kaum Rueckzug (heilen nur auf Xeno-Boden, also lieber weiterkaempfen)
+    // Zyrr: invaders. Big army, little caution, hardly retreat (they only heal on xeno ground, so they keep fighting)
+    case 'zyrr': p.aggression += 0.25; p.caution *= 0.85; p.armyPerCity += 0.3; p.retreatHp *= 0.6; p.explorers += 1; p.raid = 20; p.pref = { skimmer: 1.4, tripod: 1.3, mech: 1.2, grey: 1.1 }; break;
     // Kult: eifrig und angriffslustig, kaum Rueckzug, bekehrt mit Propheten / cult: zealous and aggressive, hardly retreats, converts with prophets
     case 'vesper': p.aggression += 0.25; p.caution *= 0.85; p.retreatHp *= 0.35; p.pref = { prophet: 1.6, zealot: 1.2, torchbearer: 1.3, faustZealot: 1.1 }; break;
     // NEXUS: methodisch, viel Wirtschaft, erst zurueckhaltend, spaeter unerbittlich (siehe unten)
