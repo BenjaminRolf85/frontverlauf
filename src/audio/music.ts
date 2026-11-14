@@ -14,15 +14,15 @@ const BASE = `${import.meta.env.BASE_URL ?? '/'}music/`;
 
 /** Wiedergabelisten (Dateinamen ohne Endung) / playlists (file names without extension) */
 const LISTS: Record<MusicMood, string[]> = {
-  menu: ['menu-last-trumpet-call'],
+  menu: ['calm-close-victory'],
   briefing: ['briefing'],
-  calm: ['calm-warm-horns', 'calm-triumph-in-the-ranks'],
-  leading: ['calm-close-victory'],
+  calm: ['calm-triumph-in-the-ranks'],
+  leading: ['calm-triumph-in-the-ranks'],
   tense: ['tense-1', 'tense-2'],
   battle: ['battle-1', 'battle-city-attacked', 'final-stand-1', 'battle-2', 'final-stand-2'],
   finale: ['final-stand-1', 'final-stand-2'],
   victory: ['victory-triumphal-march'],
-  defeat: ['sting-city-lost-2'],
+  defeat: ['menu-last-trumpet-call'],
 };
 
 /** Fraktionsthemen fuer ruhige Runden / faction themes for calm rounds */
@@ -41,6 +41,10 @@ const STINGS: Record<MusicSting, string[]> = {
   cityLost: ['sting-city-lost-1', 'sting-city-lost-2'],
 };
 
+/** Mindestspielzeit eines Stuecks vor einem Lagewechsel / minimum play time before a mood change */
+const MIN_PLAY_MS = 25000;
+/** So lange muss es ruhig bleiben, bevor die Musik entspannt / how long it must stay calm before the music relaxes */
+const CALM_HOLD_MS = 45000;
 /** Ueberblendzeit in ms / crossfade time in ms */
 const FADE_MS = 1800;
 /** Lautstaerke der Musik (0..1) / music volume (0..1) */
@@ -60,6 +64,8 @@ export class MusicPlayer {
   private unlocked = false;
   private counter = 0;
   private fades = new Map<HTMLAudioElement, number>();
+  private pendingTimer = 0;
+  private switchedAt = -1e9;
 
   /** Musik an oder aus (Einstellung) / music on or off (setting) */
   setEnabled(on: boolean) {
@@ -75,12 +81,29 @@ export class MusicPlayer {
     this.restart();
   }
 
-  /** Lage und Fraktion setzen; wechselt die Liste nur bei Bedarf / set situation and faction; switches only when needed */
+  /**
+   * Lage und Fraktion setzen. Ein Fraktionswechsel unterbricht kein laufendes Stueck; Lagewechsel im Spiel
+   * werden beruhigt: Steigerung fruehestens nach MIN_PLAY_MS, Entspannung erst nach CALM_HOLD_MS ohne neue Spannung.
+   * Set situation and faction. A faction change never interrupts a running piece; in-game mood changes are
+   * smoothed: escalation at the earliest after MIN_PLAY_MS, relaxing only after CALM_HOLD_MS without new tension.
+   */
   set(mood: MusicMood, faction: FactionId | null = this.faction) {
-    const changed = mood !== this.mood || faction !== this.faction;
-    this.mood = mood;
     this.faction = faction;
-    if (changed) this.next(true);
+    if (this.pendingTimer) { clearTimeout(this.pendingTimer); this.pendingTimer = 0; }
+    if (mood === this.mood) return;
+    const inGame = (m: MusicMood | null) => m === 'calm' || m === 'leading' || m === 'tense' || m === 'battle';
+    if (!inGame(mood) || !inGame(this.mood)) { this.apply(mood); return; }
+    const rank = (m: MusicMood | null) => (m === 'battle' ? 2 : m === 'tense' ? 1 : 0);
+    const since = performance.now() - this.switchedAt;
+    const wait = rank(mood) > rank(this.mood) ? Math.max(0, MIN_PLAY_MS - since) : Math.max(CALM_HOLD_MS, MIN_PLAY_MS - since);
+    if (wait <= 0) { this.apply(mood); return; }
+    this.pendingTimer = window.setTimeout(() => { this.pendingTimer = 0; this.apply(mood); }, wait);
+  }
+
+  private apply(mood: MusicMood) {
+    this.mood = mood;
+    this.switchedAt = performance.now();
+    this.next(true);
   }
 
   /** kurzer Stinger ueber der Musik (Stadt erobert/verloren) / short stinger over the music (city won/lost) */
