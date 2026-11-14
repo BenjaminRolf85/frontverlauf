@@ -90,6 +90,8 @@ export interface Unit {
   veteran: boolean;
   /** Geordneter Rueckzug wieder moeglich ab dieser Runde / orderly retreat available again from this round */
   retreatReady?: number;
+  /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
+  rockets?: number;
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -212,7 +214,7 @@ export interface GameState {
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
-  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean }
+  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   | { t: 'capture'; city: number; faction: number; from: number | null }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
@@ -264,6 +266,7 @@ export type Command =
   | { type: 'move'; unit: number; to: Pos }
   | { type: 'attack'; unit: number; target: number }
   | { type: 'retreat'; unit: number; target: number }
+  | { type: 'rocket'; unit: number; target: number }
   | { type: 'heal'; unit: number }
   | { type: 'repair'; unit: number }
   | { type: 'medicHeal'; unit: number }
@@ -290,7 +293,7 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround';
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets';
 
 export interface CommandResult {
   ok: boolean;

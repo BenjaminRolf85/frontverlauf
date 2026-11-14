@@ -3,13 +3,13 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -280,6 +280,7 @@ export class Hud {
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
           ${accuracyStat(s, vUnit)}
+          ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
         </div>
         <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
@@ -319,6 +320,7 @@ export class Hud {
       if (tile.resource) tags.push(t(`resources.${tile.resource}`));
       if (tile.building) tags.push(t(`buildings.${tile.building}`));
       if (tile.road) tags.push(t('features.road'));
+      if (tile.terrain === 'forest' || tile.cityId !== null) tags.push(t('cover.ranged'));
       if (tile.river) tags.push(t('biomes.river'));
       if (tile.feature) tags.push(t(`features.${tile.feature}`));
       if (tile.outpost) tags.push(`${t('features.outpost')} (${t(`factions.${s.factions[tile.outpost.owner].id}.short`)})`);
@@ -354,6 +356,15 @@ export class Hud {
     const errText = (code: string) => t(`errors.${code}`);
     if (g.pendingTarget !== null) {
       const target = unitById(s, g.pendingTarget);
+      // Mech-Raketen / mech rockets
+      if (target && rocketTargets(s, u).some((o) => o.id === target.id)) {
+        const p = combatPreview(s, u, target);
+        this.actions.push({
+          id: 'rocket', icon: 'lightning', variant: 'danger', enabled: true,
+          label: `${t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max })}: ${attackLabel(s, p)}`,
+          run: () => void g.exec({ type: 'rocket', unit: u.id, target: target.id }),
+        });
+      }
       // nur, solange der Angriff noch moeglich ist / only while the attack is still possible
       if (target && attackTargets(s, u).some((o) => o.id === target.id)) {
         const p = combatPreview(s, u, target);
