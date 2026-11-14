@@ -17,10 +17,12 @@ import {
   crashSiteGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
+import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
 import { Builder } from './kit';
 import { look } from './look';
 
-type Cell = { geo: THREE.BufferGeometry | null; ground: string | null; label?: string };
+/** tiles: Bodenflaeche in Brettfeldern (Wunder) / ground size in board tiles (wonders) */
+type Cell = { geo: THREE.BufferGeometry | null; ground: string | null; label?: string; tiles?: number };
 type Row = { label: string; cells: Cell[] };
 type Sheet = { cols: string[]; rows: Row[] };
 
@@ -168,6 +170,16 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'wonders': {
+      // Siegeswunder in den Stufen 0/1/2 auf Brett-Feldgroesse / victory wonders at stages 0/1/2 on board tile size
+      return {
+        cols: ['stage 0', 'stage 1', 'stage 2'],
+        rows: WONDER_TYPES.map((t) => ({
+          label: t,
+          cells: [0, 1, 2].map((st) => ({ geo: wonderGeometry(t, WONDER_FACTION[t], st), ground: factionTokens[WONDER_FACTION[t]].terrain, tiles: t === 'fusionPlant' ? 2 : 1 })),
+        })),
+      };
+    }
     case 'counters': {
       // Konter-Einheiten aller Fraktionen + Mine / counter units of all factions + mine
       const all8 = withNeutral.filter((f): f is FactionId => f !== null);
@@ -303,7 +315,7 @@ async function buildScene() {
   const sh = sheet();
   const only = params.get('only');
   if (only) sh.rows = sh.rows.filter((r) => only.split(',').includes(r.label));
-  const pitch = 1.2;
+  const pitch = cat === 'wonders' ? 2.4 : 1.2;
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
@@ -318,8 +330,10 @@ async function buildScene() {
     row.cells.forEach((cell, ci) => {
       const [x, z] = at(ci, ri);
       if (cell.ground) {
-        const g = new THREE.Mesh(new THREE.BoxGeometry(1, 0.08, 1), new THREE.MeshToonMaterial({ color: cell.ground, gradientMap: gradient }));
-        g.position.set(x, -0.04, z);
+        // Wunder: echte Brettfelder (1 Feld = 1/1.25 Modelleinheiten) / wonders: real board tiles (1 tile = 1/1.25 model units)
+        const tw = cell.tiles ? 0.8 : 1, n = cell.tiles ?? 1;
+        const g = new THREE.Mesh(new THREE.BoxGeometry(tw * n - 0.02, 0.08, tw * n - 0.02), new THREE.MeshToonMaterial({ color: cell.ground, gradientMap: gradient }));
+        g.position.set(x + (n - 1) * tw / 2, -0.04, z + (n - 1) * tw / 2);
         content.add(g);
       }
       if (!cell.geo) return;
@@ -412,6 +426,7 @@ function checkAll(): string[] {
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
   for (let v = 0; v < 6; v++) all.push([`cloud ${v}`, cloudGeometry(v)]);
+  for (const t of WONDER_TYPES) for (const f of FACTION_IDS) for (let st = -1; st < 4; st++) all.push([`wonder ${t} ${f} ${st}`, wonderGeometry(t, f, st)]);
   for (const f of FACTION_IDS) for (const mood of LEADER_MOODS) all.push([`leader ${f} ${mood}`, leaderGeometry(f, mood)]);
   for (const [name, g] of all) {
     if (!g) continue;
@@ -421,7 +436,7 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name.startsWith('unit')) {
       // Grundflaeche innerhalb der Kachel, Ursprung y=0 / footprint inside the tile, origin y=0
