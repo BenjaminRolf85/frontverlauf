@@ -4,7 +4,8 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, RETREAT, ROCKETS, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, PERKS2, RETREAT, ROCKETS, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -19,10 +20,11 @@ import {
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
+  isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
-import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Tile, Unit } from './types';
+import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Tile, Unit, Victory } from './types';
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
 
@@ -133,6 +135,13 @@ function spawnUnit(s: GameState, type: UnitTypeId, owner: number, x: number, y: 
     moved: false, attacked: false, moveDone: false, exhausted: true, fresh: true,
     fuel: st.abilities.includes('fuel') ? FUEL.tank : null, revealed: false, startX: x, startY: y,
   };
+  // Wunder: Fortschritt ab 0, Waal mit wenig LP im Bau / wonders: progress from 0, the Waal with few HP while building
+  if (type === 'coreDrill') u.stillRounds = 0;
+  else if (st.abilities.includes('wonder')) {
+    u.wonder = { stage: 0, progress: 0 };
+    u.homeCity = null;
+    if (type === 'waal') { u.hp = WONDERS.waalBuildHp; u.maxHp = WONDERS.waalBuildHp; }
+  }
   s.units.push(u);
   return u;
 }
@@ -154,7 +163,7 @@ function reveal(s: GameState, f: number, x: number, y: number, r: number, ev: Ga
 function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: number; y: number } | null {
   for (const p of neighbors(s.size, x, y)) {
     const t = tileAt(s, p.x, p.y)!;
-    if (unitAt(s, p.x, p.y)) continue;
+    if (unitAt(s, p.x, p.y) || t.wonderOf) continue;
     if (water ? !isWater(t) : !isLand(t)) continue;
     if (!water && t.terrain === 'mountain') continue;
     return p;
@@ -192,8 +201,80 @@ function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], lea
     }
   }
   ev.push({ t: 'killed', unit: u.id, by, remains: kind, x: u.x, y: u.y });
+  // Wunder zerstoert: Grundflaeche freigeben / wonder destroyed: release its footprint
+  if (isWonder(u)) {
+    clearWonderMarks(s);
+    ev.push({ t: 'wonder', what: 'destroyed', kind: u.type as WonderUnitId, unit: u.id, faction: u.owner, x: u.x, y: u.y, stage: u.wonder?.stage });
+  }
   // Vesper, Maertyrertum: im Kampf Gefallene bringen Sterne / martyrdom: units fallen in battle bring stars
   if (by !== null && leaveRemains && perk2Of(s, u.owner) === 'martyrdom' && s.factions[u.owner].alive) s.factions[u.owner].stars += PERKS2.martyrdomStars;
+}
+
+/** Markierungen von Wundern entfernen, die es nicht mehr gibt / remove marks of wonders that no longer exist */
+function clearWonderMarks(s: GameState) {
+  for (const t of s.tiles) if (t.wonderOf && !unitById(s, t.wonderOf)) t.wonderOf = null;
+}
+
+/**
+ * Angriff auf ein Wunder: Portal, Kraftwerk und Bohrer verlieren den Fortschritt der laufenden Phase (fertige Phasen bleiben).
+ * Attack on a wonder: portal, power plant and drill lose the progress of the current phase (finished phases are kept).
+ */
+function interruptWonder(s: GameState, u: Unit, ev: GameEvent[]) {
+  if (!isWonder(u) || !WONDERS.interruptible[u.type as WonderUnitId] || !unitById(s, u.id)) return;
+  let lost = false;
+  if (u.type === 'coreDrill') { lost = (u.stillRounds ?? 0) > 0; u.stillRounds = 0; }
+  else if (u.wonder) { lost = u.wonder.progress > 0; u.wonder.progress = 0; }
+  if (lost) ev.push({ t: 'wonder', what: 'interrupted', kind: u.type as WonderUnitId, unit: u.id, faction: u.owner, x: u.x, y: u.y, stage: u.wonder?.stage });
+}
+
+/** Sieg festhalten und Spiel beenden / record the victory and end the game */
+function declareWinner(s: GameState, winner: number | null, kind: Victory['kind'], ev: GameEvent[]) {
+  s.over = true;
+  s.winner = winner;
+  const victory: Victory | undefined = winner !== null ? { kind, faction: s.factions[winner].id } : undefined;
+  s.victory = victory;
+  ev.push({ t: 'gameOver', winner, ...(victory ? { victory } : {}) });
+}
+
+/**
+ * Siegbedingungen der Fraktion f zu Beginn ihres Zuges: Wunder schreiten fort, dann Korvat, Meridon und Alvenia.
+ * Victory conditions of faction f at the start of its turn: wonders progress, then Korvat, Meridon and Alvenia.
+ */
+function processFactionVictory(s: GameState, f: number, stillDrills: Set<number>, ev: GameEvent[]) {
+  if (!factionVictoryOn(s) || s.over) return;
+  const fa = s.factions[f];
+  for (const u of s.units) {
+    if (u.owner !== f || !isWonder(u)) continue;
+    if (u.type === 'coreDrill') {
+      // nur wer im letzten eigenen Zug nicht gefahren ist, bohrt weiter / only a drill that did not move last own turn keeps drilling
+      u.stillRounds = stillDrills.has(u.id) ? (u.stillRounds ?? 0) + 1 : 0;
+      if (u.stillRounds >= WONDERS.drillRounds) { declareWinner(s, f, 'faction', ev); return; }
+      continue;
+    }
+    const w = u.wonder ?? (u.wonder = { stage: 0, progress: 0 });
+    const phases = wonderPhases(u.type as WonderUnitId);
+    w.progress++;
+    if (w.progress < phases[w.stage]) continue;
+    w.stage++;
+    w.progress = 0;
+    if (u.type === 'waal') {
+      // Waal: bewaffnet mit mehr LP, fertig mit vollen LP / Waal: armed with more HP, finished with full HP
+      const max = w.stage >= phases.length ? UNITS.waal.hp : WONDERS.waalArmedHp;
+      u.hp += max - u.maxHp;
+      u.maxHp = max;
+    }
+    ev.push({ t: 'wonder', what: 'phase', kind: u.type as WonderUnitId, unit: u.id, faction: f, x: u.x, y: u.y, stage: w.stage });
+    if (w.stage >= phases.length) { declareWinner(s, f, 'faction', ev); return; }
+  }
+  if (!fa.techs.includes(VICTORY_TECH[fa.id])) return;
+  if (fa.id === 'korvat' && ownCities(s, f).length >= korvatNeed(s)) { declareWinner(s, f, 'faction', ev); return; }
+  if (fa.id === 'meridon' && fa.stars >= WONDERS.meridonStars) { declareWinner(s, f, 'faction', ev); return; }
+  if (fa.id === 'alvenia') {
+    // Voelkerbund: Frieden und Botschaft bei allen bekannten lebenden Fraktionen, sonst zurueck auf 0
+    // League of Nations: peace and an embassy with every known living faction, otherwise back to 0
+    fa.league = leagueMet(s, f) ? (fa.league ?? 0) + 1 : 0;
+    if (fa.league >= WONDERS.alveniaRounds) declareWinner(s, f, 'faction', ev);
+  }
 }
 
 function gainKill(s: GameState, u: Unit, ev: GameEvent[]) {
@@ -303,16 +384,13 @@ function checkElimination(s: GameState, ev: GameEvent[]) {
       f.alive = false;
       f.eliminatedRound = s.round;
       s.units = s.units.filter((u) => u.owner !== f.index);
+      clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
       ev.push({ t: 'eliminated', faction: f.index });
     }
   }
   const alive = s.factions.filter((f) => f.alive);
-  if (alive.length <= 1 && !s.over) {
-    s.over = true;
-    s.winner = alive.length ? alive[0].index : null;
-    ev.push({ t: 'gameOver', winner: s.winner });
-  }
+  if (alive.length <= 1 && !s.over) declareWinner(s, alive.length ? alive[0].index : null, 'conquest', ev);
 }
 
 function afterAction(s: GameState, f: number, ev: GameEvent[]) {
@@ -340,6 +418,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     fa.stars = Math.max(0, fa.stars + inc);
   }
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
+  // Erdkernbohrer, die im letzten eigenen Zug stillstanden / earth-core drills that stood still during the last own turn
+  const stillDrills = new Set(s.units.filter((u) => u.owner === f && u.type === 'coreDrill' && !u.moved).map((u) => u.id));
   // Kolchose: alle paar Runden Bevoelkerung fuer ihre Stadt / kolkhoz: population for its city every few rounds
   if (s.round > 1 && s.round % UNIQUE.kolkhozInterval === 0) {
     for (const c of ownCities(s, f)) {
@@ -366,6 +446,7 @@ function startTurn(s: GameState, ev: GameEvent[]) {
   }
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
   afterAction(s, f, ev);
+  processFactionVictory(s, f, stillDrills, ev);
 }
 
 function endTurnProcessing(s: GameState, ev: GameEvent[]) {
@@ -455,6 +536,9 @@ export function continueEndless(s: GameState): GameEvent[] {
   if (!s.over || s.factions.filter((f) => f.alive).length < 2) return ev;
   s.over = false;
   s.winner = null;
+  // nach einem Fraktionssieg keine weiteren Fraktionssiege / no further faction victories after a faction victory
+  if (s.victory?.kind === 'faction') s.config.factionVictory = false;
+  s.victory = undefined;
   s.config.roundLimit = null;
   s.config.mode = 'endless';
   startTurn(s, ev);
@@ -475,15 +559,13 @@ function advance(s: GameState, ev: GameEvent[]) {
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
-    s.over = true;
     let best = -1, bestScore = -1;
     for (const f of s.factions) {
       if (!f.alive) continue;
       const sc = score(s, f.index);
       if (sc > bestScore) { bestScore = sc; best = f.index; }
     }
-    s.winner = best;
-    ev.push({ t: 'gameOver', winner: best });
+    declareWinner(s, best, 'points', ev);
     return;
   }
   startTurn(s, ev);
@@ -655,6 +737,8 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     }
   }
   u.x = r.x; u.y = r.y;
+  // Bewegung setzt den Erdkernbohrer zurueck / moving resets the earth-core drill
+  if (u.type === 'coreDrill') u.stillRounds = 0;
   const bt = tileAt(s, u.x, u.y)!;
   if (bt.barrier && bt.barrier.owner !== f && BARRIER.vehicles.includes(u.type)) {
     u.slowedNext = true;
@@ -684,7 +768,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
       for (const p of neighbors(s.size, c.x, c.y)) {
         if (spawned >= max) break;
         const nt = tileAt(s, p.x, p.y)!;
-        if (unitAt(s, p.x, p.y) || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
+        if (unitAt(s, p.x, p.y) || nt.wonderOf || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
         spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
         spawned++;
       }
@@ -732,6 +816,9 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   }
   target.hp -= dealt;
   if (ret > 0) u.hp -= ret;
+  // Angriffe unterbrechen Wunder (auch Flaechenschaden) / attacks interrupt wonders (splash included)
+  if (target.hp > 0) interruptWonder(s, target, ev);
+  for (const sp of splash) { const o = unitById(s, sp.unit); if (o && o.hp > 0) interruptWonder(s, o, ev); }
   // Kriegsspuren / war marks
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
   addMark(s, target.x, target.y, markKind);
@@ -818,6 +905,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       target.hp -= dmg;
       addMark(s, target.x, target.y, 'scorch');
       ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
+      if (target.hp > 0) interruptWonder(s, target, ev);
       fa.lastAttackRound = s.round;
       if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); }
       // Schritt zurueck mit normaler Bewegungslogik (Minen, Sperren, Sicht) / step back with the normal move logic (mines, barriers, vision)
@@ -910,6 +998,11 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       fa.stars -= unitCost(s, f, cmd.unitType)!;
       const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, c.id);
       ev.push({ t: 'train', unit: u.id, city: c.id });
+      if (isWonder(u)) {
+        ev.push({ t: 'wonder', what: 'started', kind: u.type as WonderUnitId, unit: u.id, faction: f, x: u.x, y: u.y, stage: 0 });
+        res = { ok: true, events: ev };
+        break;
+      }
       // Kaserne oder Soeldnerkaserne: Einheit startet als Veteran / barracks or mercenary barracks: unit starts as a veteran
       if (hasCityUpgrade(c, 'barracks') || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks')) {
         u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
@@ -1047,8 +1140,10 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     }
     case 'research': {
       const tech = cmd.tech as TechId;
-      if (ROSTERS[fa.id]?.research === false) return fail('noResearch');
       if (!TECHS[tech]) return fail('invalid');
+      // Siegtechnologien nur fuer die eigene Fraktion, auch ohne normale Forschung / victory techs only for their faction, also without normal research
+      const allowed = researchAllowed(s, f, tech);
+      if (allowed !== 'ok') return fail(allowed);
       if (fa.techs.includes(tech)) return fail('alreadyResearched');
       const parent = TECHS[tech].parent;
       if (parent && !fa.techs.includes(parent)) return fail('parentMissing');
@@ -1057,6 +1152,17 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       fa.stars -= cost;
       fa.techs.push(tech);
       ev.push({ t: 'research', tech, faction: f });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'wonder': {
+      const check = wonderCheck(s, f, cmd.kind, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      fa.stars -= WONDERS.cost[cmd.kind];
+      const u = spawnUnit(s, cmd.kind, f, cmd.x, cmd.y, null);
+      // Kraftwerk: drei weitere Felder werden unpassierbar / power plant: three more tiles become impassable
+      for (const p of wonderFootprint(cmd.kind, cmd.x, cmd.y).slice(1)) tileAt(s, p.x, p.y)!.wonderOf = u.id;
+      ev.push({ t: 'wonder', what: 'started', kind: cmd.kind, unit: u.id, faction: f, x: cmd.x, y: cmd.y, stage: 0 });
       res = { ok: true, events: ev };
       break;
     }
@@ -1167,6 +1273,7 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     hazards: partial.hazards ?? 'none',
     events: partial.events ?? false,
     hitChance: partial.hitChance ?? true,
+    factionVictory: partial.factionVictory ?? true,
     ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }

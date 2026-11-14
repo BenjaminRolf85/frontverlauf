@@ -8,6 +8,7 @@ import { esc } from './components';
 import { leaderPortrait } from './leaders';
 import { BUILD_ICON, UNIT_ICON } from './hud';
 import { icon } from './icons';
+import { victoryGoalText, victoryShortText } from './victory';
 
 /** Kennzeichnende Einheit je Fraktion / signature unit per faction */
 const SIGNATURE_UNIT: Partial<Record<FactionId, UnitTypeId>> = {
@@ -20,7 +21,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2' | 'aim'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -40,6 +41,8 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   // Treffsicherheit der Rasse / race accuracy
   const race = f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
   out.push({ kind: 'aim', icon: 'range', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });
+  // eigene Siegbedingung / own victory condition
+  out.push({ kind: 'victory', icon: 'crown', label: t('traits.victory'), value: victoryShortText(f), desc: victoryGoalText(f) });
   return out;
 }
 

@@ -11,7 +11,7 @@ import { buildCtx } from './analysis';
 import {
   planDiplomacy, planGrandProject, planPeaceResponses, planPurchase, planRewards,
 } from './economy';
-import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves } from './tactics';
+import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
 const END: Command = { type: 'endTurn' };
 
@@ -67,6 +67,7 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planCapture(ctx, failed)
     ?? planConvert(ctx, failed)
     ?? planAttack(ctx, failed)
+    ?? planWonderUnits(ctx, failed)
     ?? planUnitMoves(ctx, failed)
     ?? planPurchase(ctx, failed)
     ?? planDiplomacy(ctx, failed)

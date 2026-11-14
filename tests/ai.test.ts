@@ -7,14 +7,14 @@ const IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'];
 
 function config(o: {
   seed: number; size: MapSize; mode: GameMode; mapType?: MapType; diffs?: Difficulty[]; n?: number;
-  startStars?: number; roundLimit?: number | null;
+  startStars?: number; roundLimit?: number | null; factionVictory?: boolean;
 }): GameConfig {
   const n = o.n ?? 4;
   const diffs = o.diffs ?? ['normal'];
   return defaultConfig({
     seed: o.seed, size: o.size, mode: o.mode, mapType: o.mapType ?? 'continent',
     factions: IDS.slice(0, n).map((id, i) => ({ id, human: false, difficulty: diffs[i % diffs.length] })),
-    startStars: o.startStars, roundLimit: o.roundLimit,
+    startStars: o.startStars, roundLimit: o.roundLimit, factionVictory: o.factionVictory,
   });
 }
 
@@ -62,7 +62,9 @@ describe('KI / AI', () => {
   it('beendet Eroberungsspiele (4 KI, 11x11) mit Sieger / finishes conquest games with a winner', () => {
     const rounds: number[] = [];
     for (const [seed, mapType] of [[4, 'continent'], [6, 'continent'], [8, 'continent'], [4, 'lakes']] as const) {
-      const s = createGame(config({ seed, size: 11, mode: 'conquest', mapType }));
+      // reine Eroberung: Fraktionssiege wuerden das Spiel vorher beenden (eigener Test in victory.test.ts)
+      // pure conquest: faction victories would end the game earlier (own test in victory.test.ts)
+      const s = createGame(config({ seed, size: 11, mode: 'conquest', mapType, factionVictory: false }));
       const st = run(s, 150);
       expect(st.fails).toBe(0);
       expect(s.over).toBe(true);

@@ -36,8 +36,10 @@ function placeholder(color: string, h = 0.3): THREE.BufferGeometry {
 function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null, fallback: string | null, ...args: T): THREE.BufferGeometry | null {
   try { return fn(...args); } catch { return fallback ? placeholder(fallback) : null; }
 }
-const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2]) =>
-  safe(models.unitGeometry, factionTokens[f].primary, type, f, c)!;
+const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2], stage = 0) =>
+  safe(models.unitGeometry, factionTokens[f].primary, type, f, c, stage)!;
+/** Versatz je Bauwerk; das Fusionskraftwerk-Modell deckt seine 2x2-Flaeche selbst ab / offset per wonder; the fusion plant model covers its 2x2 footprint itself */
+const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
   safe(models.cityGeometry, f ? factionTokens[f].primary : semantic.neutral, f, l, fl)!;
 const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: Parameters<typeof models.buildingGeometry>[1]) =>
@@ -603,7 +605,8 @@ export class Board {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
-      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}`;
+      const stage = u.wonder?.stage ?? 0;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
@@ -611,7 +614,7 @@ export class Board {
         // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
         // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = outlined(unitGeometry(u.type, f, u.carried), OUTLINE.unit, unitMaterial());
+        const model = outlined(unitGeometry(u.type, f, u.carried, stage), OUTLINE.unit, unitMaterial());
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
         base.name = 'base';
@@ -619,7 +622,8 @@ export class Board {
         grp.add(base);
         model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
-        model.rotation.y = this.facing.get(u.id) ?? 0;
+        // Fusionskraftwerk nie drehen, sonst passt die 2x2-Flaeche nicht / never rotate the fusion plant or its 2x2 footprint breaks
+        model.rotation.y = u.type === 'fusionPlant' ? 0 : this.facing.get(u.id) ?? 0;
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
@@ -632,6 +636,8 @@ export class Board {
       }
       if (!this.isAnimating(u.id)) {
         v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        const wo = WONDER_OFFSET[u.type];
+        if (wo) { v.group.position.x += wo.x; v.group.position.z += wo.z; }
         // Zyrr unter Wasser: halb eingetaucht / Zyrr under water: half submerged
         if (isWading(s, u)) v.group.position.y -= WADE_SINK;
         v.group.scale.setScalar(1);

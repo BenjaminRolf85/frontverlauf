@@ -4,10 +4,10 @@
  */
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
-  dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
+  dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
   type Command, type Reach, type Unit,
 } from '../core';
-import { BARRIER, COUNTER, ECON, INFANTRY_TYPES, UNITS } from '../data/balance';
+import { BARRIER, COUNTER, ECON, INFANTRY_TYPES, UNITS, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -38,6 +38,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
     else if (c) v += 4 + p.killChance * 10; // Verteidiger einer Zielstadt / defender of a target city
   }
   for (const c of ctx.myCities) if (dist(c, d) === 1) { v += 6; break; }
+  // Feindliches Wunder: jeder Treffer zaehlt (Unterbrechung oder Zerstoerung) / hostile wonder: every hit counts (interruption or destruction)
+  if (isWonder(d) && d.owner !== ctx.f) v += 45 + victoryStatus(s, d.owner).ratio * 60 + (WONDERS.interruptible[d.type as WonderUnitId] ? 25 : 0);
   return v;
 }
 
@@ -119,6 +121,48 @@ function lazyUnit(ctx: Ctx, u: Unit): boolean {
   return l > 0 && hashNoise(u.id, ctx.s.round, 7) < 1 / l;
 }
 
+// ---------- Wunder / wonders ----------
+
+/**
+ * Eigene Wunder: heilen, wenn beschaedigt; Erdkernbohrer faehrt auf ein sicheres Feld im eigenen Gebiet und bleibt dann stehen.
+ * Own wonders: heal when damaged; the earth-core drill drives to a safe tile in own territory and then stands still.
+ */
+export function planWonderUnits(ctx: Ctx, failed: Failed): Command | null {
+  const { s, f } = ctx;
+  for (const u of ctx.my) {
+    if (!isWonder(u) || u.fresh || u.exhausted) continue;
+    if (u.type === 'coreDrill') {
+      const t = s.tiles[idx(s.size, u.x, u.y)];
+      const danger = expectedDamage(ctx, u, u.x, u.y);
+      const safeHere = territoryOwner(s, t) === f && t.cityId === null && danger === 0;
+      // stehen bleiben, solange es sicher ist (oder schon gebohrt wird und keine Lebensgefahr besteht)
+      // stay while safe (or while drilling and not in mortal danger)
+      const stay = safeHere || ((u.stillRounds ?? 0) > 0 && danger < u.hp * 0.6 && t.cityId === null);
+      if (!stay && !u.moved) {
+        let best: { x: number; y: number } | null = null, bv = -Infinity;
+        for (const r of reachable(s, u)) {
+          const rt = s.tiles[idx(s.size, r.x, r.y)];
+          if (rt.cityId !== null || r.embark || r.disembark) continue;
+          let v = -expectedDamage(ctx, u, r.x, r.y) * 10 + (territoryOwner(s, rt) === f ? 20 : 0);
+          let near = 99;
+          for (const e of ctx.enemies) near = Math.min(near, dist(e, r));
+          v += Math.min(6, near);
+          if (v > bv) { bv = v; best = r; }
+        }
+        if (best) {
+          const c: Command = { type: 'move', unit: u.id, to: best };
+          if (ok(failed, c)) return c;
+        }
+      }
+    }
+    if (canHeal(u) && !u.moved && u.hp < u.maxHp && !alienHealBlocked(s, u)) {
+      const c: Command = { type: 'heal', unit: u.id };
+      if (ok(failed, c)) return c;
+    }
+  }
+  return null;
+}
+
 // ---------- Bewegung / movement ----------
 
 const assaultCache = new WeakMap<Goal, number>();
@@ -132,8 +176,8 @@ export function cautionFor(ctx: Ctx, g: Goal, u?: Unit): number {
   if (cached !== undefined) return cached;
   // eigene Gruppe im weiteren Umkreis gegen Gegner nahe am Ziel / own group in a wider radius vs enemies near the goal
   let own = 0, opp = 0;
-  for (const u of ctx.my) if (dist(u, g) <= 5 && UNITS[u.type].attack > 0) own += worth(u) * (u.hp / u.maxHp);
-  for (const e of ctx.enemies) if (dist(e, g) <= 3) opp += worth(e) * (e.hp / e.maxHp);
+  for (const u of ctx.my) if (dist(u, g) <= 5 && UNITS[u.type].attack > 0 && !isWonder(u)) own += worth(u) * (u.hp / u.maxHp);
+  for (const e of ctx.enemies) if (dist(e, g) <= 3 && !(isWonder(e) && e.type !== 'waal')) opp += worth(e) * (e.hp / e.maxHp);
   if (g.kind === 'city') {
     const c = ctx.hostileCities.find((h) => h.x === g.x && h.y === g.y);
     opp += c && c.bunkerRing ? 30 : 12;
