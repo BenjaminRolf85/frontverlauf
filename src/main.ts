@@ -127,6 +127,7 @@ function boot() {
       root.querySelectorAll('.screen, .overlay, .headline').forEach((n) => n.remove());
       menuNode = mainMenu(host);
       root.appendChild(menuNode);
+      audio.menuMusic();
     },
   };
 

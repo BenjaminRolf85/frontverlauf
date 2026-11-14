@@ -3,7 +3,7 @@
  * Controller: every input (mouse, touch, XR) becomes a command to the game core here.
  */
 import {
-  isHostile, dist, weather, applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
+  score, isHostile, dist, weather, applyCommand, attackTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
@@ -281,6 +281,11 @@ export class Controller {
       if (nearCity <= 3 || own.some((u) => dist(u, e) <= 2)) level = 1;
     }
     audio.setIntensity(level);
+    // kurz vor dem Sieg: deutlich vorn in der zweiten Spielhaelfte / close to victory: clearly ahead in the second half
+    const scores = s.factions.filter((f) => f.alive).map((f) => ({ i: f.index, p: score(s, f.index) })).sort((a, b) => b.p - a.p);
+    const limit = s.config.roundLimit;
+    const late = limit ? s.round >= limit * 0.6 : s.round >= 30;
+    audio.setLeading(late && scores.length > 1 && scores[0].i === v && scores[0].p >= scores[1].p * 1.25);
     audio.setAmbience(weather(s));
   }
 

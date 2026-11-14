@@ -259,7 +259,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
 export function creditsDialog(host: ScreenHost) {
   const d = openDialog(host.root, `${dialogTitle(t('credits.title'))}
     <div class="col">
-      ${['game', 'models', 'sound', 'fontBlackOps', 'fontBangers', 'fontComicNeue', 'three', 'vite'].map((k) => `<p>${esc(t(`credits.${k}`))}</p>`).join('')}
+      ${['game', 'models', 'sound', 'music', 'fontBlackOps', 'fontBangers', 'fontComicNeue', 'three', 'vite'].map((k) => `<p>${esc(t(`credits.${k}`))}</p>`).join('')}
       <p class="muted">${esc(t('credits.disclaimer'))}</p>
     </div>`);
   bind(d.node, { close: () => d.close() });
