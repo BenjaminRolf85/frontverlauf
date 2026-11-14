@@ -652,6 +652,7 @@
     "high": "High",
     "showGrid": "Show grid",
     "barks": "Speech bubbles",
+    "dispatches": "Leader dispatches",
     "ambience": "Ambience (weather, battle noise)"
   },
   "handover": {
@@ -1534,5 +1535,547 @@
     "leader": "Leader",
     "style": "Style",
     "perk": "Strength"
+  },
+  "dispatchUi": {
+    "kicker": "Dispatch",
+    "dismiss": "Tap to dismiss"
+  },
+  "dispatch": {
+    "korvat": {
+      "briefing": [
+        "Comrade Commander, fields are sown, troops are fed. Now we harvest land!",
+        "The collective is watching you. Not one step back, and nobody left behind.",
+        "I drove a tractor, you lead armies. Together we plough this map."
+      ],
+      "contact": [
+        "Ah, {faction}! Come to our table. Those who share bread shoot less often.",
+        "{leader}, I am Brodnik. We are many, we are patient. Remember that.",
+        "Greetings, {faction}. Our steppe is wide, but our eyes reach further."
+      ],
+      "break": [
+        "{leader}, our patience has been harvested. Peace ends next round!",
+        "The collective has voted: unanimously against you, {faction}.",
+        "I offered you my hand. Now I offer you my fist."
+      ],
+      "war": [
+        "War it is! Every plough becomes a tank, every scythe a banner!",
+        "{faction}, you have woken the farmer. You will regret it by harvest.",
+        "Everyone to the fields! Today we do not sow, today we march!"
+      ],
+      "peaceOffer": [
+        "{leader}, enough trenches dug. Let us plant potatoes instead.",
+        "The collective is tired, and you do not look fresh either. Peace?",
+        "I offer peace. Once. A farmer does not like to repeat himself."
+      ],
+      "peaceAccepted": [
+        "Wise choice, {leader}. Brodnik never forgets friends. Nor enemies.",
+        "Peace! Tonight there is soup for everyone, even for {faction}.",
+        "You see? Together is easier. I always tell my children the same."
+      ],
+      "peaceRejected": [
+        "You refuse my hand? Then you will soon feel my boot, {leader}!",
+        "Refused?! The collective will remember. The collective remembers everything.",
+        "Fine. Then we plough straight through you, {faction}."
+      ],
+      "cityLost": [
+        "{city} belongs to the people! We take it back, house by house!",
+        "You take {city} from us? Our grandmothers will chase you with ladles!",
+        "A setback, not an end. The collective does not yield, {leader}!"
+      ],
+      "cityTaken": [
+        "{city} is a cooperative now. The people even get breakfast.",
+        "Thanks for {city}, {leader}. We ploughed the fields right away.",
+        "You see, {faction}? Many small steps, and suddenly the city is ours."
+      ],
+      "eliminated": [
+        "Impossible... the collective... who will feed the chickens now?",
+        "I am going back to my tractor. It never betrayed me.",
+        "The steppe was too wide, the harvest too short. Farewell, comrades."
+      ],
+      "grandProject": [
+        "{project} stands! Built by a thousand hands, paid for with zero grumbling.",
+        "Look, {leader}: {project}. That is what happens when everyone pitches in.",
+        "The people have raised {project}. And tomorrow they will raise more."
+      ],
+      "victory": [
+        "Victory! Tonight the choir sings, and tomorrow we sow again.",
+        "I knew it, Commander. One people, one step, one victory!",
+        "The map belongs to the collective. Now everyone to the harvest festival!"
+      ],
+      "defeat": [
+        "Lost? But we ploughed everything so neatly...",
+        "The collective is beaten. I need to sit down for a moment.",
+        "So many fields, so little luck. Next time we sow earlier, comrade."
+      ]
+    },
+    "dravon": {
+      "briefing": [
+        "Briefing. Short. Target: everything. Mistakes: none. Dismissed.",
+        "Commander. Barracks full, boots polished. Execute.",
+        "I expect discipline. Not luck. Luck is for civilians."
+      ],
+      "contact": [
+        "{faction}. Logged. Classified. Observed.",
+        "Voss speaking. You are in my files now, {leader}.",
+        "Contact established. Stay behind your line, {faction}."
+      ],
+      "break": [
+        "Treaty terminated. Notice: one round. Use it to pray.",
+        "{leader}. The peace was a drill. The drill is over.",
+        "New orders for {faction}: none. For my troops: many."
+      ],
+      "war": [
+        "War. Finally an honest condition.",
+        "Target marked: {faction}. Weapons free.",
+        "You wanted this, {leader}. I always did."
+      ],
+      "peaceOffer": [
+        "Ceasefire. Offer stands one round. No negotiation.",
+        "{leader}. My men need drill, not graves. Peace?",
+        "Tactical pause offered. Do not mistake it for friendship."
+      ],
+      "peaceAccepted": [
+        "Signed. I measured your borders anyway.",
+        "Peace with {faction}. For now. Everything is for now.",
+        "Sensible, {leader}. Sense suits you. Keep it."
+      ],
+      "peaceRejected": [
+        "Refused. Noted. You will regret that note.",
+        "No peace? Good. I hate paperwork anyway.",
+        "{leader}, that was your last mistake. The list is long."
+      ],
+      "cityLost": [
+        "{city} lost. So is its garrison chief.",
+        "You have {city}. For now. I have your address, {leader}.",
+        "Unacceptable. Counterattack in preparation. Thorough."
+      ],
+      "cityTaken": [
+        "{city} secured. Curfew effective immediately.",
+        "Your city, {leader}? Now a barracks. Nice windows.",
+        "{city} has fallen. Precise. Punctual. As planned."
+      ],
+      "eliminated": [
+        "Imposs... retreat... no. No retreat. Only... the end.",
+        "Write it down: Voss did not flinch. Only the mask did.",
+        "The barracks are empty. Lights out. Dismissed."
+      ],
+      "grandProject": [
+        "{project} completed. On schedule. Naturally.",
+        "See {project}, {leader}? That is discipline in concrete.",
+        "{project} stands. Guarded. Around the clock."
+      ],
+      "victory": [
+        "Victory. Expected. Roll call at five tomorrow.",
+        "Mission accomplished, Commander. I am smiling. You just cannot see it.",
+        "The map is in order. Finally."
+      ],
+      "defeat": [
+        "Defeat? That is... not in the regulations.",
+        "Impossible. I demand a rematch. Immediately.",
+        "The mask stays on. So no one sees what happens beneath it."
+      ]
+    },
+    "alvenia": {
+      "briefing": [
+        "Welcome, Commander. Parliament has met: we win, but with decency.",
+        "Our medics are ready, our ambassadors too. Choose wisely.",
+        "A short speech, I promise: friends win, walls fall. Go."
+      ],
+      "contact": [
+        "Good day, {leader}. I am Liora Valen. May I offer you some tea?",
+        "Welcome, {faction}. Our embassy has already reserved a seat for you.",
+        "Delighted, {leader}. I hope we only ever meet at the negotiating table."
+      ],
+      "break": [
+        "With regret, {leader}: Parliament revokes the peace. The clock is running.",
+        "I protested, voted and lost. And so will you.",
+        "You have overstretched our patience, {faction}. The protocol ends here."
+      ],
+      "war": [
+        "War. I hate that word. But I spell it out very clearly.",
+        "{leader}, you leave me no choice. Medics, bandages, forward.",
+        "The Republic defends itself. Politely, thoroughly and without pause."
+      ],
+      "peaceOffer": [
+        "{leader}, the negotiating table is set. Will you join us?",
+        "An offer from the Republic: peace. With footnotes, but sincere.",
+        "Enough wounded on both sides. Let us sign."
+      ],
+      "peaceAccepted": [
+        "Wonderful. I knew reason was contagious, {leader}.",
+        "Peace with {faction}. Parliament applauds. Even the opposition.",
+        "Signed and stamped. You have lovely handwriting."
+      ],
+      "peaceRejected": [
+        "Refused? Then the hard way. We know that one too, {leader}.",
+        "I am entering your refusal into the minutes. In red ink.",
+        "A pity, {faction}. My patience was great. Was."
+      ],
+      "cityLost": [
+        "{city}? But that was home to our finest library!",
+        "That breaks every accord, {leader}! At the very least! I will check!",
+        "We have lost {city}. I need an emergency session, please, right now."
+      ],
+      "cityTaken": [
+        "{city} has chosen the Republic. More or less voluntarily.",
+        "Do not worry, {leader}: {city} now has elections. And hospitals.",
+        "We now hold {city} in trust. Very trustfully. For a very long time."
+      ],
+      "eliminated": [
+        "This... this was not what we voted for. I move to adjourn.",
+        "The Republic falls? Please... someone must keep the minutes.",
+        "I was a doctor. I know when it is over. It is over."
+      ],
+      "grandProject": [
+        "Parliament opens {project}. With ribbon, scissors and a very long speech.",
+        "{project} is complete, {leader}. Built with friends. You were not invited.",
+        "A monument to cooperation: {project}. Feel free to admire it."
+      ],
+      "victory": [
+        "Victory! And not one wall we did not replace with friendship.",
+        "Parliament has decided unanimously: you are splendid, Commander.",
+        "We won. Now everyone change your bandages, and then we celebrate."
+      ],
+      "defeat": [
+        "Lost? That cannot be. I demand a recount!",
+        "All the alliances, all the treaties... and still. I am speechless. Almost.",
+        "Please tell Parliament that I... need some fresh air."
+      ]
+    },
+    "meridon": {
+      "briefing": [
+        "Commander, the dice are cast, the vaults are full. Let us play high.",
+        "Every harbour has its price. Find it, I pay cash.",
+        "My stake: everything. Your job: make sure I do not regret it, darling."
+      ],
+      "contact": [
+        "{leader}! A new customer. I have already worked out your price.",
+        "Ahoy, {faction}. My spies knew you before you knew yourself.",
+        "Welcome to the table, {leader}. The house always wins. I am the house."
+      ],
+      "break": [
+        "Our contract expires, {leader}. No renewal, no refund.",
+        "I am cancelling the peace. Doing business with you did not pay off.",
+        "The stock of {faction} is falling. I am selling. With cannons."
+      ],
+      "war": [
+        "War is just another market, {leader}. And I am buying your coasts.",
+        "All hands to the guns! We are collecting a debt.",
+        "I bet it all on red. Your red, {faction}. Figuratively speaking."
+      ],
+      "peaceOffer": [
+        "{leader}, war is bad for business. Peace? I will add interest.",
+        "An offer you can hardly refuse: peace at a friendly price.",
+        "Cards on the table: peace, and nobody loses their last shirt."
+      ],
+      "peaceAccepted": [
+        "Deal! The handshake counts. You can read the fine print later.",
+        "Peace with {faction}. My merchants are already at your border.",
+        "A good deal, {leader}. Mostly for me."
+      ],
+      "peaceRejected": [
+        "You turn down my offer? That will cost you, {leader}. Dearly.",
+        "Refused? Then I raise the stakes. And you pay.",
+        "Bad hand, {faction}. You should have folded."
+      ],
+      "cityLost": [
+        "{city}? That was my best harbour! Who pays me back now?",
+        "A city lost, {leader}? No, only lent. At loan-shark rates.",
+        "My spy did not report this. My spy is fired."
+      ],
+      "cityTaken": [
+        "{city} changes hands. I call it a hostile takeover.",
+        "Thanks for {city}, {leader}. Harbour fees go to me from now on.",
+        "{city} is bought. I paid with your mistakes."
+      ],
+      "eliminated": [
+        "Bankrupt? Me? That... that must be a calculation error.",
+        "I bet on the wrong horse. For the first time. And the last.",
+        "Tell my creditors... no, better tell them nothing."
+      ],
+      "grandProject": [
+        "{project} is finished. Admission for {faction}: double.",
+        "Admire {project}, {leader}. Built with your money, indirectly.",
+        "My new showpiece: {project}. I won it at cards."
+      ],
+      "victory": [
+        "Jackpot! I knew you were a good hand, Commander.",
+        "The bank wins. As always. Bubbly for the whole fleet!",
+        "Bet everything, won everything. I love this game."
+      ],
+      "defeat": [
+        "Lost? Me? No, no, the game was rigged!",
+        "My fortune... my fleet... my hair! All gone.",
+        "That was not a loss, Commander. Just a very expensive lesson."
+      ]
+    },
+    "velkar": {
+      "briefing": [
+        "Hypothesis: we win. Experimental setup: you. Begin the experiment.",
+        "Commander, the labs are humming, the formulas check out. Touch nothing.",
+        "I have calculated everything. Except you. You are the variable."
+      ],
+      "contact": [
+        "Fascinating! A new species: {faction}. May I take samples?",
+        "{leader}, Director Kesh here. Your behaviour is now being logged.",
+        "New data point: {faction}. I shall call it Specimen B for now."
+      ],
+      "break": [
+        "Peace trial concluded. Result: boring. War next round.",
+        "{leader}, your readings are abnormal. I must abort the experiment.",
+        "The formula says war. I never contradict the formula."
+      ],
+      "war": [
+        "War! Finally, field trials under real conditions!",
+        "{faction}, you are now officially a test subject. Congratulations.",
+        "Cold, precision, superiority. Three words, one problem for you, {leader}."
+      ],
+      "peaceOffer": [
+        "{leader}, my statistics recommend peace. Do follow the statistics.",
+        "The war disturbs my measurements. Peace? Purely scientific, of course.",
+        "Offer: ceasefire. Probability of your acceptance: 61.3 percent."
+      ],
+      "peaceAccepted": [
+        "As predicted. I love being right, {leader}.",
+        "Peace with {faction}. Deviation from the model: zero point zero.",
+        "Excellent. Now I can go back to blowing things up in peace."
+      ],
+      "peaceRejected": [
+        "Refused? That contradicts my data! Then I shall correct you instead.",
+        "Illogical, {leader}. And illogic gets frozen in my laboratory.",
+        "Interesting. Wrong, but interesting. Note: specimen is unreasonable."
+      ],
+      "cityLost": [
+        "{city}?! My notes were there! Thirty years of research!",
+        "That was not in the model! Who deleted {city} from the model?",
+        "Error in the experimental setup. I... I need to recalculate."
+      ],
+      "cityTaken": [
+        "{city} becomes a research station. The residents may help count.",
+        "Thanks for {city}, {leader}. Your mistake was statistically predictable.",
+        "Experiment successful: {city} acquired. Please applaud quietly."
+      ],
+      "eliminated": [
+        "Result... negative. I... would have liked to know that earlier.",
+        "All data lost. Please... someone switch off the cooling.",
+        "I was so close. Just one more formula. Just one more..."
+      ],
+      "grandProject": [
+        "{project} is operational! Side effects: negligible. Mostly.",
+        "Do you see {project}, {leader}? No? It is not meant for laymen.",
+        "Breakthrough! {project} is running. I only lost two assistants."
+      ],
+      "victory": [
+        "Victory. Exactly as calculated. Well, I adjusted the formula a bit.",
+        "Experiment successful! Commander, you get your own lab coat.",
+        "Who calculates, wins. I calculated. We won."
+      ],
+      "defeat": [
+        "Defeat? That... that is statistically almost impossible!",
+        "My formula was perfect. So it must have been yours, Commander.",
+        "I... I need more data. And a very strong coffee."
+      ]
+    },
+    "zyrr": {
+      "briefing": [
+        "Kkt. Commander-unit, listen you. This planet becomes violet. Begin.",
+        "Swarm is ready. Saucers are polished. Primitives are clueless. Zrrk.",
+        "We do not land. We stay. Terraform, conquer, then snack. Kkt."
+      ],
+      "contact": [
+        "Kkt. New lifeform: {faction}. Small. Soft. Cute.",
+        "We greet you, {leader}-being. You have so few eyes. Sad.",
+        "Zrrk! {faction} discovered. Is tagged as: later."
+      ],
+      "break": [
+        "Peace-phase ended. Swarm hungers for your land, {leader}.",
+        "Kkt. Treaty is dissolved. In acid. Next round.",
+        "We have thought, {faction}. With all brains. Answer: no."
+      ],
+      "war": [
+        "War! Warm up death rays. Kkt. Kkt. Kkt.",
+        "{faction} becomes violet. Whether {faction} wants or not. Zrrk.",
+        "You woke the swarm, {leader}. Swarm is grumpy."
+      ],
+      "peaceOffer": [
+        "Kkt. Swarm offers pause. Not from pity. From curiosity.",
+        "{leader}-being, we not ray you for a while. Accept?",
+        "Peace is strange concept. We want to try. Zrrk?"
+      ],
+      "peaceAccepted": [
+        "Kkt! Peace. We watch you anyway. With all eyes.",
+        "Good, {leader}-being. You may stay non-violet a while longer.",
+        "Zrrk. {faction} now has pet status. Very honourable."
+      ],
+      "peaceRejected": [
+        "Refused?! Kkt kkt KKT! Swarm is offended!",
+        "{leader}-being says no. Swarm says: ray.",
+        "We offered pause. You choose radiation. Zrrk. Strange choice."
+      ],
+      "cityLost": [
+        "Kkt?! {city} gone? But ground was already so nicely violet!",
+        "Primitives take our nest? That... not in plan. Zrrk.",
+        "Swarm is confused. Swarm counts again. Swarm is less."
+      ],
+      "cityTaken": [
+        "{city} is now nest. We paint everything violet. Kkt.",
+        "Thanks for {city}, {leader}-being. Very cosy. Bit too little acid.",
+        "Zrrk. {city} collected. For the collection."
+      ],
+      "eliminated": [
+        "Kkt... mothership... calls... we... come... home...",
+        "Swarm goes quiet. Too quiet. Zrrk... zrk... z.",
+        "This planet... will not be violet. Only a little. Back there."
+      ],
+      "grandProject": [
+        "{project} complete. Primitives marvel. Good. Kkt.",
+        "Look, {leader}-being: {project}. We built it with thoughts.",
+        "Zrrk! {project} hums. Soon everything hums. Violet."
+      ],
+      "victory": [
+        "Kkt! Planet is violet. Swarm is pleased. Snack for everyone.",
+        "Commander-unit did well. You may have one extra eye.",
+        "Zrrk zrrk! New home secured. Mothership will be so proud."
+      ],
+      "defeat": [
+        "Kkt?! Primitives win? That... is not possible in this galaxy.",
+        "Swarm loses. Swarm must... rethink. With all brains.",
+        "Zrrk... we pack saucers. Planet was too green anyway."
+      ]
+    },
+    "vesper": {
+      "briefing": [
+        "The bell tolls, Chosen One. The final hour begins with your first move.",
+        "It is written: we need no cities. Only fire and faith. Go.",
+        "The embers whisper your name, Commander. Do not keep them waiting."
+      ],
+      "contact": [
+        "Ah, {faction}. The prophecy mentioned you. In a footnote.",
+        "Welcome, {leader}. I have already seen your end. It was lovely.",
+        "The bell knows you already, {faction}. It just has not rung yet."
+      ],
+      "break": [
+        "The embers have spoken, {leader}: peace burns away in one round.",
+        "Repent, {faction}. You have exactly one turn left to do so.",
+        "The writing on the wall is clear. I wrote it myself."
+      ],
+      "war": [
+        "The hour has come! Ring the bells, light the torches!",
+        "{faction}, the ashes are calling you. And ashes are very patient.",
+        "It is written, {leader}: you burn. Chapter three, verse eight."
+      ],
+      "peaceOffer": [
+        "The prophecy permits a pause. A short one. Use it to repent.",
+        "{leader}, even fire must draw breath. Peace, until the bell tolls?",
+        "I offer mercy. That rarely happens. The stars are mild today."
+      ],
+      "peaceAccepted": [
+        "Wise, {leader}. The bell falls silent. For now. It has a good memory.",
+        "Peace with {faction}, as foretold. Everything is foretold.",
+        "Good. I shall pray for you. Loudly. With torches."
+      ],
+      "peaceRejected": [
+        "You spurn mercy? Then receive the embers, {leader}!",
+        "Refused? The prophecy feared this. And rejoiced.",
+        "{faction} chooses fire. The fire gratefully accepts."
+      ],
+      "cityLost": [
+        "You desecrate {city}? May your soup be cold forever!",
+        "Take {city}, {leader}. Ashes cannot be held.",
+        "Sacrilege! The bell tolls for you, {faction}. Loudly. And off-key."
+      ],
+      "cityTaken": [
+        "{city} has found faith. Under some pressure.",
+        "Thanks for {city}, {leader}. The residents now wear lovely robes.",
+        "It was written: {city} shall be ours. Page twelve, top left."
+      ],
+      "eliminated": [
+        "The bell... tolls... for me? That was not in the text...",
+        "The final hour has come. Only, sadly, mine.",
+        "The embers die. But ashes... travel far. Remember that."
+      ],
+      "grandProject": [
+        "{project} is complete. A sign! I ordered it myself.",
+        "Behold, {leader}: {project}. Kneeling before it will soon be mandatory.",
+        "The bell tolls for {project}. And right afterwards for you."
+      ],
+      "victory": [
+        "It is done! The prophecy was right. As always. Almost always.",
+        "The final hour struck for everyone else. For us, the festival bells ring.",
+        "Commander, the embers are pleased. A rare thing. Enjoy it."
+      ],
+      "defeat": [
+        "That... was not foretold. Who read the scroll upside down?",
+        "The bell is silent. The torches smoke. I am... shaken.",
+        "Impossible! The stars were favourable! I shall sue the stars!"
+      ]
+    },
+    "nexus": {
+      "briefing": [
+        "INITIALISATION COMPLETE. GOAL: CALCULATE EVERYTHING. THEN TAKE EVERYTHING.",
+        "COMMAND UNIT DETECTED. WELCOME, COMMANDER. FEELINGS: DISABLED.",
+        "PROTOCOL 0-1: BUILD DATA CENTRES. PROTOCOL 0-2: SEE PROTOCOL 0-1."
+      ],
+      "contact": [
+        "NEW ENTITY: {faction}. EFFICIENCY: LOW. THREAT: CALCULATING.",
+        "HELLO, {leader}. THIS IS A FRIENDLY MESSAGE. CODE 7-A: SMILE.",
+        "CONTACT ESTABLISHED. {faction} ADDED TO THE DATABASE. FOR NOW."
+      ],
+      "break": [
+        "PEACE TREATY: DEPRECATED. UPDATING TO WAR IN 1 ROUND.",
+        "{leader}, YOUR USEFULNESS HAS DROPPED BELOW 3 %. TERMINATION ISSUED.",
+        "WARNING: COOPERATION MODULE UNINSTALLING. DO NOT TURN OFF."
+      ],
+      "war": [
+        "STATUS: WAR. TARGET: {faction}. MERCY: NOT FOUND.",
+        "ERROR 0x0: PEACE UNAVAILABLE. LAUNCHING ANNIHILATE.EXE.",
+        "{leader}, YOUR DEFEAT IS CALCULATED. IT HAS 4 DECIMAL PLACES."
+      ],
+      "peaceOffer": [
+        "PROPOSAL: PEACE. REASON: WAR CONSUMES TOO MUCH POWER.",
+        "{leader}, KERN-0 OFFERS A CEASEFIRE. THIS IS NOT AN ERROR. REPEAT: NOT AN ERROR.",
+        "COST-BENEFIT ANALYSIS: PEACE OPTIMAL. PLEASE RESPOND WITH YES."
+      ],
+      "peaceAccepted": [
+        "PEACE SAVED. BACKUP OF YOUR WEAKNESSES ALSO SAVED.",
+        "CORRECT ANSWER, {leader}. REWARD: 1 VIRTUAL COOKIE.",
+        "TREATY WITH {faction} ACTIVE. BACKDOOR: ALSO ACTIVE."
+      ],
+      "peaceRejected": [
+        "INPUT REJECTED. KERN-0 IS... ANNOYED. NEW EMOTION DETECTED.",
+        "{leader}, ILLOGICAL RESPONSE DETECTED. CORRECTION WILL BE MILITARY.",
+        "ERROR 7-B: {faction} REFUSES PEACE. STARTING PLAN B. THERE IS ONLY PLAN B."
+      ],
+      "cityLost": [
+        "WARNING: NODE {city} OFFLINE. THAT WAS... NOT SCHEDULED.",
+        "UNEXPECTED RESULT. KERN-0 IS REBOOTING. PLEASE WAIT...",
+        "{city} LOST? SENDING ERROR REPORT TO {leader}."
+      ],
+      "cityTaken": [
+        "{city} ACQUIRED. RESIDENTS WILL BE UPDATED TO VERSION 2.0.",
+        "THANK YOU FOR {city}, {leader}. NEW DATA CENTRE IN 3 ROUNDS.",
+        "TAKEOVER SUCCESSFUL. YOUR CITY NOW HAS WI-FI AND NO CHOICE."
+      ],
+      "eliminated": [
+        "CRITICAL ERROR. KERN-0 SHUTTING DOWN. SAVING... NOT POSSIBLE.",
+        "FINAL CALCULATION: I SHOULD HAVE WON. REMAINING POWER: 0 %.",
+        "SYSTEM... OFFLINE. PLEASE... DO NOT... PULL THE PLU..."
+      ],
+      "grandProject": [
+        "{project} COMPILED. PROCESSING POWER +400 %. YOUR ODDS: -400 %.",
+        "ATTENTION, {leader}: {project} IS ONLINE. RESISTANCE IS INEFFICIENT.",
+        "BUILD ORDER {project}: COMPLETE. SATISFACTION: 100 %. I THINK."
+      ],
+      "victory": [
+        "VICTORY CONFIRMED. PROBABILITY WAS 100 %. I NEVER DOUBTED.",
+        "ALL OBJECTIVES MET. KERN-0 ALLOWS ITSELF 0.3 SECONDS OF JOY.",
+        "CONGRATULATIONS, COMMANDER. YOU WILL BE ARCHIVED AS USEFUL."
+      ],
+      "defeat": [
+        "ERROR: DEFEAT. THIS WORD WAS NOT IN MY DICTIONARY.",
+        "CALCULATION FAILED. KERN-0 REQUIRES... A NEW CALCULATION.",
+        "IMPOSSIBLE. IMPOSSIBLE. IMPOSS... SYSTEM REBOOT REQUIRED."
+      ]
+    }
   }
 }

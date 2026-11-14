@@ -20,6 +20,7 @@ import { cityName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { factionCard, leaderPortrait } from './leaders';
+import { gameOverDispatchHtml } from './dispatch';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -241,6 +242,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
       <div class="field"><span class="label">${esc(t('settings.ambience'))}</span>${onOff('ambience', s.ambience)}</div>
       <div class="field"><span class="label">${esc(t('settings.animations'))}</span>${onOff('animations', s.animations)}</div>
       <div class="field"><span class="label">${esc(t('settings.barks'))}</span>${onOff('barks', s.barks)}</div>
+      <div class="field"><span class="label">${esc(t('settings.dispatches'))}</span>${onOff('dispatches', s.dispatches)}</div>
       <div class="field"><span class="label">${esc(t('settings.aiSpeed'))}</span>${segmented('aiSpeed', ['slow', 'normal', 'fast', 'instant'].map((v) => ({ value: v, label: t(`settings.${v}`) })), s.aiSpeed)}</div>
       <div class="field"><span class="label">${esc(t('settings.quality'))}</span>${segmented('quality', ['low', 'high'].map((v) => ({ value: v, label: t(`settings.${v}`) })), s.quality)}</div>
     </div>`;
@@ -252,7 +254,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
     if (!seg) return;
     const k = seg.dataset.seg!, v = seg.dataset.value!;
     if (k === 'lang') { s.lang = v as 'de' | 'en'; setLanguage(s.lang); }
-    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks' || k === 'ambience') s[k] = v === 'on';
+    else if (k === 'music' || k === 'effects' || k === 'animations' || k === 'barks' || k === 'dispatches' || k === 'ambience') s[k] = v === 'on';
     else if (k === 'aiSpeed') s.aiSpeed = v as Settings['aiSpeed'];
     else if (k === 'quality') s.quality = v as Settings['quality'];
     host.applySettings();
@@ -571,6 +573,7 @@ export function gameOverScreen(host: ScreenHost) {
   const d = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t('gameover.title'))}</h2></div>
     <h1 class="logo">${esc(!anyHuman || humanWon ? t('gameover.victory') : t('gameover.defeat'))}</h1>
     ${s.winner !== null ? `<p class="display">${esc(t('gameover.winner', { name: t(`factions.${s.factions[s.winner].id}.name`) }))}</p>` : ''}
+    ${gameOverDispatchHtml(s, host.game.viewer)}
     <h3 class="display">${esc(t('gameover.scores'))}</h3>
     <div class="score-list">${ranking.map((r, i) => `<div class="score-row"><span class="display">${i + 1}.</span>${factionChip(r.f.id, t(`factions.${r.f.id}.short`))}<span class="grow">${esc(t(`factions.${r.f.id}.short`))}</span><span>${esc(t('diplomacy.score', { n: r.sc }))}</span></div>`).join('')}</div>
     ${statsPanel(s, host.game.viewer)}

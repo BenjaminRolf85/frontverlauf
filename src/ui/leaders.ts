@@ -14,23 +14,31 @@ import { esc, factionBadge } from './components';
 
 /** Bildgroesse in Pixeln / image size in pixels */
 const SIZE = 512;
-const cache = new Map<FactionId, string>();
+const cache = new Map<string, string>();
 let renderer: THREE.WebGLRenderer | null = null;
 
-type LeaderFn = (f: FactionId) => THREE.BufferGeometry;
+/**
+ * Gesichtsausdruck der Bueste (gleiche Union wie in render/models; aeltere Modelle ignorieren ihn).
+ * Facial expression of the bust (same union as in render/models; older models ignore it).
+ */
+export type LeaderMood = 'neutral' | 'angry' | 'smug' | 'shocked';
+
+type LeaderFn = (f: FactionId, mood?: LeaderMood) => THREE.BufferGeometry;
 const leaderGeometry = (models as unknown as { leaderGeometry?: LeaderFn }).leaderGeometry;
 
 /** Portraet als Daten-URL (leer, wenn kein Modell oder kein WebGL) / portrait as data URL (empty without model or WebGL) */
-export function leaderImage(f: FactionId): string {
-  const hit = cache.get(f);
+export function leaderImage(f: FactionId, mood: LeaderMood = 'neutral'): string {
+  const key = `${f}:${mood}`;
+  const hit = cache.get(key);
   if (hit !== undefined) return hit;
   let url = '';
   try {
-    if (leaderGeometry) url = render(f, leaderGeometry(f));
+    // ohne Stimmungs-Modelle liefert die Funktion die neutrale Bueste / without mood models it returns the neutral bust
+    if (leaderGeometry) url = render(f, leaderGeometry(f, mood));
   } catch {
     url = '';
   }
-  cache.set(f, url);
+  cache.set(key, url);
   return url;
 }
 
@@ -86,8 +94,8 @@ function render(f: FactionId, g: THREE.BufferGeometry): string {
 }
 
 /** Portraet-HTML (faellt auf das Fraktionsabzeichen zurueck) / portrait HTML (falls back to the faction badge) */
-export function leaderPortrait(f: FactionId, cls = ''): string {
-  const url = leaderImage(f);
+export function leaderPortrait(f: FactionId, cls = '', mood: LeaderMood = 'neutral'): string {
+  const url = leaderImage(f, mood);
   const name = t(`factions.${f}.leader`);
   if (!url) return factionBadge(f);
   return `<img class="leader-portrait ${cls}" src="${url}" alt="${esc(name)}" style="--leader-rim:var(--faction-${f}-primary)">`;

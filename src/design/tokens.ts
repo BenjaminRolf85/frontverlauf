@@ -373,6 +373,12 @@ export const components = {
   },
   fx: { burstSize: '120px', burstStroke: '3' },
   bark: { maxWidth: '220px' },
+  /** Funksprueche der Anfuehrer / leader dispatches */
+  dispatch: {
+    width: '500px', portrait: '88px', portraitSm: '68px', portraitGameOver: '104px', accent: '8px',
+    showMs: '5200ms', gapMs: '240ms', tilt: '-0.8deg', bubbleBg: semantic.surfaceRaised, kickerInk: semantic.stamp,
+    angryInk: semantic.dangerBright, offsetGap: primitives.space[2],
+  },
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
   /** Lagekarte (Canvas liest die Farben direkt) / minimap (the canvas reads the colours directly) */
   minimap: {

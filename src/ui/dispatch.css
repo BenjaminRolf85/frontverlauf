@@ -1,0 +1,88 @@
+/*
+ * Funksprueche der Anfuehrer: Comic-Panel mit Portraet und Sprechblase. Nur Design-Tokens.
+ * Leader dispatches: comic panel with portrait and speech bubble. Design tokens only.
+ */
+.dispatch-layer { position: absolute; inset: 0; pointer-events: none !important; overflow: hidden; z-index: var(--p-z-toast); }
+
+.dispatch {
+  --dispatch-x: -50%;
+  --dispatch-tilt: var(--c-dispatch-tilt);
+  position: absolute; left: 50%; width: min(calc(100% - var(--p-space-4)), var(--c-dispatch-width));
+  top: calc(env(safe-area-inset-top) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--c-dispatch-offset-gap));
+  transform: translateX(var(--dispatch-x)) rotate(var(--dispatch-tilt));
+  display: flex; gap: var(--p-space-3); align-items: flex-start; pointer-events: auto; cursor: pointer;
+  padding: var(--p-space-2) var(--p-space-3) var(--p-space-2) var(--p-space-2);
+  background-color: var(--s-surface-inverse); color: var(--s-text-inverse);
+  background-image: radial-gradient(var(--c-halftone-dot) var(--c-halftone-dot-radius), transparent var(--c-halftone-dot-fade));
+  background-size: var(--c-halftone-size) var(--c-halftone-size);
+  border: var(--p-border-width-heavy) solid var(--s-outline); border-left: var(--c-dispatch-accent) solid var(--dispatch-faction, var(--s-accent));
+  border-radius: var(--p-radius-md); box-shadow: var(--p-shadow-pop-lg) var(--s-outline);
+  animation: dispatch-in var(--p-duration-max) ease-out;
+}
+.dispatch .leader-portrait.dispatch-face, .dispatch > .faction-badge {
+  width: var(--c-dispatch-portrait); height: var(--c-dispatch-portrait); flex: none;
+  border-color: var(--dispatch-faction, var(--s-outline)); box-shadow: var(--p-shadow-pop-sm) var(--s-outline);
+}
+.dispatch-body { display: flex; flex-direction: column; gap: var(--p-space-2); min-width: 0; flex: 1; }
+.dispatch-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--p-space-2); min-width: 0; }
+.dispatch-kicker {
+  display: inline-flex; align-items: center; gap: var(--p-space-1); width: 100%;
+  font-family: var(--p-font-display); letter-spacing: var(--p-letter-spacing-display); text-transform: uppercase;
+  font-size: var(--p-font-size-xs); color: var(--s-accent);
+}
+.dispatch-name { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); font-size: var(--p-font-size-lg); line-height: 1.1; }
+.dispatch-title { font-size: var(--p-font-size-xs); color: var(--s-neutral); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.dispatch-bubble {
+  position: relative; margin: 0; padding: var(--p-space-2) var(--p-space-3);
+  background: var(--c-dispatch-bubble-bg); color: var(--s-text); border: var(--p-border-width-thick) solid var(--s-outline);
+  border-radius: var(--p-radius-lg); box-shadow: var(--p-shadow-pop-sm) var(--dispatch-faction, var(--s-outline));
+  font-family: var(--p-font-body); font-weight: var(--p-font-weight-bold); font-size: var(--p-font-size-md); line-height: 1.25;
+}
+/* Sprechblasen-Zipfel zum Portraet / speech bubble tail towards the portrait */
+.dispatch-bubble::before {
+  content: ''; position: absolute; left: calc(-1 * var(--p-space-2)); top: var(--p-space-3); width: var(--p-space-3); height: var(--p-space-3);
+  background: var(--c-dispatch-bubble-bg); border-left: var(--p-border-width-thick) solid var(--s-outline); border-bottom: var(--p-border-width-thick) solid var(--s-outline);
+  transform: rotate(45deg);
+}
+
+/* Stimmungen / moods */
+.dispatch.mood-angry { --dispatch-tilt: calc(var(--c-dispatch-tilt) * -2); animation: dispatch-in var(--p-duration-max) ease-out, dispatch-shake var(--p-duration-slow) ease-in-out var(--p-duration-max) 2; }
+.dispatch.mood-angry .dispatch-kicker { color: var(--c-dispatch-angry-ink); }
+.dispatch.mood-angry .dispatch-bubble { font-family: var(--p-font-comic); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); border-color: var(--c-dispatch-angry-ink); }
+.dispatch.mood-shocked .dispatch-bubble { font-style: italic; }
+.dispatch.mood-smug { --dispatch-tilt: var(--c-campaign-tilt-alt); }
+
+.dispatch.out { animation: dispatch-out var(--p-duration-slow) ease-in forwards; }
+@keyframes dispatch-in {
+  from { opacity: 0; transform: translateX(var(--dispatch-x)) translateY(calc(-1 * var(--p-space-6))) scale(0.85) rotate(var(--dispatch-tilt)); }
+  to { opacity: 1; transform: translateX(var(--dispatch-x)) rotate(var(--dispatch-tilt)); }
+}
+@keyframes dispatch-out { to { opacity: 0; transform: translateX(var(--dispatch-x)) translateY(calc(-1 * var(--p-space-5))) rotate(var(--dispatch-tilt)); } }
+@keyframes dispatch-shake {
+  0%, 100% { transform: translateX(var(--dispatch-x)) rotate(var(--dispatch-tilt)); }
+  25% { transform: translateX(var(--dispatch-x)) translateX(calc(-1 * var(--p-space-1))) rotate(var(--dispatch-tilt)); }
+  75% { transform: translateX(var(--dispatch-x)) translateX(var(--p-space-1)) rotate(var(--dispatch-tilt)); }
+}
+
+/* Andere Meldungen oben in der Mitte weichen nach unten aus / other top-centre messages move below */
+.has-dispatch .toasts, .has-dispatch .turn-banner, .has-dispatch .headline {
+  top: calc(env(safe-area-inset-top) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--c-dispatch-offset-gap) * 3 + var(--dispatch-offset, var(--p-space-0)));
+}
+.toasts, .turn-banner { transition: top var(--p-duration-base) ease-out; }
+
+/* Endbildschirm: fest im Dialog / game-over screen: static inside the dialog */
+.dispatch.static {
+  --dispatch-x: 0%; --dispatch-tilt: 0deg;
+  position: relative; left: auto; top: auto; width: auto; margin: var(--p-space-2) 0 var(--p-space-3); cursor: default; animation: none;
+  pointer-events: auto;
+}
+.dispatch.static .leader-portrait.dispatch-face { width: var(--c-dispatch-portrait-game-over); height: var(--c-dispatch-portrait-game-over); }
+
+/* Schmale Geraete: volle Breite / narrow devices: full width */
+@media (max-width: 480px) /* --p-breakpoint-narrow */ {
+  .dispatch:not(.static) { --dispatch-x: 0%; left: var(--p-space-2); right: var(--p-space-2); width: auto; }
+  .dispatch { gap: var(--p-space-2); }
+  .dispatch .leader-portrait.dispatch-face, .dispatch > .faction-badge { width: var(--c-dispatch-portrait-sm); height: var(--c-dispatch-portrait-sm); }
+  .dispatch-name { font-size: var(--p-font-size-md); }
+  .dispatch-bubble { font-size: var(--p-font-size-sm); }
+}
