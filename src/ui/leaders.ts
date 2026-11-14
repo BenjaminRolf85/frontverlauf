@@ -104,7 +104,8 @@ export function factionCard(f: FactionId, opts: { compact?: boolean } = {}): str
       <q class="leader-quote">${k('quote')}</q>
       ${opts.compact ? '' : `<p>${k('lore')}</p>
       <p><span class="muted">${esc(t('leaders.perk'))}:</span> <strong>${k('perk')}</strong>, ${k('perkDesc')}</p>
-      <p class="muted">${esc(t('leaders.style'))}: ${k('style')}</p>`}
+      <p class="muted">${esc(t('leaders.style'))}: ${k('style')}</p>
+      <p class="muted">${esc(t('identity.aiStyle'))}: ${k('aiStyle')}</p>`}
     </div>
   </div>`;
 }

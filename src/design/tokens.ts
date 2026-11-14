@@ -366,7 +366,7 @@ export const components = {
   },
   unitCard: { bg: semantic.surfaceRaised, hpFill: c.green500, hpLow: c.red500 },
   halftone: { dot: 'rgba(21, 19, 31, 0.12)', size: '8px', dotRadius: '1px', dotFade: '1.3px' },
-  action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon },
+  action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px' },
   layout: {
     sheetMaxWidth: '760px', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',

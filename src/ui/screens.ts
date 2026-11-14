@@ -16,7 +16,7 @@ import { getLanguage, setLanguage, t } from '../i18n/i18n';
 import type { Settings } from '../save/save';
 import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, segmented } from './components';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
-import { cityName, unitName } from './hud';
+import { cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
@@ -530,7 +530,7 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
   let html = dialogTitle(t('actions.details'));
   if (u && (viewer < 0 || canSeeUnit(s, viewer, u))) {
     const st = UNITS[u.type];
-    html += `<h3 class="display">${esc(unitName(u))}</h3>
+    html += `<h3 class="display">${esc(unitDisplayName(s, u))}</h3><p class="muted">${esc(unitName(u))} · ${esc(t(`factions.${s.factions[u.owner].id}.short`))}</p>
       <div class="kv"><span>${esc(t('stats.hp'))}</span><span>${u.hp} / ${u.maxHp}</span>
       <span>${esc(t('stats.attack'))}</span><span>${st.attack}</span><span>${esc(t('stats.defense'))}</span><span>${st.defense}</span>
       <span>${esc(t('stats.move'))}</span><span>${st.move}</span><span>${esc(t('stats.range'))}</span><span>${st.range || esc(t('stats.noRange'))}</span>

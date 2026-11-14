@@ -407,6 +407,8 @@
   --c-action-min-size-compact: 64px;
   --c-action-height-compact: 60px;
   --c-action-icon-size: 24px;
+  --c-action-sub-font-size: 10px;
+  --c-action-sub-max-width: 96px;
   --c-layout-sheet-max-width: 760px;
   --c-layout-dialog-wide: 980px;
   --c-layout-toast-offset: 56px;
