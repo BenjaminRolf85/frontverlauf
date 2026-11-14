@@ -3,11 +3,11 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  erupts, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  canSeeMine, mineTargets, erupts, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner,
   type Command, type Reach, type Unit,
 } from '../core';
-import { BARRIER, ECON, INFANTRY_TYPES, UNITS } from '../data/balance';
+import { BARRIER, COUNTER, ECON, INFANTRY_TYPES, UNITS } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -170,6 +170,9 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   if (t.feature === 'bunker' && ctx.fa.explored[k]) v += 20; // Bunkerbelohnung / bunker reward
   // feindliche Panzersperre bremst eigene Fahrzeuge / hostile tank barrier slows own vehicles
   if (r && t.barrier && t.barrier.owner !== f && ctx.fa.explored[k] && BARRIER.vehicles.includes(u.type)) v -= 15;
+  // gesehene feindliche Mine meiden; Flieger meiden feindliche Flakzonen / avoid seen hostile mines; flyers avoid hostile flak zones
+  if (r && t.mine && t.mine.owner !== f && !fly && layer === 0 && canSeeMine(s, f, x, y)) v -= 60;
+  if (fly && ctx.enemies.some((e) => has(e, 'flak') && dist(e, { x, y }) <= COUNTER.flak.range)) v -= 12;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
     const capturer = !fly && type !== 'spy' && type !== 'artillery' && type !== 'medic' && layer === 0;
@@ -302,6 +305,12 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
       const c: Command = { type: 'barrier', unit: u.id, x: bo.x, y: bo.y };
       if (stay + bo.v > bestV && ok(failed, c)) { bestV = stay + bo.v; bestCmd = c; }
     }
+    // Minenleger: Mine vor eigener Stadt / mine layer: mine in front of an own city
+    const mo = mineOption(ctx, u);
+    if (mo) {
+      const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
+      if (stay + mo.v > bestV && ok(failed, c)) { bestV = stay + mo.v; bestCmd = c; }
+    }
     // Terraformer: Feld umwandeln, bevorzugt Staedte und Ressourcen / terraformer: convert a tile, cities and resources first
     if (has(u, 'terraform')) {
       for (const p of terraformTargets(s, u)) {
@@ -325,6 +334,11 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     const bo = barrierOption(ctx, u);
     if (bo) {
       const c: Command = { type: 'barrier', unit: u.id, x: bo.x, y: bo.y };
+      if (ok(failed, c)) return c;
+    }
+    const mo = mineOption(ctx, u);
+    if (mo) {
+      const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
       if (ok(failed, c)) return c;
     }
     const oc = outpostOption(ctx, u);
@@ -386,6 +400,42 @@ function barrierOption(ctx: Ctx, u: Unit): { x: number; y: number; v: number } |
         }
       }
     }
+  }
+  return best;
+}
+
+/**
+ * Mine auf ein Anmarschfeld nahe einer eigenen Stadt (defensiv): bevorzugt Felder zwischen Gegnern und Stadt und Strassen.
+ * Mine on an approach tile near an own city (defensive): prefers tiles between enemies and the city, and roads.
+ */
+export function mineOption(ctx: Ctx, u: Unit): { x: number; y: number; v: number } | null {
+  const { s, f } = ctx;
+  if (!has(u, 'mines') || ctx.fa.stars < COUNTER.mine.cost + 10) return null;
+  const ground = ctx.enemies.filter((e) => !has(e, 'fly') && !isShip(e) && UNITS[e.type].attack > 0);
+  const ownMine = (x: number, y: number) => { const t = s.tiles[idx(s.size, x, y)]; return !!t.mine && t.mine.owner === f; };
+  let best: { x: number; y: number; v: number } | null = null;
+  for (const p of mineTargets(s, u)) {
+    let city = ctx.myCities[0];
+    let dc = Infinity;
+    for (const c of ctx.myCities) { const d = dist(c, p); if (d < dc) { dc = d; city = c; } }
+    if (!city || dc > 3) continue;
+    // Abstand zwischen eigenen Minen / spacing between own mines
+    if (area(s.size, p.x, p.y, 1).some((q) => ownMine(q.x, q.y))) continue;
+    const t = s.tiles[idx(s.size, p.x, p.y)];
+    let v = 3 + (t.road ? 3 : 0) + (dc === 1 ? 1 : 0);
+    let threat = 0;
+    for (const e of ground) {
+      const de = dist(e, p);
+      if (de <= 5 && de < dist(e, city)) threat = Math.max(threat, 8 + worth(e) * 0.05 - de);
+    }
+    v += threat;
+    // ohne Bedrohung nur wenige Minen je Stadt / without a threat only a few mines per city
+    if (!threat) {
+      let near = 0;
+      for (const q of area(s.size, city.x, city.y, 3)) if (ownMine(q.x, q.y)) near++;
+      if (near >= 2 || ctx.fa.stars < COUNTER.mine.cost + 30) continue;
+    }
+    if (!best || v > best.v) best = { x: p.x, y: p.y, v };
   }
   return best;
 }

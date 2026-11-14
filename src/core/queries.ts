@@ -3,7 +3,7 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   VETERAN, VISION, type BuildingId, type FactionId, type GrandProjectId, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
@@ -367,10 +367,11 @@ export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview
   const attackForce = a.attack * (att.hp / att.maxHp);
   const defenseForce = defense * (def.hp / def.maxHp) * bonus;
   const total = attackForce + defenseForce;
-  const toDefender = total > 0 ? Math.round((attackForce / total) * a.attack * COMBAT.damageFactor) : 0;
+  // Konter-Faktor gegen die Zielklasse / counter factor against the target class
+  const toDefender = total > 0 ? Math.round((attackForce / total) * a.attack * COMBAT.damageFactor * counterFactor(att.type, def.type)) : 0;
   const kills = toDefender >= def.hp;
   const retaliates = !kills && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
-  const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor) : 0;
+  const toAttacker = retaliates && total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
   return { toDefender, toAttacker, kills, retaliates };
 }
 
@@ -694,16 +695,26 @@ export function effectiveDefense(s: GameState, u: Unit): number {
   return d;
 }
 
-export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget';
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel';
 
 export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
   if (c.owner !== f) return 'notYourCity';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
+  const need = cityUpgradeRequirement(s, f, up);
+  if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';
+  if (need.level && c.level < need.level) return 'cityLevel';
   if (s.factions[f].stars < CITY_UPGRADES.cost[up]) return 'notEnoughStars';
   if (up === 'radioTower' && target && !radioTargetOk(s, c, target)) return 'invalidTarget';
   return 'ok';
+}
+
+/** Voraussetzung eines Ausbaus: Technologie oder (ohne Forschung) Stadtstufe / requirement: tech or (without research) city level */
+export function cityUpgradeRequirement(s: GameState, f: number, up: CityUpgradeId): { tech?: TechId; level?: number } {
+  const tech = CITY_UPGRADES.tech[up];
+  if (ROSTERS[s.factions[f].id]?.research === false && !hasTech(s, f, tech)) return { level: TECHS[tech].tier + 1 };
+  return { tech };
 }
 
 export function radioTargetOk(s: GameState, c: City, p: Pos): boolean {
@@ -809,4 +820,58 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
 export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
   for (const p of neighbors(s.size, u.x, u.y)) if (recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok') return p;
   return null;
+}
+
+// ---------- Konter-Einheiten / counter units ----------
+
+/** Klasse einer Einheit fuer Konter-Boni / class of a unit for counter bonuses */
+export function unitClass(type: UnitTypeId): UnitClass {
+  const st = UNITS[type];
+  if (st.ship) return 'ship';
+  if (st.abilities.includes('fly')) return 'air';
+  return COUNTER.vehicles.includes(type) ? 'vehicle' : 'foot';
+}
+
+/** Schadensfaktor des Angreifertyps gegen den Zieltyp (1 = neutral) / damage factor of the attacker type against the target type */
+export function counterFactor(attacker: UnitTypeId, target: UnitTypeId): number {
+  const bonus = UNITS[attacker].bonusVs;
+  if (!bonus) return 1;
+  const cls = unitClass(target);
+  return cls === 'ship' ? 1 : bonus[cls] ?? 1;
+}
+
+/** Sieht Fraktion f die Mine auf (x, y)? Besitzer immer, sonst nur mit eigener Einheit daneben / does faction f see the mine? */
+export function canSeeMine(s: GameState, f: number, x: number, y: number): boolean {
+  const m = tileAt(s, x, y)?.mine;
+  if (!m) return false;
+  if (m.owner === f) return true;
+  return s.units.some((u) => u.owner === f && dist(u, { x, y }) <= 1);
+}
+
+/** Loest eine Mine fuer diese Einheit aus? Nur feindliche Minen und nur Bodeneinheiten / does a mine trigger for this unit? */
+export function mineTriggers(s: GameState, u: Unit, x: number, y: number): boolean {
+  const m = tileAt(s, x, y)?.mine;
+  if (!m || m.owner === u.owner || !isHostile(s, u.owner, m.owner)) return false;
+  return !has(u, 'fly') && !isShip(u);
+}
+
+export const mineCount = (s: GameState, f: number) => s.tiles.filter((t) => t.mine && t.mine.owner === f).length;
+
+export type MineCheck = 'ok' | 'cannotCapture' | 'invalidTile' | 'notEnoughStars' | 'occupied' | 'outOfRange' | 'unitLimit';
+
+/** Kann die Einheit eine Mine auf (x, y) legen? / can the unit lay a mine on (x, y)? */
+export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineCheck {
+  if (!has(u, 'mines')) return 'cannotCapture';
+  if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
+  if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
+  const t = tileAt(s, x, y)!;
+  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano) return 'invalidTile';
+  if (unitAt(s, x, y)) return 'occupied';
+  if (mineCount(s, u.owner) >= COUNTER.mine.maxPerFaction) return 'unitLimit';
+  if (s.factions[u.owner].stars < COUNTER.mine.cost) return 'notEnoughStars';
+  return 'ok';
+}
+
+export function mineTargets(s: GameState, u: Unit): Pos[] {
+  return neighbors(s.size, u.x, u.y).filter((p) => mineCheck(s, u, p.x, p.y) === 'ok');
 }

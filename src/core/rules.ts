@@ -3,20 +3,24 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, START, TECHS, TECH_IDS, UNITS, VETERAN, VISION, type BunkerReward, type TechId, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, erupts } from './hazards';
+import { noteCapture, noteDeath, recordRound } from './history';
+import { evaluateCampaign, setupMission } from './campaign';
+import { processRandomEvents } from './events';
 import {
-  recruitCheck, recruitHome,
+  recruitCheck, recruitHome, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
 } from './queries';
 import { nextRandom, randInt } from './rng';
+import type { Reach } from './queries';
 import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Unit } from './types';
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
@@ -74,6 +78,8 @@ export function createGame(config: GameConfig): GameState {
     reveal(s, f.index, hq.x, hq.y, hq.radius + VISION.cityExtra, []);
   }
   startTurn(s, []);
+  // Kampagne: feste Einrichtung der Mission / campaign: fixed mission setup
+  if (config.campaign) setupMission(s);
   return s;
 }
 
@@ -145,6 +151,7 @@ function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
 
 function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], leaveRemains = true) {
   s.units = s.units.filter((o) => o.id !== u.id);
+  if (leaveRemains) noteDeath(s, u); // Statistik / statistics
   const t = tileAt(s, u.x, u.y)!;
   let kind: 'wreck' | 'skeleton' | null = null;
   // Ueberreste nur an Land und nicht in Staedten / remains only on land and not in cities
@@ -335,6 +342,57 @@ function endTurnProcessing(s: GameState, ev: GameEvent[]) {
     ev.push({ t: 'flak', city: c.id, unit: u.id, dmg: CITY_UPGRADES.flakDamage });
     if (u.hp <= 0) killUnit(s, u, null, ev);
   }
+  flakZones(s, f, ev);
+}
+
+/**
+ * Flak-Feuerzone der Konter-Einheiten: feindliche Flieger, die neben einer Flak ihren Zug beenden, nehmen Schaden.
+ * Flak zone of counter units: hostile flyers ending their turn next to a flak unit take damage.
+ */
+function flakZones(s: GameState, f: number, ev: GameEvent[]) {
+  for (const u of s.units.slice()) {
+    if (u.owner !== f || !UNITS[u.type].abilities.includes('fly')) continue;
+    const aa = s.units.find((o) => o.owner !== f && isHostile(s, f, o.owner) && has(o, 'flak') && dist(o, u) <= COUNTER.flak.range);
+    if (!aa) continue;
+    u.hp -= COUNTER.flak.damage;
+    ev.push({ t: 'aaFire', unit: aa.id, target: u.id, dmg: COUNTER.flak.damage });
+    if (u.hp <= 0) { killUnit(s, u, aa.id, ev); gainKill(s, aa, ev); }
+  }
+}
+
+/**
+ * Erste feindliche Mine auf dem Weg: die Bewegung endet dort. Felder mit anderer Einheit (Flieger darueber) loesen nicht aus.
+ * First hostile mine on the path: the move ends there. Tiles holding another unit (a flyer above) do not trigger.
+ */
+function cutAtMine(s: GameState, u: Unit, r: Reach): { reach: Reach; mine: boolean } {
+  const last = r.path.length - 1;
+  for (let i = 0; i <= last; i++) {
+    const p = r.path[i];
+    const t = tileAt(s, p.x, p.y)!;
+    if (!t.mine || !isLand(t)) continue;
+    // Landungsboot: nur beim Anlanden auf dem letzten Feld / landing boat: only when disembarking on the last tile
+    const probe = isShipUnit(u) && i === last && r.disembark && u.carried ? { ...u, type: u.carried } : u;
+    if (!mineTriggers(s, probe, p.x, p.y)) continue;
+    if (i < last && unitAt(s, p.x, p.y)) continue;
+    return { reach: { ...r, x: p.x, y: p.y, path: r.path.slice(0, i + 1), embark: false, disembark: i === last ? r.disembark : false }, mine: true };
+  }
+  return { reach: r, mine: false };
+}
+const isShipUnit = (u: Unit) => UNITS[u.type].ship;
+
+/** Mine explodiert unter der Einheit / mine explodes under the unit. true = Einheit vernichtet / unit destroyed */
+function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
+  const t = tileAt(s, u.x, u.y)!;
+  const owner = t.mine!.owner;
+  t.mine = null;
+  const dmg = unitClass(u.type) === 'vehicle' ? COUNTER.mine.damageVehicle : COUNTER.mine.damageFoot;
+  u.hp -= dmg;
+  u.moveDone = true;
+  addMark(s, u.x, u.y, 'crater');
+  ev.push({ t: 'mineHit', unit: u.id, x: u.x, y: u.y, dmg, owner });
+  if (u.hp > 0) return false;
+  killUnit(s, u, null, ev);
+  return true;
 }
 
 /** Kriegsspur auf einem Feld hinterlassen / leave a war mark on a tile */
@@ -368,7 +426,8 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (next === 0) wrapped = true;
     if (s.factions[next].alive) break;
   }
-  if (wrapped) { s.round++; processVolcanoes(s, ev); }
+  // Rundenende fuer die Statistik festhalten / record the round end for statistics
+  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processRandomEvents(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -504,6 +563,7 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
     }
   }
   ev.push({ t: 'capture', city: c.id, faction: u.owner, from });
+  noteCapture(s, u.owner); // Statistik / statistics
   reveal(s, u.owner, c.x, c.y, c.radius + VISION.cityExtra, ev);
   updateConnections(s, u.owner, ev);
   if (from !== null) updateConnections(s, from, ev);
@@ -532,8 +592,10 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
 
 function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEvent[]): CommandResult {
   const options = reachable(s, u);
-  const r = options.find((o) => o.x === to.x && o.y === to.y);
-  if (!r) return fail('unreachable');
+  const found = options.find((o) => o.x === to.x && o.y === to.y);
+  if (!found) return fail('unreachable');
+  // Minen beenden die Bewegung vorzeitig / mines end the move early
+  const { reach: r, mine } = cutAtMine(s, u, found);
   const f = u.owner;
   const hadAttacked = u.attacked;
   // Kettenspuren / track marks
@@ -567,6 +629,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     ev.push({ t: 'disembark', unit: u.id });
   }
   reveal(s, f, u.x, u.y, visionRadius(s, u), ev);
+  if (mine && detonateMine(s, u, ev)) return { ok: true, events: ev };
   // Aufstand / uprising
   if (has(u, 'uprising') && t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
@@ -832,6 +895,18 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    case 'mine': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = mineCheck(s, u, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check === 'cannotCapture' ? 'unitExhausted' : check);
+      fa.stars -= COUNTER.mine.cost;
+      tileAt(s, cmd.x, cmd.y)!.mine = { owner: f };
+      u.exhausted = true;
+      ev.push({ t: 'mine', x: cmd.x, y: cmd.y, faction: f });
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'outpost': {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
@@ -935,6 +1010,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (s.pendingRewards.some((p) => cityById(s, p.cityId)?.owner === f)) return fail('pendingReward');
       endTurnProcessing(s, ev);
       advance(s, ev);
+      if (s.campaign) evaluateCampaign(s, ev, true);
       res = { ok: true, events: ev };
       s.log.push(...ev.filter((e) => e.t !== 'move'));
       if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
@@ -944,6 +1020,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       return fail('invalid');
   }
   if (res.ok && !s.over) afterAction(s, f, ev);
+  if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
   return res;
@@ -973,6 +1050,8 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     roundLimit: partial.roundLimit !== undefined ? partial.roundLimit : mode === 'points' ? MODES.pointsRounds : null,
     weather: partial.weather ?? true,
     hazards: partial.hazards ?? 'none',
+    events: partial.events ?? false,
+    ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }
 

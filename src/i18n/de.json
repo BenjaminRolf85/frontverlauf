@@ -181,7 +181,12 @@
     "spider": "Spinnenbot",
     "quadDrone": "Kampfdrohne",
     "railgun": "Railgun-Plattform",
-    "titan": "Titan"
+    "titan": "Titan",
+    "antiTank": "Panzerabwehr-Trupp",
+    "antiAir": "Flakpanzer",
+    "mineLayer": "Minenleger",
+    "faustZealot": "Panzerfaust-Eiferer",
+    "flakDrone": "Flak-Drohne"
   },
   "abilities": {
     "dash": "Sturm",
@@ -225,7 +230,11 @@
     "burn": "Flammen",
     "burnDesc": "Feuer ignoriert Deckung durch Gelände.",
     "wade": "Waten",
-    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen."
+    "wadeDesc": "Läuft langsam durchs Wasser (1 Feld pro Zug), kann dort aber weder angreifen noch zurückschlagen.",
+    "flak": "Flakzone",
+    "flakDesc": "Feindliche Flieger, die direkt daneben ihren Zug beenden, nehmen 3 Schaden.",
+    "mines": "Minen legen",
+    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion)."
   },
   "stats": {
     "cost": "Preis",
@@ -263,7 +272,9 @@
     "wreck": "Wrack",
     "skeleton": "Gebeine gefallener Soldaten ({n})",
     "wreckCover": "+1 Schutz für Einheiten auf diesem Feld",
-    "barrier": "Panzersperre"
+    "barrier": "Panzersperre",
+    "mine": "Mine",
+    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus."
   },
   "buildings": {
     "storehouse": "Vorratslager anlegen",
@@ -469,7 +480,9 @@
     "none": "Keine Aktion möglich",
     "stars": "{n} Sterne",
     "barrier": "Panzersperre bauen",
-    "barrierHint": "Tippe auf ein Nachbarfeld für die Panzersperre."
+    "barrierHint": "Tippe auf ein Nachbarfeld für die Panzersperre.",
+    "mine": "Mine legen",
+    "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine."
   },
   "errors": {
     "gameOver": "Die Partie ist vorbei.",
@@ -508,7 +521,9 @@
     "wrongFaction": "Nur die Zyrr können das.",
     "notPreacher": "Nur Eiferer und Propheten können rekrutieren.",
     "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
-    "cultRecruit": "Der Kult rekrutiert nicht in Städten."
+    "cultRecruit": "Der Kult rekrutiert nicht in Städten.",
+    "cityLevel": "Die Stadt braucht eine höhere Stufe.",
+    "mineLimit": "Höchstens {n} Minen je Fraktion."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -539,7 +554,9 @@
     "convert": "Eine Einheit läuft über",
     "barrierHit": "Ein Fahrzeug steckt in einer Panzersperre fest",
     "cityUpgrade": "{name} in {city} gebaut",
-    "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})"
+    "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})",
+    "mineHit": "Eine Mine explodiert (-{dmg})",
+    "aaFire": "Flak trifft einen Flieger (-{dmg})"
   },
   "fx": {
     "hit": [
@@ -613,6 +630,38 @@
     "toMenu": "Hauptmenü",
     "continue": "Endlos weiterspielen"
   },
+  "minimap": {
+    "label": "Lagekarte",
+    "hint": "Lagekarte: Tippen bewegt die Kamera dorthin",
+    "show": "Lagekarte einblenden",
+    "hide": "Lagekarte ausblenden"
+  },
+  "history": {
+    "title": "Kriegsstatistik",
+    "open": "Statistik",
+    "tabs": "Ansicht wählen",
+    "score": "Punkte",
+    "units": "Armee",
+    "cities": "Städte",
+    "stars": "Sterne",
+    "chartLabel": "Verlauf: {metric} je Runde",
+    "roundAxis": "Runde",
+    "totals": "Bilanz",
+    "faction": "Fraktion",
+    "kills": "Abschüsse",
+    "losses": "Verluste",
+    "captures": "Eroberungen",
+    "techs": "Technologien",
+    "heroes": "Helden der Schlacht",
+    "hero": "Held der Schlacht",
+    "heroKills": "{n} Abschüsse",
+    "heroKill": "1 Abschuss",
+    "fallen": "gefallen in Runde {n}",
+    "alive": "im Einsatz",
+    "noHeroes": "Noch keine Abschüsse. Die Front ist ruhig.",
+    "midGame": "Stand Runde {n}. Nur bekannte Fraktionen.",
+    "leader": "{name} führt"
+  },
   "credits": {
     "title": "Mitwirkende",
     "game": "Spielidee, Regeln, Code, Modelle und Klang: Frontverlauf-Projekt (eigene Schöpfung, CC0)",
@@ -653,6 +702,208 @@
     "selectedTile": "Ausgewähltes Feld: {desc}",
     "dialog": "Dialog",
     "close": "Schließen"
+  },
+  "campaign": {
+    "title": "Kampagne",
+    "menu": "Kampagne",
+    "subtitle": "Neun Einsätze an allen Fronten",
+    "totalStars": "{n} von {max} Sternen",
+    "mission": "Einsatz {n}",
+    "locked": "Gesperrt",
+    "lockedHint": "Gewinne zuerst Einsatz {n}.",
+    "completed": "Erfüllt",
+    "open": "Offen",
+    "start": "Einsatz starten",
+    "briefing": "Einsatzbesprechung",
+    "debriefing": "Nachbesprechung",
+    "versus": "gegen",
+    "objectives": "Einsatzziele",
+    "bonus": "Bonusziele (je ein Stern)",
+    "length": "{n} Runden",
+    "roundOf": "Runde {n}/{max}",
+    "byRound": "bis Runde {n}",
+    "progress": "{have}/{need}",
+    "toggle": "Einsatzziele ein- oder ausblenden",
+    "short": "Ziele",
+    "victory": "Einsatz erfüllt!",
+    "defeat": "Einsatz gescheitert!",
+    "rating": "Wertung: {n} von 3 Sternen",
+    "best": "Bestwert: {n} Sterne",
+    "next": "Nächster Einsatz",
+    "retry": "Nochmal",
+    "toCampaign": "Zur Kampagne",
+    "toMenu": "Hauptmenü",
+    "finale": "Alle Einsätze erfüllt! Du bist eine Legende der Front.",
+    "objectiveDone": "Ziel erfüllt: {text}",
+    "objectiveFailed": "Ziel verfehlt: {text}",
+    "bonusDone": "Bonusziel erfüllt: {text}",
+    "status": {
+      "pending": "offen",
+      "done": "erfüllt",
+      "failed": "verfehlt"
+    },
+    "speakers": {
+      "hq": "Hauptquartier",
+      "scout": "Aufklärung",
+      "enemy": "Feindfunk"
+    },
+    "obj": {
+      "holdHq": "Halte dein Hauptquartier bis Runde {rounds}",
+      "holdCities": "Verliere keine Stadt bis Runde {rounds}",
+      "survive": "Überlebe bis Runde {rounds}",
+      "holdTile": "Halte das markierte Feld frei von Feinden bis Runde {rounds}",
+      "capture": "Erobere die markierte Stadt bis Runde {rounds}",
+      "salvage": "Berge die markierte Absturzstelle vor dem Feind, bis Runde {rounds}",
+      "cities": "Besitze {n} Städte bis Runde {rounds}",
+      "points": "Erreiche {n} Punkte bis Runde {rounds}",
+      "kills": "Vernichte {n} feindliche Einheiten bis Runde {rounds}",
+      "eliminate": "Schalte {name} aus bis Runde {rounds}",
+      "fast": "Siege bis Runde {n}",
+      "keepHq": "Verliere nie dein Hauptquartier",
+      "noCityLost": "Verliere keine Stadt",
+      "bonusCapture": "Erobere die markierte Stadt",
+      "bonusCities": "Besitze {n} Städte",
+      "bonusKills": "Vernichte {n} feindliche Einheiten",
+      "bonusPoints": "Erreiche {n} Punkte"
+    },
+    "missions": {
+      "m1": {
+        "title": "Feuertaufe",
+        "tagline": "Drei Städte unter Korvat-Flagge",
+        "brief": [
+          "Rekrut! Willkommen an der Front. Die Dravon schnüffeln an unserer Grenze herum.",
+          "Dein Auftrag: Drei Städte unter Korvat-Flagge. Siedlungen einnehmen, Truppen ausheben – zack, zack!",
+          "Hier spricht Dravon. Korvat-Bauern? Wir sind in zwei Runden zum Frühstück bei euch!"
+        ],
+        "won": "Drei Städte, null Ausreden. Das nennt man eine Feuertaufe, Soldat!",
+        "lost": "Das war nix. Zurück ins Ausbildungslager – und dann nochmal!"
+      },
+      "m2": {
+        "title": "Der Vulkanpass",
+        "tagline": "Halte den Pass am Feuerberg",
+        "brief": [
+          "Der einzige Pass durchs Gebirge liegt direkt am Feuerberg. Wer ihn hält, hält das Tal.",
+          "Dravon-Kolonne im Anmarsch! Jeep und Infanterie, Kurs auf den Pass. Steht dort zu deinem Zugbeginn ein Feind, ist alles verloren.",
+          "Aus dem Weg, Bergziegen! Der Pass gehört Dravon!"
+        ],
+        "won": "Der Pass ist dicht! Die Dravon können ihre Landkarten wieder einpacken.",
+        "lost": "Der Pass ist gefallen. Selbst der Vulkan schämt sich."
+      },
+      "m3": {
+        "title": "Verteidige die Küste",
+        "tagline": "15 Runden gegen die Landungsflotte",
+        "brief": [
+          "Alarm an der Küste! Die Alvenia-Flotte liegt vor unseren Häfen.",
+          "Zwei Landungsboote und ein Zerstörer, Kommandant. Die wollen an unseren Strand!",
+          "Halte alle unsere Städte 15 Runden lang. Kein Sandkorn für den Feind!"
+        ],
+        "won": "15 Runden, keine Stadt verloren. Die Admirale von Alvenia baden jetzt lieber woanders.",
+        "lost": "Sie sind gelandet. Wir hätten mehr Bunker und weniger Strandkörbe bauen sollen."
+      },
+      "m4": {
+        "title": "Wettlauf zur Absturzstelle",
+        "tagline": "Schneller als die Zyrr",
+        "brief": [
+          "Da ist was vom Himmel gefallen – rauchend, glühend und eindeutig nicht von hier!",
+          "Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Die Uhr läuft!",
+          "ZKRRT ... Eigentum der Zyrr ... Erdlinge ... zurücktreten ... ZKRRT"
+        ],
+        "won": "Geborgen! Die Eierköpfe im Labor flippen gerade völlig aus.",
+        "lost": "Die Zyrr waren schneller. Jetzt fliegt das Ding wieder – nur nicht für uns."
+      },
+      "m5": {
+        "title": "Der Kult erwacht",
+        "tagline": "Stürme die Kultzentrale",
+        "brief": [
+          "Im Seenland brennen nachts Fackeln. Der Vesper-Kult predigt den Weltuntergang.",
+          "Das Ende naht! Schließt euch an – oder brennt!",
+          "Erobere ihr Hauptquartier, bevor der Wahn sich ausbreitet. Keine Predigten, nur Panzer."
+        ],
+        "won": "Kultzentrale gestürmt. Die Fackeln gehen aus, die Weltuntergangsplakate gehen ins Altpapier.",
+        "lost": "Der Kult wächst weiter. Irgendwer hat ihnen Megafone verkauft."
+      },
+      "m6": {
+        "title": "Maschinenstürmer",
+        "tagline": "Befreie zwei Dörfer von NEXUS",
+        "brief": [
+          "Kommandant, in zwei Dörfern vor unserer Haustür surrt und piept es. Blechköpfe!",
+          "NEXUS ÜBERNIMMT. WIDERSTAND IST INEFFIZIENT. BITTE LÄCHELN.",
+          "Nimm beide Siedlungen zurück! Schraubenschlüssel raus, Leute."
+        ],
+        "won": "Beide Dörfer befreit. Die Androiden sammeln wir als Altmetall ein.",
+        "lost": "Die Maschinen halten die Dörfer. Unser Toaster guckt uns auch schon komisch an."
+      },
+      "m7": {
+        "title": "Die Prophezeiung",
+        "tagline": "Als Kult zu Ruhm und Größe",
+        "brief": [
+          "Brüder und Schwestern! Die Prophezeiung verlangt Ruhm über alle Maßen – und zwar pünktlich.",
+          "Predigt, rekrutiert, breitet euch aus. Und achtet auf Zeichen: Stürme, Seuchen, Wunder.",
+          "Meridon an alle: Diese Spinner in Kutten sind gefährlich. Feuer frei!"
+        ],
+        "won": "Die Prophezeiung ist erfüllt! Die Glocken läuten, die Zeloten tanzen.",
+        "lost": "Die Prophezeiung ... war wohl ein Druckfehler."
+      },
+      "m8": {
+        "title": "Erstkontakt",
+        "tagline": "Als Zyrr die Erdlinge testen",
+        "brief": [
+          "Mutterschiff an Landetrupp: Die Erdlinge sind primitiv, laut und bewaffnet.",
+          "Korvat an alle: Grüne Männchen im Feld! Holt die Mistgabeln ... und die Panzer!",
+          "Testet ihre Abwehr. Vernichtet ihre Einheiten. Für die Wissenschaft. Und den Spaß."
+        ],
+        "won": "Testreihe abgeschlossen. Ergebnis: Erdlinge zerbrechlich. Mutterschiff erfreut. ZKRRT.",
+        "lost": "Rückzug zum Mutterschiff. Notiz für später: Erdlinge haben Mistgabeln."
+      },
+      "m9": {
+        "title": "Die letzte Bastion",
+        "tagline": "Überlebe die Invasion",
+        "brief": [
+          "Lichter am Himmel, Maschinen am Horizont – Zyrr und NEXUS greifen gemeinsam an!",
+          "ZKRRT ... BIEP ... KAPITULIERT ... ZKRRT ... BIEP",
+          "Halte das Hauptquartier bis zum Ende. Der Bunker steht, die MGs sind geladen. Kein Schritt zurück!"
+        ],
+        "won": "Die Invasion ist abgewehrt! Dravon steht – und die Welt schuldet uns einen Orden.",
+        "lost": "Die Bastion ist gefallen. Aber von diesem Kampf wird man sich ewig erzählen."
+      }
+    }
+  },
+  "randomEvents": {
+    "title": "Ereignisse",
+    "setupHint": "Etwa alle 6 bis 10 Runden: Sturm, Seuche, Rebellen, Nachschub, Überläufer, Glücksfund oder Dürre.",
+    "kicker": "Extrablatt",
+    "region": "Gebiet um Feld {x}, {y}",
+    "storm": {
+      "title": "Sturmfront!",
+      "body": "Ein Unwetter tobt über den Truppen von {name}: {n} Einheiten kommen diese Runde nur 1 Feld weit."
+    },
+    "epidemic": {
+      "title": "Seuche in {city}!",
+      "body": "{name}: {city} bringt in dieser Runde kein Einkommen. Sanitäter neben der Stadt hätten geholfen.",
+      "contained": "Sanitäter von {name} dämmen die Seuche in {city} ein. Keine Verluste!"
+    },
+    "rebels": {
+      "title": "Aufstand in {city}!",
+      "body": "Rebellen erheben sich gegen {name} – mit Waffen von {other}. Die Stadt verliert Bevölkerung."
+    },
+    "convoy": {
+      "title": "Nachschubkonvoi!",
+      "body": "Ein Konvoi erreicht {name}: +{n} Sterne."
+    },
+    "defector": {
+      "title": "Überläufer!",
+      "body": "Eine Einheit von {other} hat genug und läuft zu {name} über."
+    },
+    "luckyFind": {
+      "title": "Glücksfund!",
+      "bodyTech": "{name} entdeckt alte Baupläne: {tech}.",
+      "bodyStars": "{name} findet eine vergessene Kriegskasse: +{n} Sterne."
+    },
+    "drought": {
+      "title": "Dürre!",
+      "body": "Die Höfe von {name} verdorren: -{n} Sterne, auch nächste Runde.",
+      "ongoing": "Die Dürre hält an: {name} verliert {n} Sterne."
+    }
   },
   "cityNames": [
     "Brakmoor",
@@ -1173,7 +1424,10 @@
     "hospitalDesc": "Eigene Einheiten auf und neben der Stadt heilen 2 LP mehr.",
     "flakDesc": "Feindliche Hubschrauber, die neben der Stadt ihren Zug beenden, verlieren 3 LP.",
     "depotDesc": "5 Sterne mehr pro Runde.",
-    "full": "Alle 3 Slots sind belegt."
+    "full": "Alle 3 Slots sind belegt.",
+    "unlock": "Stadt-Ausbau: {name}",
+    "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
+    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
   },
   "saves": {
     "title": "Spielstände",
@@ -1227,5 +1481,11 @@
     "labDesc": "Bergung: eine Gratis-Technologie bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
     "labLooted": "Forschungseinrichtung (geborgen): Deckung +1",
     "salvagedTech": "Geborgen: Technologie {tech}"
+  },
+  "counter": {
+    "vsVehicle": "{pct} % gegen Fahrzeuge",
+    "vsAir": "{pct} % gegen Flieger",
+    "vsFoot": "{pct} % gegen Fußtruppen",
+    "hint": "Konter: Schaden gegen diese Zielklasse, beim Angriff und beim Gegenschlag."
   }
 }

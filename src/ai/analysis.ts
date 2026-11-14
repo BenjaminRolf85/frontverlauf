@@ -3,7 +3,7 @@
  * AI situation picture: only visible things, threat, path fields (land/sea), goals and assignment.
  */
 import {
-  area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
+  counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome } from '../core';
 import { AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
@@ -354,7 +354,7 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     if (e.x === x && e.y === y) continue;
     const a = UNITS[e.type].attack;
     const A = a * (e.hp / e.maxHp);
-    total += (A / (A + d || 1)) * a * 4.5;
+    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type);
   }
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
   return list.length > 1 ? total * 0.75 : total;
@@ -480,7 +480,7 @@ function assignGoals(ctx: Ctx) {
   }
   if (main) { main.value += 25; main.cap = ctx.siege ? 14 : 8; main.distW = 2; }
   const pairs: { u: Unit; g: number; sc: number }[] = [];
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic';
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines');
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -517,6 +517,7 @@ function assignGoals(ctx: Ctx) {
     if (ctx.goals.has(u.id)) continue;
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }
+    if (has(u, 'mines')) { ctx.goals.set(u.id, minerGoal(ctx)); continue; }
     ctx.goals.set(u.id, front);
   }
 }
@@ -536,6 +537,23 @@ function frontGoal(ctx: Ctx): Goal {
   const unexplored = ctx.fa.explored.some((e) => !e);
   if (unexplored) return { kind: 'explore', x: -1, y: -1, value: 10, cap: 99, distW: 0, src: 'unexp', water: false };
   return { kind: 'home', x: -1, y: -1, value: 5, cap: 99, distW: 0, src: 'home', water: false };
+}
+
+/**
+ * Minenleger: zur eigenen Stadt, die Gegnern oder feindlichen Staedten am naechsten liegt.
+ * Mine layer: towards the own city closest to enemies or hostile cities.
+ */
+function minerGoal(ctx: Ctx): Goal {
+  let best: City | null = null;
+  let bs = Infinity;
+  for (const c of ctx.myCities) {
+    let d = 20;
+    for (const e of ctx.enemies) d = Math.min(d, dist(e, c));
+    for (const h of ctx.hostileCities) d = Math.min(d, dist(h, c) + 1);
+    if (d < bs) { bs = d; best = c; }
+  }
+  if (!best) return frontGoal(ctx);
+  return { kind: 'support', x: best.x, y: best.y, value: 20, cap: 99, distW: 0, src: `t${best.y * ctx.size + best.x}l`, water: false, targetId: best.id };
 }
 
 function spyGoal(ctx: Ctx, u: Unit): Goal {

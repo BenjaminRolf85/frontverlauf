@@ -1,0 +1,76 @@
+/*
+ * Lagekarte und Kriegsstatistik: ausschliesslich Design-Tokens (var(--...)).
+ * Overview map and war statistics: design tokens only (var(--...)).
+ */
+
+/* ---------- Lagekarte / overview map ---------- */
+/* Hochformat: unten links ueber der Aktionsleiste; --minimap-lift setzt minimap.ts aus deren Hoehe */
+/* Portrait: bottom left above the action bar; minimap.ts sets --minimap-lift from its height */
+.minimap {
+  position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2));
+  bottom: calc(var(--minimap-lift, var(--p-size-touch-lg)) + var(--p-space-2));
+}
+.minimap-canvas {
+  display: block; width: var(--c-minimap-size); height: var(--c-minimap-size); cursor: crosshair; touch-action: none;
+  background: var(--c-minimap-bg); border: var(--p-border-width-thick) solid var(--c-minimap-border);
+  border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow-pressed);
+}
+.minimap-toggle { position: absolute; top: calc(-1 * var(--p-space-3)); right: calc(-1 * var(--p-space-3)); }
+.minimap.collapsed .minimap-toggle { position: static; }
+/* Querformat und Desktop: oben links unter der Statusleiste / landscape and desktop: top left below the top bar */
+@media (orientation: landscape), (min-width: 900px) /* --p-breakpoint-lg */ {
+  .minimap { bottom: auto; top: calc(env(safe-area-inset-top) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--p-space-4)); }
+}
+@media (min-width: 900px) and (min-height: 600px) {
+  .minimap-canvas { width: var(--c-minimap-size-desktop); height: var(--c-minimap-size-desktop); }
+}
+
+/* ---------- Kriegsstatistik / war statistics ---------- */
+.stats-panel { display: flex; flex-direction: column; gap: var(--p-space-3); margin-top: var(--p-space-3); }
+.stats-panel h3.display { margin: var(--p-space-2) 0 0; }
+.stats-panel .seg button { min-height: var(--p-size-touch); }
+.stats-chart-wrap { width: 100%; min-height: var(--c-chart-height); }
+.stats-chart {
+  display: block; max-width: 100%; background: var(--c-chart-bg);
+  border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md);
+}
+.stats-chart .grid { stroke: var(--c-chart-grid); stroke-width: var(--p-border-width-thin); stroke-dasharray: var(--p-space-1) var(--p-space-1); }
+.stats-chart .axis { stroke: var(--s-outline); stroke-width: var(--p-border-width-thin); }
+.stats-chart text { font-family: var(--p-font-body); font-weight: var(--p-font-weight-bold); font-size: var(--c-chart-font-size); fill: var(--c-chart-axis); }
+.stats-chart .line-o, .stats-chart .line { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.stats-chart .line-o { stroke: var(--s-outline); stroke-width: var(--c-chart-line-outline); }
+.stats-chart .line-o.human { stroke-width: calc(var(--c-chart-line-outline) + var(--c-chart-line-human) - var(--c-chart-line)); }
+.stats-chart .line { stroke: var(--line); stroke-width: var(--c-chart-line); }
+.stats-chart .line.human { stroke-width: var(--c-chart-line-human); }
+.stats-chart .dot { fill: var(--line); stroke: var(--s-outline); stroke-width: var(--p-border-width-thin); }
+.stats-legend { display: flex; flex-wrap: wrap; gap: var(--p-space-2) var(--p-space-3); font-size: var(--p-font-size-sm); }
+.stats-key { display: inline-flex; align-items: center; gap: var(--p-space-1); }
+.stats-badge {
+  display: inline-grid; place-items: center; flex: none; width: var(--p-space-6); height: var(--p-space-6);
+  border-radius: var(--p-radius-pill); border: var(--p-border-width-thin) solid var(--s-outline);
+}
+.stats-table-wrap { width: 100%; overflow-x: auto; touch-action: pan-x pan-y; }
+.stats-table { width: 100%; border-collapse: separate; border-spacing: 0 var(--p-space-1); font-size: var(--p-font-size-sm); }
+.stats-table th, .stats-table td { padding: var(--p-space-1) var(--p-space-2); text-align: right; white-space: nowrap; }
+.stats-table thead th { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); }
+.stats-table thead th .icon-sm { display: inline-block; vertical-align: middle; margin-right: var(--p-space-1); }
+.stats-table th[scope="row"], .stats-table thead th:first-child { text-align: left; }
+.stats-table tbody tr > * { background: var(--s-surface); border-top: var(--p-border-width-thin) solid var(--s-outline); border-bottom: var(--p-border-width-thin) solid var(--s-outline); }
+.stats-table tbody tr > :first-child { border-left: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md) 0 0 var(--p-radius-md); }
+.stats-table tbody tr > :last-child { border-right: var(--p-border-width-thin) solid var(--s-outline); border-radius: 0 var(--p-radius-md) var(--p-radius-md) 0; }
+.stats-table tbody tr.me > * { background: var(--s-surface-sunken); }
+.stats-table td { font-family: var(--p-font-display); font-size: var(--p-font-size-md); }
+.hero-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }
+.hero-row {
+  display: flex; align-items: center; gap: var(--p-space-2); padding: var(--p-space-2);
+  background: var(--s-surface); border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md);
+}
+.hero-row .col { gap: var(--p-space-half); min-width: 0; }
+.hero-row strong { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); }
+.hero-row.first { background: var(--s-accent); border-width: var(--p-border-width-thick); box-shadow: var(--c-button-shadow-pressed); }
+.hero-rank { font-size: var(--p-font-size-xl); min-width: var(--p-space-5); text-align: center; }
+.hero-kills { display: inline-flex; align-items: center; gap: var(--p-space-1); white-space: nowrap; font-family: var(--p-font-display); }
+@media (max-width: 480px) /* --p-breakpoint-narrow */ {
+  .stats-table thead th:not(:first-child) .label { display: none; }
+  .stats-table th, .stats-table td { padding: var(--p-space-1); }
+}

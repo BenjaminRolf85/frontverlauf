@@ -35,6 +35,8 @@ export interface Tile {
   river?: boolean;
   /** Panzersperre / tank barrier */
   barrier?: { owner: number } | null;
+  /** verdeckte Mine (nur Besitzer und Nachbareinheiten sehen sie) / hidden mine (only the owner and adjacent units see it) */
+  mine?: { owner: number } | null;
   /** terraformt: Xeno-Boden der Zyrr / terraformed: Zyrr xeno ground */
   xeno?: boolean;
   /** Vulkan auf diesem Bergfeld / volcano on this mountain tile */
@@ -146,7 +148,33 @@ export interface GameConfig {
   hazards?: 'none' | 'normal' | 'many';
   /** Spielrundenlimit (Punktemodus) / round limit (points mode) */
   roundLimit: number | null;
+  /** Zufallsereignisse an (Einrichtung: Standard an) / random events on (setup: default on) */
+  events?: boolean;
+  /** Kampagnenmission / campaign mission */
+  campaign?: { mission: string };
 }
+
+/** Stand eines Missionsziels / state of a mission objective */
+export type ObjectiveStatus = 'pending' | 'done' | 'failed';
+
+/** Kampagnenstand im Spielstand / campaign state inside the game state */
+export interface CampaignState {
+  mission: string;
+  /** Zielfelder, von der Einrichtung festgelegt / target tiles set by the setup */
+  targets: Pos[];
+  /** Status der Hauptziele / status of the primary objectives */
+  status: ObjectiveStatus[];
+  /** Status der Bonusziele / status of the bonus objectives */
+  bonus: ObjectiveStatus[];
+  /** Staedte des Spielers nach der Einrichtung / player cities after the setup */
+  startCities: number[];
+  result: 'won' | 'lost' | null;
+  /** 0-3 Sterne / 0-3 stars */
+  stars: number;
+}
+
+/** Zufallsereignis-Art / random event kind */
+export type RandomEventKind = 'storm' | 'epidemic' | 'rebels' | 'convoy' | 'defector' | 'luckyFind' | 'drought';
 
 export interface GameState {
   version: 1;
@@ -166,6 +194,12 @@ export interface GameState {
   winner: number | null;
   over: boolean;
   log: GameEvent[];
+  /** Spielverlauf fuer die Statistik (fehlt in alten Spielstaenden) / game history for statistics (missing in old saves) */
+  history?: import('./history').GameHistory;
+  /** Kampagnenmission (nur in Kampagnenspielen) / campaign mission (campaign games only) */
+  campaign?: CampaignState;
+  /** laufende Duerren: Fraktion und letzte Runde / ongoing droughts: faction and last round */
+  droughts?: { faction: number; until: number }[];
 }
 
 export type GameEvent =
@@ -191,6 +225,9 @@ export type GameEvent =
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
   | { t: 'terraform'; x: number; y: number; faction: number; unit?: number }
   | { t: 'barrierHit'; unit: number; x: number; y: number }
+  | { t: 'mine'; x: number; y: number; faction: number }
+  | { t: 'mineHit'; unit: number; x: number; y: number; dmg: number; owner: number }
+  | { t: 'aaFire'; unit: number; target: number; dmg: number }
   | { t: 'uprising'; city: number; faction: number; spawned: number }
   | { t: 'embark'; unit: number }
   | { t: 'disembark'; unit: number }
@@ -208,6 +245,9 @@ export type GameEvent =
   | { t: 'turn'; faction: number; round: number; income: number; weather?: string }
   | { t: 'eruption'; x: number; y: number; tiles: Pos[] }
   | { t: 'salvage'; x: number; y: number; faction: number; kind: 'crashSite' | 'labRuin'; tech?: TechId; stars?: number; unit?: number }
+  | { t: 'randomEvent'; kind: RandomEventKind; faction?: number; x?: number; y?: number; city?: number; unit?: number;
+      stars?: number; tech?: TechId; other?: number; count?: number; contained?: boolean; ongoing?: boolean }
+  | { t: 'objective'; index: number; bonus: boolean; status: ObjectiveStatus }
   | { t: 'gameOver'; winner: number | null };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
@@ -224,6 +264,7 @@ export type Command =
   | { type: 'grandProject'; id: GrandProjectId; x: number; y: number }
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
+  | { type: 'mine'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'terraform'; x: number; y: number; unit?: number }
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
@@ -239,7 +280,7 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit';
+  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel';
 
 export interface CommandResult {
   ok: boolean;

@@ -374,6 +374,26 @@ export const components = {
   fx: { burstSize: '120px', burstStroke: '3' },
   bark: { maxWidth: '220px' },
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
+  /** Lagekarte (Canvas liest die Farben direkt) / minimap (the canvas reads the colours directly) */
+  minimap: {
+    size: '136px', sizeDesktop: '184px', bg: semantic.surfaceInverse, border: semantic.outline, fog: c.ink800,
+    view: c.yellow400, viewShade: semantic.outline, neutral: semantic.neutral, outline: semantic.outline,
+    plain: semantic.terrainPlain, forest: c.forest500, mountain: semantic.terrainMountain, shallow: semantic.terrainShallow,
+    ocean: semantic.terrainOcean, deep: semantic.terrainDeep, xeno: semantic.xenoGround, lava: semantic.lava,
+    territoryMix: '0.34', borderAlpha: '0.9', unitDot: '1.9', cityDot: '2.6', hqDot: '4', viewLine: '1.6',
+  },
+  /** Verlaufsdiagramm der Statistik / statistics line chart */
+  chart: {
+    bg: semantic.surface, grid: c.paper300, axis: semantic.textMuted, line: '3', lineOutline: '6', lineHuman: '4.5',
+    dot: '4', fontSize: '11px', height: '220px',
+  },
+  /** Kampagne und Ereignisse / campaign and events */
+  campaign: {
+    panelWidth: '300px', panelMaxHeight: '46vh', cardMaxWidth: '720px', starSize: '40px', starSizeSm: '18px',
+    headlineSize: '32px', bannerWidth: '540px', panelGap: '14px', tilt: '-1.5deg', tiltAlt: '1.2deg',
+    bannerMs: '4200ms', pendingInk: semantic.textMuted, doneInk: c.green700, failedInk: semantic.dangerBright,
+    starOn: semantic.accentStrong, starOff: c.paper300, newsInk: semantic.stamp,
+  },
 } as const;
 
 // ---------- Ausgabe / output ----------

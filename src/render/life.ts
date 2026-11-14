@@ -26,9 +26,9 @@ import { hullGeometry, outlineMaterial, paint, toonMaterial } from './toon';
 export type LifeKind = 'foot' | 'vehicle' | 'walker' | 'flyer' | 'ship';
 
 /** Fusstruppen / foot troops */
-const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android']);
+const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot']);
 /** Laeufer: schwer und langsam / walkers: heavy and slow */
-const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider']);
+const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider', 'flakDrone']);
 
 /** Bewegungsart einer Einheit / movement class of a unit */
 export function lifeKind(type: UnitTypeId): LifeKind {

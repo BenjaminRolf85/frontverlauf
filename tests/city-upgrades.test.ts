@@ -7,6 +7,8 @@ function g(stars = 200) {
   const s = blankGame({ stars, size: 16 });
   const hq = addCity(s, 2, 2, 0, { hq: true });
   addCity(s, 13, 13, 1, { hq: true });
+  // alle Ausbau-Technologien erforscht / all upgrade techs researched
+  for (const f of s.factions) f.techs.push(...Object.values(CITY_UPGRADES.tech));
   return { s, hq };
 }
 
@@ -76,5 +78,24 @@ describe('Stadt-Ausbauten / city upgrades', () => {
     ok(s, { type: 'capture', unit: u.id });
     expect(c.owner).toBe(0);
     expect(c.upgrades).toEqual(['bunker', 'barracks']);
+  });
+});
+
+describe('Stadt-Ausbauten brauchen Forschung / city upgrades need research', () => {
+  it('ohne Technologie gesperrt, mit Technologie frei; ohne Forschung nach Stadtstufe / locked without tech; level for no-research factions', async () => {
+    const { cityUpgradeCheck } = await import('../src/core');
+    const s = blankGame({ stars: 200, size: 16 });
+    const hq = addCity(s, 2, 2, 0, { hq: true });
+    addCity(s, 13, 13, 1, { hq: true });
+    s.factions[0].techs = [];
+    expect(cityUpgradeCheck(s, 0, hq, 'bunker')).toBe('techMissing');
+    s.factions[0].techs.push(CITY_UPGRADES.tech.bunker);
+    expect(cityUpgradeCheck(s, 0, hq, 'bunker')).toBe('ok');
+    const z = blankGame({ stars: 200, size: 16, factions: ['zyrr', 'korvat'] });
+    const zc = addCity(z, 2, 2, 0, { hq: true });
+    addCity(z, 13, 13, 1, { hq: true });
+    expect(cityUpgradeCheck(z, 0, zc, 'depot')).toBe('cityLevel');
+    zc.level = 4;
+    expect(cityUpgradeCheck(z, 0, zc, 'depot')).toBe('ok');
   });
 });

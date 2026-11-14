@@ -1,5 +1,6 @@
 /** Einstiegspunkt / entry point */
 import './ui/styles.css';
+import './ui/overview.css';
 import type { GameConfig, GameState } from './core';
 import { audio } from './audio/audio';
 import { Controller } from './game/controller';
@@ -19,7 +20,10 @@ import {
   researchDialog, rewardDialog, type ScreenHost,
 } from './ui/screens';
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
+import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
+import { ObjectivePanel, campaignResult, objectiveToast } from './ui/campaign';
+import { showRandomEvent } from './ui/events';
 
 function boot() {
   const app = document.getElementById('app')!;
@@ -119,7 +123,8 @@ function boot() {
       tutorial?.finish(); tutorial = null;
       barks.clear();
       hud.show(false);
-      root.querySelectorAll('.screen, .overlay').forEach((n) => n.remove());
+      objectives.show(false);
+      root.querySelectorAll('.screen, .overlay, .headline').forEach((n) => n.remove());
       menuNode = mainMenu(host);
       root.appendChild(menuNode);
     },
@@ -133,12 +138,16 @@ function boot() {
     openDetails: () => { if (game.selected) detailsDialog(host, game.selected.x, game.selected.y); },
   });
   xr.actionsProvider = () => hud.currentActions();
-  const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); };
+  // Lagekarte: nur im Spiel sichtbar / overview map: visible in game only
+  const minimap = new Minimap(root, game, () => !menuNode);
+  // Einsatzziele (nur Kampagne) / objectives (campaign only)
+  const objectives = new ObjectivePanel(root);
+  const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); objectives.show(true); };
 
   let rewardOpen = false;
   let lastWeather: string | null = null;
   game.ui = {
-    update() { hud.render(); tutorial?.check(); xr.refreshPanels(); },
+    update() { hud.render(); objectives.render(game.state); tutorial?.check(); xr.refreshPanels(); minimap.invalidate(); },
     toast: (text, ic) => toast(root, text, ic),
     errorCode: (code) => toast(root, t(`errors.${code}`), 'warning'),
     event(e, s: GameState) {
@@ -162,6 +171,9 @@ function boot() {
           break;
         }
         case 'barrierHit': { const u = s.units.find((x) => x.id === e.unit); if (u && (u.owner === viewer || s.tiles[e.y * s.size + e.x].barrier?.owner === viewer)) toast(root, t('events.barrierHit'), 'shield'); break; }
+        // Konter: Minen und Flak / counters: mines and flak
+        case 'mineHit': if (e.owner === viewer || s.current === viewer) toast(root, t('events.mineHit', { dmg: e.dmg }), 'warning'); break;
+        case 'aaFire': toast(root, t('events.aaFire', { dmg: e.dmg }), 'attack'); break;
         case 'uprising': toast(root, t('events.uprising', { city: cityName(s, e.city) }), 'warning'); break;
         case 'peace': if (e.a === viewer || e.b === viewer) toast(root, t('events.peace', { a: fname(e.a), b: fname(e.b) }), 'diplomacy'); break;
         case 'peaceOffer': if (e.to === viewer) toast(root, t('events.peaceOffer', { name: fname(e.from) }), 'diplomacy'); break;
@@ -174,6 +186,8 @@ function boot() {
         case 'connected': { const c = s.cities.find((x) => x.id === e.city); if (c && c.owner === viewer) toast(root, t('events.connected', { city: cityName(s, e.city) }), 'move'); break; }
         case 'eliminated': toast(root, t('events.eliminated', { name: fname(e.faction) }), 'warning'); break;
         case 'convert': toast(root, t('events.convert'), 'heal'); break;
+        case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
+        case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
       }
     },
     fx: (kind, x, y, text) => { if (game.state) fx.show(game.state, kind, x, y, text); },
@@ -182,7 +196,7 @@ function boot() {
     turnStarted() { if (game.state) barks.onTurnStart(game.state, game.viewer); },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
-    gameOver: () => { gameOverScreen(host); clearSave(); },
+    gameOver: () => { if (game.state?.campaign) campaignResult(host); else gameOverScreen(host); clearSave(); },
     rewards() {
       if (rewardOpen || !game.isHumanTurn) return;
       const s = game.state!;

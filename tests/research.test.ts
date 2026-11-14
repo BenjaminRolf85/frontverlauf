@@ -107,10 +107,10 @@ describe('Forschungsbaum / research tree', () => {
     expect(techUnlocks('supply').buildings).toEqual(['storehouse']);
     expect(techUnlocks('agritech').buildings).toEqual(['farm']);
     expect(techUnlocks('foodIndustry').buildings).toEqual(['foodFactory']);
-    expect(techUnlocks('fortification').units).toEqual(['pioneer']);
+    expect(techUnlocks('fortification').units).toEqual(['pioneer', 'mineLayer']);
     expect(techUnlocks('intelligence').units).toEqual(['spy']);
     expect(techUnlocks('mining').buildings).toEqual(['mine']);
-    expect(techUnlocks('armsIndustry')).toEqual({ units: ['mg'], buildings: ['steelMill'] });
+    expect(techUnlocks('armsIndustry')).toEqual({ units: ['mg', 'antiTank'], buildings: ['steelMill'] });
     expect(techUnlocks('highAltitude').buildings).toEqual(['researchCenter']);
     expect(techUnlocks('cybernetics').units).toEqual(['medic']);
     expect(techUnlocks('coastalEconomy')).toEqual({ units: ['landingBoat'], buildings: ['fishery', 'navalBase'] });

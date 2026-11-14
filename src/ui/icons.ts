@@ -48,6 +48,8 @@ const P: Record<string, string> = {
   helmet: '<path d="M3.5 15a8.5 8.5 0 0 1 17 0z"/><path d="M2 15h20v2.5H2zM12 6.5V15"/>',
   city: '<path d="M3 21V10l5-3v14M8 21V5l7 3v13M15 21V12l6 2.5V21M2 21h20"/>',
   eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  map: '<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M6.5 15.5l4-5 3.5 3 5.5-7"/><circle cx="19.5" cy="6.5" r="1.3" fill="currentColor"/>',
   lightning: '<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
   grand: '<path d="M4 21h16M6 21v-9M10 21v-9M14 21v-9M18 21v-9M3 12h18L12 4z"/>',
   play: '<path d="M7 4v16l13-8z" fill="currentColor"/>',
@@ -59,6 +61,14 @@ const P: Record<string, string> = {
   rain: '<path d="M6.5 14.5a4.5 4.5 0 0 1 .6-9 5.5 5.5 0 0 1 10.4 1.5 3.75 3.75 0 0 1 0 7.5z"/><path d="M8 17.5l-1 3M12 17.5l-1 3M16 17.5l-1 3"/>',
   snow: '<path d="M12 2.5v19M3.8 7.25l16.4 9.5M3.8 16.75l16.4-9.5"/><path d="M9.5 4l2.5 2 2.5-2M9.5 20l2.5-2 2.5 2"/>',
   wind: '<path d="M3 8h11a3 3 0 1 0-3-3"/><path d="M3 12h16a3 3 0 1 1-3 3"/><path d="M3 16h7"/>',
+  // Zufallsereignisse und Kampagne / random events and campaign
+  storm: '<path d="M6.5 13.5a4.5 4.5 0 0 1 .6-9 5.5 5.5 0 0 1 10.4 1.5 3.75 3.75 0 0 1 0 7.5"/><path d="M12.5 11.5l-3 5h4l-2.5 5" stroke-linejoin="round"/>',
+  germ: '<circle cx="12" cy="12" r="5"/><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.8 2.8M15.9 15.9l2.8 2.8M18.7 5.3l-2.8 2.8M8.1 15.9l-2.8 2.8"/><circle cx="10.5" cy="10.5" r="1" fill="currentColor"/><circle cx="13.5" cy="13.2" r="1" fill="currentColor"/>',
+  torch: '<path d="M9 10.5h6l-1.6 10.5h-2.8z"/><path d="M12 2.5c2.6 2.3 3.1 4.4 1.9 6.8h-3.8C8.9 6.9 9.7 4.6 12 2.5z" fill="currentColor"/>',
+  truck: '<path d="M2.5 6h11v10h-11zM13.5 9.5H18l3 3.5v3h-7.5"/><circle cx="6.5" cy="17.5" r="2" fill="currentColor"/><circle cx="17" cy="17.5" r="2" fill="currentColor"/>',
+  defector: '<circle cx="8" cy="7" r="3"/><path d="M2.5 20c.6-4 2.6-6 5.5-6s4.9 2 5.5 6"/><path d="M14 11h7M18 8l3 3-3 3"/>',
+  chest: '<path d="M3 10h18v10H3z"/><path d="M3 10c0-3.5 2-5.5 4.5-5.5h9C19 4.5 21 6.5 21 10"/><path d="M3 13.5h18"/><path d="M10.5 12h3v4h-3z" fill="currentColor"/>',
+  drought: '<circle cx="12" cy="8" r="3.5"/><path d="M12 1.5V3M5.5 8H4M20 8h-1.5M7.4 3.4l1 1M16.6 3.4l-1 1"/><path d="M3 15h18M7 15l2 3-1.5 3M15 15l-1.5 2.5 2 3.5M11.5 15l.5 2"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

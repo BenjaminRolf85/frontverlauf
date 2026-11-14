@@ -26,10 +26,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   grey: 'laser', terraformer: 'none', skimmer: 'laser', mech: 'plasma', tripod: 'deathRay',
   zealot: 'rifle', torchbearer: 'flame', prophet: 'none', doomBuggy: 'mg', rocketCart: 'rocket', doomCrawler: 'cannon',
   android: 'energy', spider: 'buzz', quadDrone: 'laser', railgun: 'railgun', titan: 'plasma',
+  // Konter-Einheiten / counter units
+  antiTank: 'rocket', antiAir: 'mg', mineLayer: 'rifle', faustZealot: 'rocket', flakDrone: 'mg',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {

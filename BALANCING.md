@@ -14,6 +14,7 @@ All rule numbers live only there; the rule code in `src/core/` reads them and co
 | `TECHS` | 25 Technologien in 5 Ästen mit Stufe und Vorgänger / 25 techs in 5 branches with tier and parent |
 | `FACTIONS`, `PERKS` | Perk, 20 % Rabatt, Starttechnologie, Gewichte des Heimatgebiets / perk, 20 % discount, start tech, home region weights |
 | `GRAND_PROJECTS`, `SCORE`, `MODES` | Bedingungen, Punktetabelle, 30 Runden / conditions, score table, 30 rounds |
+| `COUNTER`, `UNITS.bonusVs` | Konter: Fahrzeugliste, Schadensfaktoren gegen Fahrzeuge/Flieger/Fußtruppen, Flakzone 3 Schaden, Mine 10 Sterne, 6/15 Schaden, max. 8 je Fraktion / counters: vehicle list, damage factors vs vehicles/flyers/foot, flak zone 3 damage, mine 10 stars, 6/15 damage, max 8 per faction |
 | `BUNKER`, `MAP_TYPES`, `MAPGEN` | Bunkerbelohnungen, Landanteil je Kartentyp, Siedlungs- und Bunkerdichte / bunker rewards, land ratio per map type, densities |
 
 Alle Preise und Einkommen sind ganze Zahlen (Faktor 5), Rabatte werden multipliziert und auf ganze Sterne aufgerundet.
