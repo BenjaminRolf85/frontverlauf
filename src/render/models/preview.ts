@@ -304,8 +304,8 @@ async function buildScene() {
   });
   sh.cols.forEach((c, ci) => {
     const l = label(c);
-    const [x, z] = at(ci, -0.75);
-    l.position.set(x, 0.1, z);
+    const [x, z] = at(ci, cat === 'leaders' ? 0.6 : -0.75);
+    l.position.set(x, cat === 'leaders' ? -0.12 : 0.1, z);
     content.add(l);
   });
 }

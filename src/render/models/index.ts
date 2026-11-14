@@ -128,7 +128,7 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
  * Faction leader bust (head and shoulders, facing +z, origin bottom centre, about 1.0 tall and 0.9 wide).
  */
 export function leaderGeometry(faction: FactionId): THREE.BufferGeometry {
-  return memo(`leader|${faction}`, () => withDetail(1, true, () => leader(faction).build()));
+  return memo(`leader|${faction}`, () => withDetail(0.8, true, () => leader(faction).build()));
 }
 
 /** Vereinfachte Ladung fuer das Landungsboot (ohne Besatzung/Embleme) / simplified cargo for the landing boat */

@@ -23,8 +23,27 @@ class Head {
   rot(x: number, y: number, rz = 0): V3 {
     return [-Math.asin(clamp(y / this.r[1])) * 0.85, Math.asin(clamp(x / this.r[0])) * 0.85, rz];
   }
-  skull(c: ColorLike, ws = 40, hs = 30) {
-    this.b.add(geo.sphere(1, ws, hs), c, { p: this.c, s: this.r });
+  /**
+   * Schaedel als eine verformte Kugel: Kiefer verjuengt, Kinn nach vorn, Wangen voller.
+   * Skull as one deformed sphere: tapered jaw, chin forward, fuller cheeks.
+   */
+  skull(c: ColorLike, o: { taper?: number; chin?: number; cheek?: number } = {}, ws = 40, hs = 30) {
+    const g = geo.sphere(1, ws, hs);
+    const pos = g.getAttribute('position');
+    const taper = o.taper ?? 0.3, chin = o.chin ?? 0.12, cheek = o.cheek ?? 0.05;
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      if (y < 0) {
+        const d = -y;
+        x *= 1 - taper * d ** 1.6;
+        if (z > 0) z *= 1 + chin * d * d;
+        y *= 1 + chin * 0.4 * d;
+      }
+      // volle Wangen vorn-seitlich / full cheeks front-sideways
+      if (z > 0.3 && y < 0.1 && y > -0.6) x *= 1 + cheek * Math.sin(Math.PI * (y + 0.6) / 0.7);
+      pos.setXYZ(i, x, y, z);
+    }
+    this.b.add(g, c, { p: this.c, s: this.r });
   }
 }
 
@@ -121,13 +140,6 @@ function ears(H: Head, c: ColorLike = mat.skin, s = 1, y = -0.005) {
   }
 }
 
-/** Kinn/Kiefer und Wangen / chin, jaw and cheeks */
-function jaw(H: Head, c: ColorLike, w: number, h: number, chin = 0.02) {
-  const [x, y, z] = H.c;
-  H.b.add(geo.rtaper(w, H.r[2] * 1.5, w * 0.62, H.r[2] * 1.2, h, 0.03, chin), c, { p: [x, y - H.r[1] * 0.55, z + 0.01], r: [Math.PI, 0, 0] });
-  for (const s of [-1, 1]) H.b.add(geo.sphere(0.045, 16, 12), c, { p: H.at(s * 0.075, -0.045, -0.03), s: [1, 0.8, 0.8] });
-}
-
 function neck(b: Builder, c: ColorLike, r = 0.075, y0 = 0.34, h = 0.2) {
   b.cyl(r, r * 1.1, h, 24, c, [0, y0 + h / 2, -0.01]);
 }
@@ -201,8 +213,7 @@ function korvat(b: Builder, L: Look) {
   addEmblem(b, 'korvat', 0.04, 0.008, gold, { p: [0.2, 0.16, 0.205] });
   // Kopf: breit, schwerer Kiefer / head: broad, heavy jaw
   const H = new Head(b, [0, 0.66, 0.02], [0.175, 0.185, 0.17]);
-  H.skull(mat.skin);
-  jaw(H, mat.skin, 0.3, 0.14, 0.02);
+  H.skull(mat.skin, { taper: 0.12, chin: 0.18, cheek: 0.06 });
   ears(H, mat.skin, 1.1);
   eye(H, -0.062, 0.02, { h: 0.7, lid: 0.32, tilt: 0.12, iris: mat.blue, look: [0, -0.2] });
   eye(H, 0.062, 0.02, { h: 0.7, lid: 0.32, tilt: 0.12, iris: mat.blue, look: [0, -0.2] });
@@ -268,14 +279,13 @@ function dravon(b: Builder, L: Look) {
   b.tube([0.025, 0.46, 0.08], [0.12, 0.4, 0.12], 0.005, 6, mat.dark);
   // Sturmhaube / balaclava
   const H = new Head(b, [0, 0.66, 0.02], [0.16, 0.19, 0.165]);
-  H.skull(black);
-  jaw(H, black, 0.26, 0.12, 0.01);
+  H.skull(black, { taper: 0.25, chin: 0.1 });
   ears(H, black, 0.9);
   // Augenschlitz mit Haut / eye slot showing skin
-  b.add(geo.sphere(1, 32, 12), mat.skin, { p: [0, 0.68, 0.035], s: [0.155, 0.04, 0.16] });
+  b.add(geo.sphere(1, 36, 14), mat.skin, { p: [0, 0.682, 0.03], s: [0.158, 0.05, 0.165] });
   const pale = mix(mat.white, mat.glass, 0.55);
-  eye(H, -0.058, 0.02, { h: 0.55, lid: 0.25, tilt: 0.28, iris: pale, look: [0.1, 0], lidCol: black, size: 0.95 });
-  eye(H, 0.058, 0.02, { h: 0.55, lid: 0.25, tilt: 0.28, iris: pale, look: [0.1, 0], lidCol: black, size: 0.95 });
+  eye(H, -0.058, 0.02, { h: 0.55, lid: 0.25, tilt: 0.28, iris: pale, look: [0.1, 0], lidCol: black, size: 1.1 });
+  eye(H, 0.058, 0.02, { h: 0.55, lid: 0.25, tilt: 0.28, iris: pale, look: [0.1, 0], lidCol: black, size: 1.1 });
   // Rippen der Haube / balaclava ribbing
   for (let i = 0; i < 5; i++) b.add(geo.torus(0.16 - i * 0.004, 0.003, 4, 40), shade(black, 1.6), { p: [0, 0.6 - i * 0.03, 0.02], r: [HALF_PI, 0, 0], s: [1, 1.05, 1] });
   // Gasmaskenfilter vor dem Mund / gas mask filter over the mouth
@@ -316,8 +326,7 @@ function alvenia(b: Builder, L: Look) {
   b.add(geo.cyl(0.1, 0.11, 0.05, 32, true), white, { p: [0, 0.43, 0.0] });
   neck(b, mat.skin, 0.068);
   const H = new Head(b, [0, 0.66, 0.02], [0.152, 0.18, 0.158]);
-  H.skull(mat.skin);
-  jaw(H, mat.skin, 0.22, 0.12, 0.03);
+  H.skull(mat.skin, { taper: 0.42, chin: 0.1, cheek: 0.05 });
   ears(H, mat.skin, 0.85);
   const iris = mix(mat.wood, mat.green, 0.3);
   eye(H, -0.058, 0.015, { h: 0.85, lid: 0.18, tilt: -0.05, iris, lashes: true, look: [0.1, 0] });
@@ -327,7 +336,7 @@ function alvenia(b: Builder, L: Look) {
   mouth(H, -0.098, 0.075, 0.016, { lip: mix(mat.skin, mat.red, 0.35), thick: 0.011 });
   for (const s of [-1, 1]) b.add(geo.sphere(0.022, 12, 8), mix(mat.skin, mat.red, 0.15), { p: H.at(s * 0.085, -0.04, -0.004), s: [1, 0.7, 0.4] });
   // kurzes dunkles Haar (Bob) / short dark hair (bob)
-  b.add(geo.sphere(1, 40, 24, ), hair, { p: [0, 0.69, -0.005], s: [0.168, 0.18, 0.168] });
+  b.add(geo.sphere(1, 40, 24), hair, { p: [0, 0.695, -0.04], s: [0.166, 0.182, 0.152] });
   for (const s of [-1, 1]) {
     b.add(geo.rtaper(0.05, 0.1, 0.06, 0.13, 0.16, 0.02), hair, { p: [s * 0.15, 0.6, 0.03], r: [0, 0, s * 0.08] });
     b.add(geo.sphere(0.04, 16, 12), hair, { p: [s * 0.14, 0.52, 0.07], s: [0.8, 0.6, 1] });
@@ -365,8 +374,7 @@ function meridon(b: Builder, L: Look) {
   addEmblem(b, 'meridon', 0.045, 0.008, gold, { p: [-0.18, 0.3, 0.2] });
   neck(b, mat.skin, 0.066);
   const H = new Head(b, [0, 0.66, 0.02], [0.15, 0.178, 0.156]);
-  H.skull(mat.skin);
-  jaw(H, mat.skin, 0.21, 0.12, 0.03);
+  H.skull(mat.skin, { taper: 0.45, chin: 0.12, cheek: 0.04 });
   ears(H, mat.skin, 0.85);
   // Ohrring / earring
   b.add(geo.torus(0.022, 0.005, 6, 20), gold, { p: [0.148, 0.6, 0.01], r: [0, HALF_PI, 0] });
@@ -389,7 +397,9 @@ function meridon(b: Builder, L: Look) {
   mouth(H, -0.098, 0.08, 0.012, { asym: 0.014, lip: mix(mat.skin, mat.red, 0.4), thick: 0.011 });
   b.add(geo.sphere(0.006, 8, 6), mat.dark, { p: H.at(0.06, -0.05, 0.001) });
   // langes Haar mit Zopf ueber der Schulter / long hair with a braid over the shoulder
-  b.add(geo.sphere(1, 40, 24), hair, { p: [0, 0.685, -0.015], s: [0.165, 0.18, 0.165] });
+  b.add(geo.sphere(1, 40, 24), hair, { p: [0, 0.69, -0.05], s: [0.162, 0.182, 0.15] });
+  // Mittelscheitel-Straehnen vorn / centre-parted front strands
+  for (const sd of [-1, 1]) b.add(geo.sphere(0.07, 20, 14), hair, { p: H.at(sd * 0.07, 0.13, -0.035), s: [1.2, 0.55, 0.6], r: [0, 0, sd * -0.35] });
   b.add(geo.rtaper(0.3, 0.14, 0.26, 0.1, 0.24, 0.05), hair, { p: [0, 0.56, -0.08] });
   for (let i = 0; i < 12; i++) {
     const t = i / 11;
@@ -436,8 +446,7 @@ function velkar(b: Builder, L: Look) {
   b.add(geo.cyl(0.075, 0.08, 0.04, 28), armour, { p: [0, 0.42, -0.01] });
   // schmaler, alter Kopf / narrow, older head
   const H = new Head(b, [0, 0.665, 0.02], [0.138, 0.19, 0.152]);
-  H.skull(mat.skin);
-  jaw(H, mat.skin, 0.18, 0.13, 0.03);
+  H.skull(mat.skin, { taper: 0.35, chin: 0.22, cheek: -0.06 });
   ears(H, mat.skin, 0.95);
   eye(H, -0.052, 0.02, { h: 0.7, lid: 0.22, iris: mix(L.secondary, mat.dark, 0.3), look: [-0.2, 0.1], size: 0.9 });
   eye(H, 0.052, 0.02, { h: 0.6, lid: 0.35, tilt: 0.1, iris: mix(L.secondary, mat.dark, 0.3), look: [-0.2, 0.1], size: 0.9 });
@@ -498,7 +507,7 @@ function zyrr(b: Builder, L: Look) {
   for (let i = 0; i < 4; i++) b.add(geo.torus(0.054, 0.006, 4, 24), shade(skin, 0.8), { p: [0, 0.42 + i * 0.035, 0.0], r: [HALF_PI, 0, 0] });
   // grosser Kopf, unten spitz / large head, pointed chin
   const H = new Head(b, [0, 0.7, 0.02], [0.19, 0.2, 0.17]);
-  H.skull(skin);
+  H.skull(skin, { taper: 0.2, chin: 0.05, cheek: 0 });
   b.add(geo.cone(0.13, 0.17, 32), skin, { p: [0, 0.53, 0.05], r: [Math.PI + 0.2, 0, 0], s: [1, 1, 0.75] });
   // grosse schwarze Mandelaugen / big black almond eyes
   for (const s of [-1, 1]) {
@@ -561,16 +570,15 @@ function vesper(b: Builder, L: Look) {
     b.add(geo.torus(0.012, 0.004, 4, 10), mat.rustDark, { p: [0, 0.14, 0] });
   });
   // tiefe Kapuze / deep hood
-  b.add(geo.sphere(1, 40, 26), shade(robe, 1.25), { p: [0, 0.66, -0.03], s: [0.24, 0.29, 0.25] });
-  b.add(geo.cone(0.14, 0.2, 24), shade(robe, 1.25), { p: [0, 0.94, -0.12], r: [-0.6, 0, 0] });
+  b.add(geo.sphere(1, 40, 26), shade(robe, 1.12), { p: [0, 0.66, -0.08], s: [0.25, 0.3, 0.25] });
+  b.add(geo.cone(0.14, 0.2, 24), shade(robe, 1.12), { p: [0, 0.94, -0.17], r: [-0.6, 0, 0] });
   b.add(geo.rtaper(0.5, 0.36, 0.34, 0.3, 0.14, 0.05), shade(robe, 1.15), { p: [0, 0.42, -0.02] });
   // dunkle Oeffnung / dark opening
-  b.add(geo.sphere(1, 36, 24), mat.ink, { p: [0, 0.65, 0.07], s: [0.17, 0.22, 0.17] });
-  b.add(geo.torus(0.18, 0.025, 8, 40), red, { p: [0, 0.655, 0.16], s: [1, 1.24, 1], r: [-0.12, 0, 0] });
+  b.add(geo.sphere(1, 36, 24), mat.ink, { p: [0, 0.65, 0.0], s: [0.18, 0.23, 0.18] });
+  b.add(geo.torus(0.185, 0.026, 8, 40), red, { p: [0, 0.655, 0.13], s: [1, 1.24, 1], r: [-0.12, 0, 0] });
   // Knochenmaske mit glimmenden Augenschlitzen / bone mask with ember eye slits
-  const H = new Head(b, [0, 0.64, 0.08], [0.13, 0.16, 0.13]);
-  b.add(geo.sphere(1, 36, 24, ), bone, { p: [0, 0.64, 0.09], s: [0.125, 0.155, 0.12] });
-  b.add(geo.rtaper(0.16, 0.13, 0.1, 0.1, 0.1, 0.03, 0.01), bone, { p: [0, 0.53, 0.12], r: [Math.PI, 0, 0] });
+  const H = new Head(b, [0, 0.64, 0.1], [0.125, 0.155, 0.11]);
+  H.skull(bone, { taper: 0.35, chin: 0.1, cheek: 0 }, 36, 24);
   for (const s of [-1, 1]) {
     b.add(geo.rbox(0.07, 0.022, 0.03, 0.006), mat.ink, { p: H.at(s * 0.048, 0.015, 0.002), r: [0, H.rot(s * 0.048, 0.015)[1], s * -0.22] });
     b.add(geo.rbox(0.05, 0.01, 0.03, 0.004), ember, { p: H.at(s * 0.048, 0.015, 0.006), r: [0, H.rot(s * 0.048, 0.015)[1], s * -0.22] });
