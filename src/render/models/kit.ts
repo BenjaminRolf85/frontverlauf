@@ -312,6 +312,24 @@ export class Builder {
     return this;
   }
 
+  /**
+   * Glatt schattierte, bereits gefaerbte Geometrie: Normalen bleiben erhalten (fuer modellierte Gesichter).
+   * Smooth-shaded, already coloured geometry: normals are kept (for sculpted faces).
+   */
+  addSmooth(src: THREE.BufferGeometry, xf?: Xf): this {
+    let g = src.index ? src.toNonIndexed() : src.clone();
+    for (const name of Object.keys(g.attributes)) if (name !== 'position' && name !== 'normal' && name !== 'color') g.deleteAttribute(name);
+    g.morphAttributes = {};
+    g.clearGroups();
+    if (!g.getAttribute('normal')) g.computeVertexNormals();
+    const m = this.top.clone().multiply(xfMatrix(xf));
+    g.applyMatrix4(m);
+    if (m.determinant() < 0) flipWinding(g);
+    g = dropDegenerate(g);
+    this.parts.push(g);
+    return this;
+  }
+
   // Kurzformen; p = Mittelpunkt / shorthands; p = centre
   box(w: number, h: number, d: number, c: ColorLike, p: V3, r?: V3): this {
     return this.add(detailBox(w, h, d), c, { p, r });
