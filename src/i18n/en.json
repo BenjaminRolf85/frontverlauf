@@ -1534,5 +1534,14 @@
     "leader": "Leader",
     "style": "Style",
     "perk": "Strength"
+  },
+  "traits": {
+    "perk": "Bonus",
+    "perk2": "Second bonus",
+    "unit": "Signature unit",
+    "discount": "Discount",
+    "discountValue": "{unit} −{pct}%",
+    "building": "Own building",
+    "leader": "Leader"
   }
 }

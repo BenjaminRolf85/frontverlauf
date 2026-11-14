@@ -24,7 +24,7 @@ import { icon } from './icons';
 
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
-const UNIT_ICON: Record<string, string> = {
+export const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
   spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
   grey: 'lightning', terraformer: 'build', skimmer: 'move', mech: 'shield', tripod: 'range',
@@ -43,7 +43,7 @@ export function counterTags(type: UnitTypeId): { text: string; good: boolean }[]
     return { text: t(COUNTER_KEY[cls], { pct: pct > 0 ? `+${pct}` : `${pct}` }), good: pct > 0 };
   });
 }
-const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown' };
+export const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown' };
 
 export function unitName(u: Unit): string {
   return u.carried ? `${t(`units.${u.type}`)} (${t('stats.carrying', { unit: t(`units.${u.carried}`) })})` : t(`units.${u.type}`);

@@ -432,3 +432,27 @@ input[type="text"], select {
 .leader-quote { font-style: italic; font-weight: 700; }
 .faction-btn { display: inline-flex; align-items: center; gap: var(--p-space-1); padding: 0; background: none; border: none; cursor: pointer; font: inherit; color: inherit; }
 @media (max-width: 560px) { .leader-card { flex-direction: column; align-items: center; text-align: center; } }
+
+/* ---------- Fraktionsmerkmale / faction traits ---------- */
+.trait-list { list-style: none; margin: var(--p-space-1) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--p-space-1); }
+.trait {
+  display: inline-flex; align-items: flex-start; gap: var(--p-space-1); max-width: 100%;
+  padding: var(--p-space-1) var(--p-space-2); border-radius: var(--p-radius-sm);
+  border: var(--p-border-width-thin) solid var(--s-outline); border-left: var(--p-border-width-thick) solid var(--trait-accent, var(--s-accent));
+  background: var(--s-surface-sunken); font-size: var(--p-font-size-sm); line-height: 1.3;
+}
+.trait .icon { flex: none; margin-top: 0.1em; color: var(--s-text); }
+.trait-text { display: flex; flex-wrap: wrap; column-gap: var(--p-space-1); min-width: 0; }
+.trait-label { color: var(--s-text-muted); }
+.trait-desc { flex-basis: 100%; color: var(--s-text-muted); }
+.faction-card .trait-list { flex-direction: column; align-items: stretch; }
+.slot-faction { font-size: var(--p-font-size-md); }
+.slot-leader { font-size: var(--p-font-size-sm); }
+.slot-pick { align-items: flex-start; }
+.slot-pick .leader-portrait { align-self: center; }
+@media (min-width: 720px) { .slot-pick .leader-portrait.md { width: calc(var(--p-size-touch-lg) * 2); height: calc(var(--p-size-touch-lg) * 2); } }
+@media (max-width: 560px) {
+  .slot-pick { flex-wrap: wrap; }
+  .slot-pick .slot-cta { width: 100%; justify-content: center; }
+  .slot-pick .slot-cta .label { display: inline; }
+}

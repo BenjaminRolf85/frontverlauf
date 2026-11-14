@@ -1534,5 +1534,14 @@
     "leader": "Anführer",
     "style": "Stil",
     "perk": "Stärke"
+  },
+  "traits": {
+    "perk": "Bonus",
+    "perk2": "Zweiter Bonus",
+    "unit": "Spezialeinheit",
+    "discount": "Rabatt",
+    "discountValue": "{unit} −{pct} %",
+    "building": "Eigenes Gebäude",
+    "leader": "Anführer"
   }
 }

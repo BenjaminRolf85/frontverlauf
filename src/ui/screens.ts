@@ -20,6 +20,7 @@ import { cityName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { factionCard, leaderPortrait } from './leaders';
+import { traitChips } from './factionInfo';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -132,9 +133,10 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               <div class="slot-head"><span class="slot-no display">${esc(t('setup.slot', { n: i + 1 }))}</span>
                 ${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</div>
               <button type="button" class="slot-pick" data-action="pick-${i}" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(t(`factions.${p.id}.name`))}">
-                ${factionBadge(p.id)}
-                <span class="col grow"><strong>${esc(t(`factions.${p.id}.name`))}</strong>
-                  <span class="muted">${esc(t(`factions.${p.id}.perk`))}${ROSTERS[p.id] ? ` · ${esc(t('setup.special'))}` : ''}</span></span>
+                ${leaderPortrait(p.id, 'md')}
+                <span class="col grow"><strong class="slot-faction">${esc(t(`factions.${p.id}.name`))}</strong>
+                  <span class="slot-leader">${esc(t(`factions.${p.id}.leaderTitle`))} <strong>${esc(t(`factions.${p.id}.leader`))}</strong>${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span>
+                  ${traitChips(p.id)}</span>
                 <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
               </button>
               ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
@@ -159,8 +161,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
           <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
             <span>${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
             <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
+            ${traitChips(f, { desc: true })}
             <span class="muted">${esc(t(`factions.${f}.lore`))}</span>
-            <span class="muted">${esc(t(`factions.${f}.perk`))}: ${esc(t(`factions.${f}.perkDesc`))}</span>
             <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
               ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
         </button>`;
