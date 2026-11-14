@@ -10,7 +10,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
-import { Sculpt, blob, browStrands, ear, eye, gauss, hairLock, mulberry, neck, paint, segDist, smoothstep, strand } from './sculpt';
+import { Sculpt, blob, browStrands, ear, eye, faceInk, hairLock, ink, lips, mulberry, neck, paint, smoothstep, strand } from './sculpt';
 
 const HALF_PI = Math.PI / 2;
 
@@ -148,7 +148,7 @@ function korvat(b: Builder, L: Look) {
   // ---- Kopf: breit, schwerer Kiefer, streng-vaeterlich / head: broad, heavy jaw, stern but fatherly ----
   const S = new Sculpt([0, 0.665, 0.03], [0.175, 0.19, 0.172], {
     jaw: -0.06, chin: 0.26, chinDown: 0.08, lowY: 0.14, socket: 0.13, brow: 0.12, cheek: 0.1, temple: 0.03,
-    noseBridge: 0.12, noseLen: 0.4, noseW: 1.45, noseY: -0.22, lipU: 0.03, lipL: 0.06, mouthW: 0.4, mouthY: -0.58,
+    noseBridge: 0.12, noseLen: 0.4, noseW: 1.45, noseY: -0.22, lipU: 0.015, lipL: 0.02, mouthDepth: 0, mouthW: 0.4, mouthY: -0.58,
     smile: -0.015, fold: 0.035, age: 1.1, frown: 1.2, eyeY: 0.12, flat: 0.12,
     bumps: [
       // Hamsterbacken und breites Kinn / jowls and broad chin
@@ -156,7 +156,9 @@ function korvat(b: Builder, L: Look) {
       { c: [0, -0.85, 0.6], s: [0.35, 0.15, 0.4], a: 0.06 },
     ],
   });
-  b.addSmooth(S.mesh(skin, { stubble: greyD, warm: 0.3, hair: { c: grey, at: (p) => smoothstep(0.35, 0.0, p.z) * smoothstep(-0.35, -0.1, p.y) } }));
+  b.addSmooth(S.mesh(skin, { hair: { c: grey, at: (p) => (p.z < 0.15 && p.y > -0.3 ? 1 : 0) } }));
+  faceInk(b, S, { nose: 1, fold: 1.1, age: 1, frown: 1.1, bags: 0.9, chin: 0.8 });
+  lips(b, S, { c: shade(skin, 0.82), hU: 0.035, hL: 0.05, thick: 0.04 });
   ear(b, S, -1, skin, { size: 1.1 });
   ear(b, S, 1, skin, { size: 1.1 });
   for (const s of [-1, 1] as const) eye(b, S, s, { iris: mat.blue, lid: 77, lower: 66, tilt: 0.14, lidCol: skin, look: [0, -0.15] });
@@ -246,9 +248,7 @@ function dravon(b: Builder, L: Look) {
     paint: (p) => {
       const inSlit = p.z > 0.45 && p.y < slitTop(p.x) && p.y > -0.05 && Math.abs(p.x) < 0.62;
       if (inSlit) {
-        // Narbe ueber dem rechten Auge / scar over the right eye
-        if (Math.abs((p.x - 0.36) * 1.0 + (p.y - 0.1) * 0.45) < 0.018 && p.x > 0.2 && p.x < 0.55) return col(scar);
-        return col(skin).lerp(shade(skin, 0.7), 0.4 * gauss(p, [0, 0.08, 1], [0.6, 0.1, 0.6]));
+        return col(skin);
       }
       // Strickmuster: feine Rippen / knit pattern: fine ribs
       const rib = Math.sin(p.x * 90) > 0.7 && p.y < -0.05 ? 1.25 : 1;
@@ -259,7 +259,23 @@ function dravon(b: Builder, L: Look) {
   ear(b, S, 1, black, { size: 0.9 });
   const pale = mix(mat.white, mat.glass, 0.6);
   eye(b, S, -1, { iris: pale, lid: 80, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 });
-  eye(b, S, 1, { iris: pale, lid: 82, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9, scar });
+  eye(b, S, 1, { iris: pale, lid: 82, lower: 72, tilt: 0.3, lidCol: skin, look: [0.25, 0], irisSize: 0.9 });
+  // helle Narbe quer ueber Lid und Schlitz, mit Stichen / light scar across lid and slit, with stitch marks
+  const ex = S.f.eyeX, ey = S.f.eyeY, lidR = 0.2 * 1.08;
+  const scarLift = (x: number, y: number) => {
+    const d = Math.hypot(x - ex, y - ey);
+    return Math.max(0.014, Math.sqrt(Math.max(0, lidR * lidR - d * d)) - 0.11 + 0.016);
+  };
+  const scarPts: V3[] = [];
+  for (let i = 0; i <= 14; i++) {
+    const t = i / 14, x = 0.25 + t * 0.22, y = 0.25 - t * 0.33;
+    scarPts.push(S.surf(x, y, scarLift(x, y)));
+  }
+  strand(b, scarPts, S.len(0.022), S.len(0.02), scar, scar, { seg: 6, flat: 0.35, brush: true, samples: 40, up: new THREE.Vector3(0.4, 0.1, 1).normalize() });
+  for (const t of [0.2, 0.45, 0.75]) {
+    const x = 0.25 + t * 0.22, y = 0.25 - t * 0.33;
+    strand(b, [S.surf(x - 0.035, y - 0.025, scarLift(x - 0.035, y - 0.025) + 0.004), S.surf(x + 0.035, y + 0.025, scarLift(x + 0.035, y + 0.025) + 0.004)], S.len(0.008), S.len(0.008), shade(scar, 0.85), shade(scar, 0.85), { seg: 4, samples: 6 });
+  }
   // Gasmaskenfilter vor dem Mund / gas mask filter over the mouth
   const m = S.surf(0, -0.5, 0.02);
   b.add(geo.rtaper(0.16, 0.1, 0.1, 0.06, 0.1, 0.022), mat.darkMid, { p: [m[0], m[1], m[2]], r: [HALF_PI - 0.3, 0, 0] });
@@ -305,11 +321,13 @@ function alvenia(b: Builder, L: Look) {
   neck(b, skin, { r: 0.066, y0: 0.36, h: 0.2 });
   // ---- Kopf: ruhig, selbstsicheres Halblaecheln / head: calm, confident half-smile ----
   const S = new Sculpt([0, 0.665, 0.03], [0.152, 0.178, 0.158], {
-    jaw: 0.4, chin: 0.1, chinDown: 0.03, socket: 0.09, brow: 0.03, cheek: 0.09, temple: 0.02,
-    noseBridge: 0.05, noseLen: 0.16, noseW: 0.85, noseY: -0.23, lipU: 0.03, lipL: 0.04, mouthW: 0.48, mouthY: -0.53,
-    smile: 0.07, asym: 0.03, fold: 0.008, eyeY: 0.1,
+    jaw: 0.44, chin: 0.12, chinDown: 0.0, lowY: -0.06, socket: 0.09, brow: 0.03, cheek: 0.11, temple: 0.02,
+    noseBridge: 0.1, noseLen: 0.25, noseW: 0.82, noseY: -0.19, lipU: 0.012, lipL: 0.016, mouthDepth: 0, mouthW: 0.44, mouthY: -0.46,
+    smile: 0.06, asym: 0.03, fold: 0.0, eyeY: 0.1,
   });
-  b.addSmooth(S.mesh(skin, { lip: mix(skin, mat.red, 0.5), warm: 0.3, hair: { c: hair, at: (p) => smoothstep(0.45, 0.58, p.y + 0.35 * (1 - p.z)) } }));
+  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => p.y + 0.35 * (1 - p.z) - 0.5 + 0.5 } }));
+  faceInk(b, S, { nose: 0.85, smile: 1, chin: 0.9, cheek: 0.55 });
+  lips(b, S, { c: mix(skin, mat.red, 0.6), cl: mix(skin, mat.red, 0.5), hU: 0.04, hL: 0.055, thick: 0.05, bow: 0.012 });
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   const iris = mix(mat.wood, mat.green, 0.45);
@@ -364,11 +382,13 @@ function meridon(b: Builder, L: Look) {
   // ---- Kopf: schiefes Grinsen, zugekniffenes Auge / head: sly lopsided grin, squinting eye ----
   const S = new Sculpt([0, 0.665, 0.03], [0.15, 0.178, 0.156], {
     jaw: 0.42, chin: 0.15, chinDown: 0.05, socket: 0.1, brow: 0.04, cheek: 0.12, temple: 0.03,
-    noseBridge: 0.08, noseLen: 0.2, noseW: 0.8, noseY: -0.24, lipU: 0.028, lipL: 0.04, mouthW: 0.48, mouthY: -0.54,
-    smile: 0.03, asym: 0.07, fold: 0.018, eyeY: 0.1,
+    noseBridge: 0.11, noseLen: 0.27, noseW: 0.78, noseY: -0.2, lipU: 0.012, lipL: 0.016, mouthDepth: 0, mouthW: 0.46, mouthY: -0.47, lowY: -0.05,
+    smile: 0.03, asym: 0.07, fold: 0.0, eyeY: 0.1,
     bumps: [{ c: [0.45, -0.25, 0.8], s: [0.12, 0.1, 0.3], a: 0.04 }],
   });
-  b.addSmooth(S.mesh(skin, { lip: mix(skin, mat.red, 0.58), warm: 0.25, hair: { c: hair, at: (p) => smoothstep(0.42, 0.55, p.y + 0.35 * (1 - p.z)) } }));
+  b.addSmooth(S.mesh(skin, { hair: { c: hair, at: (p) => p.y + 0.35 * (1 - p.z) - 0.48 + 0.5 } }));
+  faceInk(b, S, { nose: 0.85, smile: 1.2, chin: 0.9, cheek: 0.65 });
+  lips(b, S, { c: mix(skin, mat.red, 0.65), cl: mix(skin, mat.red, 0.55), hU: 0.038, hL: 0.05, thick: 0.05, bow: 0.012 });
   ear(b, S, -1, skin, { size: 0.85 });
   ear(b, S, 1, skin, { size: 0.85 });
   b.add(geo.torus(0.024, 0.005, 8, 28), gold, { p: [0.15, 0.6, 0.02], r: [0, HALF_PI, 0] });
@@ -463,19 +483,27 @@ function velkar(b: Builder, L: Look) {
   b.add(geo.cyl(0.075, 0.08, 0.04, 48), armour, { p: [0, 0.42, -0.01] });
   neck(b, skin, { r: 0.056, y0: 0.38, h: 0.2, adam: 0.45 });
   // ---- schmaler alter Kopf, analytischer Blick / narrow old head, analytical look ----
-  const S = new Sculpt([0, 0.67, 0.03], [0.138, 0.19, 0.152], {
-    jaw: 0.32, chin: 0.22, chinDown: 0.08, socket: 0.15, brow: 0.07, cheek: 0.1, hollow: 0.07, temple: 0.07,
-    noseBridge: 0.13, noseLen: 0.3, noseW: 0.85, noseY: -0.27, lipU: 0.015, lipL: 0.028, mouthW: 0.34, mouthY: -0.57,
-    smile: -0.012, asym: 0.025, fold: 0.035, age: 1.4, frown: 0.6, eyeY: 0.1,
+  const S = new Sculpt([0, 0.665, 0.03], [0.128, 0.2, 0.15], {
+    jaw: 0.36, chin: 0.26, chinDown: 0.1, lowY: 0.12, socket: 0.13, brow: 0.08, cheek: 0.12, hollow: 0.1, temple: 0.06, flat: 0.1,
+    noseBridge: 0.16, noseLen: 0.42, noseW: 0.78, noseY: -0.27, lipU: 0.01, lipL: 0.012, mouthDepth: 0, mouthW: 0.34, mouthY: -0.6,
+    smile: -0.015, asym: 0.03, fold: 0.035, age: 1.4, frown: 0.6, eyeY: 0.1,
+    bumps: [
+      // Hakennase: Hoecker und nach unten gezogene Spitze / hooked nose: hump and drooping tip
+      { c: [0, -0.06, 1], s: [0.05, 0.06, 0.3], a: 0.07 },
+      { c: [0, -0.33, 1], s: [0.05, 0.04, 0.3], a: 0.09 },
+    ],
   });
-  b.addSmooth(S.mesh(skin, { lip: mix(skin, mat.red, 0.28), warm: 0.2, stubble: shade(mat.paper, 0.85) }));
+  b.addSmooth(S.mesh(skin));
+  faceInk(b, S, { nose: 1.15, fold: 1, age: 1.2, bags: 1, frown: 0.8, cheek: 1.1, chin: 0.7 });
+  lips(b, S, { c: shade(skin, 0.8), hU: 0.022, hL: 0.03, thick: 0.035, bow: 0.006 });
   ear(b, S, -1, skin, { size: 1.05 });
   ear(b, S, 1, skin, { size: 1.05 });
   const iris = mix(green, mat.dark, 0.35);
   eye(b, S, -1, { iris, lid: 63, lower: 64, tilt: -0.08, lidCol: skin, look: [-0.35, 0.05], r: 0.185 });
   eye(b, S, 1, { iris, lid: 78, lower: 66, tilt: 0.1, lidCol: skin, look: [-0.35, 0.05], r: 0.185 });
-  browStrands(b, S, -1, { c: hair, c1: hairD, n: 16, thick: 0.035, ang: -0.1, arch: 0.1, w: 0.33, wild: 0.06, y: 0.38 });
-  browStrands(b, S, 1, { c: hair, c1: hairD, n: 16, thick: 0.035, ang: 0.15, arch: 0.01, w: 0.33, wild: 0.06, y: 0.27 });
+  // linke Braue weit hochgezogen / left brow raised high
+  browStrands(b, S, -1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: -0.12, arch: 0.15, w: 0.34, wild: 0.06, y: 0.44 });
+  browStrands(b, S, 1, { c: mat.concreteLight, c1: hair, n: 18, thick: 0.048, ang: 0.16, arch: 0.01, w: 0.34, wild: 0.06, y: 0.27 });
   // Spitzbart / goatee
   const R = mulberry(8);
   for (let i = 0; i < 18; i++) {
@@ -539,7 +567,7 @@ function zyrr(b: Builder, L: Look) {
   const S = new Sculpt([0, 0.7, 0.03], [0.19, 0.21, 0.17], {
     jaw: 0.58, chin: 0.1, chinDown: 0.12, back: 0.25, crown: 0.22, socket: 0.22, brow: 0.07, cheek: 0.05, temple: 0.05,
     noseBridge: 0.02, noseLen: 0.015, noseW: 0.6, noseY: -0.28, lipU: 0.008, lipL: 0.01, mouthW: 0.2, mouthY: -0.55, mouthDepth: 0.05,
-    smile: -0.01, fold: 0.02, age: 0.8, frown: 0.8, eyeX: 0.37, eyeY: 0.0, nostrils: 0,
+    smile: -0.01, fold: 0.02, age: 0.8, frown: 0.8, ageGeo: 0.8, frownGeo: 0.8, eyeX: 0.37, eyeY: 0.0, nostrils: 0,
     grooves: [
       { a: [-0.35, 0.42], b: [0.35, 0.42], w: 0.015, d: 0.02 },
       { a: [-0.25, 0.55], b: [0.25, 0.55], w: 0.015, d: 0.018 },
