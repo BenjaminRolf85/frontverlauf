@@ -13,7 +13,8 @@ import {
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
-import { t, tList } from '../i18n/i18n';
+import { has as hasText, t } from '../i18n/i18n';
+import { cityNameOf } from '../i18n/cityNames';
 import { Portrait } from './portrait';
 import { leaderPortrait } from './leaders';
 import { factionDialog } from './screens';
@@ -45,13 +46,24 @@ export function counterTags(type: UnitTypeId): { text: string; good: boolean }[]
 }
 const BUILD_ICON: Partial<Record<BuildingId, string>> = { road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown' };
 
+/** Allgemeiner Typname (fuer Vergleiche) / generic type name (for comparison) */
 export function unitName(u: Unit): string {
   return u.carried ? `${t(`units.${u.type}`)} (${t('stats.carrying', { unit: t(`units.${u.carried}`) })})` : t(`units.${u.type}`);
 }
+/** Spitzname eines Einheitentyps in einer Fraktion / nickname of a unit type within a faction */
+export function unitNickname(f: FactionId, type: UnitTypeId): string {
+  const key = `unitNicknames.${f}.${type}`;
+  return hasText(key) ? t(key) : t(`units.${type}`);
+}
+/** Anzeigename einer Einheit: Spitzname ihrer Fraktion / display name of a unit: its faction's nickname */
+export function unitDisplayName(s: GameState, u: Unit): string {
+  const f = s.factions[u.owner]?.id;
+  if (!f) return unitName(u);
+  return u.carried ? `${unitNickname(f, u.type)} (${t('stats.carrying', { unit: unitNickname(f, u.carried) })})` : unitNickname(f, u.type);
+}
+/** Stadtname, fuer alle Stellen gleich (regionale Listen) / city name, the same everywhere (regional lists) */
 export function cityName(s: GameState, cityId: number): string {
-  const c = cityById(s, cityId);
-  const names = tList('cityNames');
-  return c && names.length ? names[c.nameIndex % names.length] : '';
+  return cityById(s, cityId) ? cityNameOf(s, cityId) : '';
 }
 
 export interface HudCallbacks {
@@ -226,8 +238,8 @@ export class Hud {
       const st = UNITS[vUnit.type];
       // 3D-Portraet statt Symbol / 3D portrait instead of an icon
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
-      head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display">${esc(unitName(vUnit))}</h3>
-        <div class="muted">${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
+      head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
+        <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
         <div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${st.attack}</span>
@@ -337,7 +349,7 @@ export class Hud {
           if (st.tech && !s.factions[u.owner].techs.includes(st.tech)) continue;
           const spot = recruitSpot(s, u, type);
           const chk = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'noSpace';
-          this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), cost: unitCost(s, u.owner, type)!, enabled: !!spot,
+          this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[u.owner].id, type), cost: unitCost(s, u.owner, type)!, enabled: !!spot,
             reason: spot ? t('cult.recruitHint') : chk === 'noSpace' ? t('cult.noSpace') : t(`errors.${chk}`),
             run: () => { this.recruitFor = null; if (spot) void g.exec({ type: 'recruit', unit: u.id, unitType: type, x: spot.x, y: spot.y }); } });
         }
@@ -428,7 +440,7 @@ export class Hud {
       if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
       const chk = trainCheck(s, c, type);
       this.actions.push({
-        id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), cost: unitCost(s, c.owner!, type)!,
+        id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
         enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : t(`errors.${chk}`),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       });

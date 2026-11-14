@@ -8,7 +8,7 @@ import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
 import { attackTargets, levelUpCost, burning, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
-import { tList } from '../i18n/i18n';
+import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
 import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
@@ -512,7 +512,6 @@ export class Board {
     }
 
     // Staedte / cities
-    const names = tList('cityNames');
     const townCities: TownInput['cities'] = [];
     for (const c of s.cities) {
       if (!explored(c.x, c.y)) continue;
@@ -535,12 +534,13 @@ export class Board {
         perk.traverse((o) => { o.raycast = () => {}; if (o === perk.userData.mesh) o.castShadow = true; });
         this.staticLayer.add(perk);
       }
-      if (this.showLabels && names.length) {
+      const cname = this.showLabels ? cityNameOf(s, c.id) : '';
+      if (cname) {
         const color = fid ? factionTokens[fid].primary : semantic.neutral;
         const ink = fid ? factionTokens[fid].ink : semantic.text;
         // Stufe und Fortschritt zur naechsten Stufe (nur fuer Staedte von Fraktionen) / level and progress to the next level (faction cities only)
         const need = c.owner !== null ? levelUpCost(s, c) : 0;
-        const label = cityLabel(names[c.nameIndex % names.length], c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
+        const label = cityLabel(cname, c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
         label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
         label.center.set(0.5, 1);
         this.labelLayer.add(label);

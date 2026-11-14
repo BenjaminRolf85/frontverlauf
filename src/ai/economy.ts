@@ -362,7 +362,7 @@ function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
     const bonus = UNITS[t].bonusVs;
     if (bonus?.vehicle && bonus.vehicle > 1) return Math.max(0.04, ct.antiVehicle);
     if (bonus?.air && bonus.air > 1) return Math.max(0.04, ct.antiAir);
-    return (ROSTER_SHARE[t] ?? 0.1) * (1 - 0.4 * Math.min(1, ct.vehRatio + ct.airRatio));
+    return (ROSTER_SHARE[t] ?? 0.1) * (ctx.prof.pref[t] ?? 1) * (1 - 0.4 * Math.min(1, ct.vehRatio + ct.airRatio));
   };
   const avail = (t: UnitTypeId) => (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && (UNITS[t].compute === undefined || computePower(s, f) >= UNITS[t].compute!);
   let best: UnitTypeId | null = null, bs = -Infinity;
@@ -389,7 +389,7 @@ function chooseAlienUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
   };
   let best: UnitTypeId | null = null, bs = -Infinity;
   for (const t of ALIEN_UNITS) {
-    const sc = ((share[t] ?? 0) - count(t) / army) * 4 - UNITS[t].cost! / 250;
+    const sc = ((share[t] ?? 0) * (ctx.prof.pref[t] ?? 1) - count(t) / army) * 4 - UNITS[t].cost! / 250;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;

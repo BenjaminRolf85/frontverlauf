@@ -55,9 +55,11 @@ export function factionChip(f: FactionId, label: string): string {
 }
 
 /** Aktionsknopf in der Aktionsleiste / action in the action bar */
-export interface ActionItem { id: string; label: string; icon: string; cost?: number; enabled: boolean; reason?: string; variant?: 'primary' | 'danger'; run: () => void }
+/** sub: kleine Zweitzeile unter dem Namen (z. B. Fraktions-Spitzname) / small second line below the label (e.g. faction nickname) */
+export interface ActionItem { id: string; label: string; sub?: string; icon: string; cost?: number; enabled: boolean; reason?: string; variant?: 'primary' | 'danger'; run: () => void }
 export function actionButton(a: ActionItem): string {
-  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc(a.reason ?? a.label)}">${icon(a.icon)}<span>${esc(a.label)}</span>${a.cost !== undefined ? price(a.cost) : ''}</button>`;
+  const sub = a.sub && a.sub !== a.label ? `<small class="action-sub">${esc(a.sub)}</small>` : '';
+  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc(a.reason ?? (a.sub ? `${a.label} (${a.sub})` : a.label))}">${icon(a.icon)}<span>${esc(a.label)}</span>${sub}${a.cost !== undefined ? price(a.cost) : ''}</button>`;
 }
 
 /** Dialog / dialog */

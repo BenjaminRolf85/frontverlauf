@@ -406,7 +406,7 @@ function buildGoals(ctx: Ctx): Goal[] {
     const def = unitAt(s, c.x, c.y);
     const defended = !!def && def.owner !== f && canSeeUnit(s, f, def);
     const owned = s.cities.filter((o) => o.owner === c.owner).length;
-    const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25) +
+    const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25 + prof.raid) +
       (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0);
     goals.push({ kind: 'city', x: c.x, y: c.y, value: value + (ctx.siege ? 20 : 0), cap: ctx.siege ? (defended ? 5 : 3) : defended ? 4 : 2, distW: ctx.siege ? 3 : 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
   }

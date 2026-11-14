@@ -149,6 +149,11 @@ h1, h2, h3, .display {
 .action[aria-disabled="true"] { opacity: 0.5; }
 .action .price { display: inline-flex; align-items: center; gap: var(--p-space-half); font-size: var(--p-font-size-xs); }
 .action .icon { width: var(--c-action-icon-size); height: var(--c-action-icon-size); }
+/* Fraktions-Spitzname unter dem allgemeinen Typnamen / faction nickname below the generic type name */
+.action .action-sub { display: block; max-width: var(--c-action-sub-max-width); font-size: var(--c-action-sub-font-size); font-weight: var(--p-font-weight-regular); color: var(--s-text-muted); line-height: 1.1; overflow-wrap: anywhere; }
+.action.danger .action-sub { color: inherit; }
+.sheet-head .unit-sub { font-size: var(--p-font-size-sm); }
+.sheet-head .unit-type { font-style: italic; }
 .nav-bar { display: flex; gap: var(--p-space-2); max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; }
 .nav-bar .btn { flex: 1; padding: 0 var(--p-space-2); font-size: var(--p-font-size-md); min-height: var(--p-size-touch-lg); }
 .nav-bar .btn.end { flex: 1.6; font-size: var(--p-font-size-lg); }
