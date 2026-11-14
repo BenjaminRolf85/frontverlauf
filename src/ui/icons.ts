@@ -69,7 +69,6 @@ const P: Record<string, string> = {
   defector: '<circle cx="8" cy="7" r="3"/><path d="M2.5 20c.6-4 2.6-6 5.5-6s4.9 2 5.5 6"/><path d="M14 11h7M18 8l3 3-3 3"/>',
   chest: '<path d="M3 10h18v10H3z"/><path d="M3 10c0-3.5 2-5.5 4.5-5.5h9C19 4.5 21 6.5 21 10"/><path d="M3 13.5h18"/><path d="M10.5 12h3v4h-3z" fill="currentColor"/>',
   drought: '<circle cx="12" cy="8" r="3.5"/><path d="M12 1.5V3M5.5 8H4M20 8h-1.5M7.4 3.4l1 1M16.6 3.4l-1 1"/><path d="M3 15h18M7 15l2 3-1.5 3M15 15l-1.5 2.5 2 3.5M11.5 15l.5 2"/>',
-  map: '<path d="M3 6l6-2.5 6 2.5 6-2.5v14.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 3.5V18M15 6v14.5"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',
