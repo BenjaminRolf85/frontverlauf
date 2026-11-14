@@ -53,9 +53,11 @@ export function wonderPanel(s: GameState, u: Unit): string {
   const stage = type === 'coreDrill' ? 0 : Math.min(u.wonder?.stage ?? 0, phases.length - 1);
   const left = st.unit === u.id && st.roundsLeft !== null ? st.roundsLeft : null;
   const armed = type === 'waal' && waalArmed(u);
+  const paused = st.unit === u.id && st.paused;
   return `<div class="wonder-info" role="group" aria-label="${esc(t('victory.unitTitle'))}">
     <div class="row">${icon('grand', 'icon-sm')}<strong>${esc(phaseText(st))}</strong>
       <span class="tag">${esc(t('victory.stage', { n: stage + 1, max: phases.length }))}</span>
+      ${paused ? `<span class="tag warn">${icon('warning', 'icon-sm')}${esc(t('victory.paused'))}</span>` : ''}
       ${left !== null ? `<span class="tag ${left <= 3 ? 'warn' : ''}">${esc(t('victory.roundsTotal', { n: left }))}</span>` : ''}
       ${armed ? `<span class="tag warn">${icon('attack', 'icon-sm')}${esc(t('victory.armed'))}</span>` : ''}</div>
     ${progress(st.have, st.need, '', phaseText(st))}
@@ -81,11 +83,13 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   const goal = `<span class="muted">${esc(victoryShortText(fa.id))}</span>`;
   if (!fa.alive) return `<div class="score-row">${head}${goal}</div><span class="tag">${esc(t('victory.eliminated'))}</span></div>`;
   const st = victoryStatus(s, g);
+  // Voelkerbund mit weniger als 3 Fraktionen: nicht moeglich, nur Hinweis / League with fewer than 3 factions: impossible, note only
+  if (st.unavailable) return `<div class="score-row">${head}${goal}<span class="muted">${esc(t('victory.leagueUnavailable'))}</span></div></div>`;
   let state: string;
   if (!st.tech) state = `<span class="muted">${esc(t('victory.noTech'))}</span>`;
   else {
     const left = st.roundsLeft !== null && st.phase !== 'none' ? ` · ${t('victory.roundsLeft', { n: st.roundsLeft })}` : '';
-    const note = st.phase === 'league' && st.roundsLeft === null ? ` · ${t('victory.leagueNotMet')}` : '';
+    const note = st.paused ? ` · ${t('victory.paused')}` : st.phase === 'league' && st.roundsLeft === null ? ` · ${t('victory.leagueNotMet')}` : '';
     state = `<span>${esc(phaseText(st) + left + note)}</span>${progress(st.ratio, 1, st.ratio >= 0.75 ? 'hp low' : '', phaseText(st))}`;
   }
   return `<div class="score-row">${head}${goal}${state}</div>${st.tech && st.ratio >= 0.75 ? `<span class="tag warn">${icon('warning', 'icon-sm')}</span>` : ''}</div>`;

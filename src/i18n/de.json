@@ -688,7 +688,8 @@
     "cannotRepair": "Nur Roboter können sich aus Wracks reparieren.",
     "noWreck": "Kein Wrack auf oder neben dem Feld.",
     "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden.",
-    "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot."
+    "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
+    "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -725,7 +726,8 @@
     "wonderStarted": "{name} beginnt: {wonder}",
     "wonderPhase": "{wonder} ({name}) erreicht die nächste Phase.",
     "wonderInterrupted": "{wonder} ({name}) wurde unterbrochen!",
-    "wonderDestroyed": "{wonder} ({name}) wurde zerstört!"
+    "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
+    "deserted": "Sold nicht bezahlt: {unit} desertiert"
   },
   "fx": {
     "hit": [
@@ -2924,6 +2926,8 @@
       "nexus": "Das Relais hat alle Maschinen übernommen."
     },
     "armed": "Bewaffnet",
-    "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück."
+    "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück.",
+    "leagueUnavailable": "Erst ab 3 Fraktionen im Spiel möglich",
+    "paused": "Ruht: Bauplatz nicht im eigenen Gebiet"
   }
 }

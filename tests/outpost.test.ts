@@ -88,8 +88,9 @@ describe('Aussenposten im Kampf / outposts in combat', () => {
 
   it('exact numbers: infantry vs infantry in outpost', () => {
     const { s, d, a } = fight('infantry');
-    // 2 vs 2*3=6, Summe 8: round(2/8*2*4.5)=round(2.25)=2 ; round(6/8*2*4.5)=round(6.75)=7
-    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 2, toAttacker: 7 });
+    // 2 vs 2*3=6, Summe 8: round(2/8*2*4.5)=round(2.25)=2; Gegenschlag mit 8/10 LP: 4.8 vs 2, round(4.8/6.8*2*4.5)=round(6.35)=6
+    // return fire with 8/10 HP
+    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 2, toAttacker: 6 });
   });
 
   it('vehicles, artillery and tanks may enter but get no bonus', () => {

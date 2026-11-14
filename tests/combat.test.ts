@@ -3,12 +3,17 @@ import { canMove, combatPreview, defenseBonus, attackTargets, canAttackNow } fro
 import { COMBAT, DEFENSE_BONUS, VETERAN } from '../src/data/balance';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, unit } from './helpers';
 
-/** Spezifikation: Kampfformel aus Abschnitt 5 / spec: combat formula of section 5 */
+/**
+ * Spezifikation: Kampfformel aus Abschnitt 5; der Gegenschlag rechnet mit den LP des Ziels nach dem Treffer.
+ * Spec: combat formula of section 5; return fire uses the target's HP after the hit.
+ */
 function formula(att: number, attHp: number, attMax: number, def: number, defHp: number, defMax: number, bonus: number) {
   const a = att * (attHp / attMax);
   const d = def * (defHp / defMax) * bonus;
-  const sum = a + d;
-  return { toDef: Math.round((a / sum) * att * 4.5), toAtt: Math.round((d / sum) * def * 4.5) };
+  const toDef = Math.round((a / (a + d)) * att * 4.5);
+  const left = defHp - toDef;
+  const d2 = def * (left / defMax) * bonus;
+  return { toDef, toAtt: left > 0 ? Math.round((d2 / (a + d2)) * def * 4.5) : 0 };
 }
 
 function duel() {
@@ -24,38 +29,40 @@ describe('Kampfformel / combat formula', () => {
     expect(COMBAT.damageFactor).toBe(4.5);
   });
 
-  it('infantry vs infantry on open ground: 5 / 5', () => {
+  it('infantry vs infantry on open ground: 5 / 3', () => {
     const s = duel();
     const a = addUnit(s, 'infantry', 0, 5, 5);
     const d = addUnit(s, 'infantry', 1, 6, 5);
-    expect(formula(2, 10, 10, 2, 10, 10, 1)).toEqual({ toDef: 5, toAtt: 5 });
+    // Gegenschlag mit 5/10 LP: abwehrkraft 1, summe 3 -> round(1/3*2*4.5)=3 / return fire with 5/10 HP
+    expect(formula(2, 10, 10, 2, 10, 10, 1)).toEqual({ toDef: 5, toAtt: 3 });
     const p = combatPreview(s, a, d);
-    expect(p).toMatchObject({ toDefender: 5, toAttacker: 5, kills: false, retaliates: true });
+    expect(p).toMatchObject({ toDefender: 5, toAttacker: 3, kills: false, retaliates: true });
     ok(s, { type: 'attack', unit: a.id, target: d.id });
     expect(unit(s, d.id)!.hp).toBe(5);
-    expect(unit(s, a.id)!.hp).toBe(5);
+    expect(unit(s, a.id)!.hp).toBe(7);
   });
 
-  it('damaged attacker (5/10) vs full infantry: 3 to defender, 6 back', () => {
+  it('damaged attacker (5/10) vs full infantry: 3 to defender, 5 back', () => {
     const s = duel();
     const a = addUnit(s, 'infantry', 0, 5, 5, { hp: 5 });
     const d = addUnit(s, 'infantry', 1, 6, 5);
-    // angriffskraft = 2*0.5 = 1, abwehrkraft = 2, summe 3 -> round(1/3*2*4.5)=3, round(2/3*2*4.5)=6
-    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 3, toAttacker: 6 });
+    // angriffskraft = 2*0.5 = 1, abwehrkraft = 2, summe 3 -> round(1/3*2*4.5)=3;
+    // Gegenschlag mit 7/10 LP: abwehrkraft 1.4, summe 2.4 -> round(1.4/2.4*2*4.5)=5 / return fire with 7/10 HP
+    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 3, toAttacker: 5 });
     ok(s, { type: 'attack', unit: a.id, target: d.id });
     expect(unit(s, d.id)!.hp).toBe(7);
     // Angreifer stirbt durch Gegenschlag / attacker dies to retaliation
     expect(unit(s, a.id)).toBeUndefined();
   });
 
-  it('MG attacks fortified infantry in a city (bonus 1.5): 7 / 5', () => {
+  it('MG attacks fortified infantry in a city (bonus 1.5): 7 / 2', () => {
     const s = duel();
     addCity(s, 6, 5, 1);
     const a = addUnit(s, 'mg', 0, 5, 5);
     const d = addUnit(s, 'infantry', 1, 6, 5);
     expect(defenseBonus(s, d, a)).toBe(1.5);
-    expect(formula(3, 15, 15, 2, 10, 10, 1.5)).toEqual({ toDef: 7, toAtt: 5 });
-    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 7, toAttacker: 5 });
+    expect(formula(3, 15, 15, 2, 10, 10, 1.5)).toEqual({ toDef: 7, toAtt: 2 });
+    expect(combatPreview(s, a, d)).toMatchObject({ toDefender: 7, toAttacker: 2 });
   });
 
   it('city with bunker ring gives 4.0: 2 / 7', () => {

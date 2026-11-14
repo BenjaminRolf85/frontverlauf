@@ -9,7 +9,7 @@ import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -89,8 +89,8 @@ function accuracyStat(s: GameState, u: Unit): string {
   if (!hitChanceOn(s)) return '';
   const o = hitOdds(s, u);
   const tip = HIT_KINDS.map((k) => `${t(`hit.${k}`)} ${Math.round(o[k] * 100)} %`).join(' · ');
-  const race = hitRace(u.type);
-  const note = race === 'cult' && cultFrenzy(u) ? ` · ${t('hit.frenzy')}` : race === 'robot' && u.hp < u.maxHp ? ` · ${t('hit.worn')}` : '';
+  const race = unitRace(s, u);
+  const note = race === 'cult' && cultFrenzy(u, race) ? ` · ${t('hit.frenzy')}` : race === 'robot' && u.hp < u.maxHp ? ` · ${t('hit.worn')}` : '';
   const ready = canOrderlyRetreat(u) && (u.retreatReady ?? 0) > s.round ? ` · ${t('retreat.cooldown', { n: (u.retreatReady ?? 0) - s.round })}` : '';
   return `<span class="stat ${note ? 'tag warn' : ''}" title="${esc(tip)}">${icon('range', 'icon-sm')}${esc(t(`hit.race.${race}`) + note + ready)}</span>`;
 }
@@ -366,7 +366,7 @@ export class Hud {
       const target = unitById(s, g.pendingTarget);
       // Mech-Raketen / mech rockets
       if (target && rocketTargets(s, u).some((o) => o.id === target.id)) {
-        const p = combatPreview(s, u, target);
+        const p = combatPreview(s, u, target, true);
         this.actions.push({
           id: 'rocket', icon: 'lightning', variant: 'danger', enabled: true,
           label: `${t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max })}: ${attackLabel(s, p)}`,
@@ -398,7 +398,8 @@ export class Hud {
     }
     const cap = captureKind(s, u);
     if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: t('actions.capture'), variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
-    if (u.hp < u.maxHp) {
+    // Wunder-Bauwerke heilen nicht / wonder structures do not heal
+    if (u.hp < u.maxHp && !isWonderStructure(u)) {
       const blocked = alienHealBlocked(s, u);
       const ok = canHeal(u) && !blocked;
       this.actions.push({ id: 'heal', icon: 'heal', label: `${t('actions.heal')} +${Math.min(healAmount(s, u), u.maxHp - u.hp)}`, enabled: ok,

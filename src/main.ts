@@ -175,6 +175,8 @@ function boot() {
         case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
+        // Sold nicht bezahlt: Einheit desertiert / upkeep unpaid: unit deserts
+        case 'deserted': if (e.faction === viewer) toast(root, t('events.deserted', { unit: t(`units.${e.unitType}`) }), 'warning'); break;
         case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {

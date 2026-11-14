@@ -7,7 +7,7 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
 } from '../core';
 import {
   UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -752,6 +752,8 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
     if (s.round < WONDERS.aiResearchRound || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
     // Korvat: nur, wenn die Stadtmehrheit in Reichweite ist / Korvat: only when the city majority is within reach
     if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * 0.5) return;
+    // Alvenia: kein Voelkerbund mit weniger als 3 Fraktionen / Alvenia: no league with fewer than 3 factions
+    if (fa.id === 'alvenia' && !leagueAvailable(s)) return;
     const cost = researchCost(s, f, tech);
     buys.push({ cmd: { type: 'research', tech }, cost, value: cost * 2.5, save: true, horizon: WONDERS.aiSaveRounds });
     return;

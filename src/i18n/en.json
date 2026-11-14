@@ -688,7 +688,8 @@
     "cannotRepair": "Only robots can repair themselves from wrecks.",
     "noWreck": "No wreck on or next to the tile.",
     "noXenoGround": "Aliens only heal on terraformed xeno ground.",
-    "noRockets": "No rockets left. Reload in an own city with a depot."
+    "noRockets": "No rockets left. Reload in an own city with a depot.",
+    "enemyTerritory": "Not inside another faction's territory."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -725,7 +726,8 @@
     "wonderStarted": "{name} begins: {wonder}",
     "wonderPhase": "{wonder} ({name}) enters its next phase.",
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
-    "wonderDestroyed": "{wonder} ({name}) was destroyed!"
+    "wonderDestroyed": "{wonder} ({name}) was destroyed!",
+    "deserted": "Upkeep unpaid: {unit} deserted"
   },
   "fx": {
     "hit": [
@@ -2924,6 +2926,8 @@
       "nexus": "The relay has taken over all machines."
     },
     "armed": "Armed",
-    "ruleReset": "Every attack resets the construction to 0."
+    "ruleReset": "Every attack resets the construction to 0.",
+    "leagueUnavailable": "Only possible with at least 3 factions in the game",
+    "paused": "Paused: site not in own territory"
   }
 }
