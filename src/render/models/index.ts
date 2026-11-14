@@ -32,6 +32,7 @@ import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terra
 import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
+import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
@@ -73,6 +74,12 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'mineLayer': return mineLayer(faction).build();
       case 'faustZealot': return faustZealot(faction).build();
       case 'flakDrone': return flakDrone(faction).build();
+      // Einzigartige Einheiten / unique units
+      case 'steppeRider': return steppeRider(faction).build();
+      case 'stormbreaker': return stormbreaker(faction).build();
+      case 'peacekeeper': return peacekeeper(faction).build();
+      case 'privateer': return privateer(faction).build();
+      case 'protoWalker': return protoWalker(faction).build();
     }
   })));
 }
@@ -82,10 +89,12 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   infantry: 1.2, sniper: 1.2, pioneer: 1.2, mg: 1.15, medic: 1.25, spy: 1.25, artillery: 1.1, jeep: 1.2,
   zealot: 1.2, torchbearer: 1.2, prophet: 1.2, grey: 1.2, android: 1.2, doomBuggy: 1.2, rocketCart: 1.2, mech: 1.15,
   heli: 1.08, terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
+  steppeRider: 1.1, stormbreaker: 1.2, peacekeeper: 1.1, protoWalker: 1.1,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
   tank: 1.18, doomCrawler: 1.1, titan: 1.08, jeep: 1.08, destroyer: 1.45, battleship: 1.4, submarine: 1.4, landingBoat: 1.15,
+  privateer: 1.45,
 };
 /** Hoechste Modellhoehe unter dem Lebensbalken / highest model point below the HP badge */
 const MAX_H = 0.62;
@@ -109,7 +118,7 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   if (s > 1.001) { g.scale(s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
   const H = Math.max(0.15, bb.max.y);
   const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), colr = g.getAttribute('color');
-  const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship';
+  const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship' || type === 'privateer';
   const floor = ship ? 0.82 : 0.66;
   for (let i = 0; i < pos.count; i++) {
     const h = Math.min(1, Math.max(0, pos.getY(i) / (H * 0.42)));
@@ -166,6 +175,10 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'mineLayer': return mineLayer(faction, true).build();
       case 'faustZealot': return faustZealot(faction, true).build();
       case 'flakDrone': return flakDrone(faction, true).build();
+      case 'steppeRider': return steppeRider(faction, true).build();
+      case 'stormbreaker': return stormbreaker(faction, true).build();
+      case 'peacekeeper': return peacekeeper(faction, true).build();
+      case 'protoWalker': return protoWalker(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

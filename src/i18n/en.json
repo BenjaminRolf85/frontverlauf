@@ -84,6 +84,8 @@
       "alignment": "collectivist",
       "perk": "Mass mobilisation",
       "perkDesc": "Every city supports one more unit.",
+      "perk2": "Earthworks",
+      "perk2Desc": "Outposts cost 15 instead of 25 stars.",
       "discount": "Infantry 20 % cheaper",
       "home": "wide plains, lots of farmland",
       "leader": "Ilja Brodnik",
@@ -98,6 +100,8 @@
       "alignment": "dictatorial",
       "perk": "Drill",
       "perkDesc": "Veteran status after 2 instead of 3 destroyed enemies.",
+      "perk2": "Battle-hardened",
+      "perk2Desc": "Veterans attack with +0.5 attack.",
       "discount": "Jeep 20 % cheaper",
       "home": "industrial land rich in ore",
       "leader": "Sarek Voss",
@@ -112,6 +116,8 @@
       "alignment": "democratic",
       "perk": "Alliance policy",
       "perkDesc": "Embassies cost half and yield double income.",
+      "perk2": "Field hospitals",
+      "perk2Desc": "Units heal 1 more HP when healing.",
       "discount": "Medic 20 % cheaper",
       "home": "balanced hill country",
       "leader": "Liora Valen",
@@ -126,6 +132,8 @@
       "alignment": "trade and fast growth",
       "perk": "Boom",
       "perkDesc": "Every city level-up needs 1 population point less, at least 1.",
+      "perk2": "Harbour pilots",
+      "perk2Desc": "Landing boats move 1 tile further.",
       "discount": "Spy 20 % cheaper",
       "home": "coasts and islands, many fishing grounds",
       "leader": "Coralie Nerezza",
@@ -140,6 +148,8 @@
       "alignment": "defensive and research-driven",
       "perk": "Research lead",
       "perkDesc": "All technologies cost 20 % less.",
+      "perk2": "Engineer corps",
+      "perk2Desc": "Tank barriers cost 5 instead of 10 stars.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
@@ -154,6 +164,8 @@
       "alignment": "extraterrestrial",
       "perk": "Xenotech",
       "perkDesc": "No research needed, all units available right away, but more expensive. Training and building only on terraformed xeno ground.",
+      "perk2": "Forest brood",
+      "perk2Desc": "Units heal 1 more HP in forests.",
       "discount": "no discount",
       "home": "barren highlands",
       "leader": "Xyl'Tharra",
@@ -168,6 +180,8 @@
       "alignment": "fanatical",
       "perk": "Zeal",
       "perkDesc": "Research normally, but do not recruit in cities: they recruit on tiles next to zealots and prophets. The recruiter is exhausted for this turn.",
+      "perk2": "Martyrdom",
+      "perk2Desc": "Every own unit that falls in battle brings 3 stars.",
       "discount": "no discount",
       "home": "dusty pilgrimage sites",
       "leader": "Malachar",
@@ -182,6 +196,8 @@
       "alignment": "machine",
       "perk": "Hive computing",
       "perkDesc": "No research tree: units need compute. Each data center backed by its own power plant gives 1 compute.",
+      "perk2": "Sensor net",
+      "perk2Desc": "All units see 1 tile further.",
       "discount": "no discount",
       "home": "ore highlands",
       "leader": "KERN-0",
@@ -226,7 +242,12 @@
     "antiAir": "Flak tank",
     "mineLayer": "Mine layer",
     "faustZealot": "Rocket zealot",
-    "flakDrone": "Flak drone"
+    "flakDrone": "Flak drone",
+    "steppeRider": "Steppe Riders",
+    "stormbreaker": "Stormbreakers",
+    "peacekeeper": "Peacekeepers",
+    "privateer": "Privateer",
+    "protoWalker": "Prototype Walker"
   },
   "abilities": {
     "dash": "Assault",
@@ -274,7 +295,13 @@
     "flak": "Flak zone",
     "flakDesc": "Hostile flyers that end their turn right next to it take 3 damage.",
     "mines": "Lay mines",
-    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction)."
+    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction).",
+    "shock": "Shock assault",
+    "shockDesc": "The attacked target cannot strike back.",
+    "mend": "Self-repair",
+    "mendDesc": "Heals 2 HP at the start of each own turn.",
+    "plunder": "Prize money",
+    "plunderDesc": "Every destroyed enemy unit brings 10 stars."
   },
   "stats": {
     "cost": "Price",
@@ -336,7 +363,12 @@
     "xenoHarvester": "Xeno harvester",
     "shrine": "Shrine",
     "dataCenter": "Data center",
-    "powerPlant": "Fusion plant"
+    "powerPlant": "Fusion plant",
+    "kolkhoz": "Kolkhoz",
+    "mercenaryBarracks": "Mercenary barracks",
+    "embassyPalace": "Embassy palace",
+    "tradingPost": "Trading post",
+    "testLab": "Test lab"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -359,7 +391,12 @@
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "2 population, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
-    "powerPlant": "1 population, powers one data center, NEXUS only"
+    "powerPlant": "1 population, powers one data center, NEXUS only",
+    "kolkhoz": "1 population, then +1 population for the city every 5 rounds, one per city, Korvat only",
+    "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
+    "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
+    "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -1533,6 +1570,7 @@
     "title": "Faction",
     "leader": "Leader",
     "style": "Style",
-    "perk": "Strength"
+    "perk": "Strength",
+    "perk2": "Trait"
   }
 }

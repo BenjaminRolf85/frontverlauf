@@ -64,11 +64,11 @@ export function profileFor(s: GameState, f: number): Profile {
   const id: FactionId = fa.id;
   // Fraktions-Perks / faction perks
   switch (id) {
-    case 'korvat': p.armyPerCity += 0.6; p.pref = { infantry: 1.5 }; break; // Massenmobilisierung / mass mobilisation
-    case 'dravon': p.aggression += 0.3; p.militaryW += 0.15; p.pref = { jeep: 1.6, mg: 1.2 }; break; // Drill
-    case 'alvenia': p.embassyW = 2; p.pref = { medic: 1.6 }; break; // Buendnispolitik / alliance policy
+    case 'korvat': p.armyPerCity += 0.6; p.pref = { infantry: 1.5, steppeRider: 1.3 }; break; // Massenmobilisierung / mass mobilisation
+    case 'dravon': p.aggression += 0.3; p.militaryW += 0.15; p.pref = { jeep: 1.6, mg: 1.2, stormbreaker: 1.3 }; break; // Drill
+    case 'alvenia': p.embassyW = 2; p.pref = { medic: 1.6, peacekeeper: 1.3 }; break; // Buendnispolitik / alliance policy
     case 'meridon': p.buildW += 0.25; p.pref = { spy: 1.5 }; break; // Wachstum, Kueste / boom, coast
-    case 'velkar': p.researchW += 0.1; p.pref = { pioneer: 1.4 }; break; // Forschungsvorsprung / research lead
+    case 'velkar': p.researchW += 0.1; p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung / research lead
   }
   // Eroberung oder Sandkasten ohne Rundenlimit / conquest or sandbox without round limit
   if (s.config.mode === 'conquest' || s.config.roundLimit === null) {

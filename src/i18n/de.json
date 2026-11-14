@@ -84,6 +84,8 @@
       "alignment": "kollektivistisch",
       "perk": "Massenmobilisierung",
       "perkDesc": "Jede Stadt unterhält eine Einheit mehr.",
+      "perk2": "Erdwälle",
+      "perk2Desc": "Außenposten kosten 15 statt 25 Sterne.",
       "discount": "Infanterie 20 % günstiger",
       "home": "weite Ebenen, viel Ackerboden",
       "leader": "Ilja Brodnik",
@@ -98,6 +100,8 @@
       "alignment": "diktatorisch",
       "perk": "Drill",
       "perkDesc": "Veteranenstatus schon nach 2 statt 3 vernichteten Gegnern.",
+      "perk2": "Kampferprobt",
+      "perk2Desc": "Veteranen greifen mit +0,5 Angriff an.",
       "discount": "Jeep 20 % günstiger",
       "home": "Industrieland mit viel Erz",
       "leader": "Sarek Voss",
@@ -112,6 +116,8 @@
       "alignment": "demokratisch",
       "perk": "Bündnispolitik",
       "perkDesc": "Botschaften kosten die Hälfte und bringen doppeltes Einkommen.",
+      "perk2": "Feldlazarette",
+      "perk2Desc": "Einheiten heilen beim Heilen 1 LP mehr.",
       "discount": "Sanitäter 20 % günstiger",
       "home": "ausgewogenes Hügelland",
       "leader": "Liora Valen",
@@ -126,6 +132,8 @@
       "alignment": "Handel und schnelles Wachstum",
       "perk": "Boom",
       "perkDesc": "Jeder Stadtaufstieg braucht 1 Bevölkerungspunkt weniger, mindestens 1.",
+      "perk2": "Lotsenwesen",
+      "perk2Desc": "Landungsboote fahren 1 Feld weiter.",
       "discount": "Spion 20 % günstiger",
       "home": "Küsten und Inseln, viele Fischgründe",
       "leader": "Coralie Nerezza",
@@ -140,6 +148,8 @@
       "alignment": "defensiv und forschungsstark",
       "perk": "Forschungsvorsprung",
       "perkDesc": "Alle Technologien kosten 20 % weniger.",
+      "perk2": "Ingenieurkorps",
+      "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald",
       "leader": "Aurel Kesh",
@@ -154,6 +164,8 @@
       "alignment": "außerirdisch",
       "perk": "Fremdtechnologie",
       "perkDesc": "Keine Forschung nötig, alle Einheiten sofort verfügbar, aber teurer. Ausbilden und bauen nur auf terraformtem Xeno-Boden.",
+      "perk2": "Waldbrut",
+      "perk2Desc": "Einheiten heilen im Wald 1 LP mehr.",
       "discount": "kein Rabatt",
       "home": "karge Hochebenen",
       "leader": "Xyl'Tharra",
@@ -168,6 +180,8 @@
       "alignment": "fanatisch",
       "perk": "Glaubenseifer",
       "perkDesc": "Forschen normal, rekrutieren aber nicht in Städten, sondern auf Feldern neben Eiferern und Propheten. Der Rekrutierer ist danach für diesen Zug erschöpft.",
+      "perk2": "Märtyrertum",
+      "perk2Desc": "Jede im Kampf gefallene eigene Einheit bringt 3 Sterne.",
       "discount": "kein Rabatt",
       "home": "staubige Wallfahrtsorte",
       "leader": "Malachar",
@@ -182,6 +196,8 @@
       "alignment": "maschinell",
       "perk": "Schwarmrechner",
       "perkDesc": "Kein Forschungsbaum: Einheiten brauchen Rechenleistung. Jedes Rechenzentrum mit eigenem Kraftwerk liefert 1 Rechenleistung.",
+      "perk2": "Sensornetz",
+      "perk2Desc": "Alle Einheiten sehen 1 Feld weiter.",
       "discount": "kein Rabatt",
       "home": "Erzhochebenen",
       "leader": "KERN-0",
@@ -226,7 +242,12 @@
     "antiAir": "Flakpanzer",
     "mineLayer": "Minenleger",
     "faustZealot": "Panzerfaust-Eiferer",
-    "flakDrone": "Flak-Drohne"
+    "flakDrone": "Flak-Drohne",
+    "steppeRider": "Steppenreiter",
+    "stormbreaker": "Sturmbrecher",
+    "peacekeeper": "Friedenswacht",
+    "privateer": "Kaperschiff",
+    "protoWalker": "Prototyp-Läufer"
   },
   "abilities": {
     "dash": "Sturm",
@@ -274,7 +295,13 @@
     "flak": "Flakzone",
     "flakDesc": "Feindliche Flieger, die direkt daneben ihren Zug beenden, nehmen 3 Schaden.",
     "mines": "Minen legen",
-    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion)."
+    "minesDesc": "Legt für 10 Sterne eine verdeckte Mine auf ein freies Nachbarfeld (höchstens 8 je Fraktion).",
+    "shock": "Sturmangriff",
+    "shockDesc": "Das angegriffene Ziel kann nicht zurückschlagen.",
+    "mend": "Selbstheilung",
+    "mendDesc": "Heilt zu Beginn jedes eigenen Zuges 2 LP.",
+    "plunder": "Kaperbeute",
+    "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne."
   },
   "stats": {
     "cost": "Preis",
@@ -336,7 +363,12 @@
     "xenoHarvester": "Xeno-Ernter",
     "shrine": "Schrein",
     "dataCenter": "Rechenzentrum",
-    "powerPlant": "Fusionskraftwerk"
+    "powerPlant": "Fusionskraftwerk",
+    "kolkhoz": "Kolchose",
+    "mercenaryBarracks": "Söldnerkaserne",
+    "embassyPalace": "Botschaftspalast",
+    "tradingPost": "Handelskontor",
+    "testLab": "Versuchslabor"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -359,7 +391,12 @@
     "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",
     "shrine": "2 Bevölkerungspunkte, einer je Stadt, nur Kult",
     "dataCenter": "2 Bevölkerungspunkte, +1 Rechenleistung mit Kraftwerk, nur NEXUS",
-    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS"
+    "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS",
+    "kolkhoz": "1 Bevölkerungspunkt, danach alle 5 Runden +1 Bevölkerung für die Stadt, eine je Stadt, nur Korvat",
+    "mercenaryBarracks": "2 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
+    "embassyPalace": "3 Bevölkerungspunkte, +4 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
+    "tradingPost": "1 Bevölkerungspunkt, +3 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
+    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar"
   },
   "grand": {
     "peaceMonument": "Friedensdenkmal",
@@ -1533,6 +1570,7 @@
     "title": "Fraktion",
     "leader": "Anführer",
     "style": "Stil",
-    "perk": "Stärke"
+    "perk": "Stärke",
+    "perk2": "Merkmal"
   }
 }

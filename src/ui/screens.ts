@@ -161,6 +161,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
             <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
             <span class="muted">${esc(t(`factions.${f}.lore`))}</span>
             <span class="muted">${esc(t(`factions.${f}.perk`))}: ${esc(t(`factions.${f}.perkDesc`))}</span>
+            <span class="muted">${esc(t(`factions.${f}.perk2`))}: ${esc(t(`factions.${f}.perk2Desc`))}</span>
             <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
               ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
         </button>`;
