@@ -223,7 +223,7 @@ function korvat(b: Builder, L: Look, m: Mood) {
   ear(b, S, 1, skin, { size: 1.1 });
   for (const s of [-1, 1] as const) eye(b, S, s, m.eye(s, { iris: mat.blue, lid: 77, lower: 66, tilt: 0.14, lidCol: skin, look: [0, -0.15] }));
   // Brauen bleiben unter dem Muetzenschirm sichtbar / brows stay visible below the cap peak
-  const capBrow = (o: BrowOpts): BrowOpts => ({ ...o, y: Math.min(o.y ?? 0, 0.335), arch: Math.min(o.arch ?? 0, 0.08) });
+  const capBrow = (o: BrowOpts): BrowOpts => ({ ...o, y: Math.min(o.y ?? 0, 0.3), arch: Math.min(o.arch ?? 0, 0.05) });
   for (const s of [-1, 1] as const) browStrands(b, S, s, capBrow(m.brow(S, s, { c: greyL, c1: grey, n: 24, thick: 0.05, ang: 0.14, arch: 0.02, w: 0.38, wild: 0.05, y: 0.3 })));
   // grosser Schnurrbart mit gezwirbelten Enden / big moustache with curled ends
   const R = mulberry(5);
