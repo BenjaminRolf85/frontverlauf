@@ -14,7 +14,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, leaderGeometry, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { Builder } from './kit';
@@ -183,7 +183,7 @@ function sheet(): Sheet {
     case 'leaders': {
       // Anfuehrer-Buesten; view=34 dreht sie in die Dreiviertelansicht / leader busts; view=34 turns them three-quarter
       const bust = (f: FactionId) => {
-        const g = leaderGeometry(f);
+        const g = leaderGeometry(f, (params.get('mood') ?? 'neutral') as LeaderMood);
         if (view !== '34') return g;
         const c = g.clone();
         c.rotateY(-0.62);
@@ -383,7 +383,7 @@ function checkAll(): string[] {
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
   for (let v = 0; v < 6; v++) all.push([`cloud ${v}`, cloudGeometry(v)]);
-  for (const f of FACTION_IDS) all.push([`leader ${f}`, leaderGeometry(f)]);
+  for (const f of FACTION_IDS) for (const mood of LEADER_MOODS) all.push([`leader ${f} ${mood}`, leaderGeometry(f, mood)]);
   for (const [name, g] of all) {
     if (!g) continue;
     if (g.index) errors.push(`${name}: indexed`);
