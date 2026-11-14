@@ -84,6 +84,8 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** Infofeld auf dem Handy aufgeklappt? / info panel expanded on phones? */
+  private expanded = false;
   /** Hinweis auf gesperrte Stadt-Ausbauten / note about locked city upgrades */
   private cityNote = '';
   /** 3D-Portraet der gewaehlten Einheit / 3D portrait of the selected unit */
@@ -148,6 +150,7 @@ export class Hud {
       }
       case 'grand': this.cb.openGrand(); break;
       case 'details': this.cb.openDetails(); break;
+      case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'speedUp': this.game.speedUp = true; this.game.view.board.finishAnimations(); break;
       case 'nextUnit': this.nextUnit(); break;
       case 'deselect': this.game.clearSelection(); this.render(); break;
@@ -202,7 +205,7 @@ export class Hud {
     if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
-      ${sheet ? `<section class="panel sheet" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
+      ${sheet ? `<section class="panel sheet ${this.expanded ? 'expanded' : ''}" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
       <nav class="nav-bar">
         <button type="button" class="btn secondary" data-action="research">${icon('research')}<span>${esc(t('hud.research'))}</span></button>
         <button type="button" class="btn secondary" data-action="diplomacy">${icon('diplomacy')}<span>${esc(t('hud.diplomacy'))}</span></button>
@@ -245,7 +248,7 @@ export class Hud {
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
-        <div class="stats">
+        <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${st.attack}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${st.defense}</span>
           <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${st.move}</span>
@@ -255,7 +258,7 @@ export class Hud {
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
         </div>
-        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div>`;
+        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
     } else if ((tab === 'city' || (tab === 'unit' && !vUnit)) && city) {
       const name = cityName(s, city.id);
@@ -267,14 +270,14 @@ export class Hud {
         head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display">${esc(name)} · ${esc(t('hud.level', { n: city.level }))}</h3>
           <div class="muted">${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
         body += `<div class="row">${icon('people', 'icon-sm')}<span>${esc(t('hud.population', { pop: city.pop, need }))}</span><div class="grow">${progress(city.pop, need, '', t('hud.population', { pop: city.pop, need }))}</div></div>
-          <div class="stats"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
+          <div class="sheet-more"><div class="stats"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>
           ${city.factory ? `<span class="tag">${esc(t('rewards.factory'))}</span>` : ''}${city.bunkerRing ? `<span class="tag">${esc(t('rewards.bunkerRing'))}</span>` : ''}
           ${city.govQuarter ? `<span class="tag">${esc(t('rewards.govQuarter'))}</span>` : ''}</div>
           <div class="slots" aria-label="${esc(t('cityUpgrades.title'))}"><span class="muted">${esc(t('cityUpgrades.title'))}</span>
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
             ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
-            : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>`;
+            : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
         // Kult und NEXUS: Hinweise / cult and NEXUS: hints
         if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
         if (isRobotFaction(s, city.owner)) {
@@ -302,7 +305,7 @@ export class Hud {
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
       const bones = tile.remains ? tile.remains.skeletons ?? (tile.remains.kind === 'skeleton' ? 1 : 0) : 0;
       if (bones) tags.push(t('features.skeleton', { n: bones }));
-      body += `<div class="row">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
+      body += `<div class="row sheet-more">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (tile.xeno) tags.push(`${t('xeno.ground')}: ${t('xeno.groundDesc')}`);
       if (tile.volcano) {
         const n = roundsToEruption(x, y, s.round + (s.current === s.factions.length - 1 ? 1 : 0));
@@ -317,7 +320,10 @@ export class Hud {
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(`actions.${k}Actions`))}</button>`).join('')}</div>` : '';
     const actionsHtml = this.actions.length ? `<div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>` : '';
-    return `<div class="sheet-head">${head}${iconButton('info', t('actions.details'), 'details')}${iconButton('close', t('actions.close'), 'deselect')}</div>${body}${switcher}${actionsHtml}`;
+    // Handy: Zusatzwerte eingeklappt, Knopf klappt sie auf / phone: extra values collapsed, a button expands them
+    const more = body.includes('sheet-more')
+      ? `<button type="button" class="icon-btn sheet-toggle" data-action="sheet-more" aria-expanded="${this.expanded}" aria-label="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}" title="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}">${icon(this.expanded ? 'chevronDown' : 'chevronUp')}</button>` : '';
+    return `<div class="sheet-head">${head}${more}${iconButton('info', t('actions.details'), 'details')}${iconButton('close', t('actions.close'), 'deselect')}</div>${body}${switcher}${actionsHtml}`;
   }
 
   private unitActions(s: GameState, u: Unit) {

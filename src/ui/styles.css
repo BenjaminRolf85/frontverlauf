@@ -471,3 +471,24 @@ input[type="text"], select {
   .slot-pick .slot-cta .label { display: inline; }
 }
 .faction-details .trait { text-align: left; }
+
+/* ---------- Kompaktes Infofeld auf dem Handy / compact info panel on phones ---------- */
+.sheet-toggle { display: none; }
+@media (max-width: 560px) /* --p-breakpoint-sm */ {
+  .sheet-toggle { display: inline-flex; }
+  .sheet:not(.expanded) .sheet-more { display: none; }
+  .sheet { padding: var(--p-space-2) var(--p-space-3); }
+  .sheet-head { margin-bottom: var(--p-space-1); gap: var(--p-space-1); }
+  .sheet-head h3 { font-size: var(--p-font-size-md); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-head .grow { min-width: 0; }
+  .sheet-head .unit-sub { font-size: var(--p-font-size-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet-head .unit-badge { width: var(--p-size-touch); height: var(--p-size-touch); flex: none; }
+  .sheet-head .icon-btn { width: var(--p-size-touch); height: var(--p-size-touch); }
+  .sheet .tabs { margin-top: var(--p-space-1); gap: var(--p-space-1); }
+  .sheet .tabs button { min-height: var(--p-size-touch); padding: 0 var(--p-space-2); font-size: var(--p-font-size-sm); }
+  .sheet .action-bar { padding-bottom: var(--p-space-1); }
+}
+/* Minikarte weicht dem Infofeld auf dem Handy / minimap makes way for the info panel on phones */
+@media (max-width: 560px) /* --p-breakpoint-sm */ {
+  body:has(.sheet) .minimap { display: none; }
+}
