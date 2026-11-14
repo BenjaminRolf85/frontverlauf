@@ -13,6 +13,8 @@ export interface Settings {
   aiSpeed: 'slow' | 'normal' | 'fast' | 'instant';
   quality: 'low' | 'high';
   tutorialDone: boolean;
+  /** Prolog schon gesehen / prologue already seen */
+  prologueSeen?: boolean;
   barks: boolean;
   /** Funksprueche der Anfuehrer / leader dispatches */
   dispatches: boolean;

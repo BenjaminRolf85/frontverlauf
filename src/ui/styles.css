@@ -510,3 +510,5 @@ input[type="text"], select {
 .lore-page figcaption { font-size: var(--p-font-size-sm); color: var(--s-text-muted); }
 .lore-page summary { cursor: pointer; min-height: var(--p-size-touch); display: flex; align-items: center; }
 @media (min-width: 900px) { .lore-page.zoomed img { width: 100%; } }
+.lore-actions { justify-content: flex-end; margin-top: var(--p-space-2); }
+.overlay.above-screen { z-index: calc(var(--p-z-overlay) + 1); }

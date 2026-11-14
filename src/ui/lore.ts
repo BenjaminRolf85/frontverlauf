@@ -32,10 +32,33 @@ export function openLore(root: HTMLElement, f: FactionId) {
       ${text ? `<figcaption><details><summary>${esc(t('lore.textToggle'))}</summary><p>${esc(text)}</p></details></figcaption>` : ''}
     </figure>`, { wide: true });
   d.node.classList.add('lore-dialog');
+  d.node.parentElement?.classList.add('above-screen');
   d.node.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
     if (el.closest('[data-action="close"]')) { d.close(); return; }
     // Antippen vergroessert das Bild (Handy) / tapping zooms the image (phone)
+    if (el.tagName === 'IMG') el.closest('.lore-page')?.classList.toggle('zoomed');
+  });
+}
+
+/**
+ * Prolog "Der Sternfall": beim ersten Start und im Hauptmenue. onClose wird beim Schliessen aufgerufen.
+ * Prologue "The Starfall": on first start and in the main menu. onClose is called when it closes.
+ */
+export function openPrologue(root: HTMLElement, onClose?: () => void) {
+  const text = t('lore.prologueText');
+  const d = openDialog(root, `${dialogTitle(t('lore.prologueTitle'))}
+    <figure class="lore-page">
+      <img src="${BASE}prolog.webp" alt="${esc(text)}" decoding="async">
+      <figcaption><details><summary>${esc(t('lore.textToggle'))}</summary><p>${esc(text)}</p></details></figcaption>
+    </figure>
+    <div class="row lore-actions"><button type="button" class="btn" data-action="close">${icon('play', 'icon-sm')}<span>${esc(t('lore.prologueContinue'))}</span></button></div>`, { wide: true, onClose });
+  d.node.classList.add('lore-dialog');
+  // ueber dem Hauptmenue anzeigen / show above the main menu
+  d.node.parentElement?.classList.add('above-screen');
+  d.node.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-action="close"]')) { d.close(); return; }
     if (el.tagName === 'IMG') el.closest('.lore-page')?.classList.toggle('zoomed');
   });
 }

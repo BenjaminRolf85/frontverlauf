@@ -2891,6 +2891,10 @@
       "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
       "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Research, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
       "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
-    }
+    },
+    "menu": "Story",
+    "prologueTitle": "Prologue: The Starfall",
+    "prologueContinue": "To the front",
+    "prologueText": "Once the empire of Verdan ruled the whole continent with machines. Then the Great Standstill: overnight all the lights went out. Rusting wrecks recall the war that followed. For two generations, borders drawn in chalk on old maps held. Until the sky burned: the Zyrr mothership crashes into the desert, the bell tolls by itself, and the front begins to move again."
   }
 }
