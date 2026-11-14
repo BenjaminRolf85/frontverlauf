@@ -118,8 +118,38 @@ export function logisticsIncome(s: GameState, x: number, y: number): number {
 
 export function cityTiles(s: GameState, c: City): Pos[] {
   const out: Pos[] = [];
-  for (const p of area(s.size, c.x, c.y, c.radius)) if (tileAt(s, p.x, p.y)!.territory === c.id) out.push(p);
+  // + Reichweite der Aussenposten, die das Gebiet erweitern / + reach of outposts that extend the territory
+  for (const p of area(s.size, c.x, c.y, c.radius + OUTPOST_REACH)) if (tileAt(s, p.x, p.y)!.territory === c.id) out.push(p);
   return out;
+}
+
+/** Wie weit ein Aussenposten das Gebiet ueber den Stadtradius hinaus tragen kann / how far an outpost can extend territory beyond the city radius */
+const OUTPOST_REACH = 2;
+
+/**
+ * Gebietserweiterung durch einen Aussenposten auf (x, y): nur wenn das Feld im eigenen Gebiet liegt oder daran grenzt.
+ * Erweitert wird die angrenzende eigene Stadt (die naechste), um freie Felder im 3x3 um den Posten.
+ * Territory extension by an outpost at (x, y): only if the tile lies in or borders own territory.
+ * The adjacent own city (the nearest) gains the free tiles in the 3x3 around the outpost.
+ */
+export function outpostClaim(s: GameState, f: number, x: number, y: number): { city: number; tiles: number[] } | null {
+  let city: City | null = null, best = Infinity;
+  for (const p of area(s.size, x, y, 1)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (territoryOwner(s, t) !== f) continue;
+    const c = cityById(s, t.territory!)!;
+    // nicht weiter als die Reichweite von der Stadt / not further than the reach from the city
+    if (dist(c, { x, y }) > c.radius + OUTPOST_REACH - 1) continue;
+    const d = dist(c, { x, y });
+    if (d < best) { best = d; city = c; }
+  }
+  if (!city) return null;
+  const tiles: number[] = [];
+  for (const p of area(s.size, x, y, 1)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (t.territory === null && t.cityId === null) tiles.push(p.y * s.size + p.x);
+  }
+  return { city: city.id, tiles };
 }
 
 export function cityIncome(s: GameState, c: City): number {

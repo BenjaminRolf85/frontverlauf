@@ -175,10 +175,30 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
     return [...starts, ...villages].every((o) => dist(o, p) > MAPGEN.minCityDistance - 0 && dist(o, p) >= MAPGEN.minCityDistance);
   };
+  // Heimatsiedlung: Land, kein Radar, Abstand >= 3 zu fremden Starts und >= 2 zu anderen Siedlungen
+  // home village: land, no radar, distance >= 3 to other starts and >= 2 to other villages
+  const homeOk = (p: Pos, own: Pos) => {
+    const t = tiles[idx(size, p.x, p.y)];
+    if (t.terrain === 'shallow' || t.terrain === 'ocean') return false;
+    if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
+    return starts.every((o) => o === own || dist(o, p) >= 3) && villages.every((o) => dist(o, p) >= MAPGEN.minCityDistance);
+  };
+  // die erste Siedlung liegt auf der eigenen Startinsel (Abstand 3, sonst 2), damit niemand ohne Wachstum festsitzt
+  // the first village lies on the own start island (distance 3, else 2) so nobody is stuck without growth
   for (const s of starts) {
-    const ring: Pos[] = [];
-    for (const p of area(size, s.x, s.y, 3)) if (dist(p, s) === 3 && cityOk(p)) ring.push(p);
-    if (ring.length) villages.push(ring[randInt(rng, ring.length)]);
+    const home = landComponent(size, tiles, s);
+    let pick: Pos | null = null;
+    for (const d of [3, 2]) {
+      const ring: Pos[] = [];
+      for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s)) ring.push(p);
+      if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
+    }
+    if (!pick) {
+      const ring: Pos[] = [];
+      for (const p of area(size, s.x, s.y, 3)) if (dist(p, s) === 3 && cityOk(p)) ring.push(p);
+      if (ring.length) pick = ring[randInt(rng, ring.length)];
+    }
+    if (pick) villages.push(pick);
   }
   const target = Math.round(n * MAPGEN.villagesPerTile);
   const all: Pos[] = [];
@@ -332,6 +352,21 @@ function assignBiomes(seed: number, size: number, tiles: Tile[], factions: Facti
     }
     if (path.length >= 2) for (const k of path) { tiles[k].river = true; if (tiles[k].biome === 'desert') tiles[k].biome = 'steppe'; }
   }
+}
+
+/** Zusammenhaengendes Land (8er-Nachbarschaft) ab einem Startfeld, nach fertigem Gelaende / connected land from a start, on final terrain */
+function landComponent(size: number, tiles: Tile[], start: Pos): Set<number> {
+  const land = (k: number) => tiles[k].terrain !== 'shallow' && tiles[k].terrain !== 'ocean';
+  const k0 = idx(size, start.x, start.y);
+  const seen = new Set([k0]); const stack = [k0];
+  while (stack.length) {
+    const k = stack.pop()!;
+    for (const p of neighbors(size, k % size, Math.floor(k / size))) {
+      const q = idx(size, p.x, p.y);
+      if (!seen.has(q) && land(q)) { seen.add(q); stack.push(q); }
+    }
+  }
+  return seen;
 }
 
 /** Landmasse (8er-Nachbarschaft) ab einem Feld / landmass (8-neighbourhood) from a tile */

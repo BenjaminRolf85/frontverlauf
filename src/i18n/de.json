@@ -393,7 +393,7 @@
     "road": "halbe Bewegungskosten, Stadtverbindung",
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",
     "researchCenter": "1 Bevölkerungspunkt und wachsende Punkte",
-    "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber",
+    "outpost": "Verteidigungsbonus 3,0 für Infanterietypen, Tankpunkt für Hubschrauber. Grenzt er an eigenes Gebiet, wächst das Gebiet um die freien Felder rundherum.",
     "barrier": "Feindliche Fahrzeuge halten an und fahren in der nächsten Runde nur 1 Feld",
     "xenoHive": "2 Bevölkerungspunkte, nur auf Xeno-Boden ohne Ressource",
     "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",

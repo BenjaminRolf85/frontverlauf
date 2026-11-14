@@ -18,11 +18,11 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostCost, perk2Of,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
-import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Unit } from './types';
+import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Tile, Unit } from './types';
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
 
@@ -93,6 +93,28 @@ function addCity(s: GameState, x: number, y: number, owner: number | null, nameI
   const t = tileAt(s, x, y)!;
   t.cityId = c.id; t.resource = null; t.feature = null; t.road = false;
   return c;
+}
+
+/** Aussenposten erweitert das Gebiet, wenn er an eigenes Gebiet grenzt / outpost extends territory if it borders own territory */
+function claimOutpost(s: GameState, f: number, x: number, y: number) {
+  const t = tileAt(s, x, y)!;
+  const claim = outpostClaim(s, f, x, y);
+  if (!claim || !t.outpost) return;
+  for (const k of claim.tiles) s.tiles[k].territory = claim.city;
+  t.outpost.city = claim.city;
+  t.outpost.claims = claim.tiles;
+}
+
+/** Vom Aussenposten erweiterte Felder wieder freigeben / release the tiles an outpost added */
+function releaseOutpost(s: GameState, t: Tile) {
+  const o = t.outpost;
+  if (!o?.claims) return;
+  for (const k of o.claims) {
+    const q = s.tiles[k];
+    // nur freigeben, wenn das Feld noch zu dieser Stadt gehoert und kein Gebaeude traegt
+    // only release if the tile still belongs to that city and carries no building
+    if (q.territory === o.city && !q.building) q.territory = null;
+  }
 }
 
 function claimTerritory(s: GameState, c: City, radius: number) {
@@ -797,7 +819,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       u.exhausted = true;
       const t = tileAt(s, u.x, u.y)!;
       if (kind === 'outpost') {
+        releaseOutpost(s, t);
         t.outpost = { owner: f };
+        claimOutpost(s, f, u.x, u.y);
         ev.push({ t: 'outpostCapture', x: u.x, y: u.y, faction: f });
       } else {
         captureCity(s, u, cityById(s, t.cityId!)!, ev);
@@ -931,6 +955,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (check !== 'ok') return fail(check);
       fa.stars -= outpostCost(s, f);
       tileAt(s, u.x, u.y)!.outpost = { owner: f };
+      claimOutpost(s, f, u.x, u.y);
       u.exhausted = true;
       ev.push({ t: 'build', building: 'outpost', x: u.x, y: u.y, faction: f });
       res = { ok: true, events: ev };

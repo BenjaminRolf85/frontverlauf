@@ -393,7 +393,7 @@
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
     "researchCenter": "1 population point and growing points",
-    "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters",
+    "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters. If it borders own territory, the territory grows by the free tiles around it.",
     "barrier": "Hostile vehicles stop and move only 1 tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",

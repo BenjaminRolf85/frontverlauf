@@ -647,7 +647,7 @@ export const MAPGEN = {
   riversPerSize: 1 / 6,
   hillChance: 0.35,
   /** Mindestgroesse der Startinsel in Feldern / minimum size of the start island in tiles */
-  minStartIsland: 14,
+  minStartIsland: 18,
   /** Startinseln unter dieser Groesse bekommen ein Wasserfeld im Stadtgebiet (Hafen) / start islands below this size get a water tile in the city area (harbour) */
   coastalStartBelow: 25,
 };
