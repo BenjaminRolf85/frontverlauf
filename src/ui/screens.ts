@@ -4,12 +4,12 @@
  * Screens and dialogs.
  */
 import {
-  CITY_UPGRADES, CITY_UPGRADE_IDS, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, type GameConfig,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, type GameConfig,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, setLanguage, t } from '../i18n/i18n';
@@ -422,8 +422,10 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   const un = techUnlocks(tech, fa.id);
   const unitRows = un.units.map((u) => {
     const us = UNITS[u];
+    // Preis mit Fraktionsrabatt / price including the faction discount
+    const price = unitCost(s, f, u);
     return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>
-      <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${us.cost !== null ? ` · ${us.cost} ${esc(t('hud.stars'))}` : ''}</span></li>`;
+      <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${price !== null ? ` · ${price} ${esc(t('hud.stars'))}` : ''}</span></li>`;
   });
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(t(`buildingDesc.${b}`))}</span></li>`);
   const vf = TECHS[tech].faction;
@@ -501,7 +503,7 @@ export function diplomacyDialog(host: ScreenHost) {
       }
       return `<div class="player-row">${leaderPortrait(o.id, 'sm')}<div class="col"><strong>${esc(name)}</strong><span>${esc(t(`factions.${o.id}.leaderTitle`))} ${esc(t(`factions.${o.id}.leader`))}</span><span class="muted">${esc(t(`factions.${o.id}.alignment`))} · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}</span></div><div class="col span-all">${actions}</div></div>`;
     }).join('');
-    return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint'))}</p>
+    return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint', { inc: INCOME.embassy, base: ECON.embassyBaseCost, step: ECON.embassyStep }))}</p>
       ${button(t('victory.open'), { icon: 'crown', action: 'victory', variant: 'secondary', block: true })}`;
   };
   const d = openDialog(host.root, html());
@@ -571,7 +573,7 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
       <div class="kv"><span>${esc(t('stats.hp'))}</span><span>${u.hp} / ${u.maxHp}</span>
       <span>${esc(t('stats.attack'))}</span><span>${st.attack}</span><span>${esc(t('stats.defense'))}</span><span>${st.defense}</span>
       <span>${esc(t('stats.move'))}</span><span>${st.move}</span><span>${esc(t('stats.range'))}</span><span>${st.range || esc(t('stats.noRange'))}</span>
-      <span>${esc(t('stats.cost'))}</span><span>${st.cost ?? '-'}</span><span>${esc(t('stats.kills'))}</span><span>${u.kills}</span></div>
+      <span>${esc(t('stats.cost'))}</span><span>${unitCost(s, viewer >= 0 ? viewer : u.owner, u.type) ?? '-'}</span><span>${esc(t('stats.kills'))}</span><span>${u.kills}</span></div>
       <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
   }
   if (c) {

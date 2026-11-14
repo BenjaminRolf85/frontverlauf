@@ -10,6 +10,7 @@ import { clearLabelCache } from './render/labels';
 import { View } from './render/view';
 import { clearSave, deleteSlot, exportFile, hasSave, importFile, listSlots, loadFromSlot, loadGame, loadSettings, saveGame, saveSettings, saveToSlot, type Settings } from './save/save';
 import { continueEndless } from './core';
+import { BUNKER, VETERAN } from './data/balance';
 import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
 import { Fx } from './ui/fx';
@@ -170,8 +171,8 @@ function boot() {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
         case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t('events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
         case 'research': if (e.faction === viewer) toast(root, t('events.research', { tech: t(`techs.${e.tech}`) }), 'research'); break;
-        case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u) }), 'medal'); break; }
-        case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`), 'star'); break;
+        case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
+        case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
         case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;

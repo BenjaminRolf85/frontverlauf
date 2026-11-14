@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, ROCKETS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
@@ -281,7 +281,7 @@ export class Hud {
           <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range || esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
-          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
+          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
           ${accuracyStat(s, vUnit)}
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
