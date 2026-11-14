@@ -99,7 +99,8 @@ describe('KI spielt Kult und NEXUS / AI plays cult and NEXUS', () => {
       expect(failedTurns).toBe(0);
       // eigene Sondereinheiten im Spielverlauf (am Ende kann die Fraktion geschlagen sein) / own special units during the game (the faction may be beaten at the end)
       expect(peak).toBeGreaterThan(2);
-      if (id === 'nexus') { expect(s.factions[0].techs).toEqual(['coastalEconomy', 'diving', 'shipbuilding']); expect(computePower(s, 0)).toBeGreaterThan(0); }
+      // NEXUS forscht nur die Siegtechnologie / NEXUS only researches its victory tech
+      if (id === 'nexus') { expect(s.factions[0].techs.filter((x) => x !== 'singularity')).toEqual(['coastalEconomy', 'diving', 'shipbuilding']); expect(computePower(s, 0)).toBeGreaterThan(0); }
     }, 180000);
   }
 });

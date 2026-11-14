@@ -12,6 +12,7 @@ it('KI spielt die Zyrr: terraformt, baut, bildet aus, ohne Fehler / AI plays the
   console.log(`xeno ${xeno} hives ${hives} units ${aliens.join(',')} cities ${s.cities.filter((c) => c.owner === 0).length} winner ${s.winner}`);
   expect(failedTurns).toBe(0);
   expect(xeno).toBeGreaterThan(9);
-  expect(s.factions[0].techs).toEqual([]);
-  expect(aliens.every((t) => ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'].includes(t) || t === 'landingBoat')).toBe(true);
+  // Zyrr forschen nur ihre Siegtechnologie / the Zyrr only research their victory tech
+  expect(s.factions[0].techs.filter((t) => t !== 'dimensionalRift')).toEqual([]);
+  expect(aliens.every((t) => ['grey', 'terraformer', 'skimmer', 'mech', 'tripod', 'portal'].includes(t) || t === 'landingBoat')).toBe(true);
 }, 180000);

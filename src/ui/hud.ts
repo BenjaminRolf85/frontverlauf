@@ -3,13 +3,13 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, type BuildingId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, hitRace, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -22,6 +22,7 @@ import {
   actionButton, esc, factionBadge, factionChip, iconButton, price, progress, resource, type ActionItem,
 } from './components';
 import { icon } from './icons';
+import { victoryGoalText, wonderPanel } from './victory';
 
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
@@ -33,6 +34,8 @@ export const UNIT_ICON: Record<string, string> = {
   android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
   antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
   steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'barrier', privateer: 'sail', protoWalker: 'walker',
+  // Wunder der Siegbedingungen / victory wonders
+  portal: 'grand', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
 const COUNTER_KEY: Record<CounterClass, string> = { vehicle: 'counter.vsVehicle', air: 'counter.vsAir', foot: 'counter.vsFoot' };
 
@@ -160,7 +163,8 @@ export class Hud {
       case 'research': {
         const st = this.game.state;
         const rf = st ? (this.game.viewer >= 0 ? this.game.viewer : st.current) : -1;
-        if (st && !canResearch(st, rf)) { this.game.ui.toast(t(isAlienFaction(st, rf) ? 'xeno.noResearch' : 'nexus.noResearch'), 'research'); break; }
+        // Zyrr und NEXUS: nur die Siegtechnologie / Zyrr and NEXUS: only the victory tech
+        if (st && !canResearch(st, rf) && !factionVictoryOn(st)) { this.game.ui.toast(t(isAlienFaction(st, rf) ? 'xeno.noResearch' : 'nexus.noResearch'), 'research'); break; }
         this.cb.openResearch(); break;
       }
       case 'diplomacy': this.cb.openDiplomacy(); break;
@@ -283,6 +287,8 @@ export class Hud {
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
         </div>
         <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
+      // Wunder: Phase, Restrunden, Unterbrechungsregel (immer sichtbar) / wonder: phase, rounds left, interruption rule (always visible)
+      if (isWonder(vUnit)) body += wonderPanel(s, vUnit);
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
     } else if ((tab === 'city' || (tab === 'unit' && !vUnit)) && city) {
       const name = cityName(s, city.id);
@@ -325,6 +331,7 @@ export class Hud {
       if (tile.feature) tags.push(t(`features.${tile.feature}`));
       if (tile.outpost) tags.push(`${t('features.outpost')} (${t(`factions.${s.factions[tile.outpost.owner].id}.short`)})`);
       if (tile.grandProject) tags.push(t(`grand.${tile.grandProject}`));
+      if (tile.wonderOf) { const w = unitById(s, tile.wonderOf); if (w) tags.push(t('victory.footprint', { name: t(`units.${w.type}`) })); }
       if (tile.barrier) tags.push(`${t('features.barrier')} (${t(`factions.${s.factions[tile.barrier.owner].id}.short`)})`);
       if (tile.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) tags.push(`${t('features.mine')} (${t(`factions.${s.factions[tile.mine.owner].id}.short`)}): ${t('features.mineDesc', { foot: COUNTER.mine.damageFoot, vehicle: COUNTER.mine.damageVehicle })}`);
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
@@ -341,6 +348,7 @@ export class Hud {
       if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
       if (tile.feature === 'labRuin') tags.push(tile.looted ? t('hazards.labLooted') : `${t('hazards.lab')}: ${t('hazards.labDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
+      if (myTurn) this.wonderActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(`actions.${k}Actions`))}</button>`).join('')}</div>` : '';
@@ -501,6 +509,16 @@ export class Hud {
       this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
         reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
     }
+    // Erdkernbohrer: wird in der Stadt ausgebildet (auch beim Kult) / earth-core drill: trained in a city (also for the cult)
+    const drill = wonderKindOf(s, c.owner!);
+    if (drill === 'coreDrill' && factionVictoryOn(s) && hasTech(s, c.owner!, victoryTechOf(s, c.owner!))) {
+      const chk = trainCheck(s, c, drill);
+      this.actions.push({
+        id: 'train-coreDrill', icon: UNIT_ICON.coreDrill, label: t('units.coreDrill'), sub: unitNickname(s.factions[c.owner!].id, drill), cost: unitCost(s, c.owner!, drill)!,
+        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id) : t(`errors.${chk}`),
+        run: () => void g.exec({ type: 'train', city: c.id, unitType: drill }),
+      });
+    }
     if (isCultFaction(s, c.owner!)) return;
     for (const type of rosterUnits(s, c.owner!)) {
       const st = UNITS[type];
@@ -513,6 +531,28 @@ export class Hud {
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       });
     }
+  }
+
+  /**
+   * Wunder bauen: nur mit Siegtechnologie; bei falschem Feld deaktiviert mit Grund (nur auf eigenem Land/Aussenposten).
+   * Build a wonder: only with the victory tech; disabled with a reason on a wrong tile (only on own land or outposts).
+   */
+  private wonderActions(s: GameState, x: number, y: number) {
+    const g = this.game;
+    const f = s.current;
+    const kind = wonderKindOf(s, f);
+    if (!kind || kind === 'coreDrill' || !factionVictoryOn(s) || !hasTech(s, f, victoryTechOf(s, f))) return;
+    const tile = s.tiles[y * s.size + x];
+    const mine = territoryOwner(s, tile) === f || tile.outpost?.owner === f;
+    const chk = wonderCheck(s, f, kind as WonderKind, x, y);
+    // auf fremdem Gebiet nicht anbieten / not offered on foreign ground
+    if (!mine && chk === 'notInTerritory') return;
+    this.actions.push({
+      id: `wonder-${kind}`, icon: UNIT_ICON[kind] ?? 'grand', label: t('victory.build', { name: t(`units.${kind}`) }), sub: unitNickname(s.factions[f].id, kind),
+      cost: WONDERS.cost[kind], variant: 'primary', enabled: chk === 'ok',
+      reason: chk === 'ok' ? victoryGoalText(s.factions[f].id) : t(`errors.${chk}`),
+      run: () => void g.exec({ type: 'wonder', kind: kind as WonderKind, x, y }),
+    });
   }
 
   private buildActions(s: GameState, x: number, y: number) {

@@ -24,7 +24,13 @@ export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'r
 export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone';
 /** Einzigartige Einheiten der fuenf klassischen Fraktionen (je eine) / unique units of the five classic factions (one each) */
 export type UniqueUnitId = 'steppeRider' | 'stormbreaker' | 'peacekeeper' | 'privateer' | 'protoWalker';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId;
+/**
+ * Wunder der Siegbedingungen: vier Bauwerke (unbeweglich) und der Erdkernbohrer (beweglich).
+ * Wonders of the victory conditions: four structures (immobile) and the earth-core drill (mobile).
+ */
+export type WonderKind = 'portal' | 'hackRelay' | 'fusionPlant' | 'waal';
+export type WonderUnitId = WonderKind | 'coreDrill';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -32,13 +38,20 @@ export type Ability =
   | 'flak' | 'mines'
   // Einzigartige Einheiten: Sturmangriff ohne Gegenschlag, Selbstheilung, Kaperbeute
   // unique units: shock assault without retaliation, self-repair, prize money
-  | 'shock' | 'mend' | 'plunder';
+  | 'shock' | 'mend' | 'plunder'
+  // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
+  | 'wonder';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
   | 'mountainTraining' | 'mining' | 'armsIndustry' | 'highAltitude' | 'cybernetics'
   | 'coastalEconomy' | 'diving' | 'navalArtillery' | 'shipbuilding' | 'coastalDefense'
-  | 'livestock' | 'camouflage' | 'fieldResearch' | 'forestry' | 'ballistics';
+  | 'livestock' | 'camouflage' | 'fieldResearch' | 'forestry' | 'ballistics'
+  // Siegtechnologien, je Fraktion eine (Stufe 3) / victory techs, one per faction (tier 3)
+  | VictoryTechId;
+/** Siegtechnologien / victory techs */
+export type VictoryTechId =
+  | 'fiveYearPlan' | 'waalProgram' | 'leagueCharter' | 'tradeMonopoly' | 'fusionResearch' | 'dimensionalRift' | 'coreDrilling' | 'singularity';
 export type BuildingId =
   | 'storehouse' | 'ranch' | 'fishery' | 'lumberCamp' | 'farm' | 'mine'
   | 'materialsPlant' | 'foodFactory' | 'steelMill' | 'logisticsCenter'
@@ -80,6 +93,50 @@ export interface UnitStats {
 export type CounterClass = 'foot' | 'vehicle' | 'air';
 /** Einheitenklasse (Schiffe bekommen nie Konter-Boni) / unit class (ships never receive counter bonuses) */
 export type UnitClass = CounterClass | 'ship';
+
+/**
+ * Fraktions-Siegbedingungen (zusaetzlich zu Punkten und Eroberung). Runden zaehlen zu Beginn des eigenen Zuges.
+ * Faction victory conditions (in addition to points and conquest). Rounds count at the start of the own turn.
+ */
+export const WONDERS = {
+  /** Sternepreis je Wunder (Bohrer: Ausbildungspreis) / star price per wonder (drill: training price) */
+  cost: { portal: 100, hackRelay: 80, fusionPlant: 120, waal: 90, coreDrill: 80 } as Record<WonderUnitId, number>,
+  /** Fraktion je Wunder / faction per wonder */
+  faction: { portal: 'zyrr', hackRelay: 'nexus', fusionPlant: 'velkar', waal: 'dravon', coreDrill: 'vesper' } as Record<WonderUnitId, FactionId>,
+  /** Wunder je Fraktion / wonder per faction */
+  ofFaction: { zyrr: 'portal', nexus: 'hackRelay', velkar: 'fusionPlant', dravon: 'waal', vesper: 'coreDrill' } as Partial<Record<FactionId, WonderUnitId>>,
+  /**
+   * Phasen in Runden: Portal Bau + Aufladen, Relais Bau + Hacken, Kraftwerk ein Bau, Waal Bau bis bewaffnet + Fertigstellung.
+   * Phases in rounds: portal build + charge, relay build + hack, power plant one build, Waal build until armed + completion.
+   */
+  phases: { portal: [8, 8], hackRelay: [8, 8], fusionPlant: [16], waal: [8, 8] } as Record<WonderKind, number[]>,
+  /** Angriffe setzen die laufende Phase auf 0 / attacks reset the current phase to 0 */
+  interruptible: { portal: true, hackRelay: false, fusionPlant: true, waal: false, coreDrill: true } as Record<WonderUnitId, boolean>,
+  /** Waal: LP im Bau, nach der ersten Phase (bewaffnet); fertig = volle LP / Waal: HP while building, after the first phase (armed); done = full HP */
+  waalBuildHp: 15,
+  waalArmedHp: 30,
+  /** Erdkernbohrer: Runden Stillstand bis zum Weltende, hoechstens so viele gleichzeitig / earth-core drill: rounds standing still, at most this many at once */
+  drillRounds: 12,
+  drillMax: 1,
+  /** Korvat: Anteil aller Staedte (inkl. Siedlungen), der ueberschritten werden muss / Korvat: share of all cities (incl. villages) that must be exceeded */
+  korvatShare: 0.5,
+  /** Meridon: Sterne in der Kasse / Meridon: stars in the treasury */
+  meridonStars: 1000,
+  /** Alvenia, Voelkerbund: Runden in Folge, Mindestzahl bekannter lebender Fraktionen / League of Nations: consecutive rounds, minimum known living factions */
+  alveniaRounds: 6,
+  alveniaMinFactions: 2,
+  /** KI: Siegtechnologie ab dieser Runde erforschen; Wert eines feindlichen Wunders / AI: research the victory tech from this round; worth of a hostile wonder */
+  aiResearchRound: 10,
+  aiWorth: 150,
+  /** KI spart fuer Siegtechnologie und Wunder bis zu so viele Runden Einkommen an / AI saves up to this many rounds of income for the victory tech and wonder */
+  aiSaveRounds: 6,
+};
+/** Siegtechnologie je Fraktion / victory tech per faction */
+export const VICTORY_TECH: Record<FactionId, VictoryTechId> = {
+  korvat: 'fiveYearPlan', dravon: 'waalProgram', alvenia: 'leagueCharter', meridon: 'tradeMonopoly',
+  velkar: 'fusionResearch', zyrr: 'dimensionalRift', vesper: 'coreDrilling', nexus: 'singularity',
+};
+export const WONDER_UNITS: WonderUnitId[] = ['portal', 'hackRelay', 'fusionPlant', 'waal', 'coreDrill'];
 
 export const UNITS: Record<UnitTypeId, UnitStats> = {
   infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
@@ -138,6 +195,14 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: 'coastalEconomy', ship: true, faction: 'meridon' },
   // Velkar: Prototyp-Laeufer, Flaechenschaden auf Reichweite 2, teuer / Prototype Walker, splash at range 2, expensive
   protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: 'cybernetics', ship: false, faction: 'velkar' },
+  // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
+  portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
+  hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
+  fusionPlant: { cost: null, hp: 45, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'fusionResearch', ship: false, faction: 'velkar' },
+  // Waal: schiesst erst nach der ersten Bauphase (Reichweite 2), faehrt nie / Waal: fires only after the first build phase (range 2), never drives
+  waal: { cost: null, hp: 60, attack: 5, defense: 4, move: 0, range: 2, vision: 2, abilities: ['wonder'], tech: 'waalProgram', ship: false, faction: 'dravon' },
+  // Erdkernbohrer: beweglich, wird in der Stadt ausgebildet / earth-core drill: mobile, trained in a city
+  coreDrill: { cost: WONDERS.cost.coreDrill, hp: 25, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
@@ -213,7 +278,7 @@ export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitT
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
-  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone', 'protoWalker'] as UnitTypeId[],
+  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone', 'protoWalker', 'coreDrill'] as UnitTypeId[],
   footDefense: 1.5,
 };
 
@@ -360,7 +425,7 @@ export const BARRIER = {
 export const COUNTER = {
   vehicles: [
     'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker',
+    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'waal', 'coreDrill',
   ] as UnitTypeId[],
   /** Flak-Feuerzone: feindliche Flieger, die im Umkreis ihren Zug beenden, nehmen Schaden / flak zone: hostile flyers ending their turn within range take damage */
   flak: { range: 1, damage: 3 },
@@ -568,6 +633,8 @@ export interface TechStats {
   tier: 1 | 2 | 3;
   parent: TechId | null;
   branch: number;
+  /** nur diese Fraktion sieht und erforscht die Technologie (Siegtechnologie) / only this faction sees and researches it (victory tech) */
+  faction?: FactionId;
 }
 
 export const TECHS: Record<TechId, TechStats> = {
@@ -596,8 +663,22 @@ export const TECHS: Record<TechId, TechStats> = {
   fieldResearch: { tier: 3, parent: 'camouflage', branch: 4 },
   forestry: { tier: 2, parent: 'livestock', branch: 4 },
   ballistics: { tier: 3, parent: 'forestry', branch: 4 },
+  // Siegtechnologien (nur die eigene Fraktion) / victory techs (own faction only)
+  fiveYearPlan: { tier: 3, parent: 'agritech', branch: 1, faction: 'korvat' },
+  waalProgram: { tier: 3, parent: 'roadbuilding', branch: 0, faction: 'dravon' },
+  leagueCharter: { tier: 3, parent: 'fortification', branch: 1, faction: 'alvenia' },
+  tradeMonopoly: { tier: 3, parent: 'shipbuilding', branch: 3, faction: 'meridon' },
+  fusionResearch: { tier: 3, parent: 'highAltitude', branch: 2, faction: 'velkar' },
+  coreDrilling: { tier: 3, parent: 'forestry', branch: 4, faction: 'vesper' },
+  // Zyrr und NEXUS forschen sonst nicht: einzige erforschbare Technologie, ohne Voraussetzung
+  // Zyrr and NEXUS do not research otherwise: their only researchable tech, without a parent
+  dimensionalRift: { tier: 3, parent: null, branch: 5, faction: 'zyrr' },
+  singularity: { tier: 3, parent: null, branch: 5, faction: 'nexus' },
 };
-export const TECH_IDS = Object.keys(TECHS) as TechId[];
+/** Allgemeine Technologien (ohne Siegtechnologien) / common techs (without victory techs) */
+export const TECH_IDS = (Object.keys(TECHS) as TechId[]).filter((t) => !TECHS[t].faction);
+/** Alle Technologien inkl. Siegtechnologien / all techs incl. victory techs */
+export const ALL_TECH_IDS = Object.keys(TECHS) as TechId[];
 
 /** Verteidigungsbonus-Technologien je Gelaende / defense bonus techs per terrain */
 export const TERRAIN_DEFENSE_TECH: Partial<Record<TerrainId, TechId>> = {

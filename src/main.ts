@@ -200,6 +200,14 @@ function boot() {
         case 'eliminated': toast(root, t('events.eliminated', { name: fname(e.faction) }), 'warning'); break;
         case 'convert': toast(root, t('events.convert'), 'heal'); break;
         case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
+        // Wunder: fuer Besitzer, Kontakte und alle, die das Feld kennen / wonders: for the owner, contacts and anyone who knows the tile
+        case 'wonder': {
+          const seen = viewer < 0 || e.faction === viewer || s.factions[viewer].contacts.includes(e.faction) || s.factions[viewer].explored[e.y * s.size + e.x] === 1;
+          if (!seen) break;
+          const key = { started: 'events.wonderStarted', phase: 'events.wonderPhase', interrupted: 'events.wonderInterrupted', destroyed: 'events.wonderDestroyed' }[e.what];
+          toast(root, t(key, { name: fname(e.faction), wonder: t(`units.${e.kind}`) }), e.what === 'interrupted' || e.what === 'destroyed' ? 'warning' : 'grand');
+          break;
+        }
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
       }
       dispatches.onEvent(e, s);

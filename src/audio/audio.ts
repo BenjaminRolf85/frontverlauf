@@ -32,6 +32,8 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   antiTank: 'rocket', antiAir: 'mg', mineLayer: 'rifle', faustZealot: 'rocket', flakDrone: 'mg',
   // Einzigartige Einheiten / unique units
   steppeRider: 'rifle', stormbreaker: 'mg', peacekeeper: 'rifle', privateer: 'naval', protoWalker: 'cannon',
+  // Wunder der Siegbedingungen / victory wonders
+  portal: 'none', hackRelay: 'none', fusionPlant: 'none', waal: 'cannon', coreDrill: 'none',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */

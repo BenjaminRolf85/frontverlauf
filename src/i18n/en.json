@@ -255,7 +255,12 @@
     "stormbreaker": "Stormbreakers",
     "peacekeeper": "Peacekeepers",
     "privateer": "Privateer",
-    "protoWalker": "Prototype Walker"
+    "protoWalker": "Prototype Walker",
+    "portal": "Dimensional Portal",
+    "hackRelay": "Hacker Relay",
+    "fusionPlant": "Fusion Power Plant",
+    "waal": "Land Cruiser Waal",
+    "coreDrill": "Earth-Core Drill"
   },
   "abilities": {
     "dash": "Assault",
@@ -309,7 +314,9 @@
     "mend": "Self-repair",
     "mendDesc": "Heals 2 HP at the start of each own turn.",
     "plunder": "Prize money",
-    "plunderDesc": "Every destroyed enemy unit brings 10 stars."
+    "plunderDesc": "Every destroyed enemy unit brings 10 stars.",
+    "wonder": "Victory wonder",
+    "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted."
   },
   "stats": {
     "cost": "Price",
@@ -452,7 +459,15 @@
     "camouflage": "Camouflage",
     "fieldResearch": "Field research",
     "forestry": "Forestry",
-    "ballistics": "Ballistics"
+    "ballistics": "Ballistics",
+    "fiveYearPlan": "Great Five-Year Plan",
+    "waalProgram": "Waal Programme",
+    "leagueCharter": "League Charter",
+    "tradeMonopoly": "World Trade Monopoly",
+    "fusionResearch": "Nuclear Fusion",
+    "dimensionalRift": "Dimensional Rift",
+    "coreDrilling": "Deep Drilling",
+    "singularity": "Singularity"
   },
   "techExtra": {
     "mountainTraining": "Mountains passable",
@@ -462,7 +477,15 @@
     "coastalDefense": "Defence bonus on water",
     "cybernetics": "33 % discount on all further technologies",
     "intelligence": "Embassies",
-    "fortification": "Outposts"
+    "fortification": "Outposts",
+    "fiveYearPlan": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
+    "waalProgram": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
+    "leagueCharter": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
+    "tradeMonopoly": "Have {n} stars in the treasury. Victory at the start of your turn.",
+    "fusionResearch": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+    "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
+    "coreDrilling": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
+    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
   },
   "tech": {
     "title": "Research and development",
@@ -650,7 +673,11 @@
     "cityUpgrade": "{name} built in {city}",
     "flak": "Anti-aircraft hits a helicopter (-{dmg})",
     "mineHit": "A mine explodes (-{dmg})",
-    "aaFire": "Flak hits a flyer (-{dmg})"
+    "aaFire": "Flak hits a flyer (-{dmg})",
+    "wonderStarted": "{name} begins: {wonder}",
+    "wonderPhase": "{wonder} ({name}) enters its next phase.",
+    "wonderInterrupted": "{wonder} ({name}) was interrupted!",
+    "wonderDestroyed": "{wonder} ({name}) was destroyed!"
   },
   "fx": {
     "hit": [
@@ -1299,7 +1326,12 @@
       "stormbreaker": "Captured Breakers",
       "peacekeeper": "Captured Blue Helmets",
       "privateer": "Captured Raider",
-      "protoWalker": "Captured Walker"
+      "protoWalker": "Captured Walker",
+      "portal": "Sky Barn",
+      "hackRelay": "Foreign Radio Mast",
+      "fusionPlant": "People's Sun",
+      "waal": "Steel Whale",
+      "coreDrill": "Devil's Plough"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1341,7 +1373,12 @@
       "stormbreaker": "Stormbreakers",
       "peacekeeper": "Captured Guards",
       "privateer": "Mercenary Raider",
-      "protoWalker": "Captured Steel Leg"
+      "protoWalker": "Captured Steel Leg",
+      "portal": "Enemy Gate",
+      "hackRelay": "Jammer Mast",
+      "fusionPlant": "Enemy Reactor",
+      "waal": "Land Cruiser Waal",
+      "coreDrill": "Heretic Drill"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1383,7 +1420,12 @@
       "stormbreaker": "Converted Breakers",
       "peacekeeper": "Peacekeepers",
       "privateer": "Liberated Privateer",
-      "protoWalker": "Peace Walker"
+      "protoWalker": "Peace Walker",
+      "portal": "Unauthorised Gateway",
+      "hackRelay": "Listening Post",
+      "fusionPlant": "Peace Reactor",
+      "waal": "War Whale",
+      "coreDrill": "Doom Drill"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1425,7 +1467,12 @@
       "stormbreaker": "Bought Breakers",
       "peacekeeper": "Paid Guard",
       "privateer": "Privateer",
-      "protoWalker": "Pawned Walker"
+      "protoWalker": "Pawned Walker",
+      "portal": "Duty-Free Gate",
+      "hackRelay": "Market Hacker",
+      "fusionPlant": "Power Exchange",
+      "waal": "Costly Waal",
+      "coreDrill": "Property Ruiner"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1467,7 +1514,12 @@
       "stormbreaker": "Trial Breakers",
       "peacekeeper": "Lab Watch",
       "privateer": "Research Raider",
-      "protoWalker": "Prototype Walker"
+      "protoWalker": "Prototype Walker",
+      "portal": "Dimensional Anomaly",
+      "hackRelay": "Rogue Network Node",
+      "fusionPlant": "Tokamak One",
+      "waal": "Super-Heavy Prototype",
+      "coreDrill": "Geological Disaster"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1509,7 +1561,12 @@
       "stormbreaker": "Zrrk Breakers",
       "peacekeeper": "Blue Cap Specimen",
       "privateer": "Wet Ship",
-      "protoWalker": "Second Tripod"
+      "protoWalker": "Second Tripod",
+      "portal": "Way Home",
+      "hackRelay": "Primitive Antenna",
+      "fusionPlant": "Earthling Starlet",
+      "waal": "Big Tin Whale",
+      "coreDrill": "Earthling Core Probe"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1551,7 +1608,12 @@
       "stormbreaker": "Penance Breakers",
       "peacekeeper": "Converted Watch",
       "privateer": "Ash Raider",
-      "protoWalker": "Bell Walker"
+      "protoWalker": "Bell Walker",
+      "portal": "Hell Gate",
+      "hackRelay": "Devil's Antenna",
+      "fusionPlant": "False Sun",
+      "waal": "Leviathan",
+      "coreDrill": "The Final Drill"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -1593,7 +1655,12 @@
       "stormbreaker": "Unit B-4 Breaker",
       "peacekeeper": "Unit P-3 Guard",
       "privateer": "Unit K-6 Raider",
-      "protoWalker": "Unit L-1 Walker"
+      "protoWalker": "Unit L-1 Walker",
+      "portal": "Unknown Vector",
+      "hackRelay": "Uplink Omega",
+      "fusionPlant": "External Power Source",
+      "waal": "Analogue Megatank",
+      "coreDrill": "Geo Error 404"
     }
   },
   "identity": {
@@ -2151,7 +2218,8 @@
     "building": "Own building",
     "leader": "Leader",
     "details": "Details",
-    "detailsFor": "Details on {name}"
+    "detailsFor": "Details on {name}",
+    "victory": "Victory condition"
   },
   "dispatchUi": {
     "kicker": "Dispatch",
@@ -2739,5 +2807,75 @@
   },
   "cover": {
     "ranged": "Cover against ranged attacks (troops and tanks)"
+  },
+  "victory": {
+    "title": "Victory tracker",
+    "open": "Victory conditions",
+    "hint": "Every faction has its own victory condition. Factions without contact stay hidden.",
+    "unknown": "No contact yet",
+    "noTech": "Victory tech not researched yet",
+    "off": "Faction victory conditions are off in this game.",
+    "eliminated": "Eliminated",
+    "you": "You",
+    "roundsLeft": "{n} rounds left",
+    "leagueNotMet": "Condition not met right now",
+    "setupTitle": "Faction victories",
+    "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory tech).",
+    "build": "Build {name}",
+    "footprint": "Footprint: {name}",
+    "researchOnly": "Your faction does not research otherwise. Only the victory tech can be researched.",
+    "kindPoints": "Victory on points",
+    "kindConquest": "Conquest victory",
+    "kindFaction": "Victory condition met",
+    "unitTitle": "Victory wonder",
+    "stage": "Phase {n}/{max}",
+    "roundsTotal": "Victory in {n} rounds",
+    "ruleInterrupt": "Attacks reset the current phase to 0; finished phases are kept.",
+    "ruleNoInterrupt": "Attacks do not interrupt it, but the structure can be destroyed.",
+    "ruleDrill": "Moving and attacks reset the counter to 0.",
+    "ruleWaal": "Fires from the second phase on (range {r}), never moves.",
+    "phase": {
+      "none": "Not started",
+      "build": "Construction {have}/{need}",
+      "charge": "Charging {have}/{need}",
+      "hack": "Hacking {have}/{need}",
+      "armed": "Armed, completion {have}/{need}",
+      "drill": "Drilling {have}/{need}",
+      "cities": "Cities {have}/{need}",
+      "stars": "Stars {have}/{need}",
+      "league": "League {have}/{need}"
+    },
+    "goal": {
+      "korvat": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
+      "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
+      "alvenia": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
+      "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
+      "velkar": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+      "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
+      "vesper": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
+      "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
+    },
+    "short": {
+      "korvat": "Majority of cities",
+      "dravon": "Land cruiser Waal",
+      "alvenia": "League of Nations",
+      "meridon": "{n} stars",
+      "velkar": "Fusion power plant",
+      "zyrr": "Dimensional portal",
+      "vesper": "Earth-core drill",
+      "nexus": "Hacker relay"
+    },
+    "reason": {
+      "korvat": "The Collective rules the majority of the world.",
+      "dravon": "The Waal rolls out, no army can stop it now.",
+      "alvenia": "The League of Nations is founded, the world makes peace.",
+      "meridon": "Meridon buys the world.",
+      "velkar": "The fusion power plant delivers endless energy.",
+      "zyrr": "The portal has opened.",
+      "vesper": "The drill has reached the earth's core. The world ends.",
+      "nexus": "The relay has taken over all machines."
+    },
+    "armed": "Armed",
+    "ruleReset": "Every attack resets the construction to 0."
   }
 }

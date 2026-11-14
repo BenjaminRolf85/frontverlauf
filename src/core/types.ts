@@ -1,6 +1,6 @@
 import type {
   BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
-  UnitTypeId, BunkerReward, HitKind,
+  UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId,
 } from '../data/balance';
 
 export interface Pos { x: number; y: number }
@@ -49,6 +49,8 @@ export interface Tile {
   lava?: number;
   /** Absturzstelle bereits geborgen / crash site already salvaged */
   looted?: boolean;
+  /** Teil der Grundflaeche eines Wunders (Fusionskraftwerk): Einheiten-ID; unpassierbar / part of a wonder footprint (fusion plant): unit id; impassable */
+  wonderOf?: number | null;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -92,6 +94,13 @@ export interface Unit {
   retreatReady?: number;
   /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
   rockets?: number;
+  /**
+   * Fortschritt eines Wunders: Phase (Index in WONDERS.phases) und Runden in der Phase.
+   * Progress of a wonder: phase (index into WONDERS.phases) and rounds within the phase.
+   */
+  wonder?: { stage: number; progress: number };
+  /** Erdkernbohrer: Runden in Folge ohne Bewegung / earth-core drill: consecutive rounds without moving */
+  stillRounds?: number;
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -136,6 +145,8 @@ export interface Faction {
   radarsFound: number[];
   maxStars: number;
   eliminatedRound: number | null;
+  /** Alvenia, Voelkerbund: Runden in Folge mit erfuellter Bedingung / League of Nations: consecutive rounds with the condition met */
+  league?: number;
 }
 
 export interface PendingReward {
@@ -160,6 +171,8 @@ export interface GameConfig {
   events?: boolean;
   /** Trefferglueck an (fehlt = an) / hit luck on (missing = on) */
   hitChance?: boolean;
+  /** Fraktions-Siegbedingungen an (fehlt = an; in Kampagnen immer aus) / faction victory conditions on (missing = on; always off in campaigns) */
+  factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
 }
@@ -210,7 +223,15 @@ export interface GameState {
   campaign?: CampaignState;
   /** laufende Duerren: Fraktion und letzte Runde / ongoing droughts: faction and last round */
   droughts?: { faction: number; until: number }[];
+  /** Art des Sieges (fehlt in alten Spielstaenden) / kind of victory (missing in old saves) */
+  victory?: Victory;
 }
+
+/** Siegart: Punkte, Eroberung oder Fraktions-Siegbedingung / victory kind: points, conquest or faction condition */
+export interface Victory { kind: 'points' | 'conquest' | 'faction'; faction: FactionId }
+
+/** Wunder-Ereignis: begonnen, Phase gewechselt, unterbrochen, zerstoert / wonder event: started, phase changed, interrupted, destroyed */
+export type WonderEventKind = 'started' | 'phase' | 'interrupted' | 'destroyed';
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
@@ -258,7 +279,8 @@ export type GameEvent =
   | { t: 'randomEvent'; kind: RandomEventKind; faction?: number; x?: number; y?: number; city?: number; unit?: number;
       stars?: number; tech?: TechId; other?: number; count?: number; contained?: boolean; ongoing?: boolean }
   | { t: 'objective'; index: number; bonus: boolean; status: ObjectiveStatus }
-  | { t: 'gameOver'; winner: number | null };
+  | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
+  | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
 
@@ -283,6 +305,8 @@ export type Command =
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
+  /** Wunder bauen (Bohrer wird per 'train' ausgebildet) / build a wonder (the drill is trained via 'train') */
+  | { type: 'wonder'; kind: WonderKind; x: number; y: number }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
   | { type: 'endTurn' };

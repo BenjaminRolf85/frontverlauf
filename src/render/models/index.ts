@@ -11,8 +11,9 @@
  */
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { BuildingId, FactionId, GrandProjectId, ResourceId, TerrainId, UnitTypeId } from '../../data/balance';
+import { WONDER_UNITS, type BuildingId, type FactionId, type GrandProjectId, type ResourceId, type TerrainId, type UnitTypeId, type WonderUnitId } from '../../data/balance';
 import { building, feature } from './buildings';
+import { tank } from './vehicles';
 import { city } from './city';
 import { memo, withDetail } from './kit';
 import { leader, type LeaderMood } from './leaders';
@@ -26,7 +27,7 @@ const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
 import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
-import { artillery, heli, jeep, tank } from './vehicles';
+import { artillery, heli, jeep } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
 import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terrain';
@@ -35,9 +36,31 @@ import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
 
-export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null): THREE.BufferGeometry {
+/**
+ * PLATZHALTER fuer die Wunder der Siegbedingungen, bis wonders.ts mit wonderGeometry(type, faction, stage) da ist.
+ * Hier austauschen: `return wonderGeometry(type, faction, stage);`
+ * PLACEHOLDER for the victory wonders until wonders.ts with wonderGeometry(type, faction, stage) exists.
+ * Swap here: `return wonderGeometry(type, faction, stage);`
+ * stage: Bauphase (0 = im Bau) / build phase (0 = under construction).
+ */
+export function wonderPlaceholder(type: WonderUnitId, faction: FactionId, stage: number): THREE.BufferGeometry {
+  let g: THREE.BufferGeometry;
+  switch (type) {
+    case 'portal': g = tripod(faction).build(); break;
+    case 'coreDrill': g = doomCrawler(faction).build(); break;
+    case 'hackRelay': g = railgun(faction).build(); break;
+    case 'fusionPlant': g = building('powerPlant', faction).build(); g.scale(1.6, 1.6, 1.6); break;
+    case 'waal': g = tank(faction).build(); g.scale(1.3, 1.3, 1.3); break;
+  }
+  // im Bau etwas flacher / slightly flatter while under construction
+  if (stage === 0 && type !== 'coreDrill') g.scale(1, 0.8, 1);
+  return g;
+}
+
+export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null, stage = 0): THREE.BufferGeometry {
   const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
-  return memo(`unit|${type}|${faction}|${c ?? ''}`, () => finishUnit(type, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
+  const wonder = (WONDER_UNITS as UnitTypeId[]).includes(type);
+  return memo(`unit|${type}|${faction}|${c ?? ''}${wonder ? `|${stage}` : ''}`, () => finishUnit(type, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
       case 'sniper': return sniper(faction).build();
@@ -81,6 +104,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'peacekeeper': return peacekeeper(faction).build();
       case 'privateer': return privateer(faction).build();
       case 'protoWalker': return protoWalker(faction).build();
+      // Wunder der Siegbedingungen / victory wonders
+      default: return wonderPlaceholder(type as WonderUnitId, faction, stage);
     }
   })));
 }

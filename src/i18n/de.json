@@ -255,7 +255,12 @@
     "stormbreaker": "Sturmbrecher",
     "peacekeeper": "Friedenswacht",
     "privateer": "Kaperschiff",
-    "protoWalker": "Prototyp-Läufer"
+    "protoWalker": "Prototyp-Läufer",
+    "portal": "Dimensionsportal",
+    "hackRelay": "Hacker-Relais",
+    "fusionPlant": "Fusionskraftwerk",
+    "waal": "Landkreuzer Waal",
+    "coreDrill": "Erdkernbohrer"
   },
   "abilities": {
     "dash": "Sturm",
@@ -309,7 +314,9 @@
     "mend": "Selbstheilung",
     "mendDesc": "Heilt zu Beginn jedes eigenen Zuges 2 LP.",
     "plunder": "Kaperbeute",
-    "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne."
+    "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne.",
+    "wonder": "Siegbauwerk",
+    "wonderDesc": "Kein Sold, zählt nicht zum Stadtlimit, nicht bekehrbar."
   },
   "stats": {
     "cost": "Preis",
@@ -452,7 +459,15 @@
     "camouflage": "Tarnung",
     "fieldResearch": "Feldforschung",
     "forestry": "Forstwirtschaft",
-    "ballistics": "Ballistik"
+    "ballistics": "Ballistik",
+    "fiveYearPlan": "Großer Fünfjahresplan",
+    "waalProgram": "Waal-Programm",
+    "leagueCharter": "Völkerbund-Charta",
+    "tradeMonopoly": "Welthandelsmonopol",
+    "fusionResearch": "Kernfusion",
+    "dimensionalRift": "Dimensionsriss",
+    "coreDrilling": "Tiefenbohrung",
+    "singularity": "Singularität"
   },
   "techExtra": {
     "mountainTraining": "Berge betretbar",
@@ -462,7 +477,15 @@
     "coastalDefense": "Verteidigungsbonus auf Wasser",
     "cybernetics": "33 % Rabatt auf alle weiteren Technologien",
     "intelligence": "Botschaften",
-    "fortification": "Außenposten"
+    "fortification": "Außenposten",
+    "fiveYearPlan": "Besitze mehr als {pct} % aller Städte der Karte (Siedlungen zählen mit). Sieg zu Beginn deines Zuges.",
+    "waalProgram": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
+    "leagueCharter": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
+    "tradeMonopoly": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
+    "fusionResearch": "Baue das Fusionskraftwerk auf 2x2 freiem Land im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
+    "dimensionalRift": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
+    "coreDrilling": "Bilde den Erdkernbohrer in einer Stadt aus. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
+    "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Angriffe unterbrechen nicht, aber es kann zerstört werden."
   },
   "tech": {
     "title": "Forschung und Entwicklung",
@@ -650,7 +673,11 @@
     "cityUpgrade": "{name} in {city} gebaut",
     "flak": "Flugabwehr trifft einen Hubschrauber (-{dmg})",
     "mineHit": "Eine Mine explodiert (-{dmg})",
-    "aaFire": "Flak trifft einen Flieger (-{dmg})"
+    "aaFire": "Flak trifft einen Flieger (-{dmg})",
+    "wonderStarted": "{name} beginnt: {wonder}",
+    "wonderPhase": "{wonder} ({name}) erreicht die nächste Phase.",
+    "wonderInterrupted": "{wonder} ({name}) wurde unterbrochen!",
+    "wonderDestroyed": "{wonder} ({name}) wurde zerstört!"
   },
   "fx": {
     "hit": [
@@ -1299,7 +1326,12 @@
       "stormbreaker": "Beutebrecher",
       "peacekeeper": "Beute-Blauhelme",
       "privateer": "Beutekaper",
-      "protoWalker": "Beuteläufer"
+      "protoWalker": "Beuteläufer",
+      "portal": "Himmelsscheune",
+      "hackRelay": "Fremder Funkmast",
+      "fusionPlant": "Volkssonne",
+      "waal": "Stahlwal",
+      "coreDrill": "Teufelspflug"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1341,7 +1373,12 @@
       "stormbreaker": "Sturmbrecher",
       "peacekeeper": "Beute-Wachen",
       "privateer": "Söldnerkaper",
-      "protoWalker": "Beute-Stahlbein"
+      "protoWalker": "Beute-Stahlbein",
+      "portal": "Feindtor",
+      "hackRelay": "Störsender",
+      "fusionPlant": "Feindreaktor",
+      "waal": "Landkreuzer Waal",
+      "coreDrill": "Ketzerbohrer"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1383,7 +1420,12 @@
       "stormbreaker": "Bekehrte Brecher",
       "peacekeeper": "Friedenswacht",
       "privateer": "Befreites Kaperschiff",
-      "protoWalker": "Friedensläufer"
+      "protoWalker": "Friedensläufer",
+      "portal": "Unerlaubte Pforte",
+      "hackRelay": "Abhörstation",
+      "fusionPlant": "Friedensreaktor",
+      "waal": "Kriegswal",
+      "coreDrill": "Untergangsbohrer"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1425,7 +1467,12 @@
       "stormbreaker": "Gekaufte Brecher",
       "peacekeeper": "Bezahlte Wache",
       "privateer": "Kaperschiff",
-      "protoWalker": "Pfandläufer"
+      "protoWalker": "Pfandläufer",
+      "portal": "Zollfreies Tor",
+      "hackRelay": "Börsenhacker",
+      "fusionPlant": "Stromkontor",
+      "waal": "Teurer Waal",
+      "coreDrill": "Grundstücksruin"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1467,7 +1514,12 @@
       "stormbreaker": "Versuchsbrecher",
       "peacekeeper": "Laborwacht",
       "privateer": "Forschungskaper",
-      "protoWalker": "Prototyp-Läufer"
+      "protoWalker": "Prototyp-Läufer",
+      "portal": "Dimensionsanomalie",
+      "hackRelay": "Fremdnetzknoten",
+      "fusionPlant": "Tokamak Eins",
+      "waal": "Überschwerer Prototyp",
+      "coreDrill": "Geologische Katastrophe"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1509,7 +1561,12 @@
       "stormbreaker": "Zrrk-Brecher",
       "peacekeeper": "Blaukappen-Exemplar",
       "privateer": "Nassschiff",
-      "protoWalker": "Zweitstativ"
+      "protoWalker": "Zweitstativ",
+      "portal": "Heimweg",
+      "hackRelay": "Primitive Antenne",
+      "fusionPlant": "Erdlingssönnchen",
+      "waal": "Großer Blechwal",
+      "coreDrill": "Kernsonde der Erdlinge"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1551,7 +1608,12 @@
       "stormbreaker": "Bußbrecher",
       "peacekeeper": "Bekehrte Wacht",
       "privateer": "Aschenkaper",
-      "protoWalker": "Glockenläufer"
+      "protoWalker": "Glockenläufer",
+      "portal": "Höllentor",
+      "hackRelay": "Teufelsantenne",
+      "fusionPlant": "Falsche Sonne",
+      "waal": "Leviathan",
+      "coreDrill": "Der Letzte Bohrer"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -1593,7 +1655,12 @@
       "stormbreaker": "Einheit B-4 Brecher",
       "peacekeeper": "Einheit P-3 Wache",
       "privateer": "Einheit K-6 Kaper",
-      "protoWalker": "Einheit L-1 Läufer"
+      "protoWalker": "Einheit L-1 Läufer",
+      "portal": "Unbekannter Vektor",
+      "hackRelay": "Uplink Omega",
+      "fusionPlant": "Externe Energiequelle",
+      "waal": "Analoger Großpanzer",
+      "coreDrill": "Geofehler 404"
     }
   },
   "identity": {
@@ -2151,7 +2218,8 @@
     "building": "Eigenes Gebäude",
     "leader": "Anführer",
     "details": "Details",
-    "detailsFor": "Details zu {name}"
+    "detailsFor": "Details zu {name}",
+    "victory": "Siegbedingung"
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -2739,5 +2807,75 @@
   },
   "cover": {
     "ranged": "Deckung gegen Fernangriffe (Truppen und Panzer)"
+  },
+  "victory": {
+    "title": "Siegverfolgung",
+    "open": "Siegbedingungen",
+    "hint": "Jede Fraktion hat eine eigene Siegbedingung. Fraktionen ohne Kontakt bleiben verborgen.",
+    "unknown": "Noch kein Kontakt",
+    "noTech": "Siegtechnologie noch nicht erforscht",
+    "off": "Fraktions-Siegbedingungen sind in dieser Partie aus.",
+    "eliminated": "Ausgeschieden",
+    "you": "Du",
+    "roundsLeft": "noch {n} Runden",
+    "leagueNotMet": "Bedingung derzeit nicht erfüllt",
+    "setupTitle": "Fraktions-Siege",
+    "setupHint": "Jede Fraktion kann zusätzlich über eine eigene Siegbedingung gewinnen (eigene Siegtechnologie der Stufe 3).",
+    "build": "{name} bauen",
+    "footprint": "Grundfläche: {name}",
+    "researchOnly": "Deine Fraktion forscht sonst nicht. Nur die Siegtechnologie ist erforschbar.",
+    "kindPoints": "Punktsieg",
+    "kindConquest": "Eroberungssieg",
+    "kindFaction": "Siegbedingung erfüllt",
+    "unitTitle": "Siegbauwerk",
+    "stage": "Phase {n}/{max}",
+    "roundsTotal": "Sieg in {n} Runden",
+    "ruleInterrupt": "Angriffe setzen die laufende Phase auf 0 zurück, fertige Phasen bleiben.",
+    "ruleNoInterrupt": "Angriffe unterbrechen nicht, aber das Bauwerk kann zerstört werden.",
+    "ruleDrill": "Bewegung und Angriffe setzen den Zähler auf 0 zurück.",
+    "ruleWaal": "Schießt ab der zweiten Phase (Reichweite {r}), fährt nie.",
+    "phase": {
+      "none": "Noch nicht begonnen",
+      "build": "Bau {have}/{need}",
+      "charge": "Aufladen {have}/{need}",
+      "hack": "Hacken {have}/{need}",
+      "armed": "Bewaffnet, Fertigstellung {have}/{need}",
+      "drill": "Bohrt {have}/{need}",
+      "cities": "Städte {have}/{need}",
+      "stars": "Sterne {have}/{need}",
+      "league": "Völkerbund {have}/{need}"
+    },
+    "goal": {
+      "korvat": "Besitze mehr als {pct} % aller Städte der Karte (Siedlungen zählen mit). Sieg zu Beginn deines Zuges.",
+      "dravon": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
+      "alvenia": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
+      "meridon": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
+      "velkar": "Baue das Fusionskraftwerk auf 2x2 freiem Land im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
+      "zyrr": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
+      "vesper": "Bilde den Erdkernbohrer in einer Stadt aus. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
+      "nexus": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Angriffe unterbrechen nicht, aber es kann zerstört werden."
+    },
+    "short": {
+      "korvat": "Mehrheit der Städte",
+      "dravon": "Landkreuzer Waal",
+      "alvenia": "Völkerbund",
+      "meridon": "{n} Sterne",
+      "velkar": "Fusionskraftwerk",
+      "zyrr": "Dimensionsportal",
+      "vesper": "Erdkernbohrer",
+      "nexus": "Hacker-Relais"
+    },
+    "reason": {
+      "korvat": "Das Kollektiv beherrscht die Mehrheit der Welt.",
+      "dravon": "Der Waal rollt, kein Heer hält ihn mehr auf.",
+      "alvenia": "Der Völkerbund ist gegründet, die Welt schließt Frieden.",
+      "meridon": "Meridon kauft die Welt.",
+      "velkar": "Das Fusionskraftwerk liefert endlose Energie.",
+      "zyrr": "Das Portal hat sich geöffnet.",
+      "vesper": "Der Bohrer hat den Erdkern erreicht. Die Welt endet.",
+      "nexus": "Das Relais hat alle Maschinen übernommen."
+    },
+    "armed": "Bewaffnet",
+    "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück."
   }
 }
