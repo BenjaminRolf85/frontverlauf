@@ -52,7 +52,8 @@
     "special": "Special faction",
     "takenBy": "taken by slot {n}",
     "swapHint": "A taken faction is swapped with the other slot.",
-    "current": "selected"
+    "current": "selected",
+    "advanced": "Advanced"
   },
   "modes": {
     "points": "Points",
@@ -502,7 +503,9 @@
     "needParent": "Research {tech} first.",
     "notYourTurn": "You can only research on your own turn.",
     "confirm": "Research",
-    "done": "Already researched."
+    "done": "Already researched.",
+    "legendVictory": "Victory tech (dashed)",
+    "victoryGroup": "Victory tech"
   },
   "rewards": {
     "title": "{city} reaches level {level}",
@@ -563,7 +566,11 @@
     "upkeepUnit": "Upkeep {n} per round",
     "upkeepFree": "No upkeep (core troop)",
     "moreInfo": "Show more values",
-    "lessInfo": "Show fewer values"
+    "lessInfo": "Show fewer values",
+    "needsTech": "Requires: {tech}",
+    "hintPrompt": "Hold or hover over an action: this line says what it does.",
+    "hintExpand": "Show the full explanation",
+    "moreActions": "More actions"
   },
   "actions": {
     "move": "Move",
@@ -818,7 +825,11 @@
     "s6": "Stars are the only currency. Open research and research a technology.",
     "s7": "Tap a resource tile inside your city territory and build something. Buildings add population, cities grow.",
     "s8": "Tap your headquarters and train a unit.",
-    "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!"
+    "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!",
+    "goal": "The goal: in points mode the highest score wins after {rounds} rounds (medal at the top). In conquest the last side holding cities wins, as here. With faction victories every faction can also win through its own goal. The victory tracker in the menu shows the standings.",
+    "goalOpen": "Open victory tracker",
+    "upkeep": "Upkeep: your first {free} units are core troops and cost nothing. Every further unit costs about {pct} % of its price per round. Next to the stars at the top you see your net income per round: income minus upkeep.",
+    "attack": "Combat: select a unit and tap an enemy in range. The attack button shows a preview first, such as “≈4 damage (0–6)”, and the chance to destroy the target. Hit luck: a shot can miss or land a critical hit ({min} to {max} % damage). A survivor strikes back. Press and hold an action and the line below the bar explains what it does."
   },
   "a11y": {
     "map": "Game map",
@@ -2787,7 +2798,8 @@
       "cult": "Often critical, often off target: fanatic and unpredictable."
     },
     "frenzy": "Frenzy: more critical hits",
-    "worn": "damaged: less accurate"
+    "worn": "damaged: less accurate",
+    "hintLuck": "Hit luck: the result ranges from a miss to a critical hit."
   },
   "retreat": {
     "action": "Orderly retreat (−{dmg})",
@@ -2876,6 +2888,63 @@
       "nexus": "The relay has taken over all machines."
     },
     "armed": "Armed",
-    "ruleReset": "Every attack resets the construction to 0."
+    "ruleReset": "Every attack resets the construction to 0.",
+    "modeTitle": "Objective",
+    "modePoints": "Round {round}/{max}, you are in place {rank}. After round {max} the highest score wins."
+  },
+  "onboarding": {
+    "title": "Play the tutorial?",
+    "text": "Your first operation. In a few turns the tutorial covers the goal, moving, capturing, research, building, training, upkeep and combat.",
+    "play": "Play tutorial",
+    "playDesc": "A short practice game against an easy AI. You can quit at any time.",
+    "skip": "Skip",
+    "skipDesc": "Straight to the setup.",
+    "later": "You can find the tutorial and the rules in the main menu at any time."
+  },
+  "rules": {
+    "menu": "Rules",
+    "title": "Rules",
+    "intro": "The essentials in brief. Tap a section to expand or collapse it.",
+    "decimal": ".",
+    "goal": {
+      "title": "Goal & game modes",
+      "text": "Points mode: after {rounds} rounds the highest score wins (medal at the top). Points come from explored tiles ({tile}), territory tiles ({territory}), city levels ({level}), techs ({tech} per tier) and more. Conquest: the last side holding cities wins. Endless and sandbox have no round limit. Faction victories (optional): every faction can also win through its own goal. The victory tracker in the menu shows the standings."
+    },
+    "turn": {
+      "title": "Round & stars",
+      "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, research and upgrades. You start with {start} stars."
+    },
+    "upkeep": {
+      "title": "Upkeep",
+      "text": "The first {free} units are core troops and pay no upkeep. Every further unit costs {pct} % of its price per round (rounded up), tanks a flat {tank}. Upkeep is deducted from income. Next to the stars at the top you see the net income per round, the unit panel shows each unit's upkeep."
+    },
+    "combat": {
+      "title": "Combat & hit luck",
+      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes."
+    },
+    "cover": {
+      "title": "Cover",
+      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+    },
+    "abilities": {
+      "title": "Abilities (retreat, repair, rockets)",
+      "text": "Orderly retreat (human ground troops): fires with {retreat} % damage without return fire and falls back one tile, then locked for {cooldown} rounds. Emergency repair (robots): salvages a wreck on or next to the tile and heals {repair} % of normal healing; the unit does not fight this round. Rockets (mechs): ranged attack on targets exactly {range} tiles away, {max} rockets, reloaded at turn start in an own city with a {depot}."
+    },
+    "cities": {
+      "title": "Cities & research",
+      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+    },
+    "outposts": {
+      "title": "Outposts",
+      "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
+    },
+    "diplomacy": {
+      "title": "Diplomacy",
+      "text": "Factions you have not met stay hidden. After the first contact you are at war. You can offer peace, the other side accepts or declines. Breaking a peace is announced one round in advance. With {tech} and a discovered headquarters you open embassies (the first costs {cost} stars, each further one {step} more); each gives both sides {income} stars per round."
+    },
+    "factions": {
+      "title": "Faction victories",
+      "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
+    }
   }
 }

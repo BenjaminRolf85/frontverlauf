@@ -1,17 +1,26 @@
 /** Kurzes spielbares Tutorial fuer die erste Partie / short playable tutorial for the first game */
 import { defaultConfig, ownCities, ownUnits, type GameConfig, type GameState } from '../core';
-import { FACTIONS } from '../data/balance';
+import { FACTIONS, HIT, MODES, UPKEEP } from '../data/balance';
 import type { Controller } from '../game/controller';
 import { t } from '../i18n/i18n';
 import { button, esc } from './components';
 import { icon } from './icons';
+import { victoryTrackerDialog } from './victory';
 
+/** Fraktionssiege aus: ein KI-Wunder darf das Tutorial nicht beenden; Trefferglueck bleibt an / faction victories off: an AI wonder must not end the tutorial; hit luck stays on */
 export const TUTORIAL_CONFIG: GameConfig = defaultConfig({
-  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest',
+  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true,
   factions: [{ id: 'korvat', human: true, difficulty: 'easy' }, { id: 'dravon', human: false, difficulty: 'easy' }],
 });
 
-interface Step { key: string; manual?: boolean; done?: (s: GameState, g: Controller, ctx: Ctx) => boolean; hint?: (s: GameState) => { x: number; y: number } | null }
+/** Platzhalter der Tutorialtexte (Zahlen aus balance.ts) / placeholders of the tutorial texts (numbers from balance.ts) */
+const TUTORIAL_PARAMS: Record<string, Record<string, number>> = {
+  goal: { rounds: MODES.pointsRounds },
+  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100) },
+  upkeep: { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100) },
+};
+
+interface Step { key: string; manual?: boolean; focus?: string; done?: (s: GameState, g: Controller, ctx: Ctx) => boolean; hint?: (s: GameState) => { x: number; y: number } | null }
 interface Ctx { round: number; techs: number; buildings: number; units: number }
 
 const countBuildings = (s: GameState) => s.tiles.filter((t) => t.building || t.road).length;
@@ -23,7 +32,7 @@ export class Tutorial {
   active = true;
   private steps: Step[];
 
-  constructor(root: HTMLElement, private game: Controller, private onFinish: () => void) {
+  constructor(private root: HTMLElement, private game: Controller, private onFinish: () => void) {
     this.node = document.createElement('div');
     this.node.className = 'bubble';
     this.node.setAttribute('role', 'status');
@@ -35,6 +44,8 @@ export class Tutorial {
     };
     this.steps = [
       { key: 's1', manual: true, hint: (s) => { const hq = s.cities.find((c) => c.isHQ && c.hqOf === 0); return hq ? { x: hq.x, y: hq.y } : null; } },
+      // Spielziel und Siegverfolgung / game goal and victory tracker
+      { key: 'goal', manual: true, focus: 'goal' },
       { key: 's2', done: (_s, g) => g.selectedUnit !== null, hint: (s) => { const u = ownUnits(s, 0)[0]; return u ? { x: u.x, y: u.y } : null; } },
       { key: 's3', done: (s) => { const v = this.target ?? village(s); return !!v && ownUnits(s, 0).some((u) => u.x === v.x && u.y === v.y); }, hint: (s) => { const v = this.target ?? village(s); if (v) this.target = { x: v.x, y: v.y }; return this.target; } },
       { key: 's4', done: (s, _g, c) => s.round > c.round && s.current === 0 },
@@ -42,6 +53,9 @@ export class Tutorial {
       { key: 's6', done: (s, _g, c) => s.factions[0].techs.length > c.techs },
       { key: 's7', done: (s, _g, c) => countBuildings(s) > c.buildings },
       { key: 's8', done: (s, _g, c) => ownUnits(s, 0).length > c.units },
+      // Sold neben den Sternen, Angriffsvorschau mit Trefferglueck / upkeep next to the stars, attack preview with hit luck
+      { key: 'upkeep', manual: true, focus: 'upkeep' },
+      { key: 'attack', manual: true },
       { key: 's9', manual: true },
     ];
     this.node.addEventListener('click', (e) => {
@@ -49,6 +63,7 @@ export class Tutorial {
       if (!b) return;
       if (b.dataset.action === 'skip') this.finish();
       if (b.dataset.action === 'next') this.advance();
+      if (b.dataset.action === 'tracker' && this.game.state) victoryTrackerDialog(this.root, this.game.state, this.game.viewer);
     });
     this.capture();
     this.render();
@@ -70,6 +85,7 @@ export class Tutorial {
   finish() {
     this.active = false;
     this.node.remove();
+    delete this.root.dataset.tutorialFocus;
     this.game.hintTile = null;
     this.game.updateHighlights();
     this.onFinish();
@@ -100,10 +116,13 @@ export class Tutorial {
       }
     }
     const last = this.i === this.steps.length - 1;
+    // Oberflaechenteil hervorheben (z. B. Netto-Einkommen) / highlight a UI part (e.g. net income)
+    if (st.focus) this.root.dataset.tutorialFocus = st.focus; else delete this.root.dataset.tutorialFocus;
     this.node.innerHTML = `<div class="row">${icon('tutorial')}<strong class="display grow">${esc(t('tutorial.title'))} ${this.i + 1}/${this.steps.length}</strong>
       ${button(t('tutorial.skip'), { action: 'skip', variant: 'secondary' })}</div>
-      <p>${esc(t(`tutorial.${st.key}`))}</p>
-      ${st.manual ? button(last ? t('tutorial.done') : t('tutorial.next'), { action: 'next', icon: 'next' }) : ''}`;
+      <p>${esc(t(`tutorial.${st.key}`, TUTORIAL_PARAMS[st.key] ?? {}))}</p>
+      <div class="row">${st.key === 'goal' ? button(t('tutorial.goalOpen'), { action: 'tracker', icon: 'trophy', variant: 'secondary' }) : ''}
+      ${st.manual ? button(last ? t('tutorial.done') : t('tutorial.next'), { action: 'next', icon: 'next' }) : ''}</div>`;
   }
 }
 

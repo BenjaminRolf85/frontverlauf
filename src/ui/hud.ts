@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, type BuildingId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, HIT_KINDS, ROCKETS, RESEARCH_CENTER_TECH, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
@@ -24,6 +24,9 @@ import {
 import { icon } from './icons';
 import { victoryGoalText, wonderPanel } from './victory';
 
+/** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
+const HINT_PRESS_MS = 450;
+
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
 export const UNIT_ICON: Record<string, string> = {
@@ -35,7 +38,7 @@ export const UNIT_ICON: Record<string, string> = {
   antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
   steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'barrier', privateer: 'sail', protoWalker: 'walker',
   // Wunder der Siegbedingungen / victory wonders
-  portal: 'grand', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
+  portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
 const COUNTER_KEY: Record<CounterClass, string> = { vehicle: 'counter.vsVehicle', air: 'counter.vsAir', foot: 'counter.vsFoot' };
 
@@ -73,15 +76,28 @@ export function cityName(s: GameState, cityId: number): string {
   return cityById(s, cityId) ? cityNameOf(s, cityId) : '';
 }
 
-/** Text der Angriffsvorschau mit Trefferglueck / attack preview text with hit luck */
-function attackLabel(s: GameState, p: CombatPreview): string {
-  if (!hitChanceOn(s)) return p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker });
+/**
+ * Angriffsvorschau mit Trefferglueck: kurz (zweite Zeile im Knopf) und voll (Hinweiszeile).
+ * Attack preview with hit luck: short (second line in the button) and full (hint line).
+ */
+function attackPreview(s: GameState, p: CombatPreview): { short: string; full: string } {
+  if (!hitChanceOn(s)) {
+    const txt = p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker });
+    return { short: txt, full: txt };
+  }
   const pct = Math.round(p.killChance * 100);
   const ret = Math.round(p.expectedRet / Math.max(0.01, 1 - p.killChance));
-  if (pct >= 100) return t('actions.previewKill');
+  if (pct >= 100) return { short: t('actions.previewKill'), full: t('actions.previewKill') };
   const dmg = t('hit.previewDmg', { exp: Math.round(p.expected), min: p.min, max: p.max });
   const kill = pct > 0 ? ` · ${t('hit.killChance', { pct })}` : '';
-  return `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}`;
+  return { short: `${dmg}${kill}`, full: `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}. ${t('hit.hintLuck')}` };
+}
+
+/** Kurzwerte eines Einheitentyps fuer die Hinweiszeile / short stats of a unit type for the hint line */
+function unitStatsLine(type: UnitTypeId): string {
+  const st = UNITS[type];
+  const abil = st.abilities.filter((a) => a !== 'carry').map((a) => t(`abilities.${a}`));
+  return [`${t('stats.attack')} ${st.attack}`, `${t('stats.defense')} ${st.defense}`, `${t('stats.move')} ${st.move}`, `${t('stats.range')} ${st.range || t('stats.noRange')}`, ...abil].join(' · ');
 }
 
 /** Treffsicherheit einer Einheit als Kurztext und Tooltip / accuracy of a unit as short text and tooltip */
@@ -92,7 +108,7 @@ function accuracyStat(s: GameState, u: Unit): string {
   const race = hitRace(u.type);
   const note = race === 'cult' && cultFrenzy(u) ? ` · ${t('hit.frenzy')}` : race === 'robot' && u.hp < u.maxHp ? ` · ${t('hit.worn')}` : '';
   const ready = canOrderlyRetreat(u) && (u.retreatReady ?? 0) > s.round ? ` · ${t('retreat.cooldown', { n: (u.retreatReady ?? 0) - s.round })}` : '';
-  return `<span class="stat ${note ? 'tag warn' : ''}" title="${esc(tip)}">${icon('range', 'icon-sm')}${esc(t(`hit.race.${race}`) + note + ready)}</span>`;
+  return `<span class="stat ${note ? 'tag warn' : ''}" title="${esc(tip)}">${icon('dice', 'icon-sm')}${esc(t(`hit.race.${race}`) + note + ready)}</span>`;
 }
 
 export interface HudCallbacks {
@@ -118,6 +134,12 @@ export class Hud {
   private portraitFor: { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null = null;
   /** offenes Rekrutier-Menue fuer diese Einheit / open recruit menu for this unit */
   private recruitFor: number | null = null;
+  /** Hinweiszeile: zuletzt angetippte Aktion, Auswahl-Schluessel, aufgeklappt / hint line: last tapped action, selection key, expanded */
+  private hintId: string | null = null;
+  private hintKey = '';
+  private hintOpen = false;
+  private pressTimer: ReturnType<typeof setTimeout> | null = null;
+  private suppressClick = false;
 
   constructor(root: HTMLElement, private game: Controller, private cb: HudCallbacks) {
     this.top = document.createElement('header');
@@ -131,10 +153,50 @@ export class Hud {
     this.bottom.className = 'bottom';
     root.append(this.top, this.controls, this.banner, this.bottom);
     root.addEventListener('click', (e) => this.onClick(e));
+    // Hinweiszeile: Fokus, Mauszeiger und langes Druecken zeigen die Erklaerung / hint line: focus, hover and long-press show the explanation
+    const actOf = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.action[data-act]');
+    this.bottom.addEventListener('focusin', (e) => { const a = actOf(e); if (a) this.setHint(a.dataset.act!); });
+    this.bottom.addEventListener('pointerover', (e) => { const a = actOf(e); if (a && e.pointerType === 'mouse') this.setHint(a.dataset.act!); });
+    this.bottom.addEventListener('pointerdown', (e) => {
+      const a = actOf(e);
+      if (!a) return;
+      this.clearPress();
+      this.pressTimer = setTimeout(() => { this.pressTimer = null; this.suppressClick = true; this.setHint(a.dataset.act!, true); }, HINT_PRESS_MS);
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) this.bottom.addEventListener(ev, () => this.clearPress());
+    this.bottom.addEventListener('contextmenu', (e) => { if (actOf(e)) e.preventDefault(); });
+  }
+
+  private clearPress() {
+    if (this.pressTimer) clearTimeout(this.pressTimer);
+    this.pressTimer = null;
+  }
+
+  /** Text der Hinweiszeile / text of the hint line */
+  private hintHtml(): string {
+    const a = this.hintId ? this.actions.find((x) => x.id === this.hintId) : undefined;
+    if (!a) return `${icon('info', 'icon-sm')}<span class="hint-text muted">${esc(t('hud.hintPrompt'))}</span>`;
+    const text = (a.enabled ? a.desc ?? a.reason : a.reason) ?? (a.sub && a.sub !== a.label ? a.sub : '');
+    const name = a.sub && a.sub !== a.label && a.id !== 'attack' && a.id !== 'rocket' ? `${a.label} (${a.sub})` : a.label;
+    return `${icon(a.enabled ? 'info' : 'lock', 'icon-sm')}<span class="hint-text"><strong>${esc(name)}</strong>${text ? `: ${esc(text)}` : ''}</span>`;
+  }
+
+  /** Hinweiszeile ohne neues Rendern aktualisieren / update the hint line without a full re-render */
+  private setHint(id: string, flash = false) {
+    this.hintId = id;
+    const n = this.bottom.querySelector<HTMLElement>('.action-hint');
+    if (!n) return;
+    const a = this.actions.find((x) => x.id === id);
+    n.innerHTML = this.hintHtml();
+    n.classList.toggle('blocked', !!a && !a.enabled);
+    if (flash) { n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash'); }
   }
 
   /** Aktuelle Aktionen (auch fuer XR-Panels) / current actions (also for XR panels) */
-  currentActions(): ActionItem[] { return this.actions; }
+  currentActions(): ActionItem[] {
+    // XR zeigt keine Zweitzeile: Vorschau wieder in den Namen / XR shows no second line: put the preview back into the label
+    return this.actions.map((a) => (a.id === 'attack' || a.id === 'rocket') && a.sub ? { ...a, label: `${a.label}: ${a.sub}` } : a);
+  }
 
   show(on: boolean) {
     for (const n of [this.top, this.controls, this.banner, this.bottom]) n.hidden = !on;
@@ -144,10 +206,13 @@ export class Hud {
     const target = e.target as HTMLElement;
     const act = target.closest<HTMLElement>('[data-act]');
     if (act && this.bottom.contains(act)) {
+      // nach langem Druecken nur erklaeren, nicht ausfuehren / after a long-press only explain, do not run
+      if (this.suppressClick) { this.suppressClick = false; return; }
       const a = this.actions.find((x) => x.id === act.dataset.act);
       if (a) {
-        if (!a.enabled) { this.game.play('error'); if (a.reason) this.game.ui.toast(a.reason, 'warning'); }
-        else { this.game.play('click'); a.run(); }
+        // gesperrt: Grund in der Hinweiszeile statt nur im Tooltip / disabled: reason in the hint line instead of only a tooltip
+        if (!a.enabled) { this.game.play('error'); this.setHint(a.id, true); }
+        else { this.game.play('click'); this.hintId = a.id; a.run(); }
       }
       return;
     }
@@ -177,6 +242,12 @@ export class Hud {
       case 'grand': this.cb.openGrand(); break;
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
+      case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
+      case 'actionsMore': {
+        const bar = this.bottom.querySelector<HTMLElement>('.action-bar');
+        bar?.scrollBy({ left: bar.clientWidth * 0.7, behavior: this.game.view.board.animations ? 'smooth' : 'auto' });
+        break;
+      }
       case 'speedUp': this.game.speedUp = true; this.game.view.board.finishAnimations(); break;
       case 'nextUnit': this.nextUnit(); break;
       case 'deselect': this.game.clearSelection(); this.render(); break;
@@ -205,10 +276,14 @@ export class Hud {
     const inc = income(s, viewerIdx);
     const up = upkeep(s, viewerIdx);
     const limit = s.config.roundLimit;
+    // Netto-Einkommen: auf dem Handy kompakt neben den Sternen / net income: compact next to the stars on phones
+    const net = inc - up;
+    const netTxt = `${net >= 0 ? '+' : ''}${net}`;
     this.top.innerHTML = `
       <button type="button" class="faction-btn" data-action="faction" aria-label="${esc(t('leaders.title'))}: ${esc(t(`factions.${f.id}.name`))}">${leaderPortrait(f.id, 'xs')}${factionChip(f.id, t(`factions.${f.id}.short`))}</button>
-      ${resource('medal', score(s, viewerIdx), '', t('hud.points'))}
-      ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: (inc - up >= 0 ? '+' : '') + (inc - up) }) : t('hud.perRound', { n: inc }), t('hud.stars'))}
+      ${resource('medal', score(s, viewerIdx), t('hud.points'), t('hud.points'))}
+      ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: netTxt }) : t('hud.perRound', { n: inc }), t('hud.stars'),
+        `<span class="net ${net < 0 ? 'neg' : ''}" aria-hidden="true">${esc(netTxt)}</span>`)}
       ${resource('hourglass', limit ? `${Math.min(s.round, limit)}/${limit}` : s.round, '', t('hud.round'))}
       ${this.weatherChip(s)}
       <span class="grow"></span>
@@ -227,6 +302,8 @@ export class Hud {
 
     this.actions = [];
     this.portraitFor = null;
+    const prevKey = this.hintKey;
+    const prevScroll = this.bottom.querySelector<HTMLElement>('.action-bar')?.scrollLeft ?? 0;
     let sheet = '';
     if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
@@ -238,10 +315,28 @@ export class Hud {
         ${iconButton('next', t('hud.nextUnit'), 'nextUnit', { lg: true })}
         <button type="button" class="btn end" data-action="endTurn" ${humanTurn ? '' : 'disabled'}>${icon('endTurn')}<span>${esc(t('hud.endTurn'))}</span></button>
       </nav>`;
+    this.mountActionBar(prevKey === this.hintKey ? prevScroll : 0);
     const pf = this.portraitFor as { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null;
     this.portrait.animate = this.game.view.board.animations;
     if (pf) this.portrait.attach(this.bottom.querySelector<HTMLElement>('[data-portrait]'), pf.type, pf.faction, pf.carried);
     else this.portrait.stop();
+  }
+
+  /** Aktionsleiste: Scroll-Position halten, Scroll-Hinweis bei Ueberlauf / action bar: keep the scroll position, scroll cue on overflow */
+  private mountActionBar(scroll: number) {
+    const bar = this.bottom.querySelector<HTMLElement>('.action-bar');
+    const wrap = bar?.parentElement;
+    if (!bar || !wrap) return;
+    bar.scrollLeft = scroll;
+    const cue = () => {
+      const more = bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 2;
+      wrap.classList.toggle('more-right', more);
+      wrap.classList.toggle('more-left', bar.scrollLeft > 2);
+      const btn = wrap.querySelector<HTMLElement>('.action-more');
+      if (btn) btn.hidden = !more;
+    };
+    bar.addEventListener('scroll', cue, { passive: true });
+    cue();
   }
 
   private weatherChip(s: GameState): string {
@@ -262,6 +357,9 @@ export class Hud {
     const vUnit = unit && (viewer < 0 || canSeeUnit(s, viewer, unit)) ? unit : undefined;
     const city = cityAt(s, x, y);
     const tab = g.tab;
+    // neue Auswahl: Hinweiszeile zuruecksetzen / new selection: reset the hint line
+    const key = `${x},${y},${tab},${unit?.id ?? ''}`;
+    if (key !== this.hintKey) { this.hintKey = key; this.hintId = null; this.hintOpen = false; }
     let head = '', body = '';
     const myTurn = g.isHumanTurn;
     if (!explored) {
@@ -297,8 +395,9 @@ export class Hud {
       } else {
         const fid = s.factions[city.owner].id;
         const need = levelUpCost(s, city);
-        head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display">${esc(name)} · ${esc(t('hud.level', { n: city.level }))}</h3>
-          <div class="muted">${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
+        // Stufe in der Unterzeile, damit der Name nicht abgeschnitten wird / level in the subline so the name is not cut off
+        head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
+          <div class="muted unit-sub">${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
         body += `<div class="row">${icon('people', 'icon-sm')}<span>${esc(t('hud.population', { pop: city.pop, need }))}</span><div class="grow">${progress(city.pop, need, '', t('hud.population', { pop: city.pop, need }))}</div></div>
           <div class="sheet-more"><div class="stats"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>
@@ -337,7 +436,6 @@ export class Hud {
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
       const bones = tile.remains ? tile.remains.skeletons ?? (tile.remains.kind === 'skeleton' ? 1 : 0) : 0;
       if (bones) tags.push(t('features.skeleton', { n: bones }));
-      body += `<div class="row sheet-more">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (tile.xeno) tags.push(`${t('xeno.ground')}: ${t('xeno.groundDesc')}`);
       if (tile.volcano) {
         const n = roundsToEruption(x, y, s.round + (s.current === s.factions.length - 1 ? 1 : 0));
@@ -347,12 +445,18 @@ export class Hud {
       if (isJungle(tile)) tags.push(`${t('hazards.jungle')}: ${t('hazards.jungleDesc', { def: JUNGLE.footDefense })}`);
       if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
       if (tile.feature === 'labRuin') tags.push(tile.looted ? t('hazards.labLooted') : `${t('hazards.lab')}: ${t('hazards.labDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
+      // erst nach allen Gefahren- und Xeno-Texten ausgeben / render only after all hazard and xeno texts
+      if (tags.length) body += `<div class="row sheet-more">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
       if (myTurn) this.wonderActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(`actions.${k}Actions`))}</button>`).join('')}</div>` : '';
-    const actionsHtml = this.actions.length ? `<div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>` : '';
+    // Aktionsleiste mit Scroll-Hinweis und einzeiliger Erklaerung darunter / action bar with scroll cue and a one-line explanation below
+    const blocked = this.hintId ? this.actions.find((a) => a.id === this.hintId)?.enabled === false : false;
+    const actionsHtml = this.actions.length ? `<div class="action-wrap"><div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>
+      <button type="button" class="action-more" data-action="actionsMore" aria-label="${esc(t('hud.moreActions'))}" title="${esc(t('hud.moreActions'))}" hidden>${icon('next', 'icon-sm')}</button></div>
+      <button type="button" class="action-hint ${this.hintOpen ? 'open' : ''} ${blocked ? 'blocked' : ''}" data-action="hint" aria-expanded="${this.hintOpen}" aria-live="polite" title="${esc(t('hud.hintExpand'))}">${this.hintHtml()}</button>` : '';
     // Handy: Zusatzwerte eingeklappt, Knopf klappt sie auf / phone: extra values collapsed, a button expands them
     const more = body.includes('sheet-more')
       ? `<button type="button" class="icon-btn sheet-toggle" data-action="sheet-more" aria-expanded="${this.expanded}" aria-label="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}" title="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}">${icon(this.expanded ? 'chevronDown' : 'chevronUp')}</button>` : '';
@@ -366,19 +470,20 @@ export class Hud {
       const target = unitById(s, g.pendingTarget);
       // Mech-Raketen / mech rockets
       if (target && rocketTargets(s, u).some((o) => o.id === target.id)) {
-        const p = combatPreview(s, u, target);
+        const p = attackPreview(s, combatPreview(s, u, target));
         this.actions.push({
           id: 'rocket', icon: 'lightning', variant: 'danger', enabled: true,
-          label: `${t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max })}: ${attackLabel(s, p)}`,
+          label: t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max }), sub: p.short, desc: `${p.full} ${t('rockets.desc')}`,
           run: () => void g.exec({ type: 'rocket', unit: u.id, target: target.id }),
         });
       }
       // nur, solange der Angriff noch moeglich ist / only while the attack is still possible
       if (target && attackTargets(s, u).some((o) => o.id === target.id)) {
-        const p = combatPreview(s, u, target);
+        // kurzer Name, Vorschau als zweite Zeile / short label, preview as a second line
+        const p = attackPreview(s, combatPreview(s, u, target));
         this.actions.push({
           id: 'attack', icon: 'attack', variant: 'danger', enabled: true,
-          label: `${t('actions.attack')}: ${attackLabel(s, p)}`,
+          label: t('actions.attack'), sub: p.short, desc: p.full,
           run: () => void g.exec({ type: 'attack', unit: u.id, target: target.id }),
         });
         // Menschen: geordneter Rueckzug / humans: orderly retreat
@@ -389,7 +494,8 @@ export class Hud {
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',
               label: t('retreat.action', { dmg: retreatDamage(s, u, target) }),
-              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? t('retreat.cooldown', { n: wait }) : errText(rc),
+              desc: t('retreat.desc'),
+              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : errText(rc),
               run: () => void g.exec({ type: 'retreat', unit: u.id, target: target.id }),
             });
           }
@@ -408,8 +514,8 @@ export class Hud {
     if (u.hp < u.maxHp) {
       const rc = repairCheck(s, u);
       if (rc === 'ok' || rc === 'unitExhausted') {
-        this.actions.push({ id: 'repair', icon: 'build', label: t('repair.action', { n: repairAmount(s, u) }), enabled: rc === 'ok',
-          reason: rc === 'ok' ? t('repair.desc') : errText('unitExhausted'), run: () => void g.exec({ type: 'repair', unit: u.id }) });
+        this.actions.push({ id: 'repair', icon: 'build', label: t('repair.action', { n: repairAmount(s, u) }), enabled: rc === 'ok', desc: t('repair.desc'),
+          reason: rc === 'ok' ? t('repair.desc') : `${errText('unitExhausted')} ${t('repair.desc')}`, run: () => void g.exec({ type: 'repair', unit: u.id }) });
       }
     }
     if (has(u, 'heal')) {
@@ -527,6 +633,7 @@ export class Hud {
       const chk = trainCheck(s, c, type);
       this.actions.push({
         id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
+        desc: unitStatsLine(type),
         enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : t(`errors.${chk}`),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       });
@@ -548,7 +655,7 @@ export class Hud {
     // auf fremdem Gebiet nicht anbieten / not offered on foreign ground
     if (!mine && chk === 'notInTerritory') return;
     this.actions.push({
-      id: `wonder-${kind}`, icon: UNIT_ICON[kind] ?? 'grand', label: t('victory.build', { name: t(`units.${kind}`) }), sub: unitNickname(s.factions[f].id, kind),
+      id: `wonder-${kind}`, icon: UNIT_ICON[kind] ?? 'trophy', label: t('victory.build', { name: t(`units.${kind}`) }), sub: unitNickname(s.factions[f].id, kind),
       cost: WONDERS.cost[kind], variant: 'primary', enabled: chk === 'ok',
       reason: chk === 'ok' ? victoryGoalText(s.factions[f].id) : t(`errors.${chk}`),
       run: () => void g.exec({ type: 'wonder', kind: kind as WonderKind, x, y }),
@@ -563,20 +670,52 @@ export class Hud {
       if (chk === 'ok' || chk === 'notEnoughStars') this.actions.push({ id: 'terraform-tile', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary',
         enabled: chk === 'ok', reason: chk === 'ok' ? t('xeno.groundDesc') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x, y }) });
     }
+    const locked: ActionItem[] = [];
     for (const b of Object.keys(BUILDINGS) as BuildingId[]) {
       const chk = buildCheck(s, f, b, x, y);
+      // fehlende Technologie: anzeigen, wenn das Gebaeude sonst hierher passt / missing tech: show if the building would otherwise fit here
+      if (!chk.ok && chk.error === 'techMissing') {
+        const tech = lockedBuildingTech(s, f, b, x, y);
+        if (tech) locked.push({
+          id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: false,
+          reason: `${t('hud.needsTech', { tech: t(`techs.${tech}`) })} · ${t(`buildingDesc.${b}`)}`,
+          run: () => {},
+        });
+        continue;
+      }
       if (!chk.ok && chk.error !== 'notEnoughStars' && chk.error !== 'onePerCity') continue;
       this.actions.push({
         id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: chk.ok,
+        desc: t(`buildingDesc.${b}`),
         reason: chk.ok ? t(`buildingDesc.${b}`) : t(`errors.${chk.error}`),
         run: () => void g.exec({ type: 'build', building: b, x, y }),
       });
     }
+    // gesperrte Gebaeude hinter den baubaren / locked buildings after the buildable ones
+    this.actions.push(...locked);
     for (const id of GRAND_PROJECT_IDS) {
       if (!grandProjectCheck(s, f, id, x, y)) continue;
       this.actions.push({ id: `grand-${id}`, icon: 'grand', label: t(`grand.${id}`), cost: 0, enabled: true, variant: 'primary', run: () => void g.exec({ type: 'grandProject', id, x, y }) });
     }
   }
+}
+
+/**
+ * Technologie, die einem Gebaeude auf diesem Feld fehlt, falls es sonst passen wuerde (sonst null).
+ * Tech a building lacks on this tile if it would otherwise fit (otherwise null).
+ */
+function lockedBuildingTech(s: GameState, f: number, b: BuildingId, x: number, y: number): TechId | null {
+  if (b === 'xenoHive' || b === 'xenoHarvester' || isAlienFaction(s, f)) return null;
+  const tile = s.tiles[y * s.size + x];
+  const tech = b === 'researchCenter'
+    ? (tile.terrain === 'ocean' ? null : RESEARCH_CENTER_TECH[tile.terrain as keyof typeof RESEARCH_CENTER_TECH] ?? null)
+    : BUILDINGS[b].tech;
+  if (!tech) return null;
+  // Probe mit der Technologie (flache Kopie, aendert den Zustand nicht) / probe with the tech (shallow copy, does not change the state)
+  const fa = s.factions[f];
+  const probe = { ...s, factions: s.factions.map((o, i) => (i === f ? { ...fa, techs: [...fa.techs, tech] } : o)) } as GameState;
+  const chk = buildCheck(probe, f, b, x, y);
+  return chk.ok || chk.error === 'notEnoughStars' || chk.error === 'onePerCity' ? tech : null;
 }
 
 export { price };

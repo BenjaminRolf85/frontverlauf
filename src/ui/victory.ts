@@ -2,9 +2,9 @@
  * Fraktions-Siegbedingungen in der Oberflaeche: Texte, Wunder-Infofeld, Siegverfolgung, Spielende-Grund.
  * Faction victory conditions in the UI: texts, wonder info panel, victory tracker, game-over reason.
  */
-import { UNITS, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
+import { UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
 import {
-  factionVictoryOn, isWonder, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
+  factionVictoryOn, isWonder, score, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
 } from '../core';
 import { t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog, progress } from './components';
@@ -54,7 +54,7 @@ export function wonderPanel(s: GameState, u: Unit): string {
   const left = st.unit === u.id && st.roundsLeft !== null ? st.roundsLeft : null;
   const armed = type === 'waal' && waalArmed(u);
   return `<div class="wonder-info" role="group" aria-label="${esc(t('victory.unitTitle'))}">
-    <div class="row">${icon('grand', 'icon-sm')}<strong>${esc(phaseText(st))}</strong>
+    <div class="row">${icon('trophy', 'icon-sm')}<strong>${esc(phaseText(st))}</strong>
       <span class="tag">${esc(t('victory.stage', { n: stage + 1, max: phases.length }))}</span>
       ${left !== null ? `<span class="tag ${left <= 3 ? 'warn' : ''}">${esc(t('victory.roundsTotal', { n: left }))}</span>` : ''}
       ${armed ? `<span class="tag warn">${icon('attack', 'icon-sm')}${esc(t('victory.armed'))}</span>` : ''}</div>
@@ -82,7 +82,8 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   if (!fa.alive) return `<div class="score-row">${head}${goal}</div><span class="tag">${esc(t('victory.eliminated'))}</span></div>`;
   const st = victoryStatus(s, g);
   let state: string;
-  if (!st.tech) state = `<span class="muted">${esc(t('victory.noTech'))}</span>`;
+  // fehlende Siegtechnologie beim Namen nennen / name the missing victory tech
+  if (!st.tech) state = `<span class="muted">${esc(t('victory.noTech'))}</span><span class="tag">${icon('lock', 'icon-sm')}${esc(t('hud.needsTech', { tech: t(`techs.${VICTORY_TECH[fa.id]}`) }))}</span>`;
   else {
     const left = st.roundsLeft !== null && st.phase !== 'none' ? ` · ${t('victory.roundsLeft', { n: st.roundsLeft })}` : '';
     const note = st.phase === 'league' && st.roundsLeft === null ? ` · ${t('victory.leagueNotMet')}` : '';
@@ -91,11 +92,30 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   return `<div class="score-row">${head}${goal}${state}</div>${st.tech && st.ratio >= 0.75 ? `<span class="tag warn">${icon('warning', 'icon-sm')}</span>` : ''}</div>`;
 }
 
+/** Platz einer Fraktion nach Punkten (1 = vorn) / rank of a faction by points (1 = first) */
+export function pointsRank(s: GameState, f: number): number {
+  const mine = score(s, f);
+  return 1 + s.factions.filter((o) => o.index !== f && o.alive && score(s, o.index) > mine).length;
+}
+
+/** Zeile zum Spielmodus: Punkte mit Runde und Platz oder Eroberung / game-mode row: points with round and rank, or conquest */
+function modeRow(s: GameState, viewer: number): string {
+  const mode = s.config.campaign ? null : s.config.mode;
+  if (!mode) return '';
+  const me = viewer >= 0 ? viewer : s.current;
+  const limit = s.config.roundLimit;
+  const line = mode === 'points' && limit
+    ? t('victory.modePoints', { round: Math.min(s.round, limit), max: limit, rank: pointsRank(s, me) })
+    : t(`modes.${mode}Desc`, { rounds: limit ?? '' });
+  return `<div class="score-row mode-row">${icon(mode === 'points' ? 'medal' : 'capture')}<div class="grow col">
+    <strong>${esc(t('victory.modeTitle'))}: ${esc(t(`modes.${mode}`))}</strong><span>${esc(line)}</span></div></div>`;
+}
+
 /** Siegverfolgung: Fortschritt aller bekannten Fraktionen / victory tracker: progress of all known factions */
 export function victoryTrackerDialog(root: HTMLElement, s: GameState, viewer: number) {
   const body = factionVictoryOn(s)
     ? `<p class="muted">${esc(t('victory.hint'))}</p><div class="score-list victory-list">${s.factions.map((f) => trackerRow(s, viewer, f.index)).join('')}</div>`
     : `<p class="muted">${esc(t('victory.off'))}</p>`;
-  const d = openDialog(root, `${dialogTitle(t('victory.title'))}${body}`);
+  const d = openDialog(root, `${dialogTitle(t('victory.title'))}<div class="score-list victory-list">${modeRow(s, viewer)}</div>${body}`);
   d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
 }

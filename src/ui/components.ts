@@ -34,8 +34,10 @@ export function price(n: number): string {
 }
 
 /** Ressourcenanzeige / resource display */
-export function resource(iconName: string, value: string | number, sub = '', label = ''): string {
-  return `<span class="res" ${label ? `aria-label="${esc(label)}: ${esc(value)} ${esc(sub)}"` : ''}><span class="${iconName === 'star' ? 'star' : ''}">${icon(iconName)}</span><span class="val">${esc(value)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>`;
+/** extra: zusaetzliches Markup nach dem Wert (z. B. Netto-Einkommen) / extra markup after the value (e.g. net income) */
+export function resource(iconName: string, value: string | number, sub = '', label = '', extra = ''): string {
+  const aria = label ? `${label}: ${value} ${sub}`.trim() : '';
+  return `<span class="res" data-res="${esc(iconName)}" ${aria ? `role="img" aria-label="${esc(aria)}" title="${esc(aria)}"` : ''}><span class="${iconName === 'star' ? 'star' : ''}">${icon(iconName)}</span><span class="val">${esc(value)}</span>${extra}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>`;
 }
 
 /** Fortschrittsbalken / progress bar */
@@ -56,10 +58,11 @@ export function factionChip(f: FactionId, label: string): string {
 
 /** Aktionsknopf in der Aktionsleiste / action in the action bar */
 /** sub: kleine Zweitzeile unter dem Namen (z. B. Fraktions-Spitzname) / small second line below the label (e.g. faction nickname) */
-export interface ActionItem { id: string; label: string; sub?: string; icon: string; cost?: number; enabled: boolean; reason?: string; variant?: 'primary' | 'danger'; run: () => void }
+/** desc: Erklaerung fuer die Hinweiszeile (sonst reason) / explanation for the hint line (otherwise reason) */
+export interface ActionItem { id: string; label: string; sub?: string; icon: string; cost?: number; enabled: boolean; reason?: string; desc?: string; variant?: 'primary' | 'danger'; run: () => void }
 export function actionButton(a: ActionItem): string {
   const sub = a.sub && a.sub !== a.label ? `<small class="action-sub">${esc(a.sub)}</small>` : '';
-  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc(a.reason ?? (a.sub ? `${a.label} (${a.sub})` : a.label))}">${icon(a.icon)}<span>${esc(a.label)}</span>${sub}${a.cost !== undefined ? price(a.cost) : ''}</button>`;
+  return `<button type="button" class="action ${a.variant ?? ''}" data-act="${esc(a.id)}" aria-disabled="${!a.enabled}" title="${esc((a.enabled ? a.desc ?? a.reason : a.reason) ?? (a.sub ? `${a.label} (${a.sub})` : a.label))}">${icon(a.icon)}<span>${esc(a.label)}</span>${sub}${a.cost !== undefined ? price(a.cost) : ''}</button>`;
 }
 
 /** Dialog / dialog */

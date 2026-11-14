@@ -9,7 +9,7 @@ import {
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, type GameConfig,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, factionVictoryOn, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, setLanguage, t } from '../i18n/i18n';
@@ -23,6 +23,7 @@ import { leaderPortrait } from './leaders';
 import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
+import { rulesDialog } from './rules';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -64,7 +65,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
         ${button(t('menu.newGame'), { icon: 'plus', action: 'new', block: true, variant: host.hasSave() ? 'secondary' : 'primary' })}
         ${button(t('campaign.menu'), { icon: 'map', action: 'campaign', block: true, variant: 'secondary' })}
         ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
-        ${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', block: true, variant: 'secondary' })}
+        <div class="row">${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', variant: 'secondary', cls: 'grow' })}${button(t('rules.menu'), { icon: 'info', action: 'rules', variant: 'secondary', cls: 'grow', title: t('menu.help') })}</div>
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.settings'), { icon: 'settings', action: 'settings', variant: 'secondary', cls: 'grow' })}${button(t('menu.credits'), { icon: 'info', action: 'credits', variant: 'secondary', cls: 'grow' })}</div>
         ${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}
@@ -74,7 +75,12 @@ export function mainMenu(host: ScreenHost): HTMLElement {
   bind(n, {
     continue: () => host.continueGame(),
     slots: () => host.openSlots('load'),
-    new: () => { n.replaceWith(setupScreen(host)); },
+    // erster neuer Einsatz: Tutorial anbieten / first new game: offer the tutorial
+    new: () => {
+      if (host.settings.tutorialDone) { n.replaceWith(setupScreen(host)); return; }
+      tutorialPrompt(host, () => n.replaceWith(setupScreen(host)));
+    },
+    rules: () => rulesDialog(host.root),
     campaign: () => { n.replaceWith(campaignScreen(host)); },
     tutorial: () => host.startTutorial(),
     import: () => host.loadFromFile(),
@@ -88,6 +94,30 @@ export function mainMenu(host: ScreenHost): HTMLElement {
   return n;
 }
 
+/**
+ * Frage vor dem ersten Einsatz: Tutorial oder direkt zur Einsatzplanung. Die Wahl wird gemerkt.
+ * Question before the first game: tutorial or straight to setup. The choice is remembered.
+ */
+export function tutorialPrompt(host: ScreenHost, toSetup: () => void) {
+  const d = openDialog(host.root, `${dialogTitle(t('onboarding.title'))}
+    <p>${esc(t('onboarding.text'))}</p>
+    <div class="choice-grid">
+      <button type="button" class="choice" data-choice="tutorial"><strong class="row">${icon('tutorial')}${esc(t('onboarding.play'))}</strong><span>${esc(t('onboarding.playDesc'))}</span></button>
+      <button type="button" class="choice" data-choice="skip"><strong class="row">${icon('next')}${esc(t('onboarding.skip'))}</strong><span>${esc(t('onboarding.skipDesc'))}</span></button>
+    </div>
+    <p class="muted">${esc(t('onboarding.later'))}</p>`);
+  d.node.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-action="close"]')) { d.close(); return; }
+    const c = target.closest<HTMLElement>('[data-choice]');
+    if (!c) return;
+    host.settings.tutorialDone = true;
+    host.applySettings();
+    d.close();
+    if (c.dataset.choice === 'tutorial') host.startTutorial(); else toSetup();
+  });
+}
+
 // ---------- Partie einrichten / game setup ----------
 export function setupScreen(host: ScreenHost): HTMLElement {
   const n = document.createElement('div');
@@ -97,6 +127,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     events: true,
     hitChance: true,
     factionVictory: true,
+    // Erweitert: auf dem Handy eingeklappt / advanced: collapsed on phones
+    advanced: typeof window === 'undefined' || !window.matchMedia?.('(max-width: 560px)').matches,
     hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
@@ -107,6 +139,13 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       { id: 'meridon' as FactionId, human: false, difficulty: 'normal' as Difficulty },
     ],
   };
+  // Kurzfassung der erweiterten Optionen (eingeklappt) / summary of the advanced options (collapsed)
+  const onOff = (v: boolean) => t(v ? 'settings.on' : 'settings.off');
+  const advancedSummary = () => [
+    `${t('weather.title')}: ${onOff(cfg.weather)}`, `${t('hazards.title')}: ${t(`hazards.${cfg.hazards}`)}`, `${t('randomEvents.title')}: ${onOff(cfg.events)}`,
+    `${t('hit.title')}: ${onOff(cfg.hitChance)}`, `${t('victory.setupTitle')}: ${onOff(cfg.factionVictory)}`,
+    ...(cfg.mode === 'sandbox' ? [`${t('setup.startStars')}: ${cfg.startStars}`] : []), `${t('setup.seed')}: ${cfg.seed}`,
+  ].join(' · ');
   const render = () => {
     const sandbox = cfg.mode === 'sandbox';
     n.innerHTML = `
@@ -119,23 +158,6 @@ export function setupScreen(host: ScreenHost): HTMLElement {
           ${segmented('size', MAP_SIZES.map((sz) => ({ value: String(sz), label: t('setup.tiles', { n: sz }) })), String(cfg.size))}</div>
         <div class="field"><span class="label">${esc(t('setup.mapType'))}</span>
           ${segmented('mapType', (Object.keys(MAP_TYPES) as MapType[]).map((m) => ({ value: m, label: t(`mapTypes.${m}`) })), cfg.mapType)}</div>
-        <div class="field"><span class="label">${esc(t('weather.title'))}</span>
-          ${segmented('weather', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.weather ? 'on' : 'off')}
-          <span class="muted">${esc(t('weather.setupHint'))}</span></div>
-        <div class="field"><span class="label">${esc(t('hazards.title'))}</span>
-          ${segmented('hazards', (['none', 'normal', 'many'] as HazardLevel[]).map((h) => ({ value: h, label: t(`hazards.${h}`) })), cfg.hazards)}
-          <span class="muted">${esc(t('hazards.setupHint'))}</span></div>
-        <div class="field"><span class="label">${esc(t('randomEvents.title'))}</span>
-          ${segmented('events', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.events ? 'on' : 'off')}
-          <span class="muted">${esc(t('randomEvents.setupHint'))}</span></div>
-        <div class="field"><span class="label">${esc(t('hit.title'))}</span>
-          ${segmented('hitChance', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.hitChance ? 'on' : 'off')}
-          <span class="muted">${esc(t('hit.setupHint'))}</span></div>
-        <div class="field"><span class="label">${esc(t('victory.setupTitle'))}</span>
-          ${segmented('factionVictory', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.factionVictory ? 'on' : 'off')}
-          <span class="muted">${esc(t('victory.setupHint'))}</span></div>
-        ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
-          ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
           <span class="muted">${esc(t('setup.hotseatHint'))}</span>
           ${cfg.players.map((p, i) => `
@@ -145,8 +167,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               <button type="button" class="slot-pick" data-action="pick-${i}" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(t(`factions.${p.id}.name`))}">
                 ${leaderPortrait(p.id, 'md')}
                 <span class="col grow"><strong class="slot-faction">${esc(t(`factions.${p.id}.name`))}</strong>
-                  <span class="slot-leader">${esc(t(`factions.${p.id}.leaderTitle`))} <strong>${esc(t(`factions.${p.id}.leader`))}</strong>${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span>
-                  ${traitChips(p.id)}</span>
+                  <span class="slot-leader">${esc(t(`factions.${p.id}.leaderTitle`))} <strong>${esc(t(`factions.${p.id}.leader`))}</strong>${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span></span>
+                <span class="slot-traits">${traitChips(p.id, { compact: true })}</span>
                 <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
               </button>
               ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
@@ -154,8 +176,32 @@ export function setupScreen(host: ScreenHost): HTMLElement {
             </div>`).join('')}
           ${cfg.players.length < PLAYER_LIMITS.max ? button(t('setup.addPlayer'), { icon: 'plus', action: 'add', variant: 'secondary' }) : ''}
         </div>
-        <div class="field"><label for="seed">${esc(t('setup.seed'))}</label>
-          <div class="row"><input id="seed" type="text" value="${esc(cfg.seed)}" class="grow" inputmode="numeric">${button(t('setup.randomSeed'), { action: 'seed', variant: 'secondary' })}</div></div>
+        <div class="field advanced ${cfg.advanced ? 'open' : ''}">
+          <button type="button" class="adv-toggle" data-action="advanced" aria-expanded="${cfg.advanced}" aria-controls="setup-advanced">
+            <span class="label">${esc(t('setup.advanced'))}</span>${icon(cfg.advanced ? 'chevronUp' : 'chevronDown', 'icon-sm')}</button>
+          ${cfg.advanced ? '' : `<span class="muted adv-summary">${esc(advancedSummary())}</span>`}
+          <div class="adv-body" id="setup-advanced" ${cfg.advanced ? '' : 'hidden'}>
+            <div class="field"><span class="label">${esc(t('weather.title'))}</span>
+              ${segmented('weather', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.weather ? 'on' : 'off')}
+              <span class="muted">${esc(t('weather.setupHint'))}</span></div>
+            <div class="field"><span class="label">${esc(t('hazards.title'))}</span>
+              ${segmented('hazards', (['none', 'normal', 'many'] as HazardLevel[]).map((h) => ({ value: h, label: t(`hazards.${h}`) })), cfg.hazards)}
+              <span class="muted">${esc(t('hazards.setupHint'))}</span></div>
+            <div class="field"><span class="label">${esc(t('randomEvents.title'))}</span>
+              ${segmented('events', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.events ? 'on' : 'off')}
+              <span class="muted">${esc(t('randomEvents.setupHint'))}</span></div>
+            <div class="field"><span class="label">${esc(t('hit.title'))}</span>
+              ${segmented('hitChance', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.hitChance ? 'on' : 'off')}
+              <span class="muted">${esc(t('hit.setupHint'))}</span></div>
+            <div class="field"><span class="label">${esc(t('victory.setupTitle'))}</span>
+              ${segmented('factionVictory', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.factionVictory ? 'on' : 'off')}
+              <span class="muted">${esc(t('victory.setupHint'))}</span></div>
+            ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
+              ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
+            <div class="field"><label for="seed">${esc(t('setup.seed'))}</label>
+              <div class="row"><input id="seed" type="text" value="${esc(cfg.seed)}" class="grow" inputmode="numeric">${button(t('setup.randomSeed'), { action: 'seed', variant: 'secondary' })}</div></div>
+          </div>
+        </div>
         ${button(t('setup.start'), { icon: 'play', action: 'start', block: true })}
       </div>`;
   };
@@ -223,6 +269,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     const a = b.dataset.action!;
     cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
     if (a === 'back') { n.remove(); host.showMenu(); }
+    else if (a === 'advanced') { cfg.advanced = !cfg.advanced; render(); n.querySelector<HTMLElement>('[data-action="advanced"]')?.focus(); }
     else if (a === 'seed') { cfg.seed = String(Math.floor(Math.random() * 1e6)); render(); }
     else if (a === 'add') {
       const free = FACTION_IDS.find((f) => !cfg.players.some((p) => p.id === f));
@@ -298,7 +345,8 @@ export function pauseMenu(host: ScreenHost) {
     <nav class="menu-list">
       ${button(t('menu.resume'), { icon: 'play', action: 'close', block: true })}
       ${button(t('history.open'), { icon: 'chart', action: 'stats', block: true, variant: 'secondary' })}
-      ${button(t('victory.open'), { icon: 'crown', action: 'victory', block: true, variant: 'secondary' })}
+      ${button(t('victory.open'), { icon: 'trophy', action: 'victory', block: true, variant: 'secondary' })}
+      ${button(t('rules.menu'), { icon: 'info', action: 'rules', block: true, variant: 'secondary', title: t('menu.help') })}
       ${button(t('menu.save'), { icon: 'save', action: 'save', block: true, variant: 'secondary' })}
       ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
       ${button(t('menu.exportFile'), { icon: 'download', action: 'export', block: true, variant: 'secondary' })}
@@ -313,6 +361,7 @@ export function pauseMenu(host: ScreenHost) {
     close: () => d.close(),
     stats: () => { d.close(); statsDialog(host.root, host.game.state!, host.game.viewer); },
     victory: () => { d.close(); victoryTrackerDialog(host.root, host.game.state!, host.game.viewer); },
+    rules: () => { d.close(); rulesDialog(host.root); },
     save: () => { host.saveNow(); d.close(); },
     slots: () => { d.close(); host.openSlots('save'); },
     export: () => host.exportGame(),
@@ -386,11 +435,14 @@ export function researchDialog(host: ScreenHost) {
         ${lines.map((l, i) => `<text class="name" x="${p.x}" y="${p.y + 46 + i * 13}" text-anchor="middle">${esc(l)}</text>`).join('')}
       </g>`;
     }
-    const legend = (['researched', 'available', 'expensive', 'locked'] as const).map((k) => `<span><i style="background:var(--c-tech-node-${k})"></i>${esc(t(`tech.${k}`))}</span>`).join('');
+    const legend = (['researched', 'available', 'expensive', 'locked'] as const).map((k) => `<span><i style="background:var(--c-tech-node-${k})"></i>${esc(t(`tech.${k}`))}</span>`).join('')
+      // gestrichelter Rand = Siegtechnologie / dashed rim = victory tech
+      + (factionVictoryOn(s) ? `<span><i class="legend-victory"></i>${esc(t('tech.legendVictory'))}</span>` : '');
     return `${dialogTitle(t('tech.title'))}
       <div class="row"><span class="res"><span class="star">${icon('star')}</span><span class="val">${s.factions[f].stars}</span></span><span class="muted">${esc(t('tech.costFormula'))}</span></div>
       <div class="legend">${legend}</div>
       ${!canResearch(s, f) ? `<p class="muted">${esc(t('victory.researchOnly'))}</p>` : ''}
+      ${techListHtml(s, f, ids, g.isHumanTurn && f === s.current)}
       <div class="tech-wrap"><svg class="tech-svg" viewBox="${canResearch(s, f) ? '0 0 800 800' : `${C - 160} ${C - 300} 320 360`}" role="group" aria-label="${esc(t('tech.title'))}">
         ${links}<circle cx="${C}" cy="${C}" r="44" class="tech-center"/>
         ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>`;
@@ -399,6 +451,14 @@ export function researchDialog(host: ScreenHost) {
   d.node.addEventListener('click', async (e) => {
     const target = e.target as Element;
     if (target.closest('[data-action="close"]')) { d.close(); return; }
+    // Listenansicht: direkt erforschen / list view: research directly
+    const rb = target.closest<HTMLElement>('[data-research]');
+    if (rb) {
+      if (rb.hasAttribute('disabled')) return;
+      const res = await g.exec({ type: 'research', tech: rb.dataset.research as TechId });
+      if (res.ok) d.node.innerHTML = html();
+      return;
+    }
     const node = target.closest<SVGGElement>('[data-tech]');
     if (node) {
       selected = node.dataset.tech as TechId;
@@ -407,6 +467,38 @@ export function researchDialog(host: ScreenHost) {
       techInfoBox(host, selected, () => { selected = null; d.node.innerHTML = html(); });
     }
   });
+}
+
+/**
+ * Listenansicht des Forschungsbaums fuer schmale Bildschirme: nach Zweig gruppiert, mit Status, Kosten und Knopf.
+ * List view of the research tree for narrow screens: grouped by branch, with status, cost and button.
+ */
+function techListHtml(s: GameState, f: number, ids: TechId[], canAct: boolean): string {
+  const visible = new Set(ids);
+  const groups: { title: string; techs: TechId[] }[] = [];
+  for (const root of TECH_IDS.filter((id) => TECHS[id].parent === null)) {
+    const techs: TechId[] = [root];
+    for (const kid of TECH_IDS.filter((id) => TECHS[id].parent === root)) {
+      techs.push(kid, ...TECH_IDS.filter((id) => TECHS[id].parent === kid));
+    }
+    const shown = techs.filter((id) => visible.has(id));
+    if (shown.length) groups.push({ title: t(`techs.${root}`), techs: shown });
+  }
+  const vt = VICTORY_TECH[s.factions[f].id];
+  if (visible.has(vt)) groups.push({ title: t('tech.victoryGroup'), techs: [vt] });
+  const row = (id: TechId) => {
+    const st = techState(s, f, id);
+    const cost = researchCost(s, f, id);
+    const parent = TECHS[id].parent;
+    const note = st === 'locked' && parent ? t('tech.needParent', { tech: t(`techs.${parent}`) }) : t(`tech.${st}`);
+    const btn = st === 'researched' ? `<span class="tag ok">${icon('check', 'icon-sm')}</span>`
+      : `<button type="button" class="btn tech-buy ${st === 'available' && canAct ? '' : 'secondary'}" data-research="${id}" ${st === 'available' && canAct ? '' : 'disabled aria-disabled="true"'} aria-label="${esc(t('tech.confirm'))}: ${esc(t(`techs.${id}`))}">${icon('research', 'icon-sm')}${price(cost)}</button>`;
+    return `<li class="tech-row ${st} ${TECHS[id].faction ? 'victory' : ''}">
+      <button type="button" class="tech-row-main" data-tech="${id}"><i class="tech-dot" aria-hidden="true"></i>
+        <span class="col"><strong>${esc(t(`techs.${id}`))}</strong><span class="muted">${esc(t('tech.tier', { n: TECHS[id].tier }))} · ${esc(note)}</span></span></button>
+      ${btn}</li>`;
+  };
+  return `<div class="tech-list">${groups.map((gr) => `<section class="tech-branch"><h3 class="display">${esc(gr.title)}</h3><ul>${gr.techs.map(row).join('')}</ul></section>`).join('')}</div>`;
 }
 
 /** Infobox zu einer Technologie mit Bestaetigung / info box for a technology with confirmation */
@@ -499,10 +591,10 @@ export function diplomacyDialog(host: ScreenHost) {
         }
         actions = `<div class="row">${tags.join('')}</div><div class="row">${btns.join('')}</div>`;
       }
-      return `<div class="player-row">${leaderPortrait(o.id, 'sm')}<div class="col"><strong>${esc(name)}</strong><span>${esc(t(`factions.${o.id}.leaderTitle`))} ${esc(t(`factions.${o.id}.leader`))}</span><span class="muted">${esc(t(`factions.${o.id}.alignment`))} · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}</span></div><div class="col span-all">${actions}</div></div>`;
+      return `<div class="player-row">${leaderPortrait(o.id, 'sm')}<div class="col"><strong>${esc(name)}</strong><span>${esc(t(`factions.${o.id}.leaderTitle`))} ${esc(t(`factions.${o.id}.leader`))}</span><span class="muted">${esc(t(`factions.${o.id}.alignment`))}${contact ? ` · ${esc(t('diplomacy.score', { n: score(s, o.index) }))}` : ''}</span></div><div class="col span-all">${actions}</div></div>`;
     }).join('');
     return `${dialogTitle(t('diplomacy.title'))}<div class="col">${rows}</div><p class="muted">${esc(t('diplomacy.breakHint'))} ${esc(t('diplomacy.embassyHint'))}</p>
-      ${button(t('victory.open'), { icon: 'crown', action: 'victory', variant: 'secondary', block: true })}`;
+      ${button(t('victory.open'), { icon: 'trophy', action: 'victory', variant: 'secondary', block: true })}`;
   };
   const d = openDialog(host.root, html());
   d.node.addEventListener('click', async (e) => {
