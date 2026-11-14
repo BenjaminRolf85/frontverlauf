@@ -538,7 +538,9 @@
     "slowed": "Slowed: 1 tile only",
     "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
     "upkeepUnit": "Upkeep {n} per round",
-    "upkeepFree": "No upkeep (core troop)"
+    "upkeepFree": "No upkeep (core troop)",
+    "moreInfo": "Show more values",
+    "lessInfo": "Show fewer values"
   },
   "actions": {
     "move": "Move",

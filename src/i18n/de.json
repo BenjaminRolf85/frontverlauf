@@ -538,7 +538,9 @@
     "slowed": "Gebremst: nur 1 Feld",
     "perRoundUpkeep": "{net} pro Runde ({n} Einkommen, −{up} Sold)",
     "upkeepUnit": "Sold {n} pro Runde",
-    "upkeepFree": "Kein Sold (Stammtruppe)"
+    "upkeepFree": "Kein Sold (Stammtruppe)",
+    "moreInfo": "Mehr Werte anzeigen",
+    "lessInfo": "Weniger Werte anzeigen"
   },
   "actions": {
     "move": "Bewegen",
