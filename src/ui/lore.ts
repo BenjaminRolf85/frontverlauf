@@ -10,7 +10,7 @@ import { dialogTitle, esc, openDialog } from './components';
 import { icon } from './icons';
 
 /** Vorhandene Comic-Seiten / available comic pages */
-const LORE_PAGES: readonly FactionId[] = ['korvat', 'zyrr'];
+const LORE_PAGES: readonly FactionId[] = ['korvat', 'zyrr', 'vesper'];
 
 const BASE = `${import.meta.env.BASE_URL ?? '/'}lore/`;
 
