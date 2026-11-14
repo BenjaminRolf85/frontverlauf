@@ -19,8 +19,8 @@ import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { cityName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
-import { factionCard, leaderPortrait } from './leaders';
-import { traitChips } from './factionInfo';
+import { leaderPortrait } from './leaders';
+import { detailsLink, factionDetails, traitChips } from './factionInfo';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -131,7 +131,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
           ${cfg.players.map((p, i) => `
             <div class="player-row slot">
               <div class="slot-head"><span class="slot-no display">${esc(t('setup.slot', { n: i + 1 }))}</span>
-                ${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</div>
+                <span class="row">${detailsLink(p.id)}${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</span></div>
               <button type="button" class="slot-pick" data-action="pick-${i}" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(t(`factions.${p.id}.name`))}">
                 ${leaderPortrait(p.id, 'md')}
                 <span class="col grow"><strong class="slot-faction">${esc(t(`factions.${p.id}.name`))}</strong>
@@ -156,20 +156,24 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       <div class="faction-grid">${FACTION_IDS.map((f) => {
         const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
         const current = cfg.players[slot].id === f;
-        return `<button type="button" class="faction-card" data-pick="${f}" aria-pressed="${current}">
-          ${leaderPortrait(f, 'md')}
-          <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
-            <span>${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
-            <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
-            ${traitChips(f, { desc: true })}
-            <span class="muted">${esc(t(`factions.${f}.lore`))}</span>
-            <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
-              ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
-        </button>`;
+        return `<div class="faction-card" ${current ? 'aria-current="true"' : ''}>
+          <button type="button" class="faction-pick" data-pick="${f}" aria-pressed="${current}">
+            ${leaderPortrait(f, 'md')}
+            <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
+              <span>${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
+              <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
+              ${traitChips(f)}
+              <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
+                ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
+          </button>
+          ${detailsLink(f)}
+        </div>`;
       }).join('')}</div>`;
     const d = openDialog(n, html, { wide: true });
     d.node.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-action="close"]')) { d.close(); return; }
+      const det = (e.target as HTMLElement).closest<HTMLElement>('[data-details]');
+      if (det) { factionDialog(n, det.dataset.details as FactionId); return; }
       const card = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
       if (!card) return;
       const f = card.dataset.pick as FactionId;
@@ -184,6 +188,8 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   render();
   n.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    const det = target.closest<HTMLElement>('[data-details]');
+    if (det) { factionDialog(n, det.dataset.details as FactionId); return; }
     const seg = target.closest<HTMLElement>('[data-seg]');
     if (seg) {
       const key = seg.dataset.seg!, v = seg.dataset.value!;
@@ -621,6 +627,6 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
 
 /** Fraktionsfenster mit Anfuehrer und Hintergrund / faction window with leader and background */
 export function factionDialog(root: HTMLElement, f: FactionId) {
-  const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionCard(f)}`, { wide: true });
+  const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionDetails(f)}`, { wide: true });
   d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
 }

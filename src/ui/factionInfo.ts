@@ -5,6 +5,7 @@
 import { FACTIONS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
+import { leaderPortrait } from './leaders';
 import { BUILD_ICON, UNIT_ICON } from './hud';
 import { icon } from './icons';
 
@@ -39,7 +40,31 @@ export function factionTraits(f: FactionId): FactionTrait[] {
 
 /** Marken als HTML / chips as HTML */
 export function traitChips(f: FactionId, opts: { desc?: boolean } = {}): string {
-  return `<ul class="trait-list" style="--trait-accent:var(--faction-${f}-primary)">${factionTraits(f).map((tr) => `
-    <li class="trait trait-${tr.kind}" title="${esc(tr.desc || tr.value)}">${icon(tr.icon, 'icon-sm')}
-      <span class="trait-text"><span class="trait-label">${esc(tr.label)}</span> <strong>${esc(tr.value)}</strong>${opts.desc && tr.desc ? `<span class="trait-desc">${esc(tr.desc)}</span>` : ''}</span></li>`).join('')}</ul>`;
+  // span statt ul/li, damit die Marken auch in Knoepfen gueltig sind / spans instead of ul/li so chips are valid inside buttons
+  return `<span class="trait-list" role="list" style="--trait-accent:var(--faction-${f}-primary)">${factionTraits(f).map((tr) => `
+    <span class="trait trait-${tr.kind}" role="listitem" title="${esc(tr.desc || tr.value)}">${icon(tr.icon, 'icon-sm')}
+      <span class="trait-text"><span class="trait-label">${esc(tr.label)}</span> <strong>${esc(tr.value)}</strong>${opts.desc && tr.desc ? `<span class="trait-desc">${esc(tr.desc)}</span>` : ''}</span></span>`).join('')}</span>`;
+}
+
+/** Link zur ausfuehrlichen Ansicht / link to the detailed view */
+export function detailsLink(f: FactionId): string {
+  return `<button type="button" class="details-link" data-details="${f}" aria-label="${esc(t('traits.detailsFor', { name: t(`factions.${f}.name`) }))}">${icon('info', 'icon-sm')}<span>${esc(t('traits.details'))}</span></button>`;
+}
+
+/** Ausfuehrliche Fraktionsansicht / detailed faction view */
+export function factionDetails(f: FactionId): string {
+  const k = (s: string) => esc(t(`factions.${f}.${s}`));
+  const opt = (s: string, label: string) => (has(`factions.${f}.${s}`) ? `<p><span class="muted">${esc(label)}:</span> ${k(s)}</p>` : '');
+  return `<div class="leader-card faction-details">
+    ${leaderPortrait(f, 'lg')}
+    <div class="col grow">
+      <strong class="display">${k('name')}</strong>
+      <span><span class="muted">${esc(t('leaders.leader'))}:</span> ${k('leaderTitle')} <strong>${k('leader')}</strong></span>
+      <q class="leader-quote">${k('quote')}</q>
+      ${traitChips(f, { desc: true })}
+      <p>${k('lore')}</p>
+      ${opt('style', t('leaders.style'))}
+      ${opt('aiStyle', t('traits.aiStyle'))}
+    </div>
+  </div>`;
 }

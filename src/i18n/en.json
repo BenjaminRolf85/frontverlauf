@@ -1542,6 +1542,9 @@
     "discount": "Discount",
     "discountValue": "{unit} −{pct}%",
     "building": "Own building",
-    "leader": "Leader"
+    "leader": "Leader",
+    "details": "Details",
+    "detailsFor": "Details on {name}",
+    "aiStyle": "As AI"
   }
 }

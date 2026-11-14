@@ -1542,6 +1542,9 @@
     "discount": "Rabatt",
     "discountValue": "{unit} −{pct} %",
     "building": "Eigenes Gebäude",
-    "leader": "Anführer"
+    "leader": "Anführer",
+    "details": "Details",
+    "detailsFor": "Details zu {name}",
+    "aiStyle": "Als KI"
   }
 }
