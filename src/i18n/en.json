@@ -703,6 +703,208 @@
     "dialog": "Dialog",
     "close": "Close"
   },
+  "campaign": {
+    "title": "Campaign",
+    "menu": "Campaign",
+    "subtitle": "Nine operations on every front",
+    "totalStars": "{n} of {max} stars",
+    "mission": "Operation {n}",
+    "locked": "Locked",
+    "lockedHint": "Win operation {n} first.",
+    "completed": "Done",
+    "open": "Open",
+    "start": "Start operation",
+    "briefing": "Briefing",
+    "debriefing": "Debriefing",
+    "versus": "vs",
+    "objectives": "Objectives",
+    "bonus": "Bonus objectives (one star each)",
+    "length": "{n} rounds",
+    "roundOf": "Round {n}/{max}",
+    "byRound": "by round {n}",
+    "progress": "{have}/{need}",
+    "toggle": "Show or hide objectives",
+    "short": "Goals",
+    "victory": "Mission accomplished!",
+    "defeat": "Mission failed!",
+    "rating": "Rating: {n} of 3 stars",
+    "best": "Best: {n} stars",
+    "next": "Next operation",
+    "retry": "Retry",
+    "toCampaign": "To campaign",
+    "toMenu": "Main menu",
+    "finale": "All operations accomplished! You are a legend of the front.",
+    "objectiveDone": "Objective done: {text}",
+    "objectiveFailed": "Objective failed: {text}",
+    "bonusDone": "Bonus objective done: {text}",
+    "status": {
+      "pending": "open",
+      "done": "done",
+      "failed": "failed"
+    },
+    "speakers": {
+      "hq": "Headquarters",
+      "scout": "Recon",
+      "enemy": "Enemy radio"
+    },
+    "obj": {
+      "holdHq": "Hold your headquarters until round {rounds}",
+      "holdCities": "Lose no city until round {rounds}",
+      "survive": "Survive until round {rounds}",
+      "holdTile": "Keep the marked tile free of enemies until round {rounds}",
+      "capture": "Capture the marked city by round {rounds}",
+      "salvage": "Salvage the marked crash site before the enemy, by round {rounds}",
+      "cities": "Own {n} cities by round {rounds}",
+      "points": "Reach {n} points by round {rounds}",
+      "kills": "Destroy {n} enemy units by round {rounds}",
+      "eliminate": "Knock out {name} by round {rounds}",
+      "fast": "Win by round {n}",
+      "keepHq": "Never lose your headquarters",
+      "noCityLost": "Lose no city",
+      "bonusCapture": "Capture the marked city",
+      "bonusCities": "Own {n} cities",
+      "bonusKills": "Destroy {n} enemy units",
+      "bonusPoints": "Reach {n} points"
+    },
+    "missions": {
+      "m1": {
+        "title": "Baptism of Fire",
+        "tagline": "Three cities under the Korvat flag",
+        "brief": [
+          "Recruit! Welcome to the front. The Dravon are sniffing around our border.",
+          "Your orders: three cities under the Korvat flag. Take settlements, raise troops – on the double!",
+          "Dravon here. Korvat farmers? We'll be over for breakfast in two rounds!"
+        ],
+        "won": "Three cities, zero excuses. That's what we call a baptism of fire, soldier!",
+        "lost": "That was nothing. Back to boot camp – and then again!"
+      },
+      "m2": {
+        "title": "The Volcano Pass",
+        "tagline": "Hold the pass at the fire mountain",
+        "brief": [
+          "The only pass through the mountains runs right past the fire mountain. Whoever holds it holds the valley.",
+          "Dravon column inbound! Jeep and infantry heading for the pass. If an enemy stands there at the start of your turn, all is lost.",
+          "Out of the way, mountain goats! The pass belongs to Dravon!"
+        ],
+        "won": "The pass is sealed! The Dravon can fold their maps back up.",
+        "lost": "The pass has fallen. Even the volcano is embarrassed."
+      },
+      "m3": {
+        "title": "Defend the Coast",
+        "tagline": "15 rounds against the landing fleet",
+        "brief": [
+          "Alert on the coast! The Alvenia fleet is lying off our harbours.",
+          "Two landing boats and a destroyer, commander. They want our beach!",
+          "Hold all our cities for 15 rounds. Not one grain of sand for the enemy!"
+        ],
+        "won": "15 rounds, not one city lost. The Alvenia admirals will go swimming somewhere else now.",
+        "lost": "They have landed. We should have built more bunkers and fewer beach chairs."
+      },
+      "m4": {
+        "title": "Race to the Crash Site",
+        "tagline": "Faster than the Zyrr",
+        "brief": [
+          "Something fell from the sky – smoking, glowing and definitely not from around here!",
+          "Reach the crash site before the Zyrr and salvage the tech. The clock is ticking!",
+          "ZKRRT ... property of the Zyrr ... earthlings ... step back ... ZKRRT"
+        ],
+        "won": "Salvaged! The eggheads in the lab are completely losing it.",
+        "lost": "The Zyrr were faster. The thing is flying again – just not for us."
+      },
+      "m5": {
+        "title": "The Cult Awakens",
+        "tagline": "Storm the cult headquarters",
+        "brief": [
+          "Torches burn at night in the lake lands. The Vesper cult preaches the end of the world.",
+          "The end is nigh! Join us – or burn!",
+          "Capture their headquarters before the madness spreads. No sermons, just tanks."
+        ],
+        "won": "Cult headquarters stormed. The torches go out, the doomsday posters go to recycling.",
+        "lost": "The cult keeps growing. Someone sold them megaphones."
+      },
+      "m6": {
+        "title": "Machine Breakers",
+        "tagline": "Free two villages from NEXUS",
+        "brief": [
+          "Commander, two villages on our doorstep are whirring and beeping. Tin heads!",
+          "NEXUS IS TAKING OVER. RESISTANCE IS INEFFICIENT. PLEASE SMILE.",
+          "Take both settlements back! Wrenches out, people."
+        ],
+        "won": "Both villages freed. We'll collect the androids as scrap metal.",
+        "lost": "The machines hold the villages. Our toaster is looking at us funny too."
+      },
+      "m7": {
+        "title": "The Prophecy",
+        "tagline": "As the cult to fame and glory",
+        "brief": [
+          "Brothers and sisters! The prophecy demands glory beyond measure – and on schedule.",
+          "Preach, recruit, spread out. And watch for signs: storms, plagues, miracles.",
+          "Meridon to all units: those weirdos in robes are dangerous. Open fire!"
+        ],
+        "won": "The prophecy is fulfilled! The bells ring, the zealots dance.",
+        "lost": "The prophecy ... was probably a misprint."
+      },
+      "m8": {
+        "title": "First Contact",
+        "tagline": "As the Zyrr, test the earthlings",
+        "brief": [
+          "Mothership to landing party: the earthlings are primitive, loud and armed.",
+          "Korvat to all units: little green men in the field! Get the pitchforks ... and the tanks!",
+          "Test their defences. Destroy their units. For science. And for fun."
+        ],
+        "won": "Test series complete. Result: earthlings fragile. Mothership pleased. ZKRRT.",
+        "lost": "Retreat to the mothership. Note for later: earthlings have pitchforks."
+      },
+      "m9": {
+        "title": "The Last Bastion",
+        "tagline": "Survive the invasion",
+        "brief": [
+          "Lights in the sky, machines on the horizon – the Zyrr and NEXUS attack together!",
+          "ZKRRT ... BEEP ... SURRENDER ... ZKRRT ... BEEP",
+          "Hold the headquarters to the end. The bunker stands, the machine guns are loaded. Not one step back!"
+        ],
+        "won": "The invasion is repelled! Dravon stands – and the world owes us a medal.",
+        "lost": "The bastion has fallen. But this battle will be told of forever."
+      }
+    }
+  },
+  "randomEvents": {
+    "title": "Events",
+    "setupHint": "Roughly every 6 to 10 rounds: storm, epidemic, rebels, supplies, defector, lucky find or drought.",
+    "kicker": "Breaking news",
+    "region": "Area around tile {x}, {y}",
+    "storm": {
+      "title": "Storm front!",
+      "body": "A storm rages over the troops of {name}: {n} units move only 1 tile this round."
+    },
+    "epidemic": {
+      "title": "Epidemic in {city}!",
+      "body": "{name}: {city} yields no income this round. Medics next to the city would have helped.",
+      "contained": "Medics of {name} contain the epidemic in {city}. No losses!"
+    },
+    "rebels": {
+      "title": "Uprising in {city}!",
+      "body": "Rebels rise against {name} – armed by {other}. The city loses population."
+    },
+    "convoy": {
+      "title": "Supply convoy!",
+      "body": "A convoy reaches {name}: +{n} stars."
+    },
+    "defector": {
+      "title": "Defector!",
+      "body": "A unit of {other} has had enough and defects to {name}."
+    },
+    "luckyFind": {
+      "title": "Lucky find!",
+      "bodyTech": "{name} discovers old blueprints: {tech}.",
+      "bodyStars": "{name} finds a forgotten war chest: +{n} stars."
+    },
+    "drought": {
+      "title": "Drought!",
+      "body": "The farms of {name} wither: -{n} stars, next round too.",
+      "ongoing": "The drought goes on: {name} loses {n} stars."
+    }
+  },
   "cityNames": [
     "Brakmoor",
     "Velden",

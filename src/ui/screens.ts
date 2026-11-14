@@ -18,6 +18,7 @@ import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDi
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { cityName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
+import { campaignScreen } from './campaign';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -57,6 +58,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
       <nav class="menu-list">
         ${host.hasSave() ? button(t('menu.continue'), { icon: 'play', action: 'continue', block: true }) : ''}
         ${button(t('menu.newGame'), { icon: 'plus', action: 'new', block: true, variant: host.hasSave() ? 'secondary' : 'primary' })}
+        ${button(t('campaign.menu'), { icon: 'map', action: 'campaign', block: true, variant: 'secondary' })}
         ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
         ${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', block: true, variant: 'secondary' })}
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
@@ -69,6 +71,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
     continue: () => host.continueGame(),
     slots: () => host.openSlots('load'),
     new: () => { n.replaceWith(setupScreen(host)); },
+    campaign: () => { n.replaceWith(campaignScreen(host)); },
     tutorial: () => host.startTutorial(),
     import: () => host.loadFromFile(),
     settings: () => settingsDialog(host, render),
@@ -87,6 +90,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   n.className = 'screen';
   const cfg = {
     weather: true,
+    events: true,
     hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
@@ -115,6 +119,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <div class="field"><span class="label">${esc(t('hazards.title'))}</span>
           ${segmented('hazards', (['none', 'normal', 'many'] as HazardLevel[]).map((h) => ({ value: h, label: t(`hazards.${h}`) })), cfg.hazards)}
           <span class="muted">${esc(t('hazards.setupHint'))}</span></div>
+        <div class="field"><span class="label">${esc(t('randomEvents.title'))}</span>
+          ${segmented('events', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.events ? 'on' : 'off')}
+          <span class="muted">${esc(t('randomEvents.setupHint'))}</span></div>
         ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
           ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
         <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
@@ -180,6 +187,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'stars') cfg.startStars = Number(v);
       else if (key === 'weather') cfg.weather = v === 'on';
       else if (key === 'hazards') cfg.hazards = v as HazardLevel;
+      else if (key === 'events') cfg.events = v === 'on';
       else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
       else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
@@ -208,6 +216,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         roundLimit: cfg.mode === 'points' ? MODES.pointsRounds : null,
         weather: cfg.weather,
         hazards: cfg.hazards,
+        events: cfg.events,
       });
       n.remove();
       host.startGame(config);

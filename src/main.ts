@@ -22,6 +22,8 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
+import { ObjectivePanel, campaignResult, objectiveToast } from './ui/campaign';
+import { showRandomEvent } from './ui/events';
 
 function boot() {
   const app = document.getElementById('app')!;
@@ -121,7 +123,8 @@ function boot() {
       tutorial?.finish(); tutorial = null;
       barks.clear();
       hud.show(false);
-      root.querySelectorAll('.screen, .overlay').forEach((n) => n.remove());
+      objectives.show(false);
+      root.querySelectorAll('.screen, .overlay, .headline').forEach((n) => n.remove());
       menuNode = mainMenu(host);
       root.appendChild(menuNode);
     },
@@ -137,12 +140,14 @@ function boot() {
   xr.actionsProvider = () => hud.currentActions();
   // Lagekarte: nur im Spiel sichtbar / overview map: visible in game only
   const minimap = new Minimap(root, game, () => !menuNode);
-  const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); };
+  // Einsatzziele (nur Kampagne) / objectives (campaign only)
+  const objectives = new ObjectivePanel(root);
+  const hideMenu = () => { menuNode?.remove(); menuNode = null; root.querySelectorAll('.screen').forEach((n) => n.remove()); hud.show(true); objectives.show(true); };
 
   let rewardOpen = false;
   let lastWeather: string | null = null;
   game.ui = {
-    update() { hud.render(); tutorial?.check(); xr.refreshPanels(); minimap.invalidate(); },
+    update() { hud.render(); objectives.render(game.state); tutorial?.check(); xr.refreshPanels(); minimap.invalidate(); },
     toast: (text, ic) => toast(root, text, ic),
     errorCode: (code) => toast(root, t(`errors.${code}`), 'warning'),
     event(e, s: GameState) {
@@ -181,6 +186,8 @@ function boot() {
         case 'connected': { const c = s.cities.find((x) => x.id === e.city); if (c && c.owner === viewer) toast(root, t('events.connected', { city: cityName(s, e.city) }), 'move'); break; }
         case 'eliminated': toast(root, t('events.eliminated', { name: fname(e.faction) }), 'warning'); break;
         case 'convert': toast(root, t('events.convert'), 'heal'); break;
+        case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
+        case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
       }
     },
     fx: (kind, x, y, text) => { if (game.state) fx.show(game.state, kind, x, y, text); },
@@ -189,7 +196,7 @@ function boot() {
     turnStarted() { if (game.state) barks.onTurnStart(game.state, game.viewer); },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
-    gameOver: () => { gameOverScreen(host); clearSave(); },
+    gameOver: () => { if (game.state?.campaign) campaignResult(host); else gameOverScreen(host); clearSave(); },
     rewards() {
       if (rewardOpen || !game.isHumanTurn) return;
       const s = game.state!;

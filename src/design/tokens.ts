@@ -387,6 +387,13 @@ export const components = {
     bg: semantic.surface, grid: c.paper300, axis: semantic.textMuted, line: '3', lineOutline: '6', lineHuman: '4.5',
     dot: '4', fontSize: '11px', height: '220px',
   },
+  /** Kampagne und Ereignisse / campaign and events */
+  campaign: {
+    panelWidth: '300px', panelMaxHeight: '46vh', cardMaxWidth: '720px', starSize: '40px', starSizeSm: '18px',
+    headlineSize: '32px', bannerWidth: '540px', panelGap: '14px', tilt: '-1.5deg', tiltAlt: '1.2deg',
+    bannerMs: '4200ms', pendingInk: semantic.textMuted, doneInk: c.green700, failedInk: semantic.dangerBright,
+    starOn: semantic.accentStrong, starOff: c.paper300, newsInk: semantic.stamp,
+  },
 } as const;
 
 // ---------- Ausgabe / output ----------

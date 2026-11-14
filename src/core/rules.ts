@@ -10,6 +10,8 @@ import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
+import { evaluateCampaign, setupMission } from './campaign';
+import { processRandomEvents } from './events';
 import {
   recruitCheck, recruitHome, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -76,6 +78,8 @@ export function createGame(config: GameConfig): GameState {
     reveal(s, f.index, hq.x, hq.y, hq.radius + VISION.cityExtra, []);
   }
   startTurn(s, []);
+  // Kampagne: feste Einrichtung der Mission / campaign: fixed mission setup
+  if (config.campaign) setupMission(s);
   return s;
 }
 
@@ -423,7 +427,7 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (s.factions[next].alive) break;
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
-  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); }
+  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processRandomEvents(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -1006,6 +1010,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (s.pendingRewards.some((p) => cityById(s, p.cityId)?.owner === f)) return fail('pendingReward');
       endTurnProcessing(s, ev);
       advance(s, ev);
+      if (s.campaign) evaluateCampaign(s, ev, true);
       res = { ok: true, events: ev };
       s.log.push(...ev.filter((e) => e.t !== 'move'));
       if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
@@ -1015,6 +1020,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       return fail('invalid');
   }
   if (res.ok && !s.over) afterAction(s, f, ev);
+  if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
   return res;
@@ -1044,6 +1050,8 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     roundLimit: partial.roundLimit !== undefined ? partial.roundLimit : mode === 'points' ? MODES.pointsRounds : null,
     weather: partial.weather ?? true,
     hazards: partial.hazards ?? 'none',
+    events: partial.events ?? false,
+    ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }
 
