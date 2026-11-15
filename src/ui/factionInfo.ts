@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { FACTIONS, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { FACTIONS, HOME_DEFENSE, MOVE_FIRE, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -23,7 +23,27 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+
+/**
+ * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat) und Verteidigung auf
+ * eigenem Gebiet (HOME_DEFENSE, Alvenia); Zahlen aus balance.ts.
+ * Combat bonuses of a faction with name and text: firing after moving (MOVE_FIRE.bonus, Korvat) and defence on own
+ * territory (HOME_DEFENSE, Alvenia); numbers from balance.ts.
+ */
+export function combatBonusTexts(f: FactionId): { name: string; desc: string; icon: string }[] {
+  const out: { name: string; desc: string; icon: string }[] = [];
+  const pct = (x: number) => Math.round(x * 100);
+  const b = MOVE_FIRE.bonus[f];
+  if (b) {
+    const rider = SIGNATURE_UNIT[f];
+    out.push({ icon: 'boot', name: t(`moveFire.bonus.${f}`),
+      desc: t(`moveFire.bonusDesc.${f}`, { pct: pct(b.all), base: pct(MOVE_FIRE.damage), rider: pct((rider && b.units?.[rider]) ?? b.all) }) });
+  }
+  const h = HOME_DEFENSE.bonus[f];
+  if (h) out.push({ icon: 'shield', name: t(`homeDefense.bonus.${f}`), desc: t(`homeDefense.bonusDesc.${f}`, { pct: pct(h) }) });
+  return out;
+}
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -43,6 +63,8 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme
   const rb = RESOURCE.buildings[f];
   out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
+  // Kampfboni (Korvat: Steppensturm, Alvenia: Friedensbollwerk) / combat bonuses (Korvat: Steppe Storm, Alvenia: Peace Bulwark)
+  for (const cb of combatBonusTexts(f)) out.push({ kind: 'combat', icon: cb.icon, label: t('traits.combat'), value: cb.name, desc: cb.desc });
   // Treffsicherheit der Rasse / race accuracy
   const race = factionRace(f);
   out.push({ kind: 'aim', icon: 'dice', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });

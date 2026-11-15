@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -523,7 +523,47 @@ export interface CombatPreview {
   expected: number; expectedRet: number; killChance: number; min: number; max: number; odds: Record<HitKind, number>;
   /** Gegenschlag bei vollem Treffer, falls das Ziel ueberlebt / return fire on a full hit if the target survives */
   retFull: number;
+  /** Angreifer ist in diesem Zug gezogen: Schaden mit MOVE_FIRE.damage verringert / attacker moved this turn: damage reduced by MOVE_FIRE.damage */
+  moveFire: boolean;
+  /** Verteidigungsbonus des Ziels auf eigenem Gebiet (0 = keiner) / target's defence bonus on own territory (0 = none) */
+  homeDefense: number;
 }
+
+/**
+ * Feuern nach Bewegung: true, wenn die Einheit in diesem Zug gezogen ist (u.moved, gesetzt vom Befehl Bewegen, zu Beginn
+ * ihres Zuges zurueckgesetzt). Der Schritt des geordneten Rueckzugs folgt erst nach dessen Schuss und zaehlt dafuer nicht.
+ * Firing after moving: true if the unit moved this turn (u.moved, set by the move command, reset at the start of its
+ * turn). The step of the orderly retreat only follows its shot and does not count for it.
+ */
+export const movedThisTurn = (u: Unit): boolean => u.moved === true;
+/** Fraktion, deren Bonus beim Feuern nach Bewegung fuer u gilt (Besitzer), sonst null / faction whose move-fire bonus applies to u (owner), else null */
+export function moveFireBonus(s: GameState, u: Unit): FactionId | null {
+  const f = s.factions[u.owner]?.id;
+  return f && MOVE_FIRE.bonus[f] ? f : null;
+}
+/**
+ * Schadensfaktor, falls u nach einer Bewegung angreift: Grundwert oder Fraktionsbonus (z. B. Korvat, Steppenreiter).
+ * Damage factor if u attacks after moving: base value or faction bonus (e.g. Korvat, Steppe Riders).
+ */
+export function moveFireMult(s: GameState, u: Unit): number {
+  const f = moveFireBonus(s, u);
+  const b = f ? MOVE_FIRE.bonus[f]! : null;
+  return b ? b.units?.[u.type] ?? b.all : MOVE_FIRE.damage;
+}
+/**
+ * Verteidigungsbonus auf eigenem Gebiet (HOME_DEFENSE, z. B. Alvenia +0,25) fuer u auf (x, y), sonst 0.
+ * Defence bonus on own territory (HOME_DEFENSE, e.g. Alvenia +0.25) for u on (x, y), else 0.
+ */
+export function homeDefenseAt(s: GameState, u: Unit, x = u.x, y = u.y): number {
+  const f = s.factions[u.owner]?.id;
+  const b = f ? HOME_DEFENSE.bonus[f] ?? 0 : 0;
+  if (!b) return 0;
+  const t = tileAt(s, x, y);
+  return t && territoryOwner(s, t) === u.owner ? b : 0;
+}
+
+/** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
+export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) ? moveFireMult(s, u) : 1);
 
 /** Deckungsfaktor gegen Fernangriffe (1 = keine) / cover factor against ranged attacks (1 = none) */
 export function rangedCover(s: GameState, att: Unit, def: Unit): number {
@@ -632,7 +672,12 @@ export function retreatTile(s: GameState, u: Unit, target: Unit): Pos | null {
   return best;
 }
 
-/** Schaden beim Rueckzug (20 % des vollen Treffers, mindestens 1) / damage of a retreat (20 % of a full hit, at least 1) */
+/**
+ * Schaden beim Rueckzug (20 % des vollen Treffers, mindestens 1). Nach einer Bewegung ist der volle Treffer schon halbiert
+ * (MOVE_FIRE), der Schritt zurueck zaehlt nicht, denn er folgt erst nach dem Schuss.
+ * Damage of a retreat (20 % of a full hit, at least 1). After a move the full hit is already halved (MOVE_FIRE);
+ * the step back does not count, as it only follows the shot.
+ */
 export function retreatDamage(s: GameState, u: Unit, target: Unit): number {
   const full = combatPreview(s, u, target).toDefender;
   return full > 0 ? Math.max(1, Math.round(full * RETREAT.damage)) : 0;
@@ -699,10 +744,16 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   const defense = effectiveDefense(s, def);
   const atk = effectiveAttack(s, att);
   const attackForce = atk * (att.hp / att.maxHp);
-  const defenseForce = defense * (def.hp / def.maxHp) * bonus;
+  // eigenes Gebiet (Alvenia): eigener Faktor nach der Deckung, nur fuer den erlittenen Schaden, nicht fuer den Gegenschlag
+  // own territory (Alvenia): own factor after cover, only for the damage taken, not for return fire
+  const homeDefense = homeDefenseAt(s, def);
+  const defenseForce = defense * (def.hp / def.maxHp) * bonus * (1 + homeDefense);
   const total = attackForce + defenseForce;
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type)) : 0;
+  // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
+  // less damage after moving, before hit luck; return fire stays undiminished
+  const moveFire = movedThisTurn(att);
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -723,7 +774,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -1716,13 +1767,14 @@ export function turretTargets(s: GameState, u: Unit): Pos[] {
  * Kampf gegen ein Geschuetz nach der normalen Formel: Schaden bei vollem Treffer und Gegenschlag (nur wach und in Reichweite).
  * Fight against a gun with the normal formula: damage on a full hit and return fire (only awake and in range).
  */
-export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number; ret: (turretHp: number) => number; odds: Record<HitKind, number> } {
+export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number; ret: (turretHp: number) => number; odds: Record<HitKind, number>; moveFire: boolean } {
   const t = tileAt(s, p.x, p.y)!.turret!;
   const atk = effectiveAttack(s, u);
   const attackForce = atk * (u.hp / u.maxHp);
   const defenseForce = VERDAN.defense * (t.hp / VERDAN.hp);
   const total = attackForce + defenseForce;
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor) : 0;
+  // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u)) : 0;
   const near = dist(u, p) <= VERDAN.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;
@@ -1730,13 +1782,13 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
     const tt = attackForce + df;
     return tt > 0 ? Math.round((df / tt) * VERDAN.defense * COMBAT.damageFactor) : 0;
   };
-  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2) };
+  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) };
 }
 
 /** Schuss eines Geschuetzes mit hp LP auf def (voller Treffer) / shot of a gun with hp HP at def (full hit) */
 export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
   const attackForce = VERDAN.attack * (hp / VERDAN.hp);
-  const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def);
+  const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def) * (1 + homeDefenseAt(s, def));
   const total = attackForce + defenseForce;
   return total > 0 ? Math.round((attackForce / total) * VERDAN.attack * COMBAT.damageFactor) : 0;
 }
