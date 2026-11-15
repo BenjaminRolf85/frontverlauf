@@ -3491,5 +3491,43 @@
         "text": "Can be switched off in the setup. It needs the faction's own victory capability (tier 3), drawn with a dashed rim in production. The victory tracker in the menu shows the progress of all known factions."
       }
     }
+  },
+  "intro": {
+    "menu": "Watch intro",
+    "title": "Intro: Humanity in the Starfall",
+    "skip": "Skip",
+    "skipHint": "Tap again or press and hold to skip",
+    "loading": "Loading intro …",
+    "back": "Back",
+    "next": "Next",
+    "slide": "Frame {n} of {total}",
+    "replay": "Watch again",
+    "boom": "KABOOM!",
+    "quote": "“{q}”",
+    "tagline": "Hold the front",
+    "sub": {
+      "standstill": "After the Great Standstill, borders drawn in chalk held for two generations.",
+      "skyBurned": "Until the sky burned.",
+      "crash": "Zyrr debris rains down, and their mothership crashes into the desert.",
+      "fracture": "The bell tolls by itself. The human front breaks into five pieces.",
+      "korvat": "Korvat storms: in the Steppe Storm, the steppe riders strike at full gallop.",
+      "alvenia": "Alvenia holds: on home ground, the peacekeepers do not yield a single step.",
+      "dravon": "Dravon builds fortresses: gun emplacements, minefields, iron drill.",
+      "velkar": "Velkar strikes from orbit: a satellite relay guides the technocrats' laser.",
+      "meridon": "Meridon trades: every harbour has its price, and the privateers collect it.",
+      "banners": "Five banners, one continent. And the front is moving again."
+    },
+    "kicker": {
+      "korvat": "Korvat storms",
+      "alvenia": "Alvenia holds",
+      "dravon": "Dravon fortifies",
+      "velkar": "Velkar aims from orbit",
+      "meridon": "Meridon trades"
+    },
+    "tag": {
+      "dravon": "Guns and mines",
+      "velkar": "Orbital laser",
+      "meridon": "Letters of marque"
+    }
   }
 }

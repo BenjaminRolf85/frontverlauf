@@ -3491,5 +3491,43 @@
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegfähigkeit (Stufe 3), in der Produktion gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
       }
     }
+  },
+  "intro": {
+    "menu": "Intro ansehen",
+    "title": "Intro: Die Menschheit im Sternfall",
+    "skip": "Überspringen",
+    "skipHint": "Nochmal tippen oder gedrückt halten zum Überspringen",
+    "loading": "Intro wird geladen …",
+    "back": "Zurück",
+    "next": "Weiter",
+    "slide": "Bild {n} von {total}",
+    "replay": "Nochmal ansehen",
+    "boom": "KAWUMM!",
+    "quote": "„{q}“",
+    "tagline": "Halte die Front",
+    "sub": {
+      "standstill": "Nach dem Großen Stillstand hielten Grenzen aus Kreide, zwei Generationen lang.",
+      "skyBurned": "Bis der Himmel brannte.",
+      "crash": "Trümmer der Zyrr regnen herab, ihr Mutterschiff stürzt in die Wüste.",
+      "fracture": "Die Glocke schlägt von selbst. Die Front der Menschen zerbricht in fünf Teile.",
+      "korvat": "Korvat stürmt: Im Steppensturm schlagen die Steppenreiter aus vollem Galopp zu.",
+      "alvenia": "Alvenia hält: Auf eigenem Boden weicht die Friedenswacht keinen Schritt.",
+      "dravon": "Dravon baut Festungen: Geschützstellungen, Minenfelder, eiserner Drill.",
+      "velkar": "Velkar schlägt aus dem Orbit zu: Ein Satellitenrelais lenkt den Laser der Technokraten.",
+      "meridon": "Meridon handelt: Jeder Hafen hat seinen Preis, die Kaperschiffe treiben ihn ein.",
+      "banners": "Fünf Banner, ein Kontinent. Und die Front wandert wieder."
+    },
+    "kicker": {
+      "korvat": "Korvat stürmt",
+      "alvenia": "Alvenia hält",
+      "dravon": "Dravon befestigt",
+      "velkar": "Velkar zielt vom Orbit",
+      "meridon": "Meridon handelt"
+    },
+    "tag": {
+      "dravon": "Geschütze und Minen",
+      "velkar": "Orbitallaser",
+      "meridon": "Kaperbriefe"
+    }
   }
 }
