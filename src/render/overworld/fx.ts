@@ -117,7 +117,8 @@ export function cloudRing(look: Look, R: number, count: number, seed: number, op
   const grp = new THREE.Group();
   for (let i = 0; i < count; i++) {
     const c = cloudMesh(look, i + seed, opts.tint);
-    const a = (i / count) * Math.PI * 2 + Rn() * 0.6;
+    // nur hinten und seitlich, damit nichts die Marker verdeckt / only at the back and sides so nothing hides the markers
+    const a = Math.PI + 0.25 + ((i + 0.5) / count) * (Math.PI - 0.5) + (Rn() - 0.5) * 0.3;
     const r = R * (0.75 + Rn() * 0.55);
     const s = (opts.scale ?? 0.55) * (0.75 + Rn() * 0.5);
     c.position.set(Math.cos(a) * r, (opts.y ?? 0.75) + Rn() * 0.35, Math.sin(a) * r);
@@ -127,7 +128,7 @@ export function cloudRing(look: Look, R: number, count: number, seed: number, op
   }
   return {
     group: grp,
-    update(t: number) { grp.rotation.y = t * 0.02 + seed; },
+    update(t: number) { grp.rotation.y = Math.sin(t * 0.04 + seed) * 0.45; },
   };
 }
 

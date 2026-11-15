@@ -35,7 +35,7 @@ import type { WorldBuild, WorldCtx } from './types';
 /** Radius einer Scheibe / disc radius */
 export const DISC_R = 1.6;
 /** Dauer einer Enthuellung (ms) / duration of a reveal (ms) */
-const REVEAL_MS = 2800;
+const REVEAL_MS = 3200;
 const BUILDERS: Record<WorldId, (c: WorldCtx) => WorldBuild> = { earth: buildEarth, alien: buildAlien, forgotten: buildForgotten };
 const FOV = 34;
 const ZOOM_MIN = -0.45;
@@ -65,7 +65,7 @@ interface WorldNode { id: WorldId; info: WorldInfo; build: WorldBuild; root: THR
  * triangles/calls: letztes Bild (mit Bloom-Durchgaengen); total/perWorld: alle Dreiecke der Szene (Instanzen mitgezaehlt).
  * triangles/calls: last frame (incl. bloom passes); total/perWorld: all triangles of the scene (instances counted).
  */
-export interface OverworldStats { triangles: number; calls: number; geometries: number; textures: number; programs: number; objects: number; total: number; perWorld: Record<string, number> }
+export interface OverworldStats { triangles: number; calls: number; geometries: number; textures: number; programs: number; objects: number; total: number; perWorld: Record<string, number>; buildMs: number }
 
 /** Dreiecke unter einem Knoten (Instanzen mitgezaehlt) / triangles below a node (instances counted) */
 function sceneTriangles(root: THREE.Object3D): number {
@@ -110,11 +110,15 @@ export class OverworldScene {
   /** Lage der sichtbaren Welten (1, 2 oder 3) / position of the visible worlds (1, 2 or 3) */
   private layout: Record<string, THREE.Vector3> = {};
   /** laufende Enthuellung / running reveal */
-  private revealing: { node: WorldNode; from: THREE.Vector3; start: number; arcs: THREE.InstancedMesh[]; gate: THREE.Object3D | null; flash: THREE.Sprite }[] = [];
+  private revealing: { node: WorldNode; from: THREE.Vector3; start: number; delay: number; arcs: THREE.InstancedMesh[]; gate: THREE.Object3D | null; flash: THREE.Sprite }[] = [];
   private arcs = new Map<WorldId, THREE.InstancedMesh[]>();
   private gates = new Map<WorldId, THREE.Object3D>();
 
+  private held: number | null = null;
+  private buildMs = 0;
+
   constructor(private opts: OverworldSceneOptions) {
+    const built = performance.now();
     const { canvas, quality, touch } = opts;
     this.animations = opts.animations;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
@@ -155,6 +159,7 @@ export class OverworldScene {
     if (quality === 'high' && !touch) {
       try { this.bloom = new Bloom(this.renderer, this.scene, this.camera); this.bloom.strength = 0.4; } catch { this.bloom = null; }
     }
+    this.buildMs = Math.round(performance.now() - built);
     this.bind();
     this.resize();
     if (opts.reveal?.length && this.animations) {
@@ -204,7 +209,8 @@ export class OverworldScene {
    */
   private startReveal(ids: readonly WorldId[]) {
     if (!this.animations) return;
-    let start = performance.now() + 500;
+    // Zeitachse beginnt mit dem ersten gezeichneten Bild (Shader-Aufbau kann dauern) / timeline starts with the first drawn frame (shader setup can take a while)
+    let delay = 300;
     for (const id of ids) {
       const node = this.nodes.find((n) => n.id === id);
       if (!node) continue;
@@ -215,17 +221,18 @@ export class OverworldScene {
       const flash = halo(id === 'forgotten' ? semantic.riftGold : semantic.overworldPath, 1.6, 0);
       flash.position.copy(from);
       this.scene.add(flash);
-      this.revealing.push({ node, from, start, arcs: this.arcs.get(id) ?? [], gate, flash });
-      start += REVEAL_MS;
+      this.revealing.push({ node, from, start: NaN, delay, arcs: this.arcs.get(id) ?? [], gate, flash });
+      delay += REVEAL_MS;
     }
-    this.applyReveal(performance.now());
+    this.applyReveal(0);
   }
 
   /** Enthuellung fortschreiben; true solange sie laeuft / advance the reveal; true while running */
   private applyReveal(now: number): boolean {
     if (!this.revealing.length) return false;
     for (const r of this.revealing) {
-      const p = Math.max(0, Math.min(1, (now - r.start) / REVEAL_MS));
+      if (Number.isNaN(r.start) && now > 0) r.start = now + r.delay;
+      const p = this.held !== null && this.revealing.length ? this.held : Number.isNaN(r.start) ? 0 : Math.max(0, Math.min(1, (now - r.start) / REVEAL_MS));
       const gateIn = Math.min(1, p / 0.3);
       if (r.gate) r.gate.scale.setScalar(Math.max(0.001, gateIn));
       const w = Math.max(0, Math.min(1, (p - 0.2) / 0.8));
@@ -239,7 +246,7 @@ export class OverworldScene {
       (r.flash.material as THREE.SpriteMaterial).opacity = Math.max(0, Math.sin(Math.min(1, p / 0.5) * Math.PI)) * 0.9;
       r.flash.scale.setScalar(0.8 + p * 2.5);
     }
-    const done = this.revealing.filter((r) => now - r.start >= REVEAL_MS);
+    const done = this.held !== null ? [] : this.revealing.filter((r) => !Number.isNaN(r.start) && now - r.start >= REVEAL_MS);
     for (const r of done) {
       r.flash.removeFromParent();
       disposeTree(r.flash);
@@ -523,7 +530,13 @@ export class OverworldScene {
     const i = this.renderer.info;
     const perWorld: Record<string, number> = {};
     for (const n of this.nodes) perWorld[n.id] = sceneTriangles(n.root);
-    return { triangles: i.render.triangles, calls: i.render.calls, geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0, objects, total: sceneTriangles(this.scene), perWorld };
+    return { triangles: i.render.triangles, calls: i.render.calls, geometries: i.memory.geometries, textures: i.memory.textures, programs: i.programs?.length ?? 0, objects, total: sceneTriangles(this.scene), perWorld, buildMs: this.buildMs };
+  }
+
+  /** Nur fuer Tests und Standbilder: Enthuellung bei festem Fortschritt 0..1 anhalten / tests and stills only: hold the reveal at a fixed progress */
+  holdReveal(p: number | null) {
+    this.held = p;
+    this.invalidate();
   }
 
   /** Alles freigeben / release everything */

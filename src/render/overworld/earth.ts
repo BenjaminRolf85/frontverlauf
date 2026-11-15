@@ -260,7 +260,7 @@ export function buildEarth(ctx: WorldCtx): WorldBuild {
   ], low ? 4 : 7);
   content.add(sm.group);
   anim.push(sm.update);
-  const clouds = cloudRing(look, R * 1.5, low ? 2 : 4, seed, { y: 0.55, scale: 0.42 });
+  const clouds = cloudRing(look, R * 1.5, low ? 2 : 4, seed, { y: 0.8, scale: 0.42 });
   spin.add(clouds.group);
   anim.push(clouds.update);
   if (!low) {

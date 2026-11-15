@@ -251,6 +251,7 @@ class Overworld {
   get stats() { return this.scene?.stats() ?? null; }
   /** Bildschirmlage eines Markers relativ zum Canvas (Tests) / screen position of a marker relative to the canvas (tests) */
   markerAt(id: string) { return this.scene?.markerScreen(id) ?? null; }
+  holdReveal(p: number | null) { this.scene?.holdReveal(p); }
 
   private labels(list: { id: WorldId; x: number; y: number; visible: boolean }[]) {
     for (const l of list) {
@@ -340,7 +341,7 @@ class Overworld {
 /** Nur im Entwicklungsmodus: Zaehler fuer Leistungs- und Lecktests / dev only: counters for performance and leak checks */
 function exposeDebug(ow: Overworld) {
   if (!import.meta.env?.DEV) return;
-  (window as unknown as { __overworld?: unknown }).__overworld = { stats: () => ow.stats, live: () => liveScenes, marker: (id: string) => ow.markerAt(id) };
+  (window as unknown as { __overworld?: unknown }).__overworld = { stats: () => ow.stats, live: () => liveScenes, marker: (id: string) => ow.markerAt(id), holdReveal: (p: number | null) => ow.holdReveal(p) };
 }
 
 /**
