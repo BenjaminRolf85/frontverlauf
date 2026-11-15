@@ -1482,7 +1482,8 @@ export function cultCap(s: GameState, f: number): number {
 
 /** Zehnt der Horde pro Runde / tithe of the horde per round */
 export function cultTithe(s: GameState, f: number): number {
-  return Math.min(CULT.titheMax, Math.floor(cultUnits(s, f).length * CULT.tithePerUnit));
+  const max = Math.min(CULT.titheMax, CULT.titheRival * Math.max(1, s.factions.length - 1));
+  return Math.min(max, Math.floor(cultUnits(s, f).length * CULT.tithePerUnit));
 }
 
 /**

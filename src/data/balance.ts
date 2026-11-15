@@ -386,7 +386,7 @@ export const CULT = {
   plunderHq: 40,
   replunderRounds: 6,
   /** Punkte je gepluendertem Stern (Beute zaehlt dauerhaft) / points per plundered star (loot counts permanently) */
-  plunderScore: 6,
+  plunderScore: 7,
   /**
    * Einheitenlimit des Kults: baseCap plus die Plaetze seiner Staedte (Stadtlimit, eigenes Hauptquartier + hqSlots,
    * Schrein im Stadtgebiet + shrineSlots). Wunder zaehlen nicht.
@@ -413,6 +413,13 @@ export const CULT = {
   /** Zehnt der Horde: Sterne je Runde pro Einheit (abgerundet), hoechstens titheMax / tithe of the horde: stars per round per unit (rounded down), at most titheMax */
   tithePerUnit: 1,
   titheMax: 16,
+  /**
+   * Zehnt hoechstens titheRival je gegnerischer Fraktion der Partie (Zweikampf 4, drei Fraktionen 8, vier 12, fuenf titheMax): mit
+   * nur einem Opfer reicht die Beute auch ohne vollen Zehnt.
+   * Tithe at most titheRival per rival faction of the game (duel 4, three factions 8, four 12, five titheMax): with only one
+   * victim the loot suffices even without the full tithe.
+   */
+  titheRival: 4,
   /** Starthorde zusaetzlich zur Starteinheit, auf freien Feldern neben dem Hauptquartier / starting horde in addition to the start unit, on free tiles next to the HQ */
   startUnits: ['zealot', 'zealot', 'zealot'] as UnitTypeId[],
   /** Gebaeude, die der Kult bauen darf / buildings the cult may build */
