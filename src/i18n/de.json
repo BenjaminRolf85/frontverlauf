@@ -261,7 +261,8 @@
     "hackRelay": "Hacker-Relais",
     "fusionPlant": "Fusionskraftwerk",
     "waal": "Landkreuzer Waal",
-    "coreDrill": "Erdkernbohrer"
+    "coreDrill": "Erdkernbohrer",
+    "swarmMother": "Schwarmmutter"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -308,7 +309,8 @@
     "hackRelay": "Siegbauwerk von NEXUS: hackt sich in alle Maschinen der Welt.",
     "fusionPlant": "Siegbauwerk von Velkar: liefert nach der Fertigstellung endlose Energie.",
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
-    "coreDrill": "Siegeinheit des Kults: bohrt sich im Stillstand zum Erdkern."
+    "coreDrill": "Siegeinheit des Kults: bohrt sich im Stillstand zum Erdkern.",
+    "swarmMother": "Xyl'Tharra selbst: 60 LP, Reichweite 2. Heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei."
   },
   "abilities": {
     "dash": "Sturm",
@@ -911,7 +913,7 @@
   "campaign": {
     "title": "Kampagne",
     "menu": "Kampagne",
-    "subtitle": "Neun Einsätze nach dem Sternfall",
+    "subtitle": "Elf Einsätze nach dem Sternfall",
     "totalStars": "{n} von {max} Sternen",
     "mission": "Einsatz {n}",
     "locked": "Gesperrt",
@@ -972,7 +974,10 @@
       "bonusKills": "Vernichte {n} feindliche Einheiten",
       "bonusPoints": "Erreiche {n} Punkte",
       "destroyUnit": "Zerstöre den {unit} bis Runde {rounds}",
-      "artifact": "Besetze das Artefakt {n} Runden in Folge, bis Runde {rounds}"
+      "artifact": "Besetze das Artefakt {n} Runden in Folge, bis Runde {rounds}",
+      "portal": "Besetze das Portal {n} Runden in Folge, bis Runde {rounds}",
+      "reach": "Stoße bis vor das Hauptquartier von {name} vor, bis Runde {rounds}",
+      "boss": "Besiege die {unit} bis Runde {rounds}"
     },
     "missions": {
       "m1": {
@@ -993,15 +998,15 @@
       },
       "m2": {
         "title": "Wettlauf zum Wrack",
-        "tagline": "Berge die Absturzstelle vor den Zyrr",
+        "tagline": "Berge die Absturzstelle, während Landekapseln deine Städte bedrängen",
         "brief": [
-          "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch.",
-          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Wer zuerst kommt, forscht zuerst.",
-          "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... ZKRRT"
+          "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch. Und am Horizont gehen Landekapseln nieder, direkt vor unseren Städten.",
+          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, forscht zuerst.",
+          "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... Graue unterwegs ... ZKRRT"
         ],
         "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
-        "won": "Geborgen! Die Eierköpfe im Labor flippen gerade völlig aus.",
-        "lost": "Die Zyrr waren schneller. Jetzt fliegt das Ding wieder, nur nicht für uns.",
+        "won": "Geborgen, und keine Stadt verloren! Die Eierköpfe im Labor flippen gerade völlig aus.",
+        "lost": "Die Zyrr waren schneller, oder unsere Linie ist gebrochen. Jetzt fliegt das Ding wieder, nur nicht für uns.",
         "variants": {
           "velkar": {
             "won": "Geborgen! {leader} hat schon siebzehn Formeln auf die Trümmer geschrieben."
@@ -1009,21 +1014,39 @@
         }
       },
       "m3": {
-        "title": "Die Linie hält",
-        "tagline": "12 Runden gegen Gleiter und Graue",
+        "title": "Das Portal",
+        "tagline": "Schlage die Garnison und halte das Dimensionsportal zwei Runden",
         "brief": [
-          "Landekapseln am Horizont! Gleiter und Graue, Welle um Welle, direkt auf unsere Städte.",
-          "Kkt. Die Erdlinge haben Städte. Wir haben Geduld. Und sehr viele Graue.",
-          "{leader} hier. Keine Stadt fällt, zwölf Runden lang. Gräben ausheben, MG laden, Linie halten!"
+          "Kommandant, das müssen Sie sehen! Die Zyrr haben aus Chitin und Licht ein Tor gebaut. Dahinter: ein violetter Himmel mit zwei Monden. Und aus dem Tor kommt Nachschub.",
+          "Kkt. Das Tor gehört dem Schwarm. Es führt nach Hause. Erdlinge, die hindurchschauen, sehen ihr Ende.",
+          "{leader} hier. Wir schlagen die Wache am Portal und halten es zwei Runden. Wer das Tor hat, bestimmt, wer hindurchgeht. Und das sind wir."
         ],
-        "ally": "{allyLeader} an {leader}: {ally} hält die Flanke. Ihr haltet die Mitte. Keiner weicht.",
-        "won": "Zwölf Runden, keine Stadt verloren. Die Zyrr sortieren ihre Wellen jetzt neu.",
-        "lost": "Die Linie ist gebrochen. Violetter Schleim in unseren Straßen. Igitt.",
-        "variants": {
-          "dravon": {
-            "won": "Zwölf Runden, keine Stadt verloren. Drill zahlt sich aus. Wer müde ist, darf jetzt kurz blinzeln."
-          }
-        }
+        "ally": "{allyLeader} an {leader}: {ally} riegelt die Flanke ab. Kein Grauer kommt um das Tor herum.",
+        "won": "Das Portal ist offen. Wir gehen durch.",
+        "lost": "Das Portal bleibt in der Hand der Zyrr. Und es spuckt weiter Graue aus."
+      },
+      "m10": {
+        "title": "Jenseits des Portals",
+        "tagline": "Landetrupp ohne Basis: Vorposten erobern, dann zum Nest der Schwarmmutter",
+        "brief": [
+          "Wir sind durch! Hier ist alles violett: Pflanzen so groß wie Häuser, Felsen, die in der Luft schweben, zwei Monde. Keine Basis, kein Nachschub. Nur wir vier Trupps.",
+          "Kkt?! Erdlinge auf der Heimatwelt? Mein Vorposten wird euch schlucken. Und mein Nest seht ihr nie.",
+          "{leader} hier. Ohne Stadt halten wir nicht lange. Erst den Vorposten der Zyrr nehmen, dort richten wir uns ein. Dann vorwärts, bis wir vor dem Nest von Xyl'Tharra stehen."
+        ],
+        "won": "Der Vorposten gehört uns, und vor uns ragt das Nest der Schwarmmutter auf. Dort drinnen wartet sie.",
+        "lost": "Der Landetrupp ist verloren. Die violette Welt schluckt ihn ohne einen Laut."
+      },
+      "m11": {
+        "title": "Die Schwarmmutter",
+        "tagline": "Stürme das Nest und besiege Xyl'Tharra selbst",
+        "brief": [
+          "Das Nest pulsiert wie ein Herz, Kommandant. Mechs, Dreibeine, Graue ohne Ende. Und irgendwo da drin schläft etwas sehr Großes.",
+          "Kkt. Ihr habt meinen Vorposten. Ihr habt meinen Himmel gesehen. Kommt näher, kleine Wesen, und die Mutter erwacht.",
+          "{leader} hier. Sie heilt auf ihrem Boden, sie brütet, sie schreit. Also schlagen wir zusammen zu, alle auf einmal. Wenn die Schwarmmutter fällt, fällt der Schwarm."
+        ],
+        "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Verbündeter.",
+        "won": "Xyl'Tharra ist gefallen. Der Schwarm verstummt, das Portal flackert und erlischt hinter uns. Wir sind zu Hause.",
+        "lost": "Die Schwarmmutter lebt. Ihr Schrei hallt bis durch das Portal, und der Schwarm wird mehr."
       },
       "m4": {
         "title": "Falsche Pilger",
@@ -1125,7 +1148,7 @@
         "lost": "Jemand anderes hat das Artefakt berührt. Der Himmel flackert. Das war es dann."
       }
     },
-    "intro": "Der Himmel hat gebrannt: Das Mutterschiff der Zyrr liegt in der Wüste, die Glocke schlägt von selbst, und NEXUS ist erwacht. Die Kreidegrenzen sind Geschichte. Wähle eine Menschenfraktion und halte die Front.",
+    "intro": "Der Himmel hat gebrannt: Das Mutterschiff der Zyrr liegt in der Wüste, die Zyrr bauen ein Tor in ihre Heimatwelt, die Glocke schlägt von selbst, und NEXUS ist erwacht. Die Kreidegrenzen sind Geschichte. Wähle eine Menschenfraktion und halte die Front.",
     "prologue": "Prolog: Der Sternfall",
     "chooseFaction": "Wähle deine Fraktion",
     "chooseHint": "Jede Menschenfraktion hat ihren eigenen Feldzug mit eigenem Fortschritt. Du kannst jederzeit wechseln.",
@@ -1141,8 +1164,8 @@
     "twistTitle": "Die Wahrheit über das Artefakt",
     "twist": [
       "Die Runen glühen auf. {leader} legt die Hand auf das Artefakt. Das Licht verschluckt alles ...",
-      "... und die Glocke schlägt wieder. Irgendwo in der Wüste kracht ein Mutterschiff in den Sand.",
-      "Der Sternfall. Als wäre nichts geschehen. Das Artefakt hat die Zeit zurückgedreht, und alles beginnt von vorn."
+      "... und die Glocke schlägt wieder. Irgendwo in der Wüste kracht ein Mutterschiff in den Sand, und in seinem Bauch flackert ein violettes Tor.",
+      "Der Sternfall. Als wäre nichts geschehen. Das Artefakt hat die Zeit zurückgedreht, Xyl'Tharra atmet wieder, und alles beginnt von vorn."
     ],
     "persuadeTip": "Tipp: Als {faction} kannst du neutrale Siedlungen überzeugen statt erobern. Eine Einheit daneben, ab {cost} Sterne, kein Schuss.",
     "waveOwn": "Verstärkung eingetroffen: {n} Einheiten!",
@@ -1165,8 +1188,8 @@
     "acts": {
       "a1": {
         "title": "Akt I: Sternfall",
-        "tagline": "Gegen die Zyrr",
-        "closing": "Akt I: Das Mutterschiff raucht noch, aber die Zyrr haben gelernt, dass dieser Planet zurückbeißt."
+        "tagline": "Gegen die Zyrr, bis in ihre Heimatwelt",
+        "closing": "Akt I: Die Schwarmmutter ist gefallen, das Portal erloschen. Auf ihrer violetten Welt wächst nur noch Stille."
       },
       "a2": {
         "title": "Akt II: Die Glocke",
@@ -1178,7 +1201,13 @@
         "tagline": "Gegen NEXUS, dann gegen alle",
         "closing": "Akt III: NEXUS ist zurückgedrängt, das Artefakt in der Hand von {faction}. Die Front steht still. Für einen Atemzug."
       }
-    }
+    },
+    "expanded": "Akt I ist gewachsen: Das Portal, die Heimatwelt der Zyrr und die Schwarmmutter warten. Die alte Abwehrschlacht steckt jetzt in Einsatz 2. Sterne und Freischaltungen bleiben.",
+    "landing": "Landetrupp ohne Stadt: Erobere den Vorposten, sonst gibt es keinen Nachschub.",
+    "bossEmerge": "{name} ist erschienen! Die Schwarmmutter verteidigt ihr Nest.",
+    "bossLine": "Kkt. Ihr seid durch mein Tor gekrochen, {leader}. Jetzt seht ihr mich. Es wird das Letzte sein, was ihr seht.",
+    "bossScream": "Psychischer Schrei! {n} Einheiten getroffen.",
+    "bossBrood": "Die Schwarmmutter brütet: {n} neue Graue!"
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -1520,7 +1549,8 @@
       "hackRelay": "Fremder Funkmast",
       "fusionPlant": "Volkssonne",
       "waal": "Stahlwal",
-      "coreDrill": "Teufelspflug"
+      "coreDrill": "Teufelspflug",
+      "swarmMother": "Die große Mutter"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1567,7 +1597,8 @@
       "hackRelay": "Störsender",
       "fusionPlant": "Feindreaktor",
       "waal": "Landkreuzer Waal",
-      "coreDrill": "Ketzerbohrer"
+      "coreDrill": "Ketzerbohrer",
+      "swarmMother": "Feindliches Oberkommando"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1614,7 +1645,8 @@
       "hackRelay": "Abhörstation",
       "fusionPlant": "Friedensreaktor",
       "waal": "Kriegswal",
-      "coreDrill": "Untergangsbohrer"
+      "coreDrill": "Untergangsbohrer",
+      "swarmMother": "Verhandlungsführerin des Schwarms"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1661,7 +1693,8 @@
       "hackRelay": "Börsenhacker",
       "fusionPlant": "Stromkontor",
       "waal": "Teurer Waal",
-      "coreDrill": "Grundstücksruin"
+      "coreDrill": "Grundstücksruin",
+      "swarmMother": "Die Konkurrenz im Chitinkleid"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1708,7 +1741,8 @@
       "hackRelay": "Fremdnetzknoten",
       "fusionPlant": "Tokamak Eins",
       "waal": "Überschwerer Prototyp",
-      "coreDrill": "Geologische Katastrophe"
+      "coreDrill": "Geologische Katastrophe",
+      "swarmMother": "Forschungsobjekt Eins"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1755,7 +1789,8 @@
       "hackRelay": "Primitive Antenne",
       "fusionPlant": "Erdlingssönnchen",
       "waal": "Großer Blechwal",
-      "coreDrill": "Kernsonde der Erdlinge"
+      "coreDrill": "Kernsonde der Erdlinge",
+      "swarmMother": "Mutter aller Augen"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1802,7 +1837,8 @@
       "hackRelay": "Teufelsantenne",
       "fusionPlant": "Falsche Sonne",
       "waal": "Leviathan",
-      "coreDrill": "Der Letzte Bohrer"
+      "coreDrill": "Der Letzte Bohrer",
+      "swarmMother": "Dämonin vom Himmel"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -1849,7 +1885,8 @@
       "hackRelay": "Uplink Omega",
       "fusionPlant": "Externe Energiequelle",
       "waal": "Analoger Großpanzer",
-      "coreDrill": "Geofehler 404"
+      "coreDrill": "Geofehler 404",
+      "swarmMother": "Primärknoten Z-0"
     }
   },
   "identity": {

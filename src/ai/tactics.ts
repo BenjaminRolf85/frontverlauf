@@ -12,6 +12,10 @@ import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
 import { hashNoise } from './profile';
+// Endgegner der Kampagne / campaign boss
+import { isBoss } from '../core';
+import { SWARM_MOTHER } from '../data/balance';
+import { bossHome } from './analysis';
 
 type Failed = Set<string>;
 export const cmdKey = (c: Command) => JSON.stringify(c);
@@ -342,6 +346,8 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     let bestV = stay;
     // Bewegung / movement
     let dests = reachable(s, u);
+    // Endgegner an der Leine ums Hauptquartier / boss on a leash around the HQ
+    if (isBoss(u)) { const home = bossHome(ctx, u); dests = dests.filter((r) => dist(r, home) <= SWARM_MOTHER.aiLeash); }
     // Hubschrauber mit wenig Sprit landet sicher, sobald eine Tankstelle erreichbar ist
     // a low-fuel helicopter lands as soon as a refuel spot is reachable
     if (g.kind === 'refuel') {

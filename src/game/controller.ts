@@ -76,8 +76,10 @@ export class Controller {
     this.clearSelection();
     this.view.fit(s.size);
     this.refresh();
-    const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer);
-    if (hq) this.view.centerOn(this.view.board.tileCenter(s, hq.x, hq.y));
+    const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer && c.owner === this.viewer);
+    // ohne Hauptquartier (Landetrupp der Kampagne): auf die eigenen Einheiten / without an HQ (campaign landing party): on the own units
+    const own = hq ?? s.units.find((u) => u.owner === this.viewer);
+    if (own) this.view.centerOn(this.view.board.tileCenter(s, own.x, own.y));
     audio.setTheme(this.viewer >= 0 ? s.factions[this.viewer].id : s.factions[0].id);
     this.updateMood();
     this.ui.update();
