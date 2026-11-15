@@ -22,7 +22,7 @@ export interface TownInput {
 // ---------- Lichtkegel / light pools ----------
 
 /** Nur Farbe addieren, Alpha nie aendern (transparenter Canvas bleibt durchsichtig) / add colour only, never alpha (transparent canvas stays clear) */
-const ADD_RGB = {
+export const ADD_RGB = {
   blending: THREE.CustomBlending, blendEquation: THREE.AddEquation,
   blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendSrcAlpha: THREE.ZeroFactor, blendDstAlpha: THREE.OneFactor,
 } as const;
@@ -68,7 +68,7 @@ function poolMaterial(mix: { value: number }, base: number, gain: number): THREE
 
 let radial: THREE.DataTexture | null = null;
 /** Weicher runder Lichtfleck fuer Sprites / soft round light spot for sprites */
-function radialTexture(): THREE.DataTexture {
+export function radialTexture(): THREE.DataTexture {
   if (radial) return radial;
   const n = 32, data = new Uint8Array(n * n * 4);
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {

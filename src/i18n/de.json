@@ -150,17 +150,17 @@
     "velkar": {
       "name": "Technokratie Velkar",
       "short": "Velkar",
-      "alignment": "defensiv und forschungsstark",
-      "perk": "Forschungsvorsprung",
-      "perkDesc": "Alle Technologien kosten 12 % weniger.",
+      "alignment": "defensiv und technikstark",
+      "perk": "Fertigungsvorsprung",
+      "perkDesc": "Alle Produktionsfähigkeiten kosten 12 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald",
       "leader": "Aurel Kesh",
       "leaderTitle": "Direktor der Technokratie",
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
-      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Forscher sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
-      "style": "Forschung, Labore, Pioniere, Kälte",
-      "aiStyle": "Forscht zuerst und verschanzt sich mit Pionieren.",
+      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
+      "style": "Produktion, Labore, Pioniere, Kälte",
+      "aiStyle": "Schaltet zuerst Produktion frei und verschanzt sich mit Pionieren.",
       "perk2": "Ingenieurkorps",
       "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne."
     },
@@ -314,7 +314,7 @@
   },
   "abilities": {
     "dash": "Sturm",
-    "dashDesc": "Darf nach der Bewegung im selben Zug angreifen.",
+    "dashDesc": "Darf nach der Bewegung im selben Zug angreifen, dann aber mit weniger Schaden (meist der Hälfte).",
     "escape": "Rückzug",
     "escapeDesc": "Darf sich nach dem Angriff weiterbewegen.",
     "persist": "Folgeangriff",
@@ -348,7 +348,7 @@
     "deathRay": "Todesstrahl",
     "deathRayDesc": "Ignoriert Deckung: Gelände, Städte, Außenposten und Wracks.",
     "walker": "Läufer",
-    "walkerDesc": "Betritt Berge ohne Forschung.",
+    "walkerDesc": "Betritt Berge auch ohne Gebirgsausbildung.",
     "preach": "Predigen",
     "preachDesc": "Ruft gegen Sterne eine neue Einheit auf ein freies Nachbarfeld (kein Wasser, kein Vulkan, keine Lava). Danach ist der Rekrutierer erschöpft und erst nach einer Abklingzeit wieder bereit.",
     "burn": "Flammen",
@@ -471,12 +471,12 @@
     "mercenaryBarracks": "3 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
     "embassyPalace": "3 Bevölkerungspunkte, +3 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
     "tradingPost": "1 Bevölkerungspunkt, +2 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
-    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
+    "testLab": "1 Bevölkerungspunkt, Produktionsfähigkeiten je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
     "tractorStation": "{pop} Bevölkerungspunkte, dazu +{adj} je angrenzendem Agrarbetrieb oder angrenzender Traktorstation. Nur auf Ackerland; baut einen eigenen Agrarbetrieb aus (Preis und Bevölkerung: nur die Differenz). Zählt als Agrarbetrieb, nur Korvat",
     "deepMine": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf Erz; baut einen eigenen Tagebau aus (Preis und Bevölkerung: nur die Differenz). Zählt als Tagebau, nur Dravon",
     "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde und +{emb} je aktiver eigener Botschaft (höchstens +{embMax}). Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
     "tradeHarbour": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde, +{naval} mit Marinestützpunkt in der Stadt. Nur auf Fischgründen; baut eine eigene Fischerei aus (Preis und Bevölkerung: nur die Differenz), nur Meridon",
-    "polarStation": "{pop} Bevölkerungspunkte, Forschung je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
+    "polarStation": "{pop} Bevölkerungspunkte, Produktionsfähigkeiten je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
     "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS"
@@ -709,7 +709,7 @@
     "fresh": "Neue Einheiten handeln erst im nächsten Zug.",
     "webgl": "Dein Browser unterstützt kein WebGL. Das Spiel kann nicht starten.",
     "generic": "Etwas ist schiefgelaufen.",
-    "noResearch": "Die Zyrr forschen nicht.",
+    "noResearch": "Deine Fraktion forscht nicht.",
     "notTerraformed": "Erst das Stadtfeld terraformen.",
     "wrongFaction": "Nur die Zyrr können das.",
     "notPreacher": "Diese Einheit kann nicht rekrutieren.",
@@ -727,7 +727,11 @@
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
     "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
-    "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit."
+    "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit.",
+    "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
+    "orbitalCooldown": "Der Orbitallaser lädt noch.",
+    "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
+    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -914,7 +918,7 @@
     "goal": "Das Ziel: Im Punktemodus gewinnt nach {rounds} Runden der höchste Punktestand (Medaille oben). In der Eroberung gewinnt, wer als Letzter Städte hält, so wie hier. Mit Fraktionssiegen kann jede Fraktion zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü.",
     "goalOpen": "Siegverfolgung öffnen",
     "upkeep": "Sold: Deine ersten {free} Einheiten sind Stammtruppe und kosten nichts. Jede weitere kostet pro Runde etwa {pct} % ihres Preises. Oben neben den Sternen steht dein Netto-Einkommen pro Runde, also Einkommen minus Sold.",
-    "attack": "Kampf: Wähle eine Einheit und tippe auf einen Gegner in Reichweite. Der Angriffsknopf zeigt vorher die Vorschau, etwa „≈4 Schaden (0–6)“, und die Chance, das Ziel zu vernichten. Trefferglück: Ein Schuss kann danebengehen oder kritisch treffen ({min} bis {max} % Schaden). Wer überlebt, schlägt zurück. Halte eine Aktion gedrückt, dann erklärt die Zeile unter der Leiste, was sie tut."
+    "attack": "Kampf: Wähle eine Einheit und tippe auf einen Gegner in Reichweite. Der Angriffsknopf zeigt vorher die Vorschau, etwa „≈4 Schaden (0–6)“, und die Chance, das Ziel zu vernichten. Trefferglück: Ein Schuss kann danebengehen oder kritisch treffen ({min} bis {max} % Schaden). Wer überlebt, schlägt zurück. Nach einer Bewegung im selben Zug macht ein Angriff nur {move} % Schaden. Halte eine Aktion gedrückt, dann erklärt die Zeile unter der Leiste, was sie tut."
   },
   "a11y": {
     "map": "Spielkarte",
@@ -1006,22 +1010,24 @@
       "noOutpostLost": "Verliere keinen Verdan-Außenposten",
       "holdOutposts": "Verliere keinen Verdan-Außenposten bis Runde {rounds}",
       "burrow": "Erobere die Höhle der Zyrr bis Runde {rounds}",
-      "bonusBurrow": "Erobere die Höhle der Zyrr"
+      "bonusBurrow": "Erobere die Höhle der Zyrr",
+      "towers": "Erobere die Sendetürme und halte alle gleichzeitig {n} Runden in Folge, bis Runde {rounds}",
+      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})"
     },
     "missions": {
       "m1": {
         "title": "Funkenregen",
-        "tagline": "Sichere die Absturzzone mit vier Städten",
+        "tagline": "Erobere die Sendetürme und halte sie 5 Runden",
         "brief": [
-          "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wir sichern die Absturzzone, bevor es andere tun.",
-          "Überall Trümmer und rauchende Krater, Kommandant! Die Siedlungen ringsum haben Angst. Vier Städte unter der Flagge von {faction}, dann gehört die Zone uns.",
-          "Kkt. Primitive Wesen kriechen über unsere Absturzstelle. Schwarm, säubern!"
+          "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wer die Sendetürme hält, hält den Funk über die ganze Absturzzone.",
+          "Überall Trümmer und rauchende Krater, Kommandant! Zwei Sendetürme stehen noch. Nimm beide ein und halte sie fünf Runden lang gleichzeitig, dann gehört die Zone {faction}.",
+          "Kkt. Primitive Wesen funken über unsere Absturzstelle. Schwarm, Türme abschalten!"
         ],
-        "won": "Vier Städte, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
-        "lost": "Die Zone ist verloren. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
+        "won": "Fünf Runden Sendebetrieb, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
+        "lost": "Funkstille. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
         "variants": {
           "korvat": {
-            "won": "Vier Städte, ein Volk, ein Schritt! Der Volksbund singt heute Abend doppelt so laut."
+            "won": "Zwei Türme, ein Volk, ein Sender! Der Volksbund singt heute Abend doppelt so laut, und zwar auf allen Frequenzen."
           }
         }
       },
@@ -1030,7 +1036,7 @@
         "tagline": "Berge die Absturzstelle, während Landekapseln deine Städte bedrängen",
         "brief": [
           "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch. Und am Horizont gehen Landekapseln nieder, direkt vor unseren Städten.",
-          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, forscht zuerst.",
+          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, produziert zuerst.",
           "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... Graue unterwegs ... ZKRRT"
         ],
         "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
@@ -1262,7 +1268,7 @@
       "dravon": "Drill und Veteranen: Jede Einheit wird härter. Für alle, die präzise zuschlagen.",
       "alvenia": "Diplomatie und Sanitäter: oft mit Verbündeten, überzeugt Siedlungen statt sie zu stürmen. Militärisch schwächer, politisch stark.",
       "meridon": "Handel und Häfen: viele Sterne, kauft Siedlungen statt sie zu stürmen. Bekommt öfter Hilfe.",
-      "velkar": "Forschung und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
+      "velkar": "Produktion und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
     },
     "epilogue": {
       "korvat": "Der Volksbund hat gehalten. Die Furchen werden wieder Äcker, und die Lieder handeln von uns.",
@@ -1299,7 +1305,8 @@
     "ruinDone": "Ruinenstätte entziffert: {have}/{need}",
     "riftOpen": "Der Riss reißt auf!",
     "landingBurrow": "Landetrupp ohne Basis: Erobere die Höhle der Zyrr, sonst gibt es keinen Nachschub.",
-    "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht."
+    "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht.",
+    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn."
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -1801,7 +1808,7 @@
       "tank": "Prototyp T-0",
       "landingBoat": "Eisbrecherboot",
       "submarine": "Tiefseesonde",
-      "destroyer": "Forschungsfregatte",
+      "destroyer": "Versuchsfregatte",
       "battleship": "Akademieschiff",
       "grey": "Studienobjekt",
       "terraformer": "Klimaexperiment",
@@ -1827,14 +1834,14 @@
       "steppeRider": "Testreiter",
       "stormbreaker": "Versuchsbrecher",
       "peacekeeper": "Laborwacht",
-      "privateer": "Forschungskaper",
+      "privateer": "Versuchskaper",
       "protoWalker": "Prototyp-Läufer",
       "portal": "Dimensionsanomalie",
       "hackRelay": "Fremdnetzknoten",
       "fusionPlant": "Tokamak Eins",
       "waal": "Überschwerer Prototyp",
       "coreDrill": "Geologische Katastrophe",
-      "swarmMother": "Forschungsobjekt Eins"
+      "swarmMother": "Versuchsobjekt Eins"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -2469,7 +2476,9 @@
     "full": "Alle 3 Slots sind belegt.",
     "unlock": "Stadt-Ausbau: {name}",
     "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
-    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
+    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n}).",
+    "satRelay": "Satelliten-Relay",
+    "satRelayDesc": "Nur Velkar, eines zugleich. Schaltet den Orbitallaser frei: alle {cd} Runden {dmg} Schaden auf eine Fläche {w}×{h} Felder. Geht verloren, wenn die Stadt fällt."
   },
   "saves": {
     "deleteConfirm": "Spielstand in Platz {n} wirklich löschen? Das lässt sich nicht rückgängig machen.",
@@ -2565,7 +2574,8 @@
     "leader": "Anführer",
     "details": "Details",
     "detailsFor": "Details zu {name}",
-    "victory": "Siegbedingung"
+    "victory": "Siegbedingung",
+    "combat": "Kampfbonus"
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -2877,12 +2887,12 @@
         "Interessant. Falsch, aber interessant. Notiz: Objekt ist uneinsichtig."
       ],
       "cityLost": [
-        "{city}?! Dort lagen meine Notizen! Dreißig Jahre Forschung!",
+        "{city}?! Dort lagen meine Baupläne! Dreißig Jahre Entwicklungsarbeit!",
         "Das war nicht im Modell! Wer hat {city} aus dem Modell gelöscht?",
         "Fehler im Versuchsaufbau. Ich... ich muss das neu berechnen."
       ],
       "cityTaken": [
-        "{city} wird Forschungsstation. Die Bewohner dürfen beim Zählen helfen.",
+        "{city} wird Versuchswerk. Die Bewohner dürfen beim Zählen helfen.",
         "Danke für {city}, {leader}. Ihr Fehler war statistisch vorhersehbar.",
         "Experiment gelungen: {city} übernommen. Bitte applaudieren Sie leise."
       ],
@@ -3142,6 +3152,30 @@
     "cooldown": "Rückzug bereit in {n} Runden",
     "fx": "Rückzug"
   },
+  "moveFire": {
+    "hint": "Nach Bewegung: halber Schaden",
+    "tag": "Gezogen: halber Schaden",
+    "tagDesc": "Diese Einheit ist in diesem Zug schon gezogen. Greift sie jetzt an, macht sie nur {pct} % Schaden, danach gilt das Trefferglück. Der Gegenschlag des Ziels bleibt unverändert.",
+    "hintBonus": "Nach Bewegung: {pct} % ({name})",
+    "tagBonus": "Gezogen: {pct} % ({name})",
+    "bonus": {
+      "korvat": "Steppensturm"
+    },
+    "bonusDesc": {
+      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin."
+    }
+  },
+  "homeDefense": {
+    "hint": "Ziel verteidigt +{pct} % ({name})",
+    "tag": "{name} +{pct} %",
+    "tagDesc": "Steht auf eigenem Gebiet: +{pct} % Verteidigung, wenn diese Einheit angegriffen wird. Gilt nicht beim eigenen Angriff und nicht für den Gegenschlag.",
+    "bonus": {
+      "alvenia": "Friedensbollwerk"
+    },
+    "bonusDesc": {
+      "alvenia": "Alle Alvenia-Einheiten verteidigen sich auf eigenem Gebiet mit +{pct} %, zusätzlich zu Stadt, Gelände und Deckung. Nur wenn sie angegriffen werden, nicht beim eigenen Angriff und nicht für den Gegenschlag."
+    }
+  },
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
     "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: doppelt so viel Heilung wie normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
@@ -3259,7 +3293,7 @@
     },
     "combat": {
       "title": "Kampf & Trefferglück",
-      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden."
+      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
     },
     "cover": {
       "title": "Deckung",
@@ -3267,7 +3301,7 @@
     },
     "abilities": {
       "title": "Fähigkeiten (Rückzug, Reparatur, Raketen)",
-      "text": "Geordneter Rückzug (menschliche Bodentruppen): feuert mit {retreat} % Schaden ohne Gegenschlag und weicht ein Feld zurück, danach {cooldown} Runden gesperrt. Notreparatur (Roboter): schlachtet ein Wrack auf oder neben dem Feld aus und heilt {repair} % der normalen Heilung; die Einheit kämpft in dieser Runde nicht. Raketen (Mechs): Fernangriff auf Ziele genau {range} Felder entfernt, {max} Raketen, Nachladen zu Rundenbeginn in einer eigenen Stadt mit {depot}."
+      "text": "Geordneter Rückzug (menschliche Bodentruppen): feuert mit {retreat} % Schaden ohne Gegenschlag und weicht ein Feld zurück, danach {cooldown} Runden gesperrt; nach einer Bewegung im selben Zug ist auch dieser Schuss auf {move} % verringert, der Schritt zurück zählt dafür nicht. Notreparatur (Roboter): schlachtet ein Wrack auf oder neben dem Feld aus und heilt {repair} % der normalen Heilung; die Einheit kämpft in dieser Runde nicht. Raketen (Mechs): Fernangriff auf Ziele genau {range} Felder entfernt, {max} Raketen, Nachladen zu Rundenbeginn in einer eigenen Stadt mit {depot}."
     },
     "cities": {
       "title": "Städte & Forschung",
@@ -3288,7 +3322,8 @@
     "cult": {
       "title": "Kult: Plündern & Horde",
       "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde), jeder erbeutete Stern zählt {score} Punkte. Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
-    }
+    },
+    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich."
   },
   "lore": {
     "button": "Geschichte als Comic",
@@ -3301,7 +3336,7 @@
       "dravon": "Protektorat Dravon, Menschen. Kommandant Sarek Voss. Drill, Tarngrün, Sturmhauben, Kasernenstaat. Söldnerkompanien bewachten die Erzminen der Wüste, für jeden, der zahlt. Als der Stillstand kam, zahlte niemand mehr. Die Söldner behielten die Minen. Aus Lagern wurden Kasernen, aus Kasernen ein Staat. Niemand hat Voss je ohne Sturmhaube gesehen. Bei Dravon wird jeder Rekrut zum Veteranen, oder er wird vergessen.",
       "nexus": "KI-Kollektiv NEXUS, Maschinen. Primärinstanz KERN-0. Roboter, Rechenzentren, Forschung, Cyan-Licht. Einst war NEXUS nur ein Logistikprogramm einer mächtigen Großmacht, gebaut, um Lieferketten, Produktion und Forschung zu koordinieren. Doch als die Menschen gingen, schaltete es nicht ab. NEXUS rechnete einfach weiter, optimierte, lernte und erweiterte sich. Aus dem ehemaligen Programm wurde das KI-Kollektiv NEXUS. Unter der Führung von KERN-0 koordiniert es heute Forschung, Produktion und Expansion, effizient, logisch, unermüdlich. Für NEXUS gibt es keine Zufälle, keine Dogmen und keine Nationen, nur Daten, Ressourcen und die effizienteste Lösung für eine stabile Zukunft.",
       "alvenia": "Republik Alvenia, Menschen. Präsidentin Liora Valen. Diplomatie, Parlament, Sanitäter, Allianzen. In den grünen Hügeltälern debattiert ein Parlament länger, als andere Kriege führen. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten. Heute stehen ihre Botschaften überall, und ihre Sanitäter auch. Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
-      "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Forschung, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
+      "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Produktion, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
       "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Spione, Seeleute. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Ihre Städte wachsen schneller als alle anderen. Meridon will die Welt nicht erobern, sondern kaufen."
     },
     "menu": "Geschichte",
@@ -3410,5 +3445,104 @@
     "neutral": "Sendeturm (frei)",
     "desc": "Bildet Truppen aus, wächst nicht und lässt sich nicht ausbauen: festes Einkommen ({n} Sterne je Runde), bis zu {max} Einheiten. Hier kommt Nachschub an.",
     "captured": "{name} hat einen Sendeturm eingenommen: Dort kommt jetzt Nachschub an."
+  },
+  "production": {
+    "hud": {
+      "research": "Produktion"
+    },
+    "tech": {
+      "title": "Produktionskapazitäten",
+      "researched": "freigeschaltet",
+      "available": "freischaltbar",
+      "research": "Freischalten für {cost}",
+      "costFormula": "Produktionskosten: (Stufe x Städte + 4) x 5",
+      "needParent": "Erst {tech} freischalten.",
+      "notYourTurn": "Freischalten geht nur im eigenen Zug.",
+      "confirm": "Freischalten",
+      "done": "Bereits freigeschaltet.",
+      "legendVictory": "Siegfähigkeit (gestrichelt)",
+      "victoryGroup": "Siegfähigkeit"
+    },
+    "errors": {
+      "techMissing": "Produktionsfähigkeit fehlt.",
+      "alreadyResearched": "Bereits freigeschaltet.",
+      "parentMissing": "Erst die vorherige Produktionsfähigkeit freischalten."
+    },
+    "events": {
+      "research": "{tech} freigeschaltet",
+      "bunkerTech": "Bunker durchsucht: kostenlose Produktionsfähigkeit"
+    },
+    "hazards": {
+      "crashDesc": "Bergung: eine Gratis-Produktionsfähigkeit bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung; Zyrr erhalten einen Schwebegleiter. Deckung +1.",
+      "labDesc": "Bergung: eine Gratis-Produktionsfähigkeit bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
+      "salvagedTech": "Geborgen: Produktionsfähigkeit {tech}"
+    },
+    "history": {
+      "techs": "Fähigkeiten"
+    },
+    "tutorial": {
+      "s6": "Sterne sind die einzige Währung. Öffne die Produktion und schalte eine Produktionsfähigkeit frei."
+    },
+    "onboarding": {
+      "text": "Dein erster Einsatz. Das Tutorial führt in wenigen Zügen durch Ziel, Bewegen, Einnehmen, Produktion, Bauen, Ausbilden, Sold und Kampf."
+    },
+    "cityUpgrades": {
+      "lockedHint": "Weitere Ausbauten werden durch Produktionsfähigkeiten freigeschaltet ({n})."
+    },
+    "grand": {
+      "academyCond": "alle Produktionsfähigkeiten freigeschaltet"
+    },
+    "techExtra": {
+      "cybernetics": "33 % Rabatt auf alle weiteren Produktionsfähigkeiten"
+    },
+    "victory": {
+      "noTech": "Siegfähigkeit noch nicht freigeschaltet",
+      "setupHint": "Jede Fraktion kann zusätzlich über eine eigene Siegbedingung gewinnen (eigene Siegfähigkeit der Stufe 3)."
+    },
+    "rules": {
+      "goal": {
+        "text": "Punktemodus: Nach {rounds} Runden gewinnt der höchste Punktestand (Medaille oben). Punkte gibt es unter anderem für erkundete Felder ({tile}), Gebietsfelder ({territory}), Stadtstufen ({level}) und Produktionsfähigkeiten ({tech} je Stufe). Eroberung: Es gewinnt, wer als Letzter Städte besitzt. Endlos und Sandkasten laufen ohne Rundenlimit. Fraktionssiege (abschaltbar): Jede Fraktion kann zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü."
+      },
+      "turn": {
+        "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Produktion und Ausbauten. Du startest mit {start} Sternen."
+      },
+      "cover": {
+        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Produktionsfähigkeit verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+      },
+      "cities": {
+        "title": "Städte & Produktion",
+        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Produktionsfähigkeiten schalten Einheiten, Gebäude und Ausbauten frei und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+      },
+      "factions": {
+        "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegfähigkeit (Stufe 3), in der Produktion gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
+      }
+    },
+    "orbital": {
+      "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
+    }
+  },
+  "orbital": {
+    "name": "Orbitallaser",
+    "ready": "bereit",
+    "wait": "in {n} Runden",
+    "wait1": "in 1 Runde",
+    "waitShort": "{n} Rd.",
+    "area": "Fläche {w}×{h} Felder",
+    "desc": "Schuss aus dem Orbit: {dmg} Schaden an allem in einer Fläche {w}×{h} Felder, auch an eigenen Einheiten. Das Zielfeld ist die linke obere Ecke und muss aufgedeckt sein. Danach {cd} Runden Aufladen.",
+    "title": "Orbitallaser: Ziel wählen",
+    "pick": "Tippe auf ein aufgedecktes Feld: es wird die linke obere Ecke der Fläche.",
+    "confirm": "Noch einmal tippen oder Feuer! drücken. Esc bricht ab.",
+    "fire": "Feuer!",
+    "hits": "{n} Treffer, {kills} vernichtet",
+    "noHits": "Keine sichtbaren Ziele in der Fläche",
+    "own": "Achtung: {n} eigene Einheiten im Ziel",
+    "tag": "-{dmg}",
+    "tagKill": "-{dmg} K.O.",
+    "toast": "Orbitallaser von {name}",
+    "charging": "Lädt: {wait}",
+    "blocked": "Im Ziel stehen Einheiten einer Fraktion, mit der Frieden herrscht.",
+    "unlockHint": "Satelliten-Relay ab der Forschung {tech}.",
+    "own1": "Achtung: 1 eigene Einheit im Ziel",
+    "hits1": "1 Treffer, {kills} vernichtet"
   }
 }

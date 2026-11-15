@@ -5,7 +5,7 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
@@ -26,7 +26,9 @@ const ok = (failed: Failed, c: Command) => !failed.has(cmdKey(c));
 /** Wert eines Angriffs (Sterne-Gegenwert) / value of an attack (star equivalent) */
 export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): number {
   const { s } = ctx;
-  const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay };
+  // von einem anderen Feld: erst ziehen, dann feuern, also mit dem Schaden nach Bewegung (MOVE_FIRE)
+  // from another tile: move first, then fire, so with the damage after moving (MOVE_FIRE)
+  const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay, moved: true };
   const p = combatPreview(s, att, d);
   // Trefferglueck: Vernichtungschance und Erwartungswerte statt fester Treffer / hit luck: kill chance and expected values instead of fixed hits
   const dmgNoKill = p.killChance < 1 ? (p.expected - p.killChance * d.hp) / (1 - p.killChance) : 0;
@@ -323,6 +325,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // Friedensbollwerk (Alvenia): bedroht lieber auf eigenem Gebiet stehen / Peace Bulwark (Alvenia): when threatened, prefer own territory
+  if (dmg > 0) v += homeDefenseAt(s, u, x, y) * AI.homeGround;
   // Meteorschauer oder Saeureregen zu Beginn der naechsten Runde: verletzte Einheiten in Staedte und Bunker
   // meteor shower or acid rain at the start of the next round: hurt units into cities and bunkers
   if (weatherHurts(s, weatherAt(s, s.round + 1), u, x, y)) v -= AI.meteorExposed + (1 - u.hp / u.maxHp) * AI.meteorHurt;

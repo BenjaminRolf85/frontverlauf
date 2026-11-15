@@ -8,12 +8,12 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCommand, cityAt, createGame, dist, factionVictoryOn, hqOf, isLand, MISSIONS, missionById, missionConfig, ownCities, unitAt,
   CAMPAIGN_ALLIES, CAMPAIGN_ENEMIES, CAMPAIGN_FACTIONS, allyFor, persuadeCost, defaultConfig, objectiveProgress, FINALE_ID, MISSION_IDS,
-  WORLDS, worldOf, worldNumber, missionNumber, UNPLACED_MISSIONS,
+  WORLDS, worldOf, worldNumber, missionNumber, UNPLACED_MISSIONS, towersHeld,
   type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import { isValidState, migrateState } from '../src/save/save';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
-import { AI, PERSUADE, SWARM_MOTHER, UNITS, type FactionId } from '../src/data/balance';
+import { AI, PERSUADE, SWARM_MOTHER, TOWER_HOLD, UNITS, type FactionId } from '../src/data/balance';
 
 const game = (id: string, f: FactionId = 'korvat') => createGame(missionConfig(id, f));
 
@@ -207,24 +207,71 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
 });
 
 describe('Kampagne: Ziele / campaign: objectives', () => {
-  it('m1: vier Staedte = Sieg mit 3 Sternen, Zeitlimit = Niederlage / four cities = win with 3 stars, time limit = defeat', () => {
+  it('m1: alle Sendetuerme 5 Runden halten = Sieg mit 3 Sternen, Verlust setzt zurueck, Zeitlimit = Niederlage / m1: holding all towers for 5 rounds wins with 3 stars, a loss resets, time limit = defeat', () => {
+    const m = missionById('m1')!;
+    expect(m.objectives).toEqual([{ k: 'towers', rounds: TOWER_HOLD.m1Rounds }]);
+    for (const f of CAMPAIGN_FACTIONS) {
+      const g = game('m1', f);
+      const tw = g.cities.filter((c) => c.tower);
+      expect(tw.length, f).toBe(TOWER_HOLD.m1Towers);
+      // markiert und bekannt / marked and known
+      for (const t of tw) {
+        expect(g.campaign!.targets, f).toContainEqual({ x: t.x, y: t.y });
+        expect(g.factions[0].explored[t.y * g.size + t.x], f).toBe(1);
+      }
+      expect(towersHeld(g)).toEqual({ held: 0, total: TOWER_HOLD.m1Towers });
+    }
     const s = game('m1', 'dravon');
-    for (const c of s.cities.filter((x) => x.owner === null).slice(0, 3)) c.owner = 0;
-    const r = poke(s);
-    expect(r.events.some((e) => e.t === 'objective' && e.status === 'done')).toBe(true);
+    allHuman(s);
+    const tw = s.cities.filter((c) => c.tower);
+    for (const t of tw) t.owner = 0;
+    expect(towersHeld(s)).toEqual({ held: tw.length, total: tw.length });
+    passRound(s);
+    expect(s.campaign!.towerHold).toBe(1);
+    expect(objectiveProgress(s, m.objectives[0], m.rounds)).toEqual({ have: 1, need: TOWER_HOLD.m1Rounds });
+    // ein Turm geht verloren: die Zaehlung beginnt von vorn / one tower is lost: the count starts over
+    tw[0].owner = 1;
+    passRound(s);
+    expect(s.campaign!.towerHold).toBe(0);
+    tw[0].owner = 0;
+    for (let i = 1; i < TOWER_HOLD.m1Rounds; i++) { passRound(s); expect(s.campaign!.result).toBeNull(); }
+    const ev = passRound(s);
+    expect(s.campaign!.towerHold).toBe(TOWER_HOLD.m1Rounds);
+    expect(ev.some((e) => e.t === 'objective' && !e.bonus && e.status === 'done')).toBe(true);
     expect(s.campaign!.result).toBe('won');
     expect(s.winner).toBe(0);
+    expect(s.round).toBeLessThanOrEqual(TOWER_HOLD.m1FastRound);
     expect(s.campaign!.stars).toBe(3);
-    expect(r.events.filter((e) => e.t === 'gameOver').length).toBe(1);
+    expect(ev.filter((e) => e.t === 'gameOver').length).toBe(1);
     expect(applyCommand(s, { type: 'endTurn' }).ok).toBe(false);
 
+    // Tuerme des Verbuendeten zaehlen mit / the ally's towers count too
+    const al = game('m1', 'korvat');
+    const at = al.cities.filter((c) => c.tower);
+    at[0].owner = 0; at[1].owner = 1;
+    expect(towersHeld(al).held).toBe(1);
+    al.campaign!.allies = [1];
+    expect(towersHeld(al).held).toBe(2);
+
     const late = game('m1');
-    late.round = missionById('m1')!.rounds;
+    late.round = m.rounds;
     allHuman(late);
     passRound(late);
     expect(late.campaign!.result).toBe('lost');
     expect(late.campaign!.stars).toBe(0);
     expect(late.winner).toBe(1);
+  });
+
+  it('m1: Ueberfall der Zyrr landet neben dem abgelegensten Turm / m1: the Zyrr raid lands next to the most remote tower', () => {
+    const m = missionById('m1')!;
+    const raid = m.waves!.find((w) => w.round === TOWER_HOLD.m1RaidRound)!;
+    for (const f of CAMPAIGN_FACTIONS) {
+      const s = game('m1', f);
+      const far = s.cities.find((c) => c.tower)!;
+      const p = s.campaign!.spawns![raid.at];
+      expect(dist(p, far), f).toBeGreaterThanOrEqual(TOWER_HOLD.m1RaidDistance);
+      expect(dist(p, far), f).toBeLessThanOrEqual(TOWER_HOLD.m1RaidDistance + 1);
+    }
   });
 
   it('m2: Bergung durch den Spieler = Sieg, durch die Zyrr = Niederlage / salvage by player wins, by the Zyrr loses', () => {

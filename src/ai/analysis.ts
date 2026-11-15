@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, isCultFaction, hordeCount, plunderValue, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -352,7 +352,8 @@ export function defBonusAt(ctx: Ctx, u: Unit, x: number, y: number, asShip = isS
   if (t.outpost && t.outpost.owner === f && INFANTRY_TYPES.includes(u.type)) b = Math.max(b, DEFENSE_BONUS.outpost);
   // Wrack als Deckung / wreck as cover
   if (t.remains?.kind === 'wreck' && !asShip) b += REMAINS.wreckDefenseBonus;
-  return b;
+  // eigenes Gebiet (Alvenia: Friedensbollwerk) / own territory (Alvenia: Peace Bulwark)
+  return b * (1 + homeDefenseAt(s, u, x, y));
 }
 
 /** Erwarteter Schaden durch sichtbare Gegner an Position / expected damage from visible enemies at position */
@@ -368,7 +369,10 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     if (e.x === x && e.y === y) continue;
     const a = UNITS[e.type].attack;
     const A = a * (e.hp / e.maxHp);
-    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type);
+    // Gegner ausser Reichweite muessen erst ziehen und feuern dann mit weniger Schaden (MOVE_FIRE)
+    // enemies out of range must move first and then fire with less damage (MOVE_FIRE)
+    const moveFire = dist(e, { x, y }) > UNITS[e.type].range ? moveFireMult(ctx.s, e) : 1;
+    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire;
   }
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
   return list.length > 1 ? total * 0.75 : total;
@@ -408,8 +412,10 @@ function isCombat(u: Unit): boolean {
 /**
  * Kampagnenziele fuer die KI: Spieler-Seite (Spieler als KI und Verbuendete) besetzt Portal, Hoehleneingang und
  * Ruinenstaetten, rueckt zum Erreichen-Ziel vor und jagt den Endgegner; die Gegner streiten um Hoehleneingang und Ruinen.
+ * Beim Turm-Ziel nimmt die Spieler-Seite die Sendetuerme ein und haelt sie besetzt, die Gegner greifen sie an.
  * Campaign objectives for the AI: the player side (player as AI and allies) occupies portal, cave entrance and ruin
  * sites, advances to the reach target and hunts the boss; the enemies contest the cave entrance and the ruins.
+ * With the tower objective the player side takes and garrisons the transmitter towers, the enemies attack them.
  */
 function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goal[] {
   const { s, f } = ctx;
@@ -429,6 +435,15 @@ function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goa
   const wants = (k: string) => objs.some((o) => o.k === k);
   if (c.cave && wants('cave')) hold(c.cave, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   if (wants('ruins')) (c.sites ?? []).forEach((p, i) => { if (!(side && c.siteDone?.[i])) hold(p, A.siteValue, A.siteCap, A.siteValue, A.siteCap + 1); });
+  // Turm-Ziel (m1): die Spieler-Seite haelt eigene Tuerme besetzt und nimmt die uebrigen ein; die Gegner greifen Tuerme der Spieler-Seite an
+  // tower objective (m1): the player side keeps its own towers garrisoned and takes the rest; the enemies attack the player side's towers
+  if (wants('towers')) for (const t of s.cities) {
+    if (!t.tower) continue;
+    const ours = t.owner !== null && (t.owner === 0 || !!c.allies?.includes(t.owner));
+    if (side && ours) hold(t, A.towerValue, A.towerCap, A.towerHuntValue, A.towerHuntCap);
+    else if (side) out.push({ kind: t.owner === null ? 'village' : 'city', x: t.x, y: t.y, value: A.towerValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.owner === null ? undefined : t.id });
+    else if (ours && isHostile(s, f, t.owner!)) out.push({ kind: 'city', x: t.x, y: t.y, value: A.towerEnemyValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.id });
+  }
   if (!side) return out;
   if (c.portal && wants('portal')) hold(c.portal, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   // Erreichen-Ziele: zum Zielfeld vorruecken, sobald kein Landetrupp mehr ohne Stadt ist / reach objectives: advance to the target tile once no landing party is left without a city

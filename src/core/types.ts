@@ -167,6 +167,8 @@ export interface Faction {
   league?: number;
   /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
   plunder?: number;
+  /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
+  orbitalReady?: number;
 }
 
 export interface PendingReward {
@@ -261,6 +263,8 @@ export interface CampaignState {
   cave?: Pos;
   /** Runden in Folge, die der Spieler den Hoehleneingang besetzt / consecutive rounds the player occupies the cave entrance */
   caveHold?: number;
+  /** Runden in Folge, die der Spieler (mit Verbuendeten) alle Sendetuerme besitzt / consecutive rounds the player (with allies) owns all transmitter towers */
+  towerHold?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -368,9 +372,17 @@ export type GameEvent =
   | { t: 'rift'; unit: number; x: number; y: number }
   /** Schadenswetter zu Rundenbeginn (Meteorschauer, Saeureregen): getroffene Einheiten / damaging weather at round start (meteors, acid rain): units hit */
   | { t: 'weatherHit'; kind: 'meteor' | 'acid'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /**
+   * Orbitallaser: Ziel (x, y), getroffene Flaeche, Treffer an Einheiten (unit) und Geschuetzen (turret), deterministisch.
+   * Orbital laser: target (x, y), area hit, hits on units (unit) and guns (turret), deterministic.
+   */
+  | { t: 'orbitalStrike'; faction: number; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
   /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
   | { t: 'ruin'; index: number; x: number; y: number; faction: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
+
+/** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
+export interface OrbitalHit { unit?: number; turret?: boolean; x: number; y: number; dmg: number; killed: boolean }
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
 
@@ -403,6 +415,8 @@ export type Command =
   | { type: 'wonder'; kind: WonderKind; x: number; y: number }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
+  /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
+  | { type: 'orbitalStrike'; x: number; y: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -412,7 +426,9 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'recruitCooldown' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory' | 'cannotBuild' | 'quake';
+  | 'enemyTerritory' | 'cannotBuild' | 'quake'
+  // Orbitallaser / orbital laser
+  | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit';
 
 export interface CommandResult {
   ok: boolean;

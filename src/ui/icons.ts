@@ -7,6 +7,8 @@ const P: Record<string, string> = {
   medal: '<circle cx="12" cy="14" r="6"/><path d="M8.5 3h7l-2 6h-3z"/><path d="M12 11.2l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="currentColor"/>',
   hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/>',
   research: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
+  /** Fabrik mit Saegezahndach: Produktion der Menschen / factory with sawtooth roof: human production */
+  production: '<path d="M3 21V12l5-3v3l5-3v3l3-1.5V4h3v17z"/><path d="M2 21h20"/><path d="M6.5 16.5h2M11.5 16.5h2" stroke-width="2.6"/>',
   diplomacy: '<path d="M3 12l4-4 4 3 3-3 4 1 3 3"/><path d="M7 8l-4 9M17 9l4 8M9 14l2 2M11 12l3 3M13 11l3 3"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   next: '<path d="M5 12h12M12 6l6 6-6 6"/>',
@@ -25,6 +27,8 @@ const P: Record<string, string> = {
   upgrade: '<path d="M12 20V5M6 11l6-6 6 6"/><path d="M5 21h14"/>',
   close: '<path d="M5 5l14 14M19 5L5 19"/>',
   check: '<path d="M4 12.5l5 5L20 6.5"/>',
+  /** Satellitenschuessel mit Strahl: Satelliten-Relay und Orbitallaser / satellite dish with beam: satellite relay and orbital laser */
+  satellite: '<path d="M4 20h9"/><path d="M8.5 20l1-4"/><path d="M4.5 9.5a7 7 0 0 0 9 9z"/><path d="M9 14l3.5-3.5"/><path d="M15 3l2 2-2.5 2.5-2-2zM18.5 6.5l2 2"/><path d="M17 11l3 9" stroke-dasharray="2 2"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
   soundOn: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
   soundOff: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>',

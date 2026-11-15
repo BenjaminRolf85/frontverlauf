@@ -9,6 +9,7 @@ import {
 import { has, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog, progress } from './components';
 import { icon } from './icons';
+import { techT } from './terms';
 
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
 
@@ -94,7 +95,7 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   if (st.unavailable) return `<div class="score-row">${head}${goal}<span class="muted">${esc(t('victory.leagueUnavailable'))}</span></div></div>`;
   let state: string;
   // fehlende Siegtechnologie beim Namen nennen / name the missing victory tech
-  if (!st.tech) state = `<span class="muted">${esc(t('victory.noTech'))}</span><span class="tag">${icon('lock', 'icon-sm')}${esc(t('hud.needsTech', { tech: t(`techs.${VICTORY_TECH[fa.id]}`) }))}</span>`;
+  if (!st.tech) state = `<span class="muted">${esc(techT('victory.noTech', fa.id))}</span><span class="tag">${icon('lock', 'icon-sm')}${esc(t('hud.needsTech', { tech: t(`techs.${VICTORY_TECH[fa.id]}`) }))}</span>`;
   else {
     const left = st.roundsLeft !== null && st.phase !== 'none' ? ` · ${t('victory.roundsLeft', { n: st.roundsLeft })}` : '';
     const note = st.paused ? ` · ${t('victory.paused')}` : st.phase === 'league' && st.roundsLeft === null ? ` · ${t('victory.leagueNotMet')}` : '';

@@ -376,6 +376,28 @@ class AudioEngine {
     for (let i = 0; i < 10; i++) this.noise(t + 0.9 + i * 0.12, 0.08, 0.2, 1800, out, { type: 'bandpass', q: 3 });
   }
 
+  /**
+   * Orbitallaser: aufsteigendes Aufladesummen mit Flattern, nach charge Sekunden der Zap (heller Knall, fallender Ton, Donner).
+   * Orbital laser: rising charge-up whine with flutter, after charge seconds the zap (bright crack, falling tone, thunder).
+   */
+  orbital(charge = 0.6) {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const t = ctx.currentTime + 0.02;
+    const out = this.fxOut(0.55);
+    if (charge > 0.05) {
+      this.tone(260, t, charge, 'sawtooth', 0.12, out, 7, charge * 0.8);
+      this.tone(390, t, charge, 'sine', 0.16, out, 5.5, charge * 0.7);
+      for (let i = 0; i < 6; i++) this.tone(1200 + i * 260, t + (i / 6) * charge, 0.05, 'square', 0.035, out, 1.3, 0.004);
+    }
+    const z = t + charge;
+    this.noise(z, 0.18, 0.75, 5200, out, { type: 'highpass' });
+    this.tone(2400, z, 0.55, 'sawtooth', 0.3, out, 0.08, 0.003);
+    this.tone(1100, z, 0.4, 'square', 0.14, out, 0.15, 0.003);
+    this.boom(z + 0.04, 0.8, 90, out);
+    this.noise(z + 0.1, 1.2, 0.35, 900, out, { freqEnd: 60, attack: 0.08 });
+  }
+
   private splash(t: number, vol: number, out: AudioNode) {
     this.noise(t, 0.7, vol, 2500, out, { type: 'bandpass', q: 0.6, freqEnd: 400, attack: 0.02 });
   }

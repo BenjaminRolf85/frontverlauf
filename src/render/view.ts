@@ -298,6 +298,7 @@ export class View {
       this.board.alienFx.update(sec);
       this.board.desertFx.update(sec);
       this.board.pulseMarkers(sec);
+      this.board.orbital.update(sec);
       this.needs = true;
     }
     const wfx = this.board.weatherFx;

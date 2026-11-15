@@ -1,10 +1,11 @@
 /** Kurzes spielbares Tutorial fuer die erste Partie / short playable tutorial for the first game */
 import { defaultConfig, ownCities, ownUnits, type GameConfig, type GameState } from '../core';
-import { FACTIONS, HIT, MODES, UPKEEP } from '../data/balance';
+import { FACTIONS, HIT, MODES, MOVE_FIRE, UPKEEP } from '../data/balance';
 import type { Controller } from '../game/controller';
 import { t } from '../i18n/i18n';
 import { button, esc } from './components';
 import { icon } from './icons';
+import { techT } from './terms';
 import { victoryTrackerDialog } from './victory';
 
 /** Fraktionssiege aus: ein KI-Wunder darf das Tutorial nicht beenden; Trefferglueck bleibt an / faction victories off: an AI wonder must not end the tutorial; hit luck stays on */
@@ -12,11 +13,13 @@ export const TUTORIAL_CONFIG: GameConfig = defaultConfig({
   seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true,
   factions: [{ id: 'korvat', human: true, difficulty: 'easy' }, { id: 'dravon', human: false, difficulty: 'easy' }],
 });
+/** Fraktion des Tutorials (Wortwahl der Texte) / faction of the tutorial (wording of the texts) */
+export const TUTORIAL_FACTION = TUTORIAL_CONFIG.factions[0].id;
 
 /** Platzhalter der Tutorialtexte (Zahlen aus balance.ts) / placeholders of the tutorial texts (numbers from balance.ts) */
 const TUTORIAL_PARAMS: Record<string, Record<string, number>> = {
   goal: { rounds: MODES.pointsRounds },
-  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100) },
+  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100), move: Math.round(MOVE_FIRE.damage * 100) },
   upkeep: { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100) },
 };
 
@@ -120,7 +123,7 @@ export class Tutorial {
     if (st.focus) this.root.dataset.tutorialFocus = st.focus; else delete this.root.dataset.tutorialFocus;
     this.node.innerHTML = `<div class="row">${icon('tutorial')}<strong class="display grow">${esc(t('tutorial.title'))} ${this.i + 1}/${this.steps.length}</strong>
       ${button(t('tutorial.skip'), { action: 'skip', variant: 'secondary' })}</div>
-      <p>${esc(t(`tutorial.${st.key}`, TUTORIAL_PARAMS[st.key] ?? {}))}</p>
+      <p>${esc(techT(`tutorial.${st.key}`, s.factions[0]?.id, TUTORIAL_PARAMS[st.key] ?? {}))}</p>
       <div class="row">${st.key === 'goal' ? button(t('tutorial.goalOpen'), { action: 'tracker', icon: 'trophy', variant: 'secondary' }) : ''}
       ${st.manual ? button(last ? t('tutorial.done') : t('tutorial.next'), { action: 'next', icon: 'next' }) : ''}</div>`;
   }

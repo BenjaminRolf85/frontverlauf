@@ -46,7 +46,9 @@ const KEYS = {
     // Hoehle: Pilze, Kristalle, Laternen, Verdan-Auge (kommen an der Oberflaeche nicht vor) / cavern: mushrooms, crystals, lanterns, Verdan eye (absent on the surface)
     keyColor(semantic.caveGlowTeal), keyColor(semantic.caveGlowMagenta), keyColor(semantic.caveGlowLime), keyColor(semantic.caveLantern), keyColor(semantic.caveCrystal), keyColor(semantic.verdanEye),
     // Riss zwischen den Welten / rift between the worlds
-    keyColor(semantic.riftSick), keyColor(semantic.riftGold)],
+    keyColor(semantic.riftSick), keyColor(semantic.riftGold),
+    // Uplink-Licht des Satelliten-Relays / uplink light of the satellite relay
+    keyColor(semantic.orbitalUplink)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };

@@ -274,6 +274,11 @@ export const primitives = {
     riftViolet400: '#a54cff',
     riftSick: '#c6e83a',
     riftGold: '#f0c53a',
+    // Orbitallaser der Velkar / Velkar orbital laser
+    orbitalCore: '#fffbea',
+    orbitalUplink: '#6dffb4',
+    orbitalAim: '#ff3355',
+    orbitalScorch: '#241a16',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -594,6 +599,15 @@ export const semantic = {
   riftGold: c.riftGold,
   /** Saeureregen der Alienwelt (gruengelb) / acid rain of the alien world (green-yellow) */
   acidRain: c.riftSick,
+  /**
+   * Orbitallaser: weissglühender Kern, Uplink-Licht des Relays (leuchtet, KEYS), Zielrahmen, eigene Treffer, Brandring.
+   * Orbital laser: white-hot core, relay uplink light (glows, KEYS), target frame, own hits, scorch ring.
+   */
+  orbitalCore: c.orbitalCore,
+  orbitalUplink: c.orbitalUplink,
+  orbitalAim: c.orbitalAim,
+  orbitalOwn: c.orange500,
+  orbitalScorch: c.orbitalScorch,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
@@ -658,10 +672,12 @@ export const components = {
   unitCard: { bg: semantic.surfaceRaised, hpFill: c.green500, hpLow: c.red500 },
   halftone: { dot: 'rgba(21, 19, 31, 0.12)', size: '8px', dotRadius: '1px', dotFade: '1.3px' },
   action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px', subMaxWidthWide: '148px' },
+  /** Orbitallaser-Knopf: Abklingzeit-Abzeichen, Warnung bei eigenen Treffern / orbital laser button: cooldown badge, warning on own hits */
+  orbital: { ready: c.green500, wait: c.paper300, badgeInk: semantic.text, warn: semantic.warning, aim: semantic.orbitalAim },
   /** Hinweiszeile unter der Aktionsleiste / hint line below the action bar */
   actionHint: { bg: semantic.surfaceSunken, blocked: semantic.warning, fontSize: primitives.fontSize.xs, accent: primitives.borderWidth.thick },
   layout: {
-    sheetMaxWidth: '760px', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
+    sheetMaxWidth: '760px', sheetDockWidth: '420px', sheetDockMaxHeight: '44vh', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
   },
   fx: { burstSize: '120px', burstStroke: '3' },

@@ -11,10 +11,11 @@ import {
   activeEmbassies, baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
-  AI, CULT, UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
+import { relayTechBonus, relayValue } from './orbital';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
 
@@ -305,6 +306,7 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
   if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
+  mil += relayTechBonus(ctx, t);
   if (t === 'mountainTraining' || t === 'highAltitude') {
     let m = 0;
     for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (ctx.s.tiles[idx(ctx.s.size, p.x, p.y)].terrain === 'mountain') m++;
@@ -776,6 +778,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       else if (up === 'depot') value = CITY_UPGRADES.depotIncome * Math.min(ctx.points ? ctx.roundsLeft : 20, 20) * 0.45;
       else if (up === 'hospital') value = front ? cost * 1.2 : cost * 0.3;
       else if (up === 'flak') value = ctx.enemies.some((e) => e.type === 'heli' && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
+      // Satelliten-Relay (Velkar): Wert aus ai/orbital.ts / satellite relay (Velkar): value from ai/orbital.ts
+      else if (up === ORBITAL.relay) { value = relayValue(ctx, c); if (!value) continue; }
       else if (up === 'barracks') value = cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'mercenaryBarracks') ? 0 : cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
       else {
         const targets = radioTargets(s, f, c);

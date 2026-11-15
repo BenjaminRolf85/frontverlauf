@@ -13,6 +13,7 @@ import { continueEndless } from './core';
 import { BUNKER, VETERAN } from './data/balance';
 import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
+import { factionIdOf, techIcon, techT } from './ui/terms';
 import { Fx } from './ui/fx';
 import { Barks } from './ui/barks';
 import { Dispatches } from './ui/dispatch';
@@ -165,7 +166,7 @@ function boot() {
   game.ui = {
     update() { hud.render(); objectives.render(game.state); tutorial?.check(); xr.refreshPanels(); minimap.invalidate(); },
     toast: (text, ic) => toast(root, text, ic),
-    errorCode: (code) => toast(root, t(`errors.${code}`), 'warning'),
+    errorCode: (code) => toast(root, techT(`errors.${code}`, factionIdOf(game.state, game.viewer >= 0 ? game.viewer : game.state?.current ?? -1)), 'warning'),
     event(e, s: GameState) {
       const viewer = game.viewer;
       const fname = (i: number) => t(`factions.${s.factions[i].id}.short`);
@@ -182,9 +183,10 @@ function boot() {
           toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city }), 'capture');
           break;
         }
-        case 'research': if (e.faction === viewer) toast(root, t('events.research', { tech: t(`techs.${e.tech}`) }), 'research'); break;
+        // Wortwahl nach der Rasse der forschenden Fraktion / wording by the race of the researching faction
+        case 'research': if (e.faction === viewer) toast(root, techT('events.research', s.factions[e.faction].id, { tech: t(`techs.${e.tech}`) }), techIcon(s.factions[e.faction].id)); break;
         case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
-        case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
+        case 'bunker': if (e.faction === viewer) toast(root, techT(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, s.factions[e.faction].id, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
         // Sold nicht bezahlt: Einheit desertiert / upkeep unpaid: unit deserts
@@ -237,6 +239,10 @@ function boot() {
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
+        // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
+        case 'orbitalStrike':
+          if (viewer < 0 || e.faction === viewer || e.tiles.some((p) => s.factions[viewer].explored[p.y * s.size + p.x] === 1)) toast(root, t('orbital.toast', { name: fname(e.faction) }), 'satellite');
+          break;
       }
       dispatches.onEvent(e, s);
     },
@@ -266,6 +272,12 @@ function boot() {
       const p = view.board.pick(view.raycaster(cx, cy));
       if (p && game.state) detailsDialog(host, p.x, p.y);
     },
+  });
+  // Orbitallaser: die Vorschau folgt dem Mauszeiger / orbital laser: the preview follows the mouse pointer
+  canvas.addEventListener('pointermove', (e) => {
+    if (!game.orbitalMode || e.pointerType !== 'mouse' || e.buttons) return;
+    const p = view.board.pick(view.raycaster(e.clientX, e.clientY));
+    if (p) game.aimOrbital(p.x, p.y);
   });
   window.addEventListener('resize', () => { view.resize(); hud.render(); });
   window.addEventListener('keydown', (e) => {

@@ -24,7 +24,7 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, TOWER, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
@@ -90,6 +90,13 @@ export type ObjectiveDef =
    * Occupy the cave entrance with an own unit for this many consecutive rounds (counted at the start of the player's turn).
    */
   | { k: 'cave'; rounds: number }
+  /**
+   * Alle Sendetuerme der Karte gleichzeitig so viele Runden in Folge besitzen (gezaehlt zu Beginn des Spielerzugs;
+   * Tuerme des Verbuendeten zaehlen mit). Geht einer verloren, beginnt die Zaehlung von vorn.
+   * Own all transmitter towers of the map at the same time for this many consecutive rounds (counted at the start of
+   * the player's turn; the ally's towers count too). Losing one restarts the count.
+   */
+  | { k: 'towers'; rounds: number }
   // nur Bonus / bonus only
   | { k: 'fast'; rounds: number }
   | { k: 'keepHq' }
@@ -145,6 +152,13 @@ export interface SetupKit {
    * Cave entrance near the map centre: rock wall on the side away from from, everyone knows it (target tile).
    */
   caveMouth(from: Pos): Pos;
+  /**
+   * Sendetuerme der Mission schon jetzt setzen (sonst nach der Einrichtung), z. B. um Wellen an ihnen auszurichten;
+   * Reihenfolge wie bei der Platzierung, der abgelegenste zuerst.
+   * Place the mission's transmitter towers right now (else after the setup), e.g. to aim waves at them; in placement
+   * order, the most remote one first.
+   */
+  towers(): City[];
 }
 
 /**
@@ -245,16 +259,22 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
   // ---------- World I: Earth, where the factions fight (Starfall, Bell, Awakening, Portal) ----------
   {
     id: 'm1', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
-    seed: 1101, size: 11, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 30, rounds: 14,
-    objectives: [{ k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 9 }, { k: 'keepHq' }],
+    seed: 1101, size: 11, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 30, rounds: TOWER_HOLD.m1MissionRounds,
+    // Sendetuerme erobern und gemeinsam halten (TOWER_HOLD) / capture the transmitter towers and hold them together (TOWER_HOLD)
+    objectives: [{ k: 'towers', rounds: TOWER_HOLD.m1Rounds }], bonus: [{ k: 'fast', rounds: TOWER_HOLD.m1FastRound }, { k: 'keepHq' }],
+    towers: TOWER_HOLD.m1Towers,
     briefing: ['hq', 'scout', 'enemy'], persuade: true,
-    waves: [{ round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 }],
+    // Runde 4 vor der eigenen Front, dann ein Ueberfall auf den abgelegensten Turm / round 4 in front of the own lines, then a raid on the most remote tower
+    waves: [{ round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 }, { round: TOWER_HOLD.m1RaidRound, owner: 1, units: ['grey', 'grey'], at: 1, stars: 6 }],
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
       k.spawn('infantry', 0, a); k.spawn('jeep', 0, a);
       // Sonden der Zyrr schwaermen frueh aus / Zyrr probes swarm out early
       k.spawn('grey', 1, b, { min: 1 });
       k.point(ringNear(k, a, k.toward(a, b, 4), 3, 5));
+      // Ueberfall: ein paar Felder neben dem abgelegensten Turm, zur Seite der Zyrr hin / raid: a few tiles off the most remote tower, towards the Zyrr side
+      const far = k.towers()[0];
+      k.point(far ? ringNear(k, far, k.toward(far, b, TOWER_HOLD.m1RaidDistance), TOWER_HOLD.m1RaidDistance, TOWER_HOLD.m1RaidDistance + 1) : k.toward(a, b, 4));
     },
   },
   {
@@ -660,7 +680,7 @@ function spawnNear(s: GameState, type: UnitTypeId, owner: number, near: Pos, car
   return u;
 }
 
-function kit(s: GameState, c: CampaignState): SetupKit {
+function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
   const clamp = (v: number) => Math.max(0, Math.min(s.size - 1, v));
   return {
     s,
@@ -693,6 +713,10 @@ function kit(s: GameState, c: CampaignState): SetupKit {
       c.targets.push({ x: p.x, y: p.y });
       for (const f of s.factions) revealArea(s, f.index, p.x, p.y, 1);
       return p;
+    },
+    towers: () => {
+      if (!s.cities.some((x) => x.tower)) placeTowers(s, towerCount(m));
+      return s.cities.filter((x) => x.tower);
     },
   };
 }
@@ -856,10 +880,19 @@ export function setupMission(s: GameState) {
   if (m.landing) c.landing = true;
   if (m.artifact) { c.artifact = placeArtifact(s); c.hold = { faction: null, n: 0 }; }
   if (m.turrets && c.artifact) placeTurrets(s, c.artifact);
-  const k = kit(s, c);
+  const k = kit(s, c, m);
   m.setup?.(k);
-  // Sendetuerme nach der Einrichtung, damit sie nie Einrichtungsziele verdraengen / transmitter towers after the setup so they never displace setup targets
-  placeTowers(s, towerCount(m));
+  // Sendetuerme nach der Einrichtung, damit sie nie Einrichtungsziele verdraengen (ausser die Einrichtung hat sie schon gesetzt)
+  // transmitter towers after the setup so they never displace setup targets (unless the setup already placed them)
+  k.towers();
+  // Turm-Ziel: Tuerme als Zielfelder markiert und allen bekannt / tower objective: towers marked as target tiles and known to everyone
+  if (m.objectives.some((o) => o.k === 'towers')) {
+    c.towerHold = 0;
+    for (const t of s.cities.filter((x) => x.tower)) {
+      c.targets.push({ x: t.x, y: t.y });
+      for (const f of s.factions) revealArea(s, f.index, t.x, t.y, 0);
+    }
+  }
   for (const [a, b] of m.allied ?? []) {
     if (!s.factions[a] || !s.factions[b]) continue;
     s.factions[a].relations[b] = 'peace';
@@ -945,6 +978,22 @@ function countCave(s: GameState, c: CampaignState) {
   const p = c.cave;
   if (!p) return;
   c.caveHold = friendly(s, unitAt(s, p.x, p.y)?.owner) ? (c.caveHold ?? 0) + 1 : 0;
+}
+
+/**
+ * Sendetuerme in eigener oder verbuendeter Hand: wie viele von wie vielen.
+ * Transmitter towers in own or allied hands: how many of how many.
+ */
+export function towersHeld(s: GameState): { held: number; total: number } {
+  const list = s.cities.filter((x) => x.tower);
+  return { held: list.filter((x) => friendly(s, x.owner)).length, total: list.length };
+}
+
+/** Alle Sendetuerme gehalten? Runden in Folge (zu Beginn des Spielerzugs) / all transmitter towers held? consecutive rounds (start of the player's turn) */
+function countTowers(s: GameState, c: CampaignState, m: MissionDef) {
+  if (!m.objectives.some((o) => o.k === 'towers')) return;
+  const { held, total } = towersHeld(s);
+  c.towerHold = total > 0 && held === total ? (c.towerHold ?? 0) + 1 : 0;
 }
 
 /** Ruinenstaetten entziffern (zu Beginn des Spielerzugs) / decipher ruin sites (at the start of the player's turn) */
@@ -1051,6 +1100,7 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
     }
     case 'portal': return (c.portalHold ?? 0) >= o.rounds ? 'done' : 'pending';
     case 'cave': return (c.caveHold ?? 0) >= o.rounds ? 'done' : 'pending';
+    case 'towers': return (c.towerHold ?? 0) >= o.rounds ? 'done' : 'pending';
     case 'ruins': return (c.siteDone ?? []).filter(Boolean).length >= o.n ? 'done' : 'pending';
     case 'rift': {
       const id = c.units?.[o.unit];
@@ -1079,6 +1129,7 @@ export function objectiveProgress(s: GameState, o: ObjectiveDef, rounds: number)
     }
     case 'portal': return { have: Math.min(s.campaign?.portalHold ?? 0, o.rounds), need: o.rounds };
     case 'cave': return { have: Math.min(s.campaign?.caveHold ?? 0, o.rounds), need: o.rounds };
+    case 'towers': return { have: Math.min(s.campaign?.towerHold ?? 0, o.rounds), need: o.rounds };
     case 'ruins': return { have: Math.min((s.campaign?.siteDone ?? []).filter(Boolean).length, o.n), need: o.n };
     case 'rift': {
       const id = s.campaign?.units?.[o.unit];
@@ -1106,9 +1157,9 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   if (!c || c.result) return;
   const m = missionById(c.mission);
   if (!m) return;
-  // Zu Beginn des Spielerzugs: Wellen, Artefakt, Portal, Hoehle und Ruinen zaehlen. Nach dem Rundenlimit zaehlt nichts mehr:
+  // Zu Beginn des Spielerzugs: Wellen, Artefakt, Portal, Hoehle, Sendetuerme und Ruinen zaehlen. Nach dem Rundenlimit zaehlt nichts mehr:
   // die Mission endet dann am Limit, ein Halten-Sieg faellt nie eine Runde zu spaet.
-  // At the start of the player's turn: waves, count artifact, portal, cave and ruins. After the round limit nothing counts
+  // At the start of the player's turn: waves, count artifact, portal, cave, transmitter towers and ruins. After the round limit nothing counts
   // any more: the mission then ends at the limit, a hold win never lands one round late.
   const expired = s.round > m.rounds;
   if (turnChange && s.current === PLAYER && !s.over && !expired) {
@@ -1116,6 +1167,7 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
     countArtifact(s, c);
     countPortal(s, c);
     countCave(s, c);
+    countTowers(s, c, m);
     countRuins(s, c, ev);
   }
   bossEmerge(s, c, m, ev, turnChange);
