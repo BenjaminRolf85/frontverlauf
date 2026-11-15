@@ -27,6 +27,7 @@ import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
 import { factionIdOf, techIcon, techT } from './terms';
+import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
 
 export interface ScreenHost {
@@ -545,7 +546,10 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
   for (const up of CITY_UPGRADE_IDS) {
     if (CITY_UPGRADES.tech[up] !== tech) continue;
-    extraRows.push(`<li class="unlock">${icon('city', 'icon-sm')}<strong>${esc(t('cityUpgrades.unlock', { name: t(`cityUpgrades.${up}`) }))}</strong><span class="muted">${esc(t(`cityUpgrades.${up}Desc`))}</span></li>`);
+    // Fraktionsausbau (Satelliten-Relay) nur fuer die eigene Fraktion / faction upgrade (satellite relay) only for its own faction
+    const only = CITY_UPGRADES.faction[up];
+    if (only && only !== fa.id) continue;
+    extraRows.push(`<li class="unlock">${icon('city', 'icon-sm')}<strong>${esc(t('cityUpgrades.unlock', { name: t(`cityUpgrades.${up}`) }))}</strong><span class="muted">${esc(t(`cityUpgrades.${up}Desc`, orbitalVars()))}</span></li>`);
   }
   let reason = '';
   if (st === 'researched') reason = tt('tech.done');

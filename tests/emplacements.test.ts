@@ -5,10 +5,10 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   cloneState, createGame, emplacementCheck, emplacementLimit, emplacementTargets, emplacementsOf, gunStats,
-  hitDamage, missionConfig, reachable, score, supportedUnits, turretList, turretPreview, turretShotDamage, turretTargets, type GameEvent,
+  hitDamage, missionConfig, moveFireMult, reachable, score, supportedUnits, turretList, turretPreview, turretShotDamage, turretTargets, type GameEvent,
   type GameState,
 } from '../src/core';
-import { EMPLACEMENT, HIT_KINDS, UNITS, VERDAN } from '../src/data/balance';
+import { CITY_UPGRADES, EMPLACEMENT, HIT_KINDS, MOVE_FIRE, ORBITAL, UNITS, VERDAN } from '../src/data/balance';
 import { isValidState, loadGame, saveGame } from '../src/save/save';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile } from './helpers';
 
@@ -205,6 +205,31 @@ describe('Angriff auf Stellungen / attacking emplacements', () => {
     expect(reachable(s, walker).some((p) => p.x === 4 && p.y === 4)).toBe(true);
   });
 
+  it('nach Bewegung halber Schaden gegen die Stellung, ihr eigenes Feuer bleibt voll / half damage against the emplacement after moving, its own fire stays full', () => {
+    const { s, pio } = setup();
+    build(s, pio.id, 4, 4);
+    s.current = 1;
+    s.factions[1].stars = 0;
+    const still = addUnit(s, 'infantry', 1, 5, 3);
+    const full = turretPreview(s, still, { x: 4, y: 4 }).toTurret;
+    s.units = s.units.filter((u) => u.id !== still.id);
+    const mover = addUnit(s, 'infantry', 1, 6, 2);
+    ok(s, { type: 'move', unit: mover.id, to: { x: 5, y: 3 } });
+    const half = turretPreview(s, mover, { x: 4, y: 4 });
+    // Korvat: Steppensturm (MOVE_FIRE.bonus) statt der Haelfte / Korvat: Steppe Storm (MOVE_FIRE.bonus) instead of half
+    expect(moveFireMult(s, mover)).toBe(MOVE_FIRE.bonus.korvat!.all);
+    expect(half.moveFire).toBeTruthy();
+    expect(half.toTurret).toBeLessThan(full);
+    expect(Math.abs(half.toTurret - full * moveFireMult(s, mover))).toBeLessThanOrEqual(1);
+    const r = ok(s, { type: 'attackTurret', unit: mover.id, x: 4, y: 4 });
+    expect(r.events.find((e) => e.t === 'turretHit')).toMatchObject({ dmg: half.toTurret });
+    // Rundenfeuer der Stellung: voller Schaden, unabhaengig von MOVE_FIRE / the emplacement's round fire: full damage, independent of MOVE_FIRE
+    const hp = mover.hp;
+    const ev = wrapRound(s).find((e) => e.t === 'turretFire' && e.owner === 0) as Extract<GameEvent, { t: 'turretFire' }>;
+    expect(ev.target).toBe(mover.id);
+    expect(ev.dmg).toBe(turretShotDamage(s, tile(s, 4, 4).turret!.hp, { ...mover, hp }, EMPLACEMENT));
+  });
+
   it('nicht im Frieden und nicht die eigene / not at peace and not the own', () => {
     const { s, pio } = setup();
     build(s, pio.id, 4, 4);
@@ -245,6 +270,39 @@ describe('Besitzwechsel und Ausscheiden / ownership change and elimination', () 
     expect(r.events.some((e) => e.t === 'eliminated' && e.faction === 0)).toBe(true);
     expect(r.events.some((e) => e.t === 'emplacementLost' && e.reason === 'eliminated')).toBe(true);
     expect(turretList(s)).toEqual([]);
+  });
+});
+
+describe('Orbitallaser der Velkar / Velkar orbital laser', () => {
+  /** Velkar (0) mit Relay, Dravon (1) mit Stellung bei (5,4) / Velkar (0) with a relay, Dravon (1) with an emplacement at (5,4) */
+  function laser() {
+    const s = blankGame({ factions: ['velkar', 'dravon'], stars: 200 });
+    const hq = addCity(s, 1, 1, 0, { hq: true });
+    addCity(s, 5, 5, 1, { hq: true });
+    revealAll(s, 0);
+    s.factions[0].techs.push(CITY_UPGRADES.tech.satRelay);
+    ok(s, { type: 'cityUpgrade', city: hq.id, upgrade: 'satRelay' });
+    s.factions[0].orbitalReady = s.round;
+    tile(s, 5, 4).turret = { hp: EMPLACEMENT.hp, active: true, owner: 1 };
+    return s;
+  }
+  it('trifft die Stellung im Krieg, Truemmer bei 0 LP / hits the emplacement at war, rubble at 0 HP', () => {
+    const s = laser();
+    ok(s, { type: 'orbitalStrike', x: 5, y: 4 });
+    expect(tile(s, 5, 4).turret!.hp).toBe(EMPLACEMENT.hp - ORBITAL.damage);
+    tile(s, 5, 4).turret!.hp = ORBITAL.damage;
+    s.factions[0].orbitalReady = s.round;
+    const r = ok(s, { type: 'orbitalStrike', x: 5, y: 4 });
+    expect(tile(s, 5, 4).turret).toBeNull();
+    expect(tile(s, 5, 4).turretRuin).toBe(true);
+    expect(tile(s, 5, 4).turretRuinOwner).toBe(1);
+    expect(r.events.some((e) => e.t === 'emplacementLost')).toBe(false);
+  });
+  it('im Frieden sperrt die sichtbare Stellung den Schuss / at peace the visible emplacement blocks the shot', () => {
+    const s = laser();
+    peace(s, 0, 1);
+    fails(s, { type: 'orbitalStrike', x: 5, y: 3 }, 'peace');
+    expect(tile(s, 5, 4).turret!.hp).toBe(EMPLACEMENT.hp);
   });
 });
 

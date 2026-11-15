@@ -233,6 +233,10 @@ function boot() {
         // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
         case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') toast(root, t('emplacement.lost'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
+        // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
+        case 'orbitalStrike':
+          if (viewer < 0 || e.faction === viewer || e.tiles.some((p) => s.factions[viewer].explored[p.y * s.size + p.x] === 1)) toast(root, t('orbital.toast', { name: fname(e.faction) }), 'satellite');
+          break;
       }
       dispatches.onEvent(e, s);
     },
@@ -262,6 +266,12 @@ function boot() {
       const p = view.board.pick(view.raycaster(cx, cy));
       if (p && game.state) detailsDialog(host, p.x, p.y);
     },
+  });
+  // Orbitallaser: die Vorschau folgt dem Mauszeiger / orbital laser: the preview follows the mouse pointer
+  canvas.addEventListener('pointermove', (e) => {
+    if (!game.orbitalMode || e.pointerType !== 'mouse' || e.buttons) return;
+    const p = view.board.pick(view.raycaster(e.clientX, e.clientY));
+    if (p) game.aimOrbital(p.x, p.y);
   });
   window.addEventListener('resize', () => { view.resize(); hud.render(); });
   window.addEventListener('keydown', (e) => {

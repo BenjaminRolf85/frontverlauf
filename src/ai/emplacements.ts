@@ -68,6 +68,8 @@ const covered = (ctx: Ctx, c: Pos) => emplacementsOf(ctx.s, ctx.f).some((g) => d
 export function emplacementOption(ctx: Ctx, u: Unit): { x: number; y: number; v: number } | null {
   const { s, f } = ctx;
   if (!freeEmplacementSlots(ctx) || ctx.fa.stars < EMPLACEMENT.cost) return null;
+  // zu kleine Armee: erst Truppen, Stellungen nur mit Polster (sonst Abnutzungspatt im Endspiel) / army too small: troops first, emplacements only with a cushion (else an attrition stalemate in the endgame)
+  if (ctx.my.length < ctx.desiredArmy * A.armyShare && ctx.fa.stars < EMPLACEMENT.cost + A.reserve) return null;
   let best: { x: number; y: number; v: number } | null = null;
   for (const p of emplacementTargets(s, u)) {
     let city: City | null = null, dc = Infinity;
@@ -143,6 +145,6 @@ export function emplacementTechBonus(ctx: Ctx): number {
   if (!hasFortification(ctx.s, ctx.f) || ctx.s.round < A.techRound || ctx.myCities.length < A.techCities) return 0;
   // Punktespiel: erst die eigene Siegtechnologie (Waal), dann Festungsbau / points game: the own victory tech (Waal) first, then fortification
   if (ctx.points && factionVictoryOn(ctx.s) && !ctx.fa.techs.includes(victoryTechOf(ctx.s, ctx.f))) return 0;
-  // Eroberung: Stellungen halten eroberte Grenzstaedte, die KI forscht dort sonst kaum / conquest: emplacements hold conquered border cities, the AI hardly researches there otherwise
+  // Eroberung: kein Schub, er verschleppte die Endspiele (ANNAHMEN) / conquest: no push, it dragged out the endgames (ANNAHMEN)
   return A.techBonus * (ctx.conquest ? A.techConquest : 1);
 }

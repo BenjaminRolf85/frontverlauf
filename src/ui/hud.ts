@@ -10,7 +10,8 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview, missionById, emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
+  supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow,
+  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
 import { emplacementCount, emplacementDesc, emplacementName, emplacementStats } from './emplacement';
@@ -26,11 +27,12 @@ import {
 import { icon } from './icons';
 import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
+import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
 
-const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
+const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star', satRelay: 'satellite' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning', acid: 'rain', quake: 'warning', calm: 'sun' };
 export const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
@@ -99,17 +101,70 @@ export function cityName(s: GameState, cityId: number): string {
  * Angriffsvorschau mit Trefferglueck: kurz (zweite Zeile im Knopf) und voll (Hinweiszeile).
  * Attack preview with hit luck: short (second line in the button) and full (hint line).
  */
-function attackPreview(s: GameState, p: CombatPreview): { short: string; full: string } {
+function attackPreview(s: GameState, p: CombatPreview, u: Unit, target: Unit): { short: string; full: string } {
+  // nach Bewegung oder gegen ein Bollwerk: Zahlen sind schon verringert, die Hinweiszeile sagt warum
+  // after moving or against a bulwark: numbers are already reduced, the hint line says why
+  const notes = combatNotes(s, p, u, target);
+  const moved = notes ? `. ${notes}` : '';
   if (!hitChanceOn(s)) {
     const txt = p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker });
-    return { short: txt, full: txt };
+    return { short: txt, full: `${txt}${moved}` };
   }
   const pct = Math.round(p.killChance * 100);
   const ret = Math.round(p.expectedRet / Math.max(0.01, 1 - p.killChance));
-  if (pct >= 100) return { short: t('actions.previewKill'), full: t('actions.previewKill') };
+  if (pct >= 100) return { short: t('actions.previewKill'), full: `${t('actions.previewKill')}${moved}` };
   const dmg = t('hit.previewDmg', { exp: Math.round(p.expected), min: p.min, max: p.max });
   const kill = pct > 0 ? ` · ${t('hit.killChance', { pct })}` : '';
-  return { short: `${dmg}${kill}`, full: `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}. ${t('hit.hintLuck')}` };
+  return { short: `${dmg}${kill}`, full: `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}${moved}. ${t('hit.hintLuck')}` };
+}
+
+/**
+ * Kurzhinweis zum Feuern nach Bewegung, mit Fraktionsbonus (z. B. "Nach Bewegung: 75 % (Steppensturm)").
+ * Short note on firing after moving, with the faction bonus (e.g. "After moving: 75 % (Steppe Storm)").
+ */
+function moveFireHint(s: GameState, u: Unit, key: 'hint' | 'tag' = 'hint'): string {
+  const b = moveFireBonus(s, u);
+  return b ? t(`moveFire.${key}Bonus`, { pct: Math.round(moveFireMult(s, u) * 100), name: t(`moveFire.bonus.${b}`) }) : t(`moveFire.${key}`);
+}
+
+/**
+ * Hinweis zum Verteidigungsbonus des Ziels auf eigenem Gebiet (z. B. "Ziel verteidigt +25 % (Friedensbollwerk)").
+ * Note on the target's defence bonus on own territory (e.g. "Target defends +25 % (Peace Bulwark)").
+ */
+function homeDefenseHint(s: GameState, target: Unit, key: 'hint' | 'tag' = 'hint'): string {
+  const b = homeDefenseAt(s, target);
+  return b > 0 ? t(`homeDefense.${key}`, { pct: Math.round(b * 100), name: t(`homeDefense.bonus.${s.factions[target.owner].id}`) }) : '';
+}
+
+/** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
+function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number }, u: Unit, target: Unit | null): string {
+  return [p.moveFire ? moveFireHint(s, u) : '', target && p.homeDefense ? homeDefenseHint(s, target) : ''].filter(Boolean).join(' · ');
+}
+
+/**
+ * Marke im Einheitenfeld: Verteidigungsbonus auf eigenem Gebiet aktiv / tag in the unit panel: defence bonus on own territory active
+ */
+function homeDefenseTag(s: GameState, u: Unit): string {
+  const b = homeDefenseAt(s, u);
+  if (b <= 0) return '';
+  const tip = t('homeDefense.tagDesc', { pct: Math.round(b * 100) });
+  return `<span class="stat tag" title="${esc(tip)}" aria-label="${esc(tip)}">${icon('shield', 'icon-sm')}${esc(homeDefenseHint(s, u, 'tag'))}</span>`;
+}
+
+/**
+ * Hinweis im Einheitenfeld: in diesem Zug gezogen, ein Angriff jetzt zaehlt als Feuern nach Bewegung (MOVE_FIRE).
+ * Note in the unit panel: moved this turn, an attack now counts as firing after moving (MOVE_FIRE).
+ */
+function moveFireTag(s: GameState, u: Unit): string {
+  if (u.owner !== s.current || !movedThisTurn(u) || !canAttackNow(u)) return '';
+  const tip = t('moveFire.tagDesc', { pct: Math.round(moveFireMult(s, u) * 100) });
+  return `<span class="stat tag warn" title="${esc(tip)}" aria-label="${esc(tip)}">${icon('warning', 'icon-sm')}${esc(moveFireHint(s, u, 'tag'))}</span>`;
+}
+
+/** Kampfmarken im Einheitenfeld (immer sichtbar, auch auf dem Handy) / combat tags in the unit panel (always visible, also on phones) */
+function combatTags(s: GameState, u: Unit): string {
+  const tags = moveFireTag(s, u) + homeDefenseTag(s, u);
+  return tags ? `<div class="row">${tags}</div>` : '';
 }
 
 /** Kurzwerte eines Einheitentyps fuer die Hinweiszeile / short stats of a unit type for the hint line */
@@ -144,6 +199,8 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** Kampfhinweis zur angebotenen Angriffsaktion (Hinweiszeile) / combat note on the offered attack action (hint line) */
+  private combatNote = '';
   /** Infofeld auf dem Handy aufgeklappt? / info panel expanded on phones? */
   private expanded = false;
   /** Hinweis auf gesperrte Stadt-Ausbauten / note about locked city upgrades */
@@ -194,6 +251,8 @@ export class Hud {
   /** Text der Hinweiszeile / text of the hint line */
   private hintHtml(): string {
     const a = this.hintId ? this.actions.find((x) => x.id === this.hintId) : undefined;
+    // nach Bewegung: halber Schaden gleich sichtbar / after moving: half damage visible right away
+    if (!a && this.combatNote) return `${icon('warning', 'icon-sm')}<span class="hint-text"><strong>${esc(this.combatNote)}</strong></span>`;
     if (!a) return `${icon('info', 'icon-sm')}<span class="hint-text muted">${esc(t('hud.hintPrompt'))}</span>`;
     const text = (a.enabled ? a.desc ?? a.reason : a.reason) ?? (a.sub && a.sub !== a.label ? a.sub : '');
     const name = a.sub && a.sub !== a.label && a.id !== 'attack' && a.id !== 'rocket' ? `${a.label} (${a.sub})` : a.label;
@@ -259,6 +318,9 @@ export class Hud {
         break;
       }
       case 'grand': this.cb.openGrand(); break;
+      // Orbitallaser (Velkar) / orbital laser (Velkar)
+      case 'orbital': if (this.game.orbitalMode) this.game.cancelOrbital(); else this.game.startOrbital(); break;
+      case 'orbitalCancel': this.game.cancelOrbital(); break;
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
@@ -324,7 +386,8 @@ export class Hud {
       ${iconButton('rotateRight', t('hud.rotateRight'), 'rotR')}
       ${iconButton('zoomIn', t('hud.zoomIn'), 'zoomIn')}
       ${iconButton('zoomOut', t('hud.zoomOut'), 'zoomOut')}
-      ${supplyLines(s) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}`;
+      ${supplyLines(s) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}
+      ${orbitalButton(s, g)}`;
     const cur = s.factions[s.current];
     if (g.aiRunning && !s.over) {
       this.banner.hidden = false;
@@ -332,11 +395,13 @@ export class Hud {
     } else this.banner.hidden = true;
 
     this.actions = [];
+    this.combatNote = '';
     this.portraitFor = null;
     const prevKey = this.hintKey;
     const prevScroll = this.bottom.querySelector<HTMLElement>('.action-bar')?.scrollLeft ?? 0;
     let sheet = '';
-    if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
+    if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
       ${sheet ? `<section class="panel sheet ${this.expanded ? 'expanded' : ''}" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
@@ -405,7 +470,7 @@ export class Hud {
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -461,7 +526,7 @@ export class Hud {
           ${city.govQuarter ? `<span class="tag">${esc(t('rewards.govQuarter'))}</span>` : ''}</div>
           <div class="slots" aria-label="${esc(t('cityUpgrades.title'))}"><span class="muted">${esc(t('cityUpgrades.title'))}</span>
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
-            ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
+            ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`, orbitalVars()))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
         // Kult und NEXUS: Hinweise / cult and NEXUS: hints
         if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
@@ -549,8 +614,9 @@ export class Hud {
       const owned = gun.owner !== undefined;
       const sub = kill ? t(owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
       const about = owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
+      if (pre.moveFire) this.combatNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}. ${about}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
@@ -558,7 +624,9 @@ export class Hud {
       const target = unitById(s, g.pendingTarget);
       // Mech-Raketen / mech rockets
       if (target && rocketTargets(s, u).some((o) => o.id === target.id)) {
-        const p = attackPreview(s, combatPreview(s, u, target, true));
+        const pre = combatPreview(s, u, target, true);
+        const p = attackPreview(s, pre, u, target);
+        this.combatNote ||= combatNotes(s, pre, u, target);
         this.actions.push({
           id: 'rocket', icon: 'lightning', variant: 'danger', enabled: true,
           label: t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max }), sub: p.short, desc: `${p.full} ${t('rockets.desc')}`,
@@ -568,7 +636,9 @@ export class Hud {
       // nur, solange der Angriff noch moeglich ist / only while the attack is still possible
       if (target && attackTargets(s, u).some((o) => o.id === target.id)) {
         // kurzer Name, Vorschau als zweite Zeile / short label, preview as a second line
-        const p = attackPreview(s, combatPreview(s, u, target));
+        const pre = combatPreview(s, u, target);
+        const p = attackPreview(s, pre, u, target);
+        this.combatNote ||= combatNotes(s, pre, u, target);
         this.actions.push({
           id: 'attack', icon: 'attack', variant: 'danger', enabled: true,
           label: t('actions.attack'), sub: p.short, desc: p.full,
@@ -579,11 +649,15 @@ export class Hud {
           const rc = retreatCheck(s, u, target);
           if (rc !== 'cannotRetreat' && rc !== 'outOfRange') {
             const wait = (u.retreatReady ?? 0) - s.round;
+            // Schuss vor dem Schritt: nach einer Bewegung ebenfalls verringert, ebenso gegen ein Bollwerk
+            // shot before the step: also reduced after a move, likewise against a bulwark
+            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target) }, u, target);
+            const retreatDesc = retreatNotes ? `${t('retreat.desc')} ${retreatNotes}.` : t('retreat.desc');
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',
               label: t('retreat.action', { dmg: retreatDamage(s, u, target) }),
-              desc: t('retreat.desc'),
-              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : this.err(rc),
+              desc: retreatDesc,
+              reason: rc === 'ok' ? retreatDesc : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : this.err(rc),
               run: () => void g.exec({ type: 'retreat', unit: u.id, target: target.id }),
             });
           }
@@ -696,19 +770,22 @@ export class Hud {
     const c = cityById(s, cityId)!;
     // Ausbau-Slots / upgrade slots
     let lockedUpgrades = 0;
+    let relayLocked = false;
     // Nachschublinien lassen sich nicht ausbauen: keine Knoepfe / supply lines cannot be upgraded: no buttons
     for (const up of supplyLines(s) ? [] : CITY_UPGRADE_IDS) {
       if (hasCityUpgrade(c, up)) continue;
       const chk = cityUpgradeCheck(s, c.owner!, c, up);
+      // Ausbau einer anderen Fraktion (Satelliten-Relay) gar nicht zeigen / another faction's upgrade (satellite relay): not shown at all
+      if (chk === 'wrongFaction') continue;
       // noch nicht erforscht: nicht anzeigen, nur zaehlen / not researched yet: hide, only count
-      if (chk === 'techMissing' || chk === 'cityLevel') { lockedUpgrades++; continue; }
+      if (chk === 'techMissing' || chk === 'cityLevel') { lockedUpgrades++; if (up === 'satRelay') relayLocked = true; continue; }
       const radioActive = up === 'radioTower' && g.radioCity === c.id;
       const noTargets = up === 'radioTower' && radioTargets(s, c.owner!, c).length === 0;
       this.actions.push({
         id: `up-${up}`, icon: CITY_UPGRADE_ICON[up], label: radioActive ? t('actions.cancel') : t(`cityUpgrades.${up}`),
         cost: radioActive ? undefined : CITY_UPGRADES.cost[up], variant: 'primary',
         enabled: radioActive || (chk === 'ok' && !noTargets),
-        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : chk === 'noSlot' ? t('cityUpgrades.full') : this.err(chk),
+        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`, orbitalVars()) : chk === 'noSlot' ? t('cityUpgrades.full') : this.err(chk),
         run: () => {
           if (up !== 'radioTower') { void g.exec({ type: 'cityUpgrade', city: c.id, upgrade: up }); return; }
           if (radioActive) { g.radioCity = null; g.updateHighlights(); this.render(); return; }
@@ -720,6 +797,8 @@ export class Hud {
     if (lockedUpgrades && cityUpgrades(c).length < CITY_UPGRADES.slots) {
       const noResearch = !canResearch(s, c.owner!);
       this.cityNote = techT(noResearch ? 'cityUpgrades.lockedHintLevel' : 'cityUpgrades.lockedHint', s.factions[c.owner!].id, { n: lockedUpgrades });
+      // Velkar: welche Produktionsfaehigkeit das Relay freischaltet / Velkar: which production capability unlocks the relay
+      if (relayLocked) this.cityNote += ` ${techT('orbital.unlockHint', s.factions[c.owner!].id, { tech: t(`techs.${CITY_UPGRADES.tech.satRelay}`) })}`;
     }
     // Zyrr: erst das Stadtfeld terraformen / Zyrr: terraform the city tile first
     if (isAlienFaction(s, c.owner!) && !s.tiles[c.y * s.size + c.x].xeno) {

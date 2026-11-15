@@ -43,8 +43,11 @@ describe('KI baut Geschuetzstellungen / AI builds gun emplacements', () => {
     const runs: [number, FactionId[], GameMode][] = [
       [9, ['dravon', 'korvat', 'zyrr'], 'points'],
       [114, ['dravon', 'nexus', 'velkar'], 'points'],
+      [33, ['dravon', 'alvenia', 'velkar'], 'points'],
+      [75, ['dravon', 'meridon', 'alvenia'], 'points'],
       [1, ['dravon', 'korvat', 'alvenia'], 'conquest'],
       [9, ['dravon', 'korvat', 'alvenia'], 'conquest'],
+      [3, ['velkar', 'dravon', 'meridon'], 'sandbox'],
     ];
     let built = 0, shots = 0;
     for (const [seed, ids, mode] of runs) {

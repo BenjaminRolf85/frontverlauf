@@ -11,6 +11,7 @@ import { buildCtx } from './analysis';
 import {
   planDiplomacy, planGrandProject, planPeaceResponses, planPurchase, planRewards,
 } from './economy';
+import { planOrbital } from './orbital';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
 const END: Command = { type: 'endTurn' };
@@ -36,7 +37,7 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 /** Fingerabdruck des fuer die Fraktion relevanten Zustands / fingerprint of the faction-relevant state */
 function fingerprint(s: GameState, f: number): string {
   const fa = s.factions[f];
-  const parts: (string | number)[] = [fa.stars, fa.techs.length, s.pendingRewards.length, s.nextId, fa.embassies.length, s.units.length, s.current, s.round];
+  const parts: (string | number)[] = [fa.stars, fa.techs.length, s.pendingRewards.length, s.nextId, fa.embassies.length, s.units.length, s.current, s.round, fa.orbitalReady ?? -1];
   for (const g of s.factions) parts.push(g.peaceOffers.length, g.relations.join(''));
   for (const u of s.units) {
     if (u.owner !== f) continue;
@@ -66,6 +67,7 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planGrandProject(ctx, failed)
     ?? planCapture(ctx, failed)
     ?? planConvert(ctx, failed)
+    ?? planOrbital(ctx, failed)
     ?? planAttack(ctx, failed)
     ?? planWonderUnits(ctx, failed)
     ?? planUnitMoves(ctx, failed)

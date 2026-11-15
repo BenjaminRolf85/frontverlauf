@@ -481,6 +481,37 @@ export const RETREAT = {
   cooldown: 2,
 };
 
+/**
+ * Feuern nach Bewegung: Wer in diesem Zug gezogen ist (Befehl Bewegen) und danach angreift, macht nur diesen Anteil des
+ * Schadens, vor dem Trefferglueck. Gilt fuer jeden eigenen Angriff (Nahkampf, Fernkampf, Raketen, Geschuetze, Flaechenschaden),
+ * nicht fuer den Gegenschlag des Verteidigers.
+ * Firing after moving: a unit that moved this turn (move command) and attacks afterwards deals only this share of the
+ * damage, before hit luck. Applies to every own attack (melee, ranged, rockets, guns, splash), not to the defender's return fire.
+ */
+export const MOVE_FIRE = {
+  damage: 0.5,
+  /**
+   * Fraktionsbonus nach Besitzer: all = Faktor fuer alle Einheiten, units = eigener Faktor je Einheitentyp.
+   * Korvat "Steppensturm": alle 75 %, Steppenreiter 100 %. Ein bekehrter Steppenreiter verliert ihn (Besitzer zaehlt).
+   * Faction bonus by owner: all = factor for all units, units = own factor per unit type.
+   * Korvat "Steppe Storm": all 75 %, Steppe Riders 100 %. A converted Steppe Rider loses it (the owner counts).
+   */
+  bonus: {
+    korvat: { all: 0.75, units: { steppeRider: 1 } },
+  } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
+};
+
+/**
+ * Verteidigung auf eigenem Gebiet je Fraktion (Anteil): wirkt auf den Verteidigungswert, wenn die Einheit angegriffen wird,
+ * als eigener Faktor nach Deckung, Stadt, Gelaende und Fernkampfdeckung; nicht beim eigenen Angriff, nicht fuer den Gegenschlag.
+ * Alvenia "Friedensbollwerk": +25 %.
+ * Defence on own territory per faction (share): applies to the defence value when the unit is attacked, as its own factor
+ * after cover, city, terrain and ranged cover; not when attacking, not for return fire. Alvenia "Peace Bulwark": +25 %.
+ */
+export const HOME_DEFENSE = {
+  bonus: { alvenia: 0.25 } as Partial<Record<FactionId, number>>,
+};
+
 export const DEFENSE_BONUS = {
   open: 1.0,
   terrainWithTech: 1.5,
@@ -595,17 +626,56 @@ export const WEATHER = {
   quake: { chance: 0.22, salt: 0x2b7e1516 },
 };
 
+/**
+ * Orbitallaser der Velkar: ein Satelliten-Relay (Stadt-Ausbau, siehe CITY_UPGRADES) erlaubt alle cooldown Runden einen
+ * Schuss aus dem Orbit auf eine Flaeche area (w x h Felder, Zielfeld = linke obere Ecke, am Kartenrand nach innen
+ * geschoben). Fester Schaden an allem in der Flaeche, auch an eigenen Einheiten; ohne Trefferglueck.
+ * Velkar orbital laser: a satellite relay (city upgrade, see CITY_UPGRADES) allows one shot from orbit every cooldown
+ * rounds on an area (w x h tiles, target tile = top-left corner, shifted inwards at the map edge). Flat damage to
+ * everything in the area, own units included; without hit luck.
+ */
+export const ORBITAL = {
+  faction: 'velkar' as FactionId,
+  relay: 'satRelay' as const,
+  /** Preis des Relays (Stadt-Ausbau) / price of the relay (city upgrade) */
+  relayCost: 40,
+  /** Runden zwischen zwei Schuessen; auch die Aufladezeit nach dem Bau / rounds between two shots; also the charge time after building */
+  cooldown: 5,
+  /** Flaeche in Feldern (Breite x Hoehe) / area in tiles (width x height) */
+  area: { w: 2, h: 2 },
+  /** fester Schaden je Treffer / flat damage per hit */
+  damage: 2,
+  /** Zielfeld muss fuer den Schuetzen aufgedeckt sein / the target tile must be revealed for the shooter */
+  needsVision: true,
+  /**
+   * KI: Schuss nur bei Nettowert >= minValue (Sterne-Gegenwert: Schaden/LP x Wert x damageWeight, Abschuss = Wert x (1 + killBonus));
+   * eigene Einheiten zaehlen ownWeight-fach negativ. Relay-Wert: shotStars je Schuss bis horizon Runden; techBonus je Stufe der Technik.
+   * AI: fire only at a net value >= minValue (star equivalent: damage/HP x worth x damageWeight, kill = worth x (1 + killBonus));
+   * own units count ownWeight times negative. Relay value: shotStars per shot up to horizon rounds; techBonus per tier of the tech.
+   */
+  ai: {
+    minValue: 4, ownWeight: 1.6, killBonus: 1, damageWeight: 1.5, bossWorth: 120, gunWorth: 40, wonderInterrupt: 25,
+    horizon: 25, shotStars: 18, techBonus: 10,
+    /** Relay erst ab so vielen eigenen Staedten (vorher geht Wachstum vor) / relay only from this many own cities (growth first) */
+    minCities: 3,
+  },
+};
+
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
-export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot';
-export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot'];
+export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot' | 'satRelay';
+export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot', 'satRelay'];
 export const CITY_UPGRADES = {
   slots: 3,
-  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30 } as Record<CityUpgradeId, number>,
+  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30, satRelay: ORBITAL.relayCost } as Record<CityUpgradeId, number>,
   /**
    * Freischaltung durch Forschung; Fraktionen ohne Forschung brauchen stattdessen die Stadtstufe (Stufe der Technologie + 1).
    * Unlock by research; factions without research need the city level instead (tech tier + 1).
    */
-  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics' } as Record<CityUpgradeId, TechId>,
+  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics', satRelay: 'highAltitude' } as Record<CityUpgradeId, TechId>,
+  /** Ausbauten nur fuer eine Fraktion (Satelliten-Relay: Velkar) / upgrades for one faction only (satellite relay: Velkar) */
+  faction: { satRelay: 'velkar' } as Partial<Record<CityUpgradeId, FactionId>>,
+  /** hoechstens so viele je Fraktion zugleich / at most this many per faction at a time */
+  perFaction: { satRelay: 1 } as Partial<Record<CityUpgradeId, number>>,
   /** Lazarett: zusaetzliche Heilung auf und neben der Stadt / hospital: extra healing on and next to the city */
   hospitalHeal: 2,
   /** Flugabwehr: Schaden an feindlichen Hubschraubern, die ihren Zug im Umkreis beenden / flak: damage to hostile helicopters ending their turn within range */
@@ -750,12 +820,14 @@ export const EMPLACEMENT = {
   /**
    * KI: Sternereserve fuer Bauten ohne Bedrohung, Bedrohungsradius um das Baufeld, Hoechstabstand zur eigenen Stadt,
    * Mindestwert eines Bauplatzes, Wunschanteil Pioniere solange Plaetze frei sind, Zuschlag fuer die Technik Befestigung
-   * (Faktor in der Eroberung, erst ab Runde techRound und techCities Staedten), Preis einer feindlichen Stellung fuer Angreifer.
+   * (erst ab Runde techRound und techCities Staedten; Faktor in der Eroberung 0, weil der Forschungsschub dort die Endspiele
+   * messbar verschleppte), Mindestanteil der Wunscharmee, Preis einer feindlichen Stellung fuer Angreifer.
    * AI: star reserve for builds without a threat, threat radius around the site, maximum distance to the own city,
-   * minimum value of a site, desired pioneer share while slots are free, bonus for the Fortification tech (factor in
-   * conquest, only from round techRound and techCities cities), prize of a hostile emplacement for attackers.
+   * minimum value of a site, desired pioneer share while slots are free, bonus for the Fortification tech (only from round
+   * techRound and techCities cities; factor 0 in conquest because the research push measurably dragged out the endgames),
+   * minimum share of the desired army, prize of a hostile emplacement for attackers.
    */
-  ai: { reserve: 30, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.35, techBonus: 60, techConquest: 2, techRound: 8, techCities: 2, prize: 30 },
+  ai: { reserve: 30, armyShare: 0.8, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.35, techBonus: 60, techConquest: 0, techRound: 8, techCities: 2, prize: 30 },
 };
 
 export const ECON = {
@@ -1129,6 +1201,11 @@ export const AI = {
    */
   meteorExposed: 6,
   meteorHurt: 18,
+  /**
+   * Bedrohtes Feld auf eigenem Gebiet mit Verteidigungsbonus (HOME_DEFENSE): Zuschlag je Bonusanteil, damit Alvenia dort kaempft.
+   * Threatened tile on own territory with a defence bonus (HOME_DEFENSE): bonus per bonus share so Alvenia fights there.
+   */
+  homeGround: 12,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };

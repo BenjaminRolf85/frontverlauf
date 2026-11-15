@@ -249,6 +249,10 @@
   --p-color-rift-violet400: #a54cff;
   --p-color-rift-sick: #c6e83a;
   --p-color-rift-gold: #f0c53a;
+  --p-color-orbital-core: #fffbea;
+  --p-color-orbital-uplink: #6dffb4;
+  --p-color-orbital-aim: #ff3355;
+  --p-color-orbital-scorch: #241a16;
   --p-font-display: 'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-comic: 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-body: 'Comic Neue', 'Trebuchet MS', 'Segoe UI', sans-serif;
@@ -582,6 +586,11 @@
   --s-rift-sick: #c6e83a;
   --s-rift-gold: #f0c53a;
   --s-acid-rain: #c6e83a;
+  --s-orbital-core: #fffbea;
+  --s-orbital-uplink: #6dffb4;
+  --s-orbital-aim: #ff3355;
+  --s-orbital-own: #f08a24;
+  --s-orbital-scorch: #241a16;
   --faction-korvat-primary: #c8372d;
   --faction-korvat-secondary: #6b7a3a;
   --faction-korvat-terrain: #a6c95a;
@@ -689,6 +698,11 @@
   --c-action-sub-font-size: 10px;
   --c-action-sub-max-width: 96px;
   --c-action-sub-max-width-wide: 148px;
+  --c-orbital-ready: #3fae4a;
+  --c-orbital-wait: #cdb97e;
+  --c-orbital-badge-ink: #15131f;
+  --c-orbital-warn: #f08a24;
+  --c-orbital-aim: #ff3355;
   --c-action-hint-bg: #e2d4a6;
   --c-action-hint-blocked: #f08a24;
   --c-action-hint-font-size: 12px;

@@ -27,6 +27,8 @@ const P: Record<string, string> = {
   upgrade: '<path d="M12 20V5M6 11l6-6 6 6"/><path d="M5 21h14"/>',
   close: '<path d="M5 5l14 14M19 5L5 19"/>',
   check: '<path d="M4 12.5l5 5L20 6.5"/>',
+  /** Satellitenschuessel mit Strahl: Satelliten-Relay und Orbitallaser / satellite dish with beam: satellite relay and orbital laser */
+  satellite: '<path d="M4 20h9"/><path d="M8.5 20l1-4"/><path d="M4.5 9.5a7 7 0 0 0 9 9z"/><path d="M9 14l3.5-3.5"/><path d="M15 3l2 2-2.5 2.5-2-2zM18.5 6.5l2 2"/><path d="M17 11l3 9" stroke-dasharray="2 2"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
   soundOn: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
   soundOff: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>',

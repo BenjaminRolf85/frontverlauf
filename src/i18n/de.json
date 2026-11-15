@@ -316,7 +316,7 @@
   },
   "abilities": {
     "dash": "Sturm",
-    "dashDesc": "Darf nach der Bewegung im selben Zug angreifen.",
+    "dashDesc": "Darf nach der Bewegung im selben Zug angreifen, dann aber mit weniger Schaden (meist der Hälfte).",
     "escape": "Rückzug",
     "escapeDesc": "Darf sich nach dem Angriff weiterbewegen.",
     "persist": "Folgeangriff",
@@ -730,7 +730,11 @@
     "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
-    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen."
+    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
+    "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
+    "orbitalCooldown": "Der Orbitallaser lädt noch.",
+    "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
+    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -917,7 +921,7 @@
     "goal": "Das Ziel: Im Punktemodus gewinnt nach {rounds} Runden der höchste Punktestand (Medaille oben). In der Eroberung gewinnt, wer als Letzter Städte hält, so wie hier. Mit Fraktionssiegen kann jede Fraktion zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü.",
     "goalOpen": "Siegverfolgung öffnen",
     "upkeep": "Sold: Deine ersten {free} Einheiten sind Stammtruppe und kosten nichts. Jede weitere kostet pro Runde etwa {pct} % ihres Preises. Oben neben den Sternen steht dein Netto-Einkommen pro Runde, also Einkommen minus Sold.",
-    "attack": "Kampf: Wähle eine Einheit und tippe auf einen Gegner in Reichweite. Der Angriffsknopf zeigt vorher die Vorschau, etwa „≈4 Schaden (0–6)“, und die Chance, das Ziel zu vernichten. Trefferglück: Ein Schuss kann danebengehen oder kritisch treffen ({min} bis {max} % Schaden). Wer überlebt, schlägt zurück. Halte eine Aktion gedrückt, dann erklärt die Zeile unter der Leiste, was sie tut."
+    "attack": "Kampf: Wähle eine Einheit und tippe auf einen Gegner in Reichweite. Der Angriffsknopf zeigt vorher die Vorschau, etwa „≈4 Schaden (0–6)“, und die Chance, das Ziel zu vernichten. Trefferglück: Ein Schuss kann danebengehen oder kritisch treffen ({min} bis {max} % Schaden). Wer überlebt, schlägt zurück. Nach einer Bewegung im selben Zug macht ein Angriff nur {move} % Schaden. Halte eine Aktion gedrückt, dann erklärt die Zeile unter der Leiste, was sie tut."
   },
   "a11y": {
     "map": "Spielkarte",
@@ -2475,7 +2479,9 @@
     "full": "Alle 3 Slots sind belegt.",
     "unlock": "Stadt-Ausbau: {name}",
     "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
-    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
+    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n}).",
+    "satRelay": "Satelliten-Relay",
+    "satRelayDesc": "Nur Velkar, eines zugleich. Schaltet den Orbitallaser frei: alle {cd} Runden {dmg} Schaden auf eine Fläche {w}×{h} Felder. Geht verloren, wenn die Stadt fällt."
   },
   "saves": {
     "deleteConfirm": "Spielstand in Platz {n} wirklich löschen? Das lässt sich nicht rückgängig machen.",
@@ -2557,7 +2563,8 @@
     "leader": "Anführer",
     "details": "Details",
     "detailsFor": "Details zu {name}",
-    "victory": "Siegbedingung"
+    "victory": "Siegbedingung",
+    "combat": "Kampfbonus"
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -3134,6 +3141,30 @@
     "cooldown": "Rückzug bereit in {n} Runden",
     "fx": "Rückzug"
   },
+  "moveFire": {
+    "hint": "Nach Bewegung: halber Schaden",
+    "tag": "Gezogen: halber Schaden",
+    "tagDesc": "Diese Einheit ist in diesem Zug schon gezogen. Greift sie jetzt an, macht sie nur {pct} % Schaden, danach gilt das Trefferglück. Der Gegenschlag des Ziels bleibt unverändert.",
+    "hintBonus": "Nach Bewegung: {pct} % ({name})",
+    "tagBonus": "Gezogen: {pct} % ({name})",
+    "bonus": {
+      "korvat": "Steppensturm"
+    },
+    "bonusDesc": {
+      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin."
+    }
+  },
+  "homeDefense": {
+    "hint": "Ziel verteidigt +{pct} % ({name})",
+    "tag": "{name} +{pct} %",
+    "tagDesc": "Steht auf eigenem Gebiet: +{pct} % Verteidigung, wenn diese Einheit angegriffen wird. Gilt nicht beim eigenen Angriff und nicht für den Gegenschlag.",
+    "bonus": {
+      "alvenia": "Friedensbollwerk"
+    },
+    "bonusDesc": {
+      "alvenia": "Alle Alvenia-Einheiten verteidigen sich auf eigenem Gebiet mit +{pct} %, zusätzlich zu Stadt, Gelände und Deckung. Nur wenn sie angegriffen werden, nicht beim eigenen Angriff und nicht für den Gegenschlag."
+    }
+  },
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
     "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: doppelt so viel Heilung wie normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
@@ -3251,7 +3282,7 @@
     },
     "combat": {
       "title": "Kampf & Trefferglück",
-      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden."
+      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
     },
     "cover": {
       "title": "Deckung",
@@ -3259,7 +3290,7 @@
     },
     "abilities": {
       "title": "Fähigkeiten (Rückzug, Reparatur, Raketen)",
-      "text": "Geordneter Rückzug (menschliche Bodentruppen): feuert mit {retreat} % Schaden ohne Gegenschlag und weicht ein Feld zurück, danach {cooldown} Runden gesperrt. Notreparatur (Roboter): schlachtet ein Wrack auf oder neben dem Feld aus und heilt {repair} % der normalen Heilung; die Einheit kämpft in dieser Runde nicht. Raketen (Mechs): Fernangriff auf Ziele genau {range} Felder entfernt, {max} Raketen, Nachladen zu Rundenbeginn in einer eigenen Stadt mit {depot}."
+      "text": "Geordneter Rückzug (menschliche Bodentruppen): feuert mit {retreat} % Schaden ohne Gegenschlag und weicht ein Feld zurück, danach {cooldown} Runden gesperrt; nach einer Bewegung im selben Zug ist auch dieser Schuss auf {move} % verringert, der Schritt zurück zählt dafür nicht. Notreparatur (Roboter): schlachtet ein Wrack auf oder neben dem Feld aus und heilt {repair} % der normalen Heilung; die Einheit kämpft in dieser Runde nicht. Raketen (Mechs): Fernangriff auf Ziele genau {range} Felder entfernt, {max} Raketen, Nachladen zu Rundenbeginn in einer eigenen Stadt mit {depot}."
     },
     "cities": {
       "title": "Städte & Forschung",
@@ -3493,6 +3524,33 @@
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegfähigkeit (Stufe 3), in der Produktion gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
       }
+    },
+    "orbital": {
+      "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
     }
+  },
+  "orbital": {
+    "name": "Orbitallaser",
+    "ready": "bereit",
+    "wait": "in {n} Runden",
+    "wait1": "in 1 Runde",
+    "waitShort": "{n} Rd.",
+    "area": "Fläche {w}×{h} Felder",
+    "desc": "Schuss aus dem Orbit: {dmg} Schaden an allem in einer Fläche {w}×{h} Felder, auch an eigenen Einheiten. Das Zielfeld ist die linke obere Ecke und muss aufgedeckt sein. Danach {cd} Runden Aufladen.",
+    "title": "Orbitallaser: Ziel wählen",
+    "pick": "Tippe auf ein aufgedecktes Feld: es wird die linke obere Ecke der Fläche.",
+    "confirm": "Noch einmal tippen oder Feuer! drücken. Esc bricht ab.",
+    "fire": "Feuer!",
+    "hits": "{n} Treffer, {kills} vernichtet",
+    "noHits": "Keine sichtbaren Ziele in der Fläche",
+    "own": "Achtung: {n} eigene Einheiten im Ziel",
+    "tag": "-{dmg}",
+    "tagKill": "-{dmg} K.O.",
+    "toast": "Orbitallaser von {name}",
+    "charging": "Lädt: {wait}",
+    "blocked": "Im Ziel stehen Einheiten einer Fraktion, mit der Frieden herrscht.",
+    "unlockHint": "Satelliten-Relay ab der Forschung {tech}.",
+    "own1": "Achtung: 1 eigene Einheit im Ziel",
+    "hits1": "1 Treffer, {kills} vernichtet"
   }
 }
