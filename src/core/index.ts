@@ -12,8 +12,9 @@ export * from './orbital';
 export {
   MISSIONS, MISSION_IDS, missionById, missionConfig, objectiveProgress, isHoldObjective, missionRoundsLeft,
   CAMPAIGN_FACTIONS, CAMPAIGN_ENEMIES, CAMPAIGN_ALLIES, CAMPAIGN_REV, FINALE_ID, allyFor, isCampaignFaction, isCampaignAlly, panelOf,
-  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount, towersHeld,
+  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount, towersHeld, outdatedCampaign,
   type MissionDef, type ObjectiveDef, type Speaker, type BriefPanel, type WaveDef,
 } from './campaign';
 export { WORLDS, worldOf, type WorldId } from './worlds';
+export * from './mothership';
 export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRandomEvent } from './events';

@@ -24,10 +24,11 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
+import { findShipSpot, placeShip, scientistOf, shipDist, shipTiles } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, Unit } from './types';
 import { WORLDS, worldOf } from './worlds';
@@ -97,12 +98,21 @@ export type ObjectiveDef =
    * the player's turn; the ally's towers count too). Losing one restarts the count.
    */
   | { k: 'towers'; rounds: number }
+  /**
+   * Mutterschiff (m2): der Wissenschaftler arbeitet so viele Runden insgesamt daneben (Kommando 'workShip', nicht in Folge).
+   * Mothership (m2): the scientist works next to it for this many rounds in total (command 'workShip', not in a row).
+   */
+  | { k: 'work'; rounds: number }
+  /** Halten: der Wissenschaftler darf nicht fallen / hold: the scientist must not fall */
+  | { k: 'scientist' }
   // nur Bonus / bonus only
   | { k: 'fast'; rounds: number }
   | { k: 'keepHq' }
-  | { k: 'noCityLost' };
+  | { k: 'noCityLost' }
+  /** der Wissenschaftler faellt nie unter M2.hpShare seiner LP / the scientist never drops below M2.hpShare of its HP */
+  | { k: 'scientistHp' };
 
-const HOLD_KINDS = new Set(['holdHq', 'holdCities', 'survive', 'holdTile']);
+const HOLD_KINDS = new Set(['holdHq', 'holdCities', 'survive', 'holdTile', 'scientist']);
 /** Halten-Ziel? / hold objective? */
 export const isHoldObjective = (o: ObjectiveDef) => HOLD_KINDS.has(o.k);
 
@@ -159,6 +169,13 @@ export interface SetupKit {
    * order, the most remote one first.
    */
   towers(): City[];
+  /**
+   * Mutterschiff (m2, 2x2 Felder) zwischen home und enemy setzen, als Zielfelder markiert; liefert die linke obere Ecke.
+   * Put the mothership (m2, 2x2 tiles) between home and enemy, marked as target tiles; returns the top-left corner.
+   */
+  mothership(home: Pos, enemy: Pos): Pos | null;
+  /** Wissenschaftler des Spielers nahe einem Punkt (m2) / the player's scientist near a point (m2) */
+  scientist(near: Pos): Unit | null;
 }
 
 /**
@@ -278,29 +295,38 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     },
   },
   {
-    // Wettlauf zum Wrack, dazu die Landekapseln der alten m3 / race to the wreck, plus the landing pods of the old m3
-    id: 'm2', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
-    seed: 2202, size: 14, mapType: 'continent', hazards: 'none', weather: true, events: false, startStars: 30, rounds: 12,
-    objectives: [{ k: 'salvage', target: 0 }, { k: 'holdCities' }], bonus: [{ k: 'fast', rounds: 7 }, { k: 'kills', n: 4 }],
-    briefing: ['scout', 'hq', 'enemy'], persuade: true,
+    // Das Mutterschiff: der Wissenschaftler arbeitet M2.workRounds Runden am Wrack, Wellen der Zyrr jagen ihn
+    // the mothership: the scientist works M2.workRounds rounds at the wreck, Zyrr waves hunt him
+    id: 'm2', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
+    seed: 2202, size: 16, mapType: 'continent', hazards: 'none', weather: true, events: false, startStars: 30, rounds: M2.missionRounds,
+    objectives: [{ k: 'work', rounds: M2.workRounds }, { k: 'scientist' }], bonus: [{ k: 'fast', rounds: M2.fastRound }, { k: 'scientistHp' }],
+    briefing: ['scout', 'enemy', 'hq'], persuade: true,
+    // alle drei Runden eine Welle, abwechselnd hinter dem Schiff und an seiner Flanke, langsam staerker
+    // a wave every three rounds, alternating behind the ship and at its flank, slowly growing
     waves: [
-      { round: 2, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 },
-      { round: 4, owner: 1, units: ['grey', 'skimmer'], at: 1, stars: 15 },
-      { round: 7, owner: 1, units: ['grey', 'grey', 'skimmer'], at: 0, stars: 15 },
+      { round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 4 },
+      { round: 7, owner: 1, units: ['grey', 'grey'], at: 1, stars: 4 },
+      { round: 10, owner: 1, units: ['grey', 'skimmer'], at: 0, stars: 5 },
+      { round: 13, owner: 1, units: ['grey', 'grey', 'skimmer'], at: 1, stars: 5 },
+      { round: 16, owner: 1, units: ['grey', 'grey', 'mech'], at: 0, stars: 6 },
     ],
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
-      const site = k.landNear(k.mid(a, b), (q) => !neighbors(k.s.size, q.x, q.y).some((n) => tileAt(k.s, n.x, n.y)!.cityId !== null));
-      Object.assign(tileAt(k.s, site.x, site.y)!, { feature: 'crashSite', terrain: 'plain', resource: null, building: null, looted: false });
-      k.target(site);
       const v = k.grantNear(0, a) ?? a;
-      k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
+      const ship = k.mothership(a, b);
+      k.scientist(a);
+      k.spawn('tank', 0, a); k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
       if (v !== a) k.spawn('infantry', 0, v);
-      k.spawn('skimmer', 1, b);
-      revealArea(k.s, 0, site.x, site.y, 1);
-      // Landekapseln vor den eigenen Staedten / landing pods in front of the own cities
-      k.point(ringNear(k, a, k.toward(a, b, 4), 3, 5));
-      k.point(ringNear(k, v, k.toward(v, b, 3), 3, 4));
+      if (!ship) return;
+      // Wachen der Zyrr rund um das Wrack / Zyrr guards around the wreck
+      const c = { x: ship.x + 1, y: ship.y + 1 };
+      for (const type of M2.guards) k.spawn(type, 1, c, { min: 1 });
+      // Landeplaetze: hinter dem Schiff (von uns aus) und an der Flanke / landing spots: behind the ship (seen from us) and at the flank
+      const off = (q: Pos) => shipDist(ship, q) >= M2.waveDistance && shipDist(ship, q) <= M2.waveDistance + 1;
+      const back = k.landNear(k.toward(c, { x: 2 * c.x - a.x, y: 2 * c.y - a.y }, M2.waveDistance + 1), off);
+      k.point(back);
+      const side = { x: c.x + (c.y - a.y), y: c.y - (c.x - a.x) };
+      k.point(k.landNear(k.toward(c, side, M2.waveDistance + 1), (q) => off(q) && dist(q, back) >= 3));
     },
   },
   // Kapitel Die Glocke (gegen den Kult) / chapter The Bell (vs the cult)
@@ -656,10 +682,21 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
 
 const PLAYER = 0;
 
-/** Darf hier nichts entstehen (das Artefakt)? / may nothing appear here (the artifact)? */
+/** Darf hier nichts entstehen (das Artefakt, das Mutterschiff)? / may nothing appear here (the artifact, the mothership)? */
 export function spawnBlocked(s: GameState, q: Pos): boolean {
   const art = s.campaign?.artifact;
+  if (s.campaign?.ship && shipDist(s.campaign.ship, q) === 0) return true;
   return !!art && art.x === q.x && art.y === q.y;
+}
+
+/**
+ * Kampagnenstand einer aelteren Missionsfassung? Alle Missionen: andere CAMPAIGN_REV; m2: die alte Bergung ohne Mutterschiff.
+ * Solche Spielstaende laufen als freie Partie weiter (der Fortschritt im Feldzug bleibt, der Einsatz startet neu).
+ * Campaign state of an older mission version? All missions: a different CAMPAIGN_REV; m2: the old salvage without the
+ * mothership. Such saves continue as a free game (the run progress stays, the mission restarts).
+ */
+export function outdatedCampaign(c: CampaignState): boolean {
+  return c.rev !== CAMPAIGN_REV || (c.mission === 'm2' && !c.ship);
 }
 
 /** Feld fuer eine Einheit von owner frei (keine fremde Stadt, nicht das Artefakt)? / tile free for a unit of owner (no foreign city, not the artifact)? */
@@ -716,6 +753,20 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
     towers: () => {
       if (!s.cities.some((x) => x.tower)) placeTowers(s, towerCount(m));
       return s.cities.filter((x) => x.tower);
+    },
+    mothership: (home, enemy) => {
+      const p = findShipSpot(s, home, enemy);
+      if (!p) return null;
+      placeShip(s, p);
+      c.ship = { x: p.x, y: p.y };
+      c.work = 0;
+      for (const q of shipTiles(p)) c.targets.push(q);
+      return p;
+    },
+    scientist: (near) => {
+      const u = spawnNear(s, 'scientist', PLAYER, near, null, 0);
+      if (u) c.scientist = u.id;
+      return u;
     },
   };
 }
@@ -1111,6 +1162,13 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
       return p && s.units.some((u) => friendly(s, u.owner) && dist(u, p) <= o.range) ? 'done' : 'pending';
     }
     case 'fast': return s.round > o.rounds ? 'failed' : 'pending';
+    // Mutterschiff (m2) / mothership (m2)
+    case 'work': return (c.work ?? 0) >= o.rounds ? 'done' : 'pending';
+    case 'scientist': return scientistOf(s) ? 'pending' : 'failed';
+    case 'scientistHp': {
+      const u = scientistOf(s);
+      return u && u.hp >= u.maxHp * M2.hpShare ? 'pending' : 'failed';
+    }
   }
 }
 
@@ -1129,6 +1187,7 @@ export function objectiveProgress(s: GameState, o: ObjectiveDef, rounds: number)
     case 'portal': return { have: Math.min(s.campaign?.portalHold ?? 0, o.rounds), need: o.rounds };
     case 'cave': return { have: Math.min(s.campaign?.caveHold ?? 0, o.rounds), need: o.rounds };
     case 'towers': return { have: Math.min(s.campaign?.towerHold ?? 0, o.rounds), need: o.rounds };
+    case 'work': return { have: Math.min(s.campaign?.work ?? 0, o.rounds), need: o.rounds };
     case 'ruins': return { have: Math.min((s.campaign?.siteDone ?? []).filter(Boolean).length, o.n), need: o.n };
     case 'rift': {
       const id = s.campaign?.units?.[o.unit];
@@ -1210,7 +1269,7 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
     defs.forEach((o, i) => {
       if (list[i] !== 'pending') return;
       // Sieg: offene Hauptziele gelten als erfuellt (auch beim Sieg, weil kein Gegner mehr lebt) / win: open primary objectives count as met (also when no enemy is left)
-      const done = result === 'won' && (!bonus || isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || (o.k === 'fast' && s.round <= o.rounds));
+      const done = result === 'won' && (!bonus || isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || o.k === 'scientistHp' || (o.k === 'fast' && s.round <= o.rounds));
       list[i] = done ? 'done' : 'failed';
       ev.push({ t: 'objective', index: i, bonus, status: list[i] });
     });

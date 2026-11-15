@@ -32,7 +32,9 @@ export type WonderKind = 'portal' | 'hackRelay' | 'fusionPlant' | 'waal';
 export type WonderUnitId = WonderKind | 'coreDrill';
 /** Endgegner der Kampagne (nicht ausbildbar) / campaign bosses (not trainable) */
 export type BossUnitId = 'swarmMother';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId;
+/** Sondereinheiten einzelner Kampagnen-Einsaetze (nicht ausbildbar) / special units of single campaign missions (not trainable) */
+export type CampaignUnitId = 'scientist';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -239,6 +241,8 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   coreDrill: { cost: WONDERS.cost.coreDrill, hp: 25, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
   // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
   swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+  // Kampagne m2: Wissenschaftler, kaempft nicht, wenig LP, arbeitet am Mutterschiff (M2) / campaign m2: scientist, no combat, low HP, works on the mothership (M2)
+  scientist: { cost: null, hp: 8, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: [], tech: null, ship: false },
 };
 
 /**
@@ -526,7 +530,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -1179,6 +1183,37 @@ export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hq
  * two Greys land m1RaidDistance tiles off the most remote tower.
  */
 export const TOWER_HOLD = { m1Rounds: 5, m1Towers: 2, m1FastRound: 12, m1MissionRounds: 16, m1RaidRound: 8, m1RaidDistance: 2 };
+
+/**
+ * Kampagne m2 (Das Mutterschiff): ein abgestuerztes Zyrr-Mutterschiff (2x2 Felder, unpassierbar) liegt shipMin..shipMax
+ * Felder vor dem eigenen Hauptquartier, mindestens zyrrDistance Felder vom Hauptquartier der Zyrr. Der Wissenschaftler
+ * arbeitet daneben ("Am Schiff arbeiten", beendet seinen Zug): workRounds Arbeitsrunden insgesamt (nicht in Folge) gewinnen
+ * den Einsatz, sein Tod verliert ihn. Wellen landen waveDistance Felder vom Schiff. Bonus: Sieg bis fastRound, der
+ * Wissenschaftler faellt nie unter hpShare seiner LP.
+ * Campaign m2 (The Mothership): a crashed Zyrr mothership (2x2 tiles, impassable) lies shipMin..shipMax tiles in front of
+ * the own HQ, at least zyrrDistance tiles from the Zyrr HQ. The scientist works next to it ("Work on the ship", ends its
+ * turn): workRounds work rounds in total (not in a row) win the mission, its death loses it. Waves land waveDistance tiles
+ * from the ship. Bonus: win by fastRound, the scientist never drops below hpShare of its HP.
+ */
+export const M2 = {
+  workRounds: 8,
+  missionRounds: 18,
+  fastRound: 14,
+  hpShare: 0.5,
+  shipMin: 6,
+  shipMax: 8,
+  zyrrDistance: 4,
+  /** freie Landfelder im Ring um das Schiff (von 12) / free land tiles in the ring around the ship (of 12) */
+  ringLand: 9,
+  waveDistance: 3,
+  /** Wachen am Schiff zu Beginn / guards at the ship at the start */
+  guards: ['grey', 'grey', 'grey', 'mech'] as UnitTypeId[],
+  /**
+   * KI: Gegner jagen den Wissenschaftler, Wachen bleiben am Schiff; die Spieler-Seite eskortiert ihn.
+   * AI: enemies hunt the scientist, guards stay at the ship; the player side escorts it.
+   */
+  ai: { huntValue: 125, huntCap: 4, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3, shipValue: 60, shipCap: 2, clearValue: 95, clearCap: 2, clearRange: 2 },
+};
 
 /**
  * Aussenposten der Vergessenen (Wuestenwelt): weniger Orte, dafuer mehr Einkommen je Aussenposten.

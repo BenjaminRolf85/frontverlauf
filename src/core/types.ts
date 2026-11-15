@@ -14,7 +14,8 @@ export interface Tile {
   cityId: number | null;
   /** Stadtgebiet / territory of city */
   territory: number | null;
-  feature: 'bunker' | 'radar' | 'crashSite' | 'labRuin' | null;
+  /** mothership = Feld des Zyrr-Mutterschiffs (Kampagne m2, unpassierbar) / tile of the Zyrr mothership (campaign m2, impassable) */
+  feature: 'bunker' | 'radar' | 'crashSite' | 'labRuin' | 'mothership' | null;
   /** Index der Fraktion, deren Heimatgebiet hier liegt / index of the faction whose home region is here */
   home: number | null;
   /**
@@ -263,6 +264,14 @@ export interface CampaignState {
   caveHold?: number;
   /** Runden in Folge, die der Spieler (mit Verbuendeten) alle Sendetuerme besitzt / consecutive rounds the player (with allies) owns all transmitter towers */
   towerHold?: number;
+  /** Mutterschiff der Zyrr (m2): linke obere Ecke der 2x2 Felder / Zyrr mothership (m2): top-left corner of the 2x2 tiles */
+  ship?: Pos;
+  /** Wissenschaftler (m2): Einheiten-ID / scientist (m2): unit id */
+  scientist?: number;
+  /** geleistete Arbeitsrunden am Mutterschiff (zusammengezaehlt) / work rounds done on the mothership (cumulative) */
+  work?: number;
+  /** Runde der letzten Arbeit (einmal je Runde) / round of the last work (once per round) */
+  workRound?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -352,6 +361,8 @@ export type GameEvent =
   | { t: 'objective'; index: number; bonus: boolean; status: ObjectiveStatus }
   /** Kampagne: Welle (Feind oder Verstaerkung) eingetroffen / campaign: wave (enemy or reinforcements) arrived */
   | { t: 'wave'; faction: number; count: number; x: number; y: number }
+  /** Kampagne m2: der Wissenschaftler arbeitet am Mutterschiff (have von need Runden) / campaign m2: the scientist works on the mothership (have of need rounds) */
+  | { t: 'shipWork'; unit: number; have: number; need: number; x: number; y: number }
   | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
   /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
   | { t: 'verdanActive'; faction: number }
@@ -419,6 +430,8 @@ export type Command =
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
   /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
   | { type: 'orbitalStrike'; x: number; y: number }
+  /** Kampagne m2: der Wissenschaftler arbeitet am Mutterschiff (beendet seinen Zug) / campaign m2: the scientist works on the mothership (ends its turn) */
+  | { type: 'workShip'; unit: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
