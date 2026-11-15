@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -525,6 +525,8 @@ export interface CombatPreview {
   retFull: number;
   /** Angreifer ist in diesem Zug gezogen: Schaden mit MOVE_FIRE.damage verringert / attacker moved this turn: damage reduced by MOVE_FIRE.damage */
   moveFire: boolean;
+  /** Verteidigungsbonus des Ziels auf eigenem Gebiet (0 = keiner) / target's defence bonus on own territory (0 = none) */
+  homeDefense: number;
 }
 
 /**
@@ -548,6 +550,18 @@ export function moveFireMult(s: GameState, u: Unit): number {
   const b = f ? MOVE_FIRE.bonus[f]! : null;
   return b ? b.units?.[u.type] ?? b.all : MOVE_FIRE.damage;
 }
+/**
+ * Verteidigungsbonus auf eigenem Gebiet (HOME_DEFENSE, z. B. Alvenia +0,25) fuer u auf (x, y), sonst 0.
+ * Defence bonus on own territory (HOME_DEFENSE, e.g. Alvenia +0.25) for u on (x, y), else 0.
+ */
+export function homeDefenseAt(s: GameState, u: Unit, x = u.x, y = u.y): number {
+  const f = s.factions[u.owner]?.id;
+  const b = f ? HOME_DEFENSE.bonus[f] ?? 0 : 0;
+  if (!b) return 0;
+  const t = tileAt(s, x, y);
+  return t && territoryOwner(s, t) === u.owner ? b : 0;
+}
+
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
 export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) ? moveFireMult(s, u) : 1);
 
@@ -730,7 +744,10 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   const defense = effectiveDefense(s, def);
   const atk = effectiveAttack(s, att);
   const attackForce = atk * (att.hp / att.maxHp);
-  const defenseForce = defense * (def.hp / def.maxHp) * bonus;
+  // eigenes Gebiet (Alvenia): eigener Faktor nach der Deckung, nur fuer den erlittenen Schaden, nicht fuer den Gegenschlag
+  // own territory (Alvenia): own factor after cover, only for the damage taken, not for return fire
+  const homeDefense = homeDefenseAt(s, def);
+  const defenseForce = defense * (def.hp / def.maxHp) * bonus * (1 + homeDefense);
   const total = attackForce + defenseForce;
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
@@ -757,7 +774,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -1771,7 +1788,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
 /** Schuss eines Geschuetzes mit hp LP auf def (voller Treffer) / shot of a gun with hp HP at def (full hit) */
 export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
   const attackForce = VERDAN.attack * (hp / VERDAN.hp);
-  const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def);
+  const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def) * (1 + homeDefenseAt(s, def));
   const total = attackForce + defenseForce;
   return total > 0 ? Math.round((attackForce / total) * VERDAN.attack * COMBAT.damageFactor) : 0;
 }

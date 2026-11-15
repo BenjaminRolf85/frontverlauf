@@ -501,6 +501,17 @@ export const MOVE_FIRE = {
   } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
 };
 
+/**
+ * Verteidigung auf eigenem Gebiet je Fraktion (Anteil): wirkt auf den Verteidigungswert, wenn die Einheit angegriffen wird,
+ * als eigener Faktor nach Deckung, Stadt, Gelaende und Fernkampfdeckung; nicht beim eigenen Angriff, nicht fuer den Gegenschlag.
+ * Alvenia "Friedensbollwerk": +25 %.
+ * Defence on own territory per faction (share): applies to the defence value when the unit is attacked, as its own factor
+ * after cover, city, terrain and ranged cover; not when attacking, not for return fire. Alvenia "Peace Bulwark": +25 %.
+ */
+export const HOME_DEFENSE = {
+  bonus: { alvenia: 0.25 } as Partial<Record<FactionId, number>>,
+};
+
 export const DEFENSE_BONUS = {
   open: 1.0,
   terrainWithTech: 1.5,
@@ -1111,6 +1122,11 @@ export const AI = {
    */
   meteorExposed: 6,
   meteorHurt: 18,
+  /**
+   * Bedrohtes Feld auf eigenem Gebiet mit Verteidigungsbonus (HOME_DEFENSE): Zuschlag je Bonusanteil, damit Alvenia dort kaempft.
+   * Threatened tile on own territory with a defence bonus (HOME_DEFENSE): bonus per bonus share so Alvenia fights there.
+   */
+  homeGround: 12,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };
