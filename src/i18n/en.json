@@ -598,6 +598,7 @@
     "tankDesc": "a tank appears in the city"
   },
   "hud": {
+    "mapLabel": "Game map",
     "points": "Points",
     "stars": "Stars",
     "perRound": "+{n} per round",
@@ -644,6 +645,7 @@
     "moreActions": "More actions"
   },
   "actions": {
+    "confirmTitle": "Are you sure?",
     "move": "Move",
     "attack": "Attack",
     "heal": "Heal",
@@ -780,6 +782,7 @@
     "boom": "KABOOM!"
   },
   "diplomacy": {
+    "breakConfirm": "Really terminate peace with {name}? After one round you are at war again.",
     "title": "Diplomacy",
     "war": "War",
     "peace": "Peace",
@@ -788,7 +791,7 @@
     "accept": "Accept",
     "decline": "Decline",
     "announceBreak": "Terminate peace",
-    "embassy": "Open embassy ({cost})",
+    "embassy": "Open embassy",
     "embassyOpen": "Embassy active",
     "offerPending": "Offer pending",
     "offerReceived": "offers you peace",
@@ -2380,6 +2383,7 @@
     "lockedHintLevel": "More upgrades at a higher city level ({n})."
   },
   "saves": {
+    "deleteConfirm": "Really delete the save in slot {n}? This cannot be undone.",
     "title": "Saved games",
     "empty": "Empty slot",
     "saveHere": "Save here",

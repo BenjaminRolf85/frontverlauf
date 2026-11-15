@@ -598,6 +598,7 @@
     "tankDesc": "ein Panzer erscheint in der Stadt"
   },
   "hud": {
+    "mapLabel": "Spielkarte",
     "points": "Punkte",
     "stars": "Sterne",
     "perRound": "+{n} pro Runde",
@@ -644,6 +645,7 @@
     "moreActions": "Weitere Aktionen"
   },
   "actions": {
+    "confirmTitle": "Bist du sicher?",
     "move": "Bewegen",
     "attack": "Angreifen",
     "heal": "Heilen",
@@ -780,6 +782,7 @@
     "boom": "KAWUMM!"
   },
   "diplomacy": {
+    "breakConfirm": "Frieden mit {name} wirklich kündigen? Nach einer Runde herrscht wieder Krieg.",
     "title": "Diplomatie",
     "war": "Krieg",
     "peace": "Frieden",
@@ -788,7 +791,7 @@
     "accept": "Annehmen",
     "decline": "Ablehnen",
     "announceBreak": "Frieden kündigen",
-    "embassy": "Botschaft eröffnen ({cost})",
+    "embassy": "Botschaft eröffnen",
     "embassyOpen": "Botschaft aktiv",
     "offerPending": "Angebot ausstehend",
     "offerReceived": "bietet dir Frieden an",
@@ -2380,6 +2383,7 @@
     "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
   },
   "saves": {
+    "deleteConfirm": "Spielstand in Platz {n} wirklich löschen? Das lässt sich nicht rückgängig machen.",
     "title": "Spielstände",
     "empty": "Leerer Platz",
     "saveHere": "Hier speichern",

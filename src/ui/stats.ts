@@ -6,7 +6,7 @@
  */
 import { components } from '../design/tokens';
 import { ensureHistory, factionTotals, historySeries, topUnits, type GameState, type RoundStats } from '../core';
-import { t } from '../i18n/i18n';
+import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, openDialog, segmented } from './components';
 import { FACTION_EMBLEM, icon } from './icons';
 
@@ -60,7 +60,7 @@ export function chartSvg(s: GameState, rounds: RoundStats[], metric: ChartMetric
   let grid = '';
   for (let v = 0; v <= top + 1e-9; v += step) {
     grid += `<line class="grid" x1="${pad.l}" x2="${w - pad.r}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}"/>`;
-    grid += `<text class="ytick" x="${pad.l - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end">${Math.round(v * 10) / 10}</text>`;
+    grid += `<text class="ytick" x="${pad.l - 6}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end">${num(Math.round(v * 10) / 10)}</text>`;
   }
   const rStep = Math.max(1, Math.ceil((maxR - minR) / 5));
   for (let r = minR; r <= maxR; r += rStep) grid += `<text class="xtick" x="${X(r).toFixed(1)}" y="${h - 6}" text-anchor="middle">${r}</text>`;

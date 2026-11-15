@@ -93,7 +93,9 @@ function boot() {
     exportGame() { if (game.state) exportFile(game.state); },
     saveNow() {
       if (!game.state) return;
-      toast(root, saveGame(game.state) ? t('menu.saved') : t('menu.storageUnavailable'), saveGame(game.state) ? 'save' : 'warning');
+      // nur einmal schreiben / write only once
+      const ok = saveGame(game.state);
+      toast(root, ok ? t('menu.saved') : t('menu.storageUnavailable'), ok ? 'save' : 'warning');
     },
     hasSave: () => hasSave(),
     openSlots(mode) {
@@ -256,7 +258,10 @@ function boot() {
     else if (e.key === 'Enter') void game.endTurn();
     else if (e.key === 'Escape') { if (!dispatches.dismiss()) { game.clearSelection(); hud.render(); } }
   });
-  onLanguageChange(() => { clearLabelCache(); game.refresh(); hud.render(); xr.refreshPanels(); });
+  // Karten-Beschriftung (aria-label) aus i18n / map canvas label (aria-label) from i18n
+  const labelCanvas = () => canvas.setAttribute('aria-label', t('hud.mapLabel'));
+  labelCanvas();
+  onLanguageChange(() => { clearLabelCache(); labelCanvas(); game.refresh(); hud.render(); objectives.render(game.state); xr.refreshPanels(); });
   document.addEventListener('pointerdown', () => audio.unlock(), { once: true });
   document.fonts?.ready.then(() => { clearLabelCache(); if (game.state) game.refresh(); });
   window.addEventListener('pagehide', () => game.autosave());
