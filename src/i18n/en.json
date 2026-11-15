@@ -726,7 +726,11 @@
     "noRockets": "No rockets left. Reload in an own city with a depot.",
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
-    "quake": "Earthquake: vehicles and mechs cannot move this round."
+    "quake": "Earthquake: vehicles and mechs cannot move this round.",
+    "noRelay": "No orbital laser without a satellite relay.",
+    "orbitalCooldown": "The orbital laser is still charging.",
+    "notVisible": "The target tile is not revealed.",
+    "relayLimit": "Velkar already owns a satellite relay."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2471,7 +2475,9 @@
     "full": "All 3 slots are taken.",
     "unlock": "City upgrade: {name}",
     "lockedHint": "More upgrades are unlocked by research ({n}).",
-    "lockedHintLevel": "More upgrades at a higher city level ({n})."
+    "lockedHintLevel": "More upgrades at a higher city level ({n}).",
+    "satRelay": "Satellite relay",
+    "satRelayDesc": "Velkar only, one at a time. Unlocks the orbital laser: every {cd} rounds {dmg} damage on a {w}×{h} tile area. Lost if the city falls."
   },
   "saves": {
     "deleteConfirm": "Really delete the save in slot {n}? This cannot be undone.",
@@ -3465,6 +3471,33 @@
       "factions": {
         "text": "Can be switched off in the setup. It needs the faction's own victory capability (tier 3), drawn with a dashed rim in production. The victory tracker in the menu shows the progress of all known factions."
       }
+    },
+    "orbital": {
+      "unlockHint": "Satellite relay from the production capability {tech}."
     }
+  },
+  "orbital": {
+    "name": "Orbital laser",
+    "ready": "ready",
+    "wait": "in {n} rounds",
+    "wait1": "in 1 round",
+    "waitShort": "{n} rd.",
+    "area": "{w}×{h} tile area",
+    "desc": "Shot from orbit: {dmg} damage to everything in a {w}×{h} tile area, own units included. The target tile is the top-left corner and must be revealed. Then {cd} rounds of charging.",
+    "title": "Orbital laser: pick a target",
+    "pick": "Tap a revealed tile: it becomes the top-left corner of the area.",
+    "confirm": "Tap again or press Fire! Esc cancels.",
+    "fire": "Fire!",
+    "hits": "{n} hits, {kills} destroyed",
+    "noHits": "No visible targets in the area",
+    "own": "Warning: {n} own units in the target",
+    "tag": "-{dmg}",
+    "tagKill": "-{dmg} KO",
+    "toast": "Orbital laser from {name}",
+    "charging": "Charging: {wait}",
+    "blocked": "Units of a faction you are at peace with stand in the target.",
+    "unlockHint": "Satellite relay from the research {tech}.",
+    "own1": "Warning: 1 own unit in the target",
+    "hits1": "1 hit, {kills} destroyed"
   }
 }

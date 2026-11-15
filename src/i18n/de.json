@@ -726,7 +726,11 @@
     "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
-    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen."
+    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
+    "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
+    "orbitalCooldown": "Der Orbitallaser lädt noch.",
+    "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
+    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -2471,7 +2475,9 @@
     "full": "Alle 3 Slots sind belegt.",
     "unlock": "Stadt-Ausbau: {name}",
     "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
-    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n})."
+    "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n}).",
+    "satRelay": "Satelliten-Relay",
+    "satRelayDesc": "Nur Velkar, eines zugleich. Schaltet den Orbitallaser frei: alle {cd} Runden {dmg} Schaden auf eine Fläche {w}×{h} Felder. Geht verloren, wenn die Stadt fällt."
   },
   "saves": {
     "deleteConfirm": "Spielstand in Platz {n} wirklich löschen? Das lässt sich nicht rückgängig machen.",
@@ -3465,6 +3471,33 @@
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegfähigkeit (Stufe 3), in der Produktion gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
       }
+    },
+    "orbital": {
+      "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
     }
+  },
+  "orbital": {
+    "name": "Orbitallaser",
+    "ready": "bereit",
+    "wait": "in {n} Runden",
+    "wait1": "in 1 Runde",
+    "waitShort": "{n} Rd.",
+    "area": "Fläche {w}×{h} Felder",
+    "desc": "Schuss aus dem Orbit: {dmg} Schaden an allem in einer Fläche {w}×{h} Felder, auch an eigenen Einheiten. Das Zielfeld ist die linke obere Ecke und muss aufgedeckt sein. Danach {cd} Runden Aufladen.",
+    "title": "Orbitallaser: Ziel wählen",
+    "pick": "Tippe auf ein aufgedecktes Feld: es wird die linke obere Ecke der Fläche.",
+    "confirm": "Noch einmal tippen oder Feuer! drücken. Esc bricht ab.",
+    "fire": "Feuer!",
+    "hits": "{n} Treffer, {kills} vernichtet",
+    "noHits": "Keine sichtbaren Ziele in der Fläche",
+    "own": "Achtung: {n} eigene Einheiten im Ziel",
+    "tag": "-{dmg}",
+    "tagKill": "-{dmg} K.O.",
+    "toast": "Orbitallaser von {name}",
+    "charging": "Lädt: {wait}",
+    "blocked": "Im Ziel stehen Einheiten einer Fraktion, mit der Frieden herrscht.",
+    "unlockHint": "Satelliten-Relay ab der Forschung {tech}.",
+    "own1": "Achtung: 1 eigene Einheit im Ziel",
+    "hits1": "1 Treffer, {kills} vernichtet"
   }
 }
