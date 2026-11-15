@@ -273,7 +273,7 @@ const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil((UNITS[t
 
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
-  if (isWonder(u)) return 0;
+  if (isWonder(u) || isBoss(u)) return 0;
   // Landungsboot: Wert der getragenen Einheit / landing boat: value of the carried unit
   const own = typeUpkeep(u.type === 'landingBoat' && u.carried ? u.carried : u.type);
   // Schiffe kosten mindestens den Sold der getragenen Einheit / ships cost at least the upkeep of the carried unit
@@ -282,7 +282,8 @@ export function unitUpkeep(u: Unit): number {
 /** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
 export function paidUnits(s: GameState, f: number): Unit[] {
   // Wunder kosten keinen Sold und belegen kein Freikontingent / wonders cost no upkeep and take no free slot
-  return s.units.filter((u) => u.owner === f && !isWonder(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
+  // Endgegner ebenso / bosses likewise
+  return s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
 }
 /** Gesamtsold pro Runde / total upkeep per round */
 export function upkeep(s: GameState, f: number): number {
@@ -703,8 +704,8 @@ export function attackTargets(s: GameState, u: Unit): Unit[] {
 
 export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
-  // Wunder lassen sich nicht bekehren / wonders cannot be converted
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o));
+  // Wunder und Endgegner lassen sich nicht bekehren / wonders and bosses cannot be converted
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o));
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
@@ -771,7 +772,7 @@ export function persuadeCheck(s: GameState, u: Unit, c: City): 'ok' | import('./
   if (!canPersuadeFaction(s, u.owner)) return 'wrongFaction';
   if (u.fresh) return 'fresh';
   if (u.exhausted || u.attacked) return 'unitExhausted';
-  if (isShip(u) || has(u, 'wonder')) return 'cannotCapture';
+  if (isShip(u) || has(u, 'wonder') || has(u, 'boss')) return 'cannotCapture';
   if (c.owner !== null) return 'invalidTarget';
   if (dist(u, c) > PERSUADE.range) return 'outOfRange';
   const occ = unitAt(s, c.x, c.y);
@@ -788,7 +789,7 @@ export function persuadeTargets(s: GameState, u: Unit): City[] {
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;
-  if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder')) return null;
+  if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder') || has(u, 'boss')) return null;
   const t = tileAt(s, u.x, u.y)!;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
@@ -1373,6 +1374,8 @@ export function mineTargets(s: GameState, u: Unit): Pos[] {
 
 // ---------- Fraktions-Siegbedingungen / faction victory conditions ----------
 
+/** Endgegner (Kampagne)? / boss (campaign)? */
+export const isBoss = (u: Unit) => UNITS[u.type].abilities.includes('boss');
 /** Wunder-Einheit (Bauwerk oder Bohrer)? / wonder unit (structure or drill)? */
 export function isWonder(u: Unit): boolean {
   return UNITS[u.type].abilities.includes('wonder');

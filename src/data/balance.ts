@@ -30,7 +30,9 @@ export type UniqueUnitId = 'steppeRider' | 'stormbreaker' | 'peacekeeper' | 'pri
  */
 export type WonderKind = 'portal' | 'hackRelay' | 'fusionPlant' | 'waal';
 export type WonderUnitId = WonderKind | 'coreDrill';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId;
+/** Endgegner der Kampagne (nicht ausbildbar) / campaign bosses (not trainable) */
+export type BossUnitId = 'swarmMother';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -40,7 +42,9 @@ export type Ability =
   // unique units: shock assault without retaliation, self-repair, prize money
   | 'shock' | 'mend' | 'plunder'
   // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
-  | 'wonder';
+  | 'wonder'
+  // Endgegner: kein Sold, nicht bekehrbar, nimmt nichts ein, Faehigkeiten siehe SWARM_MOTHER / boss: no upkeep, not convertible, captures nothing, abilities see SWARM_MOTHER
+  | 'boss';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -233,6 +237,32 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   waal: { cost: null, hp: 60, attack: 5, defense: 4, move: 0, range: 2, vision: 2, abilities: ['wonder'], tech: 'waalProgram', ship: false, faction: 'dravon' },
   // Erdkernbohrer: beweglich, wird in der Stadt ausgebildet / earth-core drill: mobile, trained in a city
   coreDrill: { cost: WONDERS.cost.coreDrill, hp: 25, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
+  // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
+  swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+};
+
+/**
+ * Schwarmmutter (Endgegner Akt I): alle Faehigkeiten wirken zu Beginn ihres eigenen Zuges, deterministisch, ohne Wurf.
+ * Swarm Mother (boss of act I): all abilities trigger at the start of her own turn, deterministic, without a roll.
+ */
+export const SWARM_MOTHER = {
+  /** Heilung je eigenem Zug auf Xeno-Boden / healing per own turn on xeno ground */
+  xenoHeal: 4,
+  /** Brut: alle so viele Runden so viele Graue auf Nachbarfeldern / brood: every this many rounds this many greys on adjacent tiles */
+  broodEvery: 3,
+  broodCount: 2,
+  broodUnit: 'grey' as UnitTypeId,
+  /** keine Brut mehr ab so vielen eigenen Einheiten / no more brood from this many own units */
+  broodCap: 14,
+  /** Psychischer Schrei: Schaden an allen feindlichen Einheiten im Umkreis, danach Abklingzeit / psychic scream: damage to all hostile units in range, then a cooldown */
+  screamDamage: 4,
+  screamRange: 1,
+  screamEvery: 2,
+  /** Auftauchen: eine Spielereinheit so nah am Hauptquartier oder ab dieser Runde / emergence: a player unit this close to the HQ or from this round */
+  emergeRange: 3,
+  emergeRound: 9,
+  /** KI: sie verlaesst ihr Hauptquartier hoechstens so weit / AI: she leaves her HQ at most this far */
+  aiLeash: 3,
 };
 
 /** Einheiten der Zyrr / Zyrr roster */

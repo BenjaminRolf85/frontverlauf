@@ -101,6 +101,8 @@ export interface Unit {
   wonder?: { stage: number; progress: number };
   /** Erdkernbohrer: Runden in Folge ohne Bewegung / earth-core drill: consecutive rounds without moving */
   stillRounds?: number;
+  /** Endgegner: Runden, ab denen Schrei und Brut wieder bereit sind / boss: rounds from which scream and brood are ready again */
+  boss?: { scream: number; brood: number };
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -175,6 +177,8 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
+  /** Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung) / map theme (missing = surface); 'alien' = Zyrr homeworld (render only) */
+  theme?: 'cavern' | 'alien';
 }
 
 /** Stand eines Missionsziels / state of a mission objective */
@@ -208,6 +212,17 @@ export interface CampaignState {
   artifact?: Pos;
   /** wer das Artefakt wie viele Runden in Folge besetzt / who occupies the artifact for how many consecutive rounds */
   hold?: { faction: number | null; n: number };
+  /** Dimensionsportal der Zyrr (Modell auf dem Feld) / dimensional portal of the Zyrr (model on the tile) */
+  portal?: Pos;
+  /** Runden in Folge, die der Spieler das Portal besetzt / consecutive rounds the player occupies the portal */
+  portalHold?: number;
+  /**
+   * Landetrupp: der Spieler startet ohne Stadt und scheidet erst aus, wenn er keine Einheit mehr hat; endet mit der ersten eigenen Stadt.
+   * Landing party: the player starts without a city and is only eliminated once no unit is left; ends with the first own city.
+   */
+  landing?: boolean;
+  /** Endgegner aufgetaucht (Runde) / boss emerged (round) */
+  bossRound?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -298,6 +313,10 @@ export type GameEvent =
   /** Kampagne: Welle (Feind oder Verstaerkung) eingetroffen / campaign: wave (enemy or reinforcements) arrived */
   | { t: 'wave'; faction: number; count: number; x: number; y: number }
   | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
+  /**
+   * Endgegner: aufgetaucht, Brut geschluepft (count), psychischer Schrei (hits) / boss: emerged, brood hatched (count), psychic scream (hits)
+   */
+  | { t: 'boss'; what: 'emerge' | 'brood' | 'scream'; unit: number; faction: number; x: number; y: number; count?: number; hits?: { unit: number; dmg: number }[] }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
