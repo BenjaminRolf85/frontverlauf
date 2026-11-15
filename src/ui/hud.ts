@@ -23,7 +23,7 @@ import {
   actionButton, esc, factionBadge, factionChip, iconButton, price, progress, resource, type ActionItem,
 } from './components';
 import { icon } from './icons';
-import { techT } from './terms';
+import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
@@ -340,7 +340,7 @@ export class Hud {
     this.bottom.innerHTML = `
       ${sheet ? `<section class="panel sheet ${this.expanded ? 'expanded' : ''}" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
       <nav class="nav-bar">
-        <button type="button" class="btn secondary" data-action="research">${icon('research')}<span>${esc(techT('hud.research', f.id))}</span></button>
+        <button type="button" class="btn secondary" data-action="research">${icon(techIcon(f.id))}<span>${esc(techT('hud.research', f.id))}</span></button>
         <button type="button" class="btn secondary" data-action="diplomacy">${icon('diplomacy')}<span>${esc(t('hud.diplomacy'))}</span></button>
         ${iconButton('next', t('hud.nextUnit'), 'nextUnit', { lg: true })}
         <button type="button" class="btn end" data-action="endTurn" ${humanTurn ? '' : 'disabled'}>${icon('endTurn')}<span>${esc(t('hud.endTurn'))}</span></button>

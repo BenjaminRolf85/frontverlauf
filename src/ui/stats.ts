@@ -9,7 +9,7 @@ import { ensureHistory, factionTotals, historySeries, topUnits, type GameState, 
 import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, openDialog, segmented } from './components';
 import { FACTION_EMBLEM, icon } from './icons';
-import { techT } from './terms';
+import { techIcon, techT } from './terms';
 
 export type ChartMetric = 'score' | 'units' | 'cities' | 'stars';
 const METRICS: ChartMetric[] = ['score', 'units', 'cities', 'stars'];
@@ -113,7 +113,7 @@ export function statsPanel(s: GameState, viewer: number): string {
     <div class="stats-legend">${legend}</div>
     <h3 class="display">${esc(t('history.totals'))}</h3>
     <div class="stats-table-wrap"><table class="stats-table">
-      <thead><tr><th scope="col">${esc(t('history.faction'))}</th>${col('kills', 'sword')}${col('losses', 'warning')}${col('captures', 'capture')}${col('techs', 'research')}</tr></thead>
+      <thead><tr><th scope="col">${esc(t('history.faction'))}</th>${col('kills', 'sword')}${col('losses', 'warning')}${col('captures', 'capture')}${col('techs', techIcon(s.factions[viewer]?.id))}</tr></thead>
       <tbody>${rows}</tbody></table></div>
     <h3 class="display">${esc(t('history.heroes'))}</h3>
     ${heroList}

@@ -23,5 +23,8 @@ export function techT(key: string, f: FactionId | null | undefined, vars: Record
   return usesProduction(f) && has(`production.${key}`) ? t(`production.${key}`, vars) : t(key, vars);
 }
 
+/** Symbol fuer Forschung bzw. Produktion / icon for research or production */
+export const techIcon = (f: FactionId | null | undefined): string => (usesProduction(f) ? 'production' : 'research');
+
 /** Fraktions-ID zu einem Index im Spielstand (ungueltig = keine) / faction id for an index in the state (invalid = none) */
 export const factionIdOf = (s: GameState | null | undefined, i: number): FactionId | null => s?.factions[i]?.id ?? null;

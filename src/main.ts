@@ -13,7 +13,7 @@ import { continueEndless } from './core';
 import { BUNKER, VETERAN } from './data/balance';
 import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
-import { factionIdOf, techT } from './ui/terms';
+import { factionIdOf, techIcon, techT } from './ui/terms';
 import { Fx } from './ui/fx';
 import { Barks } from './ui/barks';
 import { Dispatches } from './ui/dispatch';
@@ -174,7 +174,7 @@ function boot() {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
         case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
         // Wortwahl nach der Rasse der forschenden Fraktion / wording by the race of the researching faction
-        case 'research': if (e.faction === viewer) toast(root, techT('events.research', s.factions[e.faction].id, { tech: t(`techs.${e.tech}`) }), 'research'); break;
+        case 'research': if (e.faction === viewer) toast(root, techT('events.research', s.factions[e.faction].id, { tech: t(`techs.${e.tech}`) }), techIcon(s.factions[e.faction].id)); break;
         case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
         case 'bunker': if (e.faction === viewer) toast(root, techT(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, s.factions[e.faction].id, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;

@@ -7,6 +7,8 @@ const P: Record<string, string> = {
   medal: '<circle cx="12" cy="14" r="6"/><path d="M8.5 3h7l-2 6h-3z"/><path d="M12 11.2l.9 1.9 2 .2-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.2z" fill="currentColor"/>',
   hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/>',
   research: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/><path d="M7.5 15h9"/>',
+  /** Fabrik mit Saegezahndach: Produktion der Menschen / factory with sawtooth roof: human production */
+  production: '<path d="M3 21V12l5-3v3l5-3v3l3-1.5V4h3v17z"/><path d="M2 21h20"/><path d="M6.5 16.5h2M11.5 16.5h2" stroke-width="2.6"/>',
   diplomacy: '<path d="M3 12l4-4 4 3 3-3 4 1 3 3"/><path d="M7 8l-4 9M17 9l4 8M9 14l2 2M11 12l3 3M13 11l3 3"/>',
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   next: '<path d="M5 12h12M12 6l6 6-6 6"/>',

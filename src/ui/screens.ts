@@ -25,7 +25,7 @@ import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
-import { factionIdOf, techT } from './terms';
+import { factionIdOf, techIcon, techT } from './terms';
 import { TUTORIAL_FACTION } from './tutorial';
 
 export interface ScreenHost {
@@ -461,7 +461,7 @@ export function researchDialog(host: ScreenHost) {
       ${techListHtml(s, f, ids, g.isHumanTurn && f === s.current)}
       <div class="tech-wrap"><svg class="tech-svg" viewBox="${canResearch(s, f) ? '0 0 800 800' : `${C - 160} ${C - 300} 320 360`}" role="group" aria-label="${esc(tt('tech.title'))}">
         ${links}<circle cx="${C}" cy="${C}" r="44" class="tech-center"/>
-        ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>`;
+        ${iconAt(techIcon(fid), C - 18, C - 18, 36)}${nodes}</svg></div>`;
   };
   const d = openDialog(host.root, html(), { wide: true });
   d.node.addEventListener('click', async (e) => {
@@ -509,7 +509,7 @@ function techListHtml(s: GameState, f: number, ids: TechId[], canAct: boolean): 
     const parent = TECHS[id].parent;
     const note = st === 'locked' && parent ? tt('tech.needParent', { tech: t(`techs.${parent}`) }) : tt(`tech.${st}`);
     const btn = st === 'researched' ? `<span class="tag ok">${icon('check', 'icon-sm')}</span>`
-      : `<button type="button" class="btn tech-buy ${st === 'available' && canAct ? '' : 'secondary'}" data-research="${id}" ${st === 'available' && canAct ? '' : 'disabled aria-disabled="true"'} aria-label="${esc(tt('tech.confirm'))}: ${esc(t(`techs.${id}`))}">${icon('research', 'icon-sm')}${price(cost)}</button>`;
+      : `<button type="button" class="btn tech-buy ${st === 'available' && canAct ? '' : 'secondary'}" data-research="${id}" ${st === 'available' && canAct ? '' : 'disabled aria-disabled="true"'} aria-label="${esc(tt('tech.confirm'))}: ${esc(t(`techs.${id}`))}">${icon(techIcon(s.factions[f].id), 'icon-sm')}${price(cost)}</button>`;
     return `<li class="tech-row ${st} ${TECHS[id].faction ? 'victory' : ''}">
       <button type="button" class="tech-row-main" data-tech="${id}"><i class="tech-dot" aria-hidden="true"></i>
         <span class="col"><strong>${esc(t(`techs.${id}`))}</strong><span class="muted">${esc(t('tech.tier', { n: TECHS[id].tier }))} · ${esc(note)}</span></span></button>
@@ -564,7 +564,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     ${reason ? `<p class="tag warn">${esc(reason)}</p>` : ''}
     <div class="dialog-actions">
       ${button(t('actions.cancel'), { action: 'cancel', variant: 'secondary' })}
-      ${st !== 'researched' ? button(tt('tech.confirm'), { action: 'confirm', icon: 'research', disabled: !canResearch, extra: price(cost) }) : ''}
+      ${st !== 'researched' ? button(tt('tech.confirm'), { action: 'confirm', icon: techIcon(fa.id), disabled: !canResearch, extra: price(cost) }) : ''}
     </div>`, { onClose });
   box.node.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
