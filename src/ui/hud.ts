@@ -25,11 +25,12 @@ import {
 import { icon } from './icons';
 import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
+import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
 
-const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
+const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star', satRelay: 'satellite' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning', acid: 'rain', quake: 'warning', calm: 'sun' };
 export const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
@@ -315,6 +316,9 @@ export class Hud {
         break;
       }
       case 'grand': this.cb.openGrand(); break;
+      // Orbitallaser (Velkar) / orbital laser (Velkar)
+      case 'orbital': if (this.game.orbitalMode) this.game.cancelOrbital(); else this.game.startOrbital(); break;
+      case 'orbitalCancel': this.game.cancelOrbital(); break;
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
@@ -380,7 +384,8 @@ export class Hud {
       ${iconButton('rotateRight', t('hud.rotateRight'), 'rotR')}
       ${iconButton('zoomIn', t('hud.zoomIn'), 'zoomIn')}
       ${iconButton('zoomOut', t('hud.zoomOut'), 'zoomOut')}
-      ${supplyLines(s) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}`;
+      ${supplyLines(s) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}
+      ${orbitalButton(s, g)}`;
     const cur = s.factions[s.current];
     if (g.aiRunning && !s.over) {
       this.banner.hidden = false;
@@ -393,7 +398,8 @@ export class Hud {
     const prevKey = this.hintKey;
     const prevScroll = this.bottom.querySelector<HTMLElement>('.action-bar')?.scrollLeft ?? 0;
     let sheet = '';
-    if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
+    if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
       ${sheet ? `<section class="panel sheet ${this.expanded ? 'expanded' : ''}" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
@@ -518,7 +524,7 @@ export class Hud {
           ${city.govQuarter ? `<span class="tag">${esc(t('rewards.govQuarter'))}</span>` : ''}</div>
           <div class="slots" aria-label="${esc(t('cityUpgrades.title'))}"><span class="muted">${esc(t('cityUpgrades.title'))}</span>
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
-            ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
+            ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`, orbitalVars()))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
         // Kult und NEXUS: Hinweise / cult and NEXUS: hints
         if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
@@ -734,19 +740,22 @@ export class Hud {
     const c = cityById(s, cityId)!;
     // Ausbau-Slots / upgrade slots
     let lockedUpgrades = 0;
+    let relayLocked = false;
     // Nachschublinien lassen sich nicht ausbauen: keine Knoepfe / supply lines cannot be upgraded: no buttons
     for (const up of supplyLines(s) ? [] : CITY_UPGRADE_IDS) {
       if (hasCityUpgrade(c, up)) continue;
       const chk = cityUpgradeCheck(s, c.owner!, c, up);
+      // Ausbau einer anderen Fraktion (Satelliten-Relay) gar nicht zeigen / another faction's upgrade (satellite relay): not shown at all
+      if (chk === 'wrongFaction') continue;
       // noch nicht erforscht: nicht anzeigen, nur zaehlen / not researched yet: hide, only count
-      if (chk === 'techMissing' || chk === 'cityLevel') { lockedUpgrades++; continue; }
+      if (chk === 'techMissing' || chk === 'cityLevel') { lockedUpgrades++; if (up === 'satRelay') relayLocked = true; continue; }
       const radioActive = up === 'radioTower' && g.radioCity === c.id;
       const noTargets = up === 'radioTower' && radioTargets(s, c.owner!, c).length === 0;
       this.actions.push({
         id: `up-${up}`, icon: CITY_UPGRADE_ICON[up], label: radioActive ? t('actions.cancel') : t(`cityUpgrades.${up}`),
         cost: radioActive ? undefined : CITY_UPGRADES.cost[up], variant: 'primary',
         enabled: radioActive || (chk === 'ok' && !noTargets),
-        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : chk === 'noSlot' ? t('cityUpgrades.full') : this.err(chk),
+        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`, orbitalVars()) : chk === 'noSlot' ? t('cityUpgrades.full') : this.err(chk),
         run: () => {
           if (up !== 'radioTower') { void g.exec({ type: 'cityUpgrade', city: c.id, upgrade: up }); return; }
           if (radioActive) { g.radioCity = null; g.updateHighlights(); this.render(); return; }
@@ -758,6 +767,8 @@ export class Hud {
     if (lockedUpgrades && cityUpgrades(c).length < CITY_UPGRADES.slots) {
       const noResearch = !canResearch(s, c.owner!);
       this.cityNote = techT(noResearch ? 'cityUpgrades.lockedHintLevel' : 'cityUpgrades.lockedHint', s.factions[c.owner!].id, { n: lockedUpgrades });
+      // Velkar: welche Produktionsfaehigkeit das Relay freischaltet / Velkar: which production capability unlocks the relay
+      if (relayLocked) this.cityNote += ` ${techT('orbital.unlockHint', s.factions[c.owner!].id, { tech: t(`techs.${CITY_UPGRADES.tech.satRelay}`) })}`;
     }
     // Zyrr: erst das Stadtfeld terraformen / Zyrr: terraform the city tile first
     if (isAlienFaction(s, c.owner!) && !s.tiles[c.y * s.size + c.x].xeno) {

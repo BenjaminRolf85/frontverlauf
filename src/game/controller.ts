@@ -5,16 +5,18 @@
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets, turretTargets,
+  orbitalPreview, orbitalWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
-import { UNITS, type HitKind } from '../data/balance';
+import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
+import { ORBITAL_FX } from '../render/fx/orbital';
 import { saveGame } from '../save/save';
 
 export type Tab = 'unit' | 'city' | 'tile';
@@ -58,6 +60,9 @@ export class Controller {
   radioCity: number | null = null;
   /** Zielauswahl fuer den Terraformer / target selection for the terraformer */
   terraformUnit: number | null = null;
+  /** Zielauswahl des Orbitallasers und angepeilte Ecke / orbital laser targeting and the aimed corner */
+  orbitalMode = false;
+  orbitalAim: { x: number; y: number } | null = null;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -131,7 +136,49 @@ export class Controller {
     this.ui.update();
   }
 
+  /** Orbitallaser: Zielauswahl beginnen (nur bereit und am Zug) / orbital laser: start targeting (only when ready and on turn) */
+  startOrbital() {
+    const s = this.state;
+    if (!s || !this.isHumanTurn) return;
+    const wait = orbitalWait(s, s.current);
+    if (wait === null) return;
+    if (wait > 0) { this.play('error'); this.ui.errorCode('orbitalCooldown'); return; }
+    this.clearSelection();
+    this.orbitalMode = true;
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl abbrechen / cancel targeting */
+  cancelOrbital() {
+    if (!this.orbitalMode) return;
+    this.orbitalMode = false;
+    this.orbitalAim = null;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Ecke anpeilen (Maus folgt, Antippen setzt) / aim a corner (mouse follows, a tap sets it) */
+  aimOrbital(x: number, y: number) {
+    if (!this.orbitalMode || (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y)) return;
+    this.orbitalAim = { x, y };
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Auf die angepeilte Flaeche feuern / fire at the aimed area */
+  async fireOrbital() {
+    const s = this.state, aim = this.orbitalAim;
+    if (!s || !aim || !this.orbitalMode || this.busy) return;
+    this.orbitalMode = false;
+    this.orbitalAim = null;
+    await this.exec({ type: 'orbitalStrike', x: aim.x, y: aim.y });
+  }
+
   clearSelection() {
+    this.orbitalMode = false;
+    this.orbitalAim = null;
     this.barrierMode = false;
     this.mineMode = false;
     this.radioCity = null;
@@ -189,6 +236,17 @@ export class Controller {
     }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);
+    this.updateOrbitalPreview();
+  }
+
+  /** Vorschau der Flaeche mit Schadenszahlen (eigene in Warnfarbe) / area preview with damage numbers (own ones in the warning colour) */
+  private updateOrbitalPreview() {
+    const s = this.state;
+    if (!s) return;
+    if (!this.orbitalMode || !this.orbitalAim || !this.isHumanTurn) { this.view.board.showOrbitalPreview(s, [], ORBITAL.area.w, [], false); return; }
+    const pre = orbitalPreview(s, s.current, this.orbitalAim.x, this.orbitalAim.y);
+    const tags = pre.hits.map((h) => ({ x: h.x, y: h.y, own: h.own, text: t(h.killed ? 'orbital.tagKill' : 'orbital.tag', { dmg: h.dmg }) }));
+    this.view.board.showOrbitalPreview(s, pre.tiles, ORBITAL.area.w, tags, pre.check !== 'ok');
   }
 
   /** Antippen eines Feldes / tapping a tile */
@@ -196,6 +254,13 @@ export class Controller {
     const s = this.state;
     if (!s || this.busy) return;
     audio.unlock();
+    // Orbitallaser: erstes Antippen peilt an, zweites auf dieselbe Ecke feuert / orbital laser: first tap aims, a second on the same corner fires
+    if (this.orbitalMode) {
+      if (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y && orbitalPreview(s, s.current, x, y).check === 'ok') { await this.fireOrbital(); return; }
+      this.aimOrbital(x, y);
+      this.play('select');
+      return;
+    }
     if (this.terraformUnit !== null) {
       const uid = this.terraformUnit;
       this.terraformUnit = null;
@@ -529,6 +594,17 @@ export class Controller {
               await new Promise((r) => setTimeout(r, RIFT_OPEN_MS));
             }
             this.view.invalidate();
+            break;
+          }
+          // Orbitallaser: Strahl aus dem Himmel, Einschlag mit Beben und Schadenszahlen / orbital laser: beam from the sky, impact with shake and damage numbers
+          case 'orbitalStrike': {
+            if (!(e.faction === this.viewer || e.tiles.some((p) => visible(p.x, p.y)))) break;
+            const impact = () => {
+              for (const h of e.hits) if (visible(h.x, h.y)) { this.ui.fx('hit', h.x, h.y); this.ui.fx('num', h.x, h.y, `-${h.dmg}`); }
+              if (animate) this.view.shake(ORBITAL_FX.shake, ORBITAL_FX.shakeMs);
+            };
+            audio.orbital(animate && board.animations ? (ORBITAL_FX.ms * ORBITAL_FX.impact) / 1000 : 0);
+            await board.animateOrbital(s, e.tiles, ORBITAL.area.w, fid(e.faction) ?? null, animate, impact);
             break;
           }
           // Meteorschauer und Saeureregen: Einschlag oder Zischen auf jeder getroffenen, sichtbaren Einheit

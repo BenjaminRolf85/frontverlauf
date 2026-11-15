@@ -1,6 +1,6 @@
 /**
- * Kleine Modelle fuer Stadt-Ausbauten an den Stadtraendern: Funkmast, Bunker, Kaserne.
- * Small models for city upgrades at the city edges: radio mast, bunker, barracks.
+ * Kleine Modelle fuer Stadt-Ausbauten an den Stadtraendern: Funkmast, Bunker, Kaserne, Satelliten-Relay.
+ * Small models for city upgrades at the city edges: radio mast, bunker, barracks, satellite relay.
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -22,6 +22,8 @@ function part(g: THREE.BufferGeometry, color: string, m: THREE.Matrix4) {
 /** Platz je Slot (Ecken ausserhalb des Bodenrings) / position per slot (corners outside the ground ring) */
 export const SLOT_SPOT: [number, number][] = [[-0.43, -0.43], [-0.43, 0.43], [0.43, -0.43]];
 export const PERK_SCALE = 1.45;
+/** Uplink-Licht des Satelliten-Relays (lokal, vor PERK_SCALE) / uplink light of the satellite relay (local, before PERK_SCALE) */
+export const RELAY_LAMP: [number, number, number] = [0.035, 0.335, 0.02];
 
 export function perkGeometry(up: CityUpgradeId, faction: FactionId | null): THREE.BufferGeometry {
   const key = `${up}-${faction}`;
@@ -66,6 +68,21 @@ export function perkGeometry(up: CityUpgradeId, faction: FactionId | null): THRE
     parts.push(part(new THREE.CylinderGeometry(0.04, 0.05, 0.05, 8), semantic.metal, M(0, 0.04, 0)));
     for (const x of [-0.018, 0.018]) parts.push(part(new THREE.CylinderGeometry(0.008, 0.008, 0.2, 6), semantic.ink, M(x, 0.12, 0.05, -0.9, 0, 0)));
     parts.push(part(new THREE.BoxGeometry(0.06, 0.012, 0.04), accent, M(0, 0.07, -0.02)));
+  } else if (up === 'satRelay') {
+    // Satelliten-Relay (Velkar): Schuessel nach oben mit Speisearm, zwei Antennenmasten, Geraetehuette, Uplink-Licht (leuchtet, KEYS)
+    // satellite relay (Velkar): upward dish with feed arm, two antenna masts, equipment hut, uplink light (glows, KEYS)
+    parts.push(part(new THREE.CylinderGeometry(0.1, 0.12, 0.03, 8), semantic.metal, M(0, 0.015, 0)));
+    parts.push(part(new THREE.CylinderGeometry(0.012, 0.018, 0.14, 6), semantic.metal, M(0, 0.1, 0)));
+    parts.push(part(new THREE.SphereGeometry(0.11, 14, 5, 0, Math.PI * 2, Math.PI * 0.62, Math.PI * 0.38), semantic.white, M(0, 0.25, 0, -0.45, 0.4, 0)));
+    parts.push(part(new THREE.CylinderGeometry(0.004, 0.004, 0.12, 4), semantic.metal, M(0.02, 0.28, 0.01, -0.45, 0.4, 0)));
+    parts.push(part(new THREE.IcosahedronGeometry(0.018, 0), semantic.orbitalUplink, M(RELAY_LAMP[0], RELAY_LAMP[1], RELAY_LAMP[2])));
+    for (const [x, z, h] of [[-0.12, 0.08, 0.3], [0.12, -0.09, 0.24]]) {
+      parts.push(part(new THREE.CylinderGeometry(0.004, 0.007, h, 4), semantic.metal, M(x, h / 2, z)));
+      for (const y of [h * 0.55, h * 0.8]) parts.push(part(new THREE.BoxGeometry(0.05, 0.005, 0.005), semantic.metal, M(x, y, z)));
+      parts.push(part(new THREE.IcosahedronGeometry(0.009, 0), semantic.dangerBright, M(x, h + 0.008, z)));
+    }
+    parts.push(part(new THREE.BoxGeometry(0.08, 0.05, 0.06), semantic.neutral, M(0.1, 0.025, 0.1)));
+    parts.push(part(new THREE.BoxGeometry(0.085, 0.012, 0.065), accent, M(0.1, 0.056, 0.1)));
   } else if (up === 'depot') {
     // Depot: Lagerhalle mit Kisten und Faessern / depot: storage shed with crates and barrels
     parts.push(part(new THREE.BoxGeometry(0.16, 0.08, 0.12), semantic.neutral, M(-0.02, 0.04, -0.02)));

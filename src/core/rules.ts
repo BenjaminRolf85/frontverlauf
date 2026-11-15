@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, ORBITAL, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
@@ -13,6 +13,7 @@ import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
+import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import {
   recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -876,6 +877,8 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
 function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   const from = c.owner;
   c.owner = u.owner;
+  // Satelliten-Relay geht mit der Stadt verloren (abgebaut), der Slot wird frei / the satellite relay is lost with the city (dismantled), the slot frees up
+  if (c.upgrades?.includes(ORBITAL.relay)) c.upgrades = c.upgrades.filter((x) => x !== ORBITAL.relay);
   if (from === null) {
     c.level = 1; c.pop = 0;
     claimTerritory(s, c, CITY.baseRadius);
@@ -1308,6 +1311,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       fa.stars -= CITY_UPGRADES.cost[cmd.upgrade];
       c.upgrades = [...cityUpgrades(c), cmd.upgrade];
       if (cmd.upgrade === 'radioTower' && cmd.target) reveal(s, f, cmd.target.x, cmd.target.y, CITY_UPGRADES.radioRadius, ev);
+      if (cmd.upgrade === ORBITAL.relay) relayBuilt(s, f);
       ev.push({ t: 'cityUpgrade', city: c.id, upgrade: cmd.upgrade, faction: f, target: cmd.target });
       res = { ok: true, events: ev };
       break;
@@ -1476,6 +1480,21 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
           break;
         }
       }
+      res = { ok: true, events: ev };
+      break;
+    }
+    // Orbitallaser (Velkar): eigene Datei orbital.ts / orbital laser (Velkar): own file orbital.ts
+    case 'orbitalStrike': {
+      const check = orbitalCheck(s, f, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      fireOrbital(s, f, cmd.x, cmd.y, ev, {
+        kill: (u, e) => killUnit(s, u, null, e),
+        spare: (u) => spare(s, u),
+        interrupt: (u, e) => interruptWonder(s, u, e),
+        mark: (x, y) => addMark(s, x, y, 'scorch'),
+        wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
+      });
+      checkElimination(s, ev);
       res = { ok: true, events: ev };
       break;
     }
