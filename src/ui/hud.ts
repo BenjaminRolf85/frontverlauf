@@ -3,10 +3,10 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
-  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
+  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
@@ -71,10 +71,22 @@ export const BUILD_ICON: Partial<Record<BuildingId, string>> = {
 export function buildingDescText(b: BuildingId): string {
   const st = BUILDINGS[b];
   return t(`buildingDesc.${b}`, {
-    pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0,
+    pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0, slots: CULT.shrineSlots,
     pct: Math.round(RESOURCE.polarDiscount * 100), max: RESOURCE.polarMax,
     emb: RESOURCE.vineyardPerEmbassy, embMax: RESOURCE.vineyardEmbassyMax, naval: RESOURCE.harbourNavalBonus,
   });
+}
+
+/**
+ * Beute-Hinweis fuer einen Kult-Betrachter: was die Stadt beim Einnehmen bringt (oder dass sie noch leer ist).
+ * Loot hint for a cult viewer: what the city brings when taken (or that it is still empty).
+ */
+function lootTag(s: GameState, viewer: number, c: { id: number; owner: number | null; plundered?: number }): string {
+  if (viewer < 0 || !isCultFaction(s, viewer) || c.owner === viewer) return '';
+  const city = cityById(s, c.id)!;
+  const n = plunderValue(s, viewer, city);
+  const text = n > 0 ? t('cult.loot', { n }) : t('cult.lootEmpty', { n: (c.plundered ?? 0) + CULT.replunderRounds });
+  return `<div class="row"><span class="tag ${n > 0 ? '' : 'warn'}">${icon('star', 'icon-sm')}${esc(text)}</span></div>`;
 }
 
 /** Allgemeiner Typname (fuer Vergleiche) / generic type name (for comparison) */
@@ -377,6 +389,7 @@ export class Hud {
       ${resource('medal', score(s, viewerIdx), t('hud.points'), t('hud.points'))}
       ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: netTxt }) : t('hud.perRound', { n: inc }), t('hud.stars'),
         `<span class="net ${net < 0 ? 'neg' : ''}" aria-hidden="true">${esc(netTxt)}</span>`)}
+      ${isCultFaction(s, viewerIdx) ? resource('people', `${cultUnits(s, viewerIdx).length}/${cultCap(s, viewerIdx)}`, '', t('cult.hordeTitle')) : ''}
       ${resource('hourglass', limit ? `${Math.min(s.round, limit)}/${limit}` : s.round, '', t('hud.round'))}
       ${this.weatherChip(s)}
       <span class="grow"></span>
@@ -386,7 +399,7 @@ export class Hud {
       ${iconButton('rotateRight', t('hud.rotateRight'), 'rotR')}
       ${iconButton('zoomIn', t('hud.zoomIn'), 'zoomIn')}
       ${iconButton('zoomOut', t('hud.zoomOut'), 'zoomOut')}
-      ${supplyLines(s) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}
+      ${supplyLines(s) || isCultFaction(s, viewerIdx) ? '' : iconButton('grand', t('hud.grandProjects'), 'grand')}
       ${orbitalButton(s, g)}`;
     const cur = s.factions[s.current];
     if (g.aiRunning && !s.over) {
@@ -478,7 +491,7 @@ export class Hud {
           <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
-          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
+          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : isCultFaction(s, vUnit.owner) ? t('cult.noUpkeep') : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
           ${accuracyStat(s, vUnit)}
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
@@ -492,6 +505,20 @@ export class Hud {
       if (city.owner === null) {
         head = `<span class="unit-badge">${icon('capture')}</span><div class="grow"><h3 class="display">${esc(name)}</h3><div class="muted">${esc(t(city.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village'))}</div></div>`;
         if (city.tower) body += `<p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: TOWER.unitLimit }))}</p>`;
+        body += lootTag(s, viewer, city);
+      } else if (isCultFaction(s, city.owner)) {
+        // Kult-Stadt: keine Wirtschaft, nur Plaetze fuer die Horde / cult city: no economy, only slots for the horde
+        const fid = s.factions[city.owner].id;
+        const shrine = cityTiles(s, city).some((p) => s.tiles[p.y * s.size + p.x].building === 'shrine');
+        const own = city.isHQ && city.hqOf === city.owner;
+        head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
+          <div class="muted unit-sub">${esc(t('cult.city'))} · ${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${own ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
+        body += `<div class="row"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('cult.slots', { n: cultSlots(s, city) }))}</span>
+          <span class="stat">${icon('people', 'icon-sm')}${esc(t('cult.horde', { n: cultUnits(s, city.owner).length, max: cultCap(s, city.owner) }))}</span>
+          ${own ? `<span class="tag">${esc(t('hud.hq'))} +${CULT.hqSlots}</span>` : ''}${shrine ? `<span class="tag">${esc(t('buildings.shrine'))} +${CULT.shrineSlots}</span>` : ''}</div>
+          <p class="muted sheet-more">${esc(t('cult.cityDesc', { n: city.level + CITY.unitLimitExtra, hq: CULT.hqSlots, shrine: CULT.shrineSlots }))}</p>`;
+        body += lootTag(s, viewer, city);
+        this.cityNote = '';
       } else if (city.tower) {
         // Sendeturm: bildet aus, waechst nicht, festes Einkommen / transmitter tower: trains, does not grow, fixed income
         const fid = s.factions[city.owner].id;
@@ -528,8 +555,8 @@ export class Hud {
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
             ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`, orbitalVars()))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
-        // Kult und NEXUS: Hinweise / cult and NEXUS: hints
-        if (isCultFaction(s, city.owner)) body += `<p class="muted">${esc(t('cult.cityHint'))}</p>`;
+        // Kult: Beute dieser Stadt; NEXUS: Rechenleistung / cult: loot of this city; NEXUS: compute
+        body += lootTag(s, viewer, city);
         if (isRobotFaction(s, city.owner)) {
           const cs = computeStats(s, city.owner);
           body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</p>`;
@@ -665,7 +692,12 @@ export class Hud {
       }
     }
     const cap = captureKind(s, u);
-    if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: t('actions.capture'), variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
+    // Kult: Einnehmen heisst Pluendern, mit Beute / cult: capturing means plundering, with loot
+    const plunderCity = cap === 'city' || cap === 'village' ? cityAt(s, u.x, u.y) : undefined;
+    const loot = plunderCity && isCultFaction(s, u.owner) ? plunderValue(s, u.owner, plunderCity) : null;
+    if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: loot !== null ? t('cult.plunder') : t('actions.capture'), sub: loot ? `+${loot}` : undefined,
+      desc: loot !== null ? (loot ? t('cult.loot', { n: loot }) : t('cult.lootEmpty', { n: (plunderCity!.plundered ?? 0) + CULT.replunderRounds })) : undefined,
+      variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
     // Kampagne, Alvenia und Meridon: Siedlung ueberzeugen / campaign, Alvenia and Meridon: persuade a settlement
     for (const c of persuadeTargets(s, u)) {
       const pc = persuadeCheck(s, u, c);
@@ -694,23 +726,33 @@ export class Hud {
       const ok = canActStill(u);
       this.actions.push({ id: 'medicHeal', icon: 'heal', label: t('actions.medicHeal'), enabled: ok, reason: ok ? undefined : this.err('unitExhausted'), run: () => void g.exec({ type: 'medicHeal', unit: u.id }) });
     }
-    if (has(u, 'preach') && isCultFaction(s, u.owner)) {
-      // Rekrutieren: Menue mit allen verfuegbaren Kult-Einheiten / recruit: menu of all available cult units
+    // Kult: Rekrutieren im Feld, Menue mit Preis, Abklingzeit und Limit / cult: recruiting in the field, menu with price, cooldown and cap
+    const rtypes = isCultFaction(s, u.owner) ? recruitTypes(u).filter((type) => !UNITS[type].abilities.includes('wonder') || factionVictoryOn(s)) : [];
+    if (rtypes.length) {
+      const have = cultUnits(s, u.owner).length, cap = cultCap(s, u.owner), wait = recruitWait(s, u);
+      const why = (chk: string, type: UnitTypeId) => chk === 'unitLimit' ? t('cult.capFull', { n: have, max: cap }) : chk === 'recruitCooldown' ? t('cult.cooldown', { n: u.recruitReady ?? s.round })
+        : chk === 'noSpace' ? t('cult.noSpace') : chk === 'techMissing' ? t('hud.needsTech', { tech: t(`techs.${UNITS[type].tech}`) }) : this.err(chk);
       if (this.recruitFor === u.id) {
         this.actions.push({ id: 'recruit-cancel', icon: 'close', label: t('actions.cancel'), enabled: true, run: () => { this.recruitFor = null; this.render(); } });
-        for (const type of CULT_UNITS) {
+        for (const type of rtypes) {
           const st = UNITS[type];
-          if (st.tech && !s.factions[u.owner].techs.includes(st.tech)) continue;
-          const spot = recruitSpot(s, u, type);
-          const chk = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'noSpace';
-          this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[u.owner].id, type), cost: unitCost(s, u.owner, type)!, enabled: !!spot,
-            reason: spot ? t('cult.recruitHint') : chk === 'noSpace' ? t('cult.noSpace') : this.err(chk),
+          // Bohrer erst mit der Siegtechnologie anbieten / offer the drill only with the victory tech
+          if (st.abilities.includes('wonder') && st.tech && !hasTech(s, u.owner, st.tech)) continue;
+          const chk = recruitReason(s, u, type);
+          const spot = chk === 'ok' ? recruitSpot(s, u, type) : null;
+          const wonder = st.abilities.includes('wonder');
+          this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[u.owner].id, type), cost: unitCost(s, u.owner, type)!,
+            desc: wonder ? victoryGoalText(s.factions[u.owner].id, s) : unitStatsLine(type), enabled: !!spot,
+            reason: spot ? (wonder ? victoryGoalText(s.factions[u.owner].id, s) : t('cult.recruitHint', { n: CULT.recruitCooldown })) : why(chk, type),
             run: () => { this.recruitFor = null; if (spot) void g.exec({ type: 'recruit', unit: u.id, unitType: type, x: spot.x, y: spot.y }); } });
         }
       } else {
-        const can = !u.fresh && !u.exhausted && !u.attacked;
-        this.actions.push({ id: 'recruit', icon: 'people', label: t('cult.recruit'), variant: 'primary', enabled: can,
-          reason: can ? t('abilities.preachDesc') : t('errors.unitExhausted'), run: () => { this.recruitFor = u.id; this.render(); } });
+        const ready = !u.fresh && !u.exhausted && !u.attacked;
+        const can = ready && wait === 0;
+        this.actions.push({ id: 'recruit', icon: 'people', label: t('cult.recruit'), sub: t('cult.hordeShort', { n: have, max: cap }), variant: 'primary', enabled: can,
+          desc: t('cult.recruitDesc', { n: CULT.recruitCooldown, have, max: cap }),
+          reason: !ready ? this.err('unitExhausted') : wait ? t('cult.cooldown', { n: u.recruitReady ?? s.round }) : have >= cap ? t('cult.capFull', { n: have, max: cap }) : t('cult.recruitDesc', { n: CULT.recruitCooldown, have, max: cap }),
+          run: () => { this.recruitFor = u.id; this.render(); } });
       }
     }
     if (has(u, 'terraform')) {
@@ -806,16 +848,7 @@ export class Hud {
       this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
         reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : this.err(chk), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
     }
-    // Erdkernbohrer: wird in der Stadt ausgebildet (auch beim Kult) / earth-core drill: trained in a city (also for the cult)
-    const drill = wonderKindOf(s, c.owner!);
-    if (drill === 'coreDrill' && factionVictoryOn(s) && hasTech(s, c.owner!, victoryTechOf(s, c.owner!))) {
-      const chk = trainCheck(s, c, drill);
-      this.actions.push({
-        id: 'train-coreDrill', icon: UNIT_ICON.coreDrill, label: t('units.coreDrill'), sub: unitNickname(s.factions[c.owner!].id, drill), cost: unitCost(s, c.owner!, drill)!,
-        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id, s) : this.err(chk),
-        run: () => void g.exec({ type: 'train', city: c.id, unitType: drill }),
-      });
-    }
+    // Kult bildet nicht aus, auch den Erdkernbohrer nicht (der Prophet ruft ihn) / the cult does not train, not even the earth-core drill (the prophet calls it up)
     if (isCultFaction(s, c.owner!)) return;
     for (const type of rosterUnits(s, c.owner!)) {
       const st = UNITS[type];

@@ -521,6 +521,14 @@ export class Controller {
             else if (e.from !== null && e.from === this.viewer) audio.sting('cityLost');
             else if (visible(c.x, c.y)) this.play('capture');
             if (visible(c.x, c.y)) this.ui.fx('capture', c.x, c.y);
+            // Kult: erbeutete Sterne ueber der Stadt / cult: plundered stars above the city
+            if (e.plunder && visible(c.x, c.y)) this.ui.fx('num', c.x, c.y, `+${e.plunder}`);
+            break;
+          }
+          // Kult: Rekrut im Feld / cult: recruit in the field
+          case 'recruit': {
+            const nu = unitById(s, e.unit);
+            if (nu && visible(nu.x, nu.y)) { this.play('build'); this.ui.fx('levelUp', nu.x, nu.y); }
             break;
           }
           case 'cityLevel': {
@@ -665,6 +673,8 @@ export class Controller {
     this.ui.update();
     if (s.over) this.finishGame();
     else if (!opts.ai) this.ui.rewards();
+    // Kult im eigenen Zug ausgeschieden (letzte Einheit gefallen): Zug weitergeben / cult eliminated during its own turn (last unit fell): pass the turn
+    if (!s.over && !opts.ai && !s.factions[s.current].alive) void this.endTurn();
     return res;
   }
 
