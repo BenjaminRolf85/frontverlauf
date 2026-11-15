@@ -617,11 +617,15 @@ export const ORBITAL = {
   /** Zielfeld muss fuer den Schuetzen aufgedeckt sein / the target tile must be revealed for the shooter */
   needsVision: true,
   /**
-   * KI: Schuss nur bei Nettowert >= minValue (Sterne-Gegenwert: Schaden x Wert/LP, Abschuss = voller Wert);
-   * eigene Einheiten zaehlen ownWeight-fach negativ.
-   * AI: fire only at a net value >= minValue (star equivalent: damage x worth/HP, kill = full worth); own units count ownWeight times negative.
+   * KI: Schuss nur bei Nettowert >= minValue (Sterne-Gegenwert: Schaden/LP x Wert x damageWeight, Abschuss = Wert x (1 + killBonus));
+   * eigene Einheiten zaehlen ownWeight-fach negativ. Relay-Wert: shotStars je Schuss bis horizon Runden; techBonus je Stufe der Technik.
+   * AI: fire only at a net value >= minValue (star equivalent: damage/HP x worth x damageWeight, kill = worth x (1 + killBonus));
+   * own units count ownWeight times negative. Relay value: shotStars per shot up to horizon rounds; techBonus per tier of the tech.
    */
-  ai: { minValue: 9, ownWeight: 1.6, killBonus: 1, bossWorth: 120 },
+  ai: {
+    minValue: 4, ownWeight: 1.6, killBonus: 1, damageWeight: 1.5, bossWorth: 120, gunWorth: 40, wonderInterrupt: 25,
+    horizon: 25, shotStars: 18, techBonus: 10,
+  },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
@@ -634,7 +638,7 @@ export const CITY_UPGRADES = {
    * Freischaltung durch Forschung; Fraktionen ohne Forschung brauchen stattdessen die Stadtstufe (Stufe der Technologie + 1).
    * Unlock by research; factions without research need the city level instead (tech tier + 1).
    */
-  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics', satRelay: 'aerodynamics' } as Record<CityUpgradeId, TechId>,
+  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics', satRelay: 'highAltitude' } as Record<CityUpgradeId, TechId>,
   /** Ausbauten nur fuer eine Fraktion (Satelliten-Relay: Velkar) / upgrades for one faction only (satellite relay: Velkar) */
   faction: { satRelay: 'velkar' } as Partial<Record<CityUpgradeId, FactionId>>,
   /** hoechstens so viele je Fraktion zugleich / at most this many per faction at a time */
