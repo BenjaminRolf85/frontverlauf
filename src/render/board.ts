@@ -25,6 +25,21 @@ import { WATER_BOX_TOP, buildWater } from './water';
 import { buildLandscape, cliffRock } from './landscape';
 import { TownFx, type TownInput } from './lights';
 import { FogFx } from './fog';
+import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGeometry } from './alienWorld';
+
+/**
+ * Dimensionsportal der Kampagne als Landschaftsmodell (fertige Stufe, Brett-Groesse), leuchtende Runen und Wirbel.
+ * Campaign dimensional portal as a landscape model (finished stage, board size), glowing runes and swirl.
+ */
+const portalCache: { g: THREE.BufferGeometry | null } = { g: null };
+function portalGeometry(): THREE.BufferGeometry | null {
+  if (portalCache.g) return portalCache.g;
+  const src = safe(models.unitGeometry, null, 'portal', 'zyrr', null, 2);
+  if (!src) return null;
+  // eigene Kopie: die Leuchtmaske weicht von der Einheit ab / own copy: the glow mask differs from the unit
+  portalCache.g = withGlow(src.clone(), 'bright');
+  return portalCache.g;
+}
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
 const placeholderCache = new Map<string, THREE.BufferGeometry>();
@@ -133,6 +148,10 @@ export class Board {
   round = 1;
   /** Zaehlt Neuaufbauten der statischen Ebene (Schattenkarte) / counts static rebuilds (shadow map) */
   staticVersion = 0;
+  /** Kartenthema der gezeigten Partie / map theme of the shown game */
+  theme: 'cavern' | 'alien' | null = null;
+  /** Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters */
+  readonly alienFx = new AlienWorldFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -144,7 +163,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -165,6 +184,8 @@ export class Board {
   }
 
   private snowy = false;
+  /** Heimatwelt der Zyrr (Thema 'alien') / Zyrr homeworld (theme 'alien') */
+  private alien = false;
   /** Faerbung der Heimat einer Fraktion / home tint of a faction */
   private tintOf(s: GameState, t: Tile): string | null {
     const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
@@ -186,6 +207,18 @@ export class Board {
     if (bt) { topColor = bt.top; if (bt.side) side = bt.side; }
     if (tint && (terrain === 'plain' || terrain === 'forest')) topColor = mix(topColor, tint, lush ? 0.5 : 0.18);
     if (tint && terrain === 'mountain') topColor = mix(topColor, tint, 0.15);
+    // Heimatwelt der Zyrr: eigene Palette, Landschaften nur als Hauch / Zyrr homeworld: own palette, biomes only as a hint
+    if (this.alien) {
+      const land: Partial<Record<TerrainId, [string, string, number]>> = {
+        plain: [semantic.alienGround, semantic.alienGroundDark, 0.1],
+        forest: [mix(semantic.alienGround, semantic.alienMoss, 0.55), semantic.alienGroundDark, 0.08],
+        mountain: [mix(semantic.alienRock, semantic.alienCrystalDark, 0.35), semantic.alienRockDark, 0.05],
+        shallow: [semantic.alienWaterShallow, semantic.alienWaterOcean, 0],
+        ocean: [semantic.alienWaterOcean, semantic.alienWaterDeep, 0],
+      };
+      const [base, edge, hint] = land[terrain] ?? land.plain!;
+      return { top: mix(base, topColor, hint), side: edge };
+    }
     // Xeno-Boden: violett mit dunkler Kante / xeno ground: violet with a dark edge
     if (xeno && terrain !== 'shallow' && terrain !== 'ocean') {
       topColor = mix(semantic.xenoGround, topColor, terrain === 'mountain' ? 0.35 : 0.15);
@@ -196,7 +229,7 @@ export class Board {
     return { top: topColor, side };
   }
   private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false): THREE.BufferGeometry {
-    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}`;
+    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}-${this.alien}`;
     let g = this.tileGeoCache.get(key);
     if (g) return g;
     if (terrain === 'fog') {
@@ -233,6 +266,8 @@ export class Board {
     this.size = s.size;
     this.weatherFx.set(weather(s), s.size);
     this.snowy = weather(s) === 'snow';
+    this.theme = s.config.theme ?? null;
+    this.alien = this.theme === 'alien';
     this.clearGroup(this.staticLayer);
     this.artifactOrbit = null;
     this.clearGroup(this.labelLayer);
@@ -278,6 +313,8 @@ export class Board {
     const clouds: THREE.Matrix4[] = [];
     const off = (size - 1) / 2;
     const artifact = s.campaign && !s.campaign.result ? s.campaign.artifact : undefined;
+    const portal = s.campaign?.portal;
+    const alien = this.alien;
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -315,6 +352,17 @@ export class Board {
           addDeco(volcanoGeometry(variant), at(), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.15 });
           addDeco(volcanoSmokeGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.78, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)), true);
+        } else if (alien && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
+          // Heimatwelt der Zyrr: Kristalltuerme statt Gipfeln, grosse Pflanzen statt Baeumen, kleine Flora
+          // Zyrr homeworld: crystal spires instead of peaks, big plants instead of trees, small flora
+          const h = x * 7 + y * 13 + x * y;
+          if (t.terrain === 'mountain') {
+            addDeco(crystalSpireGeometry(variant), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)) : at());
+          } else if (!occ && (!hasStructure || t.building === 'road')) {
+            if (t.terrain === 'forest') addDeco(alienPlantGeometry(h % 4), at(), true);
+            else if (t.resource === 'supplies') addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
+            else if (h % 3 !== 0) addDeco(xenoDecoration(h % 6), at(), true);
+          }
         } else if (occ && t.terrain === 'mountain') {
           // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
           addDeco(decorationGeometry(t.terrain, null, variant), new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)));
@@ -324,7 +372,7 @@ export class Board {
         } else if (jungle && !t.resource) {
           // dichter Dschungel, auch neben Einheiten sichtbar am Rand / dense jungle, kept at the edge next to units
           if (!hasStructure || t.building === 'road') addDeco(jungleDecoration((x * 5 + y * 11) % 4), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.8, 0.45)) : at(), true);
-        } else if (!occ && (!hasStructure || t.building === 'road')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
+        } else if (!occ && (!hasStructure || t.building === 'road') && !(alien && t.resource === 'fish')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
         // brennende Lava nach einem Ausbruch / burning lava after an eruption
         if (burning(s, t)) {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
@@ -332,7 +380,7 @@ export class Board {
         }
         if (!jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
-        if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
+        if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building && !alien) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken / craters and scorch marks
         for (const [i, mk] of (t.marks ?? []).entries()) {
           const geo = mk.k === 'crater' ? craterGeometry((x + y + i) % 3) : scorchGeometry((x * 3 + y + i) % 3);
@@ -362,7 +410,8 @@ export class Board {
           }
           if (!any) riverSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.008, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
         }
-        else if (!occ && t.resource && !t.building && t.cityId === null) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
+        // Alienwelt: keine Rinder und Felder, Fremdtiere grasen dort / alien world: no cattle and fields, critters graze there
+        else if (!occ && t.resource && !t.building && t.cityId === null && (!alien || t.resource === 'ore')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
         if (t.building && t.building !== 'road') {
@@ -378,6 +427,11 @@ export class Board {
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+        // Dimensionsportal der Kampagne (begehbar) / campaign dimensional portal (walkable)
+        if (portal && portal.x === x && portal.y === y) {
+          addDeco(portalGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4), new THREE.Vector3(UNIT_SCALE, UNIT_SCALE, UNIT_SCALE)), false, 'bright');
+        }
         // Artefakt: schwingt leicht mit (Sway-Gruppe) / artifact: sways gently (sway group)
         if (artifact && artifact.x === x && artifact.y === y) {
           addDeco(artifactMarker(), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
@@ -498,7 +552,8 @@ export class Board {
       this.staticLayer.add(mesh);
     }
     if (riverSegs.length) {
-      const g = riverSegment();
+      // Alienwelt: violette Baeche / alien world: violet streams
+      const g = alien ? alienTint(riverSegment(), 'river', semantic.alienWaterShallow, 0.85) : riverSegment();
       const { mesh, line } = outlinedInstanced(g, riverSegs.length, OUTLINE.highlight);
       riverSegs.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.raycast = () => {};
@@ -522,7 +577,7 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     if (clouds.length) {
-      const geos = [0, 1, 2].map((v) => cloudGeometry(v));
+      const geos = [0, 1, 2].map((v) => (alien ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
       const byVariant: THREE.Matrix4[][] = [[], [], []];
       clouds.forEach((m, i) => byVariant[i % 3].push(m));
       byVariant.forEach((list, v) => {
@@ -542,7 +597,9 @@ export class Board {
       const level = c.owner === null ? 1 : c.level;
       const flags = { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter };
       // Fensterlicht: groessere Staedte haben mehr beleuchtete Fenster / window light: larger cities have more lit windows
-      const g = withGlow(cityGeometry(fid, level, flags), 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
+      // Alienwelt: neutrale Siedlungen in gedaempfter Zyrr-Bauweise / alien world: neutral settlements in muted Zyrr style
+      const cg = alien && fid === null ? alienTint(cityGeometry('zyrr', level, flags), `village${level}`, semantic.alienRock, 0.45) : cityGeometry(fid, level, flags);
+      const g = withGlow(cg, 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
@@ -594,6 +651,9 @@ export class Board {
     }
     // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
     this.town.build({ cities: townCities, lava: lavaSpots });
+    // Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters
+    if (alien) this.alienFx.build({ s, explored, top: tileTop, occupied });
+    else if (this.alienFx.active) this.alienFx.clear();
     this.dirty = true;
   }
 
@@ -671,7 +731,8 @@ export class Board {
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
         v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank });
-        v.badge.position.set(0, u.type === 'heli' ? 1.02 : 0.8, 0);
+        // Endgegner: Balken ueber der Krone / boss: badge above the crown
+        v.badge.position.set(0, u.type === 'heli' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
         v.group.add(v.badge);
         v.badgeKey = badgeKey;
       }

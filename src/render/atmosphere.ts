@@ -32,8 +32,11 @@ export const ATMO = {
 
 // ---------- Leuchtmasken / glow masks ----------
 
-/** Art der Leuchtmaske / kind of glow mask */
-export type GlowKind = 'none' | 'nature' | 'built' | 'lava' | 'xenoGround';
+/**
+ * Art der Leuchtmaske; 'bright' = alle hellen, kraeftigen Farben leuchten (Dimensionsportal der Kampagne).
+ * Kind of glow mask; 'bright' = every light, saturated colour glows (campaign dimensional portal).
+ */
+export type GlowKind = 'none' | 'nature' | 'built' | 'lava' | 'xenoGround' | 'bright';
 
 const keyColor = (h: string) => new THREE.Color(hex(h));
 const p = primitives.color;
@@ -68,6 +71,7 @@ export function withGlow(g: THREE.BufferGeometry, kind: GlowKind = 'nature', win
       if (!col) break;
       const r = col.getX(i), gg = col.getY(i), b = col.getZ(i);
       if (KEYS.self.some((c) => near(r, gg, b, c))) arr[i * 2] = 1;
+      else if (kind === 'bright' && Math.max(r, gg, b) > 0.62 && Math.max(r, gg, b) - Math.min(r, gg, b) > 0.3) arr[i * 2] = 0.8;
       else if (kind === 'lava' && KEYS.lava.some((c) => near(r, gg, b, c))) arr[i * 2] = 1;
       else if (kind === 'built' && KEYS.window.some((c) => near(r, gg, b, c))) arr[i * 2 + 1] = windows;
     }

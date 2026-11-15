@@ -254,7 +254,8 @@ export const MISSIONS: MissionDef[] = [
       const v = k.grantNear(0, a) ?? a;
       k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a);
       if (v !== a) k.spawn('infantry', 0, v);
-      for (const f of k.s.factions) revealArea(k.s, f.index, p.x, p.y, 1);
+      // alle kennen das Portal, der Spieler sieht auch die Wache / everyone knows the portal, the player also sees the guard
+      for (const f of k.s.factions) revealArea(k.s, f.index, p.x, p.y, f.index === 0 ? 2 : 1);
     },
   },
   {

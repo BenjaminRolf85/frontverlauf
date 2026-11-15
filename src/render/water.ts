@@ -19,17 +19,23 @@ const SHORE_H = TILE_TOP.shallow;
 
 const isWater = (terrain: string) => terrain === 'shallow' || terrain === 'ocean';
 
-let material: THREE.ShaderMaterial | null = null;
-/** Gemeinsames Wassermaterial / shared water material */
-export function waterMaterial(): THREE.ShaderMaterial {
-  if (material) return material;
+const materials = new Map<boolean, THREE.ShaderMaterial>();
+/**
+ * Gemeinsames Wassermaterial; alien = violett leuchtendes Wasser der Zyrr-Heimatwelt (Wellenkaemme ueberhell fuer den Bloom).
+ * Shared water material; alien = violet glowing water of the Zyrr homeworld (wave crests over-bright for the bloom).
+ */
+export function waterMaterial(alien = false): THREE.ShaderMaterial {
+  const cached = materials.get(alien);
+  if (cached) return cached;
   const C = (h: string) => ({ value: new THREE.Color(hex(h)) });
-  material = new THREE.ShaderMaterial({
+  const material = new THREE.ShaderMaterial({
     uniforms: {
       uTime: ATMO.uTime, uNight: ATMO.uNight, uLight: ATMO.uLight,
       uHaze: ATMO.uHaze, uHazeColor: ATMO.uHazeColor, uHazeHalf: ATMO.uHazeHalf,
-      uShore: C(semantic.waterShore), uShallow: C(semantic.terrainShallow), uOcean: C(semantic.terrainOcean),
-      uDeep: C(semantic.waterAbyss), uFoam: C(semantic.waterFoam), uGlint: C(semantic.waterGlint),
+      uShore: C(alien ? semantic.alienWaterShallow : semantic.waterShore), uShallow: C(alien ? semantic.alienWaterOcean : semantic.terrainShallow),
+      uOcean: C(alien ? semantic.alienWaterDeep : semantic.terrainOcean), uDeep: C(alien ? semantic.alienWaterDeep : semantic.waterAbyss),
+      uFoam: C(alien ? semantic.xenoGlow : semantic.waterFoam), uGlint: C(alien ? semantic.xenoAcid : semantic.waterGlint),
+      uEmit: { value: alien ? 1 : 0 },
     },
     vertexShader: /* glsl */ `
       uniform float uTime;
@@ -56,6 +62,7 @@ export function waterMaterial(): THREE.ShaderMaterial {
       uniform vec3 uDeep;
       uniform vec3 uFoam;
       uniform vec3 uGlint;
+      uniform float uEmit;
       varying vec3 vW;
       varying vec2 vWater;
       ${HAZE_GLSL}
@@ -85,12 +92,15 @@ export function waterMaterial(): THREE.ShaderMaterial {
         float foam = max(edge, ring);
         col = mix(col, uFoam * mix(uLight, vec3(1.0), 0.35), foam * (1.0 - uNight * 0.25));
         col += uGlint * uLight * glint * 0.45 * (1.0 - foam);
+        // Alienwelt: Eigenleuchten, nachts staerker, Kaemme und Glitzer ueberhell / alien world: self glow, stronger at night, crests and glints over-bright
+        col += uFoam * uEmit * (0.06 + 0.2 * uNight + 0.4 * step(0.78, wave));
         col = mix(col, uHazeColor, atmoHaze(vW));
         gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>
       }`,
     side: THREE.DoubleSide,
   });
+  materials.set(alien, material);
   return material;
 }
 
@@ -164,7 +174,7 @@ export function buildWater(s: GameState, explored: (x: number, y: number) => boo
   g.setAttribute('water', new THREE.Float32BufferAttribute(data, 2));
   g.setIndex(index);
   g.computeBoundingSphere();
-  const mesh = new THREE.Mesh(g, waterMaterial());
+  const mesh = new THREE.Mesh(g, waterMaterial(s.config.theme === 'alien'));
   mesh.raycast = () => {};
   mesh.renderOrder = 1;
   mesh.userData.dispose = true;

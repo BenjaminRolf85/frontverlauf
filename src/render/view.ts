@@ -238,6 +238,21 @@ export class View {
     this.updateCamera();
   }
 
+  private backdrop = '';
+  /**
+   * Himmel hinter dem Brett (CSS am #app, siehe styles.css): Alienwelt mit Tageszeit, sonst nichts.
+   * Sky behind the board (CSS on #app, see styles.css): alien world with the time of day, otherwise nothing.
+   */
+  private syncBackdrop(world: 'alien' | null) {
+    const key = `${world}-${this.sky.phase}`;
+    if (key === this.backdrop) return;
+    this.backdrop = key;
+    const app = this.canvas.parentElement;
+    if (!app) return;
+    app.classList.toggle('world-alien', world === 'alien');
+    if (world) app.dataset.phase = this.sky.phase; else delete app.dataset.phase;
+  }
+
   private loop(now: number, frame?: XRFrame) {
     if (this.angle !== this.angleTo) {
       const t = this.board.animations ? Math.min(1, (now - this.angleStart) / ANIM.rotate) : 1;
@@ -250,7 +265,9 @@ export class View {
     const inXr = this.renderer.xr.isPresenting;
     // Tageszeit aus der Runde, Wetter dunkelt etwas ab / time of day from the round, weather darkens a little
     const wk = this.board.weatherFx.kind;
-    this.sky.set(phaseOf(this.board.round), wk === 'rain' ? 1 : wk === 'snow' ? 0.5 : 0, this.board.animations && this.skyReady);
+    const world = this.board.theme === 'alien' ? 'alien' : null;
+    this.sky.set(phaseOf(this.board.round), wk === 'rain' ? 1 : wk === 'snow' ? 0.5 : 0, this.board.animations && this.skyReady, world);
+    this.syncBackdrop(world);
     this.skyReady = this.board.staticVersion > 0;
     const skyChanged = this.sky.update(now);
     ATMO.uHaze.value = inXr ? 0 : this.sky.hazeAmount;
@@ -264,6 +281,7 @@ export class View {
       const targetWind = this.board.weatherFx.kind === 'wind' ? 1 : 0;
       SWAY.uWind.value += (targetWind - SWAY.uWind.value) * 0.03;
       this.board.ambient.update(sec);
+      this.board.alienFx.update(sec);
       this.board.pulseMarkers(sec);
       this.needs = true;
     }

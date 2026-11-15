@@ -30,11 +30,14 @@ const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic'
 /** Laeufer: schwer und langsam / walkers: heavy and slow */
 const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider', 'flakDrone', 'protoWalker']);
 
+/** Schwebende Wesen ohne Flug-Faehigkeit (Endgegner) / floating beings without the fly ability (boss) */
+const FLOATERS = new Set<UnitTypeId>(['swarmMother']);
+
 /** Bewegungsart einer Einheit / movement class of a unit */
 export function lifeKind(type: UnitTypeId): LifeKind {
   const st = UNITS[type];
   if (st.ship) return 'ship';
-  if (st.abilities.includes('fly')) return 'flyer';
+  if (st.abilities.includes('fly') || FLOATERS.has(type)) return 'flyer';
   if (WALKERS.has(type)) return 'walker';
   if (FOOT.has(type)) return 'foot';
   return 'vehicle';

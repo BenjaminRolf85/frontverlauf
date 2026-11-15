@@ -49,6 +49,29 @@ const PRESETS: Record<DayPhase, Preset> = {
   },
 };
 
+/**
+ * Heimatwelt der Zyrr (Thema 'alien'): violetter Himmel, rosa Sonne, violetter Dunst, auch tagsueber leichtes Leuchten.
+ * Zyrr homeworld (theme 'alien'): violet sky, pink sun, violet haze, a slight glow even by day.
+ */
+const ALIEN_PRESETS: Record<DayPhase, Preset> = {
+  day: {
+    sky: semantic.alienSkyLow, ground: semantic.alienGroundDark, hemi: 1.5, sun: semantic.alienSun, sunI: 2.0, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0.2, glow: 0.55, window: 0.2, haze: semantic.alienHaze, hazeAmt: 0.3, light: [0.96, 0.86, 1], bloom: 0.75,
+  },
+  dusk: {
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [-10, 4.6, -3.5],
+    night: 0.5, glow: 0.75, window: 0.8, haze: semantic.alienHaze, hazeAmt: 0.36, light: [0.9, 0.74, 0.96], bloom: 0.85,
+  },
+  night: {
+    sky: semantic.alienSkyHigh, ground: semantic.alienSkyTop, hemi: 1.5, sun: semantic.alienMoon, sunI: 1.2, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.alienHazeNight, hazeAmt: 0.42, light: [0.5, 0.42, 0.78], bloom: 1,
+  },
+  dawn: {
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [8, 5, 8],
+    night: 0.35, glow: 0.65, window: 0.45, haze: semantic.alienHaze, hazeAmt: 0.33, light: [0.94, 0.8, 0.98], bloom: 0.8,
+  },
+};
+
 /** Zahlenform eines Zustands zum Mischen / numeric form of a state for blending */
 interface State {
   sky: THREE.Color; ground: THREE.Color; hemi: number; sun: THREE.Color; sunI: number; sunDir: THREE.Vector3;
@@ -75,6 +98,8 @@ export class Sky {
   private blending = false;
   /** Bewoelkung durch Wetter 0..1 / overcast from weather 0..1 */
   private overcast = 0;
+  /** Kartenthema der Partie (nur 'alien' hat eigene Lichtstimmungen) / map theme of the game (only 'alien' has own light moods) */
+  private world: 'alien' | null = null;
   bloom = PRESETS.day.bloom;
 
   constructor(private hemi: THREE.HemisphereLight, private sun: THREE.DirectionalLight) {
@@ -82,12 +107,13 @@ export class Sky {
   }
 
   /** Neue Tageszeit setzen; animate = sanft ueberblenden / set a new time of day; animate = blend smoothly */
-  set(phase: DayPhase, overcast: number, animate: boolean) {
-    if (phase === this.phase && overcast === this.overcast) return;
+  set(phase: DayPhase, overcast: number, animate: boolean, world: 'alien' | null = null) {
+    if (phase === this.phase && overcast === this.overcast && world === this.world) return;
     this.phase = phase;
     this.overcast = overcast;
+    this.world = world;
     this.from = clone(this.cur);
-    this.to = toState(PRESETS[phase]);
+    this.to = toState((world === 'alien' ? ALIEN_PRESETS : PRESETS)[phase]);
     this.to.sunI *= 1 - overcast * 0.35;
     this.to.hemi *= 1 - overcast * 0.05;
     this.to.hazeAmt += overcast * 0.08;

@@ -976,7 +976,7 @@
       "destroyUnit": "Zerstöre den {unit} bis Runde {rounds}",
       "artifact": "Besetze das Artefakt {n} Runden in Folge, bis Runde {rounds}",
       "portal": "Besetze das Portal {n} Runden in Folge, bis Runde {rounds}",
-      "reach": "Stoße bis vor das Hauptquartier von {name} vor, bis Runde {rounds}",
+      "reach": "Dringe bis zum Hauptquartier von {name} vor, bis Runde {rounds}",
       "boss": "Besiege die {unit} bis Runde {rounds}"
     },
     "missions": {
