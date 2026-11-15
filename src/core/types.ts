@@ -62,6 +62,11 @@ export interface Tile {
   turretRuin?: boolean;
   /** Fraktion der zerstoerten Stellung (nur Optik der Truemmer) / faction of the destroyed emplacement (rubble look only) */
   turretRuinOwner?: number;
+  /**
+   * Teil des Fanatiker-Tempels (Kampagne m4, 2x2): unpassierbar, nicht einnehmbar, nicht angreifbar, nicht bebaubar.
+   * Part of the Fanatic temple (campaign m4, 2x2): impassable, not capturable, not attackable, not buildable.
+   */
+  temple?: boolean;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -263,6 +268,30 @@ export interface CampaignState {
   caveHold?: number;
   /** Runden in Folge, die der Spieler (mit Verbuendeten) alle Sendetuerme besitzt / consecutive rounds the player (with allies) owns all transmitter towers */
   towerHold?: number;
+  /** Fanatiker-Tempel (m4): Ankerfeld oben links der 2x2-Flaeche / Fanatic temple (m4): top-left anchor tile of the 2x2 footprint */
+  temple?: Pos;
+  /** Kriegsplaene (m4) / war plans (m4) */
+  plans?: PlansState;
+}
+
+/**
+ * Kriegsplaene (m4): im Tempel, getragen (unit), fallen gelassen (x, y) oder abgeliefert. x, y = letzte bekannte Stelle.
+ * drops = wie oft verloren (Tod oder Bekehrung des Traegers); taken = Runde des ersten Bergens; next = Runde der
+ * naechsten Verfolgerwelle; pursuit = Anzahl bereits eingetroffener Verfolgerwellen; owner = Fraktion des Tempels.
+ * War plans (m4): in the temple, carried (unit), dropped (x, y) or delivered. x, y = last known spot.
+ * drops = how often lost (death or conversion of the carrier); taken = round of the first seizure; next = round of the
+ * next pursuit wave; pursuit = number of pursuit waves that already arrived; owner = faction of the temple.
+ */
+export interface PlansState {
+  at: 'temple' | 'carried' | 'dropped' | 'delivered';
+  unit?: number;
+  x?: number;
+  y?: number;
+  drops: number;
+  taken?: number;
+  next?: number;
+  pursuit: number;
+  owner: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -379,6 +408,11 @@ export type GameEvent =
   | { t: 'orbitalStrike'; faction: number; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
   /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
   | { t: 'ruin'; index: number; x: number; y: number; faction: number }
+  /**
+   * Kampagne m4, Kriegsplaene: geborgen, aufgehoben, fallen gelassen, vom Kult zurueckgebracht, abgeliefert (x, y = Stelle).
+   * Campaign m4, war plans: seized, picked up, dropped, taken back by the cult, delivered (x, y = spot).
+   */
+  | { t: 'plans'; what: 'seized' | 'picked' | 'dropped' | 'returned' | 'delivered'; faction: number; unit?: number; x: number; y: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 /** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
@@ -419,6 +453,8 @@ export type Command =
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
   /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
   | { type: 'orbitalStrike'; x: number; y: number }
+  /** Kampagne m4: Kriegsplaene am Tempel bergen oder fallen gelassene aufheben / campaign m4: seize the war plans at the temple or pick up dropped ones */
+  | { type: 'seizePlans'; unit: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -430,7 +466,9 @@ export type ErrorCode =
   | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
   | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing'
   // Orbitallaser / orbital laser
-  | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit';
+  | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
+  // Kriegsplaene (m4) / war plans (m4)
+  | 'cannotCarry';
 
 export interface CommandResult {
   ok: boolean;

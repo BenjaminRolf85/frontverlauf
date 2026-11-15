@@ -1232,6 +1232,56 @@ export const CAMPAIGN_AI = {
   holdBonus: 45,
   /** Angriffswert gegen den markierten Endgegner (Spieler-Seite) / attack value against the marked boss (player side) */
   bossAttackBonus: 40,
+  /**
+   * Kriegsplaene (m4): Spieler-Seite laeuft die Tempelfelder an, eskortiert den Traeger und hebt fallen gelassene Plaene auf;
+   * der Kult bewacht den Tempel, jagt den Traeger und bringt fallen gelassene Plaene zurueck.
+   * War plans (m4): the player side heads for the temple, escorts the carrier and picks up dropped plans; the cult guards
+   * the temple, hunts the carrier and takes dropped plans back.
+   */
+  plansSeizeValue: 150, plansSeizeCap: 2, plansGatherValue: 140, plansGatherCap: 6, plansEscortValue: 150, plansEscortCap: 4, plansPickValue: 150, plansPickCap: 2,
+  plansGuardValue: 75, plansGuardCap: 3, plansHuntValue: 160, plansHuntCap: 8, plansReturnValue: 150, plansReturnCap: 3, plansDistW: 2,
+  /** Der Laeufer wartet, bis so viele eigene Kampfeinheiten nahe am Tempel stehen / the runner waits until this many own fighters stand near the temple */
+  plansEscortMin: 2, plansEscortRange: 3,
+  /** Zielwert des Traegers zum Hauptquartier (immer zugeteilt) / goal value of the carrier towards the HQ (always assigned) */
+  plansCarryValue: 400,
+  /** Angriffswert gegen den Traeger (Gegner) / attack value against the carrier (enemies) */
+  plansCarrierAttackBonus: 45,
+  /** Langsame Einheiten bergen nicht, wenn ein schnellerer Laeufer so nahe ist / slow units do not seize while a faster runner is this close */
+  plansWaitRange: 4,
+};
+
+/**
+ * Kriegsplaene aus dem Fanatiker-Tempel (Kampagne m4, "Die Kriegsplaene"): 2x2-Tempel, Bergen neben dem Tempel,
+ * Abliefern am eigenen Hauptquartier, Verfolgerwellen des Kults, solange die Plaene unterwegs sind.
+ * War plans from the Fanatic temple (campaign m4, "The War Plans"): 2x2 temple, seizing next to the temple,
+ * delivery at the own HQ, cult pursuit waves while the plans are on the move.
+ */
+export const TEMPLE_PLANS = {
+  /** Abstand des Tempels (naechstes Tempelfeld) zum Hauptquartier des Spielers, Wunschwert und Grenzen / distance of the temple (nearest temple tile) to the player's HQ, preferred value and bounds */
+  hqDistance: 9, hqMin: 8, hqMax: 10,
+  /** Abstand zum Hauptquartier des Kults: Mindestwert, Wunschwert / distance to the cult HQ: minimum, preferred value */
+  enemyMin: 3, enemyPref: 5,
+  /** Abstand zu jeder Stadt (auch Siedlungen) / distance to every city (settlements too) */
+  cityGap: 2,
+  /** Bergen: Abstand zu einem Tempelfeld oder zu fallen gelassenen Plaenen / seizing: distance to a temple tile or to dropped plans */
+  seizeRange: 1,
+  /** Abliefern: Abstand zum eigenen Hauptquartier / delivery: distance to the own HQ */
+  deliverRange: 1,
+  /** Tempelwache zu Beginn / temple guard at the start */
+  guards: ['zealot', 'zealot', 'torchbearer'] as UnitTypeId[],
+  /**
+   * Verfolgung: die erste Welle zu Beginn des naechsten Spielerzugs nach dem Bergen, dann alle pursuitEvery Runden,
+   * hoechstens pursuitWaves Wellen; je Welle Einheiten am Tempel (abwechselnd aus pursuitTemple) und an den
+   * pursuitCities naechsten Kultstaedten (pursuitCity), dazu pursuitStars Sterne fuer den Sold.
+   * Pursuit: the first wave at the start of the next player turn after the seizure, then every pursuitEvery rounds,
+   * at most pursuitWaves waves; per wave units at the temple (cycling through pursuitTemple) and at the pursuitCities
+   * nearest cult cities (pursuitCity), plus pursuitStars stars for the upkeep.
+   */
+  pursuitEvery: 2, pursuitWaves: 4,
+  pursuitTemple: [['zealot', 'zealot'], ['zealot', 'doomBuggy'], ['zealot', 'torchbearer'], ['doomBuggy', 'zealot']] as UnitTypeId[][],
+  pursuitCity: ['zealot'] as UnitTypeId[], pursuitCities: 2, pursuitStars: 10,
+  /** m4: Missionsdauer und Bonus "Abliefern bis Runde" / m4: mission length and bonus "deliver by round" */
+  m4Rounds: 18, m4FastRound: 13,
 };
 
 /**
