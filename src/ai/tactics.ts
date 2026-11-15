@@ -26,7 +26,9 @@ const ok = (failed: Failed, c: Command) => !failed.has(cmdKey(c));
 /** Wert eines Angriffs (Sterne-Gegenwert) / value of an attack (star equivalent) */
 export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): number {
   const { s } = ctx;
-  const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay };
+  // von einem anderen Feld: erst ziehen, dann feuern, also mit dem Schaden nach Bewegung (MOVE_FIRE)
+  // from another tile: move first, then fire, so with the damage after moving (MOVE_FIRE)
+  const att = ax === a.x && ay === a.y ? a : { ...a, x: ax, y: ay, moved: true };
   const p = combatPreview(s, att, d);
   // Trefferglueck: Vernichtungschance und Erwartungswerte statt fester Treffer / hit luck: kill chance and expected values instead of fixed hits
   const dmgNoKill = p.killChance < 1 ? (p.expected - p.killChance * d.hp) / (1 - p.killChance) : 0;

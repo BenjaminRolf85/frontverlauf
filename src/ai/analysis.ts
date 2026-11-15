@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -362,7 +362,10 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     if (e.x === x && e.y === y) continue;
     const a = UNITS[e.type].attack;
     const A = a * (e.hp / e.maxHp);
-    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type);
+    // Gegner ausser Reichweite muessen erst ziehen und feuern dann mit weniger Schaden (MOVE_FIRE)
+    // enemies out of range must move first and then fire with less damage (MOVE_FIRE)
+    const moveFire = dist(e, { x, y }) > UNITS[e.type].range ? moveFireMult(ctx.s, e) : 1;
+    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire;
   }
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
   return list.length > 1 ? total * 0.75 : total;
