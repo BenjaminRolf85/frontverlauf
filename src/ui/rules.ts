@@ -3,7 +3,7 @@
  * Rules / help: short collapsible sections. All numbers come from balance.ts so the page stays correct.
  */
 import {
-  BARRIER, CITY_UPGRADES, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
+  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
   VICTORY_TECH,
 } from '../data/balance';
 import { num, t } from '../i18n/i18n';
@@ -29,6 +29,8 @@ function sections(): Section[] {
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
+    // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
+    { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
 }

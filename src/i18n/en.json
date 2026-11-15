@@ -186,15 +186,15 @@
       "short": "Cult",
       "alignment": "fanatical",
       "perk": "Zeal",
-      "perkDesc": "Research normally, but do not recruit in cities: they recruit on tiles next to zealots and prophets. The recruiter is exhausted for this turn.",
+      "perkDesc": "Plunders instead of ruling: captured cities bring loot, but no income, no growth and no training, only slots for the horde. The troop itself calls up new units onto adjacent tiles. No upkeep, a tithe of the horde instead. Without a unit the cult is eliminated.",
       "discount": "no discount",
       "home": "dusty pilgrimage sites",
       "leader": "Malachar",
       "leaderTitle": "Prophet of the Final Hour",
       "quote": "The bell tolls. Repent while you can.",
-      "lore": "The Cult of the Final Hour arose at dusty pilgrimage sites where the desperate wait for the end of the world. The prophet Malachar proclaims that the final hour is near, and his zealots recruit new believers wherever they stand. The cult does not need cities, only fire and faith.",
+      "lore": "The Cult of the Final Hour arose at dusty pilgrimage sites where the desperate wait for the end of the world. The prophet Malachar proclaims that the final hour is near. His hordes move from city to city, plundering, and wherever a zealot preaches, new believers join. The cult does not need cities, only their treasure, fire and faith.",
       "style": "robes, bone masks, bells, flames",
-      "aiStyle": "Fanatical and aggressive, rarely retreats and converts enemies with prophets.",
+      "aiStyle": "Fanatical and aggressive: plunders villages and cities, fills the horde up to its cap, rarely retreats and makes peace only in real need.",
       "perk2": "Martyrdom",
       "perk2Desc": "Every own unit that falls in battle brings 3 stars."
     },
@@ -284,12 +284,12 @@
     "skimmer": "Fast flyer with no fuel worries, ideal for raids.",
     "mech": "Heavy walker with rockets that reach two tiles.",
     "tripod": "Death ray from two tiles that no cover stops.",
-    "zealot": "Cheap fanatic who recruits new believers.",
-    "torchbearer": "Flamethrower that no cover protects against.",
-    "prophet": "Heals, converts enemies and recruits new believers.",
+    "zealot": "Cheap fanatic, calls up foot troops and prophets onto adjacent tiles.",
+    "torchbearer": "Flamethrower that no cover protects against; recruits zealots.",
+    "prophet": "Heals, converts enemies and calls up any cult unit, the earth-core drill too.",
     "doomBuggy": "Rusty speedster: hit and run.",
     "rocketCart": "Rocket launcher on a flatbed, fires from three tiles.",
-    "doomCrawler": "The cult's heavy roller, its answer to the tank.",
+    "doomCrawler": "The cult's heavy roller, its answer to the tank; calls up zealots and vehicles.",
     "android": "Cheap standard machine soldier that needs no compute.",
     "spider": "Climbing bot that scales mountains without research.",
     "quadDrone": "Fast combat drone that flies without fuel.",
@@ -298,7 +298,7 @@
     "antiTank": "Cracks vehicles from two tiles, weak against foot troops.",
     "antiAir": "Swats flyers out of the sky; whoever ends a turn next to it gets shot.",
     "mineLayer": "Lays hidden mines on adjacent tiles.",
-    "faustZealot": "Zealot with a rocket launcher: vehicle hunter from two tiles.",
+    "faustZealot": "Zealot with a rocket launcher: vehicle hunter from two tiles; recruits zealots.",
     "flakDrone": "Flak platform on four legs that guards the ground against flyers.",
     "steppeRider": "Cheap, fast riders that count as foot troops.",
     "stormbreaker": "Shock troops whose targets cannot strike back, but vulnerable themselves.",
@@ -309,7 +309,7 @@
     "hackRelay": "NEXUS victory wonder: hacks into every machine in the world.",
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
-    "coreDrill": "Cult victory unit: drills to the earth core while standing still.",
+    "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream."
   },
   "abilities": {
@@ -350,7 +350,7 @@
     "walker": "Walker",
     "walkerDesc": "Enters mountains without research.",
     "preach": "Preach",
-    "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
+    "preachDesc": "Calls up a new unit onto a free adjacent tile for stars (no water, no volcano, no lava). Afterwards the recruiter is exhausted and ready again only after a cooldown.",
     "burn": "Flames",
     "burnDesc": "Flames ignore all cover: terrain, cities, outposts and wrecks.",
     "wade": "Wade",
@@ -464,7 +464,7 @@
     "barrier": "Hostile tanks, jeeps, artillery, flak tanks and mine layers stop and move only 1 tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
-    "shrine": "2 population, one per city, cult only",
+    "shrine": "+{slots} slots for the horde, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
     "powerPlant": "1 population, powers one data center, NEXUS only",
     "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
@@ -478,7 +478,7 @@
     "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
     "polarStation": "{pop} population, research {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
-    "pilgrimSite": "{pop} population and +{stars} stars per round; recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
+    "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only"
   },
   "resource": {
@@ -555,7 +555,7 @@
     "tradeMonopoly": "Have {n} stars in the treasury. Victory at the start of your turn.",
     "fusionResearch": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
     "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
-    "coreDrilling": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
+    "coreDrilling": "A prophet calls up the earth-core drill onto an adjacent tile. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
     "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept."
   },
   "tech": {
@@ -712,9 +712,9 @@
     "noResearch": "The Zyrr do not research.",
     "notTerraformed": "Terraform the city tile first.",
     "wrongFaction": "Only the Zyrr can do that.",
-    "notPreacher": "Only zealots and prophets can recruit.",
+    "notPreacher": "This unit cannot recruit.",
     "computeMissing": "Not enough compute. Build data centers and power plants.",
-    "cultRecruit": "The cult does not recruit in cities.",
+    "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
     "cityLevel": "The city needs a higher level.",
     "mineLimit": "At most {n} mines per faction.",
     "cannotRetreat": "Only human ground troops can retreat in order.",
@@ -726,7 +726,8 @@
     "noRockets": "No rockets left. Reload in an own city with a depot.",
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
-    "quake": "Earthquake: vehicles and mechs cannot move this round."
+    "quake": "Earthquake: vehicles and mechs cannot move this round.",
+    "recruitCooldown": "Recruiting is not ready again yet."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2490,9 +2491,22 @@
   "cult": {
     "recruit": "Recruit",
     "recruitTitle": "New believers",
-    "recruitHint": "Choose a unit. It appears on a free adjacent tile.",
-    "cityHint": "The cult does not recruit in cities: zealots and prophets recruit on their adjacent tiles.",
-    "noSpace": "No free adjacent tile."
+    "recruitHint": "Appears on a free adjacent tile. Then a cooldown of {n} rounds.",
+    "noSpace": "No free adjacent tile.",
+    "recruitDesc": "Calls up a new unit onto an adjacent tile. Horde {have}/{max}, cooldown {n} rounds.",
+    "hordeShort": "Horde {n}/{max}",
+    "hordeTitle": "Horde (units/cap)",
+    "horde": "Horde {n}/{max}",
+    "capFull": "The horde is full ({n}/{max}). Plunder cities or build shrines for more slots.",
+    "cooldown": "Ready again from round {n}.",
+    "city": "Cult city",
+    "slots": "Provides {n} slots",
+    "cityDesc": "A cult city brings no income, does not grow and does not train. It only provides slots for the horde: level + 1 (here {n}), the own headquarters +{hq}, a shrine in the city territory +{shrine}.",
+    "loot": "Loot when plundered: {n} stars",
+    "lootEmpty": "Already plundered, loot again from round {n}",
+    "plundered": "{city} plundered: +{n} stars!",
+    "plunderedEmpty": "{city} taken, but already plundered empty.",
+    "plunderedBy": "{name} plunders {city}!"
   },
   "nexus": {
     "compute": "Compute",
@@ -3000,9 +3014,9 @@
         "Sacrilege! The bell tolls for you, {faction}. Loudly. And off-key."
       ],
       "cityTaken": [
-        "{city} has found faith. Under some pressure.",
-        "Thanks for {city}, {leader}. The residents now wear lovely robes.",
-        "It was written: {city} shall be ours. Page twelve, top left."
+        "{city} has made an offering. Generously. Under some pressure.",
+        "Thanks for the treasures of {city}, {leader}. We left the bells.",
+        "It was written: {city} shall be plundered. Page twelve, top left."
       ],
       "eliminated": [
         "The bell... tolls... for me? That was not in the text...",
@@ -3183,7 +3197,7 @@
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
       "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
-      "vesper": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
+      "vesper": "A prophet calls up the earth-core drill onto an adjacent tile. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
       "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept.",
       "meridonAny": "Have {n} stars in the treasury in points games ({m} in games without a round limit). Victory at the start of your turn."
     },
@@ -3268,6 +3282,10 @@
     "factions": {
       "title": "Faction victories",
       "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
+    },
+    "cult": {
+      "title": "Cult: plunder & horde",
+      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round), every plundered star counts {score} points. If the cult has no unit left, it is eliminated and its cities turn neutral."
     }
   },
   "lore": {
@@ -3277,7 +3295,7 @@
     "text": {
       "korvat": "People's League of Korvat, humans. Leader: Grand Marshal Ilja Brodnik. Mass armies, red banners, choir song. Born from a hundred farming cooperatives of the steppe. In the League every ploughman is also a soldier. Brodnik, once a tractor driver, leads with iron paternalism. Furrows become front lines.",
       "zyrr": "Zyrr Swarm, alien race. Swarm Mother Xyl'Tharra. Once the Zyrr Swarm was only a scouting force, a vanguard searching for new worlds. But over the desert their mothership crashed, badly damaged. Instead of retreating, the Zyrr did the unthinkable: they began to change the world. Led by Swarm Mother Xyl'Tharra, an emergency landing site became a new home, the second world of the Zyrr Swarm.",
-      "vesper": "Cult of the Final Hour, fanatics. Prophet Malachar. Robes, bone masks, bells, flames. At dusty pilgrimage sites the desperate gathered, the exiled, the sick, the guilty and the lost, waiting for the end of the world, for the Final Hour in which everything old passes away. From these gatherings rose Malachar, the prophet. He proclaimed: the end is no catastrophe, it is salvation. The cult needs no cities, no industry and no laws, only fire, faith and the certainty that the Final Hour will come.",
+      "vesper": "Cult of the Final Hour, fanatics. Prophet Malachar. Robes, bone masks, bells, flames. At dusty pilgrimage sites the desperate gathered, the exiled, the sick, the guilty and the lost, waiting for the end of the world, for the Final Hour in which everything old passes away. From these gatherings rose Malachar, the prophet. He proclaimed: the end is no catastrophe, it is salvation. The cult needs no cities, no industry and no laws, only fire, faith and the certainty that the Final Hour will come. What it finds, it plunders; whoever listens joins the horde.",
       "dravon": "Protectorate of Dravon, humans. Commander Sarek Voss. Drill, camouflage green, balaclavas, barracks state. Mercenary companies guarded the ore mines of the desert, for anyone who paid. When the Standstill came, nobody paid anymore. The mercenaries kept the mines. Camps became barracks, barracks became a state. Nobody has ever seen Voss without his balaclava. In Dravon every recruit becomes a veteran, or is forgotten.",
       "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
       "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
