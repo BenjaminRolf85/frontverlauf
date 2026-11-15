@@ -3271,7 +3271,8 @@
     "factions": {
       "title": "Faction victories",
       "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
-    }
+    },
+    "productionNote": "Human factions call this production: they unlock production capabilities, while the Zyrr, NEXUS and the cult research. Rules and costs are the same."
   },
   "lore": {
     "button": "Story as a comic",
@@ -3393,5 +3394,77 @@
     "neutral": "Transmitter tower (free)",
     "desc": "Trains troops, does not grow and cannot be upgraded: fixed income ({n} stars per round), up to {max} units. Reinforcements arrive here.",
     "captured": "{name} has taken a transmitter tower: reinforcements now arrive there."
+  },
+  "production": {
+    "hud": {
+      "research": "Production"
+    },
+    "tech": {
+      "title": "Production capacities",
+      "researched": "unlocked",
+      "available": "available",
+      "research": "Unlock for {cost}",
+      "costFormula": "Production cost: (tier x cities + 4) x 5",
+      "needParent": "Unlock {tech} first.",
+      "notYourTurn": "You can only unlock on your own turn.",
+      "confirm": "Start production",
+      "done": "Already unlocked.",
+      "legendVictory": "Victory capability (dashed)",
+      "victoryGroup": "Victory capability"
+    },
+    "errors": {
+      "techMissing": "Production capability missing.",
+      "alreadyResearched": "Already unlocked.",
+      "parentMissing": "Unlock the previous production capability first."
+    },
+    "events": {
+      "research": "{tech} unlocked",
+      "bunkerTech": "Bunker searched: free production capability"
+    },
+    "hazards": {
+      "crashDesc": "Salvage: a free production capability up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
+      "labDesc": "Salvage: a free production capability up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
+      "salvagedTech": "Salvaged: production capability {tech}"
+    },
+    "history": {
+      "techs": "Capabilities"
+    },
+    "tutorial": {
+      "s6": "Stars are the only currency. Open production and unlock a production capability."
+    },
+    "onboarding": {
+      "text": "Your first operation. In a few turns the tutorial covers the goal, moving, capturing, production, building, training, upkeep and combat."
+    },
+    "cityUpgrades": {
+      "lockedHint": "More upgrades are unlocked by production capabilities ({n})."
+    },
+    "grand": {
+      "academyCond": "unlocked all production capabilities"
+    },
+    "techExtra": {
+      "cybernetics": "33 % discount on all further production capabilities"
+    },
+    "victory": {
+      "noTech": "Victory capability not unlocked yet",
+      "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory capability)."
+    },
+    "rules": {
+      "goal": {
+        "text": "Points mode: after {rounds} rounds the highest score wins (medal at the top). Points come from explored tiles ({tile}), territory tiles ({territory}), city levels ({level}), production capabilities ({tech} per tier) and more. Conquest: the last side holding cities wins. Endless and sandbox have no round limit. Faction victories (optional): every faction can also win through its own goal. The victory tracker in the menu shows the standings."
+      },
+      "turn": {
+        "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production and upgrades. You start with {start} stars."
+      },
+      "cover": {
+        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching production capability, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+      },
+      "cities": {
+        "title": "Cities & production",
+        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Production capabilities unlock units, buildings and upgrades and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+      },
+      "factions": {
+        "text": "Can be switched off in the setup. It needs the faction's own victory capability (tier 3), drawn with a dashed rim in production. The victory tracker in the menu shows the progress of all known factions."
+      }
+    }
   }
 }

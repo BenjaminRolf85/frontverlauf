@@ -9,6 +9,7 @@ import { ensureHistory, factionTotals, historySeries, topUnits, type GameState, 
 import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, openDialog, segmented } from './components';
 import { FACTION_EMBLEM, icon } from './icons';
+import { techT } from './terms';
 
 export type ChartMetric = 'score' | 'units' | 'cities' | 'stars';
 const METRICS: ChartMetric[] = ['score', 'units', 'cities', 'stars'];
@@ -91,7 +92,9 @@ export function statsPanel(s: GameState, viewer: number): string {
   const totals = factionTotals(s).filter((x) => facs.includes(x.faction));
   const heroes = topUnits(s, 5, facs);
   const legend = facs.map((f) => `<span class="stats-key">${badge(s, f)}<span>${esc(fname(s, f))}</span></span>`).join('');
-  const col = (key: string, ic: string) => `<th scope="col" title="${esc(t(`history.${key}`))}">${icon(ic, 'icon-sm')}<span class="label">${esc(t(`history.${key}`))}</span></th>`;
+  // Menschen: Faehigkeiten statt Technologien / humans: capabilities instead of techs
+  const head = (key: string) => techT(`history.${key}`, s.factions[viewer]?.id);
+  const col = (key: string, ic: string) => `<th scope="col" title="${esc(head(key))}">${icon(ic, 'icon-sm')}<span class="label">${esc(head(key))}</span></th>`;
   const rows = totals.sort((a, b) => b.score - a.score).map((x) => `<tr${x.faction === viewer ? ' class="me"' : ''}>
       <th scope="row"><span class="row">${badge(s, x.faction)}<span>${esc(fname(s, x.faction))}</span></span></th>
       <td>${x.kills}</td><td>${x.losses}</td><td>${x.captures}</td><td>${x.techs}</td></tr>`).join('');

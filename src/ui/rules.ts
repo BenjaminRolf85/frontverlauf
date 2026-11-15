@@ -6,9 +6,11 @@ import {
   BARRIER, CITY_UPGRADES, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
   VICTORY_TECH,
 } from '../data/balance';
+import type { FactionId } from '../data/balance';
 import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
+import { techT } from './terms';
 import { victoryShortText } from './victory';
 
 const pct = (f: number) => Math.round(f * 100);
@@ -39,17 +41,22 @@ function factionLines(): string {
     <span><strong>${esc(t(`factions.${f}.short`))}:</strong> ${esc(victoryShortText(f))} <span class="muted">(${esc(t(`techs.${VICTORY_TECH[f]}`))})</span></span></li>`).join('')}</ul>`;
 }
 
-/** Regeln als HTML (auch fuer Tests) / rules as HTML (also for tests) */
-export function rulesHtml(open: string | null = null): string {
+/**
+ * Regeln als HTML (auch fuer Tests). f = Fraktion des Betrachters: Menschen lesen "Produktion" statt "Forschung";
+ * ohne Partie (Hauptmenue) gilt der allgemeine Text mit einem Hinweis auf die Menschen-Wortwahl.
+ * Rules as HTML (also for tests). f = the viewer's faction: humans read "production" instead of "research"; without a
+ * game (main menu) the general text applies with a note on the human wording.
+ */
+export function rulesHtml(open: string | null = null, f: FactionId | null = null): string {
   return sections().map((sec) => `<details class="rules-section" data-rule="${sec.id}" ${open === sec.id ? 'open' : ''}>
-    <summary>${icon(sec.icon, 'icon-sm')}<span class="grow">${esc(t(`rules.${sec.id}.title`))}</span>${icon('chevronDown', 'icon-sm rules-chevron')}</summary>
-    <div class="rules-body"><p>${esc(t(`rules.${sec.id}.text`, sec.params ?? {}))}</p>${sec.extra ? sec.extra() : ''}</div>
+    <summary>${icon(sec.icon, 'icon-sm')}<span class="grow">${esc(techT(`rules.${sec.id}.title`, f))}</span>${icon('chevronDown', 'icon-sm rules-chevron')}</summary>
+    <div class="rules-body"><p>${esc(techT(`rules.${sec.id}.text`, f, sec.params ?? {}))}</p>${sec.id === 'cities' && !f ? `<p class="muted">${esc(t('rules.productionNote'))}</p>` : ''}${sec.extra ? sec.extra() : ''}</div>
   </details>`).join('');
 }
 
-/** Regeln-Dialog (Hauptmenue und Pausenmenue) / rules dialog (main menu and pause menu) */
-export function rulesDialog(root: HTMLElement, open: string | null = 'goal') {
-  const d = openDialog(root, `${dialogTitle(t('rules.title'))}<p class="muted">${esc(t('rules.intro'))}</p><div class="rules">${rulesHtml(open)}</div>`, { wide: true });
+/** Regeln-Dialog (Hauptmenue und Pausenmenue); f wie bei rulesHtml / rules dialog (main menu and pause menu); f as in rulesHtml */
+export function rulesDialog(root: HTMLElement, open: string | null = 'goal', f: FactionId | null = null) {
+  const d = openDialog(root, `${dialogTitle(t('rules.title'))}<p class="muted">${esc(t('rules.intro'))}</p><div class="rules">${rulesHtml(open, f)}</div>`, { wide: true });
   d.node.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest('[data-action="close"]')) d.close(); });
   return d;
 }
