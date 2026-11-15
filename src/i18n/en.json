@@ -3216,5 +3216,49 @@
     "previewKill": "Destroys the gun",
     "destroyed": "Verdan gun destroyed!",
     "fx": "Verdan"
+  },
+  "overworld": {
+    "title": "Overworld",
+    "viewMap": "Overworld",
+    "viewList": "List",
+    "view": "View",
+    "stage": "Overworld with three disc worlds. Arrow keys switch the world, plus and minus zoom.",
+    "prev": "Previous world",
+    "next": "Next world",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "overview": "All worlds",
+    "progress": "{n} / {max} missions",
+    "coming": "Coming soon",
+    "comingHint": "This mission is still being prepared.",
+    "markers": "Missions on {world}",
+    "marker": "Mission {n}: {title}",
+    "stars": "{n} of 3 stars",
+    "state": {
+      "won": "Won",
+      "available": "Ready",
+      "locked": "Locked",
+      "coming": "Coming soon"
+    },
+    "finale": "Finale",
+    "current": "Next mission",
+    "worlds": "Worlds",
+    "hintDrag": "Drag to turn the world, scroll to zoom, click a flag to open the mission.",
+    "hintSwipe": "Swipe sideways to switch worlds, tap a flag to open the mission.",
+    "noWebgl": "The 3D overworld does not run on this device; the missions are in the list."
+  },
+  "worlds": {
+    "earth": {
+      "name": "Earth",
+      "desc": "A disc of meadows, forests and mountains whose rivers plunge over the rim into the void. Here the factions fight for every hill since the Zyrr fell from the sky."
+    },
+    "alien": {
+      "name": "Zyrr Homeworld",
+      "desc": "Violet ground, crystal spires, giant plants and rocks floating above the rim. Beyond the portal lies the Swarm Mother's nest."
+    },
+    "forgotten": {
+      "name": "World of the Forgotten",
+      "desc": "Red desert, mesas and the ruins of the ancient Verdan with their red and white winged emblem. The rift dragged everyone here; deep in the cave below, the artifact waits."
+    }
   }
 }
