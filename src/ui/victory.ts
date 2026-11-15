@@ -10,6 +10,7 @@ import { has, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog, progress } from './components';
 import { icon } from './icons';
 import { techT } from './terms';
+import { sinTag } from './sin';
 
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
 
@@ -92,6 +93,8 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   const goal = `<span class="muted">${esc(victoryShortText(fa.id, s))}</span>`;
   if (!fa.alive) return `<div class="score-row">${head}${goal}</div><span class="tag">${esc(t('victory.eliminated'))}</span></div>`;
   const st = victoryStatus(s, g);
+  // Heiliges Alvenia: Suendenzeichen in der Zeile / Holy Alvenia: sinner mark in the row
+  const sin = sinTag(s, g);
   let state: string;
   // fehlende Siegtechnologie beim Namen nennen / name the missing victory tech
   if (!st.tech) state = `<span class="muted">${esc(techT('victory.noTech', fa.id))}</span><span class="tag">${icon('lock', 'icon-sm')}${esc(t('hud.needsTech', { tech: t(`techs.${VICTORY_TECH[fa.id]}`) }))}</span>`;
@@ -100,7 +103,7 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
     const note = st.paused ? ` · ${t('victory.paused')}` : '';
     state = `<span>${esc(phaseText(st) + left + note)}</span>${progress(st.ratio, 1, st.ratio >= 0.75 ? 'hp low' : '', phaseText(st))}`;
   }
-  return `<div class="score-row">${head}${goal}${state}</div>${st.tech && st.ratio >= 0.75 ? `<span class="tag warn">${icon('warning', 'icon-sm')}</span>` : ''}</div>`;
+  return `<div class="score-row">${head}${goal}${state}${sin ? `<span class="row">${sin}</span>` : ''}</div>${st.tech && st.ratio >= 0.75 ? `<span class="tag warn">${icon('warning', 'icon-sm')}</span>` : ''}</div>`;
 }
 
 /** Platz einer Fraktion nach Punkten (1 = vorn) / rank of a faction by points (1 = first) */

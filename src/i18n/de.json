@@ -577,7 +577,7 @@
     "dimensionalRift": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
     "coreDrilling": "Ein Prophet ruft den Erdkernbohrer auf ein Nachbarfeld. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
     "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
-    "greatJudgement": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse nach dieser Erforschung."
+    "greatJudgement": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse ab der Freischaltung."
   },
   "tech": {
     "title": "Forschung und Entwicklung",
@@ -1531,7 +1531,7 @@
       "Serenotta",
       "Altabriga",
       "Pratolune",
-      "Castelvoto",
+      "Castelluce",
       "Sanclaro",
       "Miralpina",
       "Ventadoro",
@@ -3362,7 +3362,7 @@
     "goal": {
       "korvat": "Besitze mehr als {pct} % aller Städte der Karte (Siedlungen zählen mit). Sieg zu Beginn deines Zuges.",
       "dravon": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
-      "alvenia": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse nach der Erforschung der Siegtechnologie. Sünder ist {rounds} Runden lang, wer plündert, brandschatzt, bekehrt, eine fremde Stadt erobert, Frieden bricht oder Alvenia angreift.",
+      "alvenia": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse, sobald das Große Strafgericht freigeschaltet ist. Sünder ist {rounds} Runden lang, wer plündert, brandschatzt, bekehrt, eine fremde Stadt erobert, Frieden bricht oder Alvenia angreift.",
       "meridon": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
       "velkar": "Baue das Fusionskraftwerk auf 2x2 freiem Land (auch Berge) im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
       "zyrr": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
@@ -3462,7 +3462,7 @@
     },
     "judgement": {
       "title": "Sünde und Strafgericht",
-      "text": "Solange das Heilige Alvenia im Spiel ist, wird jede andere Fraktion, die plündert, brandschatzt (Brand-Angriff), feindliche Einheiten bekehrt, eine Stadt einer anderen Fraktion erobert, einen Frieden bricht oder Alvenia angreift, {rounds} Runden lang als Sünder gezeichnet; jede neue Tat frischt das Zeichen auf. Strafgericht: Alvenias Einheiten machen gegen Sünder +{pct} % Schaden, auch beim Gegenschlag. Märtyrer-Segen: Fällt eine Alvenia-Einheit im Kampf, heilen eigene Einheiten daneben {heal} LP und verteidigen sich {bless} Runden mit +{def} %. Glaubensbollwerk: auf eigenem Gebiet +{home} % Verteidigung. Großes Strafgericht (Siegbedingung): {n} Einheiten von Sündern vernichten, nach der Erforschung der Siegtechnologie."
+      "text": "Solange das Heilige Alvenia im Spiel ist, wird jede andere Fraktion, die plündert, brandschatzt (Brand-Angriff), feindliche Einheiten bekehrt, eine Stadt einer anderen Fraktion erobert, einen Frieden bricht oder Alvenia angreift, {rounds} Runden lang als Sünder gezeichnet; jede neue Tat frischt das Zeichen auf. Strafgericht: Alvenias Einheiten machen gegen Sünder +{pct} % Schaden, auch beim Gegenschlag. Märtyrer-Segen: Fällt eine Alvenia-Einheit im Kampf, heilen eigene Einheiten daneben {heal} LP und verteidigen sich {bless} Runden mit +{def} %. Glaubensbollwerk: auf eigenem Gebiet +{home} % Verteidigung. Großes Strafgericht (Siegbedingung): {n} Einheiten von Sündern vernichten (Karte 14 × 14, je nach Größe mehr oder weniger), sobald das Große Strafgericht freigeschaltet ist."
     }
   },
   "lore": {

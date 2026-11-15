@@ -577,7 +577,7 @@
     "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
     "coreDrilling": "A prophet calls up the earth-core drill onto an adjacent tile. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
     "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept.",
-    "greatJudgement": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after this research count."
+    "greatJudgement": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills from the unlock onwards count."
   },
   "tech": {
     "title": "Research and development",
@@ -1531,7 +1531,7 @@
       "Serenotta",
       "Altabriga",
       "Pratolune",
-      "Castelvoto",
+      "Castelluce",
       "Sanclaro",
       "Miralpina",
       "Ventadoro",
@@ -3362,7 +3362,7 @@
     "goal": {
       "korvat": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
       "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
-      "alvenia": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after researching the victory tech count. A sinner, for {rounds} rounds, is whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia.",
+      "alvenia": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after the Great Judgement is unlocked count. A sinner, for {rounds} rounds, is whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia.",
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
       "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
@@ -3462,7 +3462,7 @@
     },
     "judgement": {
       "title": "Sin and Judgement",
-      "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners after researching the victory tech."
+      "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners (14 × 14 map, more or fewer by size) once the Great Judgement is unlocked."
     }
   },
   "lore": {

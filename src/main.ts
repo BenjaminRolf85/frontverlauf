@@ -221,6 +221,9 @@ function boot() {
         case 'connected': { const c = s.cities.find((x) => x.id === e.city); if (c && c.owner === viewer) toast(root, t('events.connected', { city: cityName(s, e.city) }), 'move'); break; }
         case 'eliminated': toast(root, t('events.eliminated', { name: fname(e.faction) }), 'warning'); break;
         case 'convert': toast(root, t('events.convert'), 'heal'); break;
+        // Heiliges Alvenia: neue Suender und Maertyrer-Segen / Holy Alvenia: new sinners and Martyr's Blessing
+        case 'sin': if (e.fresh) toast(root, t('sin.toast', { faction: fname(e.faction), deed: t(`sin.deed.${e.deed}`) }), 'sin'); break;
+        case 'blessing': if (e.faction === viewer || viewer < 0) toast(root, t('blessing.toast', { n: e.units.length }), 'bless'); break;
         case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
         // Wunder: fuer Besitzer, Kontakte und alle, die das Feld kennen / wonders: for the owner, contacts and anyone who knows the tile
         case 'wonder': {

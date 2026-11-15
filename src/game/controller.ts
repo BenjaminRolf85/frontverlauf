@@ -27,7 +27,7 @@ export interface UiHooks {
   toast(text: string, icon?: string): void;
   errorCode(code: string): void;
   event(e: GameEvent, s: GameState): void;
-  fx(kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom', x: number, y: number, text?: string): void;
+  fx(kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom' | 'bless', x: number, y: number, text?: string): void;
   handover(faction: number): Promise<void>;
   confirm(text: string, ok: string): Promise<boolean>;
   gameOver(): void;
@@ -542,6 +542,17 @@ export class Controller {
             break;
           }
           case 'heal': { const u = unitById(s, e.unit); if (u && visible(u.x, u.y)) this.ui.fx('heal', u.x, u.y, `+${e.amount}`); break; }
+          // Maertyrer-Segen: Lichtkranz am Ort des Gefallenen, Heilung bei den Nachbarn / Martyr's Blessing: halo where the unit fell, healing at the neighbours
+          case 'blessing': {
+            if (!visible(e.x, e.y)) break;
+            this.play('levelUp');
+            this.ui.fx('bless', e.x, e.y);
+            for (const b of e.units) {
+              const u = unitById(s, b.unit);
+              if (u && visible(u.x, u.y)) this.ui.fx('bless', u.x, u.y, b.heal > 0 ? `+${b.heal}` : t('blessing.fx'));
+            }
+            break;
+          }
           case 'build': if (e.faction === this.viewer) this.play('build'); break;
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
           // Minen: nur der Besitzer hoert das Legen / mines: only the owner hears the laying

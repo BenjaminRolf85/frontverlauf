@@ -293,6 +293,18 @@ export const primitives = {
     velkarTeal: '#22e3d0',
     velkarTealDeep: '#0f7f84',
     velkarArc: '#d6fdff',
+    // Heiliges Alvenia "Orden im Feld": Weissruestung, Gold, Koenigsblau, Sonnenkranz, Tuerkis-Leuchten, Buntglas
+    // Holy Alvenia "Order in the field": white armour, gold, royal blue, sun halo, teal lights, stained glass
+    alveniaPlate: '#f3f5fa',
+    alveniaGold: '#d4a12e',
+    alveniaGoldLight: '#f2cd5c',
+    alveniaRoyal: '#1c3f99',
+    alveniaRoyalDeep: '#132c6e',
+    alveniaHalo: '#ffe58a',
+    alveniaTech: '#3fe4f2',
+    alveniaGlassBlue: '#3c8de6',
+    alveniaGlassGold: '#f7c84a',
+    alveniaBeam: '#fff2b8',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -644,6 +656,24 @@ export const semantic = {
   velkarTechGlow: c.velkarTeal,
   velkarTechCoil: c.velkarTealDeep,
   velkarTechArc: c.velkarArc,
+  /**
+   * Heiliges Alvenia "Orden im Feld": weisse Panzerplatten, Goldborten, koenigsblaue Wappenroecke und Umhaenge, leuchtender
+   * Sonnenkranz, tuerkise Leuchten in Helmen und Schulterstuecken, Buntglas an Fahrzeugen (leuchten, KEYS), Lichtstrahl.
+   * Holy Alvenia "Order in the field": white armour plates, gold trim, royal blue tabards and capes, glowing sun halo, teal
+   * lights in helmets and pauldrons, stained glass on vehicles (glow, KEYS), light beam.
+   */
+  faithPlate: c.alveniaPlate,
+  faithGold: c.alveniaGold,
+  faithGoldLight: c.alveniaGoldLight,
+  faithCloth: c.alveniaRoyal,
+  faithClothDeep: c.alveniaRoyalDeep,
+  faithHalo: c.alveniaHalo,
+  faithTech: c.alveniaTech,
+  faithGlassBlue: c.alveniaGlassBlue,
+  faithGlassGold: c.alveniaGlassGold,
+  faithBeam: c.alveniaBeam,
+  /** Suendenzeichen (Plakette, Marke) / sinner mark (badge, tag) */
+  sinMark: c.red500,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
