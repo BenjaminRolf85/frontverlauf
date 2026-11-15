@@ -44,7 +44,9 @@ const p = primitives.color;
 const KEYS = {
   self: [keyColor(semantic.xenoGlow), keyColor(semantic.xenoAcid), keyColor(factionTokens.nexus.marker), keyColor(semantic.artifactGlow), keyColor(semantic.artifactGold), keyColor(semantic.artifactCore),
     // Hoehle: Pilze, Kristalle, Laternen, Verdan-Auge (kommen an der Oberflaeche nicht vor) / cavern: mushrooms, crystals, lanterns, Verdan eye (absent on the surface)
-    keyColor(semantic.caveGlowTeal), keyColor(semantic.caveGlowMagenta), keyColor(semantic.caveGlowLime), keyColor(semantic.caveLantern), keyColor(semantic.caveCrystal), keyColor(semantic.verdanEye)],
+    keyColor(semantic.caveGlowTeal), keyColor(semantic.caveGlowMagenta), keyColor(semantic.caveGlowLime), keyColor(semantic.caveLantern), keyColor(semantic.caveCrystal), keyColor(semantic.verdanEye),
+    // Riss zwischen den Welten / rift between the worlds
+    keyColor(semantic.riftSick), keyColor(semantic.riftGold)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };

@@ -530,6 +530,8 @@ export const semantic = {
   riftVioletBright: c.riftViolet400,
   riftSick: c.riftSick,
   riftGold: c.riftGold,
+  /** Saeureregen der Alienwelt (gruengelb) / acid rain of the alien world (green-yellow) */
+  acidRain: c.riftSick,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */

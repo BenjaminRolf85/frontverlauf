@@ -479,7 +479,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     id: 'm12', level: 'hard',
     enemies: [{ id: 'zyrr', difficulty: 'normal' }, { id: 'nexus', difficulty: 'normal' }, { id: 'vesper', difficulty: 'normal' }],
     seed: 12012, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 40, rounds: 18,
-    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 3 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
+    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'], theme: 'desert', landing: true,
     setup(k) {
       const s = k.s;
