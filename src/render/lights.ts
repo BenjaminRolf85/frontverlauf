@@ -116,7 +116,7 @@ export class TownFx {
   private poolMats = {
     city: poolMaterial(ATMO.uWindow, 0, 0.55),
     lava: poolMaterial(ATMO.uNight, 0.22, 0.6),
-    cave: poolMaterial(ATMO.uGlow, 0.1, 0.42),
+    cave: poolMaterial(ATMO.uGlow, 0.04, 0.2),
   };
   private smokeMat = flatToon(semantic.chimneySmoke);
   private beaconMat = new THREE.MeshBasicMaterial({ color: glowColor(hex(semantic.beacon), 3) });

@@ -365,12 +365,12 @@
   --s-cave-wall: #332d4a;
   --s-cave-wall-dark: #241f38;
   --s-cave-wall-light: #463f60;
-  --s-cave-floor: #5d5677;
+  --s-cave-floor: #463f60;
   --s-cave-floor-side: #241f38;
   --s-cave-moss: #2d5c4e;
   --s-cave-moss-light: #4b8a6c;
-  --s-cave-rock: #79728f;
-  --s-cave-rock-dark: #463f60;
+  --s-cave-rock: #5d5677;
+  --s-cave-rock-dark: #332d4a;
   --s-cave-dust: #8e86a6;
   --s-cave-pool: #164b62;
   --s-cave-pool-deep: #0a2232;

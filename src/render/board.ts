@@ -91,7 +91,7 @@ function tileHash(x: number, y: number, seed: number, salt: number): number {
   return (h >>> 0) / 4294967296;
 }
 /** Absenkung der Kraterfelder je Ring (Mitte, 1, 2), nur Optik / dip of crater tiles per ring (centre, 1, 2), visual only */
-const CRATER_DIP = [0.15, 0.1, 0.05];
+const CRATER_DIP = [0.26, 0.17, 0.08];
 /** Kraterradius um das Artefakt / crater radius around the artifact */
 const CRATER_RADIUS = 2;
 const craterDip = new WeakMap<Tile, number>();
@@ -405,7 +405,7 @@ export class Board {
           addDeco(volcanoGeometry(variant), at(), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.15 });
           addDeco(volcanoSmokeGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.78, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)), true);
-        } else if (cave && !t.xeno) {
+        } else if (cave && (!t.xeno || t.terrain === 'mountain')) {
           // Hoehle: Felssaeulen, Leuchtpilzwald, Hoehlenboden statt Bergen, Wald und Wiese
           // cavern: rock pillars, glowing mushroom forest, cave floor instead of mountains, forest and meadow
           const corner = (sc: number, h: number) => new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(sc, h, sc));
@@ -505,8 +505,8 @@ export class Board {
         // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
         if (t.turret && t.turret.hp > 0) {
           const face = art ? Math.atan2(art.x - x, art.y - y) : 0;
-          addDeco(verdanTurretGeometry(t.turret.active), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1, 1, 1)), false, 'built');
-          if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.1, color: eye });
+          addDeco(verdanTurretGeometry(t.turret.active), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.25, 1.2)), false, 'built');
+          if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.6, color: eye });
         } else if (t.turretRuin) addDeco(verdanRuinGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (x * 3 + y) % 4), new THREE.Vector3(1, 1, 1)), false, 'built');
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
@@ -693,6 +693,7 @@ export class Board {
         : withGlow(cityGeometry(fid, level, flags), 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
+      if (cave) obj.scale.setScalar(1.15);
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
       if (cave) glowSpots.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, size: flags.hq ? 1.7 : 1.35, color: amber });

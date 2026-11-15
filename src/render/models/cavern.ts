@@ -52,16 +52,16 @@ export function mushroomForest(variant: number): THREE.BufferGeometry {
     const R = rng(7100 + v * 31);
     const b = new Builder();
     const spots: [number, number][] = [[-0.2, -0.18], [0.2, -0.22], [0.02, 0.06], [-0.26, 0.24], [0.26, 0.2], [0.04, 0.32], [-0.05, -0.33]];
-    const n = 3 + (v % 2);
+    const n = 4 + (v % 2);
     for (let i = 0; i < n; i++) {
       const [x, z] = spots[(i * 2 + v) % spots.length];
       const big = i === 0;
-      mushroom(b, x + (R() - 0.5) * 0.06, z + (R() - 0.5) * 0.06, big ? 0.42 + R() * 0.12 : 0.18 + R() * 0.14, big ? 0.2 : 0.1 + R() * 0.06, R, v + i);
+      mushroom(b, x + (R() - 0.5) * 0.06, z + (R() - 0.5) * 0.06, big ? 0.62 + R() * 0.16 : 0.26 + R() * 0.18, big ? 0.3 : 0.13 + R() * 0.07, R, v + i);
     }
     // kleine Pilze und Moos dazwischen / small mushrooms and moss in between
     for (let i = 0; i < 4; i++) {
       const a = R() * TAU, r = 0.18 + R() * 0.24;
-      mushroom(b, Math.cos(a) * r, Math.sin(a) * r, 0.05 + R() * 0.04, 0.03 + R() * 0.02, R, v + i + 1);
+      mushroom(b, Math.cos(a) * r, Math.sin(a) * r, 0.07 + R() * 0.05, 0.04 + R() * 0.02, R, v + i + 1);
     }
     for (let i = 0; i < 3; i++) {
       const a = R() * TAU, r = R() * 0.32;
@@ -85,9 +85,9 @@ export function caveFloorDeco(variant: number): THREE.BufferGeometry | null {
     const fungi = 2 + (v % 3);
     for (let i = 0; i < fungi; i++) {
       const a = R() * TAU, r = 0.12 + R() * 0.28;
-      const x = Math.cos(a) * r, z = Math.sin(a) * r, h = 0.03 + R() * 0.04;
-      b.add(geo.cyl(0.006, 0.008, h, 4), S.mushroomStem, { p: [x, h / 2, z] });
-      b.add(geo.hemi(0.018 + R() * 0.012, 6, 2), GLOWS[(v + i) % 3], { p: [x, h, z], s: [1, 0.6, 1] });
+      const x = Math.cos(a) * r, z = Math.sin(a) * r, h = 0.05 + R() * 0.06;
+      b.add(geo.cyl(0.009, 0.012, h, 4), S.mushroomStem, { p: [x, h / 2, z] });
+      b.add(geo.hemi(0.028 + R() * 0.016, 6, 2), GLOWS[(v + i) % 3], { p: [x, h, z], s: [1, 0.6, 1] });
     }
     for (let i = 0; i < 2; i++) {
       const a = R() * TAU, r = R() * 0.35, s = 0.025 + R() * 0.02;
@@ -191,7 +191,7 @@ export function craterCracks(ring: number, variant: number): THREE.BufferGeometr
     const R = rng(8100 + ring * 7 + v * 29);
     const b = new Builder();
     // verkohlter Fleck / scorched patch
-    b.add(geo.cyl(0.5, 0.5, 0.006, 10), ring === 0 ? S.craterScorch : mix(S.craterScorch, S.craterAsh, 0.3 + ring * 0.2), { p: [0, 0.003, 0], s: [1, 1, 1] });
+    b.add(geo.box(0.98, 0.006, 0.98), ring === 0 ? S.craterScorch : mix(S.craterScorch, S.craterAsh, 0.25 + ring * 0.15), { p: [0, 0.003, 0] });
     const lines = ring === 0 ? 6 : 3 - Math.floor(ring / 2);
     for (let i = 0; i < lines; i++) {
       const base = ring === 0 ? (i / lines) * TAU : (i - (lines - 1) / 2) * 0.55 + (R() - 0.5) * 0.3;
@@ -204,8 +204,8 @@ export function craterCracks(ring: number, variant: number): THREE.BufferGeometr
         const nx = x + Math.sin(ang) * len, nz = z + Math.cos(ang) * len;
         const c = (k + i) % 3 === 0 ? S.artifactGold : S.artifactGlow;
         b.group({ p: [(x + nx) / 2, 0.009, (z + nz) / 2], r: [0, ang, 0] }, () => {
-          b.add(geo.box(0.035 - k * 0.005, 0.006, len), c);
-          b.add(geo.box(0.07 - k * 0.008, 0.003, len * 1.05), S.artifactGlowDeep, { p: [0, -0.002, 0] });
+          b.add(geo.box(0.05 - k * 0.007, 0.007, len), c);
+          b.add(geo.box(0.1 - k * 0.012, 0.003, len * 1.05), S.artifactGlowDeep, { p: [0, -0.002, 0] });
         });
         x = nx; z = nz; ang += (R() - 0.5) * 0.9;
         if (Math.abs(x) > 0.48 || Math.abs(z) > 0.5) break;
@@ -409,7 +409,7 @@ export function supplyLineGeometry(faction: FactionId | null, mainShaft: boolean
       for (const sz of [-1, 1]) for (const sx of [-1, 1]) b.add(geo.cyl(0.016, 0.016, 0.01, 6), S.ink, { p: [sx * 0.045, 0.016, sz * 0.04], r: [0, 0, Math.PI / 2] });
     });
     // Foerderturm (rechts hinten) / headframe (right back)
-    const H = 0.5 * k;
+    const H = 0.66 * k;
     b.group({ p: [0.2, 0, -0.14] }, () => {
       b.add(geo.box(0.2 * k, 0.03, 0.2 * k), S.verdanMetal, { p: [0, 0.015, 0] });
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
@@ -427,9 +427,13 @@ export function supplyLineGeometry(faction: FactionId | null, mainShaft: boolean
       b.add(geo.box(0.07, 0.08, 0.07), prim, { p: [0, 0.1, 0] });
       b.add(geo.box(0.004, H - 0.12, 0.004), S.ink, { p: [0, (H + 0.15) / 2, 0.02] });
       // Fahne in Fraktionsfarbe / flag in faction colour
-      b.add(geo.cyl(0.006, 0.006, 0.2, 4), S.ink, { p: [0, H + 0.14, 0.05] });
-      b.add(geo.box(0.005, 0.07, 0.11), prim, { p: [0, H + 0.2, 0.11] });
-      b.add(geo.box(0.006, 0.02, 0.11), sec, { p: [0, H + 0.18, 0.11] });
+      b.add(geo.cyl(0.007, 0.007, 0.26, 4), S.ink, { p: [0, H + 0.17, 0.05] });
+      b.add(geo.box(0.006, 0.1, 0.17), prim, { p: [0, H + 0.24, 0.14] });
+      b.add(geo.box(0.007, 0.028, 0.17), sec, { p: [0, H + 0.21, 0.14] });
+      // Huette am Turmfuss mit Dach in Fraktionsfarbe / hut at the tower foot with a roof in faction colour
+      b.add(geo.box(0.14, 0.09, 0.1), S.timber, { p: [0, 0.045, 0.13] });
+      b.add(geo.taper(0.17, 0.13, 0.03, 0.13, 0.05), prim, { p: [0, 0.115, 0.13] });
+      b.add(geo.box(0.035, 0.035, 0.01), S.caveLantern, { p: [0.03, 0.05, 0.181] });
     });
     // Kisten und Faesser / crates and barrels
     const crates = mainShaft ? 5 : 3;
@@ -473,6 +477,8 @@ export function verdanTurretGeometry(active: boolean): THREE.BufferGeometry {
       const a = (i / 4) * TAU + 0.4;
       b.add(geo.box(0.008, 0.08, 0.02), S.ink, { p: [Math.cos(a) * 0.335, 0.18, Math.sin(a) * 0.335], r: [0, -a, 0.3] });
     }
+    b.add(geo.cyl(0.305, 0.315, 0.03, 8), S.verdanRed, { p: [0, 0.2, 0], r: [0, Math.PI / 8, 0] });
+    b.add(geo.cyl(0.308, 0.318, 0.012, 8), S.verdanWhite, { p: [0, 0.222, 0], r: [0, Math.PI / 8, 0] });
     b.add(geo.cyl(0.12, 0.14, 0.012, 7), S.caveMossLight, { p: [0.2, 0.245, 0.1] });
     // Abgebrochene Ecke / chipped corner
     b.add(geo.dodeca(0.07), S.verdanStoneDark, { p: [-0.36, 0.04, 0.22], r: [R(), R(), R()] });
@@ -484,13 +490,16 @@ export function verdanTurretGeometry(active: boolean): THREE.BufferGeometry {
       b.add(geo.hemi(0.19, 10, 4), S.verdanMetal, { s: [1, 0.85, 1.1] });
       b.add(geo.rbox(0.16, 0.08, 0.2, 0.02), shade(S.verdanMetal, 1.1), { p: [0, 0.12, -0.02] });
       // Wappen links und rechts / emblem left and right
-      for (const sx of [-1, 1]) b.group({ p: [sx * 0.18, 0.07, 0.0], r: [0, sx * Math.PI / 2, 0] }, () => verdanEmblem(b, 0.85));
+      for (const sx of [-1, 1]) b.group({ p: [sx * 0.185, 0.08, 0.0], r: [0, sx * Math.PI / 2, 0] }, () => verdanEmblem(b, 1.35));
+      // Wappen auch hinten / emblem at the back too
+      b.group({ p: [0, 0.08, -0.205], r: [0, Math.PI, 0] }, () => verdanEmblem(b, 1.2));
       // weiss-rote Streifen vorn / white and red stripes at the front
       b.add(geo.box(0.12, 0.02, 0.02), S.verdanWhite, { p: [0, 0.165, 0.08] });
       b.add(geo.box(0.12, 0.012, 0.022), S.verdanRed, { p: [0, 0.148, 0.08] });
       // Sensorauge / sensor eye
-      b.add(geo.cyl(0.05, 0.055, 0.03, 10), S.ink, { p: [0, 0.1, 0.19], r: [Math.PI / 2, 0, 0] });
-      b.add(geo.sphere(0.036, 8, 6), active ? S.verdanEye : S.verdanEyeDormant, { p: [0, 0.1, 0.205] });
+      b.add(geo.cyl(0.07, 0.075, 0.035, 10), S.ink, { p: [0, 0.1, 0.19], r: [Math.PI / 2, 0, 0] });
+      b.add(geo.torus(0.062, 0.008, 3, 12), S.verdanWhite, { p: [0, 0.1, 0.208] });
+      b.add(geo.sphere(0.05, 8, 6), active ? S.verdanEye : S.verdanEyeDormant, { p: [0, 0.1, 0.21] });
       // Doppelrohr / twin barrels
       const pitch = active ? -0.28 : 0.18;
       for (const sx of [-1, 1]) {

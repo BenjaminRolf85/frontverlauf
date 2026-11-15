@@ -56,8 +56,8 @@ const PRESETS: Record<DayPhase, Preset> = {
  * full self glow and dense haze in cave tones towards the edge.
  */
 const CAVE: Preset = {
-  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 1.25, sun: semantic.caveKeyLight, sunI: 1.15, sunDir: [-3, 9, 4],
-  night: 1, glow: 1.25, window: 1, haze: semantic.caveHaze, hazeAmt: 0.7, light: [0.42, 0.48, 0.78], bloom: 1.15,
+  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 1.1, sun: semantic.caveKeyLight, sunI: 1.05, sunDir: [-3, 9, 4],
+  night: 1, glow: 1.6, window: 1, haze: semantic.caveHaze, hazeAmt: 0.6, light: [0.42, 0.48, 0.78], bloom: 1.35,
 };
 
 /** Zahlenform eines Zustands zum Mischen / numeric form of a state for blending */

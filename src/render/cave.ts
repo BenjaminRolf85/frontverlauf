@@ -85,6 +85,12 @@ export class CaveShell {
         // Gewoelbebogen: Brocken ueber dem Rand / vault arch: lumps above the edge
         const archY = y + 0.2;
         tallM[Math.floor(R() * 3)].push(M(along(jt, 0.6 + R() * 0.6, archY), new THREE.Vector3(1.8, 1.0 + R() * 0.5, 1.6), R() * 6));
+        // Vorhang aus Tropfsteinen ueber dem Aussenring (vor der Wand, ausserhalb der Karte) / curtain of stalactites above the outer ring
+        if (R() < (low ? 0.35 : 0.7)) {
+          const len = 1.1 + R() * 2.2;
+          drops[Math.floor(R() * 3)].push(new THREE.Matrix4().compose(along(jt + (R() - 0.5) * 0.4, 0.8 + R() * 1.2, archY + 0.4),
+            new THREE.Quaternion().setFromEuler(new THREE.Euler(0, R() * 6, 0)), new THREE.Vector3(1.5 + R() * 0.8, len, 1.5 + R() * 0.8)));
+        }
         // Tropfsteine unter dem Gewoelbe; ragen hoechstens h - 0.5 ueber die Karte / stalactites under the vault
         if (R() < (low ? 0.5 : 0.85)) {
           const len = 0.9 + R() * 1.8;
