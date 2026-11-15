@@ -75,3 +75,12 @@ Vorschau aller Modelle / preview of all models: `npx vite`, dann / then
 
 Klang/Sound: prozedural per WebAudio erzeugt, eigene Schöpfung, CC0. /
 Sound: generated procedurally with WebAudio, own creation, CC0.
+
+### Sprachzeilen beim Anklicken / voice lines on click
+
+| Art / kind | Dateien / files | Quelle / source |
+|---|---|---|
+| Menschen (alle fünf Menschenfraktionen, Abspielrate je Fraktion leicht verändert) / humans (all five human factions, playback rate slightly varied per faction) | `public/audio/voices/human/01-07.mp3` | vom Projektinhaber geliefert, erzeugt mit ElevenLabs; geschnitten und lautheitsangeglichen (ffmpeg, -16 LUFS, Mono, 64 kbit/s) / supplied by the project owner, generated with ElevenLabs; trimmed and loudness-normalised (ffmpeg, -16 LUFS, mono, 64 kbit/s) |
+| KI / NEXUS / AI / NEXUS | `public/audio/voices/robot/01-05.mp3` | wie oben (eine doppelte Datei entfernt) / as above (one duplicate file removed) |
+| Aliens / Zyrr | `public/audio/voices/alien/01-06.mp3` | wie oben / as above |
+| Fanatiker / Kult / fanatics / cult | `public/audio/voices/cult/01-05.mp3` | wie oben / as above |
