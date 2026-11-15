@@ -17,6 +17,7 @@ import {
 import { worth, type Ctx } from './analysis';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
+import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
 
 type Failed = Set<string>;
 
@@ -287,6 +288,9 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
   if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
+  // Festungsbau braucht Pioniere (Befestigung) / fortification needs pioneers (Fortification)
+  if (t === UNITS.pioneer.tech) mil += emplacementTechBonus(ctx);
+  else if (t === TECHS[UNITS.pioneer.tech!].parent && !ctx.fa.techs.includes(UNITS.pioneer.tech!)) mil += emplacementTechBonus(ctx) * 0.6;
   if (t === 'mountainTraining' || t === 'highAltitude') {
     let m = 0;
     for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (ctx.s.tiles[idx(ctx.s.size, p.x, p.y)].terrain === 'mountain') m++;
@@ -402,7 +406,8 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     mineLayer: army >= 4 && (ctx.enemies.length > 0 || ctx.conquest) ? 0.08 : 0,
     jeep: unexplored ? 0.2 : 0.08,
     sniper: 0.06,
-    pioneer: 0.05,
+    // Festungsbau: Pionier, solange Stellungsplaetze frei sind / fortification: a pioneer while emplacement slots are free
+    pioneer: 0.05 + emplacementPioneerShare(ctx),
     artillery: ctx.hostileCities.length ? 0.16 : 0.04,
     medic: army >= 4 ? 0.08 : 0,
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,

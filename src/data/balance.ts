@@ -733,9 +733,9 @@ export const EMPLACEMENT = {
   factions: ['dravon'] as FactionId[],
   /** bauende Einheiten / building units */
   builders: ['pioneer', 'mineLayer'] as UnitTypeId[],
-  cost: 30,
-  hp: 18,
-  attack: 2.5,
+  cost: 25,
+  hp: 20,
+  attack: 3,
   defense: 2.5,
   /** Schussweite / firing range */
   range: 2,
@@ -748,12 +748,14 @@ export const EMPLACEMENT = {
   /** Mindestabstand zwischen eigenen Stellungen (Felder) / minimum distance between own emplacements (tiles) */
   minSpacing: 3,
   /**
-   * KI: Sternereserve nach dem Bau, Bedrohungsradius um das Baufeld, Hoechstabstand zur eigenen Stadt, Mindestwert
-   * eines Bauplatzes, Wunschanteil Pioniere solange Plaetze frei sind, Zuschlag fuer die Technik Befestigung.
-   * AI: star reserve after building, threat radius around the site, maximum distance to the own city, minimum value of a
-   * site, desired pioneer share while slots are free, bonus for the Fortification tech.
+   * KI: Sternereserve fuer Bauten ohne Bedrohung, Bedrohungsradius um das Baufeld, Hoechstabstand zur eigenen Stadt,
+   * Mindestwert eines Bauplatzes, Wunschanteil Pioniere solange Plaetze frei sind, Zuschlag fuer die Technik Befestigung
+   * (Faktor in der Eroberung, erst ab Runde techRound und techCities Staedten), Preis einer feindlichen Stellung fuer Angreifer.
+   * AI: star reserve for builds without a threat, threat radius around the site, maximum distance to the own city,
+   * minimum value of a site, desired pioneer share while slots are free, bonus for the Fortification tech (factor in
+   * conquest, only from round techRound and techCities cities), prize of a hostile emplacement for attackers.
    */
-  ai: { reserve: 10, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.12, techBonus: 18, prize: 30 },
+  ai: { reserve: 30, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.35, techBonus: 60, techConquest: 2, techRound: 8, techCities: 2, prize: 30 },
 };
 
 export const ECON = {
