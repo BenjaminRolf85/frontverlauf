@@ -40,7 +40,8 @@ export const SCENES: readonly Scene[] = [
   { id: 'fracture', start: 14, end: 18, key: 17.4 },
   ...HUMANS.map((id, i): Scene => {
     const start = FACTION_START + i * FACTION_BEAT;
-    return { id, start, end: start + FACTION_BEAT, key: start + 3.2 };
+    // Diashow: nach dem zweiten Feld, bei Velkar noch mit Laser / slideshow: after the second panel, for Velkar still with the laser
+    return { id, start, end: start + FACTION_BEAT, key: start + (id === 'velkar' ? 4.2 : 4.5) };
   }),
   { id: 'banners', start: 48, end: 52, key: 51 },
   { id: 'logo', start: 52, end: DURATION, key: 56 },
