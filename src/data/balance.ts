@@ -1061,6 +1061,16 @@ export const CAMPAIGN_SETTLEMENTS = { surface: 0.5, alien: 0.5, desert: 0.3, cav
 export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, cityDistance: 2, spacing: 4 };
 
 /**
+ * Turm-Ziel der Kampagne (m1 Funkenregen): alle Sendetuerme gleichzeitig m1Rounds Runden in Folge halten; m1Towers Tuerme
+ * auf der Karte; Bonus fuer einen Sieg bis Runde m1FastRound; Missionsdauer m1MissionRounds; in Runde m1RaidRound landen
+ * zwei Graue m1RaidDistance Felder neben dem abgelegensten Turm.
+ * Campaign tower objective (m1 Starfall): hold all transmitter towers at the same time for m1Rounds consecutive rounds;
+ * m1Towers towers on the map; bonus for a win by round m1FastRound; mission length m1MissionRounds; in round m1RaidRound
+ * two Greys land m1RaidDistance tiles off the most remote tower.
+ */
+export const TOWER_HOLD = { m1Rounds: 5, m1Towers: 2, m1FastRound: 12, m1MissionRounds: 16, m1RaidRound: 8, m1RaidDistance: 2 };
+
+/**
  * Aussenposten der Vergessenen (Wuestenwelt): weniger Orte, dafuer mehr Einkommen je Aussenposten.
  * Outposts of the Forgotten (desert world): fewer places, therefore more income per outpost.
  */
@@ -1098,6 +1108,11 @@ export const CAMPAIGN_AI = {
   siteValue: 70, siteCap: 1, caveValue: 130, caveCap: 3, caveHuntValue: 135, caveHuntCap: 4, siteDistW: 5,
   /** Spieler-Seite: Endgegner jagen / player side: hunt the boss */
   bossHuntValue: 105, bossHuntCap: 5, reachValue: 90, reachCap: 3,
+  /**
+   * Turm-Ziel (m1): Spieler-Seite nimmt Tuerme ein und haelt je einen Wachposten; die Gegner greifen Tuerme der Spieler-Seite an.
+   * Tower objective (m1): the player side takes towers and keeps one guard on each; the enemies attack the player side's towers.
+   */
+  towerValue: 110, towerCap: 1, towerHuntValue: 120, towerHuntCap: 2, towerEnemyValue: 70,
   /** Zugwert fuer das Betreten eines Halte- oder Zielfelds / move value for stepping onto a hold or target tile */
   holdBonus: 45,
   /** Angriffswert gegen den markierten Endgegner (Spieler-Seite) / attack value against the marked boss (player side) */

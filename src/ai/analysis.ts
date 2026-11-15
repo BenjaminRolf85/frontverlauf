@@ -402,8 +402,10 @@ function isCombat(u: Unit): boolean {
 /**
  * Kampagnenziele fuer die KI: Spieler-Seite (Spieler als KI und Verbuendete) besetzt Portal, Hoehleneingang und
  * Ruinenstaetten, rueckt zum Erreichen-Ziel vor und jagt den Endgegner; die Gegner streiten um Hoehleneingang und Ruinen.
+ * Beim Turm-Ziel nimmt die Spieler-Seite die Sendetuerme ein und haelt sie besetzt, die Gegner greifen sie an.
  * Campaign objectives for the AI: the player side (player as AI and allies) occupies portal, cave entrance and ruin
  * sites, advances to the reach target and hunts the boss; the enemies contest the cave entrance and the ruins.
+ * With the tower objective the player side takes and garrisons the transmitter towers, the enemies attack them.
  */
 function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goal[] {
   const { s, f } = ctx;
@@ -423,6 +425,15 @@ function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goa
   const wants = (k: string) => objs.some((o) => o.k === k);
   if (c.cave && wants('cave')) hold(c.cave, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   if (wants('ruins')) (c.sites ?? []).forEach((p, i) => { if (!(side && c.siteDone?.[i])) hold(p, A.siteValue, A.siteCap, A.siteValue, A.siteCap + 1); });
+  // Turm-Ziel (m1): die Spieler-Seite haelt eigene Tuerme besetzt und nimmt die uebrigen ein; die Gegner greifen Tuerme der Spieler-Seite an
+  // tower objective (m1): the player side keeps its own towers garrisoned and takes the rest; the enemies attack the player side's towers
+  if (wants('towers')) for (const t of s.cities) {
+    if (!t.tower) continue;
+    const ours = t.owner !== null && (t.owner === 0 || !!c.allies?.includes(t.owner));
+    if (side && ours) hold(t, A.towerValue, A.towerCap, A.towerHuntValue, A.towerHuntCap);
+    else if (side) out.push({ kind: t.owner === null ? 'village' : 'city', x: t.x, y: t.y, value: A.towerValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.owner === null ? undefined : t.id });
+    else if (ours && isHostile(s, f, t.owner!)) out.push({ kind: 'city', x: t.x, y: t.y, value: A.towerEnemyValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.id });
+  }
   if (!side) return out;
   if (c.portal && wants('portal')) hold(c.portal, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   // Erreichen-Ziele: zum Zielfeld vorruecken, sobald kein Landetrupp mehr ohne Stadt ist / reach objectives: advance to the target tile once no landing party is left without a city

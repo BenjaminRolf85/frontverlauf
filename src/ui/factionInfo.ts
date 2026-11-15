@@ -3,6 +3,7 @@
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
 import { FACTIONS, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { factionRace } from '../core';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
@@ -43,7 +44,7 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   const rb = RESOURCE.buildings[f];
   out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
   // Treffsicherheit der Rasse / race accuracy
-  const race = f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
+  const race = factionRace(f);
   out.push({ kind: 'aim', icon: 'dice', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });
   // eigene Siegbedingung / own victory condition
   out.push({ kind: 'victory', icon: 'trophy', label: t('traits.victory'), value: victoryShortText(f), desc: victoryGoalText(f) });

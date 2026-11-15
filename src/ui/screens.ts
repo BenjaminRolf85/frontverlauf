@@ -25,6 +25,8 @@ import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
+import { factionIdOf, techIcon, techT } from './terms';
+import { TUTORIAL_FACTION } from './tutorial';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -110,7 +112,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
  */
 export function tutorialPrompt(host: ScreenHost, toSetup: () => void) {
   const d = openDialog(host.root, `${dialogTitle(t('onboarding.title'))}
-    <p>${esc(t('onboarding.text'))}</p>
+    <p>${esc(techT('onboarding.text', TUTORIAL_FACTION))}</p>
     <div class="choice-grid">
       <button type="button" class="choice" data-choice="tutorial"><strong class="row">${icon('tutorial')}${esc(t('onboarding.play'))}</strong><span>${esc(t('onboarding.playDesc'))}</span></button>
       <button type="button" class="choice" data-choice="skip"><strong class="row">${icon('next')}${esc(t('onboarding.skip'))}</strong><span>${esc(t('onboarding.skipDesc'))}</span></button>
@@ -205,7 +207,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               <span class="muted">${esc(t('hit.setupHint'))}</span></div>
             <div class="field"><span class="label">${esc(t('victory.setupTitle'))}</span>
               ${segmented('factionVictory', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.factionVictory ? 'on' : 'off')}
-              <span class="muted">${esc(t('victory.setupHint'))}</span></div>
+              <span class="muted">${esc(techT('victory.setupHint', cfg.players.find((x) => x.human)?.id))}</span></div>
             ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
               ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
             <div class="field"><label for="seed">${esc(t('setup.seed'))}</label>
@@ -371,7 +373,7 @@ export function pauseMenu(host: ScreenHost) {
     close: () => d.close(),
     stats: () => { d.close(); statsDialog(host.root, host.game.state!, host.game.viewer); },
     victory: () => { d.close(); victoryTrackerDialog(host.root, host.game.state!, host.game.viewer); },
-    rules: () => { d.close(); rulesDialog(host.root); },
+    rules: () => { d.close(); rulesDialog(host.root, 'goal', factionIdOf(host.game.state, host.game.viewer >= 0 ? host.game.viewer : host.game.state?.current ?? -1)); },
     save: () => { host.saveNow(); d.close(); },
     slots: () => { d.close(); host.openSlots('save'); },
     export: () => host.exportGame(),
@@ -425,6 +427,9 @@ export function researchDialog(host: ScreenHost) {
     const f = g.viewer >= 0 ? g.viewer : s.current;
     // sichtbar: allgemeine Technologien (wenn die Fraktion forscht) und die eigene Siegtechnologie / visible: common techs (if the faction researches) and the own victory tech
     const ids = [...TECH_IDS, VICTORY_TECH[s.factions[f].id]].filter((id) => techVisible(s, f, id));
+    // Menschen: Produktion statt Forschung / humans: production instead of research
+    const fid = s.factions[f].id;
+    const tt = (key: string, vars?: Record<string, string | number>) => techT(key, fid, vars);
     let links = '', nodes = '';
     for (const id of ids) {
       const p = layout.get(id)!;
@@ -440,23 +445,23 @@ export function researchDialog(host: ScreenHost) {
       const name = t(`techs.${id}`);
       const words = name.split(/[\s-]/);
       const lines = words.length > 1 && name.length > 12 ? [words.slice(0, Math.ceil(words.length / 2)).join(' '), words.slice(Math.ceil(words.length / 2)).join(' ')] : [name];
-      nodes += `<g class="tech-node ${st} ${selected === id ? 'selected' : ''} ${TECHS[id].faction ? 'victory' : ''}" data-tech="${id}" role="button" tabindex="0" aria-label="${esc(name)}: ${esc(t(`tech.${st}`))}, ${cost}">
+      nodes += `<g class="tech-node ${st} ${selected === id ? 'selected' : ''} ${TECHS[id].faction ? 'victory' : ''}" data-tech="${id}" role="button" tabindex="0" aria-label="${esc(name)}: ${esc(tt(`tech.${st}`))}, ${cost}">
         <circle class="disc" cx="${p.x}" cy="${p.y}" r="30"/>
         ${st === 'researched' ? iconAt('check', p.x - 14, p.y - 14, 28) : st === 'locked' ? iconAt('lock', p.x - 12, p.y - 12, 24) : `<text x="${p.x}" y="${p.y + 6}" text-anchor="middle" class="cost">${cost}</text>`}
         ${lines.map((l, i) => `<text class="name" x="${p.x}" y="${p.y + 46 + i * 13}" text-anchor="middle">${esc(l)}</text>`).join('')}
       </g>`;
     }
-    const legend = (['researched', 'available', 'expensive', 'locked'] as const).map((k) => `<span><i style="background:var(--c-tech-node-${k})"></i>${esc(t(`tech.${k}`))}</span>`).join('')
+    const legend = (['researched', 'available', 'expensive', 'locked'] as const).map((k) => `<span><i style="background:var(--c-tech-node-${k})"></i>${esc(tt(`tech.${k}`))}</span>`).join('')
       // gestrichelter Rand = Siegtechnologie / dashed rim = victory tech
-      + (factionVictoryOn(s) ? `<span><i class="legend-victory"></i>${esc(t('tech.legendVictory'))}</span>` : '');
-    return `${dialogTitle(t('tech.title'))}
-      <div class="row"><span class="res"><span class="star">${icon('star')}</span><span class="val">${s.factions[f].stars}</span></span><span class="muted">${esc(t('tech.costFormula'))}</span></div>
+      + (factionVictoryOn(s) ? `<span><i class="legend-victory"></i>${esc(tt('tech.legendVictory'))}</span>` : '');
+    return `${dialogTitle(tt('tech.title'))}
+      <div class="row"><span class="res"><span class="star">${icon('star')}</span><span class="val">${s.factions[f].stars}</span></span><span class="muted">${esc(tt('tech.costFormula'))}</span></div>
       <div class="legend">${legend}</div>
       ${!canResearch(s, f) ? `<p class="muted">${esc(t('victory.researchOnly'))}</p>` : ''}
       ${techListHtml(s, f, ids, g.isHumanTurn && f === s.current)}
-      <div class="tech-wrap"><svg class="tech-svg" viewBox="${canResearch(s, f) ? '0 0 800 800' : `${C - 160} ${C - 300} 320 360`}" role="group" aria-label="${esc(t('tech.title'))}">
+      <div class="tech-wrap"><svg class="tech-svg" viewBox="${canResearch(s, f) ? '0 0 800 800' : `${C - 160} ${C - 300} 320 360`}" role="group" aria-label="${esc(tt('tech.title'))}">
         ${links}<circle cx="${C}" cy="${C}" r="44" class="tech-center"/>
-        ${iconAt('research', C - 18, C - 18, 36)}${nodes}</svg></div>`;
+        ${iconAt(techIcon(fid), C - 18, C - 18, 36)}${nodes}</svg></div>`;
   };
   const d = openDialog(host.root, html(), { wide: true });
   d.node.addEventListener('click', async (e) => {
@@ -496,14 +501,15 @@ function techListHtml(s: GameState, f: number, ids: TechId[], canAct: boolean): 
     if (shown.length) groups.push({ title: t(`techs.${root}`), techs: shown });
   }
   const vt = VICTORY_TECH[s.factions[f].id];
-  if (visible.has(vt)) groups.push({ title: t('tech.victoryGroup'), techs: [vt] });
+  const tt = (key: string, vars?: Record<string, string | number>) => techT(key, s.factions[f].id, vars);
+  if (visible.has(vt)) groups.push({ title: tt('tech.victoryGroup'), techs: [vt] });
   const row = (id: TechId) => {
     const st = techState(s, f, id);
     const cost = researchCost(s, f, id);
     const parent = TECHS[id].parent;
-    const note = st === 'locked' && parent ? t('tech.needParent', { tech: t(`techs.${parent}`) }) : t(`tech.${st}`);
+    const note = st === 'locked' && parent ? tt('tech.needParent', { tech: t(`techs.${parent}`) }) : tt(`tech.${st}`);
     const btn = st === 'researched' ? `<span class="tag ok">${icon('check', 'icon-sm')}</span>`
-      : `<button type="button" class="btn tech-buy ${st === 'available' && canAct ? '' : 'secondary'}" data-research="${id}" ${st === 'available' && canAct ? '' : 'disabled aria-disabled="true"'} aria-label="${esc(t('tech.confirm'))}: ${esc(t(`techs.${id}`))}">${icon('research', 'icon-sm')}${price(cost)}</button>`;
+      : `<button type="button" class="btn tech-buy ${st === 'available' && canAct ? '' : 'secondary'}" data-research="${id}" ${st === 'available' && canAct ? '' : 'disabled aria-disabled="true"'} aria-label="${esc(tt('tech.confirm'))}: ${esc(t(`techs.${id}`))}">${icon(techIcon(s.factions[f].id), 'icon-sm')}${price(cost)}</button>`;
     return `<li class="tech-row ${st} ${TECHS[id].faction ? 'victory' : ''}">
       <button type="button" class="tech-row-main" data-tech="${id}"><i class="tech-dot" aria-hidden="true"></i>
         <span class="col"><strong>${esc(t(`techs.${id}`))}</strong><span class="muted">${esc(t('tech.tier', { n: TECHS[id].tier }))} · ${esc(note)}</span></span></button>
@@ -523,6 +529,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   const canAct = g.isHumanTurn && f === s.current;
   const parent = TECHS[tech].parent;
   const un = techUnlocks(tech, fa.id);
+  const tt = (key: string, vars?: Record<string, string | number>) => techT(key, fa.id, vars);
   const unitRows = un.units.map((u) => {
     const us = UNITS[u];
     // Preis mit Fraktionsrabatt / price including the faction discount
@@ -532,7 +539,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   });
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b))}</span></li>`);
   const vf = TECHS[tech].faction;
-  const extra = t(`techExtra.${tech}`, vf ? victoryParams(vf, s) : {});
+  const extra = tt(`techExtra.${tech}`, vf ? victoryParams(vf, s) : {});
   const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon(vf ? 'crown' : 'lightning', 'icon-sm')}${vf ? `<strong>${esc(t('traits.victory'))}</strong><span class="muted">${esc(extra)}</span>` : `<strong>${esc(extra)}</strong>`}</li>`];
   // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
   for (const up of CITY_UPGRADE_IDS) {
@@ -540,13 +547,13 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     extraRows.push(`<li class="unlock">${icon('city', 'icon-sm')}<strong>${esc(t('cityUpgrades.unlock', { name: t(`cityUpgrades.${up}`) }))}</strong><span class="muted">${esc(t(`cityUpgrades.${up}Desc`))}</span></li>`);
   }
   let reason = '';
-  if (st === 'researched') reason = t('tech.done');
-  else if (st === 'locked' && parent) reason = t('tech.needParent', { tech: t(`techs.${parent}`) });
+  if (st === 'researched') reason = tt('tech.done');
+  else if (st === 'locked' && parent) reason = tt('tech.needParent', { tech: t(`techs.${parent}`) });
   else if (st === 'expensive') reason = t('tech.missingStars', { n: cost - fa.stars });
-  else if (!canAct) reason = t('tech.notYourTurn');
+  else if (!canAct) reason = tt('tech.notYourTurn');
   const canResearch = st === 'available' && canAct;
   const box = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t(`techs.${tech}`))}</h2>${iconButton('close', t('actions.close'), 'cancel')}</div>
-    <div class="row"><span class="tag">${esc(t('tech.tier', { n: TECHS[tech].tier }))}</span><span class="tag ${st === 'researched' ? 'ok' : st === 'available' ? '' : 'warn'}">${esc(t(`tech.${st}`))}</span></div>
+    <div class="row"><span class="tag">${esc(t('tech.tier', { n: TECHS[tech].tier }))}</span><span class="tag ${st === 'researched' ? 'ok' : st === 'available' ? '' : 'warn'}">${esc(tt(`tech.${st}`))}</span></div>
     <div class="kv">
       <span>${esc(t('stats.cost'))}</span><span>${price(cost)}</span>
       <span>${esc(t('hud.stars'))}</span><span>${price(fa.stars)}</span>
@@ -557,7 +564,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     ${reason ? `<p class="tag warn">${esc(reason)}</p>` : ''}
     <div class="dialog-actions">
       ${button(t('actions.cancel'), { action: 'cancel', variant: 'secondary' })}
-      ${st !== 'researched' ? button(t('tech.confirm'), { action: 'confirm', icon: 'research', disabled: !canResearch, extra: price(cost) }) : ''}
+      ${st !== 'researched' ? button(tt('tech.confirm'), { action: 'confirm', icon: techIcon(fa.id), disabled: !canResearch, extra: price(cost) }) : ''}
     </div>`, { onClose });
   box.node.addEventListener('click', async (e) => {
     const target = e.target as HTMLElement;
@@ -640,7 +647,7 @@ export function grandDialog(host: ScreenHost) {
     const built = fa.grandProjectsBuilt.includes(id);
     const unlocked = fa.grandProjectsUnlocked.includes(id) || grandProjectConditionMet(s, f, id);
     const st = built ? 'built' : unlocked ? 'unlocked' : 'locked';
-    return `<div class="score-row">${icon(built ? 'check' : unlocked ? 'grand' : 'lock')}<div class="grow"><strong>${esc(t(`grand.${id}`))}</strong><div class="muted">${esc(t(`grand.${id}Cond`))}</div></div><span class="tag ${built ? 'ok' : unlocked ? 'warn' : ''}">${esc(t(`grand.${st}`))}</span></div>`;
+    return `<div class="score-row">${icon(built ? 'check' : unlocked ? 'grand' : 'lock')}<div class="grow"><strong>${esc(t(`grand.${id}`))}</strong><div class="muted">${esc(techT(`grand.${id}Cond`, fa.id))}</div></div><span class="tag ${built ? 'ok' : unlocked ? 'warn' : ''}">${esc(t(`grand.${st}`))}</span></div>`;
   }).join('');
   const d = openDialog(host.root, `${dialogTitle(t('grand.title'))}<p class="muted">${esc(t('grand.desc'))}</p><div class="score-list">${rows}</div>`);
   bind(d.node, { close: () => d.close() });

@@ -553,10 +553,16 @@ export const hitChanceOn = (s: GameState) => s.config.hitChance === true;
  * Rasse einer Einheit fuer die Treffsicherheit: Fraktionseinheiten nach Bauart, allgemeine Schiffe nach der Fraktion ihres Besitzers.
  * Race of a unit for accuracy: faction units by type, common ships by their owner's faction.
  */
+/**
+ * Rasse einer Fraktion (HIT.race; fehlt = Menschen). Auch fuer Texte: Menschen schalten Produktionsfaehigkeiten frei, die anderen forschen.
+ * Race of a faction (HIT.race; missing = humans). Also for texts: humans unlock production capabilities, the others research.
+ */
+export const factionRace = (f: FactionId): HitRace => HIT.race[f] ?? 'human';
+
 export function hitRace(type: UnitTypeId, owner?: FactionId): HitRace {
   const st = UNITS[type];
   const f = st.faction ?? (st.ship ? owner : undefined);
-  return (f && HIT.race[f]) || 'human';
+  return f ? factionRace(f) : 'human';
 }
 /** Rasse einer konkreten Einheit (Schiffe: Besitzer) / race of a concrete unit (ships: owner) */
 export const unitRace = (s: GameState, u: Unit): HitRace => hitRace(u.type, s.factions[u.owner]?.id);

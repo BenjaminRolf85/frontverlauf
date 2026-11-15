@@ -73,12 +73,16 @@ describe('Sendetuerme / transmitter towers', () => {
     expect(s.pendingRewards.some((p) => p.cityId === t.id)).toBe(false);
   });
 
-  it('Zaehlt bei Staedte-Zielen mit (m1) / counts for cities objectives (m1)', () => {
-    const s = createGame(missionConfig('m1', 'korvat'));
-    const need = missionById('m1')!.objectives[0];
+  it('Zaehlt bei Staedte-Zielen mit (m12) / counts for cities objectives (m12)', () => {
+    const s = createGame(missionConfig('m12', 'korvat'));
+    const need = missionById('m12')!.objectives[1];
     expect(need.k).toBe('cities');
     const n = need.k === 'cities' ? need.n : 0;
+    // Aussenposten der Landung, dann Tuerme vor anderen Orten / the landing outpost, then towers before other places
+    const out = s.cities.find((c) => c.x === s.campaign!.targets[0].x && c.y === s.campaign!.targets[0].y)!;
+    out.owner = 0;
     const list = [...towers(s), ...s.cities.filter((c) => c.owner === null && !c.tower)].slice(0, n - 1);
+    expect(list.filter((c) => c.tower).length).toBeGreaterThan(0);
     for (const c of list) c.owner = 0;
     const u = s.units.find((x) => x.owner === 0)!;
     u.hp -= 1;

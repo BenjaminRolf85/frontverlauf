@@ -18,6 +18,7 @@ import { coloredBox, outlined, paint } from '../render/toon';
 import type { View } from '../render/view';
 import { Panel } from './panel';
 import { cityName } from '../ui/hud';
+import { techT } from '../ui/terms';
 
 type Mode = 'vr' | 'ar';
 interface Hand { ctrl: THREE.XRTargetRaySpace; grip: THREE.XRGripSpace; source: XRInputSource | null; line: THREE.Line; grabbing: boolean; selectAt: number; selectPos: THREE.Vector3 | null; pinchGrab: boolean }
@@ -409,7 +410,9 @@ export class XrSession {
     P.begin();
     const w = P.W - 70, x = 30;
     P.button('end', t('hud.endTurn'), x, 30, w, 80, { enabled: this.game.isHumanTurn });
-    P.button('research', t('hud.research'), x, 125, w, 80, { variant: 'secondary' });
+    const s = this.game.state;
+    // Menschen: Produktion statt Forschung / humans: production instead of research
+    P.button('research', techT('hud.research', s?.factions[this.game.viewer >= 0 ? this.game.viewer : s.current]?.id), x, 125, w, 80, { variant: 'secondary' });
     if (this.mode === 'ar') P.button('replace', t('xr.replace'), x, 220, w, 70, { variant: 'secondary' });
     P.button('exit', t('menu.exitXR'), x, P.H - 110, w, 80, { variant: 'danger' });
     P.end();
@@ -437,7 +440,8 @@ export class XrSession {
     P.mesh.visible = this.showResearch;
     if (!this.showResearch) return;
     const f = this.game.viewer >= 0 ? this.game.viewer : s.current;
-    P.begin(t('tech.title'));
+    const fid = s.factions[f].id;
+    P.begin(techT('tech.title', fid));
     const C = { x: P.W / 2, y: P.H / 2 + 30 };
     const R = Math.min(P.W, P.H) / 2 - 140;
     const roots = TECH_IDS.filter((id) => TECHS[id].parent === null);
@@ -467,8 +471,8 @@ export class XrSession {
     }
     if (this.selectedTech) {
       const st = techState(s, f, this.selectedTech);
-      P.text(`${t(`techs.${this.selectedTech}`)}: ${t(`tech.${st}`)}`, 40, P.H - 70, 40);
-      P.button('doResearch', t('tech.research', { cost: researchCost(s, f, this.selectedTech) }), P.W - 560, P.H - 130, 330, 100, { enabled: st === 'available' && this.game.isHumanTurn });
+      P.text(`${t(`techs.${this.selectedTech}`)}: ${techT(`tech.${st}`, fid)}`, 40, P.H - 70, 40);
+      P.button('doResearch', techT('tech.research', fid, { cost: researchCost(s, f, this.selectedTech) }), P.W - 560, P.H - 130, 330, 100, { enabled: st === 'available' && this.game.isHumanTurn });
     }
     P.button('closeResearch', t('actions.close'), P.W - 210, 30, 170, 90, { variant: 'secondary' });
     P.end();

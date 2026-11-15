@@ -23,6 +23,7 @@ import {
   actionButton, esc, factionBadge, factionChip, iconButton, price, progress, resource, type ActionItem,
 } from './components';
 import { icon } from './icons';
+import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
@@ -285,6 +286,17 @@ export class Hud {
     void this.game.tapTile(u.x, u.y);
   }
 
+  /** Betrachtende Fraktion (Hotseat: die am Zug) / viewing faction (hotseat: the one to move) */
+  private viewerId(s: GameState): FactionId {
+    return s.factions[this.game.viewer >= 0 ? this.game.viewer : s.current].id;
+  }
+
+  /** Fehlertext in der Wortwahl der betrachtenden Fraktion / error text in the viewing faction's wording */
+  private err(code: string): string {
+    const s = this.game.state;
+    return techT(`errors.${code}`, s ? this.viewerId(s) : null);
+  }
+
   render() {
     const g = this.game, s = g.state;
     if (!s) return;
@@ -328,7 +340,7 @@ export class Hud {
     this.bottom.innerHTML = `
       ${sheet ? `<section class="panel sheet ${this.expanded ? 'expanded' : ''}" aria-label="${esc(t('actions.tileActions'))}">${sheet}</section>` : ''}
       <nav class="nav-bar">
-        <button type="button" class="btn secondary" data-action="research">${icon('research')}<span>${esc(t('hud.research'))}</span></button>
+        <button type="button" class="btn secondary" data-action="research">${icon(techIcon(f.id))}<span>${esc(techT('hud.research', f.id))}</span></button>
         <button type="button" class="btn secondary" data-action="diplomacy">${icon('diplomacy')}<span>${esc(t('hud.diplomacy'))}</span></button>
         ${iconButton('next', t('hud.nextUnit'), 'nextUnit', { lg: true })}
         <button type="button" class="btn end" data-action="endTurn" ${humanTurn ? '' : 'disabled'}>${icon('endTurn')}<span>${esc(t('hud.endTurn'))}</span></button>
@@ -493,8 +505,8 @@ export class Hud {
       }
       if (burning(s, tile)) tags.push(`${t('hazards.lava')}: ${t('hazards.lavaDesc', { n: (tile.lava ?? s.round) - s.round + 1 })}`);
       if (isJungle(tile)) tags.push(`${t('hazards.jungle')}: ${t('hazards.jungleDesc', { def: JUNGLE.footDefense })}`);
-      if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${t('hazards.crashDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
-      if (tile.feature === 'labRuin') tags.push(tile.looted ? t('hazards.labLooted') : `${t('hazards.lab')}: ${t('hazards.labDesc', { n: CRASH.stars, tier: CRASH.maxTier })}`);
+      if (tile.feature === 'crashSite') tags.push(tile.looted ? t('hazards.crashLooted') : `${t('hazards.crash')}: ${techT('hazards.crashDesc', this.viewerId(s), { n: CRASH.stars, tier: CRASH.maxTier })}`);
+      if (tile.feature === 'labRuin') tags.push(tile.looted ? t('hazards.labLooted') : `${t('hazards.lab')}: ${techT('hazards.labDesc', this.viewerId(s), { n: CRASH.stars, tier: CRASH.maxTier })}`);
       // erst nach allen Gefahren- und Xeno-Texten ausgeben / render only after all hazard and xeno texts
       if (tags.length) body += `<div class="row sheet-more">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
@@ -515,7 +527,6 @@ export class Hud {
 
   private unitActions(s: GameState, u: Unit) {
     const g = this.game;
-    const errText = (code: string) => t(`errors.${code}`);
     const gunAt = g.pendingTurret;
     if (gunAt && turretTargets(s, u).some((p) => p.x === gunAt.x && p.y === gunAt.y)) {
       const gun = turretAt(s, gunAt.x, gunAt.y)!;
@@ -556,7 +567,7 @@ export class Hud {
               id: 'retreat', icon: 'move', enabled: rc === 'ok',
               label: t('retreat.action', { dmg: retreatDamage(s, u, target) }),
               desc: t('retreat.desc'),
-              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : errText(rc),
+              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : this.err(rc),
               run: () => void g.exec({ type: 'retreat', unit: u.id, target: target.id }),
             });
           }
@@ -570,7 +581,7 @@ export class Hud {
       const pc = persuadeCheck(s, u, c);
       this.actions.push({
         id: `persuade-${c.id}`, icon: 'diplomacy', label: t('actions.persuade'), sub: cityName(s, c.id), cost: persuadeCost(c), enabled: pc === 'ok',
-        desc: t('actions.persuadeDesc'), reason: pc === 'ok' ? t('actions.persuadeDesc') : errText(pc),
+        desc: t('actions.persuadeDesc'), reason: pc === 'ok' ? t('actions.persuadeDesc') : this.err(pc),
         run: () => void g.exec({ type: 'persuade', unit: u.id, city: c.id }),
       });
     }
@@ -579,19 +590,19 @@ export class Hud {
       const blocked = alienHealBlocked(s, u);
       const ok = canHeal(u) && !blocked;
       this.actions.push({ id: 'heal', icon: 'heal', label: `${t('actions.heal')} +${Math.min(healAmount(s, u), u.maxHp - u.hp)}`, enabled: ok,
-        reason: blocked ? errText('noXenoGround') : ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'heal', unit: u.id }) });
+        reason: blocked ? this.err('noXenoGround') : ok ? undefined : this.err('unitExhausted'), run: () => void g.exec({ type: 'heal', unit: u.id }) });
     }
     // Roboter: Notreparatur aus einem Wrack / robots: emergency repair from a wreck
     if (u.hp < u.maxHp) {
       const rc = repairCheck(s, u);
       if (rc === 'ok' || rc === 'unitExhausted') {
         this.actions.push({ id: 'repair', icon: 'build', label: t('repair.action', { n: repairAmount(s, u) }), enabled: rc === 'ok', desc: t('repair.desc'),
-          reason: rc === 'ok' ? t('repair.desc') : `${errText('unitExhausted')} ${t('repair.desc')}`, run: () => void g.exec({ type: 'repair', unit: u.id }) });
+          reason: rc === 'ok' ? t('repair.desc') : `${this.err('unitExhausted')} ${t('repair.desc')}`, run: () => void g.exec({ type: 'repair', unit: u.id }) });
       }
     }
     if (has(u, 'heal')) {
       const ok = canActStill(u);
-      this.actions.push({ id: 'medicHeal', icon: 'heal', label: t('actions.medicHeal'), enabled: ok, reason: ok ? undefined : errText('unitExhausted'), run: () => void g.exec({ type: 'medicHeal', unit: u.id }) });
+      this.actions.push({ id: 'medicHeal', icon: 'heal', label: t('actions.medicHeal'), enabled: ok, reason: ok ? undefined : this.err('unitExhausted'), run: () => void g.exec({ type: 'medicHeal', unit: u.id }) });
     }
     if (has(u, 'preach') && isCultFaction(s, u.owner)) {
       // Rekrutieren: Menue mit allen verfuegbaren Kult-Einheiten / recruit: menu of all available cult units
@@ -603,7 +614,7 @@ export class Hud {
           const spot = recruitSpot(s, u, type);
           const chk = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'noSpace';
           this.actions.push({ id: `recruit-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[u.owner].id, type), cost: unitCost(s, u.owner, type)!, enabled: !!spot,
-            reason: spot ? t('cult.recruitHint') : chk === 'noSpace' ? t('cult.noSpace') : t(`errors.${chk}`),
+            reason: spot ? t('cult.recruitHint') : chk === 'noSpace' ? t('cult.noSpace') : this.err(chk),
             run: () => { this.recruitFor = null; if (spot) void g.exec({ type: 'recruit', unit: u.id, unitType: type, x: spot.x, y: spot.y }); } });
         }
       } else {
@@ -623,7 +634,7 @@ export class Hud {
       const targets = barrierTargets(s, u);
       const ok = targets.length > 0;
       const base = barrierCheck(s, u, u.x, u.y + (u.y + 1 < s.size ? 1 : -1));
-      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
+      const reason = ok ? t('actions.barrierHint') : this.err(base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base);
       this.actions.push({ id: 'barrier', icon: 'shield', label: g.barrierMode ? t('actions.cancel') : t('actions.barrier'), cost: g.barrierMode ? undefined : barrierCost(s, u.owner), enabled: ok || g.barrierMode, reason,
         run: () => { if (g.barrierMode) { g.barrierMode = false; g.updateHighlights(); this.render(); } else { g.startBarrier(); g.ui.toast(t('actions.barrierHint'), 'shield'); } } });
     }
@@ -632,13 +643,13 @@ export class Hud {
       const targets = mineTargets(s, u);
       const ok = targets.length > 0;
       const base = neighbors(s.size, u.x, u.y).map((q) => mineCheck(s, u, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'invalidTile';
-      const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
+      const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : this.err(base);
       this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
         run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
     }
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);
-      this.actions.push({ id: 'outpost', icon: 'outpost', label: t('actions.outpost'), cost: outpostCost(s, u.owner), enabled: chk === 'ok', reason: chk === 'ok' ? undefined : errText(chk === 'cannotCapture' ? 'unitExhausted' : chk), run: () => void g.exec({ type: 'outpost', unit: u.id }) });
+      this.actions.push({ id: 'outpost', icon: 'outpost', label: t('actions.outpost'), cost: outpostCost(s, u.owner), enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk === 'cannotCapture' ? 'unitExhausted' : chk), run: () => void g.exec({ type: 'outpost', unit: u.id }) });
     }
     if (UNITS[u.type].ship) {
       for (const to of [...SHIP_UPGRADES, ...(UNIQUE.units[s.factions[u.owner].id] === 'privateer' ? ['privateer' as const] : [])]) {
@@ -646,7 +657,7 @@ export class Hud {
         const tech = UNITS[to].tech;
         if (tech && !s.factions[u.owner].techs.includes(tech)) continue;
         const chk = upgradeCheck(s, u, to);
-        this.actions.push({ id: `up-${to}`, icon: 'upgrade', label: t('actions.upgrade', { unit: t(`units.${to}`) }), cost: UNITS[to].cost ?? 0, enabled: chk === 'ok', reason: chk === 'ok' ? undefined : errText(chk), run: () => void g.exec({ type: 'upgrade', unit: u.id, to }) });
+        this.actions.push({ id: `up-${to}`, icon: 'upgrade', label: t('actions.upgrade', { unit: t(`units.${to}`) }), cost: UNITS[to].cost ?? 0, enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk), run: () => void g.exec({ type: 'upgrade', unit: u.id, to }) });
       }
     }
   }
@@ -668,7 +679,7 @@ export class Hud {
         id: `up-${up}`, icon: CITY_UPGRADE_ICON[up], label: radioActive ? t('actions.cancel') : t(`cityUpgrades.${up}`),
         cost: radioActive ? undefined : CITY_UPGRADES.cost[up], variant: 'primary',
         enabled: radioActive || (chk === 'ok' && !noTargets),
-        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : chk === 'noSlot' ? t('cityUpgrades.full') : t(`errors.${chk}`),
+        reason: noTargets ? t('cityUpgrades.noTargets') : chk === 'ok' ? t(`cityUpgrades.${up}Desc`) : chk === 'noSlot' ? t('cityUpgrades.full') : this.err(chk),
         run: () => {
           if (up !== 'radioTower') { void g.exec({ type: 'cityUpgrade', city: c.id, upgrade: up }); return; }
           if (radioActive) { g.radioCity = null; g.updateHighlights(); this.render(); return; }
@@ -679,13 +690,13 @@ export class Hud {
     }
     if (lockedUpgrades && cityUpgrades(c).length < CITY_UPGRADES.slots) {
       const noResearch = !canResearch(s, c.owner!);
-      this.cityNote = t(noResearch ? 'cityUpgrades.lockedHintLevel' : 'cityUpgrades.lockedHint', { n: lockedUpgrades });
+      this.cityNote = techT(noResearch ? 'cityUpgrades.lockedHintLevel' : 'cityUpgrades.lockedHint', s.factions[c.owner!].id, { n: lockedUpgrades });
     }
     // Zyrr: erst das Stadtfeld terraformen / Zyrr: terraform the city tile first
     if (isAlienFaction(s, c.owner!) && !s.tiles[c.y * s.size + c.x].xeno) {
       const chk = terraformCheck(s, c.owner!, c.x, c.y);
       this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
-        reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
+        reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : this.err(chk), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
     }
     // Erdkernbohrer: wird in der Stadt ausgebildet (auch beim Kult) / earth-core drill: trained in a city (also for the cult)
     const drill = wonderKindOf(s, c.owner!);
@@ -693,7 +704,7 @@ export class Hud {
       const chk = trainCheck(s, c, drill);
       this.actions.push({
         id: 'train-coreDrill', icon: UNIT_ICON.coreDrill, label: t('units.coreDrill'), sub: unitNickname(s.factions[c.owner!].id, drill), cost: unitCost(s, c.owner!, drill)!,
-        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id, s) : t(`errors.${chk}`),
+        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id, s) : this.err(chk),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: drill }),
       });
     }
@@ -706,7 +717,7 @@ export class Hud {
       this.actions.push({
         id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
         desc: unitStatsLine(type),
-        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : t(`errors.${chk}`),
+        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : this.err(chk),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       });
     }
@@ -729,7 +740,7 @@ export class Hud {
     this.actions.push({
       id: `wonder-${kind}`, icon: UNIT_ICON[kind] ?? 'trophy', label: t('victory.build', { name: t(`units.${kind}`) }), sub: unitNickname(s.factions[f].id, kind),
       cost: WONDERS.cost[kind], variant: 'primary', enabled: chk === 'ok',
-      reason: chk === 'ok' ? victoryGoalText(s.factions[f].id, s) : t(`errors.${chk}`),
+      reason: chk === 'ok' ? victoryGoalText(s.factions[f].id, s) : this.err(chk),
       run: () => void g.exec({ type: 'wonder', kind: kind as WonderKind, x, y }),
     });
   }
@@ -740,7 +751,7 @@ export class Hud {
     if (isAlienFaction(s, f) && !s.tiles[y * s.size + x].xeno) {
       const chk = terraformCheck(s, f, x, y);
       if (chk === 'ok' || chk === 'notEnoughStars') this.actions.push({ id: 'terraform-tile', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary',
-        enabled: chk === 'ok', reason: chk === 'ok' ? t('xeno.groundDesc') : t(`errors.${chk}`), run: () => void g.exec({ type: 'terraform', x, y }) });
+        enabled: chk === 'ok', reason: chk === 'ok' ? t('xeno.groundDesc') : this.err(chk), run: () => void g.exec({ type: 'terraform', x, y }) });
     }
     const locked: ActionItem[] = [];
     for (const b of Object.keys(BUILDINGS) as BuildingId[]) {
@@ -761,7 +772,7 @@ export class Hud {
       this.actions.push({
         id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), sub: upgrade ? t('resource.upgrade') : undefined, cost: chk.cost, enabled: chk.ok,
         desc: buildingDescText(b),
-        reason: chk.ok ? buildingDescText(b) : t(`errors.${chk.error}`),
+        reason: chk.ok ? buildingDescText(b) : this.err(chk.error),
         run: () => void g.exec({ type: 'build', building: b, x, y }),
       });
     }

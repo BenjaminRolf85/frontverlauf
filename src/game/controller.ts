@@ -466,7 +466,8 @@ export class Controller {
             if (e.faction === this.viewer) {
               this.play(e.tech ? 'research' : 'levelUp');
               const { t } = await import('../i18n/i18n');
-              this.ui.toast(e.tech ? t('hazards.salvagedTech', { tech: t(`techs.${e.tech}`) }) : t('hazards.salvaged', { n: e.stars ?? 0 }), e.tech ? 'research' : 'star');
+              const { techT } = await import('../ui/terms');
+              this.ui.toast(e.tech ? techT('hazards.salvagedTech', this.state?.factions[e.faction]?.id, { tech: t(`techs.${e.tech}`) }) : t('hazards.salvaged', { n: e.stars ?? 0 }), e.tech ? 'research' : 'star');
             }
             break;
           }
