@@ -27,7 +27,7 @@ import {
   CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
-import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
+import { cityAt, factionVariant, hqOf, isHostile, ownCities, score, unitAt } from './queries';
 import { findShipSpot, placeShip, scientistOf, shipDist } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import { chooseTempleSite, placeTemple, runPursuit, templeDist, templeRing, updatePlans } from './temple';
@@ -720,7 +720,9 @@ function spawnOk(s: GameState, type: UnitTypeId, owner: number, q: Pos): boolean
 }
 
 /** Einheit nahe p aufstellen / place a unit near p */
-function spawnNear(s: GameState, type: UnitTypeId, owner: number, near: Pos, carried: UnitTypeId | null, min: number): Unit | null {
+function spawnNear(s: GameState, type0: UnitTypeId, owner: number, near: Pos, carried: UnitTypeId | null, min: number): Unit | null {
+  // eigene Bauart der Fraktion (Velkar: Tesla-Panzer statt Panzer) / the faction's own design (Velkar: Tesla tank instead of tank)
+  const type = factionVariant(s, owner, type0);
   const p = nearestTile(s, near, (q) => dist(q, near) >= min && spawnOk(s, type, owner, q));
   if (!p) return null;
   // Spieler (am Zug) sofort bereit, andere ab ihrem Zug / player (to move) ready at once, others from their turn

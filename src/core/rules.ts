@@ -23,7 +23,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
@@ -970,7 +970,8 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
       const p = !unitAt(s, c.x, c.y) ? { x: c.x, y: c.y } : freeNeighbor(s, c.x, c.y, false);
       // volle Stadt: der Panzer gehoert zu keiner Stadt (wie ein Ueberlaeufer) / full city: the tank belongs to no city (like a defector)
       const home = supportedUnits(s, c) < unitLimit(s, c) ? c.id : null;
-      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? 'tank', f, p.x, p.y, home);
+      // Velkar: Tesla-Panzer (VARIANTS) / Velkar: Tesla tank (VARIANTS)
+      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? factionVariant(s, f, 'tank'), f, p.x, p.y, home);
       break;
     }
   }

@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -332,10 +332,13 @@ export function researchCenterPoints(s: GameState, t: Tile): number {
   return Math.min(SCORE.researchCenterMax, SCORE.researchCenterBase + steps * SCORE.researchCenterStep);
 }
 
+/** Panzer und Tesla-Panzer (Stadtbelohnung, nicht kaeuflich) / tank and Tesla tank (city reward, not for sale) */
+const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank';
+
 export function unitScore(u: Unit): number {
   if (isWonder(u)) return 0;
-  if (u.type === 'tank') return SCORE.tankUnit;
-  if (u.carried) return (UNITS[u.carried].cost ?? (u.carried === 'tank' ? SCORE.tankUnit : 0)) + (UNITS[u.type].cost ?? 0);
+  if (isRewardTank(u.type)) return SCORE.tankUnit;
+  if (u.carried) return (UNITS[u.carried].cost ?? (isRewardTank(u.carried) ? SCORE.tankUnit : 0)) + (UNITS[u.type].cost ?? 0);
   return UNITS[u.type].cost ?? 0;
 }
 
@@ -624,16 +627,34 @@ export function hitOdds(s: GameState, u: Unit, ranged = false): Record<HitKind, 
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
   // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
   const windOk = ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
-  return raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk);
+  return raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk, HIT.unit[u.type]);
+}
+
+/** Eigene Trefferchancen des Einheitentyps (HIT.unit), sonst null / own hit odds of the unit type (HIT.unit), else null */
+export const unitHitProfile = (type: UnitTypeId): Record<HitKind, number> | null => HIT.unit[type] ?? null;
+/** Erwarteter Schadensfaktor einer Trefferverteilung / expected damage factor of a hit distribution */
+export const expectedHitMult = (odds: Record<HitKind, number>): number => HIT_KINDS.reduce((a, k) => a + odds[k] * HIT.mult[k], 0);
+/**
+ * Ohne Trefferglueck: Schadensfaktor fuer Einheiten mit eigener Trefferverteilung (HIT.unit), damit ihr Erwartungswert
+ * gegenueber ihrer Rasse gleich bleibt (Tesla-Panzer etwa 0,67, Railgun-Schuetze etwa 1,06); sonst 1.
+ * Without hit luck: damage factor for units with their own hit distribution (HIT.unit), so their expected value
+ * relative to their race stays the same (Tesla tank about 0.67, railgun marksman about 1.06); otherwise 1.
+ */
+export function unitLuckFactor(s: GameState, u: Unit): number {
+  const own = HIT.unit[u.type];
+  if (!own || hitChanceOn(s)) return 1;
+  return expectedHitMult(own) / expectedHitMult(HIT.odds[unitRace(s, u)]);
 }
 
 /**
- * Trefferwahrscheinlichkeiten einer Rasse bei aktuellem Wetter und LP-Anteil (auch fuer Verdan-Geschuetze).
- * Hit odds of a race in the current weather at an HP share (also used for Verdan guns).
+ * Trefferwahrscheinlichkeiten einer Rasse bei aktuellem Wetter und LP-Anteil (auch fuer Verdan-Geschuetze);
+ * own = eigene Grundwerte des Einheitentyps (HIT.unit) statt der Rassenwerte.
+ * Hit odds of a race in the current weather at an HP share (also used for Verdan guns);
+ * own = the unit type's own base odds (HIT.unit) instead of the race odds.
  */
-export function raceOdds(s: GameState, race: HitRace, hpShare: number, windOk: boolean): Record<HitKind, number> {
+export function raceOdds(s: GameState, race: HitRace, hpShare: number, windOk: boolean, own?: Record<HitKind, number>): Record<HitKind, number> {
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
-  const base = HIT.odds[race];
+  const base = own ?? HIT.odds[race];
   const w = weather(s);
   let f = w !== 'wind' || windOk ? HIT.weatherFactor[race] : 0;
   if (race === 'alien' && w === 'snow') f *= HIT.alienSnowFactor;
@@ -762,7 +783,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
   // less damage after moving, before hit luck; return fire stays undiminished
   const moveFire = movedThisTurn(att);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att)) : 0;
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -1136,6 +1157,8 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
   const alien = isAlienFaction(s, c.owner);
   const roster = ROSTERS[s.factions[c.owner].id];
   if ((st.faction && st.faction !== s.factions[c.owner].id) || (roster && !st.faction)) return 'invalid';
+  // eigene Bauart ersetzt den Grundtyp (VARIANTS) / own design replaces the base type (VARIANTS)
+  if (replacedFor(s.factions[c.owner].id, type)) return 'invalid';
   // Kult bildet in Staedten nichts aus, auch den Bohrer nicht (der kommt ueber recruit) / the cult trains nothing in cities, not even the drill (it comes via recruit)
   if (isCultFaction(s, c.owner)) return 'cultRecruit';
   // Erdkernbohrer: nur einer zugleich; ohne Stadtlimit / earth-core drill: only one at a time; no city limit
@@ -1206,7 +1229,9 @@ export function techUnlocks(tech: TechId, faction?: FactionId): { units: UnitTyp
   // klassische Fraktionen sehen zusaetzlich ihre einzigartige Einheit / classic factions also see their unique unit
   const roster = faction ? ROSTERS[faction] : undefined;
   const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech &&
-    (roster ? UNITS[k].faction === faction || (UNITS[k].ship && !UNITS[k].faction) : !UNITS[k].faction || UNITS[k].faction === faction));
+    (roster ? UNITS[k].faction === faction || (UNITS[k].ship && !UNITS[k].faction) : !UNITS[k].faction || UNITS[k].faction === faction) &&
+    // eigene Bauarten ersetzen den Grundtyp (VARIANTS) / own designs replace the base type (VARIANTS)
+    !(faction && replacedFor(faction, k)));
   const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech && (!FACTION_BUILDINGS[k] || FACTION_BUILDINGS[k] === faction));
   for (const [terr, t] of Object.entries(RESEARCH_CENTER_TECH)) if (t === tech && terr) buildings.push('researchCenter');
   return { units, buildings };
@@ -1431,14 +1456,26 @@ export const isCultFaction = (s: GameState, f: number) => s.factions[f]?.id === 
 export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id === NEXUS.faction;
 /** Forscht diese Fraktion? / does this faction research? */
 export const canResearch = (s: GameState, f: number) => ROSTERS[s.factions[f].id]?.research !== false;
+/**
+ * Bauart eines Grundtyps fuer eine Fraktion (VARIANTS, z. B. Velkar: Panzer -> Tesla-Panzer), sonst der Typ selbst.
+ * Design of a base type for a faction (VARIANTS, e.g. Velkar: tank -> Tesla tank), otherwise the type itself.
+ */
+export const variantOf = (id: FactionId | undefined, type: UnitTypeId): UnitTypeId => (id ? VARIANTS[id]?.[type] : undefined) ?? type;
+/** Bauart eines Grundtyps fuer Fraktion f (Index) / design of a base type for faction f (index) */
+export const factionVariant = (s: GameState, f: number, type: UnitTypeId): UnitTypeId => variantOf(s.factions[f]?.id, type);
+/** Wird dieser Grundtyp bei Fraktion id durch eine eigene Bauart ersetzt? / is this base type replaced by an own design for faction id? */
+export const replacedFor = (id: FactionId, type: UnitTypeId): boolean => variantOf(id, type) !== type;
+
 /** Kaufbare Landeinheiten einer Fraktion / purchasable land units of a faction */
 export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
   const id = s.factions[f].id;
   const roster = ROSTERS[id]?.units;
   if (roster) return roster;
-  // klassische Fraktionen: Grundliste plus einzigartige Landeinheit / classic factions: base list plus unique land unit
+  // klassische Fraktionen: Grundliste (mit eigenen Bauarten, VARIANTS) plus einzigartige Landeinheit
+  // classic factions: base list (with own designs, VARIANTS) plus unique land unit
+  const base = VARIANTS[id] ? LAND_UNITS.map((t) => variantOf(id, t)) : LAND_UNITS;
   const u = uniqueUnitOf(id);
-  return u && !UNITS[u].ship ? [...LAND_UNITS, u] : LAND_UNITS;
+  return u && !UNITS[u].ship ? [...base, u] : base;
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
@@ -1881,7 +1918,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u)) : 0;
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;

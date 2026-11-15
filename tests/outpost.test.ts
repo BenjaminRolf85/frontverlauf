@@ -15,8 +15,8 @@ function og() {
 }
 
 describe('Aussenposten bauen / building outposts', () => {
-  it('infantry types are infantry, MG, sniper and pioneer', () => {
-    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'mg', 'pioneer', 'sniper']);
+  it('infantry types are infantry, MG, sniper and pioneer (plus the Velkar railgun marksman)', () => {
+    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'mg', 'pioneer', 'railSniper', 'sniper']);
   });
 
   it('every infantry type builds it for 25 stars on its own tile, also outside own borders', () => {

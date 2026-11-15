@@ -79,7 +79,7 @@ const fieldCache = new WeakMap<GameState, { key: string; fields: Map<string, Flo
 export function worth(u: Unit): number {
   // Wunder: sehr wertvolles Ziel / wonders: a very valuable target
   if (isWonder(u)) return WONDERS.aiWorth;
-  const base = (t: UnitTypeId) => (t === 'tank' ? 60 : UNITS[t].cost ?? 10);
+  const base = (t: UnitTypeId) => (t === 'tank' || t === 'teslaTank' ? 60 : UNITS[t].cost ?? 10);
   let w = u.carried ? base(u.carried) + (UNITS[u.type].cost ?? 0) : base(u.type);
   if (u.veteran) w += 8;
   return Math.max(8, w);
@@ -405,7 +405,7 @@ function computeNavalNeed(ctx: Ctx): boolean {
 
 function canCaptureType(u: Unit): boolean {
   const t = u.carried ?? u.type;
-  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'medic' && u.type !== 'heli';
+  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'medic' && u.type !== 'heli' && u.type !== 'octocopter';
 }
 function isCombat(u: Unit): boolean {
   const t = u.type;

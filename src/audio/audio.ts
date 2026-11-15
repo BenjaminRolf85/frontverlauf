@@ -22,7 +22,9 @@ export type Ambience = 'clear' | 'rain' | 'snow' | 'wind';
 /** Waffenklang / weapon sound */
 export type Weapon =
   | 'rifle' | 'sniper' | 'mg' | 'cannon' | 'artillery' | 'rocket' | 'heliRockets' | 'naval' | 'bigNaval' | 'torpedo'
-  | 'laser' | 'plasma' | 'deathRay' | 'flame' | 'railgun' | 'energy' | 'buzz' | 'none';
+  | 'laser' | 'plasma' | 'deathRay' | 'flame' | 'railgun' | 'energy' | 'buzz'
+  // Velkar: Tesla-Entladung, Spulengewehr, Oktokopter-Raketen / Velkar: Tesla discharge, coil rifle, octocopter rockets
+  | 'tesla' | 'coil' | 'droneRockets' | 'none';
 
 export const WEAPON: Record<UnitTypeId, Weapon> = {
   infantry: 'rifle', sniper: 'sniper', jeep: 'mg', pioneer: 'rifle', mg: 'mg', medic: 'none', artillery: 'artillery',
@@ -40,10 +42,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   swarmMother: 'deathRay',
   // Kampagne m2: Wissenschaftler / campaign m2: scientist
   scientist: 'none',
+  // Velkar-Bauarten / Velkar designs
+  teslaTank: 'tesla', octocopter: 'droneRockets', railSniper: 'coil',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {
@@ -371,6 +375,25 @@ export class AudioEngine {
         this.tone(3000, t + 0.45, 0.25, 'square', 0.2, out, 0.1);
         this.boom(t + 0.5, 0.5, 110, out);
         break;
+      case 'tesla':
+        // Aufladesummen, knisternde Entladung, Donnerschlag / charge hum, crackling discharge, thunder clap
+        this.tone(120, t, 0.35, 'sawtooth', 0.16, out, 4, 0.2);
+        for (let i = 0; i < 7; i++) this.noise(t + 0.3 + i * 0.035, 0.03, 0.55, 5500 - i * 300, out, { type: 'highpass' });
+        this.tone(1800, t + 0.32, 0.2, 'square', 0.18, out, 0.12, 0.002);
+        this.boom(t + 0.4, 0.75, 65, out);
+        break;
+      case 'coil':
+        // kurzes Spulen-Aufladen, heller Knall, Nachsingen / short coil charge, bright crack, ringing tail
+        this.tone(420, t, 0.28, 'sine', 0.16, out, 6, 0.25);
+        this.noise(t + 0.28, 0.05, 0.9, 7500, out, { type: 'highpass' });
+        this.tone(2600, t + 0.28, 0.35, 'triangle', 0.16, out, 0.6, 0.002);
+        break;
+      case 'droneRockets':
+        this.droneHum(t, 0.8, out);
+        this.noise(t + 0.15, 0.35, 0.3, 1600, out, { type: 'bandpass', q: 1.4, freqEnd: 4500, attack: 0.02 });
+        this.noise(t + 0.3, 0.35, 0.3, 1600, out, { type: 'bandpass', q: 1.4, freqEnd: 4500, attack: 0.02 });
+        this.explosion(t + 0.62, 0.4);
+        break;
       case 'energy':
         for (let i = 0; i < 2; i++) { this.tone(1400, t + i * 0.15, 0.12, 'square', 0.14, out, 0.4); this.noise(t + i * 0.15, 0.08, 0.3, 5000, out, { type: 'highpass' }); }
         break;
@@ -440,6 +463,15 @@ export class AudioEngine {
 
   private rotor(t: number, dur: number, out: AudioNode) {
     for (let i = 0; i < Math.floor(dur / 0.07); i++) this.noise(t + i * 0.07, 0.05, 0.18, 300, out, { type: 'lowpass' });
+  }
+
+  /**
+   * Oktokopter: hoeheres Summen vieler kleiner Rotoren (leicht verstimmte Toene, schnelles Flattern) statt des tiefen Hubschrauberschlags.
+   * Octocopter: higher hum of many small rotors (slightly detuned tones, fast flutter) instead of the deep helicopter thump.
+   */
+  private droneHum(t: number, dur: number, out: AudioNode) {
+    for (const f of [212, 226, 241]) this.tone(f, t, dur, 'sawtooth', 0.045, out, 1.08, 0.12);
+    for (let i = 0; i < Math.floor(dur / 0.035); i++) this.noise(t + i * 0.035, 0.025, 0.08, 1400, out, { type: 'bandpass', q: 2 });
   }
 
   /** Einschlag beim Ziel / impact at the target */
@@ -606,6 +638,8 @@ export class AudioEngine {
     if (u.abilities.includes('fly')) {
       if (kind === 'alien') { this.hover(t, out); this.voiceLine(f, t + 0.35, 0); }
       else if (kind === 'robot') { this.buzz(t, out); this.voiceLine(f, t + 0.35, 0); }
+      // Oktokopter der Velkar: Mehrrotor-Summen / Velkar octocopter: multi-rotor hum
+      else if (type === 'octocopter') { this.droneHum(t, 0.9, out); this.voiceLine(f, t + 0.5, 2); }
       else { this.rotor(t, 0.9, out); this.tone(900, t, 0.9, 'sawtooth', 0.04, out, 1.3, 0.2); this.voiceLine(f, t + 0.5, 2); }
       return;
     }
