@@ -283,6 +283,7 @@ function martyrBlessing(s: GameState, u: Unit, ev: GameEvent[]) {
  */
 export function markSin(s: GameState, f: number, deed: SinDeed, ev: GameEvent[]) {
   if (!s.factions[f] || judges(s, f) || !judgeAlive(s)) return;
+  // gottlose Fraktionen sind ohnehin Suender: keine neue Meldung / godless factions are sinners anyway: no new toast
   const fresh = !isSinner(s, f);
   const until = s.round + SIN.rounds - 1;
   s.factions[f].sin = { deed, until };

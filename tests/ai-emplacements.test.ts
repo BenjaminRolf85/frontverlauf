@@ -48,6 +48,9 @@ describe('KI baut Geschuetzstellungen / AI builds gun emplacements', () => {
       [1, ['dravon', 'korvat', 'alvenia'], 'conquest'],
       [9, ['dravon', 'korvat', 'alvenia'], 'conquest'],
       [3, ['velkar', 'dravon', 'meridon'], 'sandbox'],
+      // nach der Alvenia-Ueberarbeitung baut Dravon in Seed 75 keine Stellung mehr (der Orden bedroht die Grenze kaum); ein weiterer Lauf
+      // after the Alvenia rework Dravon no longer builds in seed 75 (the Order hardly threatens the border); one more run
+      [11, ['dravon', 'korvat', 'zyrr'], 'points'],
     ];
     let built = 0, shots = 0;
     for (const [seed, ids, mode] of runs) {

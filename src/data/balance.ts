@@ -160,7 +160,14 @@ export const WONDERS = {
    * Alvenia, Great Judgement: this many destroyed units of sinners (SIN) per map size; only kills with the victory tech
    * researched count.
    */
-  judgementKills: { 11: 15, 14: 19, 16: 21, 18: 23, 22: 26, 26: 30 } as Record<MapSize, number>,
+  judgementKills: { 11: 18, 14: 22, 16: 24, 18: 26, 22: 29, 26: 33 } as Record<MapSize, number>,
+  /**
+   * Faktor auf das Ziel nach Zahl der Gegner (Index = Gegner, danach 1): im Zweikampf richtet Alvenia nur einen Gegner, aber
+   * oft (Kult). Wie beim Kult und bei Korvat skaliert die Bedingung mit der Fraktionszahl.
+   * Factor on the goal by number of rivals (index = rivals, then 1): in a duel Alvenia judges only one rival, but often (cult).
+   * As for the cult and Korvat, the condition scales with the number of factions.
+   */
+  judgementByRivals: [1.5, 1.5, 1.2, 1] as number[],
   /** KI: Siegtechnologie ab dieser Runde erforschen; Wert eines feindlichen Wunders / AI: research the victory tech from this round; worth of a hostile wonder */
   aiResearchRound: 10,
   aiWorth: 150,
@@ -253,7 +260,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: 'camouflage', ship: false, faction: 'velkar' },
   // Alvenia-Varianten (siehe VARIANTS): Fernkampf aus dem Stand, starke Verteidigung / Alvenia variants (see VARIANTS): ranged from a standstill, strong defence
   // Lichtschuetzen: Reichweite 2, schiessen nur aus dem Stand (kein Sturm), gute Verteidigung, schwacher Angriff / Light Wardens: range 2, fire only from a standstill (no dash), good defence, weak attack
-  lightWarden: { cost: 12, hp: 10, attack: 1.8, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
+  lightWarden: { cost: 12, hp: 10, attack: 1.6, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
   // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, fires only from a standstill
   reliquary: { cost: null, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
@@ -355,9 +362,12 @@ export const UNIQUE = {
   kolkhozInterval: 5,
   kolkhozPop: 1,
   /**
-   * Lichtdom (ID embassyPalace aus alten Spielstaenden), Busszehnt: Sterne je Runde und je als Suender gezeichneter Fraktion, hoechstens so viele Fraktionen.
-   * Cathedral of Light (ID embassyPalace from old saves), penance tithe: stars per round per faction marked as a sinner, at most this many factions.
+   * Lichtdom (ID embassyPalace aus alten Spielstaenden): Opfergaben (feste Sterne je Runde) und Busszehnt (Sterne je Runde und je als
+   * Suender gezeichneter Fraktion, hoechstens so viele Fraktionen).
+   * Cathedral of Light (ID embassyPalace from old saves): offerings (fixed stars per round) and penance tithe (stars per round per
+   * faction marked as a sinner, at most this many factions).
    */
+  cathedralBase: 2,
   cathedralPerSinner: 3,
   cathedralMaxSinners: 3,
   /** Handelskontor: Sterne je verbundener Hafenstadt und Runde / trading post: stars per connected harbour city and round */
@@ -642,8 +652,8 @@ export const HOME_DEFENSE = {
 };
 
 /** Suendentaten / sinful deeds */
-export type SinDeed = 'plunder' | 'burn' | 'convert' | 'capture' | 'breakPeace' | 'sacrilege';
-export const SIN_DEEDS: SinDeed[] = ['plunder', 'burn', 'convert', 'capture', 'breakPeace', 'sacrilege'];
+export type SinDeed = 'plunder' | 'burn' | 'convert' | 'capture' | 'breakPeace' | 'sacrilege' | 'godless';
+export const SIN_DEEDS: SinDeed[] = ['plunder', 'burn', 'convert', 'capture', 'breakPeace', 'sacrilege', 'godless'];
 
 /**
  * Suende und Strafgericht (Heiliges Alvenia). Eine Fraktion, die eine Suendentat begeht, ist rounds Runden als Suender
@@ -660,9 +670,14 @@ export const SIN_DEEDS: SinDeed[] = ['plunder', 'burn', 'convert', 'capture', 'b
  * (perk 'judgement') lives; it is never marked itself.
  * Judgement: units of the judging faction deal judgement more damage to units of sinners (attack and return fire), before
  * hit luck.
+ * Gottlos: Fraktionen der Rassen in godless (Ausserirdische, Roboter: Zyrr und NEXUS) sind ohne Tat dauerhaft Suender,
+ * solange eine richtende Fraktion lebt ("gottlose Kreaturen"). Der Busszehnt des Lichtdoms zaehlt nur Suender mit einer Tat.
+ * Godless: factions of the races in godless (aliens, robots: Zyrr and NEXUS) are permanent sinners without a deed while a
+ * judging faction lives ("godless creatures"). The Cathedral of Light's penance tithe counts only sinners with a deed.
  */
 export const SIN = {
-  rounds: 4,
+  godless: ['alien', 'robot'] as HitRace[],
+  rounds: 2,
   judgement: 0.35,
 };
 

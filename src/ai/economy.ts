@@ -7,7 +7,7 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, isSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
@@ -129,8 +129,9 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
     if (prof.difficulty === 'easy') accept = true;
     // keinen Frieden mit einer Fraktion kurz vor dem Sieg / no peace with a faction close to victory
     else if (nearVictory(ctx, g)) accept = false;
-    // Heiliges Alvenia: kein Frieden mit Suendern, ausser in echter Not / Holy Alvenia: no peace with sinners, except in real need
-    else if (judges(ctx.s, ctx.f) && isSinner(ctx.s, g)) accept = mine < theirs * 0.7 && warCount(ctx) >= 2;
+    // Heiliges Alvenia: kein Frieden mit Suendern einer Tat, ausser in echter Not; mit Gottlosen wie mit allen
+    // Holy Alvenia: no peace with sinners of a deed, except in real need; with the godless as with everyone
+    else if (judges(ctx.s, ctx.f) && deedSinner(ctx.s, g)) accept = mine < theirs * 0.7 && warCount(ctx) >= 2;
     else if (ctx.conquest) accept = focusPeace(ctx, g) || (mine < theirs * 0.7 && aliveFactions(ctx.s).length > 2 && ctx.s.round <= 60);
     // Kult: lebt von der Beute, Frieden nur in echter Not / cult: lives off loot, peace only in real need
     else if (isCultFaction(ctx.s, ctx.f)) accept = mine < theirs * AI.cultPeaceStrength && warCount(ctx) >= 2;
@@ -163,7 +164,8 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
     // Friedensstifter bieten regelmaessig Frieden an; Alvenia nie einem Suender / peacemakers offer peace regularly; Alvenia never to a sinner
-    const sinner = judges(s, f) && isSinner(s, g);
+    // Suender einer Tat (nicht die dauerhaft Gottlosen) / sinners of a deed (not the permanently godless)
+    const sinner = judges(s, f) && deedSinner(s, g);
     if (rel === 'war' && prof.peacemaker && !sinner && (s.round + f) % 2 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
       const cmd: Command = { type: 'diplomacy', action: 'proposePeace', target: g };
       if (!failed.has(cmdKey(cmd))) return cmd;
@@ -668,7 +670,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
         if (ub === 'kolkhoz') value += popVal * 0.6 * Math.floor(Math.min(horizon, 24) / UNIQUE.kolkhozInterval);
         else if (ub === 'mercenaryBarracks') value = hasCityUpgrade(c, 'barracks') || c.level < 2 ? 0 : value + chk.cost * (0.3 + 0.08 * Math.min(4, c.level)) * prof.militaryW;
         // Lichtdom: Busszehnt je Suender (mindestens einer erwartet) / Cathedral of Light: penance tithe per sinner (at least one expected)
-        else if (ub === 'embassyPalace') value += UNIQUE.cathedralPerSinner * Math.max(1, Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f))) * Math.min(horizon, 15) * 0.45;
+        else if (ub === 'embassyPalace') value += (UNIQUE.cathedralBase + UNIQUE.cathedralPerSinner * Math.max(1, Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f)))) * Math.min(horizon, 15) * 0.45;
         else if (ub === 'tradingPost') value += UNIQUE.tradingPostPerHarbour * harbourCities(s, f) * Math.min(horizon, 15) * 0.45;
         else if (ub === 'testLab') value += TECH_IDS.filter((t) => !fa.techs.includes(t)).length * UNIQUE.testLabDiscount * 45 * Math.min(1, horizon / 12);
         if (value <= 0) continue;

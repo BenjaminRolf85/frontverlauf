@@ -118,6 +118,38 @@ describe('Suende / sin', () => {
   });
 });
 
+describe('Gottlos / godless', () => {
+  it('Ausserirdische und Roboter sind dauerhaft Suender, solange Alvenia lebt; Menschen und Kult nicht / aliens and robots are permanent sinners while Alvenia lives; humans and the cult are not', () => {
+    const s = blankGame({ factions: ['alvenia', 'zyrr', 'nexus', 'korvat', 'vesper'], stars: 100 });
+    for (let g = 0; g < 5; g++) addCity(s, 1 + g * 2, 1, g, { hq: true });
+    expect(SIN.godless).toEqual(['alien', 'robot']);
+    for (const f of [1, 2]) {
+      expect(isSinner(s, f)).toBe(true);
+      expect(sinDeed(s, f)).toBe('godless');
+      expect(sinRoundsLeft(s, f)).toBe(Infinity);
+    }
+    expect(isSinner(s, 0)).toBe(false);
+    expect(isSinner(s, 3)).toBe(false);
+    expect(isSinner(s, 4)).toBe(false);
+    // dauerhaft: auch viele Runden spaeter / permanent: also many rounds later
+    s.round += 50;
+    expect(isSinner(s, 1)).toBe(true);
+    // Strafgericht gegen Gottlose / judgement against the godless
+    const a = addUnit(s, 'lightWarden', 0, 5, 4);
+    const g = addUnit(s, 'grey', 1, 5, 6);
+    expect(combatPreview(s, a, g).judgement).toBe(SIN.judgement);
+    // keine neue Meldung bei einer Tat / no new toast on a deed
+    addCity(s, 7, 7, 3); addCity(s, 7, 9, 3);
+    const gr = addUnit(s, 'grey', 1, 7, 7);
+    actAs(s, 1);
+    const ev = sinEvents(ok(s, { type: 'capture', unit: gr.id }).events);
+    expect(ev[0]).toMatchObject({ faction: 1, deed: 'capture', fresh: false });
+    // ohne lebende richtende Fraktion kein Zeichen / without a living judging faction no mark
+    s.factions[0].alive = false;
+    expect(isSinner(s, 2)).toBe(false);
+  });
+});
+
 describe('Strafgericht / judgement', () => {
   it(`+${Math.round(SIN.judgement * 100)} % Schaden gegen Suender, Vorschau gleich dem echten Schaden / +${Math.round(SIN.judgement * 100)} % damage against sinners, preview equals actual damage`, () => {
     const s = duel('korvat');
@@ -273,7 +305,8 @@ describe('Grosses Strafgericht / Great Judgement', () => {
     s.config.factionVictory = true;
     expect(VICTORY_TECH.alvenia).toBe('greatJudgement');
     const need = judgementNeed(s);
-    expect(need).toBe(WONDERS.judgementKills[11]);
+    // Zweikampf: Ziel x WONDERS.judgementByRivals[1] / duel: goal x WONDERS.judgementByRivals[1]
+    expect(need).toBe(Math.round(WONDERS.judgementKills[11] * WONDERS.judgementByRivals[1]));
     const kill = () => {
       const v = addUnit(s, 'infantry', 1, 6, 6, { hp: 1 });
       const a = addUnit(s, 'lightWarden', 0, 6, 4);
@@ -303,7 +336,10 @@ describe('Grosses Strafgericht / Great Judgement', () => {
     expect(s.victory).toEqual({ kind: 'faction', faction: 'alvenia' });
   });
 
-  it('Ziel waechst mit der Kartengroesse / the goal grows with the map size', () => {
+  it('Ziel waechst mit der Kartengroesse und sinkt mit mehr Gegnern / the goal grows with the map size and drops with more rivals', () => {
+    for (let i = 1; i < WONDERS.judgementByRivals.length; i++) expect(WONDERS.judgementByRivals[i]).toBeLessThanOrEqual(WONDERS.judgementByRivals[i - 1]);
+    const five = blankGame({ factions: ['alvenia', 'korvat', 'dravon', 'meridon', 'velkar'] });
+    expect(judgementNeed(five)).toBe(WONDERS.judgementKills[11]);
     const sizes = Object.keys(WONDERS.judgementKills).map(Number).sort((a, b) => a - b);
     for (let i = 1; i < sizes.length; i++) expect(WONDERS.judgementKills[sizes[i] as 14]).toBeGreaterThan(WONDERS.judgementKills[sizes[i - 1] as 14]);
   });

@@ -277,7 +277,7 @@ export function harbourCities(s: GameState, f: number): number {
 export function uniqueBuildingIncome(s: GameState, f: number): number {
   let inc = 0;
   // Lichtdom (ID embassyPalace): Busszehnt je gezeichnetem Suender / Cathedral of Light (ID embassyPalace): penance tithe per marked sinner
-  if (countBuildings(s, f, 'embassyPalace')) inc += UNIQUE.cathedralPerSinner * Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f));
+  if (countBuildings(s, f, 'embassyPalace')) inc += UNIQUE.cathedralBase + UNIQUE.cathedralPerSinner * Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f));
   if (countBuildings(s, f, 'tradingPost')) inc += UNIQUE.tradingPostPerHarbour * harbourCities(s, f);
   return inc;
 }
@@ -580,17 +580,27 @@ export function homeDefenseAt(s: GameState, u: Unit, x = u.x, y = u.y): number {
 export const judges = (s: GameState, f: number): boolean => !!s.factions[f] && FACTIONS[s.factions[f].id].perk === 'judgement';
 /** Lebt eine richtende Fraktion? Nur dann werden Suender gezeichnet / is a judging faction alive? Only then are sinners marked */
 export const judgeAlive = (s: GameState): boolean => s.factions.some((fa) => fa.alive && judges(s, fa.index));
-/** Ist Fraktion f in dieser Runde als Suender gezeichnet? / is faction f marked as a sinner this round? */
-export function isSinner(s: GameState, f: number): boolean {
+/** Suendenzeichen durch eine Tat in dieser Runde (ohne "gottlos") / sinner mark from a deed this round (without "godless") */
+export function deedSinner(s: GameState, f: number): boolean {
   const sin = s.factions[f]?.sin;
   return !!sin && sin.until >= s.round;
 }
-/** Verbleibende Runden des Suendenzeichens inkl. der laufenden (0 = keins) / rounds left of the sinner mark incl. the current one (0 = none) */
-export const sinRoundsLeft = (s: GameState, f: number): number => (isSinner(s, f) ? s.factions[f].sin!.until - s.round + 1 : 0);
-/** Tat des laufenden Suendenzeichens / deed of the current sinner mark */
-export const sinDeed = (s: GameState, f: number): SinDeed | null => (isSinner(s, f) ? s.factions[f].sin!.deed : null);
-/** Andere lebende Fraktionen, die als Suender gezeichnet sind / other living factions marked as sinners */
-export const sinnerCount = (s: GameState, f: number): number => s.factions.filter((g) => g.index !== f && g.alive && isSinner(s, g.index)).length;
+/**
+ * Gottlos: Ausserirdische und Roboter (SIN.godless) sind dauerhaft Suender, solange eine richtende Fraktion lebt; die richtende Fraktion nie.
+ * Godless: aliens and robots (SIN.godless) are permanent sinners while a judging faction lives; the judging faction never.
+ */
+export function isGodless(s: GameState, f: number): boolean {
+  const fa = s.factions[f];
+  return !!fa && !judges(s, f) && SIN.godless.includes(factionRace(fa.id)) && judgeAlive(s);
+}
+/** Ist Fraktion f in dieser Runde Suender (Tat oder gottlos)? / is faction f a sinner this round (deed or godless)? */
+export const isSinner = (s: GameState, f: number): boolean => isGodless(s, f) || deedSinner(s, f);
+/** Verbleibende Runden des Suendenzeichens inkl. der laufenden (0 = keins, Infinity = gottlos) / rounds left of the sinner mark incl. the current one (0 = none, Infinity = godless) */
+export const sinRoundsLeft = (s: GameState, f: number): number => (isGodless(s, f) ? Infinity : deedSinner(s, f) ? s.factions[f].sin!.until - s.round + 1 : 0);
+/** Grund des Suendenzeichens: gottlos oder die letzte Tat / reason of the sinner mark: godless or the last deed */
+export const sinDeed = (s: GameState, f: number): SinDeed | null => (isGodless(s, f) ? 'godless' : deedSinner(s, f) ? s.factions[f].sin!.deed : null);
+/** Andere lebende Fraktionen mit Suendentat (fuer den Busszehnt, ohne "gottlos") / other living factions with a sinful deed (for the penance tithe, without "godless") */
+export const sinnerCount = (s: GameState, f: number): number => s.factions.filter((g) => g.index !== f && g.alive && deedSinner(s, g.index)).length;
 /**
  * Strafgericht: Zusatzschaden (Anteil) von att gegen def; nur fuer richtende Fraktionen gegen Einheiten von Suendern.
  * Judgement: extra damage (share) of att against def; only for judging factions against units of sinners.
@@ -606,7 +616,11 @@ export const blessingOf = (s: GameState, u: Unit): number => (u.blessed !== unde
 /** Verbleibende Runden des Segens inkl. der laufenden / rounds of the blessing left incl. the current one */
 export const blessingRoundsLeft = (s: GameState, u: Unit): number => (blessingOf(s, u) > 0 ? u.blessed! - s.round + 1 : 0);
 /** Siegziel Grosses Strafgericht: vernichtete Einheiten von Suendern je Kartengroesse / Great Judgement goal: destroyed units of sinners per map size */
-export const judgementNeed = (s: GameState): number => WONDERS.judgementKills[s.config.size] ?? WONDERS.judgementKills[14];
+export function judgementNeed(s: GameState): number {
+  const base = WONDERS.judgementKills[s.config.size] ?? WONDERS.judgementKills[14];
+  const rivals = Math.max(0, s.factions.length - 1);
+  return Math.round(base * (WONDERS.judgementByRivals[rivals] ?? 1));
+}
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
 export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) ? moveFireMult(s, u) : 1);

@@ -120,13 +120,13 @@
       "short": "Alvenia",
       "alignment": "theocratic, an order of clerics",
       "perk": "Judgement",
-      "perkDesc": "Whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds. Alvenia's units deal +{pct} % damage to sinners.",
+      "perkDesc": "Whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; aliens and robots are permanent sinners as godless creatures. Alvenia's units deal +{pct} % damage to sinners.",
       "discount": "Sun Lance 20 % cheaper",
       "home": "hill country with monasteries and vineyards",
       "leader": "Liora Valen",
       "leaderTitle": "High Priestess of the Order",
       "quote": "Whoever sins, the light will find.",
-      "lore": "Holy Alvenia, called the Order of Alvenia in the songs, watches over the green hill valleys. Where a parliament once debated, an order of clerics now sings beneath the sun halo. High Priestess Liora Valen was a field medic; she believes in the redemption of every fallen soul and in the punishment of every sin. Her Light Wardens yield no step, her Sun Lances strike from afar, and whoever plunders, burns or converts will meet the Judgement. The Order is the counterweight to the Cult of the Final Hour.",
+      "lore": "Holy Alvenia, called the Order of Alvenia in the songs, watches over the green hill valleys. Where a parliament once debated, an order of clerics now sings beneath the sun halo. High Priestess Liora Valen was a field medic; she believes in the redemption of every fallen soul and in the punishment of every sin. Her Light Wardens yield no step, her Sun Lances strike from afar, and whoever plunders, burns or converts will meet the Judgement. Aliens and machines are godless creatures in the eyes of the Order. The Order is the counterweight to the Cult of the Final Hour.",
       "style": "white and gold armour, deep blue tabards, sun halo, long-range weapons",
       "aiStyle": "Defends its own land, fires from a standstill at a distance and judges sinners first. The Order makes peace only with the blameless.",
       "perk2": "Martyr's Blessing",
@@ -490,7 +490,7 @@
     "powerPlant": "1 population, powers one data center, NEXUS only",
     "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
-    "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction marked as a sinner (at most {maxSinners}). One per faction, Alvenia only",
+    "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction with a sinful deed (at most {maxSinners}). One per faction, Alvenia only",
     "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
     "testLab": "1 population, production capabilities 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
     "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
@@ -3362,7 +3362,7 @@
     "goal": {
       "korvat": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
       "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
-      "alvenia": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after the Great Judgement is unlocked count. A sinner, for {rounds} rounds, is whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia.",
+      "alvenia": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after the Great Judgement is unlocked count. A sinner, for {rounds} rounds, is whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia; aliens and robots are permanent sinners.",
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
       "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
@@ -3462,7 +3462,7 @@
     },
     "judgement": {
       "title": "Sin and Judgement",
-      "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners (14 × 14 map, more or fewer by size) once the Great Judgement is unlocked."
+      "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Aliens and robots (Zyrr, NEXUS) are permanent sinners without a deed as godless creatures; the Cathedral of Light's penance tithe counts only sinners with a deed. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners (14 × 14 map, more or fewer by size) once the Great Judgement is unlocked."
     }
   },
   "lore": {
@@ -3777,7 +3777,8 @@
       "convert": "conversion",
       "capture": "conquest",
       "breakPeace": "breach of peace",
-      "sacrilege": "sacrilege"
+      "sacrilege": "sacrilege",
+      "godless": "Godless"
     },
     "toast": "{faction} has sinned: {deed}",
     "tag": "Sinner",
@@ -3785,7 +3786,9 @@
     "rounds": "{n} more rounds",
     "judgement": "Judgement +{pct} %",
     "judgementDesc": "The target belongs to a sinner: +{pct} % damage (already included).",
-    "fx": "JUDGED!"
+    "fx": "JUDGED!",
+    "permanent": "permanent",
+    "tagDescGodless": "Godless creatures: aliens and robots are permanent sinners in Alvenia's eyes. Judgement: Alvenia's units deal +{pct} % damage to this faction."
   },
   "blessing": {
     "toast": "Martyr's Blessing: {n} units healed and strengthened",

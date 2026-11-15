@@ -189,24 +189,25 @@ describe('Einzigartige Gebaeude / unique buildings', () => {
     expect(s.units.find((x) => x.homeCity === other.id)!.veteran).toBe(false);
   });
 
-  it('Cathedral of Light (ID embassyPalace): penance tithe per marked sinner, at most 3, one per faction', () => {
+  it('Cathedral of Light (ID embassyPalace): offerings plus penance tithe per sinner with a deed, at most 3, one per faction', () => {
     const s = blankGame({ factions: ['alvenia', 'dravon', 'korvat', 'meridon', 'velkar'], stars: 200 });
     addCity(s, 2, 2, 0, { hq: true, level: 3 });
     addCity(s, 6, 2, 0, { level: 2 });
     for (let g = 1; g < 5; g++) addCity(s, 1 + g * 2, 9, g, { hq: true });
     const base = income(s, 0);
     ok(s, { type: 'build', building: 'embassyPalace', x: 3, y: 2 });
-    expect(income(s, 0)).toBe(base);
+    expect(income(s, 0)).toBe(base + UNIQUE.cathedralBase);
     fails(s, { type: 'build', building: 'embassyPalace', x: 6, y: 3 }, 'alreadyBuilt');
+    const b0 = base + UNIQUE.cathedralBase;
     s.factions[1].sin = { deed: 'capture', until: s.round };
     s.factions[2].sin = { deed: 'convert', until: s.round + 2 };
-    expect(income(s, 0)).toBe(base + 2 * UNIQUE.cathedralPerSinner);
+    expect(income(s, 0)).toBe(b0 + 2 * UNIQUE.cathedralPerSinner);
     // abgelaufenes Zeichen zaehlt nicht / an expired mark does not count
     s.factions[3].sin = { deed: 'burn', until: s.round - 1 };
-    expect(income(s, 0)).toBe(base + 2 * UNIQUE.cathedralPerSinner);
+    expect(income(s, 0)).toBe(b0 + 2 * UNIQUE.cathedralPerSinner);
     s.factions[3].sin = { deed: 'burn', until: s.round };
     s.factions[4].sin = { deed: 'burn', until: s.round };
-    expect(income(s, 0)).toBe(base + UNIQUE.cathedralMaxSinners * UNIQUE.cathedralPerSinner);
+    expect(income(s, 0)).toBe(b0 + UNIQUE.cathedralMaxSinners * UNIQUE.cathedralPerSinner);
   });
 
   it('trading post: +3 stars per round per connected harbour city', () => {
