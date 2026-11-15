@@ -1,9 +1,11 @@
 /**
- * Klang: alles prozedural per WebAudio erzeugt (eigene Schoepfung, keine Fremd-Samples).
+ * Klang: fast alles prozedural per WebAudio erzeugt; einzige Aufnahmen sind die Sprachzeilen beim Anklicken
+ * von Einheiten (public/audio/voices/<art>/NN.mp3, siehe ASSETS.md).
  * - Musik je Fraktion mit drei Spannungsstufen (ruhig, angespannt, Gefecht) und Stingern (Eroberung, Verlust, Alarm, Sieg)
  * - Waffengeraeusche je Einheitentyp, Einschlaege, Todesschreie, Kampfschreie im Chor
  * - Atmosphaere je Wetter (Regen, Wind, Schnee, Vogel, Brandung) und ferner Gefechtslaerm
- * Sound: everything generated procedurally with WebAudio (own creation, no third-party samples).
+ * Sound: almost everything generated procedurally with WebAudio; the only recordings are the voice lines when
+ * clicking units (public/audio/voices/<kind>/NN.mp3, see ASSETS.md).
  * - per-faction music with three tension levels (calm, tense, battle) and stingers (capture, loss, alarm, victory)
  * - weapon sounds per unit type, impacts, death screams, battle-cry choirs
  * - ambience per weather (rain, wind, snow, birds, surf) and distant battle noise
@@ -66,6 +68,15 @@ const VOICES: Record<FactionId, { pitch: number; wave: OscillatorType; formant: 
   nexus: { pitch: 260, wave: 'square', formant: 3000, kind: 'robot' },
 };
 
+/**
+ * Sprachzeilen beim Anklicken je Stimmart: Anzahl Dateien in public/audio/voices/<art>/01.mp3 ...
+ * Voice lines on click per voice kind: number of files in public/audio/voices/<kind>/01.mp3 ...
+ */
+const VOICE_CLIPS: Record<VoiceKind, number> = { human: 7, robot: 5, alien: 6, cult: 5 };
+/** Abspielrate je Menschenfraktion: gleiche Sprecher, leicht andere Stimmlage / playback rate per human faction: same speakers, slightly different pitch */
+const VOICE_RATE: Partial<Record<FactionId, number>> = { korvat: 0.95, dravon: 0.9, alvenia: 1.05, meridon: 1.08, velkar: 1 };
+const VOICE_BASE = `${import.meta.env.BASE_URL ?? '/'}audio/voices/`;
+
 /** Vokal-Formanten (F1, F2) fuer Schreie / vowel formants (F1, F2) for screams */
 const VOWEL = { a: [800, 1200], o: [500, 900], u: [350, 800], e: [550, 1800] } as const;
 
@@ -98,6 +109,10 @@ class AudioEngine {
   private lastWeapon = 0;
   private lastCry = 0;
   private lastUnitVoice = 0;
+  /** geladene Sprachzeilen je Art (null = laedt noch) / loaded voice lines per kind (null = still loading) */
+  private clips: Partial<Record<VoiceKind, AudioBuffer[] | null>> = {};
+  private lastClip: Partial<Record<VoiceKind, number>> = {};
+  private clipSource: AudioBufferSourceNode | null = null;
   private radioCurve: Float32Array | null = null;
 
   private ensure(): AudioContext | null {
@@ -206,6 +221,8 @@ class AudioEngine {
     if (!this.effectsOn) return null;
     const ctx = this.ensure();
     if (!ctx || !this.master) return null;
+    // Sprachzeilen frueh im Hintergrund laden, damit schon der erste Klick sie hat / load voice lines early so the first click has them
+    for (const k of Object.keys(VOICE_CLIPS) as VoiceKind[]) if (this.clips[k] === undefined) this.loadClips(k);
     return ctx;
   }
 
@@ -523,29 +540,82 @@ class AudioEngine {
     if (u.ship) {
       if (type === 'submarine') this.sonar(t, out);
       else this.horn(t, type === 'battleship' ? 62 : type === 'landingBoat' ? 110 : 82, out);
-      if (kind === 'human') this.radio(f, t + 0.6, 2);
+      if (kind === 'human') this.voiceLine(f, t + 0.6, 2);
       return;
     }
     if (u.abilities.includes('fly')) {
-      if (kind === 'alien') this.hover(t, out);
-      else if (kind === 'robot') this.buzz(t, out);
-      else { this.rotor(t, 0.9, out); this.tone(900, t, 0.9, 'sawtooth', 0.04, out, 1.3, 0.2); this.radio(f, t + 0.5, 2); }
+      if (kind === 'alien') { this.hover(t, out); this.voiceLine(f, t + 0.35, 0); }
+      else if (kind === 'robot') { this.buzz(t, out); this.voiceLine(f, t + 0.35, 0); }
+      else { this.rotor(t, 0.9, out); this.tone(900, t, 0.9, 'sawtooth', 0.04, out, 1.3, 0.2); this.voiceLine(f, t + 0.5, 2); }
       return;
     }
-    if (walker) { this.servo(t, out, kind === 'robot' ? 1.4 : 1); if (kind === 'alien') this.hover(t + 0.25, out); return; }
+    if (walker) { this.servo(t, out, kind === 'robot' ? 1.4 : 1); if (kind === 'alien') this.hover(t + 0.25, out); this.voiceLine(f, t + 0.45, 0); return; }
     // Fahrzeuge und Wunder-Bauwerke: Maschinenklang / vehicles and wonder structures: machine sound
     if (unitClass(type) === 'vehicle' || unitClass(type) === 'structure') {
       const heavy = u.hp >= 20;
       this.engine(t, heavy ? 38 : 62, heavy ? 1.1 : 0.8, heavy, out);
-      if (kind === 'human' || kind === 'cult') this.radio(f, t + 0.55, 2);
-      else if (kind === 'robot') this.chirps(t + 0.5, out, 3);
+      if (kind === 'robot') this.chirps(t + 0.5, out, 3);
+      this.voiceLine(f, t + 0.55, 2);
       return;
     }
     // Fusstruppen / foot troops
-    if (kind === 'robot') { this.servo(t, out, 1.6); this.chirps(t + 0.2, out, 4); return; }
-    if (kind === 'alien') { this.hover(t, out); this.chirps(t + 0.1, out, 3, 0.6); return; }
-    if (kind === 'cult') { this.bell(t, out); this.radio(f, t + 0.25, 3); return; }
-    this.radio(f, t, 3 + Math.floor(Math.random() * 2));
+    if (kind === 'robot') { this.servo(t, out, 1.6); this.chirps(t + 0.2, out, 4); this.voiceLine(f, t + 0.3, 0); return; }
+    if (kind === 'alien') { this.hover(t, out); this.chirps(t + 0.1, out, 3, 0.6); this.voiceLine(f, t + 0.25, 0); return; }
+    if (kind === 'cult') { this.bell(t, out); this.voiceLine(f, t + 0.25, 3); return; }
+    this.voiceLine(f, t, 3 + Math.floor(Math.random() * 2));
+  }
+
+  /**
+   * Sprachzeile der Fraktion: zufaellige Aufnahme ihrer Stimmart (nie zweimal dieselbe hintereinander); Menschen und
+   * Kult klingen wie ueber Funk. Solange die Aufnahmen laden, ersetzt der gebrabbelte Funkspruch sie (words > 0).
+   * Faction voice line: a random recording of its voice kind (never the same twice in a row); humans and the cult
+   * sound like over the radio. While recordings load, the babbled radio call stands in (words > 0).
+   */
+  private voiceLine(f: FactionId, t: number, words: number) {
+    const ctx = this.ctx!;
+    const kind = VOICES[f].kind;
+    const list = this.clips[kind];
+    if (!list) {
+      if (list === undefined) this.loadClips(kind);
+      if (words > 0) this.radio(f, t, words);
+      return;
+    }
+    if (!list.length) { if (words > 0) this.radio(f, t, words); return; }
+    let i = Math.floor(Math.random() * list.length);
+    if (list.length > 1 && i === this.lastClip[kind]) i = (i + 1) % list.length;
+    this.lastClip[kind] = i;
+    // vorherige Zeile abbrechen, damit nichts uebereinander spricht / stop the previous line so nothing talks over it
+    try { this.clipSource?.stop(); } catch { /* schon beendet / already ended */ }
+    const src = ctx.createBufferSource();
+    src.buffer = list[i];
+    src.playbackRate.value = VOICE_RATE[f] ?? 1;
+    const g = ctx.createGain(); g.gain.value = 1.1;
+    src.connect(g);
+    if (kind === 'human' || kind === 'cult') {
+      // Funkfilter und Sprechtaste / radio filter and push-to-talk click
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = kind === 'human' ? 320 : 220;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = kind === 'human' ? 3600 : 4800;
+      g.connect(hp); hp.connect(lp); lp.connect(this.voiceBus!);
+      this.noise(t, 0.035, 0.3, 2500, this.voiceBus!, { type: 'highpass' });
+      const end = t + 0.05 + list[i].duration / src.playbackRate.value;
+      if (kind === 'human') { this.tone(1250, end + 0.02, 0.06, 'sine', 0.1, this.voiceBus!); this.noise(end + 0.08, 0.1, 0.15, 2000, this.voiceBus!, { type: 'bandpass', q: 0.6 }); }
+      src.start(t + 0.05);
+    } else {
+      g.connect(this.voiceBus!); this.wetSend(g, kind === 'alien' ? 0.45 : 0.2);
+      src.start(t);
+    }
+    this.clipSource = src;
+    src.onended = () => { g.disconnect(); if (this.clipSource === src) this.clipSource = null; };
+  }
+
+  /** Aufnahmen einer Stimmart laden (einmal, im Hintergrund) / load the recordings of one voice kind (once, in the background) */
+  private loadClips(kind: VoiceKind) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.clips[kind] = null;
+    const urls = Array.from({ length: VOICE_CLIPS[kind] }, (_, i) => `${VOICE_BASE}${kind}/${String(i + 1).padStart(2, '0')}.mp3`);
+    Promise.all(urls.map((u) => fetch(u).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(u)))).then((b) => ctx.decodeAudioData(b)).catch(() => null)))
+      .then((bufs) => { this.clips[kind] = bufs.filter((b): b is AudioBuffer => !!b); });
   }
 
   /** Funkspruch: Rauschen, gebrabbelte Silben durch ein Funkfilter, Quittungston / radio call: static, babbled syllables through a radio filter, roger beep */
