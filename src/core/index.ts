@@ -10,7 +10,7 @@ export * from './history';
 export {
   MISSIONS, MISSION_IDS, missionById, missionConfig, objectiveProgress, isHoldObjective, missionRoundsLeft,
   CAMPAIGN_FACTIONS, CAMPAIGN_ENEMIES, CAMPAIGN_ALLIES, CAMPAIGN_REV, FINALE_ID, allyFor, isCampaignFaction, isCampaignAlly, panelOf,
-  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount,
+  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount, towersHeld,
   type MissionDef, type ObjectiveDef, type Speaker, type BriefPanel, type WaveDef,
 } from './campaign';
 export { WORLDS, worldOf, type WorldId } from './worlds';

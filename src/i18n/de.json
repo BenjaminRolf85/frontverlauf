@@ -1005,22 +1005,24 @@
       "noOutpostLost": "Verliere keinen Verdan-Außenposten",
       "holdOutposts": "Verliere keinen Verdan-Außenposten bis Runde {rounds}",
       "burrow": "Erobere die Höhle der Zyrr bis Runde {rounds}",
-      "bonusBurrow": "Erobere die Höhle der Zyrr"
+      "bonusBurrow": "Erobere die Höhle der Zyrr",
+      "towers": "Erobere die Sendetürme und halte alle gleichzeitig {n} Runden in Folge, bis Runde {rounds}",
+      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})"
     },
     "missions": {
       "m1": {
         "title": "Funkenregen",
-        "tagline": "Sichere die Absturzzone mit vier Städten",
+        "tagline": "Erobere die Sendetürme und halte sie 5 Runden",
         "brief": [
-          "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wir sichern die Absturzzone, bevor es andere tun.",
-          "Überall Trümmer und rauchende Krater, Kommandant! Die Siedlungen ringsum haben Angst. Vier Städte unter der Flagge von {faction}, dann gehört die Zone uns.",
-          "Kkt. Primitive Wesen kriechen über unsere Absturzstelle. Schwarm, säubern!"
+          "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wer die Sendetürme hält, hält den Funk über die ganze Absturzzone.",
+          "Überall Trümmer und rauchende Krater, Kommandant! Zwei Sendetürme stehen noch. Nimm beide ein und halte sie fünf Runden lang gleichzeitig, dann gehört die Zone {faction}.",
+          "Kkt. Primitive Wesen funken über unsere Absturzstelle. Schwarm, Türme abschalten!"
         ],
-        "won": "Vier Städte, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
-        "lost": "Die Zone ist verloren. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
+        "won": "Fünf Runden Sendebetrieb, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
+        "lost": "Funkstille. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
         "variants": {
           "korvat": {
-            "won": "Vier Städte, ein Volk, ein Schritt! Der Volksbund singt heute Abend doppelt so laut."
+            "won": "Zwei Türme, ein Volk, ein Sender! Der Volksbund singt heute Abend doppelt so laut, und zwar auf allen Frequenzen."
           }
         }
       },
@@ -1298,7 +1300,8 @@
     "ruinDone": "Ruinenstätte entziffert: {have}/{need}",
     "riftOpen": "Der Riss reißt auf!",
     "landingBurrow": "Landetrupp ohne Basis: Erobere die Höhle der Zyrr, sonst gibt es keinen Nachschub.",
-    "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht."
+    "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht.",
+    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn."
   },
   "randomEvents": {
     "title": "Ereignisse",

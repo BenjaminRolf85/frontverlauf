@@ -255,6 +255,8 @@ export interface CampaignState {
   cave?: Pos;
   /** Runden in Folge, die der Spieler den Hoehleneingang besetzt / consecutive rounds the player occupies the cave entrance */
   caveHold?: number;
+  /** Runden in Folge, die der Spieler (mit Verbuendeten) alle Sendetuerme besitzt / consecutive rounds the player (with allies) owns all transmitter towers */
+  towerHold?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */

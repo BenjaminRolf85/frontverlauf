@@ -1005,22 +1005,24 @@
       "noOutpostLost": "Lose no Verdan outpost",
       "holdOutposts": "Lose no Verdan outpost until round {rounds}",
       "burrow": "Capture the Zyrr burrow by round {rounds}",
-      "bonusBurrow": "Capture the Zyrr burrow"
+      "bonusBurrow": "Capture the Zyrr burrow",
+      "towers": "Capture the transmitter towers and hold all of them at once for {n} rounds in a row, by round {rounds}",
+      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})"
     },
     "missions": {
       "m1": {
         "title": "Shower of Sparks",
-        "tagline": "Secure the crash zone with four cities",
+        "tagline": "Capture the transmitter towers and hold them for 5 rounds",
         "brief": [
-          "{leader} speaking. The sky burned, and now it is raining scrap. We secure the crash zone before anyone else does.",
-          "Debris and smoking craters everywhere, commander! The settlements around here are scared. Four cities under the flag of {faction}, then the zone is ours.",
-          "Kkt. Primitive creatures are crawling over our crash site. Swarm, clean up!"
+          "{leader} speaking. The sky burned, and now it is raining scrap. Whoever holds the transmitter towers holds the radio over the whole crash zone.",
+          "Debris and smoking craters everywhere, commander! Two transmitter towers are still standing. Take both and hold them at the same time for five rounds, then the zone belongs to {faction}.",
+          "Kkt. Primitive creatures are broadcasting over our crash site. Swarm, switch off the towers!"
         ],
-        "won": "Four cities, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
-        "lost": "The zone is lost. The settlers pack their suitcases, the Zyrr unpack their probes.",
+        "won": "Five rounds on air, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
+        "lost": "Radio silence. The settlers pack their suitcases, the Zyrr unpack their probes.",
         "variants": {
           "korvat": {
-            "won": "Four cities, one people, one step! The League sings twice as loud tonight."
+            "won": "Two towers, one people, one transmitter! The League sings twice as loud tonight, on every frequency."
           }
         }
       },
@@ -1298,7 +1300,8 @@
     "ruinDone": "Ruin site deciphered: {have}/{need}",
     "riftOpen": "The rift tears open!",
     "landingBurrow": "Landing party without a base: capture the Zyrr burrow, or there will be no reinforcements.",
-    "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow."
+    "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow.",
+    "towerHoldTip": "One more thing, commander: the transmitter towers train troops but do not grow. The count happens at the start of your turn. If a tower falls, the count starts over."
   },
   "randomEvents": {
     "title": "Events",
