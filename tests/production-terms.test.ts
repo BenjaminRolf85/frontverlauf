@@ -92,4 +92,15 @@ describe('Forschung / Produktion / research / production', () => {
       expect(human).not.toMatch(/\{\w+\}/);
     }
   });
+
+  it('Velkar-Texte sprechen von Produktion / Velkar texts talk about production', () => {
+    setLanguage('de');
+    expect(t('factions.velkar.perkDesc')).toBe('Alle Produktionsfähigkeiten kosten 12 % weniger.');
+    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/forsch/i);
+    setLanguage('en');
+    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/research/i);
+    // die anderen Rassen bleiben bei Forschung / the other races stay with research
+    expect(t('xeno.noResearch')).toMatch(/research/i);
+    expect(t('nexus.noResearch')).toMatch(/research/i);
+  });
 });

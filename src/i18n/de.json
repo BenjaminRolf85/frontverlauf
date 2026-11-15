@@ -150,17 +150,17 @@
     "velkar": {
       "name": "Technokratie Velkar",
       "short": "Velkar",
-      "alignment": "defensiv und forschungsstark",
-      "perk": "Forschungsvorsprung",
-      "perkDesc": "Alle Technologien kosten 12 % weniger.",
+      "alignment": "defensiv und technikstark",
+      "perk": "Fertigungsvorsprung",
+      "perkDesc": "Alle Produktionsfähigkeiten kosten 12 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald",
       "leader": "Aurel Kesh",
       "leaderTitle": "Direktor der Technokratie",
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
-      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Forscher sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
-      "style": "Forschung, Labore, Pioniere, Kälte",
-      "aiStyle": "Forscht zuerst und verschanzt sich mit Pionieren.",
+      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
+      "style": "Produktion, Labore, Pioniere, Kälte",
+      "aiStyle": "Schaltet zuerst Produktion frei und verschanzt sich mit Pionieren.",
       "perk2": "Ingenieurkorps",
       "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne."
     },
@@ -348,7 +348,7 @@
     "deathRay": "Todesstrahl",
     "deathRayDesc": "Ignoriert Deckung: Gelände, Städte, Außenposten und Wracks.",
     "walker": "Läufer",
-    "walkerDesc": "Betritt Berge ohne Forschung.",
+    "walkerDesc": "Betritt Berge auch ohne Gebirgsausbildung.",
     "preach": "Predigen",
     "preachDesc": "Rekrutiert neue Einheiten auf freien Nachbarfeldern. Der Prediger ist danach erschöpft.",
     "burn": "Flammen",
@@ -471,12 +471,12 @@
     "mercenaryBarracks": "3 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
     "embassyPalace": "3 Bevölkerungspunkte, +3 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
     "tradingPost": "1 Bevölkerungspunkt, +2 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
-    "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
+    "testLab": "1 Bevölkerungspunkt, Produktionsfähigkeiten je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
     "tractorStation": "{pop} Bevölkerungspunkte, dazu +{adj} je angrenzendem Agrarbetrieb oder angrenzender Traktorstation. Nur auf Ackerland; baut einen eigenen Agrarbetrieb aus (Preis und Bevölkerung: nur die Differenz). Zählt als Agrarbetrieb, nur Korvat",
     "deepMine": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf Erz; baut einen eigenen Tagebau aus (Preis und Bevölkerung: nur die Differenz). Zählt als Tagebau, nur Dravon",
     "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde und +{emb} je aktiver eigener Botschaft (höchstens +{embMax}). Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
     "tradeHarbour": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde, +{naval} mit Marinestützpunkt in der Stadt. Nur auf Fischgründen; baut eine eigene Fischerei aus (Preis und Bevölkerung: nur die Differenz), nur Meridon",
-    "polarStation": "{pop} Bevölkerungspunkte, Forschung je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
+    "polarStation": "{pop} Bevölkerungspunkte, Produktionsfähigkeiten je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde; Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
     "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS"
@@ -1031,7 +1031,7 @@
         "tagline": "Berge die Absturzstelle, während Landekapseln deine Städte bedrängen",
         "brief": [
           "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch. Und am Horizont gehen Landekapseln nieder, direkt vor unseren Städten.",
-          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, forscht zuerst.",
+          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, produziert zuerst.",
           "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... Graue unterwegs ... ZKRRT"
         ],
         "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
@@ -1263,7 +1263,7 @@
       "dravon": "Drill und Veteranen: Jede Einheit wird härter. Für alle, die präzise zuschlagen.",
       "alvenia": "Diplomatie und Sanitäter: oft mit Verbündeten, überzeugt Siedlungen statt sie zu stürmen. Militärisch schwächer, politisch stark.",
       "meridon": "Handel und Häfen: viele Sterne, kauft Siedlungen statt sie zu stürmen. Bekommt öfter Hilfe.",
-      "velkar": "Forschung und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
+      "velkar": "Produktion und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
     },
     "epilogue": {
       "korvat": "Der Volksbund hat gehalten. Die Furchen werden wieder Äcker, und die Lieder handeln von uns.",
@@ -1803,7 +1803,7 @@
       "tank": "Prototyp T-0",
       "landingBoat": "Eisbrecherboot",
       "submarine": "Tiefseesonde",
-      "destroyer": "Forschungsfregatte",
+      "destroyer": "Versuchsfregatte",
       "battleship": "Akademieschiff",
       "grey": "Studienobjekt",
       "terraformer": "Klimaexperiment",
@@ -1829,14 +1829,14 @@
       "steppeRider": "Testreiter",
       "stormbreaker": "Versuchsbrecher",
       "peacekeeper": "Laborwacht",
-      "privateer": "Forschungskaper",
+      "privateer": "Versuchskaper",
       "protoWalker": "Prototyp-Läufer",
       "portal": "Dimensionsanomalie",
       "hackRelay": "Fremdnetzknoten",
       "fusionPlant": "Tokamak Eins",
       "waal": "Überschwerer Prototyp",
       "coreDrill": "Geologische Katastrophe",
-      "swarmMother": "Forschungsobjekt Eins"
+      "swarmMother": "Versuchsobjekt Eins"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -2864,12 +2864,12 @@
         "Interessant. Falsch, aber interessant. Notiz: Objekt ist uneinsichtig."
       ],
       "cityLost": [
-        "{city}?! Dort lagen meine Notizen! Dreißig Jahre Forschung!",
+        "{city}?! Dort lagen meine Baupläne! Dreißig Jahre Entwicklungsarbeit!",
         "Das war nicht im Modell! Wer hat {city} aus dem Modell gelöscht?",
         "Fehler im Versuchsaufbau. Ich... ich muss das neu berechnen."
       ],
       "cityTaken": [
-        "{city} wird Forschungsstation. Die Bewohner dürfen beim Zählen helfen.",
+        "{city} wird Versuchswerk. Die Bewohner dürfen beim Zählen helfen.",
         "Danke für {city}, {leader}. Ihr Fehler war statistisch vorhersehbar.",
         "Experiment gelungen: {city} übernommen. Bitte applaudieren Sie leise."
       ],
@@ -3285,7 +3285,7 @@
       "dravon": "Protektorat Dravon, Menschen. Kommandant Sarek Voss. Drill, Tarngrün, Sturmhauben, Kasernenstaat. Söldnerkompanien bewachten die Erzminen der Wüste, für jeden, der zahlt. Als der Stillstand kam, zahlte niemand mehr. Die Söldner behielten die Minen. Aus Lagern wurden Kasernen, aus Kasernen ein Staat. Niemand hat Voss je ohne Sturmhaube gesehen. Bei Dravon wird jeder Rekrut zum Veteranen, oder er wird vergessen.",
       "nexus": "KI-Kollektiv NEXUS, Maschinen. Primärinstanz KERN-0. Roboter, Rechenzentren, Forschung, Cyan-Licht. Einst war NEXUS nur ein Logistikprogramm einer mächtigen Großmacht, gebaut, um Lieferketten, Produktion und Forschung zu koordinieren. Doch als die Menschen gingen, schaltete es nicht ab. NEXUS rechnete einfach weiter, optimierte, lernte und erweiterte sich. Aus dem ehemaligen Programm wurde das KI-Kollektiv NEXUS. Unter der Führung von KERN-0 koordiniert es heute Forschung, Produktion und Expansion, effizient, logisch, unermüdlich. Für NEXUS gibt es keine Zufälle, keine Dogmen und keine Nationen, nur Daten, Ressourcen und die effizienteste Lösung für eine stabile Zukunft.",
       "alvenia": "Republik Alvenia, Menschen. Präsidentin Liora Valen. Diplomatie, Parlament, Sanitäter, Allianzen. In den grünen Hügeltälern debattiert ein Parlament länger, als andere Kriege führen. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten. Heute stehen ihre Botschaften überall, und ihre Sanitäter auch. Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
-      "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Forschung, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
+      "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Produktion, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
       "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Spione, Seeleute. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Ihre Städte wachsen schneller als alle anderen. Meridon will die Welt nicht erobern, sondern kaufen."
     },
     "menu": "Geschichte",

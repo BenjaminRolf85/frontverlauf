@@ -150,17 +150,17 @@
     "velkar": {
       "name": "Technocracy of Velkar",
       "short": "Velkar",
-      "alignment": "defensive and research-driven",
-      "perk": "Research lead",
-      "perkDesc": "All technologies cost 12 % less.",
+      "alignment": "defensive and engineering-driven",
+      "perk": "Production lead",
+      "perkDesc": "All production capabilities cost 12 % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
       "leaderTitle": "Director of the Technocracy",
       "quote": "Who calculates, wins. Who guesses, loses.",
-      "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's researchers are ahead of everyone, and its pioneers build fortresses where others freeze.",
-      "style": "research, laboratories, pioneers, cold",
-      "aiStyle": "Researches first and digs in with pioneers.",
+      "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
+      "style": "production, laboratories, pioneers, cold",
+      "aiStyle": "Unlocks production first and digs in with pioneers.",
       "perk2": "Engineer corps",
       "perk2Desc": "Tank barriers cost 5 instead of 10 stars."
     },
@@ -348,7 +348,7 @@
     "deathRay": "Death ray",
     "deathRayDesc": "Ignores cover: terrain, cities, outposts and wrecks.",
     "walker": "Walker",
-    "walkerDesc": "Enters mountains without research.",
+    "walkerDesc": "Enters mountains even without Mountain training.",
     "preach": "Preach",
     "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
     "burn": "Flames",
@@ -471,12 +471,12 @@
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
     "embassyPalace": "3 population, +3 stars per round per peace treaty, one per faction, Alvenia only",
     "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
-    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
+    "testLab": "1 population, production capabilities 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
     "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
     "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
     "hillVineyard": "{pop} population, +{stars} stars per round and +{emb} per active own embassy (at most +{embMax}). Only on plains in the hills biome without a resource, one per city, Alvenia only",
     "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
-    "polarStation": "{pop} population, research {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
+    "polarStation": "{pop} population, production capabilities {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "{pop} population and +{stars} stars per round; recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only"
@@ -1031,7 +1031,7 @@
         "tagline": "Salvage the crash site while landing pods press your cities",
         "brief": [
           "There is a chunk of the mothership out there, big as a train station! It is still glowing. And on the horizon landing pods are coming down, right in front of our cities.",
-          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. Meanwhile no city falls. First come, first researched.",
+          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. Meanwhile no city falls. First come, first in production.",
           "ZKRRT ... property of the swarm ... earthlings ... step back ... greys inbound ... ZKRRT"
         ],
         "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
@@ -1263,7 +1263,7 @@
       "dravon": "Drill and veterans: every unit gets tougher. For everyone who strikes with precision.",
       "alvenia": "Diplomacy and medics: often with allies, persuades settlements instead of storming them. Weaker in arms, strong in politics.",
       "meridon": "Trade and harbours: plenty of stars, buys settlements instead of storming them. Gets help more often.",
-      "velkar": "Research and fortresses: faster to new technology. For everyone who calculates before shooting."
+      "velkar": "Production and fortresses: faster to new technology. For everyone who calculates before shooting."
     },
     "epilogue": {
       "korvat": "The League has held. The furrows become fields again, and the songs are about us.",
@@ -1803,7 +1803,7 @@
       "tank": "Prototype T-0",
       "landingBoat": "Icebreaker Boat",
       "submarine": "Deep-Sea Probe",
-      "destroyer": "Research Frigate",
+      "destroyer": "Test Frigate",
       "battleship": "Academy Ship",
       "grey": "Study Subject",
       "terraformer": "Climate Experiment",
@@ -1829,14 +1829,14 @@
       "steppeRider": "Test Riders",
       "stormbreaker": "Trial Breakers",
       "peacekeeper": "Lab Watch",
-      "privateer": "Research Raider",
+      "privateer": "Prototype Raider",
       "protoWalker": "Prototype Walker",
       "portal": "Dimensional Anomaly",
       "hackRelay": "Rogue Network Node",
       "fusionPlant": "Tokamak One",
       "waal": "Super-Heavy Prototype",
       "coreDrill": "Geological Disaster",
-      "swarmMother": "Research Subject One"
+      "swarmMother": "Test Subject One"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -2864,12 +2864,12 @@
         "Interesting. Wrong, but interesting. Note: specimen is unreasonable."
       ],
       "cityLost": [
-        "{city}?! My notes were there! Thirty years of research!",
+        "{city}?! My blueprints were there! Thirty years of development!",
         "That was not in the model! Who deleted {city} from the model?",
         "Error in the experimental setup. I... I need to recalculate."
       ],
       "cityTaken": [
-        "{city} becomes a research station. The residents may help count.",
+        "{city} becomes a test works. The residents may help count.",
         "Thanks for {city}, {leader}. Your mistake was statistically predictable.",
         "Experiment successful: {city} acquired. Please applaud quietly."
       ],
@@ -3285,7 +3285,7 @@
       "dravon": "Protectorate of Dravon, humans. Commander Sarek Voss. Drill, camouflage green, balaclavas, barracks state. Mercenary companies guarded the ore mines of the desert, for anyone who paid. When the Standstill came, nobody paid anymore. The mercenaries kept the mines. Camps became barracks, barracks became a state. Nobody has ever seen Voss without his balaclava. In Dravon every recruit becomes a veteran, or is forgotten.",
       "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
       "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
-      "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Research, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
+      "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Production, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
       "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
     },
     "menu": "Story",
