@@ -486,7 +486,7 @@ export class Hud {
       if (myTurn) this.wonderActions(s, x, y);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
-    const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(`actions.${k}Actions`))}</button>`).join('')}</div>` : '';
+    const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(k === 'city' && supplyLines(s) ? 'actions.shaftActions' : `actions.${k}Actions`))}</button>`).join('')}</div>` : '';
     // Aktionsleiste mit Scroll-Hinweis und einzeiliger Erklaerung darunter / action bar with scroll cue and a one-line explanation below
     const blocked = this.hintId ? this.actions.find((a) => a.id === this.hintId)?.enabled === false : false;
     const actionsHtml = this.actions.length ? `<div class="action-wrap"><div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>
