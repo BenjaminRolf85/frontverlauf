@@ -1,5 +1,6 @@
 /** Spielstand als JSON im localStorage (immer in try/catch) und als Datei / save game as JSON in localStorage and as a file */
 import type { GameState } from '../core';
+import { CAMPAIGN_REV } from '../core/campaign';
 import type { Lang } from '../i18n/i18n';
 
 const SAVE_KEY = 'frontverlauf.save.v1';
@@ -51,11 +52,18 @@ export function isValidState(s: unknown): s is GameState {
  * Alte Spielstaende angleichen: Trefferglueck und Fraktionssiege gab es damals nicht, fehlende Felder bedeuten also AUS
  * (neue Spiele setzen beide ausdruecklich, siehe createGame/defaultConfig).
  * Bring old saves up to date: hit luck and faction victories did not exist back then, so missing fields mean OFF
- * (new games set both explicitly, see createGame/defaultConfig).
+ * (new games set both explicitly, see createGame/defaultConfig). Old campaign saves (before the human campaign) become free games.
  */
 export function migrateState(s: GameState): GameState {
   if (s.config.hitChance === undefined) s.config.hitChance = false;
   if (s.config.factionVictory === undefined) s.config.factionVictory = false;
+  // Kampagnen-Spielstaende der alten Missionsfassung laufen als freie Eroberungspartie weiter (die Missionen gibt es so nicht mehr)
+  // campaign saves of the old mission data continue as a free conquest game (those missions no longer exist)
+  if (s.campaign && s.campaign.rev !== CAMPAIGN_REV) {
+    delete s.campaign;
+    delete s.config.campaign;
+    s.config.factionVictory = false;
+  }
   return s;
 }
 

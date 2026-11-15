@@ -194,6 +194,20 @@ export interface CampaignState {
   result: 'won' | 'lost' | null;
   /** 0-3 Sterne / 0-3 stars */
   stars: number;
+  /** Stand der Missionsdaten (fehlt = alte Kampagne vor der Menschen-Kampagne) / revision of the mission data (missing = old campaign) */
+  rev?: number;
+  /** Zieleinheiten (IDs), von der Einrichtung markiert / target units (ids) marked by the setup */
+  units?: number[];
+  /** Ankunftspunkte der Wellen / arrival points of the waves */
+  spawns?: Pos[];
+  /** Anzahl bereits eingetroffener Wellen / number of waves that already arrived */
+  waves?: number;
+  /** verbuendete Fraktionen des Spielers (Indizes) / allied factions of the player (indices) */
+  allies?: number[];
+  /** Artefakt der Uralten (Finale) / artifact of the ancients (finale) */
+  artifact?: Pos;
+  /** wer das Artefakt wie viele Runden in Folge besetzt / who occupies the artifact for how many consecutive rounds */
+  hold?: { faction: number | null; n: number };
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -281,6 +295,8 @@ export type GameEvent =
   | { t: 'randomEvent'; kind: RandomEventKind; faction?: number; x?: number; y?: number; city?: number; unit?: number;
       stars?: number; tech?: TechId; other?: number; count?: number; contained?: boolean; ongoing?: boolean }
   | { t: 'objective'; index: number; bonus: boolean; status: ObjectiveStatus }
+  /** Kampagne: Welle (Feind oder Verstaerkung) eingetroffen / campaign: wave (enemy or reinforcements) arrived */
+  | { t: 'wave'; faction: number; count: number; x: number; y: number }
   | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
@@ -296,6 +312,8 @@ export type Command =
   | { type: 'medicHeal'; unit: number }
   | { type: 'convert'; unit: number; target: number }
   | { type: 'capture'; unit: number }
+  /** Kampagne: neutrale Siedlung ueberzeugen (Alvenia, Meridon) / campaign: persuade a neutral settlement (Alvenia, Meridon) */
+  | { type: 'persuade'; unit: number; city: number }
   | { type: 'train'; city: number; unitType: UnitTypeId }
   | { type: 'build'; building: BuildingId; x: number; y: number }
   | { type: 'grandProject'; id: GrandProjectId; x: number; y: number }

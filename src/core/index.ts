@@ -9,6 +9,7 @@ export * from './hazards';
 export * from './history';
 export {
   MISSIONS, MISSION_IDS, missionById, missionConfig, objectiveProgress, isHoldObjective, missionRoundsLeft,
-  type MissionDef, type ObjectiveDef, type Speaker,
+  CAMPAIGN_FACTIONS, CAMPAIGN_ENEMIES, CAMPAIGN_ALLIES, CAMPAIGN_REV, FINALE_ID, allyFor, isCampaignFaction, isCampaignAlly, panelOf,
+  type MissionDef, type ObjectiveDef, type Speaker, type BriefPanel, type WaveDef,
 } from './campaign';
 export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRandomEvent } from './events';

@@ -666,7 +666,9 @@
     "barrier": "Panzersperre bauen",
     "barrierHint": "Tippe auf ein Nachbarfeld für die Panzersperre.",
     "mine": "Mine legen",
-    "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine."
+    "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine.",
+    "persuade": "Überzeugen",
+    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne)."
   },
   "errors": {
     "gameOver": "Die Partie ist vorbei.",
@@ -909,7 +911,7 @@
   "campaign": {
     "title": "Kampagne",
     "menu": "Kampagne",
-    "subtitle": "Neun Einsätze an allen Fronten",
+    "subtitle": "Neun Einsätze nach dem Sternfall",
     "totalStars": "{n} von {max} Sternen",
     "mission": "Einsatz {n}",
     "locked": "Gesperrt",
@@ -936,7 +938,6 @@
     "retry": "Nochmal",
     "toCampaign": "Zur Kampagne",
     "toMenu": "Hauptmenü",
-    "finale": "Alle Einsätze erfüllt! Du bist eine Legende der Front.",
     "objectiveDone": "Ziel erfüllt: {text}",
     "objectiveFailed": "Ziel verfehlt: {text}",
     "bonusDone": "Bonusziel erfüllt: {text}",
@@ -948,7 +949,9 @@
     "speakers": {
       "hq": "Hauptquartier",
       "scout": "Aufklärung",
-      "enemy": "Feindfunk"
+      "enemy": "Feindfunk",
+      "scoutRole": "Späher an der Front",
+      "ally": "Verbündete"
     },
     "obj": {
       "holdHq": "Halte dein Hauptquartier bis Runde {rounds}",
@@ -967,107 +970,213 @@
       "bonusCapture": "Erobere die markierte Stadt",
       "bonusCities": "Besitze {n} Städte",
       "bonusKills": "Vernichte {n} feindliche Einheiten",
-      "bonusPoints": "Erreiche {n} Punkte"
+      "bonusPoints": "Erreiche {n} Punkte",
+      "destroyUnit": "Zerstöre den {unit} bis Runde {rounds}",
+      "artifact": "Besetze das Artefakt {n} Runden in Folge, bis Runde {rounds}"
     },
     "missions": {
       "m1": {
-        "title": "Feuertaufe",
-        "tagline": "Drei Städte unter Korvat-Flagge",
+        "title": "Funkenregen",
+        "tagline": "Sichere die Absturzzone mit drei Städten",
         "brief": [
-          "Rekrut! Willkommen an der Front. Die Dravon schnüffeln an unserer Grenze herum.",
-          "Dein Auftrag: Drei Städte unter Korvat-Flagge. Siedlungen einnehmen, Truppen ausheben – zack, zack!",
-          "Hier spricht Dravon. Korvat-Bauern? Wir sind in zwei Runden zum Frühstück bei euch!"
+          "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wir sichern die Absturzzone, bevor es andere tun.",
+          "Überall Trümmer und rauchende Krater, Kommandant! Die Siedlungen ringsum haben Angst. Drei Städte unter der Flagge von {faction}, dann gehört die Zone uns.",
+          "Kkt. Primitive Wesen kriechen über unsere Absturzstelle. Schwarm, säubern!"
         ],
-        "won": "Drei Städte, null Ausreden. Das nennt man eine Feuertaufe, Soldat!",
-        "lost": "Das war nix. Zurück ins Ausbildungslager – und dann nochmal!"
+        "won": "Drei Städte, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
+        "lost": "Die Zone ist verloren. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
+        "variants": {
+          "korvat": {
+            "won": "Drei Städte, ein Volk, ein Schritt! Der Volksbund singt heute Abend doppelt so laut."
+          }
+        }
       },
       "m2": {
-        "title": "Der Vulkanpass",
-        "tagline": "Halte den Pass am Feuerberg",
+        "title": "Wettlauf zum Wrack",
+        "tagline": "Berge die Absturzstelle vor den Zyrr",
         "brief": [
-          "Der einzige Pass durchs Gebirge liegt direkt am Feuerberg. Wer ihn hält, hält das Tal.",
-          "Dravon-Kolonne im Anmarsch! Jeep und Infanterie, Kurs auf den Pass. Steht dort zu deinem Zugbeginn ein Feind, ist alles verloren.",
-          "Aus dem Weg, Bergziegen! Der Pass gehört Dravon!"
+          "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch.",
+          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Wer zuerst kommt, forscht zuerst.",
+          "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... ZKRRT"
         ],
-        "won": "Der Pass ist dicht! Die Dravon können ihre Landkarten wieder einpacken.",
-        "lost": "Der Pass ist gefallen. Selbst der Vulkan schämt sich."
+        "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
+        "won": "Geborgen! Die Eierköpfe im Labor flippen gerade völlig aus.",
+        "lost": "Die Zyrr waren schneller. Jetzt fliegt das Ding wieder, nur nicht für uns.",
+        "variants": {
+          "velkar": {
+            "won": "Geborgen! {leader} hat schon siebzehn Formeln auf die Trümmer geschrieben."
+          }
+        }
       },
       "m3": {
-        "title": "Verteidige die Küste",
-        "tagline": "15 Runden gegen die Landungsflotte",
+        "title": "Die Linie hält",
+        "tagline": "12 Runden gegen Gleiter und Graue",
         "brief": [
-          "Alarm an der Küste! Die Alvenia-Flotte liegt vor unseren Häfen.",
-          "Zwei Landungsboote und ein Zerstörer, Kommandant. Die wollen an unseren Strand!",
-          "Halte alle unsere Städte 15 Runden lang. Kein Sandkorn für den Feind!"
+          "Landekapseln am Horizont! Gleiter und Graue, Welle um Welle, direkt auf unsere Städte.",
+          "Kkt. Die Erdlinge haben Städte. Wir haben Geduld. Und sehr viele Graue.",
+          "{leader} hier. Keine Stadt fällt, zwölf Runden lang. Gräben ausheben, MG laden, Linie halten!"
         ],
-        "won": "15 Runden, keine Stadt verloren. Die Admirale von Alvenia baden jetzt lieber woanders.",
-        "lost": "Sie sind gelandet. Wir hätten mehr Bunker und weniger Strandkörbe bauen sollen."
+        "ally": "{allyLeader} an {leader}: {ally} hält die Flanke. Ihr haltet die Mitte. Keiner weicht.",
+        "won": "Zwölf Runden, keine Stadt verloren. Die Zyrr sortieren ihre Wellen jetzt neu.",
+        "lost": "Die Linie ist gebrochen. Violetter Schleim in unseren Straßen. Igitt.",
+        "variants": {
+          "dravon": {
+            "won": "Zwölf Runden, keine Stadt verloren. Drill zahlt sich aus. Wer müde ist, darf jetzt kurz blinzeln."
+          }
+        }
       },
       "m4": {
-        "title": "Wettlauf zur Absturzstelle",
-        "tagline": "Schneller als die Zyrr",
+        "title": "Falsche Pilger",
+        "tagline": "Erledige die Eiferer in deinem Land",
         "brief": [
-          "Da ist was vom Himmel gefallen – rauchend, glühend und eindeutig nicht von hier!",
-          "Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Die Uhr läuft!",
-          "ZKRRT ... Eigentum der Zyrr ... Erdlinge ... zurücktreten ... ZKRRT"
+          "Die Pilger, die wir aufgenommen haben, tragen plötzlich Knochenmasken! Sie stehen direkt vor unseren Toren.",
+          "Die Glocke hat geschlagen. Von selbst! Brüder, Schwestern, bekehrt sie oder brennt sie nieder.",
+          "{leader} hier. Sechs Eiferer weniger, und die Ruhe kehrt zurück. Schnell, bevor sie anfangen zu predigen."
         ],
-        "won": "Geborgen! Die Eierköpfe im Labor flippen gerade völlig aus.",
-        "lost": "Die Zyrr waren schneller. Jetzt fliegt das Ding wieder – nur nicht für uns."
+        "ally": "{allyLeader} hier. {ally} hat auch Pilger im Haus. Wir räumen gemeinsam auf, {leader}.",
+        "won": "Die Masken liegen im Staub. Der Rest der Pilger will plötzlich nur noch Tee.",
+        "lost": "Die Eiferer predigen auf unseren Marktplätzen. Der Bäcker trägt schon eine Kutte.",
+        "variants": {
+          "alvenia": {
+            "won": "Die Masken liegen im Staub. Unsere Sanitäter verbinden jetzt auch die Eiferer. So ist das bei uns."
+          }
+        }
       },
       "m5": {
-        "title": "Der Kult erwacht",
-        "tagline": "Stürme die Kultzentrale",
+        "title": "Die Pilgerstadt",
+        "tagline": "Erobere die Hauptstadt des Kults",
         "brief": [
-          "Im Seenland brennen nachts Fackeln. Der Kult der Letzten Stunde predigt den Weltuntergang.",
-          "Das Ende naht! Schließt euch an – oder brennt!",
-          "Erobere ihr Hauptquartier, bevor der Wahn sich ausbreitet. Keine Predigten, nur Panzer."
+          "{leader} an alle: Der Kult sammelt sich in seiner Pilgerstadt. Nehmt sie ein, dann verstummt die Glocke vielleicht.",
+          "{enemyLeader} spricht: Kommt nur. Unsere Stadt ist auf Glauben gebaut. Und auf sehr dicken Mauern.",
+          "Fackelträger auf den Mauern, Eiferer in den Gassen. Die Seen bremsen uns, Kommandant. Nehmt die Ufer."
         ],
-        "won": "Kultzentrale gestürmt. Die Fackeln gehen aus, die Weltuntergangsplakate gehen ins Altpapier.",
-        "lost": "Der Kult wächst weiter. Irgendwer hat ihnen Megafone verkauft."
+        "ally": "{allyLeader} hier. {ally} marschiert mit, {leader}. Gemeinsam sind wir lauter als jede Glocke.",
+        "won": "Die Pilgerstadt ist gefallen. Die Glocke hängt jetzt schief. Gut so.",
+        "lost": "Die Pilgerstadt steht. Und ihre Prediger haben jetzt Megafone.",
+        "variants": {
+          "meridon": {
+            "won": "Die Pilgerstadt ist unser. Die Kerzenvorräte des Kults verkaufen wir mit gutem Gewinn."
+          }
+        }
       },
       "m6": {
-        "title": "Maschinenstürmer",
-        "tagline": "Befreie zwei Dörfer von NEXUS",
+        "title": "Der Erdkernbohrer",
+        "tagline": "Zerstöre den Bohrer, bevor er durchbricht",
         "brief": [
-          "Kommandant, in zwei Dörfern vor unserer Haustür surrt und piept es. Blechköpfe!",
-          "NEXUS ÜBERNIMMT. WIDERSTAND IST INEFFIZIENT. BITTE LÄCHELN.",
-          "Nimm beide Siedlungen zurück! Schraubenschlüssel raus, Leute."
+          "Der Boden zittert, Kommandant! Der Kult hat einen riesigen Bohrer aufgestellt. Er will bis zum Erdkern!",
+          "Die Letzte Stunde braucht ein Loch, durch das sie kommen kann. Wir bohren es ihr.",
+          "{leader} hier. Panzer und Artillerie vor! Der Bohrer muss weg, bevor er durchbricht. Vierzehn Runden, keine mehr."
         ],
-        "won": "Beide Dörfer befreit. Die Androiden sammeln wir als Altmetall ein.",
-        "lost": "Die Maschinen halten die Dörfer. Unser Toaster guckt uns auch schon komisch an."
+        "ally": "{allyLeader} an {leader}: {ally} hat Sprengstoff und schlechte Laune. Wir sind dabei.",
+        "won": "Der Bohrer ist Schrott. Das Zittern hört auf. Nur der Kaffee wackelt noch.",
+        "lost": "Der Bohrer frisst sich tiefer. Man sollte wirklich keine Löcher in Planeten bohren lassen.",
+        "variants": {
+          "velkar": {
+            "won": "Der Bohrer ist Schrott. Die Bohrkrone behalten wir. Für die Wissenschaft."
+          }
+        }
       },
       "m7": {
-        "title": "Die Prophezeiung",
-        "tagline": "Als Kult zu Ruhm und Größe",
+        "title": "Die alten Depots",
+        "tagline": "Hol dir die Reichsdepots von NEXUS zurück",
         "brief": [
-          "Brüder und Schwestern! Die Prophezeiung verlangt Ruhm über alle Maßen – und zwar pünktlich.",
-          "Predigt, rekrutiert, breitet euch aus. Und achtet auf Zeichen: Stürme, Seuchen, Wunder.",
-          "Meridon an alle: Diese Spinner in Kutten sind gefährlich. Feuer frei!"
+          "In zwei alten Reichsdepots gehen die Lichter an. Seit dem Großen Stillstand war da niemand mehr!",
+          "KERN-0 HIER. DIE DEPOTS GEHÖREN DEM REICH. DAS REICH BIN ICH. BITTE NICHT STÖREN.",
+          "{leader} hier. Verdans Maschinen sind aufgewacht. Wir nehmen beide Depots, bevor sie Armeen ausspucken."
         ],
-        "won": "Die Prophezeiung ist erfüllt! Die Glocken läuten, die Eiferer tanzen.",
-        "lost": "Die Prophezeiung ... war wohl ein Druckfehler."
+        "ally": "{allyLeader} hier. {ally} kennt die alten Pläne der Depots. Wir zeigen euch die Hintertür, {leader}.",
+        "won": "Beide Depots befreit. Die Lagerlisten von Verdan sind dreihundert Seiten lang. Wir lesen später.",
+        "lost": "Die Depots surren weiter. NEXUS produziert, wir improvisieren.",
+        "variants": {
+          "korvat": {
+            "won": "Beide Depots befreit. Die Traktoren darin gehören jetzt dem Volk."
+          }
+        }
       },
       "m8": {
-        "title": "Erstkontakt",
-        "tagline": "Als Zyrr die Erdlinge testen",
+        "title": "Stellung halten",
+        "tagline": "Überlebe, bis die Verstärkung kommt",
         "brief": [
-          "Mutterschiff an Landetrupp: Die Erdlinge sind primitiv, laut und bewaffnet.",
-          "Korvat an alle: Grüne Männchen im Feld! Holt die Mistgabeln ... und die Panzer!",
-          "Testet ihre Abwehr. Vernichtet ihre Einheiten. Für die Wissenschaft. Und den Spaß."
+          "{leader} an alle: NEXUS greift mit allem an, was rollt und fliegt. Hauptquartier halten, bis Verstärkung eintrifft!",
+          "WIDERSTAND BERECHNET. ERGEBNIS: KURZ. BITTE BLEIBEN SIE AN IHREM PLATZ.",
+          "Spinnen, Drohnen, Schienenkanonen, und am Ende kommt ein Titan. Der Bunker hält. Hoffentlich."
         ],
-        "won": "Testreihe abgeschlossen. Ergebnis: Erdlinge zerbrechlich. Mutterschiff erfreut. ZKRRT.",
-        "lost": "Rückzug zum Mutterschiff. Notiz für später: Erdlinge haben Mistgabeln."
+        "ally": "{allyLeader} hier. {ally} ist unterwegs, {leader}. Haltet durch, wir kommen.",
+        "won": "Die Verstärkung ist da! NEXUS rechnet noch, wir feiern schon.",
+        "lost": "Das Hauptquartier ist gefallen. Die Maschinen haben unser Funkgerät. Und unsere Kekse.",
+        "variants": {
+          "dravon": {
+            "won": "Die Verstärkung ist da. {leader} nickt einmal. Das ist bei Dravon ein Orden."
+          }
+        }
       },
       "m9": {
-        "title": "Die letzte Bastion",
-        "tagline": "Überlebe die Invasion",
+        "title": "Das Artefakt",
+        "tagline": "Alle gegen alle um das Erbe der Uralten",
         "brief": [
-          "Lichter am Himmel, Maschinen am Horizont – Zyrr und NEXUS greifen gemeinsam an!",
-          "ZKRRT ... BIEP ... KAPITULIERT ... ZKRRT ... BIEP",
-          "Halte das Hauptquartier bis zum Ende. Der Bunker steht, die MGs sind geladen. Kein Schritt zurück!"
+          "In der Kartenmitte ist etwas aufgetaucht: ein Obelisk voller Runen, älter als Verdan, älter als alles. Er verspricht die Herrschaft über die Welt.",
+          "Kkt. Das Artefakt gehört dem Schwarm. Wir haben es gerochen, bevor ihr das Feuer kanntet.",
+          "KERN-0: ARTEFAKT ERKANNT. WAHRSCHEINLICHKEIT DER WELTHERRSCHAFT: HUNDERT PROZENT. ICH NEHME ES.",
+          "Das ist die Letzte Stunde! Wer das Artefakt berührt, läutet das Ende ein. Und das sind wir.",
+          "{leader} hier. Zyrr, NEXUS und Kult wollen es, und alle hassen sich. Besetzt das Artefakt drei Runden in Folge und haltet das Hauptquartier!"
         ],
-        "won": "Die Invasion ist abgewehrt! Dravon steht – und die Welt schuldet uns einen Orden.",
-        "lost": "Die Bastion ist gefallen. Aber von diesem Kampf wird man sich ewig erzählen."
+        "ally": "{allyLeader} an {leader}: {ally} deckt euch den Rücken. Das Artefakt gehört euch. Nur bitte nicht drücken, bevor wir da sind.",
+        "won": "Das Artefakt gehört {faction}! Die Runen leuchten auf ...",
+        "lost": "Jemand anderes hat das Artefakt berührt. Der Himmel flackert. Das war es dann."
+      }
+    },
+    "intro": "Der Himmel hat gebrannt: Das Mutterschiff der Zyrr liegt in der Wüste, die Glocke schlägt von selbst, und NEXUS ist erwacht. Die Kreidegrenzen sind Geschichte. Wähle eine Menschenfraktion und halte die Front.",
+    "prologue": "Prolog: Der Sternfall",
+    "chooseFaction": "Wähle deine Fraktion",
+    "chooseHint": "Jede Menschenfraktion hat ihren eigenen Feldzug mit eigenem Fortschritt. Du kannst jederzeit wechseln.",
+    "changeFaction": "Fraktion wechseln",
+    "and": "mit",
+    "migrated": "Dein bisheriger Kampagnenfortschritt läuft jetzt als Feldzug von {faction} weiter. Die Einsätze sind neu, Freischaltungen und Sterne bleiben.",
+    "noticeOk": "Verstanden",
+    "loops": "Zeitschleife durchlaufen: {n} von {max} Fraktionen",
+    "loopBadge": "Zeitschleife durchlaufen",
+    "replay": "Kampagne erneut spielen, diesmal mit einer anderen Menschenfraktion",
+    "replayHint": "Die Zeit beginnt von vorn. Wer führt die Menschen diesmal?",
+    "epilogueTitle": "Epilog",
+    "twistTitle": "Die Wahrheit über das Artefakt",
+    "twist": [
+      "Die Runen glühen auf. {leader} legt die Hand auf das Artefakt. Das Licht verschluckt alles ...",
+      "... und die Glocke schlägt wieder. Irgendwo in der Wüste kracht ein Mutterschiff in den Sand.",
+      "Der Sternfall. Als wäre nichts geschehen. Das Artefakt hat die Zeit zurückgedreht, und alles beginnt von vorn."
+    ],
+    "persuadeTip": "Tipp: Als {faction} kannst du neutrale Siedlungen überzeugen statt erobern. Eine Einheit daneben, ab {cost} Sterne, kein Schuss.",
+    "waveOwn": "Verstärkung eingetroffen: {n} Einheiten!",
+    "waveEnemy": "Neue Welle: {n} Einheiten von {name} sind gelandet!",
+    "artifactHeld": "{name} hält das Artefakt: {have}/{need} Runden!",
+    "pitch": {
+      "korvat": "Masse, Marsch, Mut: billige Infanterie in Scharen. Für alle, die mit vielen Stiefeln antreten.",
+      "dravon": "Drill und Veteranen: Jede Einheit wird härter. Für alle, die präzise zuschlagen.",
+      "alvenia": "Diplomatie und Sanitäter: oft mit Verbündeten, überzeugt Siedlungen statt sie zu stürmen. Militärisch schwächer, politisch stark.",
+      "meridon": "Handel und Häfen: viele Sterne, kauft Siedlungen statt sie zu stürmen. Bekommt öfter Hilfe.",
+      "velkar": "Forschung und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
+    },
+    "epilogue": {
+      "korvat": "Der Volksbund hat gehalten. Die Furchen werden wieder Äcker, und die Lieder handeln von uns.",
+      "dravon": "Disziplin hat die Sterne geschlagen. Kein Rekrut wird diesen Tag je vergessen.",
+      "alvenia": "Wir haben gewonnen, weil wir nicht allein waren. Das Parlament tagt heute ausnahmsweise kurz.",
+      "meridon": "Das Artefakt gehört uns. Unbezahlbar. Ich habe trotzdem schon drei Angebote.",
+      "velkar": "Die Formel ist bewiesen. Unendliche Energie liegt vor uns. Bitte nichts anfassen."
+    },
+    "acts": {
+      "a1": {
+        "title": "Akt I: Sternfall",
+        "tagline": "Gegen die Zyrr",
+        "closing": "Akt I: Das Mutterschiff raucht noch, aber die Zyrr haben gelernt, dass dieser Planet zurückbeißt."
+      },
+      "a2": {
+        "title": "Akt II: Die Glocke",
+        "tagline": "Gegen den Kult der Letzten Stunde",
+        "closing": "Akt II: Der Bohrer schweigt, die Pilger gehen heim. Nur die Glocke schlägt manchmal noch von selbst."
+      },
+      "a3": {
+        "title": "Akt III: Erwachen",
+        "tagline": "Gegen NEXUS, dann gegen alle",
+        "closing": "Akt III: NEXUS ist zurückgedrängt, das Artefakt in der Hand von {faction}. Die Front steht still. Für einen Atemzug."
       }
     }
   },
