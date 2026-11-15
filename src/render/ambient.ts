@@ -89,6 +89,9 @@ export class AmbientFx {
   private shadows: THREE.InstancedMesh | null = null;
   private splashes: THREE.InstancedMesh | null = null;
   private tmp = new THREE.Object3D();
+  // Geometrien und Materialien einmal bauen und bei jedem Neuaufbau wiederverwenden (sonst GPU-Leck)
+  // build geometries and materials once and reuse them on every rebuild (otherwise a GPU leak)
+  private shared: { fish: THREE.BufferGeometry; circle: THREE.BufferGeometry; ring: THREE.BufferGeometry; shadow: THREE.Material; splash: THREE.Material } | null = null;
 
   /** tiles: Liste der Fischfelder in Brettkoordinaten / fish tiles in board coords */
   build(fishTiles: { x: number; z: number; y: number }[]) {
@@ -100,11 +103,16 @@ export class AmbientFx {
       }
     });
     const n = Math.max(1, this.fish.length);
-    this.jumpers = new THREE.InstancedMesh(fishGeometry(), toonMaterial(), n);
-    const shadowMat = new THREE.MeshBasicMaterial({ color: hex(semantic.terrainDeep), transparent: true, opacity: 0.55, depthWrite: false });
-    this.shadows = new THREE.InstancedMesh(new THREE.CircleGeometry(0.05, 8).scale(0.6, 1.6, 1).rotateX(-Math.PI / 2), shadowMat, n);
-    const ringMat = new THREE.MeshBasicMaterial({ color: hex(semantic.white), transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide });
-    this.splashes = new THREE.InstancedMesh(new THREE.RingGeometry(0.05, 0.075, 14).rotateX(-Math.PI / 2), ringMat, n);
+    const sh = this.shared ??= {
+      fish: fishGeometry(),
+      circle: new THREE.CircleGeometry(0.05, 8).scale(0.6, 1.6, 1).rotateX(-Math.PI / 2),
+      ring: new THREE.RingGeometry(0.05, 0.075, 14).rotateX(-Math.PI / 2),
+      shadow: new THREE.MeshBasicMaterial({ color: hex(semantic.terrainDeep), transparent: true, opacity: 0.55, depthWrite: false }),
+      splash: new THREE.MeshBasicMaterial({ color: hex(semantic.white), transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }),
+    };
+    this.jumpers = new THREE.InstancedMesh(sh.fish, toonMaterial(), n);
+    this.shadows = new THREE.InstancedMesh(sh.circle, sh.shadow, n);
+    this.splashes = new THREE.InstancedMesh(sh.ring, sh.splash, n);
     for (const m of [this.jumpers, this.shadows, this.splashes]) {
       m.raycast = () => {};
       m.frustumCulled = false;

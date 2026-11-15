@@ -309,6 +309,22 @@ export class Board {
     return g;
   }
 
+  /** Grenzsegment, einmal gebaut / border segment, built once */
+  private borderGeo: THREE.BufferGeometry | null = null;
+  private slab: { key: string; geo: THREE.BufferGeometry } | null = null;
+  /**
+   * Scholle je Kartengroesse und Thema einmal bauen; die alte samt Kontur freigeben (sonst GPU-Leck bei jedem Neuaufbau).
+   * Build the slab once per map size and theme; dispose the old one with its outline (otherwise a GPU leak on every rebuild).
+   */
+  private slabGeometry(size: number, cave: boolean): THREE.BufferGeometry {
+    const key = `${size}|${cave}`;
+    if (this.slab?.key === key) return this.slab.geo;
+    if (this.slab) { hullGeometry(this.slab.geo).dispose(); this.slab.geo.dispose(); }
+    const geo = withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), cave ? semantic.caveWallDark : semantic.soil), 'none');
+    this.slab = { key, geo };
+    return geo;
+  }
+
   private clearGroup(g: THREE.Group) {
     for (const c of [...g.children]) {
       g.remove(c);
@@ -366,7 +382,7 @@ export class Board {
     this.revealFog(s, viewer, explored);
 
     // Scholle / slab
-    const slab = outlined(withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), cave ? semantic.caveWallDark : semantic.soil), 'none'), OUTLINE.tile, landMaterial());
+    const slab = outlined(this.slabGeometry(size, cave), OUTLINE.tile, landMaterial());
     slab.position.y = TILE_BOTTOM - SLAB_DEPTH / 2 + 0.001;
     this.staticLayer.add(slab);
 
@@ -711,7 +727,7 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     if (borderSegs.length) {
-      const g = paint(new THREE.BoxGeometry(0.98, 0.05, 0.07).toNonIndexed(), semantic.white);
+      const g = this.borderGeo ??= paint(new THREE.BoxGeometry(0.98, 0.05, 0.07).toNonIndexed(), semantic.white);
       const mesh = new THREE.InstancedMesh(g, toonMaterial(), borderSegs.length);
       borderSegs.forEach((b, i) => { mesh.setMatrixAt(i, b.m); mesh.setColorAt(i, new THREE.Color(hex(b.color))); });
       mesh.raycast = () => {};
