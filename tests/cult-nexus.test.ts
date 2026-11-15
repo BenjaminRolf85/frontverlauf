@@ -3,7 +3,7 @@ import {
   buildCheck, cityIncome, cityUpgradeCheck, combatPreview, computePower, createGame, cultCap, cultSlots, cultTithe, cultUnits, defaultConfig, income,
   plunderValue, plunderScoreFor, recruitCheck, trainCheck, upkeep,
 } from '../src/core';
-import { CITY, CULT, UNITS } from '../src/data/balance';
+import { CITY, CULT, UNITS, type FactionId } from '../src/data/balance';
 import { playAiTurn } from '../src/ai/ai';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, tile } from './helpers';
 
@@ -134,9 +134,10 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
     expect(enemy.plunderCount).toBe(1);
   });
   it('Pluenderpunkte nach Zahl der Gegner / plunder points by number of rivals', () => {
-    expect(plunderScoreFor(g(['vesper', 'korvat']).s)).toBe(CULT.plunderScoreByRivals[1]);
-    expect(plunderScoreFor(g(['vesper', 'korvat', 'dravon']).s)).toBe(CULT.plunderScoreByRivals[2]);
-    expect(plunderScoreFor(g(['vesper', 'korvat', 'dravon', 'alvenia', 'meridon']).s)).toBe(CULT.plunderScore);
+    const game = (ids: FactionId[]) => blankGame({ stars: 0, factions: ids });
+    expect(plunderScoreFor(game(['vesper', 'korvat']))).toBe(CULT.plunderScoreByRivals[1]);
+    expect(plunderScoreFor(game(['vesper', 'korvat', 'dravon']))).toBe(CULT.plunderScoreByRivals[2]);
+    expect(plunderScoreFor(game(['vesper', 'korvat', 'dravon', 'alvenia', 'meridon']))).toBe(CULT.plunderScore);
   });
   it('ausgeschieden ohne Einheit, Staedte werden neutral / eliminated without a unit, cities turn neutral', () => {
     const { s, hq } = g(['vesper', 'korvat']);
