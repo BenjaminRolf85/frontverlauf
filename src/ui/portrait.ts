@@ -9,6 +9,8 @@ import type { FactionId, UnitTypeId } from '../data/balance';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { unitGeometry } from '../render/models';
 import { outlined, unitMaterial } from '../render/toon';
+import { unitGlowMaterial } from '../render/atmosphere';
+import { TechParts } from '../render/techParts';
 
 /** Drehgeschwindigkeit in Radiant pro Sekunde / turn speed in radians per second */
 const TURN_SPEED = 0.6;
@@ -67,7 +69,11 @@ export class Portrait {
       this.holder.clear();
       try {
         const g = unitGeometry(type, faction, carried);
-        const model = outlined(g, 0.012, unitMaterial());
+        const model = outlined(g, 0.012, g.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
+        // Velkar: Rotoren, Lichtbogen und Drohne in Ruhehaltung / Velkar: rotors, arc and drone in their rest pose
+        const parts = new TechParts();
+        parts.attach(0, model, type, faction, g.userData.finishScale ?? 1, false);
+        parts.update(0, false);
         // Modell mittig und passend skaliert / centre and scale the model
         g.computeBoundingBox();
         const box = g.boundingBox!;

@@ -161,10 +161,12 @@
       "leaderTitle": "Direktor der Technokratie",
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
       "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
-      "style": "Produktion, Labore, Pioniere, Kälte",
+      "style": "Produktion, Labore, Prototypen, Kälte",
       "aiStyle": "Schaltet zuerst Produktion frei und verschanzt sich mit Pionieren.",
       "perk2": "Ingenieurkorps",
-      "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne."
+      "perk2Desc": "Panzersperren kosten 5 statt 10 Sterne.",
+      "feature": "Labor im Feld",
+      "featureDesc": "Eigene Bauarten statt der Standardtruppen: Tesla-Panzer statt Panzer (Angriff {tesla} statt {tank}, {miss} % Fehlschuss), Railgun-Schütze statt Scharfschütze (Reichweite {rail} statt {sniper}, nur aus dem Stand) und Oktokopter statt Kampfhubschrauber (gleiche Werte)."
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -265,7 +267,10 @@
     "waal": "Landkreuzer Waal",
     "coreDrill": "Erdkernbohrer",
     "swarmMother": "Schwarmmutter",
-    "scientist": "Wissenschaftler"
+    "scientist": "Wissenschaftler",
+    "teslaTank": "Tesla-Panzer",
+    "octocopter": "Oktokopter",
+    "railSniper": "Railgun-Schütze"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -314,7 +319,10 @@
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
     "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
-    "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne)."
+    "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne).",
+    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Nicht käuflich, kommt als Stadtbelohnung.",
+    "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
+    "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern."
   },
   "abilities": {
     "dash": "Sturm",
@@ -1678,7 +1686,10 @@
       "waal": "Stahlwal",
       "coreDrill": "Teufelspflug",
       "swarmMother": "Die große Mutter",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Blitzpanzer",
+      "octocopter": "Achtflügler",
+      "railSniper": "Schienenschütze"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1727,7 +1738,10 @@
       "waal": "Landkreuzer Waal",
       "coreDrill": "Ketzerbohrer",
       "swarmMother": "Feindliches Oberkommando",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Beute-Tesla",
+      "octocopter": "Beutedrohne",
+      "railSniper": "Beute-Railgun"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1776,7 +1790,10 @@
       "waal": "Kriegswal",
       "coreDrill": "Untergangsbohrer",
       "swarmMother": "Verhandlungsführerin des Schwarms",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Spulenpanzer",
+      "octocopter": "Rettungsdrohne",
+      "railSniper": "Präzisionsschütze"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1825,19 +1842,22 @@
       "waal": "Teurer Waal",
       "coreDrill": "Grundstücksruin",
       "swarmMother": "Die Konkurrenz im Chitinkleid",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Funkenpanzer",
+      "octocopter": "Lastdrohne",
+      "railSniper": "Magnetbüchse"
     },
     "velkar": {
       "infantry": "Laborwache",
-      "sniper": "Messschütze",
+      "sniper": "Beuteschütze",
       "jeep": "Messwagen",
       "pioneer": "Frostpioniere",
       "mg": "Versuchsreihe MG",
       "medic": "Kryo-Sanitäter",
       "artillery": "Ballistiklabor",
       "spy": "Datensammler",
-      "heli": "Polarrotor",
-      "tank": "Prototyp T-0",
+      "heli": "Beutehubschrauber",
+      "tank": "Beutepanzer",
       "landingBoat": "Eisbrecherboot",
       "submarine": "Tiefseesonde",
       "destroyer": "Versuchsfregatte",
@@ -1874,7 +1894,10 @@
       "waal": "Überschwerer Prototyp",
       "coreDrill": "Geologische Katastrophe",
       "swarmMother": "Versuchsobjekt Eins",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Tesla-Panzer",
+      "octocopter": "Oktokopter",
+      "railSniper": "Railgun-Schütze"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1923,7 +1946,10 @@
       "waal": "Großer Blechwal",
       "coreDrill": "Kernsonde der Erdlinge",
       "swarmMother": "Mutter aller Augen",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Blitzkäfer",
+      "octocopter": "Summschwarm",
+      "railSniper": "Stachelrohr"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1972,7 +1998,10 @@
       "waal": "Leviathan",
       "coreDrill": "Der Letzte Bohrer",
       "swarmMother": "Dämonin vom Himmel",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Donnerkarren",
+      "octocopter": "Achtfacher Engel",
+      "railSniper": "Ketzerschütze"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -2021,7 +2050,10 @@
       "waal": "Analoger Großpanzer",
       "coreDrill": "Geofehler 404",
       "swarmMother": "Primärknoten Z-0",
-      "scientist": "Wissenschaftler"
+      "scientist": "Wissenschaftler",
+      "teslaTank": "Spulenträger",
+      "octocopter": "Rotorknoten",
+      "railSniper": "Schienenprozess"
     }
   },
   "identity": {
@@ -3181,7 +3213,16 @@
     },
     "frenzy": "Raserei: mehr kritische Treffer",
     "worn": "beschädigt: ungenauer",
-    "hintLuck": "Trefferglück: Das Ergebnis reicht von daneben bis kritisch."
+    "hintLuck": "Trefferglück: Das Ergebnis reicht von daneben bis kritisch.",
+    "unit": {
+      "teslaTank": "Tesla: hoher Schaden, {miss} % Fehlschuss",
+      "railSniper": "Railgun: präzise, {miss} % Fehlschuss"
+    },
+    "unitDesc": {
+      "teslaTank": "Eigene Trefferchancen: oft daneben ({miss} %), dafür Angriff {atk} statt {base} wie beim Panzer; kritische Treffer bleiben möglich ({crit} %).",
+      "railSniper": "Eigene Trefferchancen: maschinengenau, nur {miss} % daneben und {crit} % kritisch."
+    },
+    "unitRule": "Eigene Trefferchancen einzelner Einheiten:"
   },
   "retreat": {
     "action": "Geordneter Rückzug (−{dmg})",
@@ -3665,5 +3706,10 @@
     "carrierDesc": "Kann nicht bekehrt werden. In oder neben dem Hauptquartier sind die Pläne abgeliefert. Fällt der Träger, fallen die Pläne auf sein Feld.",
     "dropped": "Kriegspläne liegen hier",
     "droppedDesc": "Eine eigene Einheit auf oder neben dem Feld hebt sie auf. Betritt ein Fanatiker das Feld, bringt er sie zurück in den Tempel."
+  },
+  "stationary": {
+    "tag": "Nur aus dem Stand",
+    "moved": "Gezogen: kein Schuss mehr",
+    "tagDesc": "Diese Einheit kann nicht angreifen, nachdem sie in diesem Zug gezogen ist. Erst aufstellen, im nächsten Zug feuern."
   }
 }

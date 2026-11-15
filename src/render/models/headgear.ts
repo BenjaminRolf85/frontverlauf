@@ -10,8 +10,8 @@
  *   / open helmet with peak, strapped goggles, side rails, star-in-ring badge
  * - Meridon: schraeges Barett mit Kompassrosen-Abzeichen, Headset mit Mikrofon, Sonnenbrille
  *   / tilted beret with compass-rose badge, headset with mic boom, sunglasses
- * - Velkar: Hightech-Helm mit hochgeklapptem Visier, Antenne, Sensorleuchte, Sechseck-Abzeichen, Schneetarnbezug
- *   / high-tech helmet with flipped-up visor, antenna, sensor lamp, hexagon badge, snow-camo cover
+ * - Velkar: frostweisser Visierhelm mit tuerkiser Leuchtlinse, Kamm, Antenne, Sensorleuchte, Sechseck-Abzeichen ("Labor im Feld")
+ *   / frost-white visor helmet with a glowing teal lens, crest, antenna, sensor lamp, hexagon badge ("lab in the field")
  * Kopf: Boden bei y=0, Gesicht nach +z / head: base at y=0, face towards +z.
  */
 import * as THREE from 'three';
@@ -19,6 +19,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { mat, type Look } from './look';
+import { TECH } from './velkarTech';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -343,32 +344,31 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
     }
     case 'velkar': {
       face(b, d, 'none', seed);
+      // Labor im Feld: frostweisser Visierhelm, Visier unten mit tuerkiser Leuchtlinse, Kamm, Antenne, Sensorleuchte
+      // lab in the field: frost-white visor helmet, visor down with a glowing teal lens, crest, antenna, sensor lamp
       const C: V3 = [0, 0.068, -0.006];
       const S: V3 = [1, 1, 1.05];
-      b.add(geo.hemi(0.089, ws, hs), hc, { p: C, s: S });
-      ring(b, 0.091, 0.024, ws, shade(hc, 0.82), [0, 0.068, -0.006], [1, 1, 1.05], 0.092);
-      // Schneetarnbezug / snow-camo cover
-      const R = rng(41);
-      const tones = [mat.snow, mix(L.secondary, mat.snow, 0.35), shade(hc, 1.25)];
-      const n = d === 2 ? 8 : d === 1 ? 3 : 2;
-      for (let i = 0; i < n; i++) {
-        const theta = (i / n) * Math.PI * 2 + R() * 0.5;
-        const phi = 0.25 + R() * 1.0;
-        onDome(b, C, 0.089, S, theta, phi, () => geo.cyl(0.016 + R() * 0.01, 0.018 + R() * 0.01, 0.006, 6), tones[i % 3]);
+      b.add(geo.hemi(0.089, ws, hs), TECH.shell, { p: C, s: S });
+      ring(b, 0.091, 0.024, ws, TECH.gear, [0, 0.068, -0.006], [1, 1, 1.05], 0.092);
+      // Kamm und Seitenschienen / crest and side rails
+      if (d >= 1) {
+        b.add(geo.rtaper(0.022, 0.15, 0.016, 0.13, 0.03, 0.006), TECH.gear, { p: [0, 0.152, -0.016] });
+        for (const s of [-1, 1]) b.box(0.012, 0.03, 0.1, TECH.shellShade, [s * 0.088, 0.09, -0.02]);
       }
-      // hochgeklapptes Visier mit Scharnieren / flipped-up visor with hinges
-      b.add(geo.rtaper(0.124, 0.014, 0.112, 0.012, 0.046, d >= 1 ? 0.005 : 0.001), mix(L.secondary, mat.glassDark, 0.5), { p: [0, 0.125, 0.06], r: [-0.95, 0, 0] });
-      for (const s of [-1, 1]) b.cyl(0.012, 0.012, 0.014, 8, mat.dark, [s * 0.086, 0.1, 0.03], [0, 0, HALF_PI]);
-      // Antenne links, Sensorleuchte rechts / antenna left, sensor lamp right
+      // Visier ueber den Augen mit Leuchtlinse / visor over the eyes with a glowing lens
+      b.add(geo.rtaper(0.13, 0.03, 0.124, 0.024, 0.044, d >= 1 ? 0.006 : 0.001), mat.glassDark, { p: [0, 0.062, 0.05] });
+      b.box(0.11, 0.016, 0.008, TECH.glow, [0, 0.062, 0.066]);
+      for (const s of [-1, 1]) b.cyl(0.012, 0.012, 0.014, 8, TECH.gear, [s * 0.07, 0.07, 0.03], [0, 0, HALF_PI]);
+      // Antenne links mit Leuchtspitze, Sensorleuchte rechts / antenna left with a glowing tip, sensor lamp right
       b.add(d >= 1 ? geo.cbox(0.016, 0.03, 0.024, 0.005) : geo.box(0.016, 0.03, 0.024), mat.dark, { p: [-0.09, 0.09, -0.03] });
       b.tube([-0.09, 0.1, -0.034], [-0.1, 0.24, -0.06], 0.0045, 5, mat.dark);
-      b.add(geo.ico(0.013, 0), L.secondary, { p: [-0.1, 0.245, -0.061] });
+      b.add(geo.ico(0.013, 0), TECH.glow, { p: [-0.1, 0.245, -0.061] });
       b.add(geo.cyl(0.013, 0.015, 0.034, 10), mat.dark, { p: [0.09, 0.085, 0.022], r: [HALF_PI, 0, 0] });
-      b.cyl(0.011, 0.011, 0.004, 10, L.secondary, [0.09, 0.085, 0.04], [HALF_PI, 0, 0]);
+      b.cyl(0.011, 0.011, 0.004, 10, TECH.glow, [0.09, 0.085, 0.04], [HALF_PI, 0, 0]);
       // Ohrschalen / ear cups
-      if (d >= 1) for (const s of [-1, 1]) b.cyl(0.024, 0.024, 0.02, 10, L.gear, [s * 0.066, 0.05, -0.004], [0, 0, HALF_PI]);
+      if (d >= 1) for (const s of [-1, 1]) b.cyl(0.024, 0.024, 0.02, 10, TECH.gear, [s * 0.066, 0.05, -0.004], [0, 0, HALF_PI]);
       // Sechseck-Abzeichen / hexagon badge
-      if (d >= 1) addEmblem(b, 'velkar', 0.014, 0.004, L.secondary, { p: [0, 0.155, 0.032], r: [-1.0, 0, 0] });
+      if (d >= 1) addEmblem(b, 'velkar', 0.014, 0.004, L.secondary, { p: [0, 0.14, 0.06], r: [-0.7, 0, 0] });
       break;
     }
   }

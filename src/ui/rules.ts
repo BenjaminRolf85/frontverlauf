@@ -3,10 +3,10 @@
  * Rules / help: short collapsible sections. All numbers come from balance.ts so the page stays correct.
  */
 import {
-  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
+  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, INCOME, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
   VICTORY_TECH,
 } from '../data/balance';
-import type { FactionId } from '../data/balance';
+import { UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
@@ -27,7 +27,7 @@ function sections(): Section[] {
     { id: 'goal', icon: 'medal', params: { rounds: MODES.pointsRounds, tile: SCORE.revealedTile, territory: SCORE.territoryTile, level: SCORE.cityLevel, tech: SCORE.techPerTier } },
     { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq } },
     { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0 } },
-    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: combatBonusLines },
+    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => combatBonusLines() + unitHitLines() },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
@@ -44,6 +44,20 @@ function sections(): Section[] {
 /** Kampfboni der Fraktionen (Feuern nach Bewegung, eigenes Gebiet) / combat bonuses of the factions (firing after moving, own territory) */
 function combatBonusLines(): string {
   return FACTION_IDS.flatMap((f) => combatBonusTexts(f).map((b) => `<p><strong>${esc(b.name)} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(b.desc)}</p>`)).join('');
+}
+
+/**
+ * Eigene Trefferchancen einzelner Einheiten (HIT.unit, z. B. Tesla-Panzer und Railgun-Schuetze der Velkar), Zahlen aus balance.ts.
+ * Own hit odds of single units (HIT.unit, e.g. Velkar's Tesla tank and railgun marksman), numbers from balance.ts.
+ */
+function unitHitLines(): string {
+  const rows = (Object.keys(HIT.unit) as UnitTypeId[]).map((u) => {
+    const o = HIT.unit[u]!;
+    const f = UNITS[u].faction;
+    const odds = HIT_KINDS.map((k) => `${t(`hit.${k}`)} ${pct(o[k])} %`).join(', ');
+    return `<li><strong>${esc(t(`units.${u}`))}${f ? ` (${esc(t(`factions.${f}.short`))})` : ''}:</strong> ${esc(odds)}</li>`;
+  });
+  return rows.length ? `<p>${esc(t('hit.unitRule'))}</p><ul>${rows.join('')}</ul>` : '';
 }
 
 /** Eine Zeile je Fraktion: Siegbedingung und Siegtechnologie / one line per faction: victory condition and victory tech */

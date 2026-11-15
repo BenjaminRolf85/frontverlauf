@@ -27,6 +27,8 @@ const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   jeep: 1.45, terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
   // Endgegner: gross genug fuer volle Rundung, aber viele Teile / boss: large enough for full roundness, but many parts
   swarmMother: 1.2,
+  // Velkar: Tesla-Panzer mit vielen Ringen / Velkar: Tesla tank with many rings
+  teslaTank: 1.25,
 };
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
@@ -42,6 +44,9 @@ import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from '
 import { swarmMother } from './boss';
 import { mothership, mothershipSmoke } from './mothership';
 import { scientist } from './scientist';
+import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from './velkarTech';
+import { withGlow } from '../atmosphere';
+export { techParts, type TechPart } from './velkarTech';
 
 /**
  * PLATZHALTER fuer die Wunder der Siegbedingungen, bis wonders.ts mit wonderGeometry(type, faction, stage) da ist.
@@ -57,18 +62,23 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
   // Siegbauwerke: eigene Modelle in Bauwerksgroesse, ohne Groessen- und Tonwert-Anpassung der Einheiten
   // victory wonders: own models at structure size, without the unit size and value adjustments
   if (wonder) return wonderGeometry(type as WonderType, faction, stage);
-  return memo(`unit|${type}|${faction}|${c ?? ''}${wonder ? `|${stage}` : ''}`, () => finishUnit(type, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
+  return memo(`unit|${type}|${faction}|${c ?? ''}${wonder ? `|${stage}` : ''}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
       case 'sniper': return sniper(faction).build();
-      case 'jeep': return jeep(faction).build();
+      // Velkar "Labor im Feld": Sensortraeger statt Jeep, Spulenwerfer statt Geschuetz / sensor carrier instead of the jeep, coil launcher instead of the gun
+      case 'jeep': return (faction === 'velkar' ? sensorCarrier(faction) : jeep(faction)).build();
       case 'pioneer': return pioneer(faction).build();
       case 'mg': return mgTeam(faction).build();
       case 'medic': return medic(faction).build();
-      case 'artillery': return artillery(faction).build();
+      case 'artillery': return (faction === 'velkar' ? coilLauncher(faction) : artillery(faction)).build();
       case 'spy': return spy(faction).build();
       case 'heli': return heli(faction).build();
       case 'tank': return tank(faction).build();
+      // Velkar-Bauarten / Velkar designs
+      case 'teslaTank': return teslaTank(faction).build();
+      case 'octocopter': return octocopter(faction).build();
+      case 'railSniper': return railSniper(faction).build();
       case 'landingBoat': return landingBoat(faction, c ? carriedGeometry(c, faction) : null).build();
       case 'submarine': return submarine(faction).build();
       case 'destroyer': return destroyer(faction).build();
@@ -108,7 +118,20 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       // Wunder der Siegbedingungen / victory wonders
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
-  })));
+  }))));
+}
+
+/**
+ * Velkar: Leuchtmaske fuer die tuerkisen Lichter, vor dem Helligkeitsverlauf (der die Vertexfarben veraendert); das Brett
+ * zeichnet solche Einheiten mit dem leuchtenden Einheitenmaterial. Andere Fraktionen bleiben unveraendert.
+ * Velkar: glow mask for the teal lights, before the value ramp (which changes the vertex colours); the board draws such
+ * units with the glowing unit material. Other factions stay unchanged.
+ */
+function techGlow(faction: FactionId, g: THREE.BufferGeometry): THREE.BufferGeometry {
+  if (faction !== 'velkar') return g;
+  withGlow(g, 'nature');
+  g.userData.unitGlow = true;
+  return g;
 }
 
 /** Comic-Vergroesserung je Typ (begrenzt durch Kachel und Lebensbalken) / comic enlargement per type (limited by tile and HP badge) */
@@ -117,6 +140,7 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   zealot: 1.2, torchbearer: 1.2, prophet: 1.2, grey: 1.2, android: 1.2, doomBuggy: 1.2, rocketCart: 1.2, mech: 1.15,
   heli: 1.08, terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
   steppeRider: 1.1, stormbreaker: 1.2, peacekeeper: 1.1, protoWalker: 1.1,
+  teslaTank: 1.05, octocopter: 1.1, railSniper: 1.2,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
@@ -143,6 +167,8 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   const want = UNIT_SIZE[type] ?? 1;
   const s = Math.max(1, Math.min(want, 0.45 / ext, MAX_H / bb.max.y));
   if (s > 1.001) { g.scale(s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
+  // Vergroesserung merken: bewegliche Teile (techParts) sitzen in denselben Koordinaten / remember the enlargement: moving parts (techParts) use the same coordinates
+  g.userData.finishScale = s;
   const H = Math.max(0.15, bb.max.y);
   const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), colr = g.getAttribute('color');
   const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship' || type === 'privateer';
@@ -171,9 +197,9 @@ export function leaderGeometry(faction: FactionId, mood: LeaderMood = 'neutral')
 function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeometry {
   return memo(`unitLite|${type}|${faction}`, () => {
     switch (type) {
-      case 'jeep': return jeep(faction, true).build();
+      case 'jeep': return (faction === 'velkar' ? sensorCarrier(faction, true) : jeep(faction, true)).build();
       case 'tank': return tank(faction, true).build();
-      case 'artillery': return artillery(faction, true).build();
+      case 'artillery': return (faction === 'velkar' ? coilLauncher(faction, true) : artillery(faction, true)).build();
       case 'heli': return heli(faction, true).build();
       case 'mg': return mgTeam(faction, true).build();
       case 'infantry': return infantry(faction, true).build();
@@ -206,6 +232,9 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'stormbreaker': return stormbreaker(faction, true).build();
       case 'peacekeeper': return peacekeeper(faction, true).build();
       case 'protoWalker': return protoWalker(faction, true).build();
+      case 'teslaTank': return teslaTank(faction, true).build();
+      case 'octocopter': return octocopter(faction, true).build();
+      case 'railSniper': return railSniper(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

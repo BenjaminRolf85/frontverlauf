@@ -34,7 +34,12 @@ export type WonderUnitId = WonderKind | 'coreDrill';
 export type BossUnitId = 'swarmMother';
 /** Sondereinheiten einzelner Kampagnen-Einsaetze (nicht ausbildbar) / special units of single campaign missions (not trainable) */
 export type CampaignUnitId = 'scientist';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId;
+/**
+ * Fraktionsvarianten der Velkar (ersetzen Panzer, Hubschrauber und Scharfschuetze in ihrer Liste, siehe VARIANTS).
+ * Velkar faction variants (replace tank, helicopter and sniper in their roster, see VARIANTS).
+ */
+export type VelkarUnitId = 'teslaTank' | 'octocopter' | 'railSniper';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -233,6 +238,13 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: 'coastalEconomy', ship: true, faction: 'meridon' },
   // Velkar: Prototyp-Laeufer, Flaechenschaden auf Reichweite 2, teuer / Prototype Walker, splash at range 2, expensive
   protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: 'cybernetics', ship: false, faction: 'velkar' },
+  // Velkar-Varianten (siehe VARIANTS, Treffsicherheit HIT.unit) / Velkar variants (see VARIANTS, accuracy HIT.unit)
+  // Tesla-Panzer: wie der Panzer, aber Angriff +40 % und eigene Trefferchancen (oft daneben) / Tesla tank: like the tank, but attack +40 % and own hit odds (often misses)
+  teslaTank: { cost: null, hp: 40, attack: 7, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar' },
+  // Oktokopter: Werte des Kampfhubschraubers / octocopter: the attack helicopter's values
+  octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: 'armyAviation', ship: false, faction: 'velkar' },
+  // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise / railgun marksman: range 3, fires only from a standstill (no dash), precise
+  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: 'camouflage', ship: false, faction: 'velkar' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -284,6 +296,17 @@ export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'do
 export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'railgun', 'titan', 'flakDrone'];
 export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
+export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
+
+/**
+ * Fraktionsvarianten: die eigene Bauart ersetzt eine Grundeinheit in Liste, Stadtbelohnung und Kampagnen-Verstaerkung.
+ * Velkar: Tesla-Panzer statt Panzer, Oktokopter statt Kampfhubschrauber, Railgun-Schuetze statt Scharfschuetze.
+ * Faction variants: the own design replaces a base unit in the roster, the city reward and campaign reinforcements.
+ * Velkar: Tesla tank instead of tank, octocopter instead of attack helicopter, railgun marksman instead of sniper.
+ */
+export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, UnitTypeId>>>> = {
+  velkar: { tank: 'teslaTank', heli: 'octocopter', sniper: 'railSniper' },
+};
 
 /**
  * Die eine Fahrzeugliste (Klasse 'vehicle', inkl. Laeufer, Mechs und Erdkernbohrer). Konter, Panzersperre, Schnee,
@@ -293,7 +316,7 @@ export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', '
  */
 export const VEHICLE_UNITS: UnitTypeId[] = [
   'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill',
+  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank',
 ];
 /** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
 export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
@@ -340,7 +363,7 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * Upkeep: running cost per round. The first units (oldest first) are free, each further one costs
  * a share of its price (rounded up); tanks cost a flat amount.
  */
-export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12 } as Partial<Record<UnitTypeId, number>> };
+export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12 } as Partial<Record<UnitTypeId, number>> };
 
 /** Kartenbesonderheiten / map hazards and gimmicks */
 export type HazardLevel = 'none' | 'normal' | 'many';
@@ -453,7 +476,7 @@ export const XENO = {
 export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 export const SHIP_UPGRADES: ShipId[] = ['submarine', 'destroyer', 'battleship'];
 /** Infanterietypen fuer Aussenposten / infantry types for outposts */
-export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer'];
+export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper'];
 
 export const COMBAT = {
   damageFactor: 4.5,
@@ -514,6 +537,18 @@ export const HIT = {
   /** Roboter: Verschiebung bei 20 % LP, linear ab vollen LP / robots: shift at 20 % HP, linear from full HP */
   robotDamagedAt: 0.2,
   robotDamaged: { miss: 0.08, graze: 0.07, partial: 0.1, full: -0.25 } as Partial<Record<HitKind, number>>,
+  /**
+   * Eigene Grundwahrscheinlichkeiten einzelner Einheitentypen (Summe 1), ersetzen die der Rasse; Wetter wirkt wie bei der Rasse.
+   * Ohne Trefferglueck skaliert der Erwartungswert dieser Tabelle gegenueber der Rassentabelle den Schaden (unitLuckFactor).
+   * Own base odds of single unit types (sum 1), replacing the race odds; weather works as for the race.
+   * Without hit luck, the expected value of this table relative to the race table scales the damage (unitLuckFactor).
+   */
+  unit: {
+    // Tesla-Panzer: wuchtige Entladung, aber 38 % daneben; Erwartungswert 0,61 statt 0,90 (Mensch) / Tesla tank: huge discharge, but 38 % misses; expected 0.61 instead of 0.90 (human)
+    teslaTank: { miss: 0.38, graze: 0.06, partial: 0.12, full: 0.36, crit: 0.08 },
+    // Railgun-Schuetze: maschinengenau, kaum daneben, kaum kritisch; Erwartungswert 0,95 / railgun marksman: machine precision, hardly any misses or crits; expected 0.95
+    railSniper: { miss: 0.02, graze: 0.04, partial: 0.14, full: 0.76, crit: 0.04 },
+  } as Partial<Record<UnitTypeId, Record<HitKind, number>>>,
 };
 
 /** Mech-Raketen: Fernangriff aufs uebernaechste Feld, begrenzte Munition / mech rockets: ranged attack two tiles away, limited ammo */
@@ -590,7 +625,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -635,7 +670,7 @@ export const COUNTER = {
 
 /** Kettenspuren (optisch) / track marks (visual) */
 export const TRACKS = {
-  units: ['tank'] as UnitTypeId[],
+  units: ['tank', 'teslaTank'] as UnitTypeId[],
   keepRounds: 8,
   maxPerTile: 3,
 };
@@ -656,7 +691,7 @@ export const WEATHER = {
    */
   desertWeights: { clear: 0.5, rain: 0, snow: 0, wind: 0, dust: 0.3, meteor: 0.2, acid: 0, quake: 0 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
-  rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
+  rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli', 'octocopter'] as UnitTypeId[], moveDelta: -1 },
   /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
   snow: { moveUnits: VEHICLE_UNITS, moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
@@ -665,7 +700,7 @@ export const WEATHER = {
    * Sandsturm: Einheiten ab Reichweite rangeFrom 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung.
    * Dust storm: units with range rangeFrom or more lose 1 range, helicopters lose 1 move.
    */
-  dust: { rangeFrom: 2, rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1, visionDelta: -1 },
+  dust: { rangeFrom: 2, rangeDelta: -1, moveUnits: ['heli', 'octocopter'] as UnitTypeId[], moveDelta: -1, visionDelta: -1 },
   /**
    * Meteorschauer: zu Beginn jeder Runde trifft er jede ungepanzerte Einheit (Klasse 'foot', jede Fraktion) ausserhalb
    * von Staedten und Bunkern mit damage LP, mit extraChance einen mehr (Zufallsstrom des Spiels); nie unter minHp, nie

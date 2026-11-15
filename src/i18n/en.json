@@ -161,10 +161,12 @@
       "leaderTitle": "Director of the Technocracy",
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
-      "style": "production, laboratories, pioneers, cold",
+      "style": "production, labs, prototypes, cold",
       "aiStyle": "Unlocks production first and digs in with pioneers.",
       "perk2": "Engineer corps",
-      "perk2Desc": "Tank barriers cost 5 instead of 10 stars."
+      "perk2Desc": "Tank barriers cost 5 instead of 10 stars.",
+      "feature": "Lab in the field",
+      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss}% misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -265,7 +267,10 @@
     "waal": "Land Cruiser Waal",
     "coreDrill": "Earth-Core Drill",
     "swarmMother": "Swarm Mother",
-    "scientist": "Scientist"
+    "scientist": "Scientist",
+    "teslaTank": "Tesla tank",
+    "octocopter": "Octocopter",
+    "railSniper": "Railgun marksman"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -314,7 +319,10 @@
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
-    "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign)."
+    "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign).",
+    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Not for sale, comes as a city reward.",
+    "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
+    "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire."
   },
   "abilities": {
     "dash": "Assault",
@@ -1678,7 +1686,10 @@
       "waal": "Steel Whale",
       "coreDrill": "Devil's Plough",
       "swarmMother": "The Great Mother",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Lightning Tank",
+      "octocopter": "Eight-Wing",
+      "railSniper": "Rail Rifleman"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1727,7 +1738,10 @@
       "waal": "Land Cruiser Waal",
       "coreDrill": "Heretic Drill",
       "swarmMother": "Enemy High Command",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Looted Tesla",
+      "octocopter": "Looted Drone",
+      "railSniper": "Looted Railgun"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1776,7 +1790,10 @@
       "waal": "War Whale",
       "coreDrill": "Doom Drill",
       "swarmMother": "Chief Negotiator of the Swarm",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Coil Tank",
+      "octocopter": "Rescue Drone",
+      "railSniper": "Precision Marksman"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1825,19 +1842,22 @@
       "waal": "Costly Waal",
       "coreDrill": "Property Ruiner",
       "swarmMother": "The Competition in Chitin",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Spark Tank",
+      "octocopter": "Cargo Drone",
+      "railSniper": "Magnet Gun"
     },
     "velkar": {
       "infantry": "Lab Guard",
-      "sniper": "Survey Marksman",
+      "sniper": "Captured Sniper",
       "jeep": "Survey Car",
       "pioneer": "Frost Pioneers",
       "mg": "Test Series MG",
       "medic": "Cryo Medic",
       "artillery": "Ballistics Lab",
       "spy": "Data Collector",
-      "heli": "Polar Rotor",
-      "tank": "Prototype T-0",
+      "heli": "Captured Helicopter",
+      "tank": "Captured Tank",
       "landingBoat": "Icebreaker Boat",
       "submarine": "Deep-Sea Probe",
       "destroyer": "Test Frigate",
@@ -1874,7 +1894,10 @@
       "waal": "Super-Heavy Prototype",
       "coreDrill": "Geological Disaster",
       "swarmMother": "Test Subject One",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Tesla tank",
+      "octocopter": "Octocopter",
+      "railSniper": "Railgun marksman"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1923,7 +1946,10 @@
       "waal": "Big Tin Whale",
       "coreDrill": "Earthling Core Probe",
       "swarmMother": "Mother of All Eyes",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Lightning Beetle",
+      "octocopter": "Buzzing Swarm",
+      "railSniper": "Spike Tube"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1972,7 +1998,10 @@
       "waal": "Leviathan",
       "coreDrill": "The Final Drill",
       "swarmMother": "Demoness from the Sky",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Thunder Cart",
+      "octocopter": "Eightfold Angel",
+      "railSniper": "Heretic Marksman"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -2021,7 +2050,10 @@
       "waal": "Analogue Megatank",
       "coreDrill": "Geo Error 404",
       "swarmMother": "Primary Node Z-0",
-      "scientist": "Scientist"
+      "scientist": "Scientist",
+      "teslaTank": "Coil Carrier",
+      "octocopter": "Rotor Node",
+      "railSniper": "Rail Process"
     }
   },
   "identity": {
@@ -3181,7 +3213,16 @@
     },
     "frenzy": "Frenzy: more critical hits",
     "worn": "damaged: less accurate",
-    "hintLuck": "Hit luck: the result ranges from a miss to a critical hit."
+    "hintLuck": "Hit luck: the result ranges from a miss to a critical hit.",
+    "unit": {
+      "teslaTank": "Tesla: high damage, {miss}% miss",
+      "railSniper": "Railgun: precise, {miss}% miss"
+    },
+    "unitDesc": {
+      "teslaTank": "Own hit odds: often misses ({miss}%), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit}%).",
+      "railSniper": "Own hit odds: machine precision, only {miss}% misses and {crit}% critical hits."
+    },
+    "unitRule": "Own hit odds of single units:"
   },
   "retreat": {
     "action": "Orderly retreat (−{dmg})",
@@ -3665,5 +3706,10 @@
     "carrierDesc": "Cannot be converted. Into or next to the HQ the plans are delivered. If the carrier falls, the plans drop onto its tile.",
     "dropped": "War plans lie here",
     "droppedDesc": "An own unit on or next to the tile picks them up. If a Fanatic steps onto the tile, he takes them back to the temple."
+  },
+  "stationary": {
+    "tag": "Stationary only",
+    "moved": "Moved: cannot fire",
+    "tagDesc": "This unit cannot attack after it has moved this turn. Set it up first, fire next turn."
   }
 }

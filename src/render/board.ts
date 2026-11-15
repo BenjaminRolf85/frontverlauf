@@ -21,7 +21,8 @@ import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegm
 import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
-import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, withGlow, type GlowKind } from './atmosphere';
+import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
+import { TechParts } from './techParts';
 import { WATER_BOX_TOP, buildWater } from './water';
 import { buildLandscape, cliffRock } from './landscape';
 import { TownFx, type TownInput } from './lights';
@@ -182,6 +183,8 @@ export class Board {
   private facing = new Map<number, number>();
   /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
   readonly life = new UnitLife();
+  /** Bewegliche Teile der Velkar-Einheiten (Rotoren, Lichtboegen, Messdrohnen) / moving parts of Velkar units (rotors, arcs, survey drones) */
+  readonly techParts = new TechParts();
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
@@ -1015,7 +1018,10 @@ export class Board {
         // Alle Einheiten mit schwarzer Tuschelinie; eigene erkennt man am Bodenring
         // all units with a black ink line; own units are recognised by their ground ring
         const own = viewer >= 0 && u.owner === viewer;
-        const model = outlined(unitGeometry(u.type, f, u.carried, stage), OUTLINE.unit, unitMaterial());
+        const ugeo = unitGeometry(u.type, f, u.carried, stage);
+        // Velkar: leuchtende Lichter (Leuchtmaske in der Geometrie) / Velkar: glowing lights (glow mask in the geometry)
+        const model = outlined(ugeo, OUTLINE.unit, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
+        this.techParts.attach(u.id, model, u.type, f, ugeo.userData.finishScale ?? 1, this.quality === 'low');
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
         base.name = 'base';
@@ -1051,7 +1057,7 @@ export class Board {
         // own material: not dimmed on exhausted units; floats above the health badge
         const m = outlined(plansGeometry('carried', this.quality === 'low'), OUTLINE.unit, toonMaterial());
         m.name = 'plans';
-        m.position.set(0, u.type === 'heli' ? 1.3 : 1.08, 0);
+        m.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.3 : 1.08, 0);
         m.traverse((o) => { o.raycast = () => {}; });
         v.group.add(m);
       } else if (!carry && pm) v.group.remove(pm);
@@ -1064,23 +1070,29 @@ export class Board {
         if (v.badge) v.group.remove(v.badge);
         v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank });
         // Endgegner: Balken ueber der Krone / boss: badge above the crown
-        v.badge.position.set(0, u.type === 'heli' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
+        v.badge.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
         v.group.add(v.badge);
         v.badgeKey = badgeKey;
       }
       // Hubschrauber schwebt / helicopter hovers
       const model = v.group.getObjectByName('model')!;
-      model.position.y = (u.type === 'heli' ? 0.1 : 0) + BASE_H;
+      model.position.y = (u.type === 'heli' || u.type === 'octocopter' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
       this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
-      const mat = submerged ? unitMaterial({ transparent: true, opacity: 0.55 }) : done ? unitMaterial({ dim: true, transparent: true, opacity: DONE_OPACITY }) : unitMaterial();
+      const opts = submerged ? { transparent: true, opacity: 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
+      const mat = unitMaterial(opts);
+      // leuchtende Teile behalten ihr Leuchtmaterial / glowing parts keep their glow material
+      const glowMat = unitGlowMaterial(opts);
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
-        if (mesh.isMesh && (mesh.material as THREE.Material).userData?.unitMat && mesh.material !== mat) mesh.material = mat;
+        const cur = mesh.isMesh ? (mesh.material as THREE.Material) : null;
+        if (!cur?.userData?.unitMat) return;
+        const want = cur.userData.unitGlow ? glowMat : mat;
+        if (cur !== want) mesh.material = want;
       });
     }
     for (const [id, v] of this.units) {
-      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); }
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); this.techParts.detach(id); }
     }
     this.life.endSync(seen);
     this.updateShadows();
@@ -1302,7 +1314,7 @@ export class Board {
       }
       if (t >= 1) {
         this.unitLayer.remove(v.group); this.unitLayer.remove(fx);
-        this.units.delete(unitId); this.animating.delete(unitId); this.facing.delete(unitId);
+        this.units.delete(unitId); this.animating.delete(unitId); this.facing.delete(unitId); this.techParts.detach(unitId);
       }
     });
   }
@@ -1380,6 +1392,7 @@ export class Board {
   tick(now: number): boolean {
     const fx = this.combat.update();
     let lived = this.life.update(now, this.animations);
+    if (this.techParts.update(now, this.animations)) lived = true;
     // Artefakt: langsame Drehung und leichtes Schweben / artifact: slow spin and gentle bob
     if (this.artifactOrbit && this.animations) {
       const t = now / 1000;

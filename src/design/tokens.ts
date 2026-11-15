@@ -287,6 +287,12 @@ export const primitives = {
     templeFireCore: '#ffe27a',
     plansParchment: '#e9d3a4',
     plansCase: '#5a2c18',
+    // Velkar "Labor im Feld": Frostweiss, Labor-Grau, Tuerkis-Leuchten, Lichtbogen / Velkar "lab in the field": frost white, lab grey, teal glow, arc
+    velkarFrost: '#e6f0f3',
+    velkarLab: '#5b6b75',
+    velkarTeal: '#22e3d0',
+    velkarTealDeep: '#0f7f84',
+    velkarArc: '#d6fdff',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -627,6 +633,17 @@ export const semantic = {
   templeFireCore: c.templeFireCore,
   plansParchment: c.plansParchment,
   plansCase: c.plansCase,
+  /**
+   * Velkar "Labor im Feld" (eigene Einheiten der Velkar): frostweisse Panzerplatten, graues Laborgeraet, tuerkise Leuchten
+   * (leuchten, KEYS), tiefes Tuerkis fuer Spulen ohne Leuchten, heller Lichtbogen des Tesla-Panzers (leuchtet, KEYS).
+   * Velkar "lab in the field" (Velkar's own units): frost-white armour plates, grey lab gear, teal lights (glow, KEYS),
+   * deep teal for coils without glow, bright arc of the Tesla tank (glows, KEYS).
+   */
+  velkarTechShell: c.velkarFrost,
+  velkarTechGear: c.velkarLab,
+  velkarTechGlow: c.velkarTeal,
+  velkarTechCoil: c.velkarTealDeep,
+  velkarTechArc: c.velkarArc,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */

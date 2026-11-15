@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three';
 import { factionTokens, hex, primitives, semantic } from '../design/tokens';
-import { toonMaterial } from './toon';
+import { toonMaterial, unitMaterial } from './toon';
 
 /** Gemeinsame Uniforms (werden von View/Sky jedes Bild gesetzt) / shared uniforms (set every frame by View/Sky) */
 export const ATMO = {
@@ -50,7 +50,9 @@ const KEYS = {
     // Uplink-Licht des Satelliten-Relays / uplink light of the satellite relay
     keyColor(semantic.orbitalUplink),
     // Feuerschalen des Fanatiker-Tempels (m4) / braziers of the Fanatic temple (m4)
-    keyColor(semantic.templeFire), keyColor(semantic.templeFireCore)],
+    keyColor(semantic.templeFire), keyColor(semantic.templeFireCore),
+    // Velkar "Labor im Feld": tuerkise Lichter und Lichtboegen der Einheiten / Velkar "lab in the field": teal lights and arcs of the units
+    keyColor(semantic.velkarTechGlow), keyColor(semantic.velkarTechArc)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };
@@ -175,6 +177,38 @@ export function patchAtmosphere(shader: THREE.WebGLProgramParametersWithUniforms
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${FRAG_GLOW}`)
     .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>\n${FRAG_SHADOW}`)
     .replace('#include <opaque_fragment>', `${FRAG_HAZE}\n#include <opaque_fragment>`);
+}
+
+// ---------- Leuchtende Einheiten (Velkar) / glowing units (Velkar) ----------
+
+/**
+ * Leuchten fuer Einheiten: auch bei Tag sichtbar (Grundwert), nachts staerker; ohne Dunst, damit Einheiten so bleiben wie
+ * mit unitMaterial. Geometrie braucht 'glow' (withGlow vor dem Helligkeitsverlauf, siehe models/index.ts techGlow).
+ * Glow for units: visible by day (base value), stronger at night; without haze so units look as with unitMaterial.
+ * Geometry needs 'glow' (withGlow before the value ramp, see models/index.ts techGlow).
+ */
+const UNIT_GLOW = { base: 0.55, night: 0.6 };
+const unitGlowMats = new Map<string, THREE.MeshToonMaterial>();
+export function unitGlowMaterial(opts: { transparent?: boolean; opacity?: number; dim?: boolean } = {}): THREE.MeshToonMaterial {
+  const key = `${opts.transparent ? 1 : 0}-${opts.opacity ?? 1}-${opts.dim ? 1 : 0}`;
+  let m = unitGlowMats.get(key);
+  if (!m) {
+    m = unitMaterial(opts).clone();
+    m.onBeforeCompile = (shader) => {
+      shader.uniforms.uGlow = ATMO.uGlow;
+      shader.vertexShader = 'attribute vec2 glow;\nvarying float vUnitGlow;\n' + shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vUnitGlow = glow.x;');
+      shader.fragmentShader = `uniform float uGlow;\nvarying float vUnitGlow;\n` + shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  #ifdef USE_COLOR
+    float unitL = max(dot(vColor.rgb, vec3(0.2126, 0.7152, 0.0722)), 0.08);
+    totalEmissiveRadiance += vColor.rgb / unitL * vUnitGlow * (${UNIT_GLOW.base.toFixed(2)} + uGlow * ${UNIT_GLOW.night.toFixed(2)})${opts.dim ? ' * 0.45' : ''};
+  #endif`);
+    };
+    m.customProgramCacheKey = () => `unit-glow-${key}`;
+    m.userData.unitMat = true;
+    m.userData.unitGlow = true;
+    unitGlowMats.set(key, m);
+  }
+  return m;
 }
 
 let land: THREE.MeshToonMaterial | null = null;

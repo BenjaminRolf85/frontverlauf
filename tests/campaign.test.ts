@@ -13,7 +13,7 @@ import {
 } from '../src/core';
 import { isValidState, migrateState } from '../src/save/save';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
-import { AI, PERSUADE, SWARM_MOTHER, TOWER_HOLD, UNITS, type FactionId } from '../src/data/balance';
+import { AI, PERSUADE, SWARM_MOTHER, TOWER_HOLD, UNITS, VARIANTS, type FactionId } from '../src/data/balance';
 
 const game = (id: string, f: FactionId = 'korvat') => createGame(missionConfig(id, f));
 
@@ -141,8 +141,10 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
       if (m.theme === 'alien') for (const t of a.tiles) if (t.terrain !== 'ocean') expect(t.xeno, tag).toBe(true);
       for (const w of m.waves ?? []) expect(a.campaign!.spawns![w.at], tag).toBeDefined();
       expect(a.campaign!.startCities.length).toBe(ownCities(a, 0).length);
-      // nur allgemeine Menschen-Einheiten fuer den Spieler / only generic human units for the player
-      for (const u of a.units.filter((x) => x.owner === 0)) expect(UNITS[u.type].faction, `${tag} ${u.type}`).toBeUndefined();
+      // nur allgemeine Menschen-Einheiten fuer den Spieler, ausser den eigenen Bauarten (VARIANTS, Velkar: Tesla-Panzer)
+      // only generic human units for the player, except its own designs (VARIANTS, Velkar: Tesla tank)
+      const own = Object.values(VARIANTS[a.factions[0].id] ?? {});
+      for (const u of a.units.filter((x) => x.owner === 0)) if (!own.includes(u.type)) expect(UNITS[u.type].faction, `${tag} ${u.type}`).toBeUndefined();
       // keine zwei Einheiten auf einem Feld, keine Einheit auf einer fremden Stadt / no two units on one tile, no unit on a foreign city
       const pos = a.units.map((u) => `${u.x},${u.y}`);
       expect(new Set(pos).size, tag).toBe(pos.length);

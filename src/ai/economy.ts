@@ -426,12 +426,15 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     mineLayer: army >= 4 && (ctx.enemies.length > 0 || ctx.conquest) ? 0.08 : 0,
     jeep: unexplored ? 0.2 : 0.08,
     sniper: 0.06,
+    // Velkar-Bauarten wie ihre Grundtypen (VARIANTS) / Velkar designs like their base types (VARIANTS)
+    railSniper: 0.07,
     // Festungsbau: Pionier, solange Stellungsplaetze frei sind / fortification: a pioneer while emplacement slots are free
     pioneer: 0.05 + emplacementPioneerShare(ctx),
     artillery: ctx.hostileCities.length ? 0.16 : 0.04,
     medic: army >= 4 ? 0.08 : 0,
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,
     heli: army >= 4 ? 0.1 : 0,
+    octocopter: army >= 4 ? 0.1 : 0,
     // einzigartige Einheiten / unique units
     steppeRider: unexplored ? 0.18 : 0.1,
     stormbreaker: ctx.hostileCities.length || ctx.enemies.length ? 0.22 : 0.1,
@@ -440,7 +443,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   };
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
-    infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9,
+    infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
@@ -452,7 +455,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   for (const t of list) {
     if (!avail(t)) continue;
     const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
@@ -782,7 +785,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (up === 'bunker') value = front ? cost * 2.2 : cost * 0.25;
       else if (up === 'depot') value = CITY_UPGRADES.depotIncome * Math.min(ctx.points ? ctx.roundsLeft : 20, 20) * 0.45;
       else if (up === 'hospital') value = front ? cost * 1.2 : cost * 0.3;
-      else if (up === 'flak') value = ctx.enemies.some((e) => e.type === 'heli' && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
+      else if (up === 'flak') value = ctx.enemies.some((e) => (e.type === 'heli' || e.type === 'octocopter') && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
       // Satelliten-Relay (Velkar): Wert aus ai/orbital.ts / satellite relay (Velkar): value from ai/orbital.ts
       else if (up === ORBITAL.relay) { value = relayValue(ctx, c); if (!value) continue; }
       else if (up === 'barracks') value = cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'mercenaryBarracks') ? 0 : cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
