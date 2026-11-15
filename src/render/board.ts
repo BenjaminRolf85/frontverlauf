@@ -807,6 +807,39 @@ export class Board {
   }
 
   /**
+   * Kampf mit einem Verdan-Geschuetz ueber die normalen Kampfeffekte: Das Geschuetz ist ein unsichtbarer Stellvertreter
+   * auf seinem Feld (schwere Kanone). gunFires = Geschuetz schiesst auf die Einheit, sonst greift die Einheit an.
+   * Fight with a Verdan gun through the normal combat effects: the gun is an invisible stand-in on its tile
+   * (heavy cannon). gunFires = the gun shoots at the unit, otherwise the unit attacks.
+   */
+  animateTurret(s: GameState, gun: { x: number; y: number }, unitId: number, gunFires: boolean,
+    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void }): Promise<void> {
+    const GUN = -1;
+    const proxy = new THREE.Group();
+    proxy.position.copy(this.tileCenter(s, gun.x, gun.y)).add(new THREE.Vector3(0, 0.12, 0));
+    const host: FxHost = {
+      ...this.fxHost,
+      unitObject: (id) => (id === GUN ? proxy : this.fxHost.unitObject(id)),
+      hold: (id, on) => { if (id !== GUN) this.fxHost.hold(id, on); },
+      facing: (id) => (id === GUN ? 0 : this.fxHost.facing(id)),
+      setFacing: (id, a) => { if (id !== GUN) this.fxHost.setFacing(id, a); },
+    };
+    const water = (x: number, y: number) => { const tt = s.tiles[y * s.size + x].terrain; return tt === 'shallow' || tt === 'ocean'; };
+    const u = s.units.find((x) => x.id === unitId);
+    const uw = u ? water(u.x, u.y) : false;
+    const info: AttackInfo = gunFires
+      ? { attacker: 'tank', target: o.unitType, attackerFaction: 'nexus', targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
+      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: 'nexus', attackerWater: uw, targetWater: false, retaliate: o.retaliate,
+        onImpact: o.onImpact, onReturnFire: o.onReturnFire, onReturnImpact: o.onReturnImpact };
+    if (!this.animations) {
+      info.onImpact?.();
+      if (info.retaliate) { info.onReturnFire?.(); info.onReturnImpact?.(); }
+      return Promise.resolve();
+    }
+    return gunFires ? playAttack(host, this.combat, GUN, unitId, info) : playAttack(host, this.combat, unitId, GUN, info);
+  }
+
+  /**
    * Sterbeanimation im Comic-Stil (hoechstens 400 ms): Fusstruppen fliegen hoch, drehen sich und kippen um,
    * dazu Blutstropfen; Fahrzeuge explodieren mit Feuerball; Schiffe sinken.
    * Comic death animation (at most 400 ms): foot units fly up, spin and topple with blood droplets;

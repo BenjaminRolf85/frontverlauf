@@ -207,8 +207,10 @@ describe('Verdan-Verteidigungslinie / Verdan defence line', () => {
     expect(t.turret).toBeNull();
     expect(t.turretRuin).toBe(true);
     expect(turretList(s).length).toBe(VERDAN.count - 1);
-    expect(s.factions[0].kills).toBe(kills + 1);
-    expect(score(s, 0)).toBeGreaterThanOrEqual(p0);
+    // kein Abschuss, keine Punkte / no kill, no score
+    expect(s.factions[0].kills).toBe(kills);
+    expect(u.kills).toBe(0);
+    expect(score(s, 0)).toBe(p0);
     // ausser Reichweite / out of range
     const far = turretList(s)[0];
     expect(applyCommand(s, { type: 'attackTurret', unit: s.units.find((x) => x.owner === 0 && x.type === 'jeep')!.id, x: far.x, y: far.y }).ok).toBe(false);

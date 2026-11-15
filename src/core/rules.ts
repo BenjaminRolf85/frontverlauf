@@ -711,7 +711,7 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
-  if (destroyed) gainKill(s, u, ev);
+  // Geschuetze zaehlen nie als Abschuss (Punkte, Statistik, Bonusziele) / guns never count as kills (score, stats, bonus objectives)
   if (u.hp <= 0) { killUnit(s, u, null, ev); return { ok: true, events: ev }; }
   u.attacked = true;
   if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;

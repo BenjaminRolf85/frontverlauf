@@ -312,7 +312,7 @@ export type GameEvent =
   /** Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit */
   | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind }
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
-  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; destroyed: boolean }
+  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';

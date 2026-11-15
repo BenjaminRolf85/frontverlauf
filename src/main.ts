@@ -213,6 +213,8 @@ function boot() {
         }
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
         case 'wave': waveToast(root, s, e.faction, e.count); break;
+        // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
+        case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
       }
       dispatches.onEvent(e, s);
     },

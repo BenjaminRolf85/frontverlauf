@@ -4,12 +4,12 @@
  * Screens and dialogs.
  */
 import {
-  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH, VERDAN,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, type GameConfig, type GameState,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, turretAt, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, setLanguage, t } from '../i18n/i18n';
@@ -679,7 +679,11 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
       <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
   }
   if (c) {
-    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t('features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(t('hud.level', { n: c.level }))}`}</p>`;
+    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(supplyLines(s) ? 'cavern.neutralLine' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : t('hud.level', { n: c.level }))}`}</p>`;
+  }
+  const gun = turretAt(s, x, y);
+  if (gun && (viewer < 0 || isExplored(s, viewer, x, y))) {
+    html += `<h3 class="display">${esc(t('verdan.name'))}</h3><p class="muted">${esc(t(gun.active ? 'verdan.active' : 'verdan.dormant'))} · ${esc(t('verdan.hp', { hp: gun.hp, max: VERDAN.hp }))}</p><p>${esc(t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range }))}</p>`;
   }
   html += `<h3 class="display">${esc(t(`terrain.${tile.terrain}`))}${tile.biome ? ` · ${esc(t(`biomes.${tile.biome}`))}` : ''}${tile.river ? ` · ${esc(t('biomes.river'))}` : ''}</h3><p>${[tile.resource ? t(`resources.${tile.resource}`) : '', tile.building ? `${t(`buildings.${tile.building}`)}: ${buildingDescText(tile.building)}` : '', tile.feature ? t(`features.${tile.feature}`) : ''].filter(Boolean).map(esc).join(' · ')}</p>`;
   const d = openDialog(host.root, html);

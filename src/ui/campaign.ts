@@ -56,6 +56,9 @@ function briefList(x: MissionCtx): string[] {
 /** Text eines Ziels / text of an objective */
 export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?: GameState): string {
   const rounds = m.rounds;
+  // Hoehle: Hauptschacht und Nachschublinien statt HQ und Staedten / cavern: main shaft and supply lines instead of HQ and cities
+  if (m.theme === 'cavern' && o.k === 'holdHq') return t('campaign.obj.holdShaft', { rounds });
+  if (m.theme === 'cavern' && o.k === 'noCityLost') return t('campaign.obj.noLineLost');
   switch (o.k) {
     case 'capture': return bonus ? t('campaign.obj.bonusCapture') : t('campaign.obj.capture', { rounds });
     case 'cities': return bonus ? t('campaign.obj.bonusCities', { n: o.n }) : t('campaign.obj.cities', { n: o.n, rounds });

@@ -755,7 +755,8 @@
     "wonderPhase": "{wonder} ({name}) enters its next phase.",
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
-    "deserted": "Upkeep unpaid: {unit} deserted"
+    "deserted": "Upkeep unpaid: {unit} deserted",
+    "verdanActive": "Verdan defence line activated!"
   },
   "fx": {
     "hit": [
@@ -972,7 +973,9 @@
       "bonusKills": "Destroy {n} enemy units",
       "bonusPoints": "Reach {n} points",
       "destroyUnit": "Destroy the {unit} by round {rounds}",
-      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}"
+      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}",
+      "holdShaft": "Hold your main shaft until round {rounds}",
+      "noLineLost": "Lose no supply line"
     },
     "missions": {
       "m1": {
@@ -1112,17 +1115,18 @@
       },
       "m9": {
         "title": "The Artifact",
-        "tagline": "Everyone against everyone for the legacy of the ancients",
+        "tagline": "Everyone against everyone in the cavern of the ancients",
         "brief": [
-          "Something has appeared in the centre of the map: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world.",
+          "Deep underground, in a cavern that is on no map, something has woken up: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world. Ever since it arrived, the mushrooms and critters around it glow.",
           "Kkt. The artifact belongs to the swarm. We smelled it before you knew fire.",
           "KERN-0: ARTIFACT DETECTED. PROBABILITY OF WORLD DOMINATION: ONE HUNDRED PERCENT. I WILL TAKE IT.",
           "This is the Final Hour! Whoever touches the artifact rings in the end. And that is us.",
-          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the headquarters!"
+          "Careful, commander! Old Verdan guns stand around the crater. They are asleep, but whoever comes within three tiles of the artifact wakes them. Then they fire every round at whatever stands closest to the artifact, no matter the flag. Destroy them with artillery, or let the others go first. And there are no cities down here, only supply lines. They give a fixed income and train units, but they do not grow.",
+          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the main shaft!"
         ],
         "ally": "{allyLeader} to {leader}: {ally} has your back. The artifact is yours. Just please do not press anything before we get there.",
         "won": "The artifact belongs to {faction}! The runes light up ...",
-        "lost": "Someone else touched the artifact. The sky flickers. That is it, then."
+        "lost": "Someone else touched the artifact. The cavern shakes, the mushrooms go dark. That is it, then."
       }
     },
     "intro": "The sky burned: the Zyrr mothership lies in the desert, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
@@ -3149,5 +3153,26 @@
     "prologueTitle": "Prologue: The Starfall",
     "prologueContinue": "To the front",
     "prologueText": "Once the empire of Verdan ruled the whole continent with machines. Then the Great Standstill: overnight all the lights went out. Rusting wrecks recall the war that followed. For two generations, borders drawn in chalk on old maps held. Until the sky burned: the Zyrr mothership crashes into the desert, the bell tolls by itself, and the front begins to move again."
+  },
+  "cavern": {
+    "supplyLine": "Supply line",
+    "mainShaft": "Main shaft",
+    "supplyLines": "Supply lines",
+    "supplyLineDesc": "Shaft with a mine lift and tunnels: fixed income ({n} stars per round), trains up to {max} units, does not grow and cannot be upgraded.",
+    "mainShaftDesc": "Your main shaft: fixed income ({n} stars per round), trains up to {max} units, does not grow and cannot be upgraded.",
+    "neutralLine": "Abandoned supply line"
+  },
+  "verdan": {
+    "name": "Verdan gun",
+    "dormant": "dormant",
+    "active": "active",
+    "hp": "Armour {hp} / {max}",
+    "desc": "Ancient gun of the Verdan defence line, neutral and impassable. Wakes up once a unit comes within {wake} tiles of the artifact, then fires every round at the unit in range {range} closest to the artifact, whatever its faction. Destroyable, but never counts as a kill.",
+    "ruin": "Rubble of a Verdan gun",
+    "attack": "Attack gun",
+    "preview": "Damage up to {dmg}, return fire up to {ret}",
+    "previewKill": "Destroys the gun",
+    "destroyed": "Verdan gun destroyed!",
+    "fx": "Verdan"
   }
 }
