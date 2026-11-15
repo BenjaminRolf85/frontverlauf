@@ -72,12 +72,29 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
     s.cities[0].level = 3;
     expect(recruitCheck(s, 0, z.id, 'zealot', 6, 6)).toBe('ok');
   });
+  it('nie auf ein Geschuetzfeld, Rekrut nicht gezogen / never onto a gun tile, recruit has not moved', () => {
+    const { s } = g(['vesper', 'korvat']);
+    const z = addUnit(s, 'zealot', 0, 5, 5);
+    // Geschuetzstellung der Dravon oder Verdan-Geschuetz / Dravon emplacement or Verdan gun
+    tile(s, 5, 6).turret = { hp: 10, active: true, owner: 1 };
+    expect(recruitCheck(s, 0, z.id, 'zealot', 5, 6)).toBe('occupied');
+    ok(s, { type: 'move', unit: z.id, to: { x: 6, y: 5 } });
+    ok(s, { type: 'recruit', unit: z.id, unitType: 'zealot', x: 6, y: 6 });
+    const n = s.units.find((u) => u.x === 6 && u.y === 6)!;
+    // Feuern nach Bewegung: der Rekrut gilt nicht als gezogen / firing after moving: the recruit does not count as moved
+    expect(n.moved).toBe(false);
+  });
+  it('Zehnt hoechstens CULT.titheRival je Gegner / tithe at most CULT.titheRival per rival', () => {
+    const { s } = g(['vesper', 'korvat']);
+    for (let i = 0; i < 10; i++) addUnit(s, 'zealot', 0, i, 10);
+    expect(cultTithe(s, 0)).toBe(Math.min(CULT.titheMax, CULT.titheRival * 1, 10));
+  });
   it('Kult-Stadt: kein Einkommen, kein Wachstum, keine Ausbauten, kein Sold / cult city: no income, no growth, no upgrades, no upkeep', () => {
     const { s, hq } = g(['vesper', 'korvat']);
     for (let i = 0; i < 6; i++) addUnit(s, 'zealot', 0, 5 + (i % 3), 5 + Math.floor(i / 3));
     expect(cityIncome(s, hq)).toBe(0);
     expect(income(s, 0)).toBe(cultTithe(s, 0));
-    expect(cultTithe(s, 0)).toBe(Math.min(CULT.titheMax, Math.floor(6 * CULT.tithePerUnit)));
+    expect(cultTithe(s, 0)).toBe(Math.min(CULT.titheMax, CULT.titheRival * (s.factions.length - 1), Math.floor(6 * CULT.tithePerUnit)));
     expect(upkeep(s, 0)).toBe(0);
     expect(cityUpgradeCheck(s, 0, hq, 'bunker')).toBe('noSlot');
     // nur Kult-Gebaeude, Strassen und Bruecken / only cult buildings, roads and bridges
