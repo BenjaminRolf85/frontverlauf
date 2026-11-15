@@ -80,6 +80,8 @@ export function addHazards(s: GameState, level: HazardLevel) {
     wrecks++;
   }
 
+  // Wuestenwelt: kein Dschungel, nichts Gruenes / desert world: no jungle, nothing green
+  if (s.config.theme === 'desert') return;
   // Dschungel: zusammenhaengende Waldgebiete, bevorzugt warm und feucht / jungle: connected forest areas, warm and wet first
   const share = HAZARDS.jungle[level];
   const forests = shuffled().filter((p) => { const t = tileOf(p); return t.terrain === 'forest' && t.biome !== 'tundra' && free(t); });

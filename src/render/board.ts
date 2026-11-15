@@ -29,6 +29,12 @@ import { CaveShell } from './cave';
 import { CaveLife, type CreatureSpot } from './life';
 import { setWaterTheme } from './water';
 import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGeometry } from './alienWorld';
+import { alienBurrowGeometry } from './models/alienFlora';
+import { towerGeometry } from './models/towers';
+import { DesertWorldFx } from './desertWorld';
+import { RiftFx } from './rift';
+import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
+import { turretGuard } from '../core';
 
 /**
  * Dimensionsportal der Kampagne als Landschaftsmodell (fertige Stufe, Brett-Groesse), leuchtende Runen und Wirbel.
@@ -183,9 +189,13 @@ export class Board {
   /** Zaehlt Neuaufbauten der statischen Ebene (Schattenkarte) / counts static rebuilds (shadow map) */
   staticVersion = 0;
   /** Kartenthema der gezeigten Partie / map theme of the shown game */
-  theme: 'cavern' | 'alien' | null = null;
+  theme: 'cavern' | 'alien' | 'desert' | null = null;
   /** Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters */
   readonly alienFx = new AlienWorldFx();
+  /** Welt der Vergessenen: Staub, Staubteufel, Tiere, ferne Tafelberge / world of the Forgotten: dust, dust devils, critters, distant mesas */
+  readonly desertFx = new DesertWorldFx();
+  /** Riss zwischen den Welten (Ende m11) / rift between the worlds (end of m11) */
+  readonly rift = new RiftFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -197,7 +207,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -220,6 +230,25 @@ export class Board {
   private snowy = false;
   /** Heimatwelt der Zyrr (Thema 'alien') / Zyrr homeworld (theme 'alien') */
   private alien = false;
+  /** Welt der Vergessenen (Thema 'desert') / world of the Forgotten (theme 'desert') */
+  private desert = false;
+  /**
+   * Wuestenpalette nach Landschaft: rote Duenen, dunkles Geroell, helle Salzpfannen, ockerne Duenenkaemme; kein Gruen.
+   * Desert palette by biome: red dunes, dark scree, pale salt flats, ochre dune ridges; no green.
+   */
+  private desertColors(terrain: TerrainId, biome?: BiomeId): { top: string; side: string } {
+    switch (terrain) {
+      case 'mountain': return { top: semantic.desertRock, side: semantic.desertRockDark };
+      case 'forest': return { top: mix(semantic.desertScree, semantic.desertThorn, 0.35), side: semantic.desertScreeDark };
+      case 'shallow': return { top: semantic.desertPoolShore, side: semantic.desertPool };
+      case 'ocean': return { top: semantic.desertPool, side: semantic.desertPoolDeep };
+      default: break;
+    }
+    if (biome === 'tundra') return { top: semantic.desertSalt, side: semantic.desertSaltCrust };
+    if (biome === 'steppe') return { top: semantic.desertScree, side: semantic.desertScreeDark };
+    if (biome === 'hills') return { top: semantic.desertOchre, side: semantic.desertSandDark };
+    return { top: semantic.desertSand, side: semantic.desertSandDark };
+  }
   /** Faerbung der Heimat einer Fraktion / home tint of a faction */
   private tintOf(s: GameState, t: Tile): string | null {
     const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
@@ -228,6 +257,7 @@ export class Board {
   /** Ober- und Seitenfarbe eines Feldes / top and side colour of a tile */
   private tileColors(terrain: TerrainId, tint: string | null, biome?: BiomeId, xeno = false): { top: string; side: string } {
     if (this.theme === 'cavern') return this.caveColors(terrain, tint, biome, xeno);
+    if (this.desert) return this.desertColors(terrain, biome);
     let topColor: string;
     let side: string = semantic.terrainPlainSide;
     switch (terrain) {
@@ -345,9 +375,11 @@ export class Board {
     if (theme !== this.theme) {
       this.theme = theme;
       this.fogFx.reset();
-      setWaterTheme(cave);
+      setWaterTheme(theme === 'cavern' || theme === 'desert' ? theme : null);
     }
     this.alien = theme === 'alien';
+    this.desert = theme === 'desert';
+    const desert = this.desert;
     this.weatherFx.set(weather(s), s.size, cave, low);
     // unter Tage kein Schnee auf dem Boden / no snow on the ground underground
     this.snowy = !cave && weather(s) === 'snow';
@@ -503,6 +535,28 @@ export class Board {
             const ox = Math.sign(x - art.x) * 0.22, oz = Math.sign(y - art.y) * 0.22;
             addDeco(craterDebris((x * 3 + y) % 3), new THREE.Matrix4().makeTranslation(x - off + ox, top, y - off + oz));
           }
+        } else if (desert && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
+          // Welt der Vergessenen: Tafelberge statt Gipfeln, Dornengestruepp statt Wald, Duenen, Salz, Ruinen und Knochen
+          // world of the Forgotten: mesas instead of peaks, thorn scrub instead of forest, dunes, salt, ruins and bones
+          const free = !hasStructure || t.building === 'road';
+          const corner = (sc: number, h: number) => new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(sc, h, sc));
+          // die Felswand hinter dem Hoehleneingang zeichnet das Schlund-Modell / the cave model draws the rock wall behind the entrance
+          const cv = s.campaign?.cave;
+          const wall = !!cv && dist(cv, { x, y }) === 1 && x <= cv.x && y <= cv.y;
+          if (t.terrain === 'mountain' && wall) { /* Klippe des Schlunds / cliff of the maw */ }
+          else if (t.terrain === 'mountain') {
+            if (occ) addDeco(mesaGeometry(variant), corner(0.45, 0.6));
+            else if (free) addDeco(mesaGeometry((x * 5 + y * 11) % 4), at());
+          } else if (t.terrain === 'forest' && free) addDeco(thornScrubGeometry((x * 5 + y * 11) % 4, low || occ), occ ? corner(0.5, 0.8) : at());
+          else if (t.terrain === 'plain' && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) {
+            const site = s.campaign?.sites?.some((p) => p.x === x && p.y === y) || (s.campaign?.cave?.x === x && s.campaign?.cave?.y === y);
+            const h1 = tileHash(x, y, seed, 23), h2 = tileHash(x, y, seed, 29);
+            const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 31) * Math.PI * 2);
+            if (site) { /* Staette und Schlund zeichnet der Kampagnenteil / site and maw come from the campaign part */ }
+            else if (h1 < (low ? 0.05 : 0.09)) addDeco(verdanDesertRuin(Math.floor(h2 * 4)), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)), false, 'built');
+            else if (h1 < (low ? 0.08 : 0.14)) addDeco(giantSkeletonGeometry(Math.floor(h2 * 3)), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1.2, 1.2, 1.2)));
+            else if (t.biome === 'tundra' ? (x * 3 + y) % 3 === 0 : !low || (x + y) % 2 === 0) addDeco(desertGroundDeco((x * 7 + y * 13 + x * y) % 8, t.biome === 'tundra'), at());
+          }
         } else if (alien && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
           // Heimatwelt der Zyrr: Kristalltuerme statt Gipfeln, grosse Pflanzen statt Baeumen, kleine Flora
           // Zyrr homeworld: crystal spires instead of peaks, big plants instead of trees, small flora
@@ -529,7 +583,7 @@ export class Board {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
-        if (!cave && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
         if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building && !alien) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken / craters and scorch marks
@@ -563,11 +617,18 @@ export class Board {
         }
         // Hoehle: nur die Ressourcen-Requisiten (Fels und Pilze zeichnet der Hoehlenzweig) / cavern: only resource props (rock and mushrooms come from the cavern branch)
         // Alienwelt: keine Rinder und Felder, Fremdtiere grasen dort / alien world: no cattle and fields, critters graze there
-        else if (!occ && t.resource && !t.building && t.cityId === null && !(cave && t.terrain === 'mountain') && (!alien || t.resource === 'ore')) addDeco(decorationGeometry(cave && t.terrain === 'forest' ? 'plain' : t.terrain, t.resource, variant), at());
+        // Wueste: nur Erz und Vorraete, keine Felder und Rinder / desert: only ore and supplies, no fields and cattle
+        else if (!occ && t.resource && !t.building && t.cityId === null && !(cave && t.terrain === 'mountain') && (!alien || t.resource === 'ore') && (!desert || t.resource === 'ore' || t.resource === 'supplies')) {
+          const rg = decorationGeometry(cave && t.terrain === 'forest' ? 'plain' : t.terrain, t.resource, variant);
+          addDeco(desert && rg ? sandify(rg, `res${t.terrain}${t.resource}${variant}`) : rg, at());
+        }
         // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
         if (t.turret && t.turret.hp > 0) {
-          const face = art ? Math.atan2(art.x - x, art.y - y) : 0;
-          addDeco(verdanTurretGeometry(t.turret.active), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.25, 1.2)), false, 'built');
+          // zum bewachten Punkt gedreht (Artefakt oder Ruinenstaette) / facing the guarded point (artifact or ruin site)
+          const g = art ?? (s.campaign?.sites?.length ? turretGuard(s, { x, y }) : undefined);
+          const face = g ? Math.atan2(g.x - x, g.y - y) : 0;
+          const tg = verdanTurretGeometry(t.turret.active);
+          addDeco(desert && tg ? sandify(tg, `turret${t.turret.active}`) : tg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.25, 1.2)), false, 'built');
           if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.6, color: eye });
         } else if (t.turretRuin) addDeco(verdanRuinGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (x * 3 + y) % 4), new THREE.Vector3(1, 1, 1)), false, 'built');
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
@@ -584,7 +645,28 @@ export class Board {
         if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
-        else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+        else if (t.feature) { const fg = featureGeometry(t.feature); addDeco(desert && fg ? sandify(fg, `feature${t.feature}`) : fg, new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built'); }
+        // Ruinenstaette (m13): leuchtet, sobald entziffert / ruin site (m13): glows once deciphered
+        const si = s.campaign?.sites?.findIndex((p) => p.x === x && p.y === y) ?? -1;
+        if (si >= 0) {
+          const done = !!s.campaign?.siteDone?.[si];
+          addDeco(ruinSiteGeometry(done), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4), new THREE.Vector3(1.15, 1.15, 1.15)), false, 'built');
+          glowSpots.push({ x: x - off, y: top, z: y - off, size: done ? 2.2 : 1.1, color: relic });
+        }
+        // Hoehleneingang (m14): der Schlund schaut zur offenen Seite / cave entrance (m14): the maw faces the open side
+        const cv = s.campaign?.cave;
+        if (cv && cv.x === x && cv.y === y) {
+          let fx = 0, fz = 0;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+            const o = s.tiles[(y + dy) * size + (x + dx)];
+            if (x + dx < 0 || y + dy < 0 || x + dx >= size || y + dy >= size || !o || o.terrain !== 'mountain') continue;
+            fx -= dx; fz -= dy;
+          }
+          const face = Math.atan2(fx, fz);
+          addDeco(caveMouthGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off),
+            new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.2, 1.2)), false, 'built');
+          glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.8, color: relic });
+        }
         // Dimensionsportal der Kampagne (begehbar) / campaign dimensional portal (walkable)
         if (portal && portal.x === x && portal.y === y) {
           addDeco(portalGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off),
@@ -713,7 +795,8 @@ export class Board {
     }
     if (riverSegs.length) {
       // Alienwelt: violette Baeche / alien world: violet streams
-      const g = alien ? alienTint(riverSegment(), 'river', semantic.alienWaterShallow, 0.85) : riverSegment();
+      // Wueste: ausgetrocknete Flussbetten / desert: dried-up riverbeds
+      const g = alien ? alienTint(riverSegment(), 'river', semantic.alienWaterShallow, 0.85) : desert ? alienTint(riverSegment(), 'dryRiver', semantic.desertScreeDark, 0.9) : riverSegment();
       const { mesh, line } = outlinedInstanced(g, riverSegs.length, OUTLINE.highlight);
       riverSegs.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.raycast = () => {};
@@ -738,7 +821,7 @@ export class Board {
     }
     if (clouds.length) {
       // Hoehle und Alienwelt: Nebel in eigenen Toenen / cavern and alien world: fog in their own tones
-      const geos = [0, 1, 2].map((v) => (cave ? caveCloudGeometry(v) : alien ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
+      const geos = [0, 1, 2].map((v) => (cave ? caveCloudGeometry(v) : alien ? alienCloud(cloudGeometry(v), v) : desert ? alienTint(cloudGeometry(v), `dustCloud${v}`, semantic.desertCloud, 0.5) : cloudGeometry(v)));
       const byVariant: THREE.Matrix4[][] = [[], [], []];
       clouds.forEach((m, i) => byVariant[i % 3].push(m));
       byVariant.forEach((list, v) => {
@@ -761,11 +844,18 @@ export class Board {
       // Hoehle: Nachschublinie statt Stadt, Hauptschacht groesser / cavern: supply line instead of a city, main shaft bigger
       // Alienwelt: neutrale Siedlungen in gedaempfter Zyrr-Bauweise / alien world: neutral settlements in muted Zyrr style
       const g = cave ? withGlow(supplyLineGeometry(fid, flags.hq), 'built', 0)
-        : withGlow(alien && fid === null ? alienTint(cityGeometry('zyrr', level, flags), `village${level}`, semantic.alienRock, 0.45) : cityGeometry(fid, level, flags),
+        // Wueste: alle Orte sind Aussenposten der Verdan (Kuppelbunker, Relaismast, Wappen) / desert: every place is a Verdan outpost (domed bunker, relay mast, emblem)
+        // Sendeturm je Welt / transmitter tower per world
+        : c.tower ? withGlow(towerGeometry(alien ? 'alien' : desert ? 'desert' : 'earth', fid), 'built', 0.4)
+        // Alienwelt: alle Orte sind Hoehlen, in die sich Einheiten eingraben / alien world: every place is a burrow units dig into
+        : withGlow(alien ? alienBurrowGeometry(fid, level, flags.hq)
+          : desert ? verdanOutpostGeometry(fid, level, flags.hq) : cityGeometry(fid, level, flags),
           'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
       if (cave) obj.scale.setScalar(1.15);
+      // Hoehlen und Aussenposten schauen mit Oeffnung und Wappen zur Standardkamera / burrows and outposts face the default camera with opening and emblem
+      if (alien || desert) obj.rotation.y = Math.PI / 4;
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
       if (cave) glowSpots.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, size: flags.hq ? 1.7 : 1.35, color: amber });
@@ -785,8 +875,9 @@ export class Board {
         const ink = fid ? factionTokens[fid].ink : semantic.text;
         // Stufe und Fortschritt zur naechsten Stufe (nur fuer Staedte von Fraktionen) / level and progress to the next level (faction cities only)
         // Nachschublinien wachsen nicht: kein Stufenkreis, kein Fortschritt / supply lines do not grow: no level, no progress
-        const need = c.owner !== null && !cave ? levelUpCost(s, c) : 0;
-        const label = cityLabel(cname, cave ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
+        // Sendetuerme wachsen nicht: ohne Stufe wie Nachschublinien / transmitter towers do not grow: no level, like supply lines
+        const need = c.owner !== null && !cave && !c.tower ? levelUpCost(s, c) : 0;
+        const label = cityLabel(cname, cave || c.tower ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
         label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
         label.center.set(0.5, 1);
         this.labelLayer.add(label);
@@ -822,6 +913,13 @@ export class Board {
     // Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters
     if (alien) this.alienFx.build({ s, explored, top: tileTop, occupied });
     else if (this.alienFx.active) this.alienFx.clear();
+    // Welt der Vergessenen / world of the Forgotten
+    if (desert) this.desertFx.build({ s, explored, top: tileTop, occupied, low });
+    else if (this.desertFx.active) this.desertFx.clear();
+    // Riss: bleibt nach dem Aufreissen stehen; neue Partie ohne Riss raeumt ihn / rift: stays after tearing open; a new game without a rift clears it
+    const rf = s.campaign?.rift;
+    if (!rf) { if (this.rift.active) this.rift.clear(); }
+    else if (this.rift.key !== `${rf.x - off},${rf.y - off}`) this.rift.show(new THREE.Vector3(rf.x - off, tileTop(s.tiles[rf.y * size + rf.x]), rf.y - off), false);
     this.dirty = true;
   }
 

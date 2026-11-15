@@ -11,7 +11,7 @@
 import type { FactionId } from '../data/balance';
 import type { City, GameState } from '../core/types';
 import { dist } from '../core/grid';
-import { tList } from './i18n';
+import { t, tList } from './i18n';
 
 /** Namensplatz einer Stadt: Liste (Fraktion oder allgemein) und Index / name slot of a city: list (faction or general) and index */
 export interface CityNameSlot { list: FactionId | null; index: number }
@@ -31,6 +31,8 @@ const generalList = () => tList('cityNames');
 export function cityCulture(s: GameState, c: City): FactionId | null {
   // Heimatwelt der Zyrr (Kampagne): alle Orte tragen Zyrr-Namen / Zyrr homeworld (campaign): every place carries a Zyrr name
   if (s.config.theme === 'alien') return 'zyrr';
+  // Wuestenwelt: alle Orte sind Aussenposten der Verdan (eigene Liste, siehe cityNameOf) / desert world: every place is a Verdan outpost (own list, see cityNameOf)
+  if (s.config.theme === 'desert') return null;
   if (c.isHQ && c.hqOf !== null && s.factions[c.hqOf]) return s.factions[c.hqOf].id;
   let best = Infinity;
   let owners = new Set<FactionId>();
@@ -91,8 +93,10 @@ export function cityNameSlots(s: GameState): Map<number, CityNameSlot> {
 
 /** Name einer Stadt in der aktuellen Sprache / name of a city in the current language */
 export function cityNameOf(s: GameState, cityId: number): string {
+  // Sendetuerme heissen so, wie sie sind / transmitter towers are called what they are
+  if (s.cities.find((c) => c.id === cityId)?.tower) return t('tower.name');
   const slot = cityNameSlots(s).get(cityId);
   if (!slot) return '';
-  const names = slot.list ? factionList(slot.list) : generalList();
-  return names[slot.index] ?? '';
+  const names = s.config.theme === 'desert' ? tList('cityNamesVerdan') : slot.list ? factionList(slot.list) : generalList();
+  return names.length ? names[slot.index % names.length] ?? '' : '';
 }

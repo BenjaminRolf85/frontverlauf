@@ -5,8 +5,10 @@
  * floating rocks and small alien critters. Render only, own creation.
  * Kachel 1x1, Ursprung unten mittig / tile 1x1, origin bottom centre.
  */
-import { semantic } from '../../design/tokens';
-import { Builder, col, geo, mix, rng, shade, type V3 } from './kit';
+import type * as THREE from 'three';
+import type { FactionId } from '../../data/balance';
+import { factionTokens, semantic } from '../../design/tokens';
+import { Builder, col, geo, memo, mix, rng, shade, type V3 } from './kit';
 import { mat } from './look';
 import { crystal, tendril } from './xeno';
 
@@ -220,4 +222,58 @@ export function alienInsect(): Builder {
   b.add(geo.ico(0.012, 0), mat.acid, { p: [0, 0, 0] });
   for (const s of [-1, 1]) b.add(geo.sphere(0.012, 6, 3), mix(mat.white, A.crystal, 0.4), { p: [s * 0.012, 0.006, 0], s: [1, 0.2, 0.6] });
   return b;
+}
+
+/**
+ * Hoehle der Heimatwelt statt Siedlung (Thema 'alien'): organischer Erdhuegel aus Xeno-Boden mit dunkler Oeffnung,
+ * Chitinrand, leuchtenden violetten Adern und Sporenkapseln; groessere Stufen bekommen Nebenhuegel, das Hauptquartier
+ * einen hohen Kamin. Besetzt: Ring und Wimpel in der Fraktionsfarbe. Einheiten graben sich hier ein (Stadtbonus).
+ * Burrow of the homeworld instead of a settlement (theme 'alien'): organic mound of xeno ground with a dark opening,
+ * carapace rim, glowing violet veins and spore pods; higher levels get side mounds, the HQ a tall chimney. Occupied:
+ * ring and pennant in the faction colour. Units dig in here (city bonus).
+ */
+export function alienBurrowGeometry(faction: FactionId | null, level: number, hq: boolean): THREE.BufferGeometry {
+  const lv = Math.max(1, Math.min(3, level));
+  return memo(`alienBurrow|${faction}|${lv}|${+hq}`, () => {
+    const R = rng(2600 + lv * 11 + (hq ? 5 : 0));
+    const b = new Builder();
+    const own = faction ? col(factionTokens[faction].primary) : null;
+    /** Huegel mit Oeffnung nach +z / mound with an opening towards +z */
+    const mound = (x: number, z: number, r: number, h: number) => {
+      b.add(geo.hemi(r, 12, 5), A.ground, { p: [x, 0, z], s: [1, h / r, 0.9] });
+      b.add(geo.hemi(r * 0.82, 10, 4), shade(A.ground, 0.85), { p: [x - r * 0.12, h * 0.05, z - r * 0.08], s: [1, (h * 1.08) / r, 0.85] });
+      // dunkle Oeffnung mit Chitinrand / dark opening with a carapace rim
+      b.add(geo.cyl(r * 0.38, r * 0.42, 0.03, 10), mat.ink, { p: [x, h * 0.32, z + r * 0.78], r: [Math.PI / 2 - 0.25, 0, 0], s: [1, 1, 1.25] });
+      b.add(geo.torus(r * 0.42, 0.018, 4, 12), A.rockDark, { p: [x, h * 0.33, z + r * 0.8], r: [-0.25, 0, 0], s: [1, 1.2, 1] });
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 4) * Math.PI;
+        b.add(geo.cone(0.022, 0.07, 4), A.rock, { p: [x + Math.cos(a) * r * 0.48, h * 0.33 + Math.sin(a) * r * 0.5, z + r * 0.84], r: [0.3, 0, a - Math.PI / 2] });
+      }
+      // leuchtende Adern ueber den Huegel / glowing veins over the mound
+      for (let i = 0; i < 4; i++) {
+        const a = R() * Math.PI * 2;
+        b.tube([x + Math.cos(a) * r * 0.95, 0.01, z + Math.sin(a) * r * 0.85], [x + Math.cos(a) * r * 0.3, h * 0.85, z + Math.sin(a) * r * 0.25], 0.009, 4, mat.xenoGlow, 0.005);
+      }
+      // Sporenkapseln / spore pods
+      for (let i = 0; i < 3; i++) {
+        const a = R() * Math.PI * 2;
+        b.add(geo.sphere(0.022 + R() * 0.012, 7, 5), i % 2 ? mat.acid : mat.xenoGlow, { p: [x + Math.cos(a) * r * 0.7, h * 0.55, z + Math.sin(a) * r * 0.55], s: [1, 1.3, 1] });
+      }
+    };
+    mound(0, 0.02, hq ? 0.4 : 0.35, hq ? 0.36 : 0.3);
+    if (lv >= 2) mound(-0.26, -0.2, 0.15, 0.14);
+    if (lv >= 3) mound(0.26, -0.22, 0.13, 0.12);
+    if (hq) {
+      // Kamin aus Chitin, oben glimmend / chitin chimney, glowing on top
+      b.tube([0.05, 0.2, -0.08], [0.08, 0.6, -0.1], 0.05, 7, A.rockDark, 0.03);
+      b.add(geo.torus(0.032, 0.012, 4, 10), mat.xenoGlow, { p: [0.08, 0.6, -0.1], r: [Math.PI / 2, 0, 0] });
+    }
+    if (own) {
+      // Fraktionsmarke: Ring am Fuss und Wimpel / faction marker: ring at the foot and pennant
+      b.add(geo.torus(0.36, 0.018, 4, 18), own, { p: [0, 0.015, 0], r: [Math.PI / 2, 0, 0] });
+      b.add(geo.cyl(0.008, 0.01, 0.42, 5), mat.metal, { p: [-0.3, 0.21, 0.22] });
+      b.add(geo.box(0.14, 0.09, 0.008), own, { p: [-0.23, 0.37, 0.22] });
+    }
+    return b.build();
+  });
 }

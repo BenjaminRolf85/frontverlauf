@@ -6,12 +6,17 @@
  * Every human faction has its own run. The old progress (v1, without a faction) is carried over once
  * as the Korvat run (the old campaign started with Korvat) and announced with a notice.
  *
- * Missionsreihe (layout): 1 = neun Einsaetze, 2 = elf Einsaetze (Akt I mit Portal, Alienwelt und Schwarmmutter).
- * Beim Einlesen eines aelteren Stands werden die IDs nach LAYOUT_MIGRATION umgeschrieben; alle anderen IDs bleiben.
- * Mission layout: 1 = nine missions, 2 = eleven missions (act I with portal, alien world and Swarm Mother).
- * When an older state is read, ids are rewritten according to LAYOUT_MIGRATION; all other ids stay.
+ * Missionsreihe (layout): 1 = neun Einsaetze, 2 = elf Einsaetze (Akt I mit Portal, Alienwelt und Schwarmmutter),
+ * 3 = vierzehn Einsaetze auf drei Welten in neuer Reihenfolge (WORLDS). Beim Einlesen eines Stands der Reihe 1 werden
+ * die IDs nach LAYOUT_MIGRATION umgeschrieben; ab Reihe 2 bleiben alle IDs, nur die Reihenfolge aendert sich.
+ * Gewonnene Einsaetze bleiben offen, der aktuelle Einsatz ist der erste ungewonnene in der neuen Reihenfolge.
+ * Mission layout: 1 = nine missions, 2 = eleven missions (act I with portal, alien world and Swarm Mother),
+ * 3 = fourteen missions on three worlds in a new order (WORLDS). When a layout-1 state is read, ids are rewritten
+ * according to LAYOUT_MIGRATION; from layout 2 on all ids stay, only the order changes.
+ * Won missions stay open, the current mission is the first unwon one in the new order.
  */
-import { CAMPAIGN_FACTIONS, isCampaignFaction } from '../core/campaign';
+import { CAMPAIGN_FACTIONS, isCampaignFaction, MISSION_IDS } from '../core/campaign';
+import { WORLDS, type WorldId } from '../core/worlds';
 import type { FactionId } from '../data/balance';
 
 const PROGRESS_KEY_V1 = 'frontverlauf.campaign.v1';
@@ -40,12 +45,17 @@ export interface CampaignStore {
   /** gewaehlte Fraktion (null = noch keine Wahl) / chosen faction (null = not chosen yet) */
   faction: FactionId | null;
   runs: Partial<Record<FactionId, CampaignProgress>>;
-  /** einmaliger Hinweis nach der Uebernahme oder nach neuen Einsaetzen / one-time notice after the migration or after new missions */
-  notice?: 'migrated' | 'expanded';
+  /**
+   * einmaliger Hinweis nach der Uebernahme, nach neuen Einsaetzen oder nach der neuen Reihenfolge der drei Welten
+   * one-time notice after the migration, after new missions or after the new order of the three worlds
+   */
+  notice?: 'migrated' | 'expanded' | 'reordered';
 }
 
 /** Aktuelle Missionsreihe / current mission layout */
-export const LAYOUT = 2;
+export const LAYOUT = 3;
+/** Reihenfolge der Reihe 2 (vor den drei Welten) / order of layout 2 (before the three worlds) */
+export const LAYOUT2_ORDER = ['m1', 'm2', 'm3', 'm10', 'm11', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9'];
 /**
  * Alte IDs (Reihe 1, neun Einsaetze) auf neue: die alte m3 (Die Linie haelt) ist in m2 aufgegangen, m3 ist jetzt das Portal.
  * m1, m2 und m4 bis m9 behalten ihre ID; m10 und m11 sind neu.
@@ -74,6 +84,51 @@ export function isUnlocked(p: CampaignProgress, order: readonly string[], id: st
   return i === 0 || isCompleted(p, order[i - 1]) || isCompleted(p, id);
 }
 
+// ---------- Welten / worlds ----------
+
+/** Welten wie in WORLDS (fuer Tests austauschbar) / worlds as in WORLDS (replaceable for tests) */
+export type WorldList = readonly { id: WorldId | string; missions: readonly string[] }[];
+
+/** Spielreihenfolge aller Einsaetze aus den Welten / play order of all missions from the worlds */
+export const worldOrder = (worlds: WorldList = WORLDS): string[] => worlds.flatMap((w) => [...w.missions]);
+
+/**
+ * Welt abgeschlossen: ihr letzter Einsatz in WORLDS ist gewonnen. Die einzige Stelle, die das festlegt.
+ * World complete: its last mission in WORLDS is won. The one place that defines it.
+ */
+export function worldComplete(p: CampaignProgress, world: WorldId | string, worlds: WorldList = WORLDS): boolean {
+  const w = worlds.find((x) => x.id === world);
+  const last = w?.missions[w.missions.length - 1];
+  return !!last && isCompleted(p, last);
+}
+
+/** Welt betretbar: die erste immer, sonst wenn die vorige abgeschlossen ist / world open: the first always, else when the previous one is complete */
+export function worldUnlocked(p: CampaignProgress, world: WorldId | string, worlds: WorldList = WORLDS): boolean {
+  const i = worlds.findIndex((x) => x.id === world);
+  return i === 0 || (i > 0 && worldComplete(p, worlds[i - 1].id, worlds));
+}
+
+/**
+ * Einsatz freigeschaltet entlang WORLDS: gewonnene bleiben immer offen; der erste einer Welt, wenn die Welt betretbar ist;
+ * sonst, wenn der vorige Einsatz derselben Welt gewonnen ist. Haengt nur an den IDs, nie an einer festen Anzahl, daher
+ * wird ein spaeter eingefuegter Einsatz hinter gewonnenen Einsaetzen sofort spielbar.
+ * Mission unlocked along WORLDS: won ones always stay open; the first of a world when the world is open; otherwise when
+ * the previous mission of the same world is won. Depends only on ids, never on a fixed count, so a mission inserted
+ * later behind won missions becomes playable at once.
+ */
+export function missionUnlocked(p: CampaignProgress, id: string, worlds: WorldList = WORLDS): boolean {
+  if (isCompleted(p, id)) return true;
+  const w = worlds.find((x) => x.missions.includes(id));
+  if (!w) return false;
+  const i = w.missions.indexOf(id);
+  return i === 0 ? worldUnlocked(p, w.id, worlds) : isCompleted(p, w.missions[i - 1]);
+}
+
+/** Aktueller Einsatz: der erste ungewonnene in WORLDS-Reihenfolge / current mission: the first unwon one in WORLDS order */
+export function currentMission(p: CampaignProgress, worlds: WorldList = WORLDS): string | null {
+  return worldOrder(worlds).find((id) => missionUnlocked(p, id, worlds) && !isCompleted(p, id)) ?? null;
+}
+
 /** Naechste Mission in der Reihenfolge / next mission in order */
 export function nextMissionId(order: readonly string[], id: string): string | null {
   const i = order.indexOf(id);
@@ -96,7 +151,8 @@ export function recordResult(p: CampaignProgress, id: string, won: boolean, star
   const prev = p.missions[id];
   const rec: MissionRecord = {
     stars: Math.max(prev?.stars ?? 0, Math.max(1, Math.min(3, Math.round(stars)))),
-    bestRound: prev ? Math.min(prev.bestRound, round) : round,
+    // ein gespeicherter Wert 0 (unbekannt) wird ersetzt / a stored 0 (unknown) is replaced
+    bestRound: prev && prev.bestRound > 0 ? Math.min(prev.bestRound, round) : round,
     wins: (prev?.wins ?? 0) + 1,
   };
   return { missions: { ...p.missions, [id]: rec } };
@@ -154,6 +210,14 @@ export function migrateRun(p: CampaignProgress): CampaignProgress {
 
 /** War der Feldzug schon hinter der geaenderten Stelle? / was the run already past the changed part? */
 const pastChange = (p: CampaignProgress) => LAYOUT1_LATER.some((id) => isCompleted(p, id));
+/**
+ * Aendert die neue Reihenfolge etwas fuer diesen Feldzug? Ja, sobald mehr als der erste Einsatz gewonnen ist (ab dort
+ * weicht die Reihenfolge ab) oder der aktuelle Einsatz ein anderer wird.
+ * Does the new order change anything for this run? Yes once more than the first mission is won (the order differs from
+ * there on) or the current mission becomes a different one.
+ */
+const reordered = (p: CampaignProgress) => Object.keys(p.missions).some((id) => isCompleted(p, id) && id !== LAYOUT2_ORDER[0]) ||
+  (Object.keys(p.missions).length > 0 && currentMissionId(p, LAYOUT2_ORDER) !== currentMissionId(p, MISSION_IDS));
 
 function parseRun(d: unknown): CampaignProgress | null {
   if (!d || typeof d !== 'object') return null;
@@ -190,17 +254,19 @@ export function parseStore(raw: string | null, rawV1: string | null = null): Cam
       if (d && d.v === 2 && typeof d.runs === 'object' && d.runs !== null) {
         const out = emptyStore();
         if (isCampaignFaction(d.faction)) out.faction = d.faction;
-        const old = d.layout !== LAYOUT;
-        let past = false;
+        // Reihe 1 (ohne Angabe): IDs umschreiben; Reihe 1 und 2: neue Reihenfolge melden / layout 1 (missing): rewrite ids; layouts 1 and 2: announce the new order
+        const layout = typeof d.layout === 'number' ? d.layout : 1;
+        let changed = false;
         for (const [f, r] of Object.entries(d.runs)) {
-          const run = isCampaignFaction(f) ? parseRun(r) : null;
-          if (!run) continue;
-          if (old) past ||= pastChange(run);
-          out.runs[f as FactionId] = old ? migrateRun(run) : run;
+          const raw = isCampaignFaction(f) ? parseRun(r) : null;
+          if (!raw) continue;
+          const run = layout < 2 ? migrateRun(raw) : raw;
+          if (layout < LAYOUT) changed ||= (layout < 2 && pastChange(raw)) || reordered(run);
+          out.runs[f as FactionId] = run;
         }
-        if (d.notice === 'migrated' || d.notice === 'expanded') out.notice = d.notice;
-        // neue Einsaetze in Akt I: einmal Bescheid geben / new missions in act I: tell once
-        else if (past) out.notice = 'expanded';
+        if (d.notice === 'migrated' || d.notice === 'expanded' || d.notice === 'reordered') out.notice = d.notice;
+        // drei Welten in neuer Reihenfolge: einmal Bescheid geben / three worlds in a new order: tell once
+        else if (changed) out.notice = 'reordered';
         return out;
       }
     } catch { /* weiter mit v1 / fall back to v1 */ }

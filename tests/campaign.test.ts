@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCommand, cityAt, createGame, dist, factionVictoryOn, hqOf, isLand, MISSIONS, missionById, missionConfig, ownCities, unitAt,
   CAMPAIGN_ALLIES, CAMPAIGN_ENEMIES, CAMPAIGN_FACTIONS, allyFor, persuadeCost, defaultConfig, objectiveProgress, FINALE_ID, MISSION_IDS,
+  WORLDS, worldOf, worldNumber, missionNumber, UNPLACED_MISSIONS,
   type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import { isValidState, migrateState } from '../src/save/save';
@@ -47,33 +48,51 @@ function placeAt(s: GameState, u: Unit, p: { x: number; y: number }) {
 const allHuman = (s: GameState) => { for (const f of s.factions) f.human = true; };
 
 describe('Kampagne: Aufbau / campaign: structure', () => {
-  it('11 Missionen in drei Akten, steigende Schwierigkeit je Akt, wechselnde Karten / 11 missions in three acts, rising difficulty per act, varied maps', () => {
-    expect(MISSIONS.length).toBe(11);
-    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(11);
-    // IDs bleiben stabil, neue werden angehaengt / ids stay stable, new ones are appended
-    expect(MISSION_IDS).toEqual(['m1', 'm2', 'm3', 'm10', 'm11', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9']);
-    expect(MISSIONS.map((m) => m.act)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
-    const rank = { easy: 0, normal: 1, hard: 2, extreme: 3 };
-    for (let i = 1; i < MISSIONS.length; i++) {
-      if (MISSIONS[i].act !== MISSIONS[i - 1].act) continue;
-      expect(rank[MISSIONS[i].level], MISSIONS[i].id).toBeGreaterThanOrEqual(rank[MISSIONS[i - 1].level]);
+  it('14 Missionen auf drei Welten in WORLDS-Reihenfolge, steigende Schwierigkeit je Welt / 14 missions on three worlds in WORLDS order, rising difficulty per world', () => {
+    expect(MISSIONS.length).toBe(14);
+    expect(new Set(MISSIONS.map((m) => m.id)).size).toBe(14);
+    // Reihenfolge und Welt kommen allein aus WORLDS / order and world come from WORLDS alone
+    expect(MISSION_IDS).toEqual(WORLDS.flatMap((w) => w.missions));
+    expect(MISSION_IDS).toEqual(['m1', 'm2', 'm4', 'm5', 'm6', 'm7', 'm8', 'm3', 'm10', 'm11', 'm12', 'm13', 'm14', 'm9']);
+    expect(UNPLACED_MISSIONS).toEqual([]);
+    for (const m of MISSIONS) {
+      expect(m.act, m.id).toBe(WORLDS.findIndex((w) => w.id === worldOf(m.id)) + 1);
+      expect(worldNumber(m.id)).toBe(m.act);
+      expect(missionNumber(m.id)).toBe(MISSION_IDS.indexOf(m.id) + 1);
     }
-    // jeder Akt endet mit einem schweren Einsatz / every act ends with a hard mission
-    for (const a of [1, 2, 3]) expect(rank[MISSIONS.filter((m) => m.act === a).at(-1)!.level]).toBeGreaterThanOrEqual(rank.hard);
+    expect(MISSIONS.map((m) => m.act)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3]);
+    const rank = { easy: 0, normal: 1, hard: 2, extreme: 3 };
+    // Schwierigkeit steigt entlang WORLDS innerhalb jeder Welt / difficulty rises along WORLDS inside each world
+    for (const w of WORLDS) {
+      const ms = w.missions.map((id) => missionById(id)!);
+      for (let i = 1; i < ms.length; i++) expect(rank[ms[i].level], ms[i].id).toBeGreaterThanOrEqual(rank[ms[i - 1].level]);
+      // jede Welt endet mit einem schweren Einsatz / every world ends with a hard mission
+      expect(rank[ms.at(-1)!.level], w.id).toBeGreaterThanOrEqual(rank.hard);
+    }
+    // ueber die Welten hinweg nie leichter als am Ende der vorigen Welt minus eins / across worlds never easier than the end of the previous one minus one
+    for (let i = 1; i < WORLDS.length; i++) {
+      const prev = missionById(WORLDS[i - 1].missions.at(-1)!)!, first = missionById(WORLDS[i].missions[0])!;
+      expect(rank[first.level]).toBeGreaterThanOrEqual(rank[prev.level] - 1);
+    }
     expect(MISSIONS[0].level).toBe('easy');
     expect(MISSIONS.at(-1)!.level).toBe('extreme');
     expect(FINALE_ID).toBe('m9');
-    expect(new Set(MISSIONS.map((m) => m.seed)).size).toBe(11);
+    expect(FINALE_ID).toBe(WORLDS.at(-1)!.missions.at(-1));
+    expect(new Set(MISSIONS.map((m) => m.seed)).size).toBe(14);
     expect(new Set(MISSIONS.map((m) => m.mapType)).size).toBeGreaterThanOrEqual(3);
     expect(new Set(MISSIONS.map((m) => m.size)).size).toBeGreaterThanOrEqual(3);
-    // Akt I gegen die Zyrr, Akt II gegen den Kult, Akt III gegen NEXUS und alle / act I vs Zyrr, II vs cult, III vs NEXUS and all
-    for (const m of MISSIONS.filter((x) => x.act === 1)) expect(m.enemies.map((e) => e.id)).toEqual(['zyrr']);
-    for (const m of MISSIONS.filter((x) => x.act === 2)) expect(m.enemies.map((e) => e.id)).toEqual(['vesper']);
-    expect(missionById('m7')!.enemies.map((e) => e.id)).toEqual(['nexus']);
-    expect(new Set(missionById('m9')!.enemies.map((e) => e.id))).toEqual(new Set(['zyrr', 'nexus', 'vesper']));
-    // die Alienwelt: Thema nur fuer m10 und m11, im Spiel gesetzt / the alien world: theme only for m10 and m11, set in the game
+    // Erde: Zyrr, Kult, NEXUS, dann wieder Zyrr am Portal; Alienwelt: Zyrr; Wueste: alle drei / Earth: Zyrr, cult, NEXUS, then Zyrr again at the portal; alien world: Zyrr; desert: all three
+    const foes = (id: string) => missionById(id)!.enemies.map((e) => e.id);
+    for (const id of ['m1', 'm2', 'm3', 'm10', 'm11']) expect(foes(id), id).toEqual(['zyrr']);
+    for (const id of ['m4', 'm5', 'm6']) expect(foes(id), id).toEqual(['vesper']);
+    for (const id of ['m7', 'm8']) expect(foes(id), id).toEqual(['nexus']);
+    for (const id of ['m12', 'm13', 'm14', 'm9']) expect(new Set(foes(id)), id).toEqual(new Set(['zyrr', 'nexus', 'vesper']));
+    // Themen: Alienwelt m10 und m11, Wueste m12 bis m14, Hoehle m9 / themes: alien m10 and m11, desert m12 to m14, cavern m9
     expect(MISSIONS.filter((m) => m.theme === 'alien').map((m) => m.id)).toEqual(['m10', 'm11']);
+    expect(MISSIONS.filter((m) => m.theme === 'desert').map((m) => m.id)).toEqual(['m12', 'm13', 'm14']);
+    expect(MISSIONS.filter((m) => m.theme === 'cavern').map((m) => m.id)).toEqual(['m9']);
     expect(missionConfig('m10').theme).toBe('alien');
+    expect(missionConfig('m13').theme).toBe('desert');
     expect(missionConfig('m1').theme).toBeUndefined();
     expect(CAMPAIGN_FACTIONS).toEqual(['korvat', 'dravon', 'alvenia', 'meridon', 'velkar']);
     expect(CAMPAIGN_ENEMIES).toEqual(['zyrr', 'vesper', 'nexus']);
@@ -133,12 +152,12 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
 
   it('Verbuendete: diplomatische Fraktionen oefter, fest je Mission / allies: diplomatic factions more often, fixed per mission', () => {
     const count = (f: FactionId) => MISSIONS.filter((m) => allyFor(m.id, f)).length;
-    expect(count('alvenia')).toBeGreaterThanOrEqual(5);
-    expect(count('alvenia')).toBeLessThanOrEqual(6);
-    expect(count('meridon')).toBeGreaterThanOrEqual(4);
-    expect(count('meridon')).toBeLessThanOrEqual(5);
-    // der Landetrupp ist allein / the landing party is alone
-    for (const f of CAMPAIGN_FACTIONS) expect(allyFor('m10', f)).toBeNull();
+    expect(count('alvenia')).toBe(7);
+    expect(count('meridon')).toBe(6);
+    // jede Mission mit Verbuendetem hat ihre Funkzeile; Verbuendete nur in bekannten Missionen / every mission with an ally has its radio line; allies only in known missions
+    for (const list of Object.values(CAMPAIGN_ALLIES)) for (const id of Object.keys(list!)) expect(MISSION_IDS, id).toContain(id);
+    // die Landetrupps sind allein / the landing parties are alone
+    for (const f of CAMPAIGN_FACTIONS) { expect(allyFor('m10', f)).toBeNull(); expect(allyFor('m12', f)).toBeNull(); }
     for (const f of ['korvat', 'dravon', 'velkar'] as const) { expect(count(f)).toBeGreaterThanOrEqual(1); expect(count(f)).toBeLessThanOrEqual(2); }
     for (const [f, list] of Object.entries(CAMPAIGN_ALLIES)) for (const al of Object.values(list!)) expect(al).not.toBe(f);
     // Spieler kann das Buendnis nicht brechen / the player cannot break the alliance
@@ -188,9 +207,9 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
 });
 
 describe('Kampagne: Ziele / campaign: objectives', () => {
-  it('m1: drei Staedte = Sieg mit 3 Sternen, Zeitlimit = Niederlage / three cities = win with 3 stars, time limit = defeat', () => {
+  it('m1: vier Staedte = Sieg mit 3 Sternen, Zeitlimit = Niederlage / four cities = win with 3 stars, time limit = defeat', () => {
     const s = game('m1', 'dravon');
-    for (const c of s.cities.filter((x) => x.owner === null).slice(0, 2)) c.owner = 0;
+    for (const c of s.cities.filter((x) => x.owner === null).slice(0, 3)) c.owner = 0;
     const r = poke(s);
     expect(r.events.some((e) => e.t === 'objective' && e.status === 'done')).toBe(true);
     expect(s.campaign!.result).toBe('won');
@@ -233,8 +252,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     const s = game('m2');
     allHuman(s);
     const before = s.units.filter((u) => u.owner === 1).length;
-    passRound(s);
-    const ev = passRound(s); // Beginn Runde 3 / start of round 3
+    const ev = passRound(s); // Beginn Runde 2: die erste Kapsel / start of round 2: the first pod
     expect(ev.some((e) => e.t === 'wave' && e.faction === 1)).toBe(true);
     expect(s.campaign!.waves).toBe(1);
     expect(s.units.filter((u) => u.owner === 1).length).toBeGreaterThan(before);
@@ -251,7 +269,9 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
       const s = game('m3', f);
       const p = s.campaign!.portal!;
       expect(s.campaign!.targets[0]).toEqual(p);
-      expect(s.campaign!.spawns![0]).toEqual(p);
+      // Nachschub tritt neben dem Portal aus, nie darauf / reinforcements step out next to the portal, never onto it
+      expect(dist(s.campaign!.spawns![0], p), f).toBeGreaterThanOrEqual(2);
+      expect(dist(s.campaign!.spawns![0], p), f).toBeLessThanOrEqual(3);
       // Garnison auf dem Portal, das Portal ist allen bekannt / garrison on the portal, everyone knows the portal
       expect(unitAt(s, p.x, p.y)?.owner, f).toBe(1);
       for (const fa of s.factions) expect(fa.explored[p.y * s.size + p.x]).toBe(1);
@@ -272,14 +292,14 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     passRound(s);
     expect(s.campaign!.portalHold).toBe(0);
     placeAt(s, u, p);
-    // Runde 4: die erste Welle kommt durchs Portal, neben das besetzte Feld / round 4: the first wave comes through the portal, next to the occupied tile
+    // Runde 4: die erste Welle tritt neben dem Portal aus, nicht auf dem Halter / round 4: the first wave steps out next to the portal, not onto the holder
     const ev = passRound(s);
     expect(s.round).toBe(4);
     expect(s.campaign!.portalHold).toBe(1);
     expect(s.campaign!.result).toBeNull();
     const wave = ev.find((e) => e.t === 'wave' && e.faction === 1);
-    expect(wave && wave.t === 'wave' ? dist(wave, p) : 99).toBe(0);
-    expect(s.units.filter((x) => x.owner === 1 && dist(x, p) === 1).length).toBeGreaterThanOrEqual(1);
+    expect(wave && wave.t === 'wave' ? dist(wave, p) : 0).toBeGreaterThanOrEqual(2);
+    expect(unitAt(s, p.x, p.y)?.id).toBe(u.id);
     passRound(s);
     expect(s.campaign!.status[0]).toBe('done');
     expect(s.campaign!.result).toBe('won');
@@ -291,14 +311,43 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     late.campaign!.waves = missionById('m3')!.waves!.length;
     passRound(late);
     expect(late.campaign!.result).toBe('lost');
+
+    // nie eine Runde zu spaet: gehalten erst zu Beginn der Runde nach dem Limit zaehlt nicht mehr
+    // never one round late: held only at the start of the round after the limit no longer counts
+    const edge = game('m3');
+    allHuman(edge);
+    const ep = edge.campaign!.portal!;
+    edge.units = edge.units.filter((x) => !(x.owner === 1 && dist(x, ep) <= 1));
+    const eu = edge.units.find((x) => x.owner === 0 && x.type === 'mg')!;
+    placeAt(edge, eu, ep);
+    const m3 = missionById('m3')!;
+    edge.round = m3.rounds;
+    edge.campaign!.waves = m3.waves!.length;
+    edge.campaign!.portalHold = 1;
+    passRound(edge);
+    expect(edge.round).toBe(m3.rounds + 1);
+    expect(edge.campaign!.portalHold).toBe(1);
+    expect(edge.campaign!.result).toBe('lost');
+    // im letzten Zug gehalten zaehlt / held at the last turn counts
+    const ok = game('m3');
+    allHuman(ok);
+    ok.units = ok.units.filter((x) => !(x.owner === 1 && dist(x, ep) <= 1));
+    const ou = ok.units.find((x) => x.owner === 0 && x.type === 'mg')!;
+    placeAt(ok, ou, ok.campaign!.portal!);
+    ok.round = m3.rounds - 1;
+    ok.campaign!.waves = m3.waves!.length;
+    ok.campaign!.portalHold = 1;
+    passRound(ok);
+    expect(ok.round).toBe(m3.rounds);
+    expect(ok.campaign!.result).toBe('won');
   });
 
   it('m4: Abschuesse; alle Gegner ausgeschieden = Sieg / kills; all enemies eliminated = win', () => {
     const s = game('m4');
-    s.factions[0].kills = 5;
+    s.factions[0].kills = 7;
     poke(s);
     expect(s.campaign!.result).toBeNull();
-    s.factions[0].kills = 6;
+    s.factions[0].kills = 8;
     poke(s);
     expect(s.campaign!.result).toBe('won');
 
@@ -311,6 +360,8 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(r.ok).toBe(true);
     expect(e.campaign!.result).toBe('won');
     expect(r.events.filter((x) => x.t === 'gameOver').length).toBe(1);
+    // Sieg ohne Gegner: offene Hauptziele gelten als erfuellt, nie als verfehlt / win without enemies: open primary objectives count as met, never failed
+    expect(e.campaign!.status).toEqual(['done']);
   });
 
   it('m5/m7: Eroberung der Zielstaedte / capturing the target cities', () => {
@@ -351,7 +402,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(late.campaign!.result).toBe('lost');
   });
 
-  it('m8: HQ verloren = Niederlage, Ueberleben = Sieg, Verstaerkung trifft ein / HQ lost = defeat, surviving = win, reinforcements arrive', () => {
+  it('m8: HQ verloren = Niederlage, Abschuesse bei gehaltenem HQ = Sieg, Verstaerkung trifft ein / HQ lost = defeat, kills with the HQ held = win, reinforcements arrive', () => {
     const lost = game('m8');
     hqOf(lost, 0)!.owner = 1;
     poke(lost);
@@ -367,12 +418,25 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(s.units.filter((u) => u.owner === 0).length).toBe(own + 2);
     expect(s.units.some((u) => u.owner === 0 && u.type === 'tank')).toBe(true);
 
+    const m8 = missionById('m8')!;
+    const need = m8.objectives.find((o) => o.k === 'kills')!;
     const won = game('m8');
-    allHuman(won);
-    won.round = missionById('m8')!.rounds;
-    won.campaign!.waves = missionById('m8')!.waves!.length;
-    passRound(won);
+    won.factions[0].kills = need.k === 'kills' ? need.n : 0;
+    poke(won);
     expect(won.campaign!.result).toBe('won');
+    // nur ueberleben reicht nicht mehr / merely surviving is no longer enough
+    const idle = game('m8');
+    allHuman(idle);
+    idle.round = m8.rounds;
+    idle.campaign!.waves = m8.waves!.length;
+    passRound(idle);
+    expect(idle.campaign!.result).toBe('lost');
+    // die beiden Angriffsrichtungen liegen fuer jede Fraktion auf verschiedenen Feldern / the two attack directions lie on different tiles for every faction
+    for (const f of CAMPAIGN_FACTIONS) {
+      const g = game('m8', f);
+      const [p0, p1] = g.campaign!.spawns!;
+      expect(dist(p0, p1), f).toBeGreaterThanOrEqual(3);
+    }
   });
 
   it('m9: Artefakt drei Runden besetzt = Sieg, ein Gegner zuerst = Niederlage / artifact held three rounds = win, an enemy first = defeat', () => {
@@ -452,12 +516,13 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
       const own = s.units.filter((u) => u.owner === 0);
       expect(own.map((u) => u.type).sort(), f).toEqual(['artillery', 'infantry', 'jeep', 'mg']);
       // alle neben dem Portal, nicht darauf / all next to the portal, not on it
-      for (const u of own) { expect(dist(u, c.portal!), f).toBeLessThanOrEqual(2); expect(dist(u, c.portal!), f).toBeGreaterThanOrEqual(1); }
+      for (const u of own) { expect(dist(u, c.portal!), f).toBeLessThanOrEqual(3); expect(dist(u, c.portal!), f).toBeGreaterThanOrEqual(1); }
       // Vorposten: Zyrr-Stadt mit Besatzung, das alte Hauptquartier des Spielers / outpost: Zyrr city with a garrison, the player's old HQ
       const out = cityAt(s, c.targets[0].x, c.targets[0].y)!;
       expect(out.owner).toBe(1);
       expect(out.hqOf).toBe(0);
-      expect(unitAt(s, out.x, out.y)?.owner).toBe(1);
+      // die Hoehle ist verlassen, die Zyrr kommen mit der ersten Welle / the burrow is deserted, the Zyrr come with the first wave
+      expect(unitAt(s, out.x, out.y)).toBeUndefined();
       expect(dist(out, c.portal!)).toBeGreaterThanOrEqual(3);
       // Ziel 2: das Hauptquartier der Zyrr / objective 2: the Zyrr HQ
       expect(c.targets[1]).toEqual({ x: hqOf(s, 1)!.x, y: hqOf(s, 1)!.y });
@@ -514,10 +579,10 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'infantry' }).ok).toBe(true);
     // bis an das Hauptquartier der Zyrr / up to the Zyrr HQ
     const jeep = s.units.find((u) => u.owner === 0 && u.type === 'jeep')!;
-    placeAt(s, jeep, landAt(s, c.targets[1], 2));
+    placeAt(s, jeep, landAt(s, c.targets[1], 3));
     poke(s);
     expect(c.status[1]).toBe('pending');
-    placeAt(s, jeep, landAt(s, c.targets[1], 1));
+    placeAt(s, jeep, landAt(s, c.targets[1], 2));
     poke(s);
     expect(c.status).toEqual(['done', 'done']);
     expect(c.result).toBe('won');
@@ -570,7 +635,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(s.campaign!.bossRound).toBe(1);
     expect(events.some((e) => e.t === 'boss' && e.what === 'emerge' && e.unit === boss.id)).toBe(true);
     expect(s.factions[0].explored[boss.y * s.size + boss.x]).toBe(1);
-    expect(objectiveProgress(s, missionById('m11')!.objectives[0], 16)).toEqual({ have: 0, need: boss.maxHp });
+    expect(objectiveProgress(s, missionById('m11')!.objectives[0], 16)).toEqual({ have: 0, need: boss.maxHp - SWARM_MOTHER.riftHp });
     // nur einmal / only once
     poke(s);
     expect(s.units.filter((u) => u.type === 'swarmMother')).toHaveLength(1);
@@ -602,6 +667,8 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const mg = s.units.find((u) => u.owner === 0 && u.type === 'mg')!;
     const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
     placeAt(s, mg, spots[0]); placeAt(s, inf, spots[1]);
+    // Brut nur auf freien Nachbarfeldern / brood only on free adjacent tiles
+    const room = Math.min(SWARM_MOTHER.broodCount, free(8).length);
     const mgHp = mg.hp, infHp = inf.hp;
     const zyrr = s.units.filter((u) => u.owner === 1).length;
     const ev = endTurn(s).events; // Zug der Zyrr beginnt / the Zyrr turn starts
@@ -613,10 +680,11 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(mg.hp).toBe(mgHp - SWARM_MOTHER.screamDamage);
     expect(inf.hp).toBe(infHp - SWARM_MOTHER.screamDamage);
     const brood = ev.find((e) => e.t === 'boss' && e.what === 'brood');
-    expect(brood && brood.t === 'boss' ? brood.count : 0).toBe(SWARM_MOTHER.broodCount);
+    expect(room).toBeGreaterThanOrEqual(1);
+    expect(brood && brood.t === 'boss' ? brood.count : 0).toBe(room);
     const greys = s.units.filter((u) => u.owner === 1 && u.type === 'grey' && dist(u, boss) === 1 && u.fresh);
-    expect(greys.length).toBe(SWARM_MOTHER.broodCount);
-    expect(s.units.filter((u) => u.owner === 1).length).toBe(zyrr + SWARM_MOTHER.broodCount);
+    expect(greys.length).toBe(room);
+    expect(s.units.filter((u) => u.owner === 1).length).toBe(zyrr + room);
     // naechste Runde: Schrei und Brut klingen ab / next round: scream and brood are cooling down
     endTurn(s); // Zyrr fertig, Spieler am Zug / Zyrr done, player to move
     const ev2 = endTurn(s).events;
@@ -646,21 +714,55 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(boss.kills).toBe(1);
   });
 
-  it('m11: Schwarmmutter besiegt = Sieg, Hauptquartier verloren = Niederlage / Swarm Mother defeated = win, HQ lost = defeat', () => {
+  it('m11: der Riss: am Rand des Todes stirbt sie nicht, der Einsatz ist gewonnen; HQ verloren = Niederlage / the rift: at the brink of death she does not die, the mission is won; HQ lost = defeat', () => {
     const { s, boss } = withBoss('alvenia');
     s.config.hitChance = false;
+    expect(missionById('m11')!.objectives[0]).toEqual({ k: 'rift', unit: 0 });
     const tank = s.units.find((u) => u.owner === 0 && u.type === 'tank')!;
     const p = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].map(([dx, dy]) => ({ x: boss.x + dx, y: boss.y + dy }))
       .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.cityId === null && !unitAt(s, q.x, q.y); })!;
     placeAt(s, tank, p);
+    // knapp ueber der Schwelle: kein Riss / just above the threshold: no rift
+    boss.hp = SWARM_MOTHER.riftHp + 1;
+    poke(s);
+    expect(s.campaign!.rift).toBeUndefined();
+    expect(s.campaign!.result).toBeNull();
+    // ein Treffer, der sie toeten wuerde: sie bleibt stehen, der Riss reisst auf, gewonnen / a hit that would kill her: she stays, the rift tears open, won
     boss.hp = 1;
     const r = applyCommand(s, { type: 'attack', unit: tank.id, target: boss.id });
     expect(r.ok).toBe(true);
-    expect(s.units.some((u) => u.id === boss.id)).toBe(false);
-    expect(s.campaign!.status[0]).toBe('done');
+    const alive = s.units.find((u) => u.id === boss.id);
+    expect(alive).toBeDefined();
+    expect(alive!.hp).toBeGreaterThanOrEqual(1);
+    expect(alive!.hp).toBeLessThanOrEqual(SWARM_MOTHER.riftHp);
+    expect(r.events.some((e) => e.t === 'killed' && e.unit === boss.id)).toBe(false);
+    const rift = r.events.find((e) => e.t === 'rift');
+    expect(rift && rift.t === 'rift' ? rift.unit : -1).toBe(boss.id);
+    expect(s.campaign!.rift).toEqual({ x: boss.x, y: boss.y, round: s.round });
+    // der Riss kommt vor dem Spielende (die Darstellung zeigt ihn vor dem Ergebnis) / the rift comes before game over (the view shows it before the result)
+    expect(r.events.findIndex((e) => e.t === 'rift')).toBeLessThan(r.events.findIndex((e) => e.t === 'gameOver'));
+    expect(s.campaign!.status).toEqual(['done', 'done']);
     expect(s.campaign!.result).toBe('won');
     expect(s.winner).toBe(0);
     expect(r.events.filter((e) => e.t === 'gameOver')).toHaveLength(1);
+
+    // Schwelle direkt erreicht (ohne toedlichen Treffer) / threshold reached directly (without a lethal hit)
+    const t2 = withBoss('velkar');
+    t2.boss.hp = SWARM_MOTHER.riftHp;
+    poke(t2.s);
+    expect(t2.s.campaign!.result).toBe('won');
+    // gedaempfter Gegenschlag und Heilung nur ohne frischen Schaden / dampened return fire and healing only without fresh damage
+    expect(SWARM_MOTHER.returnFactor).toBeLessThan(1);
+    const t3 = withBoss('korvat');
+    allHuman(t3.s);
+    t3.boss.hp = 40;
+    endTurn(t3.s); // Zyrr: heilt (unverletzt seit dem letzten Zug) / Zyrr: heals (unhurt since the last turn)
+    expect(t3.boss.hp).toBe(40 + SWARM_MOTHER.xenoHeal);
+    endTurn(t3.s);
+    t3.boss.hp -= 5; // Spieler trifft sie / the player hits her
+    const before = t3.boss.hp;
+    endTurn(t3.s);
+    expect(t3.boss.hp).toBe(before);
 
     const lost = game('m11');
     hqOf(lost, 0)!.owner = 1;

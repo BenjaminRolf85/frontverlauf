@@ -21,18 +21,22 @@ const isWater = (terrain: string) => terrain === 'shallow' || terrain === 'ocean
 
 
 /**
- * Hoehle: unterirdische Teiche, dunkel tuerkis mit hellem, leuchtendem Ufer; sonst die normalen Wasserfarben.
- * Cavern: underground pools, dark teal with a bright glowing shore; otherwise the normal water colours.
+ * Hoehle: unterirdische Teiche, dunkel tuerkis mit hellem, leuchtendem Ufer; Wueste: rostrote Tuempel; sonst die
+ * normalen Wasserfarben. true steht fuer die Hoehle (aeltere Aufrufe).
+ * Cavern: underground pools, dark teal with a bright glowing shore; desert: rust-red pools; otherwise the normal water
+ * colours. true stands for the cavern (older calls).
  */
-export function setWaterTheme(cave: boolean) {
+export function setWaterTheme(theme: boolean | 'cavern' | 'desert' | null) {
+  const cave = theme === true || theme === 'cavern';
+  const desert = theme === 'desert';
   const m = waterMaterial(false);
   const set = (k: string, h: string) => (m.uniforms[k].value as THREE.Color).set(hex(h));
-  set('uShore', cave ? semantic.cavePoolShore : semantic.waterShore);
-  set('uShallow', cave ? semantic.cavePool : semantic.terrainShallow);
-  set('uOcean', cave ? semantic.cavePool : semantic.terrainOcean);
-  set('uDeep', cave ? semantic.cavePoolDeep : semantic.waterAbyss);
-  set('uGlint', cave ? semantic.caveCrystal : semantic.waterGlint);
-  set('uFoam', cave ? semantic.cavePoolShore : semantic.waterFoam);
+  set('uShore', cave ? semantic.cavePoolShore : desert ? semantic.desertPoolShore : semantic.waterShore);
+  set('uShallow', cave ? semantic.cavePool : desert ? semantic.desertPool : semantic.terrainShallow);
+  set('uOcean', cave ? semantic.cavePool : desert ? semantic.desertPool : semantic.terrainOcean);
+  set('uDeep', cave ? semantic.cavePoolDeep : desert ? semantic.desertPoolDeep : semantic.waterAbyss);
+  set('uGlint', cave ? semantic.caveCrystal : desert ? semantic.desertSalt : semantic.waterGlint);
+  set('uFoam', cave ? semantic.cavePoolShore : desert ? semantic.desertSaltCrust : semantic.waterFoam);
   m.uniforms.uCaveGlow.value = cave ? 1 : 0;
 }
 
