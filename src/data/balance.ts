@@ -625,6 +625,8 @@ export const ORBITAL = {
   ai: {
     minValue: 4, ownWeight: 1.6, killBonus: 1, damageWeight: 1.5, bossWorth: 120, gunWorth: 40, wonderInterrupt: 25,
     horizon: 25, shotStars: 18, techBonus: 10,
+    /** Relay erst ab so vielen eigenen Staedten (vorher geht Wachstum vor) / relay only from this many own cities (growth first) */
+    minCities: 3,
   },
 };
 

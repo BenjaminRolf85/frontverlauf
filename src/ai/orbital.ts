@@ -72,7 +72,7 @@ export function planOrbital(ctx: Ctx, failed: Failed): Command | null {
  */
 export function relayValue(ctx: Ctx, c: City): number {
   const { s, f } = ctx;
-  if (!orbitalFaction(s, f) || relayCity(s, f)) return 0;
+  if (!orbitalFaction(s, f) || relayCity(s, f) || ctx.myCities.length < ORBITAL.ai.minCities) return 0;
   const horizon = Math.min(ctx.roundsLeft, ORBITAL.ai.horizon);
   if (horizon <= ORBITAL.cooldown) return 0;
   const shots = Math.floor((horizon - ORBITAL.cooldown) / ORBITAL.cooldown) + 1;
