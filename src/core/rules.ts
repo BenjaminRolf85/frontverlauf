@@ -13,6 +13,7 @@ import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
+import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import {
   recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
@@ -22,7 +23,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
-  cityAt, isBoss, isWonderStructure, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -421,6 +422,8 @@ function checkElimination(s: GameState, ev: GameEvent[]) {
         if (t.barrier?.owner === f.index) t.barrier = null;
         if (t.outpost?.owner === f.index) { releaseOutpost(s, t); t.outpost = null; }
       }
+      // Geschuetzstellungen werden geschleift / gun emplacements are razed
+      clearEmplacements(s, f.index, ev);
       clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
       ev.push({ t: 'eliminated', faction: f.index });
@@ -742,20 +745,23 @@ function wakeTurrets(s: GameState, ev: GameEvent[]) {
 /**
  * Zu Rundenbeginn feuert jedes wache Geschuetz einmal auf die dem Artefakt naechste Einheit in Reichweite (jede Fraktion).
  * Normale Kampfformel, Trefferglueck einer Maschine aus dem Zufallsstrom des Spiels.
+ * Geschuetzstellungen (mit Besitzer) waehlen ihr Ziel selbst (emplacementTarget) und schiessen mit ihren eigenen Werten.
  * At the start of each round every awake gun fires once at the unit in range closest to the artifact (any faction).
  * Normal combat formula, machine hit luck from the game's random stream.
+ * Gun emplacements (with owner) pick their own target (emplacementTarget) and fire with their own stats.
  */
 function processTurrets(s: GameState, ev: GameEvent[]) {
   for (const p of turretList(s)) {
     if (!p.active) continue;
-    const u = turretTarget(s, p);
+    const G = gunStats(p);
+    const u = p.owner !== undefined ? emplacementTarget(s, p) : turretTarget(s, p);
     if (!u) continue;
-    const base = turretShotDamage(s, p.hp, u);
-    const hit: HitKind = hitChanceOn(s) ? rollHit(raceOdds(s, VERDAN.race, p.hp / VERDAN.hp, true), nextRandom(s)) : 'full';
+    const base = turretShotDamage(s, p.hp, u, G);
+    const hit: HitKind = hitChanceOn(s) ? rollHit(raceOdds(s, G.race, p.hp / G.hp, true), nextRandom(s)) : 'full';
     const dmg = hitDamage(base, hit);
     u.hp -= dmg;
     if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
-    ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}) });
+    ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}), ...(p.owner !== undefined ? { owner: p.owner, victim: u.owner } : {}) });
     spare(s, u);
     if (u.hp <= 0) killUnit(s, u, null, ev);
     else if (dmg > 0) interruptWonder(s, u, ev);
@@ -789,6 +795,8 @@ function processMeteors(s: GameState, ev: GameEvent[]) {
 function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEvent[]): CommandResult {
   const t = tileAt(s, x, y);
   if (!t?.turret || t.turret.hp <= 0) return fail('invalidTarget');
+  // eigene oder befreundete Stellung / own or friendly emplacement
+  if (!gunHostile(s, t.turret, u.owner)) return fail(t.turret.owner === u.owner ? 'invalidTarget' : 'peace');
   if (!turretTargets(s, u).some((p) => p.x === x && p.y === y)) {
     if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
     return fail(dist(u, { x, y }) > effectiveRange(s, u) ? 'outOfRange' : 'invalidTarget');
@@ -799,20 +807,22 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   const left = t.turret.hp - dealt;
   // ein Angriff weckt die ganze Linie; Gegenschlag einer Maschine / an attack wakes the whole line; return fire of a machine
   const wasAwake = t.turret.active;
+  const owner = t.turret.owner;
+  const G = gunStats(t.turret);
   const retBase = left > 0 ? pre.ret(left) : 0;
-  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(raceOdds(s, VERDAN.race, left / VERDAN.hp, true), nextRandom(s)) : 'full';
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(raceOdds(s, G.race, left / G.hp, true), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   t.turret.hp = Math.max(0, left);
-  if (!wasAwake) {
+  if (!wasAwake && owner === undefined) {
     // Geschuetze desselben bewachten Punkts erwachen mit / guns of the same guarded point wake up as well
     const g = turretGuard(s, { x, y });
     for (const q of turretList(s)) { const gq = turretGuard(s, q); if (gq.x === g.x && gq.y === g.y) tileAt(s, q.x, q.y)!.turret!.active = true; }
     ev.push({ t: 'verdanActive', faction: u.owner });
   }
   const destroyed = t.turret.hp <= 0;
-  if (destroyed) { t.turret = null; t.turretRuin = true; }
+  if (destroyed) { t.turret = null; t.turretRuin = true; if (owner !== undefined) t.turretRuinOwner = owner; }
   if (ret > 0) u.hp -= ret;
-  ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}), ...(owner !== undefined ? { owner } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
   // Geschuetze zaehlen nie als Abschuss (Punkte, Statistik, Bonusziele) / guns never count as kills (score, stats, bonus objectives)
@@ -1366,6 +1376,14 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    case 'emplacement': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const err = buildEmplacement(s, u, cmd.x, cmd.y, ev);
+      if (err) return fail(err);
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'outpost': {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
@@ -1504,6 +1522,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       advance(s, ev);
       if (s.campaign) evaluateCampaign(s, ev, true);
       wakeTurrets(s, ev);
+      sweepEmplacements(s, ev);
       res = { ok: true, events: ev };
       s.log.push(...ev.filter((e) => e.t !== 'move'));
       if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
@@ -1513,7 +1532,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       return fail('invalid');
   }
   if (res.ok && !s.over) afterAction(s, f, ev);
-  if (res.ok) wakeTurrets(s, ev);
+  if (res.ok) { wakeTurrets(s, ev); sweepEmplacements(s, ev); }
   if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);

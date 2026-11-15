@@ -171,7 +171,8 @@ export function fireOrbital(s: GameState, f: number, x: number, y: number, ev: G
     gun.hp = Math.max(0, gun.hp - dmg);
     const destroyed = gun.hp <= 0;
     hits.push({ turret: true, x: p.x, y: p.y, dmg, killed: destroyed });
-    if (destroyed) { t.turret = null; t.turretRuin = true; } else if (!gun.active) kit.wake(p, ev);
+    // Truemmer einer Geschuetzstellung merken sich den Besitzer (Optik) / rubble of a gun emplacement remembers the owner (look)
+    if (destroyed) { const o = gunOwner(t); t.turret = null; t.turretRuin = true; if (o !== null) t.turretRuinOwner = o; } else if (!gun.active) kit.wake(p, ev);
   }
   for (const p of tiles) kit.mark(p.x, p.y);
   fa.orbitalReady = s.round + ORBITAL.cooldown;

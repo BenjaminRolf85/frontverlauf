@@ -15,6 +15,7 @@ import type { Controller } from '../game/controller';
 import { getLanguage, locale, num, setLanguage, t } from '../i18n/i18n';
 import type { Settings } from '../save/save';
 import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, rerender, segmented } from './components';
+import { emplacementDesc, emplacementName, emplacementStats } from './emplacement';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { buildingDescText, cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
@@ -701,7 +702,10 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
     html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(c.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(c.tower ? t('tower.name') : supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : `${isDesert(s) ? `${t('desert.outpost')} · ` : isAlienWorld(s) ? `${t(s.factions[c.owner].id === 'zyrr' ? 'burrow.zyrr' : 'burrow.own')} · ` : ''}${t('hud.level', { n: c.level })}`)}`}</p>`;
   }
   const gun = turretAt(s, x, y);
-  if (gun && (viewer < 0 || isExplored(s, viewer, x, y))) {
+  if (gun && gun.owner !== undefined && (viewer < 0 || isExplored(s, viewer, x, y))) {
+    // Geschuetzstellung / gun emplacement
+    html += `<h3 class="display">${esc(emplacementName(s, gun.owner))}</h3><p class="muted">${factionChip(s.factions[gun.owner].id, t(`factions.${s.factions[gun.owner].id}.short`))} ${esc(t('emplacement.every'))} · ${esc(emplacementStats(gun.hp))}</p><p>${esc(emplacementDesc(s, gun.owner))}</p>`;
+  } else if (gun && (viewer < 0 || isExplored(s, viewer, x, y))) {
     html += `<h3 class="display">${esc(t('verdan.name'))}</h3><p class="muted">${esc(t(gun.active ? 'verdan.active' : 'verdan.dormant'))} · ${esc(t('verdan.hp', { hp: gun.hp, max: VERDAN.hp }))}</p><p>${esc(t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range }))}</p>`;
   }
   html += `<h3 class="display">${esc(t(`terrain.${tile.terrain}`))}${tile.biome ? ` · ${esc(t(`biomes.${tile.biome}`))}` : ''}${tile.river ? ` · ${esc(t('biomes.river'))}` : ''}</h3><p>${[tile.resource ? t(`resources.${tile.resource}`) : '', tile.building ? `${t(`buildings.${tile.building}`)}: ${buildingDescText(tile.building)}` : '', tile.feature ? t(`features.${tile.feature}`) : ''].filter(Boolean).map(esc).join(' · ')}</p>`;

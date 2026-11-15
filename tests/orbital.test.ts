@@ -159,7 +159,9 @@ describe('Orbitallaser / orbital laser', () => {
     const { s, foe } = armed();
     tile(s, 5, 5).turret = { hp: VERDAN.hp, active: true };
     // generisch ueber t.turret: eine Stellung mit Besitzer (feindlich) / generic over t.turret: an emplacement with an owner (hostile)
-    (tile(s, 6, 5) as { turret: unknown }).turret = { hp: 3, active: true, owner: 1 };
+    // Stellungen stehen nur im Gebiet ihres Besitzers (sonst geschleift) / emplacements only stand in their owner's territory (otherwise razed)
+    tile(s, 6, 5).turret = { hp: 3, active: true, owner: 1 };
+    tile(s, 6, 5).territory = foe.id;
     const boss = addUnit(s, 'swarmMother', 1, 5, 6);
     const bossHp = boss.hp;
     const levelBefore = foe.level, popBefore = foe.pop;

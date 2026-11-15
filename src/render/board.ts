@@ -100,6 +100,8 @@ const rockPillars = (v: number, ore: boolean) => safe(models.rockPillars, semant
 const supplyLineGeometry = (f: FactionId | null, hq: boolean) => safe(models.supplyLineGeometry, f ? factionTokens[f].primary : semantic.neutral, f, hq)!;
 const verdanTurretGeometry = (active: boolean) => safe(models.verdanTurretGeometry, semantic.verdanStone, active);
 const verdanRuinGeometry = () => safe(models.verdanRuinGeometry, semantic.verdanStoneDark);
+const emplacementGeometry = (f: FactionId) => safe(models.emplacementGeometry, factionTokens[f].primary, f);
+const emplacementRuinGeometry = (f: FactionId | null) => safe(models.emplacementRuinGeometry, semantic.neutralDark, f);
 const craterCracks = (ring: number, v: number) => safe(models.craterCracks, null, ring, v);
 const craterDebris = (v: number) => safe(models.craterDebris, null, v);
 /** Skelette in der Hoehle / skeletons in the cavern */
@@ -626,13 +628,24 @@ export class Board {
           addDeco(desert && rg ? sandify(rg, `res${t.terrain}${t.resource}${variant}`) : rg, at());
         }
         // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
-        if (t.turret && t.turret.hp > 0) {
+        if (t.turret && t.turret.hp > 0 && t.turret.owner !== undefined) {
+          // Geschuetzstellung: Rohr weg von der naechsten eigenen Stadt (zur Grenze) / gun emplacement: barrel away from the nearest own city (towards the border)
+          const ef = s.factions[t.turret.owner]?.id ?? 'dravon';
+          let home: { x: number; y: number } | null = null, hd = Infinity;
+          for (const c of s.cities) if (c.owner === t.turret.owner) { const d = Math.max(Math.abs(c.x - x), Math.abs(c.y - y)); if (d < hd) { hd = d; home = c; } }
+          const face = home && hd > 0 ? Math.atan2(x - home.x, y - home.y) : ((x * 3 + y) % 8) * (Math.PI / 4);
+          const eg = emplacementGeometry(ef);
+          addDeco(desert && eg ? sandify(eg, `emplacement${ef}`) : eg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.15, 1.15, 1.15)), false, 'built');
+        } else if (t.turret && t.turret.hp > 0) {
           // zum bewachten Punkt gedreht (Artefakt oder Ruinenstaette) / facing the guarded point (artifact or ruin site)
           const g = art ?? (s.campaign?.sites?.length ? turretGuard(s, { x, y }) : undefined);
           const face = g ? Math.atan2(g.x - x, g.y - y) : 0;
           const tg = verdanTurretGeometry(t.turret.active);
           addDeco(desert && tg ? sandify(tg, `turret${t.turret.active}`) : tg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.25, 1.2)), false, 'built');
           if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.6, color: eye });
+        } else if (t.turretRuin && t.turretRuinOwner !== undefined) {
+          // Truemmer einer Geschuetzstellung / rubble of a gun emplacement
+          addDeco(emplacementRuinGeometry(s.factions[t.turretRuinOwner]?.id ?? null), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 8) * (Math.PI / 4)), new THREE.Vector3(1.1, 1.1, 1.1)), false, 'built');
         } else if (t.turretRuin) addDeco(verdanRuinGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (x * 3 + y) % 4), new THREE.Vector3(1, 1, 1)), false, 'built');
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
@@ -1146,7 +1159,7 @@ export class Board {
    * (heavy cannon). gunFires = the gun shoots at the unit, otherwise the unit attacks.
    */
   animateTurret(s: GameState, gun: { x: number; y: number }, unitId: number, gunFires: boolean,
-    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void }): Promise<void> {
+    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void; gunFaction?: FactionId }): Promise<void> {
     const GUN = -1;
     const proxy = new THREE.Group();
     proxy.position.copy(this.tileCenter(s, gun.x, gun.y)).add(new THREE.Vector3(0, 0.12, 0));
@@ -1160,9 +1173,11 @@ export class Board {
     const water = (x: number, y: number) => { const tt = s.tiles[y * s.size + x].terrain; return tt === 'shallow' || tt === 'ocean'; };
     const u = s.units.find((x) => x.id === unitId);
     const uw = u ? water(u.x, u.y) : false;
+    // Geschuetzstellung: Muendungsfeuer in der Optik ihrer Fraktion / gun emplacement: muzzle flash in its faction's look
+    const gf: FactionId = o.gunFaction ?? 'nexus';
     const info: AttackInfo = gunFires
-      ? { attacker: 'tank', target: o.unitType, attackerFaction: 'nexus', targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
-      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: 'nexus', attackerWater: uw, targetWater: false, retaliate: o.retaliate,
+      ? { attacker: 'tank', target: o.unitType, attackerFaction: gf, targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
+      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: gf, attackerWater: uw, targetWater: false, retaliate: o.retaliate,
         onImpact: o.onImpact, onReturnFire: o.onReturnFire, onReturnImpact: o.onReturnImpact };
     if (!this.animations) {
       info.onImpact?.();

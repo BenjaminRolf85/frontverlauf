@@ -4,7 +4,7 @@
  */
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets, turretTargets,
+  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
   orbitalPreview, orbitalWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
@@ -56,6 +56,8 @@ export class Controller {
   barrierMode = false;
   /** Zielauswahl fuer eine Mine / target selection for a mine */
   mineMode = false;
+  /** Zielauswahl fuer eine Geschuetzstellung (Festungsbau) / target selection for a gun emplacement (fortification) */
+  emplacementMode = false;
   /** Zielauswahl fuer den Funkturm: Stadt-ID / target selection for the radio tower: city id */
   radioCity: number | null = null;
   /** Zielauswahl fuer den Terraformer / target selection for the terraformer */
@@ -120,6 +122,15 @@ export class Controller {
   startMine() {
     this.mineMode = true;
     this.barrierMode = false;
+    this.emplacementMode = false;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  startEmplacement() {
+    this.emplacementMode = true;
+    this.barrierMode = false;
+    this.mineMode = false;
     this.updateHighlights();
     this.ui.update();
   }
@@ -181,6 +192,7 @@ export class Controller {
     this.orbitalAim = null;
     this.barrierMode = false;
     this.mineMode = false;
+    this.emplacementMode = false;
     this.radioCity = null;
     this.terraformUnit = null;
     this.selected = null; this.selectedUnit = null; this.pendingTarget = null; this.pendingTurret = null;
@@ -209,6 +221,8 @@ export class Controller {
       for (const p of barrierTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && this.mineMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of mineTargets(s, u)) list.push({ ...p, kind: 'build' });
+    } else if (u && this.emplacementMode && u.owner === s.current && this.isHumanTurn) {
+      for (const p of emplacementTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && u.owner === s.current && this.isHumanTurn) {
       for (const r of reachable(s, u)) {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
@@ -298,6 +312,15 @@ export class Controller {
       this.mineMode = false;
       if (mineTargets(s, u).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'mine', unit: u.id, x, y });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
+    if (u && this.emplacementMode) {
+      this.emplacementMode = false;
+      if (emplacementTargets(s, u).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'emplacement', unit: u.id, x, y });
         return;
       }
       this.updateHighlights(); this.ui.update();
@@ -510,6 +533,7 @@ export class Controller {
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
           // Minen: nur der Besitzer hoert das Legen / mines: only the owner hears the laying
           case 'mine': if (e.faction === this.viewer) this.play('build'); break;
+          case 'emplacement': if (e.faction === this.viewer) this.play('build'); break;
           case 'mineHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); this.ui.fx('num', e.x, e.y, `-${e.dmg}`); if (animate) this.view.shake(SHAKE.barrier * 2); } break;
           case 'aaFire': { const tu = before.get(e.target); if (tu && visible(tu.x, tu.y)) { this.play('hit'); this.ui.fx('num', tu.x, tu.y, `-${e.dmg}`); } break; }
           case 'terraform': if (e.faction === this.viewer) this.play('research'); break;
@@ -545,7 +569,7 @@ export class Controller {
             audio.weapon('tank');
             if (animate && board.unitObject(e.target)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.target, true, {
-                unitType: tb.type, unitFaction: fid(tb.owner), retaliate: false,
+                unitType: tb.type, unitFaction: fid(tb.owner), retaliate: false, ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
                 onImpact: () => { impact(); this.view.shake(impactShake(weaponOf('tank')) * 0.8); },
               });
             } else impact();
@@ -558,13 +582,13 @@ export class Controller {
             const hit = () => {
               this.ui.fx('hit', e.x, e.y);
               this.ui.fx(e.destroyed ? 'boom' : 'num', e.x, e.y, e.destroyed ? undefined : hitText(e.hit, e.dmg));
-              if (e.destroyed) { this.play('kill'); this.ui.toast(t('verdan.destroyed'), 'trophy'); }
+              if (e.destroyed) { this.play('kill'); this.ui.toast(e.owner !== undefined ? t('emplacement.destroyed', { name: t(`factions.${fid(e.owner)}.short`) }) : t('verdan.destroyed'), 'trophy'); }
             };
             const back = () => { if (e.ret || e.retHit === 'miss') this.ui.fx('num', ab.x, ab.y, hitText(e.retHit, e.ret)); };
             audio.weapon(ab.type);
             if (animate && board.unitObject(e.unit)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.unit, false, {
-                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0,
+                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0, ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
                 onImpact: () => { hit(); this.view.shake(e.destroyed ? SHAKE.wreck : impactShake(weaponOf(ab.type))); },
                 onReturnFire: () => audio.weapon('tank'),
                 onReturnImpact: back,

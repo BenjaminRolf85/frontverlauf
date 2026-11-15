@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { FACTIONS, HOME_DEFENSE, MOVE_FIRE, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { EMPLACEMENT, FACTIONS, HOME_DEFENSE, MOVE_FIRE, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -23,7 +23,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /**
  * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat) und Verteidigung auf
@@ -51,6 +51,8 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   const k = (s: string) => t(`factions.${f}.${s}`);
   out.push({ kind: 'perk', icon: 'star', label: t('traits.perk'), value: k('perk'), desc: k('perkDesc') });
   if (has(`factions.${f}.perk2`)) out.push({ kind: 'perk2', icon: 'star', label: t('traits.perk2'), value: k('perk2'), desc: has(`factions.${f}.perk2Desc`) ? k('perk2Desc') : '' });
+  // Fraktionsmerkmal (Dravon: Festungsbau), Zahlen aus balance.ts / faction feature (Dravon: fortress building), numbers from balance.ts
+  if (has(`factions.${f}.feature`)) out.push({ kind: 'feature', icon: 'range', label: t('traits.feature'), value: k('feature'), desc: t(`factions.${f}.featureDesc`, { cost: EMPLACEMENT.cost, range: EMPLACEMENT.range }) });
   const unit = SIGNATURE_UNIT[f];
   if (unit) out.push({ kind: 'unit', icon: UNIT_ICON[unit] ?? 'helmet', label: t('traits.unit'), value: t(`units.${unit}`), desc: has(`unitDesc.${unit}`) ? t(`unitDesc.${unit}`) : '' });
   const fs = FACTIONS[f];
