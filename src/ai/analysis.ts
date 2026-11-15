@@ -141,7 +141,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     }
     if (water && !bridge && wader) lok = true;
     // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
-    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf) lok = false;
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret) lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;

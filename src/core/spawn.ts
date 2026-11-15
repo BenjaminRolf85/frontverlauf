@@ -26,7 +26,7 @@ export function placeUnit(s: GameState, type: UnitTypeId, owner: number, x: numb
 /** Feld fuer eine Einheit dieses Typs geeignet und frei? / tile suitable and free for a unit of this type? */
 export function freeFor(s: GameState, type: UnitTypeId, p: Pos): boolean {
   const t = tileAt(s, p.x, p.y);
-  if (!t || unitAt(s, p.x, p.y) || t.wonderOf) return false;
+  if (!t || unitAt(s, p.x, p.y) || t.wonderOf || t.turret) return false;
   if (UNITS[type].ship) return isWater(t) && t.cityId === null;
   if (!isLand(t)) return false;
   if (t.terrain === 'mountain' || t.volcano) return false;

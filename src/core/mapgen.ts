@@ -46,7 +46,7 @@ function chooseStarts(rng: { rng: number }, size: number, count: number): Pos[] 
   return result;
 }
 
-export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[]): GeneratedMap {
+export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern'): GeneratedMap {
   const rng = { rng: seed | 0 };
   const params = MAP_TYPES[mapType];
   const n = size * size;
@@ -248,8 +248,34 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     }
   }
   if (!inBounds(size, 0, 0)) throw new Error('invalid size');
+  if (theme === 'cavern') carveCavern(seed, size, tiles, [...starts, ...villages, ...radars]);
   assignBiomes(seed, size, tiles, factions);
   return { tiles, starts, villages, bunkers, radars };
+}
+
+/**
+ * Hoehle: kein Ozean (unterirdische Seen sind Flachwasser) und Felswaende am Kartenrand. Eigener Zufallsstrom;
+ * Felder an und neben Staedten, Startpunkten und Radars bleiben unveraendert, damit Hafen und Zugang erhalten bleiben.
+ * Cavern: no ocean (underground lakes are shallow water) and rock walls at the map edge. Own random stream;
+ * tiles on and next to cities, starts and radars stay unchanged so harbours and access remain.
+ */
+function carveCavern(seed: number, size: number, tiles: Tile[], keep: Pos[]) {
+  const rng = { rng: (seed ^ MAPGEN.cavernSeedSalt) | 0 };
+  const kept = (x: number, y: number) => keep.some((p) => dist(p, { x, y }) <= 1);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const t = tiles[idx(size, x, y)];
+      const roll = nextRandom(rng);
+      const edge = x === 0 || y === 0 || x === size - 1 || y === size - 1;
+      if (t.terrain === 'ocean') t.terrain = 'shallow';
+      if (!edge || kept(x, y) || t.feature || t.cityId !== null) continue;
+      // Felswand: Rand-Wasser immer, Rand-Land oft / rock wall: edge water always, edge land often
+      if (t.terrain === 'shallow' || roll < MAPGEN.cavernEdgeRock) {
+        t.terrain = 'mountain';
+        if (t.resource && t.resource !== 'ore') t.resource = null;
+      }
+    }
+  }
 }
 
 /** Heimat-Vorlieben fuer Landschaften / home preferences for biomes */

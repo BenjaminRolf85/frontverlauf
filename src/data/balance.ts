@@ -602,6 +602,43 @@ export const CITY = {
   connectionPopulation: 1,
 };
 
+/**
+ * Nachschublinien (Hoehlen-Finale): Staedte wachsen nicht, bringen festes Einkommen und tragen eine feste Zahl Einheiten.
+ * Supply lines (cavern finale): cities do not grow, give a fixed income and support a fixed number of units.
+ */
+export const SUPPLY_LINE = {
+  /** Einkommen je Nachschublinie und Runde / income per supply line and round */
+  income: 6,
+  /** Einkommen des Hauptschachts (statt Stufe + HQ-Bonus) / income of the main shaft (instead of level + HQ bonus) */
+  mainShaftIncome: 14,
+  /** Einheitenlimit je Nachschublinie / unit limit per supply line */
+  unitLimit: 3,
+  /** Einheitenlimit des Hauptschachts / unit limit of the main shaft */
+  mainShaftUnitLimit: 5,
+};
+
+/**
+ * Alte Verteidigungslinie der Verdan um das Artefakt: neutrale Geschuetze, die erwachen, sobald eine Einheit nahe kommt,
+ * und dann zu Rundenbeginn auf alles in Reichweite feuern.
+ * Old Verdan defence line around the artifact: neutral guns that wake up once a unit comes close
+ * and then fire at everything in range at the start of each round.
+ */
+export const VERDAN = {
+  hp: 24,
+  attack: 3,
+  defense: 3,
+  /** Schussweite / firing range */
+  range: 2,
+  /** Abstand zum Artefakt, ab dem die Linie erwacht / distance to the artifact that wakes the line */
+  wakeRange: 3,
+  /** Abstand der Geschuetze zum Artefakt / distance of the guns to the artifact */
+  ringDistance: 3,
+  /** Anzahl Geschuetze / number of guns */
+  count: 6,
+  /** Treffsicherheit einer Maschine / accuracy of a machine */
+  race: 'robot' as HitRace,
+};
+
 export const ECON = {
   /** (Stufe x Staedte + 4) x 5 */
   researchCost: (tier: number, cities: number) => (tier * cities + 4) * 5,
@@ -910,6 +947,9 @@ export const MAPGEN = {
   minStartIsland: 18,
   /** Startinseln unter dieser Groesse bekommen ein Wasserfeld im Stadtgebiet (Hafen) / start islands below this size get a water tile in the city area (harbour) */
   coastalStartBelow: 25,
+  /** Hoehle: eigener Zufallsstrom und Felsanteil am Kartenrand / cavern: own random stream and rock share at the map edge */
+  cavernSeedSalt: 0x6c1a7e3,
+  cavernEdgeRock: 0.55,
 };
 
 export const SANDBOX = {

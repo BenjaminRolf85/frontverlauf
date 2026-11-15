@@ -19,7 +19,7 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  FACTION_IDS, ROSTERS, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  FACTION_IDS, ROSTERS, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
@@ -137,6 +137,10 @@ export interface MissionDef {
   artifact?: boolean;
   /** Ueberzeugen lohnt sich hier (Hinweis in der Besprechung fuer Alvenia und Meridon) / persuasion matters here (briefing tip for Alvenia and Meridon) */
   persuade?: boolean;
+  /** Kartenthema: 'cavern' = Hoehle, Nachschublinien statt Staedten / map theme: 'cavern' = cave, supply lines instead of cities */
+  theme?: 'cavern';
+  /** Verdan-Verteidigungslinie um das Artefakt / Verdan defence line around the artifact */
+  turrets?: boolean;
   setup?(k: SetupKit): void;
 }
 
@@ -300,24 +304,26 @@ export const MISSIONS: MissionDef[] = [
     // Finale: alle gegen alle um das Artefakt der Uralten / finale: everyone against everyone for the artifact of the ancients
     id: 'm9', act: 3, level: 'extreme',
     enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'normal' }],
-    seed: 9909, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 20,
+    // groesste Karte, in einer Hoehle unter der Erde; mehr Runden fuer die weiten Wege / largest map, in a cave underground; more rounds for the long roads
+    seed: 9916, size: 26, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 30,
     objectives: [{ k: 'artifact', rounds: 3 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 10 }, { k: 'noCityLost' }],
-    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'],
-    artifact: true, persuade: true,
+    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'scout', 'hq'],
+    artifact: true, persuade: true, theme: 'cavern', turrets: true,
     waves: [
-      { round: 6, owner: 1, units: ['skimmer', 'grey'], at: 0, stars: 15 },
-      { round: 7, owner: 2, units: ['quadDrone', 'android'], at: 1, stars: 15 },
-      { round: 8, owner: 0, units: ['tank', 'mg'], at: 3, stars: 30 },
-      { round: 9, owner: 3, units: ['zealot', 'torchbearer'], at: 2, stars: 10 },
+      { round: 8, owner: 1, units: ['skimmer', 'grey'], at: 0, stars: 15 },
+      { round: 9, owner: 2, units: ['quadDrone', 'android'], at: 1, stars: 15 },
+      { round: 10, owner: 0, units: ['tank', 'mg'], at: 3, stars: 30 },
+      { round: 11, owner: 3, units: ['zealot', 'torchbearer'], at: 2, stars: 10 },
     ],
     setup(k) {
       const a = k.hq(0);
       k.upgrade(a, 'bunker');
       k.grantNear(0, a);
       k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a);
-      // Ankunftspunkte zwischen Artefakt und den Basen der drei Rassen / arrival points between the artifact and the three races' bases
+      // Ankunftspunkte zwischen Artefakt und den Basen der drei Rassen, ausserhalb der Verdan-Linie
+      // arrival points between the artifact and the three races' bases, outside the Verdan line
       const art = k.s.campaign!.artifact!;
-      for (let f = 1; f <= 3; f++) k.point(ringNear(k, art, k.toward(art, k.hq(f), 2), 2, 3));
+      for (let f = 1; f <= 3; f++) k.point(ringNear(k, art, k.toward(art, k.hq(f), 6), 5, 7));
       k.point(k.landNear(a, (q) => dist(q, a) >= 1));
     },
   },
@@ -345,6 +351,7 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
     // Fraktionssiege bleiben in Kampagnen aus / faction victories stay off in campaigns
     factionVictory: false,
     campaign: { mission: m.id },
+    ...(m.theme ? { theme: m.theme } : {}),
   };
 }
 
@@ -416,6 +423,28 @@ function placeArtifact(s: GameState): Pos {
 }
 
 /**
+ * Verdan-Verteidigungslinie: Geschuetze gleichmaessig im Ring um das Artefakt, auf freiem, flachem Land.
+ * Verdan defence line: guns spread evenly on a ring around the artifact, on free flat land.
+ */
+function placeTurrets(s: GameState, art: Pos) {
+  const R = VERDAN.ringDistance;
+  const ok = (q: Pos) => {
+    const t = tileAt(s, q.x, q.y);
+    const d = dist(q, art);
+    return !!t && d >= R && d <= R + 1 && isLand(t) && t.cityId === null && !t.feature && !t.volcano && !t.turret && !t.wonderOf &&
+      !unitAt(s, q.x, q.y) && !neighbors(s.size, q.x, q.y).some((n) => { const o = tileAt(s, n.x, n.y)!; return o.cityId !== null || !!o.turret; });
+  };
+  for (let i = 0; i < VERDAN.count; i++) {
+    const a = (i / VERDAN.count) * Math.PI * 2 + Math.PI / 12;
+    const want = { x: Math.round(art.x + Math.cos(a) * R), y: Math.round(art.y + Math.sin(a) * R) };
+    const p = nearestTile(s, want, ok, 3);
+    if (!p) continue;
+    const t = tileAt(s, p.x, p.y)!;
+    Object.assign(t, { turret: { hp: VERDAN.hp, active: false }, resource: null, building: null, road: false, mine: null, barrier: null });
+  }
+}
+
+/**
  * Wendet die Einrichtung einer Mission auf ein frisch erzeugtes Spiel an (aufgerufen von createGame).
  * Applies a mission's setup to a freshly created game (called by createGame).
  */
@@ -430,6 +459,7 @@ export function setupMission(s: GameState) {
   };
   s.campaign = c;
   if (m.artifact) { c.artifact = placeArtifact(s); c.hold = { faction: null, n: 0 }; }
+  if (m.turrets && c.artifact) placeTurrets(s, c.artifact);
   const k = kit(s, c);
   m.setup?.(k);
   for (const [a, b] of m.allied ?? []) {

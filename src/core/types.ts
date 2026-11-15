@@ -51,6 +51,13 @@ export interface Tile {
   looted?: boolean;
   /** Teil der Grundflaeche eines Wunders (Fusionskraftwerk): Einheiten-ID; unpassierbar / part of a wonder footprint (fusion plant): unit id; impassable */
   wonderOf?: number | null;
+  /**
+   * Geschuetz der alten Verdan-Verteidigungslinie (neutral, unpassierbar); active = erwacht und feuert.
+   * Gun of the old Verdan defence line (neutral, impassable); active = awake and firing.
+   */
+  turret?: { hp: number; active: boolean } | null;
+  /** Truemmer eines zerstoerten Verdan-Geschuetzes (optisch) / rubble of a destroyed Verdan gun (visual) */
+  turretRuin?: boolean;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -175,6 +182,8 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
+  /** Kartenthema (fehlt = Oberflaeche); 'cavern' = Hoehle mit Nachschublinien statt Staedten / map theme (missing = surface); 'cavern' = cave with supply lines instead of cities */
+  theme?: 'cavern';
 }
 
 /** Stand eines Missionsziels / state of a mission objective */
@@ -298,6 +307,12 @@ export type GameEvent =
   /** Kampagne: Welle (Feind oder Verstaerkung) eingetroffen / campaign: wave (enemy or reinforcements) arrived */
   | { t: 'wave'; faction: number; count: number; x: number; y: number }
   | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
+  /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
+  | { t: 'verdanActive'; faction: number }
+  /** Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit */
+  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind }
+  /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
+  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; destroyed: boolean }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
@@ -307,6 +322,8 @@ export type Command =
   | { type: 'attack'; unit: number; target: number }
   | { type: 'retreat'; unit: number; target: number }
   | { type: 'rocket'; unit: number; target: number }
+  /** Verdan-Geschuetz auf (x, y) angreifen / attack the Verdan gun at (x, y) */
+  | { type: 'attackTurret'; unit: number; x: number; y: number }
   | { type: 'heal'; unit: number }
   | { type: 'repair'; unit: number }
   | { type: 'medicHeal'; unit: number }

@@ -5,9 +5,9 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  type Command, type Reach, type Unit,
+  turretList, turretTargets, turretPreview, hitDamage, type Command, type Reach, type Unit, type Pos,
 } from '../core';
-import { BARRIER, COUNTER, ECON, INFANTRY_TYPES, UNITS, WONDERS, type WonderUnitId } from '../data/balance';
+import { BARRIER, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -112,6 +112,16 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
       }
     }
   }
+  // Verdan-Geschuetze: lohnende Ziele, besonders wach / Verdan guns: worthwhile targets, especially when awake
+  for (const u of ctx.my) {
+    if (lazyUnit(ctx, u)) continue;
+    if (u.fuel !== null && !u.moved && !heliSafe(s, u, u.x, u.y)) continue;
+    for (const p of turretTargets(s, u)) {
+      const v = gunAttackValue(ctx, u, p);
+      const c: Command = { type: 'attackTurret', unit: u.id, x: p.x, y: p.y };
+      if (v > bv && ok(failed, c)) { bv = v; best = c; }
+    }
+  }
   // Mech-Raketen: nur lohnende Ziele, Munition ist knapp / mech rockets: only worthwhile targets, ammo is scarce
   for (const u of ctx.my) {
     if (lazyUnit(ctx, u)) continue;
@@ -122,6 +132,44 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
     }
   }
   return best && bv >= prof.attackMin ? best : null;
+}
+
+// ---------- Verdan-Geschuetze / Verdan guns ----------
+
+const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean })[]>();
+/** Bekannte (aufgedeckte) Verdan-Geschuetze / known (explored) Verdan guns */
+function knownGuns(ctx: Ctx) {
+  let g = gunCache.get(ctx);
+  if (!g) { g = turretList(ctx.s).filter((p) => ctx.fa.explored[idx(ctx.size, p.x, p.y)]); gunCache.set(ctx, g); }
+  return g;
+}
+
+/**
+ * Wert eines Angriffs auf ein Geschuetz: Schaden und Zerstoerung zaehlen, wache Geschuetze mehr, Gegenschlag kostet.
+ * Value of an attack on a gun: damage and destruction count, awake guns more, return fire costs.
+ */
+function gunAttackValue(ctx: Ctx, u: Unit, p: Pos): number {
+  const gun = ctx.s.tiles[idx(ctx.size, p.x, p.y)].turret!;
+  const pre = turretPreview(ctx.s, u, p);
+  let expected = 0, kill = 0, ret = 0;
+  for (const k of HIT_KINDS) {
+    const o = pre.odds[k];
+    if (o <= 0) continue;
+    const d = hitDamage(pre.toTurret, k);
+    expected += o * Math.min(d, gun.hp);
+    if (d >= gun.hp) kill += o; else ret += o * pre.ret(gun.hp - d);
+  }
+  const prize = gun.active ? 34 : 14;
+  let v = (expected / VERDAN.hp) * prize + kill * prize;
+  v -= ret >= u.hp ? worth(u) + 6 : (ret / u.hp) * worth(u) * 0.7;
+  return v;
+}
+
+/** Gefahr durch wache Geschuetze auf (x, y) / danger from awake guns at (x, y) */
+function gunDanger(ctx: Ctx, x: number, y: number): number {
+  let n = 0;
+  for (const g of knownGuns(ctx)) if (g.active && dist(g, { x, y }) <= VERDAN.range) n++;
+  return n;
 }
 
 function lazyUnit(ctx: Ctx, u: Unit): boolean {
@@ -267,6 +315,10 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // wache Verdan-Geschuetze feuern zu Rundenbeginn; nur Kampfeinheiten nahe genug zum Angreifen lohnt es
+  // awake Verdan guns fire at the start of the round; only worth it for fighters close enough to strike
+  const guns = knownGuns(ctx).length ? gunDanger(ctx, x, y) : 0;
+  if (guns) v -= guns * worth(u) * 0.35 * prof.caution * (UNITS[type].attack > 0 ? 0.6 : 1.4);
   // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
   for (const p of area(size, x, y, 1)) {
     const vt = s.tiles[idx(size, p.x, p.y)];
