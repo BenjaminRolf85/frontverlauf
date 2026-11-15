@@ -60,8 +60,8 @@ export class CaveShell {
     floor.raycast = () => {};
     this.group.add(floor);
     const dirs: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-    const step = low ? 1.5 : 1.0;
-    const layers = low ? 3 : 5;
+    const step = low ? 1.6 : 1.15;
+    const layers = low ? 3 : 4;
     for (const [nx, nz] of dirs) {
       const lowM: THREE.Matrix4[][] = [[], [], []];
       const tallM: THREE.Matrix4[][] = [[], [], []];

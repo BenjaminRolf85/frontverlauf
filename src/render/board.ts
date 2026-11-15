@@ -72,7 +72,7 @@ const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
 const caveCloudGeometry = (v: number) => safe(models.caveCloudGeometry, semantic.caveFog, v)!;
 // Hoehle (Kampagnenfinale) / cavern (campaign finale)
-const mushroomForest = (v: number) => safe(models.mushroomForest, semantic.mushroomCapA, v);
+const mushroomForest = (v: number, low: boolean) => safe(models.mushroomForest, semantic.mushroomCapA, v, low);
 const caveFloorDeco = (v: number) => safe(models.caveFloorDeco, null, v);
 const rockPillars = (v: number, ore: boolean) => safe(models.rockPillars, semantic.caveRock, v, ore);
 const supplyLineGeometry = (f: FactionId | null, hq: boolean) => safe(models.supplyLineGeometry, f ? factionTokens[f].primary : semantic.neutral, f, hq)!;
@@ -415,10 +415,10 @@ export class Board {
             else if (free) addDeco(rockPillars((x * 5 + y * 11) % 4, t.resource === 'ore'), at());
           } else if (t.terrain === 'forest' && free) {
             const mv = (x * 5 + y * 11) % 4;
-            addDeco(mushroomForest(mv), occ ? corner(0.5, 0.8) : at(), true);
+            addDeco(mushroomForest(mv, low || occ), occ ? corner(0.5, 0.8) : at(), true);
             if (!low || (x + y) % 2 === 0) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.15, color: glowC[(mv + x) % 3] });
           } else if (t.terrain === 'plain' && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && ring < 0) {
-            addDeco(caveFloorDeco((x * 7 + y * 13 + x * y) % 8), at(), true);
+            if (!low || (x + y) % 2 === 0) addDeco(caveFloorDeco((x * 7 + y * 13 + x * y) % 8), at(), true);
           }
           if (t.terrain === 'shallow' && (!low || (x + y) % 2 === 0)) glowSpots.push({ x: x - off, y: top, z: y - off, size: 0.95, color: glowC[0] });
           // Skelette, deterministisch aus dem Seed; dichter rund um den Krater / skeletons, deterministic from the seed; denser around the crater
@@ -633,7 +633,8 @@ export class Board {
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.raycast = () => {};
       mesh.castShadow = true;
-      this.staticLayer.add(mesh, line);
+      // Hoehle, niedrige Qualitaet: Pilze und Bodendeko ohne Tuschelinie (halbiert die Dreiecke) / cavern, low quality: mushrooms and floor decoration without ink line (halves the triangles)
+      if (cave && low && geo.name.startsWith('cave|')) { line.dispose(); this.staticLayer.add(mesh); } else this.staticLayer.add(mesh, line);
     }
     this.ambient.build(fishTiles);
     for (const [geo, mats] of decals) {
@@ -668,7 +669,8 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     if (clouds.length) {
-      const geos = [0, 1, 2].map((v) => cloudGeometry(v));
+      // Hoehle: Nebel in Hoehlentoenen / cavern: fog in cave tones
+      const geos = [0, 1, 2].map((v) => (cave ? caveCloudGeometry(v) : cloudGeometry(v)));
       const byVariant: THREE.Matrix4[][] = [[], [], []];
       clouds.forEach((m, i) => byVariant[i % 3].push(m));
       byVariant.forEach((list, v) => {

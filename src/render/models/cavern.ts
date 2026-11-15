@@ -23,47 +23,50 @@ const TAU = Math.PI * 2;
 // ---------- Pilze / mushrooms ----------
 
 /** Riesenpilz mit leuchtenden Punkten und leuchtenden Lamellen / giant mushroom with glowing spots and glowing gills */
-function mushroom(b: Builder, x: number, z: number, h: number, capR: number, R: () => number, tone: number) {
+function mushroom(b: Builder, x: number, z: number, h: number, capR: number, R: () => number, tone: number, spots = true) {
   const lean = (R() - 0.5) * 0.25;
   const glow = GLOWS[tone % 3];
   b.group({ p: [x, 0, z], r: [lean, R() * TAU, lean * 0.6] }, () => {
     // Stiel mit Knolle / stem with bulb
-    b.add(geo.cyl(capR * 0.22, capR * 0.32, h, 6), S.mushroomStem, { p: [0, h / 2, 0] });
-    b.add(geo.sphere(capR * 0.36, 6, 4), shade(S.mushroomStem, 0.85), { p: [0, capR * 0.12, 0], s: [1, 0.6, 1] });
+    b.add(geo.cyl(capR * 0.22, capR * 0.32, h, 5), S.mushroomStem, { p: [0, h / 2, 0] });
     // Lamellen leuchten von unten / gills glow from below
-    b.add(geo.cone(capR * 0.92, capR * 0.32, 10), glow, { p: [0, h - capR * 0.08, 0], r: [Math.PI, 0, 0] });
+    b.add(geo.cone(capR * 0.92, capR * 0.32, 8), glow, { p: [0, h - capR * 0.08, 0], r: [Math.PI, 0, 0] });
     // Hut / cap
-    b.add(geo.hemi(capR, 10, 4), CAPS[(tone + 1) % 3], { p: [0, h - capR * 0.06, 0], s: [1, 0.55, 1] });
+    b.add(geo.hemi(capR, 8, 3), CAPS[(tone + 1) % 3], { p: [0, h - capR * 0.06, 0], s: [1, 0.55, 1] });
+    if (!spots) return;
     // Leuchtpunkte auf dem Hut / glowing spots on the cap
-    const n = 4 + Math.floor(R() * 3);
+    const n = 3 + Math.floor(R() * 3);
     for (let i = 0; i < n; i++) {
       const a = (i / n) * TAU + R() * 0.6;
       const rr = capR * (0.35 + R() * 0.45);
       const yy = h - capR * 0.06 + Math.sqrt(Math.max(0, 1 - (rr / capR) ** 2)) * capR * 0.55;
-      b.add(geo.sphere(capR * (0.09 + R() * 0.05), 5, 3), GLOWS[(tone + i) % 3], { p: [Math.cos(a) * rr, yy, Math.sin(a) * rr], s: [1, 0.5, 1] });
+      b.add(geo.sphere(capR * (0.1 + R() * 0.05), 4, 2), GLOWS[(tone + i) % 3], { p: [Math.cos(a) * rr, yy, Math.sin(a) * rr], s: [1, 0.5, 1] });
     }
   });
 }
 
-/** Mutierter Leuchtpilzwald statt Wald (4 Varianten) / mutated glowing mushroom forest instead of a forest (4 variants) */
-export function mushroomForest(variant: number): THREE.BufferGeometry {
+/**
+ * Mutierter Leuchtpilzwald statt Wald (4 Varianten); low = weniger Pilze fuer niedrige Qualitaet.
+ * Mutated glowing mushroom forest instead of a forest (4 variants); low = fewer mushrooms for low quality.
+ */
+export function mushroomForest(variant: number, low = false): THREE.BufferGeometry {
   const v = ((variant % 4) + 4) % 4;
-  return memo(`cave|mushrooms|${v}`, () => {
+  return memo(`cave|mushrooms|${v}|${+low}`, () => {
     const R = rng(7100 + v * 31);
     const b = new Builder();
     const spots: [number, number][] = [[-0.2, -0.18], [0.2, -0.22], [0.02, 0.06], [-0.26, 0.24], [0.26, 0.2], [0.04, 0.32], [-0.05, -0.33]];
-    const n = 4 + (v % 2);
+    const n = low ? 3 : 4 + (v % 2);
     for (let i = 0; i < n; i++) {
       const [x, z] = spots[(i * 2 + v) % spots.length];
       const big = i === 0;
       mushroom(b, x + (R() - 0.5) * 0.06, z + (R() - 0.5) * 0.06, big ? 0.62 + R() * 0.16 : 0.26 + R() * 0.18, big ? 0.3 : 0.13 + R() * 0.07, R, v + i);
     }
     // kleine Pilze und Moos dazwischen / small mushrooms and moss in between
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < (low ? 1 : 3); i++) {
       const a = R() * TAU, r = 0.18 + R() * 0.24;
-      mushroom(b, Math.cos(a) * r, Math.sin(a) * r, 0.07 + R() * 0.05, 0.04 + R() * 0.02, R, v + i + 1);
+      mushroom(b, Math.cos(a) * r, Math.sin(a) * r, 0.07 + R() * 0.05, 0.04 + R() * 0.02, R, v + i + 1, false);
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < (low ? 1 : 3); i++) {
       const a = R() * TAU, r = R() * 0.32;
       b.add(geo.cyl(0.1 + R() * 0.06, 0.12 + R() * 0.06, 0.012, 7), i % 2 ? S.caveMoss : S.caveMossLight, { p: [Math.cos(a) * r, 0.006, Math.sin(a) * r] });
     }
@@ -100,12 +103,12 @@ export function caveFloorDeco(variant: number): THREE.BufferGeometry | null {
 // ---------- Fels / rock ----------
 
 /** Kristallader: Splitter in Leuchtfarbe / crystal vein: shards in glow colour */
-function crystalShards(b: Builder, x: number, y: number, z: number, s: number, R: () => number, c: string = S.caveCrystal) {
-  for (let i = 0; i < 3; i++) {
+function crystalShards(b: Builder, x: number, y: number, z: number, s: number, R: () => number, c: string = S.caveCrystal, n = 3) {
+  for (let i = 0; i < n; i++) {
     const h = (0.05 + R() * 0.06) * s;
     b.group({ p: [x, y, z], r: [(R() - 0.5) * 1.4, R() * 3, (R() - 0.5) * 1.4] }, () => {
-      b.add(geo.cyl(0.012 * s, 0.016 * s, h, 5), c, { p: [0, h / 2, 0] });
-      b.add(geo.cone(0.012 * s, 0.03 * s, 5), c, { p: [0, h + 0.015 * s, 0] });
+      b.add(geo.cyl(0.012 * s, 0.016 * s, h, 4), c, { p: [0, h / 2, 0] });
+      b.add(geo.cone(0.012 * s, 0.03 * s, 4), c, { p: [0, h + 0.015 * s, 0] });
     });
   }
 }
@@ -158,7 +161,7 @@ export function caveRockLump(variant: number): THREE.BufferGeometry {
     b.add(geo.dodeca(0.3), shade(c, 1.12), { p: [0.25, 0.22, 0.1], r: [R(), R(), R()] });
     b.add(geo.dodeca(0.28), shade(c, 0.85), { p: [-0.2, -0.15, -0.2], r: [R(), R(), R()] });
     // Kristallader im Fels / crystal vein in the rock
-    if (v !== 1) crystalShards(b, 0.3, 0.1, 0.35, 3.2, R, v === 2 ? S.caveGlowMagenta : S.caveCrystal);
+    if (v !== 1) crystalShards(b, 0.3, 0.1, 0.35, 3.2, R, v === 2 ? S.caveGlowMagenta : S.caveCrystal, 2);
     return b.build();
   });
 }
