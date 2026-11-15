@@ -386,7 +386,7 @@ export const CULT = {
   plunderHq: 40,
   replunderRounds: 6,
   /** Punkte je gepluendertem Stern (Beute zaehlt dauerhaft) / points per plundered star (loot counts permanently) */
-  plunderScore: 10,
+  plunderScore: 6,
   /**
    * Einheitenlimit des Kults: baseCap plus die Plaetze seiner Staedte (Stadtlimit, eigenes Hauptquartier + hqSlots,
    * Schrein im Stadtgebiet + shrineSlots). Wunder zaehlen nicht.
@@ -1139,7 +1139,7 @@ export const AI = {
   cultPeaceStrength: 0.8,
   cultBreakStrength: 1.2,
   /** Kult: Siegtechnologie ab dieser Runde (der Bohrer braucht WONDERS.drillRounds) / cult: victory tech from this round (the drill needs WONDERS.drillRounds) */
-  cultDrillResearchRound: 6,
+  cultDrillResearchRound: 4,
   /**
    * Meteorschauer in der naechsten Runde: Strafe fuer ungepanzerte Einheiten ohne Deckung, plus Zuschlag je fehlendem LP-Anteil.
    * Meteor shower next round: penalty for unarmoured units without cover, plus a surcharge per missing HP share.
