@@ -360,7 +360,7 @@ export function score(s: GameState, f: number): number {
   for (const u of ownUnits(s, f)) p += unitScore(u);
   p += SCORE.grandProject * fa.grandProjectsBuilt.length;
   // Kult: Beute zaehlt dauerhaft / cult: loot counts permanently
-  p += (fa.plunder ?? 0) * CULT.plunderScore;
+  p += (fa.plunder ?? 0) * plunderScoreFor(s);
   return p;
 }
 
@@ -1535,7 +1535,17 @@ export function cultTithe(s: GameState, f: number): number {
 export function plunderValue(s: GameState, f: number, c: City): number {
   if (!isCultFaction(s, f) || c.owner === f) return 0;
   if (c.plundered !== undefined && s.round - c.plundered < CULT.replunderRounds) return 0;
-  return CULT.plunderBase + CULT.plunderPerLevel * c.level + (c.isHQ ? CULT.plunderHq : 0);
+  const decay = CULT.plunderDecay[Math.min(c.plunderCount ?? 0, CULT.plunderDecay.length - 1)];
+  return Math.round((CULT.plunderBase + CULT.plunderPerLevel * c.level + (c.isHQ ? CULT.plunderHq : 0)) * decay);
+}
+
+/**
+ * Punkte je gepluendertem Stern: weniger, je weniger Gegner die Partie hat (Zweikampf 4, ab vier Gegnern plunderScore).
+ * Points per plundered star: fewer the fewer rivals the game has (duel 4, from four rivals plunderScore).
+ */
+export function plunderScoreFor(s: GameState): number {
+  const rivals = Math.max(1, s.factions.length - 1);
+  return CULT.plunderScoreByRivals[rivals] ?? CULT.plunderScore;
 }
 
 /** Welche Einheiten ruft dieser Rekrutierer? / which units does this recruiter call up? */

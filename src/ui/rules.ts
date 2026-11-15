@@ -36,7 +36,7 @@ function sections(): Section[] {
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
-    { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore } },
+    { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
 }

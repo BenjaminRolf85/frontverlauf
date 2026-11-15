@@ -928,7 +928,7 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   const plunder = plunderValue(s, u.owner, c);
   c.owner = u.owner;
   if (isCultFaction(s, u.owner)) {
-    c.plundered = plunder > 0 ? s.round : c.plundered;
+    if (plunder > 0) { c.plundered = s.round; c.plunderCount = (c.plunderCount ?? 0) + 1; }
     const fa = s.factions[u.owner];
     fa.stars += plunder;
     fa.plunder = (fa.plunder ?? 0) + plunder;

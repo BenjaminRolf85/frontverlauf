@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCheck, cityIncome, cityUpgradeCheck, combatPreview, computePower, createGame, cultCap, cultSlots, cultTithe, cultUnits, defaultConfig, income,
-  plunderValue, recruitCheck, trainCheck, upkeep,
+  plunderValue, plunderScoreFor, recruitCheck, trainCheck, upkeep,
 } from '../src/core';
-import { CITY, CULT, UNITS } from '../src/data/balance';
+import { CITY, CULT, UNITS, type FactionId } from '../src/data/balance';
 import { playAiTurn } from '../src/ai/ai';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, tile } from './helpers';
 
@@ -122,9 +122,22 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
     s.round += CULT.replunderRounds - 1;
     expect(plunderValue(s, 0, enemy)).toBe(0);
     s.round += 1;
-    expect(plunderValue(s, 0, enemy)).toBe(loot);
+    // abnehmende Beute: zweite Pluenderung zahlt die Haelfte / diminishing loot: the second plunder pays half
+    expect(plunderValue(s, 0, enemy)).toBe(Math.round(loot * CULT.plunderDecay[1]));
+    enemy.plunderCount = 2;
+    expect(plunderValue(s, 0, enemy)).toBe(Math.round(loot * CULT.plunderDecay[2]));
+    enemy.plunderCount = 9;
+    expect(plunderValue(s, 0, enemy)).toBe(Math.round(loot * CULT.plunderDecay[2]));
+    enemy.plunderCount = 1;
     // Punkte fuer die Beute / points for the loot
     expect(s.factions[0].plunder).toBe(loot);
+    expect(enemy.plunderCount).toBe(1);
+  });
+  it('Pluenderpunkte nach Zahl der Gegner / plunder points by number of rivals', () => {
+    const game = (ids: FactionId[]) => blankGame({ stars: 0, factions: ids });
+    expect(plunderScoreFor(game(['vesper', 'korvat']))).toBe(CULT.plunderScoreByRivals[1]);
+    expect(plunderScoreFor(game(['vesper', 'korvat', 'dravon']))).toBe(CULT.plunderScoreByRivals[2]);
+    expect(plunderScoreFor(game(['vesper', 'korvat', 'dravon', 'alvenia', 'meridon']))).toBe(CULT.plunderScore);
   });
   it('ausgeschieden ohne Einheit, Staedte werden neutral / eliminated without a unit, cities turn neutral', () => {
     const { s, hq } = g(['vesper', 'korvat']);

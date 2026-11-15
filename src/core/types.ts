@@ -98,6 +98,8 @@ export interface City {
   tower?: boolean;
   /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
   plundered?: number;
+  /** Kult: wie oft diese Stadt schon gepluendert wurde (fehlt = nie) / cult: how often this city has been plundered (missing = never) */
+  plunderCount?: number;
   nameIndex: number;
 }
 
