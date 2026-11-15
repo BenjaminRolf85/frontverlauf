@@ -46,7 +46,7 @@ function chooseStarts(rng: { rng: number }, size: number, count: number): Pos[] 
   return result;
 }
 
-export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern'): GeneratedMap {
+export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern' | 'desert'): GeneratedMap {
   const rng = { rng: seed | 0 };
   const params = MAP_TYPES[mapType];
   const n = size * size;
@@ -249,8 +249,58 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   }
   if (!inBounds(size, 0, 0)) throw new Error('invalid size');
   if (theme === 'cavern') carveCavern(seed, size, tiles, [...starts, ...villages, ...radars]);
+  const seabed = theme === 'desert' ? drainSea(seed, size, tiles) : null;
   assignBiomes(seed, size, tiles, factions);
+  if (seabed) desertBiomes(seed, size, tiles, seabed);
   return { tiles, starts, villages, bunkers, radars };
+}
+
+/**
+ * Wuestenwelt: das Meer ist ausgetrocknet. Ozean und fast alles Flachwasser werden Ebene (alter Meeresgrund), nur
+ * wenige rostrote Tuempel bleiben; ein Teil des Walds wird Ebene. Eigener Zufallsstrom, Staedte und Merkmale bleiben.
+ * Liefert die Felder des alten Meeresgrunds (fuer die Salzpfannen).
+ * Desert world: the sea has dried up. Ocean and almost all shallow water become plain (old seabed), only a few
+ * rust-red pools remain; part of the forest becomes plain. Own random stream, cities and features stay.
+ * Returns the tiles of the old seabed (for the salt flats).
+ */
+function drainSea(seed: number, size: number, tiles: Tile[]): Set<number> {
+  const rng = { rng: (seed ^ MAPGEN.desertSeedSalt) | 0 };
+  const seabed = new Set<number>();
+  for (let k = 0; k < tiles.length; k++) {
+    const t = tiles[k];
+    const roll = nextRandom(rng);
+    if (t.terrain === 'ocean' || t.terrain === 'shallow') {
+      const x = k % size, y = Math.floor(k / size);
+      // Tuempel nur abseits von Staedten (keine Haefen in der Wueste) / pools only away from cities (no harbours in the desert)
+      const nearCity = area(size, x, y, 1).some((p) => tiles[idx(size, p.x, p.y)].cityId !== null);
+      if (t.terrain === 'shallow' && roll < MAPGEN.desertPool && !nearCity) { if (t.resource === 'fish') t.resource = null; continue; }
+      t.terrain = 'plain';
+      if (t.resource === 'fish') t.resource = null;
+      seabed.add(k);
+    } else if (t.terrain === 'forest' && roll > MAPGEN.desertForestKeep && t.cityId === null) t.terrain = 'plain';
+  }
+  return seabed;
+}
+
+/**
+ * Landschaften der Wuestenwelt (nur Optik): rote Duenen ('desert'), dunkles Geroell ('steppe'), Duenenkaemme an den
+ * Tafelbergen ('hills') und Salzpfannen auf dem alten Meeresgrund ('tundra'). Eigener Zufallsstrom.
+ * Biomes of the desert world (visual only): red dunes ('desert'), dark scree ('steppe'), dune ridges at the mesas
+ * ('hills') and salt flats on the old seabed ('tundra'). Own random stream.
+ */
+function desertBiomes(seed: number, size: number, tiles: Tile[], seabed: Set<number>) {
+  const rng = { rng: (seed ^ MAPGEN.desertSeedSalt ^ MAPGEN.biomeSeedSalt) | 0 };
+  const noise = Array.from({ length: 5 }, () => ({ x: nextRandom(rng) * size, y: nextRandom(rng) * size, v: nextRandom(rng) - 0.5 }));
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const t = tiles[idx(size, x, y)];
+    if (t.terrain === 'shallow' || t.terrain === 'ocean') continue;
+    if (seabed.has(idx(size, x, y))) { t.biome = 'tundra'; continue; }
+    let n = 0;
+    for (const c of noise) n += c.v * Math.max(0, 1 - Math.hypot(c.x - x, c.y - y) / (size * 0.4));
+    if (t.terrain === 'mountain') t.biome = 'desert';
+    else if (t.biome === 'hills') continue;
+    else t.biome = n > 0.12 ? 'steppe' : 'desert';
+  }
 }
 
 /**

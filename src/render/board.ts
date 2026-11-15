@@ -183,7 +183,7 @@ export class Board {
   /** Zaehlt Neuaufbauten der statischen Ebene (Schattenkarte) / counts static rebuilds (shadow map) */
   staticVersion = 0;
   /** Kartenthema der gezeigten Partie / map theme of the shown game */
-  theme: 'cavern' | 'alien' | null = null;
+  theme: 'cavern' | 'alien' | 'desert' | null = null;
   /** Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters */
   readonly alienFx = new AlienWorldFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
