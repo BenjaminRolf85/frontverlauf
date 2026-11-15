@@ -416,7 +416,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
   // ---------- Welt II: Heimatwelt der Zyrr / World II: Zyrr homeworld ----------
   {
     // Jenseits des Portals: Landetrupp ohne Stadt auf der Heimatwelt der Zyrr / beyond the portal: landing party without a city on the Zyrr homeworld
-    id: 'm10', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
+    id: 'm10', level: 'normal', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
     seed: 10010, size: 16, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 45, rounds: 20,
     objectives: [{ k: 'capture', target: 0 }, { k: 'reach', target: 1, range: 2 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', 'hq'], theme: 'alien', landing: true,
@@ -458,7 +458,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
   {
     // Die Schwarmmutter: Hauptquartier der Zyrr; Xyl'Tharra taucht spaeter selbst auf; kurz vor ihrem Tod reisst der Riss auf
     // the Swarm Mother: Zyrr HQ; Xyl'Tharra emerges later herself; just before her death the rift tears open
-    id: 'm11', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
+    id: 'm11', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
     seed: 11011, size: 14, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 50, rounds: 16,
     objectives: [{ k: 'rift', unit: 0 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 8 }, { k: 'fast', rounds: 12 }],
     briefing: ['scout', 'enemy', 'hq'], theme: 'alien', boss: { unit: 'swarmMother', owner: 1, at: 0 }, rift: true,
@@ -468,7 +468,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       // das Portal, durch das der Spieler kam, steht neben seiner Basis / the portal the player came through stands next to the base
       k.portal(ringNear(k, a, k.toward(a, { x: k.s.size - 1 - b.x, y: k.s.size - 1 - b.y }, 2), 1, 2));
       k.upgrade(a, 'bunker');
-      k.spawn('tank', 0, a); k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      k.spawn('tank', 0, a); k.spawn('tank', 0, a); k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
       k.upgrade(b, 'bunker');
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
       k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
