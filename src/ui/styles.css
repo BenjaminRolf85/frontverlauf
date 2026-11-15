@@ -488,8 +488,27 @@ input[type="text"], select {
 /* Querformat und Desktop / landscape and desktop */
 @media (min-width: 900px) /* --p-breakpoint-lg */ {
   .bottom { align-items: center; }
-  .sheet { padding: var(--p-space-4); }
-  .action { min-width: var(--c-action-min-size-desktop); }
+  /*
+   * Infofeld kompakt unten links ueber der Leiste andocken, damit die Karte frei bleibt
+   * dock the info panel compactly at the bottom left above the bar so the map stays clear
+   */
+  .bottom > .sheet {
+    position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2));
+    width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2)); max-height: var(--c-layout-sheet-dock-max-height);
+    margin: 0; padding: var(--p-space-2) var(--p-space-3); overflow-y: auto; overscroll-behavior: contain;
+  }
+  .sheet-head { margin-bottom: var(--p-space-1); gap: var(--p-space-1); }
+  .sheet-head h3 { font-size: var(--p-font-size-md); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sheet-head .grow { min-width: 0; }
+  .sheet-head .unit-sub { font-size: var(--p-font-size-xs); }
+  .sheet-head .unit-badge, .sheet-head .icon-btn { width: var(--p-size-touch); height: var(--p-size-touch); flex: none; }
+  .sheet .stats { font-size: var(--p-font-size-xs); row-gap: 0; }
+  .sheet .tabs { margin-top: var(--p-space-1); gap: var(--p-space-1); }
+  .sheet .tabs button { min-height: var(--p-size-touch); padding: 0 var(--p-space-2); font-size: var(--p-font-size-sm); }
+  .sheet .action-bar { padding-bottom: var(--p-space-1); }
+  .action { min-width: var(--c-action-min-size-compact); min-height: var(--c-action-height-compact); }
+  /* Standard-Hinweis nur zeigen, wenn eine Aktion erklaert wird (Maus zeigt Tooltips) / show the hint only when an action is explained (mouse shows tooltips) */
+  .action-hint:has(.hint-text.muted):not(.open) { display: none; }
 }
 @media (orientation: landscape) and (max-height: 520px) /* --p-breakpoint-compact-height */ {
   .action { min-width: var(--c-action-min-size-compact); min-height: var(--c-action-height-compact); }
