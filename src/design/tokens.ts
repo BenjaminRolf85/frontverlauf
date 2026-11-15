@@ -661,7 +661,7 @@ export const components = {
   /** Hinweiszeile unter der Aktionsleiste / hint line below the action bar */
   actionHint: { bg: semantic.surfaceSunken, blocked: semantic.warning, fontSize: primitives.fontSize.xs, accent: primitives.borderWidth.thick },
   layout: {
-    sheetMaxWidth: '760px', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
+    sheetMaxWidth: '760px', sheetDockWidth: '420px', sheetDockMaxHeight: '44vh', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
   },
   fx: { burstSize: '120px', burstStroke: '3' },
