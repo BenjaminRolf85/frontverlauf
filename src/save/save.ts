@@ -1,6 +1,6 @@
 /** Spielstand als JSON im localStorage (immer in try/catch) und als Datei / save game as JSON in localStorage and as a file */
 import type { GameState } from '../core';
-import { CAMPAIGN_REV } from '../core/campaign';
+import { outdatedCampaign } from '../core/campaign';
 import type { Lang } from '../i18n/i18n';
 
 const SAVE_KEY = 'frontverlauf.save.v1';
@@ -62,7 +62,8 @@ export function migrateState(s: GameState): GameState {
   for (const u of s.units) if (typeof u.moved !== 'boolean') u.moved = false;
   // Kampagnen-Spielstaende der alten Missionsfassung laufen als freie Eroberungspartie weiter (die Missionen gibt es so nicht mehr)
   // campaign saves of the old mission data continue as a free conquest game (those missions no longer exist)
-  if (s.campaign && s.campaign.rev !== CAMPAIGN_REV) {
+  // dazu laufende m2-Partien der alten Bergung (vor dem Mutterschiff) / plus running m2 games of the old salvage (before the mothership)
+  if (s.campaign && outdatedCampaign(s.campaign)) {
     delete s.campaign;
     delete s.config.campaign;
     s.config.factionVictory = false;

@@ -183,10 +183,11 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
     expect(m.config.factionVictory).toBe(false);
   });
 
-  it('besondere Einrichtung: Absturzstelle, Bohrer, Depots, Bunker, Artefakt / special setup: crash site, drill, depots, bunker, artifact', () => {
+  it('besondere Einrichtung: Mutterschiff, Bohrer, Depots, Bunker, Artefakt / special setup: mothership, drill, depots, bunker, artifact', () => {
+    // Einzelheiten zum Mutterschiff in campaign-mothership.test.ts / mothership details in campaign-mothership.test.ts
     const m2 = game('m2');
-    const site = m2.campaign!.targets[0];
-    expect(m2.tiles[site.y * m2.size + site.x].feature).toBe('crashSite');
+    const site = m2.campaign!.ship!;
+    expect(m2.tiles[site.y * m2.size + site.x].feature).toBe('mothership');
     const m6 = game('m6', 'velkar');
     expect(m6.units.find((u) => u.id === m6.campaign!.units![0])!.owner).toBe(1);
     const m7 = game('m7');
@@ -272,43 +273,6 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
       expect(dist(p, far), f).toBeGreaterThanOrEqual(TOWER_HOLD.m1RaidDistance);
       expect(dist(p, far), f).toBeLessThanOrEqual(TOWER_HOLD.m1RaidDistance + 1);
     }
-  });
-
-  it('m2: Bergung durch den Spieler = Sieg, durch die Zyrr = Niederlage / salvage by player wins, by the Zyrr loses', () => {
-    const win = game('m2');
-    const site = win.campaign!.targets[0];
-    const free = (s: GameState) => [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].map(([dx, dy]) => ({ x: site.x + dx, y: site.y + dy }))
-      .find((p) => { const t = s.tiles[p.y * s.size + p.x]; return t && isLand(t) && t.terrain !== 'mountain' && !unitAt(s, p.x, p.y) && t.cityId === null; })!;
-    const u = win.units.find((x) => x.owner === 0 && x.type === 'jeep')!;
-    placeAt(win, u, free(win));
-    const r = applyCommand(win, { type: 'move', unit: u.id, to: site });
-    expect(r.ok).toBe(true);
-    expect(win.campaign!.result).toBe('won');
-
-    const lose = game('m2');
-    allHuman(lose);
-    endTurn(lose); // Zyrr am Zug / Zyrr to move
-    const z = lose.units.find((x) => x.owner === 1)!;
-    placeAt(lose, z, free(lose));
-    expect(applyCommand(lose, { type: 'move', unit: z.id, to: site }).ok).toBe(true);
-    expect(lose.campaign!.status[0]).toBe('failed');
-    expect(lose.campaign!.result).toBe('lost');
-  });
-
-  it('m2: Landekapseln treffen ein, Stadtverlust = Niederlage / landing pods arrive, losing a city = defeat', () => {
-    const s = game('m2');
-    allHuman(s);
-    const before = s.units.filter((u) => u.owner === 1).length;
-    const ev = passRound(s); // Beginn Runde 2: die erste Kapsel / start of round 2: the first pod
-    expect(ev.some((e) => e.t === 'wave' && e.faction === 1)).toBe(true);
-    expect(s.campaign!.waves).toBe(1);
-    expect(s.units.filter((u) => u.owner === 1).length).toBeGreaterThan(before);
-    // Wellen-Einheiten nie auf fremden Staedten / wave units never on foreign cities
-    for (const u of s.units) { const c = cityAt(s, u.x, u.y); if (c) expect(c.owner).toBe(u.owner); }
-    const c = s.cities.find((x) => x.id === s.campaign!.startCities[1])!;
-    c.owner = 1;
-    poke(s);
-    expect(s.campaign!.result).toBe('lost');
   });
 
   it('m3: Portal zwei Runden halten = Sieg, Abzug setzt zurueck, Nachschub kommt durchs Portal / holding the portal two rounds wins, leaving resets, reinforcements come through the portal', () => {

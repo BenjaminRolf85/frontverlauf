@@ -9,6 +9,7 @@ import {
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
+import { isScientist, mothershipGoals, scientistGoal } from './mothership';
 
 export type GoalKind =
   | 'village' | 'city' | 'bunker' | 'explore' | 'defend' | 'hunt' | 'stage' | 'refuel' | 'retreat' | 'home'
@@ -144,7 +145,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     }
     if (water && !bridge && wader) lok = true;
     // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
-    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret) lok = false;
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret || t.feature === 'mothership') lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
@@ -434,6 +435,8 @@ function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goa
   // nur Felder, die ein Ziel der Mission sind (das Portal in m11 ist Kulisse) / only tiles that are a mission objective (the portal in m11 is scenery)
   const objs = missionById(c.mission)?.objectives ?? [];
   const wants = (k: string) => objs.some((o) => o.k === k);
+  // Mutterschiff (m2): Eskorte und Jagd auf den Wissenschaftler, eigene Datei mothership.ts / mothership (m2): escort and hunt for the scientist, own file mothership.ts
+  if (wants('work')) out.push(...mothershipGoals(ctx));
   if (c.cave && wants('cave')) hold(c.cave, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   if (wants('ruins')) (c.sites ?? []).forEach((p, i) => { if (!(side && c.siteDone?.[i])) hold(p, A.siteValue, A.siteCap, A.siteValue, A.siteCap + 1); });
   // Turm-Ziel (m1): die Spieler-Seite haelt eigene Tuerme besetzt und nimmt die uebrigen ein; die Gegner greifen Tuerme der Spieler-Seite an
@@ -581,7 +584,7 @@ function assignGoals(ctx: Ctx) {
   // Festungsbau: Bauer ziehen zur bedrohtesten Stadt ohne Stellung / fortification: builders head to the most threatened city without an emplacement
   const builder = new Map<number, Goal>();
   for (const u of ctx.my) { const g = emplacementGoal(ctx, u); if (g) builder.set(u.id, g); }
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id);
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -617,6 +620,8 @@ function assignGoals(ctx: Ctx) {
   for (const u of ctx.my) {
     if (ctx.goals.has(u.id) || isWonder(u)) continue;
     if (isBoss(u)) { ctx.goals.set(u.id, bossGoal(ctx, u)); continue; }
+    // Wissenschaftler (m2): zum Arbeitsplatz am Mutterschiff / scientist (m2): to the work spot at the mothership
+    if (isScientist(ctx, u)) { const g = scientistGoal(ctx, u); if (g) { ctx.goals.set(u.id, g); continue; } }
     if (builder.has(u.id)) { ctx.goals.set(u.id, builder.get(u.id)!); continue; }
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }

@@ -9,9 +9,9 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, xfMatrix, type V3 } from './kit';
+import { Builder, geo, mix, rng, shade, xfMatrix, type ColorLike, type V3 } from './kit';
 import { headgear } from './headgear';
-import { look, mat } from './look';
+import { look, mat, type Look } from './look';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -62,6 +62,10 @@ export interface SoldierOpts {
   robe?: boolean;
   /** Beine weglassen (Besatzung in Luken) / omit legs (crew in hatches) */
   noLegs?: boolean;
+  /** Mantelfarbe (fehlt = Fraktionsfarbe; Laborkittel des Wissenschaftlers) / coat colour (missing = faction colour; the scientist's lab coat) */
+  coatColor?: ColorLike;
+  /** eigener Kopf statt Helm (Wissenschaftler) / own head instead of the helmet (scientist) */
+  head?: (b: Builder, L: Look, d: Detail) => void;
 }
 
 /** Zwei-Knochen-IK / two-bone IK */
@@ -131,7 +135,8 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     d >= minDetail ? (d === 2 ? geo.rbox(w, h, dd, Math.min(w, h, dd) * ch) : geo.cbox(w, h, dd, Math.min(w, dd) * ch)) : geo.box(w, h, dd);
   const Mp = xfMatrix({ p: pose.pelvis, r: pose.body });
   const Mt = Mp.clone().multiply(xfMatrix({ p: [0, TORSO_Y, 0], r: pose.twist }));
-  const sleeve = o.coat ? L.primary : L.jacket;
+  const coatC = o.coatColor ?? L.primary;
+  const sleeve = o.coat ? coatC : L.jacket;
 
   // ---- Becken + Oberkoerper + Kopf / pelvis + torso + head ----
   b.group({ p: pose.pelvis, r: pose.body }, () => {
@@ -163,18 +168,18 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     }
     if (o.coat) {
       // Mantelschoss bis zum Knie / coat skirt to the knee
-      b.add(d >= 1 ? geo.rtaper(0.235, 0.165, 0.158, 0.104, 0.13, 0.012) : geo.taper(0.235, 0.165, 0.158, 0.104, 0.13), L.primary, { p: [0, -0.055, 0] });
+      b.add(d >= 1 ? geo.rtaper(0.235, 0.165, 0.158, 0.104, 0.13, 0.012) : geo.taper(0.235, 0.165, 0.158, 0.104, 0.13), coatC, { p: [0, -0.055, 0] });
       b.box(0.012, 0.125, 0.006, L.primaryDark, [0.0, -0.055, 0.068], [0.12, 0, 0]);
       if (d >= 1) b.box(0.236, 0.014, 0.166, L.primaryDark, [0, -0.115, 0]);
     }
     b.group({ p: [0, TORSO_Y, 0], r: pose.twist }, () => {
-      const jacket = o.coat ? L.primary : L.jacket;
+      const jacket = o.coat ? coatC : L.jacket;
       b.add(d >= 1 ? geo.ctaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.016) : geo.taper(0.146, 0.09, 0.17, 0.102, 0.11), jacket, { p: [0, 0.055, 0] });
       if (o.coat) {
         // Kragen hochgeschlagen, Revers, Guertel / turned-up collar, lapels, belt
         for (const s of [-1, 1]) {
-          b.add(geo.taper(0.05, 0.016, 0.06, 0.016, 0.06), shade(L.primary, 0.85), { p: [s * 0.04, 0.115, 0.04], r: [0.25, s * 0.35, s * -0.25] });
-          b.box(0.03, 0.07, 0.006, shade(L.primary, 0.85), [s * 0.026, 0.07, 0.053], [0, 0, s * 0.3]);
+          b.add(geo.taper(0.05, 0.016, 0.06, 0.016, 0.06), shade(coatC, 0.85), { p: [s * 0.04, 0.115, 0.04], r: [0.25, s * 0.35, s * -0.25] });
+          b.box(0.03, 0.07, 0.006, shade(coatC, 0.85), [s * 0.026, 0.07, 0.053], [0, 0, s * 0.3]);
         }
         b.add(part(0.168, 0.018, 0.104, 0.3, 1), L.primaryDark, { p: [0, 0.0, 0] });
         b.box(0.045, 0.03, 0.006, L.secondary, [0, 0.085, 0.052]);
@@ -262,7 +267,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       // Kopf / head
       b.group({ p: [0, NECK_Y, 0], r: pose.head, s: 1.22 }, () => {
         b.cyl(0.03, 0.034, 0.03, d === 2 ? 10 : 6, mat.skin, [0, -0.005, 0]);
-        headgear(b, f, L, d, o.hat === 'fedora', o.seed ?? 1);
+        if (o.head) o.head(b, L, d); else headgear(b, f, L, d, o.hat === 'fedora', o.seed ?? 1);
       });
     });
   });

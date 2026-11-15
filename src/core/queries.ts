@@ -451,8 +451,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       }
       // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
       if (has(u, 'wade') && !walkable(fromTile)) stop = true;
-      // Lava, Vulkangipfel und Wunder-Grundflaechen sind unpassierbar / lava, volcano peaks and wonder footprints are impassable
-      if (t.volcano || burning(s, t) || t.wonderOf || t.turret) continue;
+      // Lava, Vulkangipfel, Wunder-Grundflaechen und das Mutterschiff (m2) sind unpassierbar / lava, volcano peaks, wonder footprints and the mothership (m2) are impassable
+      if (t.volcano || burning(s, t) || t.wonderOf || t.turret || t.feature === 'mothership') continue;
       // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
       // jungle: vehicles only as the first step, every step in or out ends the move
       if (!fly && !ship) {
@@ -1532,7 +1532,7 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   // kein Vulkangipfel, keine Lava, nicht das Artefakt der Kampagne / no volcano peak, no lava, not the campaign artifact
   const art = s.campaign?.artifact;
   if (t.volcano || burning(s, t) || (art && art.x === x && art.y === y)) return 'invalidTile';
-  if (unitAt(s, x, y) || t.wonderOf || t.turret) return 'occupied';
+  if (unitAt(s, x, y) || t.wonderOf || t.turret || t.feature === 'mothership') return 'occupied';
   // nie in eine fremde Stadt / never into a foreign city
   if (t.cityId !== null && cityById(s, t.cityId)?.owner !== f) return 'invalidTile';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';

@@ -28,6 +28,7 @@ import { icon } from './icons';
 import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
+import { shipSheet, workAction } from './mothership';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
@@ -565,6 +566,9 @@ export class Hud {
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
         if (this.cityNote) body += `<p class="muted">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
       }
+    } else if (explored && tile.feature === 'mothership') {
+      // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress
+      ({ head, body } = shipSheet(s));
     } else if (explored && turretAt(s, x, y)?.owner !== undefined) {
       // Geschuetzstellung: Besitzer, Panzerung, Reichweite, feuert jede Runde / gun emplacement: owner, armour, range, fires every round
       const gun = turretAt(s, x, y)!;
@@ -691,6 +695,9 @@ export class Hud {
         }
       }
     }
+    // Kampagne m2: Wissenschaftler am Mutterschiff / campaign m2: scientist at the mothership
+    const work = workAction(s, u, g, (c) => this.err(c));
+    if (work) this.actions.push(work);
     const cap = captureKind(s, u);
     // Kult: Einnehmen heisst Pluendern, mit Beute / cult: capturing means plundering, with loot
     const plunderCity = cap === 'city' || cap === 'village' ? cityAt(s, u.x, u.y) : undefined;

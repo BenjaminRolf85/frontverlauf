@@ -264,7 +264,8 @@
     "fusionPlant": "Fusionskraftwerk",
     "waal": "Landkreuzer Waal",
     "coreDrill": "Erdkernbohrer",
-    "swarmMother": "Schwarmmutter"
+    "swarmMother": "Schwarmmutter",
+    "scientist": "Wissenschaftler"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -312,7 +313,8 @@
     "fusionPlant": "Siegbauwerk von Velkar: liefert nach der Fertigstellung endlose Energie.",
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
-    "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei."
+    "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
+    "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne)."
   },
   "abilities": {
     "dash": "Sturm",
@@ -410,7 +412,8 @@
     "wreckCover": "+1 Deckung für Landeinheiten auf diesem Feld",
     "barrier": "Panzersperre",
     "mine": "Mine",
-    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus."
+    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus.",
+    "mothership": "Mutterschiff der Zyrr"
   },
   "buildings": {
     "storehouse": "Vorratslager anlegen",
@@ -1016,7 +1019,11 @@
       "burrow": "Erobere die Höhle der Zyrr bis Runde {rounds}",
       "bonusBurrow": "Erobere die Höhle der Zyrr",
       "towers": "Erobere die Sendetürme und halte alle gleichzeitig {n} Runden in Folge, bis Runde {rounds}",
-      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})"
+      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})",
+      "work": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten, bis Runde {rounds}",
+      "workPanel": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten ({have}/{n})",
+      "scientist": "Der Wissenschaftler darf nicht fallen",
+      "scientistHp": "Der Wissenschaftler fällt nie unter {share} % seiner LP"
     },
     "missions": {
       "m1": {
@@ -1036,19 +1043,19 @@
         }
       },
       "m2": {
-        "title": "Wettlauf zum Wrack",
-        "tagline": "Berge die Absturzstelle, während Landekapseln deine Städte bedrängen",
+        "title": "Das Mutterschiff",
+        "tagline": "Bring den Wissenschaftler ans Wrack und lass ihn 8 Runden daran arbeiten",
         "brief": [
-          "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch. Und am Horizont gehen Landekapseln nieder, direkt vor unseren Städten.",
-          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, produziert zuerst.",
-          "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... Graue unterwegs ... ZKRRT"
+          "Kommandant, die Peilung der Sendetürme hat es gefunden: Das Mutterschiff liegt in einem Krater, mitten durchgebrochen und groß wie ein Dorf. Es glüht noch, es raucht, und Graue stehen Wache.",
+          "Kkt. Das Mutterschiff ist heilig. Wer seine Hülle berührt, wird zerlegt. Schwarm, landet und findet den Weißkittel!",
+          "{leader} an alle: Unser Wissenschaftler braucht acht Runden an diesem Wrack, dann wissen wir, wie die Zyrr fliegen. Räumt die Wachen weg und deckt ihn mit allem, was wir haben. Fällt er, war alles umsonst."
         ],
-        "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
-        "won": "Geborgen, und keine Stadt verloren! Die Eierköpfe im Labor flippen gerade völlig aus.",
-        "lost": "Die Zyrr waren schneller, oder unsere Linie ist gebrochen. Jetzt fliegt das Ding wieder, nur nicht für uns.",
+        "ally": "{allyLeader} hier. {ally} sichert den Krater, {leader}. Euer Gelehrter schraubt, wir halten die Grauen fern.",
+        "won": "Acht Runden Arbeit, und der Wissenschaftler grinst wie ein Kind an Weihnachten. Wir wissen jetzt, wie das Ding fliegt. Und woher es kam.",
+        "lost": "Der Wissenschaftler ist gefallen, oder die Zeit lief uns davon. Das Wrack schweigt, und die Zyrr holen sich ihre Geheimnisse zurück.",
         "variants": {
           "velkar": {
-            "won": "Geborgen! {leader} hat schon siebzehn Formeln auf die Trümmer geschrieben."
+            "won": "Acht Runden! {leader} hat das halbe Wrack schon in Formeln übersetzt und will die andere Hälfte noch heute Nacht."
           }
         }
       },
@@ -1653,7 +1660,8 @@
       "fusionPlant": "Volkssonne",
       "waal": "Stahlwal",
       "coreDrill": "Teufelspflug",
-      "swarmMother": "Die große Mutter"
+      "swarmMother": "Die große Mutter",
+      "scientist": "Wissenschaftler"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1701,7 +1709,8 @@
       "fusionPlant": "Feindreaktor",
       "waal": "Landkreuzer Waal",
       "coreDrill": "Ketzerbohrer",
-      "swarmMother": "Feindliches Oberkommando"
+      "swarmMother": "Feindliches Oberkommando",
+      "scientist": "Wissenschaftler"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1749,7 +1758,8 @@
       "fusionPlant": "Friedensreaktor",
       "waal": "Kriegswal",
       "coreDrill": "Untergangsbohrer",
-      "swarmMother": "Verhandlungsführerin des Schwarms"
+      "swarmMother": "Verhandlungsführerin des Schwarms",
+      "scientist": "Wissenschaftler"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1797,7 +1807,8 @@
       "fusionPlant": "Stromkontor",
       "waal": "Teurer Waal",
       "coreDrill": "Grundstücksruin",
-      "swarmMother": "Die Konkurrenz im Chitinkleid"
+      "swarmMother": "Die Konkurrenz im Chitinkleid",
+      "scientist": "Wissenschaftler"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1845,7 +1856,8 @@
       "fusionPlant": "Tokamak Eins",
       "waal": "Überschwerer Prototyp",
       "coreDrill": "Geologische Katastrophe",
-      "swarmMother": "Versuchsobjekt Eins"
+      "swarmMother": "Versuchsobjekt Eins",
+      "scientist": "Wissenschaftler"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1893,7 +1905,8 @@
       "fusionPlant": "Erdlingssönnchen",
       "waal": "Großer Blechwal",
       "coreDrill": "Kernsonde der Erdlinge",
-      "swarmMother": "Mutter aller Augen"
+      "swarmMother": "Mutter aller Augen",
+      "scientist": "Wissenschaftler"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1941,7 +1954,8 @@
       "fusionPlant": "Falsche Sonne",
       "waal": "Leviathan",
       "coreDrill": "Der Letzte Bohrer",
-      "swarmMother": "Dämonin vom Himmel"
+      "swarmMother": "Dämonin vom Himmel",
+      "scientist": "Wissenschaftler"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -1989,7 +2003,8 @@
       "fusionPlant": "Externe Energiequelle",
       "waal": "Analoger Großpanzer",
       "coreDrill": "Geofehler 404",
-      "swarmMother": "Primärknoten Z-0"
+      "swarmMother": "Primärknoten Z-0",
+      "scientist": "Wissenschaftler"
     }
   },
   "identity": {
@@ -3572,5 +3587,17 @@
     "unlockHint": "Satelliten-Relay ab der Forschung {tech}.",
     "own1": "Achtung: 1 eigene Einheit im Ziel",
     "hits1": "1 Treffer, {kills} vernichtet"
+  },
+  "mothership": {
+    "name": "Mutterschiff der Zyrr",
+    "sub": "Abgestürzt · unpassierbar",
+    "work": "Am Schiff arbeiten",
+    "progress": "Arbeit {have}/{need}",
+    "workDesc": "Der Wissenschaftler untersucht das Wrack. Das beendet seinen Zug und zählt eine Arbeitsrunde ({have}/{need}). Pausen schaden nicht, die Runden werden zusammengezählt.",
+    "notAdjacent": "Nur direkt neben dem Mutterschiff.",
+    "done": "In dieser Runde hat er schon gearbeitet.",
+    "tileDesc": "Ein abgestürztes Mutterschiff der Zyrr auf vier Feldern: nicht begehbar, nicht einnehmbar, nicht angreifbar. Der Wissenschaftler arbeitet auf einem der Nachbarfelder ({have}/{need} Runden).",
+    "toast": "Der Wissenschaftler hat am Mutterschiff gearbeitet: {have}/{need} Runden.",
+    "toastDone": "Geschafft! Der Wissenschaftler hat das Mutterschiff entschlüsselt."
   }
 }

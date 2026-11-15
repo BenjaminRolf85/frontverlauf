@@ -38,10 +38,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   portal: 'none', hackRelay: 'none', fusionPlant: 'none', waal: 'cannon', coreDrill: 'none',
   // Endgegner / boss
   swarmMother: 'deathRay',
+  // Kampagne m2: Wissenschaftler / campaign m2: scientist
+  scientist: 'none',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {

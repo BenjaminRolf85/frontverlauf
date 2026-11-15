@@ -40,6 +40,8 @@ import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
 import { swarmMother } from './boss';
+import { mothership, mothershipSmoke } from './mothership';
+import { scientist } from './scientist';
 
 /**
  * PLATZHALTER fuer die Wunder der Siegbedingungen, bis wonders.ts mit wonderGeometry(type, faction, stage) da ist.
@@ -101,6 +103,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'protoWalker': return protoWalker(faction).build();
       // Endgegner (doppelte Einheitengroesse) / boss (twice unit size)
       case 'swarmMother': return swarmMother(faction).build();
+      // Kampagne m2 / campaign m2
+      case 'scientist': return scientist(faction).build();
       // Wunder der Siegbedingungen / victory wonders
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
@@ -253,6 +257,18 @@ export function xenoDecoration(variant: number): THREE.BufferGeometry {
 export function volcanoGeometry(variant: number): THREE.BufferGeometry {
   const v = ((Math.floor(variant) % 3) + 3) % 3;
   return memo(`volcano|${v}`, () => volcano(v).build());
+}
+
+/**
+ * Mutterschiff der Zyrr (Kampagne m2) ueber 2x2 Feldern, Ursprung Mitte; lite = niedrige Qualitaet.
+ * Zyrr mothership (campaign m2) over 2x2 tiles, origin at the centre; lite = low quality.
+ */
+export function mothershipGeometry(lite = false): THREE.BufferGeometry {
+  return memo(`mothership|${lite ? 1 : 0}`, () => mothership(lite).build());
+}
+/** Rauchfahnen des Mutterschiffs (schwankt) / smoke plumes of the mothership (sways) */
+export function mothershipSmokeGeometry(lite = false): THREE.BufferGeometry {
+  return memo(`mothershipSmoke|${lite ? 1 : 0}`, () => mothershipSmoke(lite).build());
 }
 
 /** Rauchwolken ueber dem Krater (wird animiert) / smoke puffs above the crater (animated by the renderer) */

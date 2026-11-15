@@ -15,6 +15,7 @@ import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlo
 import { processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
+import { doWork, workCheck } from './mothership';
 import {
   recruitCheck, plunderValue, isCultFaction, cultUnits, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -1565,6 +1566,16 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
       });
       checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    // Kampagne m2: Wissenschaftler am Mutterschiff, eigene Datei mothership.ts / campaign m2: scientist at the mothership, own file mothership.ts
+    case 'workShip': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = workCheck(s, u);
+      if (check !== 'ok') return fail(check);
+      doWork(s, u, ev);
       res = { ok: true, events: ev };
       break;
     }

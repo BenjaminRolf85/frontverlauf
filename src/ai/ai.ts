@@ -11,6 +11,7 @@ import { buildCtx } from './analysis';
 import {
   planDiplomacy, planGrandProject, planPeaceResponses, planPurchase, planRewards,
 } from './economy';
+import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
@@ -66,6 +67,7 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planPeaceResponses(ctx, failed)
     ?? planGrandProject(ctx, failed)
     ?? planCapture(ctx, failed)
+    ?? planMothership(ctx, failed)
     ?? planConvert(ctx, failed)
     ?? planOrbital(ctx, failed)
     ?? planAttack(ctx, failed)

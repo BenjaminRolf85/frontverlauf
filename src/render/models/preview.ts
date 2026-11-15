@@ -15,7 +15,7 @@ import {
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
   buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
-  crashSiteGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
+  crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
 import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
@@ -37,7 +37,7 @@ const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
 const withNeutral: (FactionId | null)[] = onlyFaction ? [onlyFaction] : [...FACTION_IDS, null];
 
-const LAND: UnitTypeId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
+const LAND: UnitTypeId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer', 'scientist'];
 const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleship'];
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
@@ -130,6 +130,8 @@ function sheet(): Sheet {
           { label: 'volcano', cells: [0, 1, 2].map((v) => ({ geo: smoke(v), ground: mt })) },
           { label: 'lava', cells: [0, 1, 2].map((v) => ({ geo: lavaGeometry(v), ground: mt })) },
           { label: 'crash site', cells: [0, 1].map((v) => ({ geo: crashSiteGeometry(v), ground: plainGround })) },
+          // Mutterschiff (m2) ueber 2x2 Feldern, mit Rauch; hoch und niedrig / mothership (m2) over 2x2 tiles, with smoke; high and low
+          { label: 'mothership', cells: [false, true].map((lite) => ({ geo: mergeGeometries([mothershipGeometry(lite).clone(), mothershipSmokeGeometry(lite).clone()]) ?? mothershipGeometry(lite), ground: plainGround, tiles: 2 })) },
           { label: 'lab ruin', cells: [0, 1].map((v) => ({ geo: labRuinGeometry(v), ground: plainGround })) },
           { label: 'jungle', cells: [0, 1, 2, 3].map((v) => ({ geo: jungleDecoration(v), ground: semantic.terrainForest })) },
           { label: 'forest (compare)', cells: [0, 1].map((v) => ({ geo: decorationGeometry('forest', null, v), ground: semantic.terrainForest })) },
@@ -485,6 +487,7 @@ function checkAll(): string[] {
     all.push([`volcano ${v}`, volcanoGeometry(v)], [`lava ${v}`, lavaGeometry(v)], [`crash ${v}`, crashSiteGeometry(v)], [`jungle ${v}`, jungleDecoration(v)], [`labRuin ${v}`, labRuinGeometry(v)]);
   }
   all.push(['volcanoSmoke', volcanoSmokeGeometry()]);
+  for (const lite of [false, true]) all.push([`mothership ${lite}`, mothershipGeometry(lite)], [`mothershipSmoke ${lite}`, mothershipSmokeGeometry(lite)]);
   const terrains: TerrainId[] = ['plain', 'forest', 'mountain', 'shallow', 'ocean'];
   const res: (ResourceId | null)[] = [null, 'supplies', 'livestock', 'fish', 'farmland', 'ore'];
   for (const t of terrains) for (const r of res) for (let v = -2; v < 6; v++) all.push([`deco ${t} ${r} ${v}`, decorationGeometry(t, r, v)]);
@@ -500,7 +503,7 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = name.startsWith('unit swarmMother') ? 16000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('unit swarmMother') ? 16000 : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name === 'artifact all') {
       // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2
