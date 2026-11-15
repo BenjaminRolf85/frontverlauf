@@ -119,7 +119,7 @@ describe('Minen / mines', () => {
     const ml = addUnit(s, 'mineLayer', 0, 5, 5);
     const inf = addUnit(s, 'infantry', 0, 3, 3);
     addUnit(s, 'infantry', 0, 6, 6);
-    expect(mineCheck(s, inf, 3, 4)).toBe('cannotCapture');
+    expect(mineCheck(s, inf, 3, 4)).toBe('cannotBuild');
     expect(mineCheck(s, ml, 7, 5)).toBe('outOfRange');
     expect(mineCheck(s, ml, 6, 6)).toBe('occupied');
     tile(s, 4, 4).terrain = 'shallow';

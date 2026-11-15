@@ -8,7 +8,7 @@ import {
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
-  cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
+  cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, techState,
   techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, turretAt, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -578,7 +578,7 @@ export function diplomacyDialog(host: ScreenHost) {
     const canAct = g.isHumanTurn && f === s.current;
     const rows = s.factions.filter((o) => o.index !== f).map((o) => {
       const name = t(`factions.${o.id}.name`);
-      const contact = me.contacts.includes(o.index);
+      const contact = inContact(s, f, o.index);
       const rel = me.relations[o.index];
       let actions = '';
       if (!o.alive) actions = `<span class="tag">${esc(t('diplomacy.eliminated'))}</span>`;

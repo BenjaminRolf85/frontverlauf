@@ -722,7 +722,8 @@
     "noWreck": "Kein Wrack auf oder neben dem Feld.",
     "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden.",
     "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
-    "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion."
+    "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
+    "cannotBuild": "Diese Einheit kann das nicht bauen."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",

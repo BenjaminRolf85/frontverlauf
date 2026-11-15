@@ -608,7 +608,7 @@ export class Hud {
       const targets = barrierTargets(s, u);
       const ok = targets.length > 0;
       const base = barrierCheck(s, u, u.x, u.y + (u.y + 1 < s.size ? 1 : -1));
-      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'cannotCapture' ? 'unitExhausted' : base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
+      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
       this.actions.push({ id: 'barrier', icon: 'shield', label: g.barrierMode ? t('actions.cancel') : t('actions.barrier'), cost: g.barrierMode ? undefined : barrierCost(s, u.owner), enabled: ok || g.barrierMode, reason,
         run: () => { if (g.barrierMode) { g.barrierMode = false; g.updateHighlights(); this.render(); } else { g.startBarrier(); g.ui.toast(t('actions.barrierHint'), 'shield'); } } });
     }
@@ -617,7 +617,7 @@ export class Hud {
       const targets = mineTargets(s, u);
       const ok = targets.length > 0;
       const base = neighbors(s.size, u.x, u.y).map((q) => mineCheck(s, u, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'invalidTile';
-      const reason = ok ? t('actions.mineHint') : base === 'cannotCapture' ? t('errors.unitExhausted') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
+      const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
       this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
         run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
     }

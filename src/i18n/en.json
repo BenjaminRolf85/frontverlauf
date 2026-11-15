@@ -722,7 +722,8 @@
     "noWreck": "No wreck on or next to the tile.",
     "noXenoGround": "Aliens only heal on terraformed xeno ground.",
     "noRockets": "No rockets left. Reload in an own city with a depot.",
-    "enemyTerritory": "Not inside another faction's territory."
+    "enemyTerritory": "Not inside another faction's territory.",
+    "cannotBuild": "This unit cannot build that."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",

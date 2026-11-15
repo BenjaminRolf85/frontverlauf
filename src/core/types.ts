@@ -372,7 +372,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory';
+  | 'enemyTerritory' | 'cannotBuild';
 
 export interface CommandResult {
   ok: boolean;

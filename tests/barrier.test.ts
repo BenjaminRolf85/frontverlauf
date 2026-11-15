@@ -18,7 +18,7 @@ describe('Panzersperre / tank barrier', () => {
     const s = g();
     const p = addUnit(s, 'pioneer', 0, 5, 5);
     const inf = addUnit(s, 'infantry', 0, 3, 3);
-    expect(barrierCheck(s, inf, 3, 4)).toBe('cannotCapture');
+    expect(barrierCheck(s, inf, 3, 4)).toBe('cannotBuild');
     expect(barrierCheck(s, p, 7, 5)).toBe('outOfRange');
     expect(barrierTargets(s, p)).toHaveLength(8);
     ok(s, { type: 'barrier', unit: p.id, x: 6, y: 5 });
