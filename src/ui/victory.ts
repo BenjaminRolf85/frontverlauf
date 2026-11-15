@@ -2,9 +2,9 @@
  * Fraktions-Siegbedingungen in der Oberflaeche: Texte, Wunder-Infofeld, Siegverfolgung, Spielende-Grund.
  * Faction victory conditions in the UI: texts, wonder info panel, victory tracker, game-over reason.
  */
-import { MODES, UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
+import { MODES, SIN, UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
 import {
-  factionVictoryOn, isWonder, korvatShareFor, meridonNeed, meridonNeedFor, score, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
+  factionVictoryOn, isWonder, judgementNeed, korvatShareFor, meridonNeed, meridonNeedFor, score, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
 } from '../core';
 import { has, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog, progress } from './components';
@@ -24,7 +24,8 @@ export function victoryParams(f: FactionId, s?: GameState): Record<string, numbe
   switch (f) {
     case 'korvat': return { pct: Math.round((s ? korvatShareFor(s) : WONDERS.korvatShare) * 100) };
     case 'dravon': return { arm: P.waal[0], total: sum(P.waal), range: UNITS.waal.range };
-    case 'alvenia': return { n: WONDERS.alveniaRounds, min: WONDERS.alveniaMinFactions };
+    // Grosses Strafgericht: Ziel je Kartengroesse (ohne Spiel: mittlere Karte, dazu die Spanne) / Great Judgement: goal per map size (without a game: medium map, plus the range)
+    case 'alvenia': return { n: s ? judgementNeed(s) : WONDERS.judgementKills[14], min: WONDERS.judgementKills[11], max: WONDERS.judgementKills[26], pct: Math.round(SIN.judgement * 100), rounds: SIN.rounds };
     case 'meridon': return { n: s ? meridonNeed(s) : meridonNeedFor(MODES.pointsRounds), m: WONDERS.meridonStars };
     case 'velkar': return { n: sum(P.fusionPlant) };
     case 'zyrr': return { build: P.portal[0], charge: P.portal[1] };
@@ -91,14 +92,12 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   const goal = `<span class="muted">${esc(victoryShortText(fa.id, s))}</span>`;
   if (!fa.alive) return `<div class="score-row">${head}${goal}</div><span class="tag">${esc(t('victory.eliminated'))}</span></div>`;
   const st = victoryStatus(s, g);
-  // Voelkerbund mit weniger als 3 Fraktionen: nicht moeglich, nur Hinweis / League with fewer than 3 factions: impossible, note only
-  if (st.unavailable) return `<div class="score-row">${head}${goal}<span class="muted">${esc(t('victory.leagueUnavailable'))}</span></div></div>`;
   let state: string;
   // fehlende Siegtechnologie beim Namen nennen / name the missing victory tech
   if (!st.tech) state = `<span class="muted">${esc(techT('victory.noTech', fa.id))}</span><span class="tag">${icon('lock', 'icon-sm')}${esc(t('hud.needsTech', { tech: t(`techs.${VICTORY_TECH[fa.id]}`) }))}</span>`;
   else {
     const left = st.roundsLeft !== null && st.phase !== 'none' ? ` · ${t('victory.roundsLeft', { n: st.roundsLeft })}` : '';
-    const note = st.paused ? ` · ${t('victory.paused')}` : st.phase === 'league' && st.roundsLeft === null ? ` · ${t('victory.leagueNotMet')}` : '';
+    const note = st.paused ? ` · ${t('victory.paused')}` : '';
     state = `<span>${esc(phaseText(st) + left + note)}</span>${progress(st.ratio, 1, st.ratio >= 0.75 ? 'hp low' : '', phaseText(st))}`;
   }
   return `<div class="score-row">${head}${goal}${state}</div>${st.tech && st.ratio >= 0.75 ? `<span class="tag warn">${icon('warning', 'icon-sm')}</span>` : ''}</div>`;

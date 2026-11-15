@@ -5,8 +5,8 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, type Pos } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, type Pos } from '../core';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
@@ -79,7 +79,7 @@ const fieldCache = new WeakMap<GameState, { key: string; fields: Map<string, Flo
 export function worth(u: Unit): number {
   // Wunder: sehr wertvolles Ziel / wonders: a very valuable target
   if (isWonder(u)) return WONDERS.aiWorth;
-  const base = (t: UnitTypeId) => (t === 'tank' || t === 'teslaTank' ? 60 : UNITS[t].cost ?? 10);
+  const base = (t: UnitTypeId) => (t === 'tank' || t === 'teslaTank' || t === 'reliquary' ? 60 : UNITS[t].cost ?? 10);
   let w = u.carried ? base(u.carried) + (UNITS[u.type].cost ?? 0) : base(u.type);
   if (u.veteran) w += 8;
   return Math.max(8, w);
@@ -355,7 +355,7 @@ export function defBonusAt(ctx: Ctx, u: Unit, x: number, y: number, asShip = isS
   if (t.outpost && t.outpost.owner === f && INFANTRY_TYPES.includes(u.type)) b = Math.max(b, DEFENSE_BONUS.outpost);
   // Wrack als Deckung / wreck as cover
   if (t.remains?.kind === 'wreck' && !asShip) b += REMAINS.wreckDefenseBonus;
-  // eigenes Gebiet (Alvenia: Friedensbollwerk) / own territory (Alvenia: Peace Bulwark)
+  // eigenes Gebiet (Alvenia: Glaubensbollwerk) / own territory (Alvenia: Bulwark of Faith)
   return b * (1 + homeDefenseAt(s, u, x, y));
 }
 
@@ -375,7 +375,9 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     // Gegner ausser Reichweite muessen erst ziehen und feuern dann mit weniger Schaden (MOVE_FIRE)
     // enemies out of range must move first and then fire with less damage (MOVE_FIRE)
     const moveFire = dist(e, { x, y }) > UNITS[e.type].range ? moveFireMult(ctx.s, e) : 1;
-    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire;
+    // Strafgericht: Alvenia trifft Suender haerter / judgement: Alvenia hits sinners harder
+    const judge = judges(ctx.s, e.owner) && isSinner(ctx.s, ctx.f) ? 1 + SIN.judgement : 1;
+    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire * judge;
   }
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
   return list.length > 1 ? total * 0.75 : total;
@@ -405,7 +407,7 @@ function computeNavalNeed(ctx: Ctx): boolean {
 
 function canCaptureType(u: Unit): boolean {
   const t = u.carried ?? u.type;
-  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'medic' && u.type !== 'heli' && u.type !== 'octocopter';
+  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'sunLance' && t !== 'medic' && u.type !== 'heli' && u.type !== 'octocopter';
 }
 function isCombat(u: Unit): boolean {
   const t = u.type;
@@ -559,9 +561,9 @@ function eligible(u: Unit, g: Goal): boolean {
   const fly = has(u, 'fly');
   switch (g.kind) {
     case 'village': case 'city': return canCaptureType(u);
-    case 'bunker': return g.water ? (fly || isShip(u)) : u.type !== 'spy' && !(g.hold && (u.type === 'artillery' || fly));
+    case 'bunker': return g.water ? (fly || isShip(u)) : u.type !== 'spy' && !(g.hold && (u.type === 'artillery' || u.type === 'sunLance' || fly));
     case 'defend': case 'hunt': return isCombat(u) && u.type !== 'medic';
-    case 'explore': return u.type !== 'artillery' && u.type !== 'medic' && u.type !== 'spy';
+    case 'explore': return u.type !== 'artillery' && u.type !== 'sunLance' && u.type !== 'medic' && u.type !== 'spy';
     default: return true;
   }
 }

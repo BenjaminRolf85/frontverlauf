@@ -6,9 +6,9 @@ import {
   unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
-  activeEmbassies, baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
+  unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, isSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -126,9 +126,11 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
     if (!ctx.s.factions[g]?.alive || !inContact(ctx.s, ctx.f, g) || fa.relations[g] !== 'war') continue;
     const mine = strength(ctx, ctx.f), theirs = strength(ctx, g);
     let accept: boolean;
-    if (prof.difficulty === 'easy' || leagueSeeker(ctx)) accept = true;
+    if (prof.difficulty === 'easy') accept = true;
     // keinen Frieden mit einer Fraktion kurz vor dem Sieg / no peace with a faction close to victory
     else if (nearVictory(ctx, g)) accept = false;
+    // Heiliges Alvenia: kein Frieden mit Suendern, ausser in echter Not / Holy Alvenia: no peace with sinners, except in real need
+    else if (judges(ctx.s, ctx.f) && isSinner(ctx.s, g)) accept = mine < theirs * 0.7 && warCount(ctx) >= 2;
     else if (ctx.conquest) accept = focusPeace(ctx, g) || (mine < theirs * 0.7 && aliveFactions(ctx.s).length > 2 && ctx.s.round <= 60);
     // Kult: lebt von der Beute, Frieden nur in echter Not / cult: lives off loot, peace only in real need
     else if (isCultFaction(ctx.s, ctx.f)) accept = mine < theirs * AI.cultPeaceStrength && warCount(ctx) >= 2;
@@ -139,26 +141,11 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
   return null;
 }
 
-/** Alvenia mit Voelkerbund-Charta: sucht Frieden und Botschaften / Alvenia with the League Charter: seeks peace and embassies */
-function leagueSeeker(ctx: Ctx): boolean {
-  return ctx.fa.id === 'alvenia' && factionVictoryOn(ctx.s) && hasTech(ctx.s, ctx.f, victoryTechOf(ctx.s, ctx.f));
-}
-
 /** Steht Fraktion g kurz vor ihrem Fraktionssieg? / is faction g close to its faction victory? */
 export function nearVictory(ctx: Ctx, g: number): boolean {
   if (!factionVictoryOn(ctx.s) || ctx.prof.difficulty === 'easy') return false;
   const st = victoryStatus(ctx.s, g);
-  // Voelkerbund: spaeter reagieren, damit Alvenia eine Chance hat / League: react later so Alvenia has a chance
-  return st.tech && st.ratio >= (st.goal === 'league' ? WONDERS.aiNearVictoryLeague : WONDERS.aiNearVictory);
-}
-
-/**
- * Voelkerbund brechen heisst Krieg mit Alvenia: nur mit genug eigener Staerke (Alvenia schreckt mit Armee ab).
- * Breaking the League means war with Alvenia: only with enough own strength (Alvenia deters with an army).
- */
-function canBreakLeague(ctx: Ctx, g: number): boolean {
-  if (victoryStatus(ctx.s, g).goal !== 'league') return true;
-  return strength(ctx, ctx.f) >= strength(ctx, g) * WONDERS.aiLeagueBreakStrength;
+  return st.tech && st.ratio >= WONDERS.aiNearVictory;
 }
 
 function warCount(ctx: Ctx): number {
@@ -175,12 +162,13 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     if (!ga.alive) continue;
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
-    // Voelkerbund: Alvenia bietet jede Runde allen Kriegsgegnern Frieden an / League: Alvenia offers peace to every enemy each round
-    if (rel === 'war' && (leagueSeeker(ctx) || (prof.peacemaker && (s.round + f) % 2 === 0)) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
+    // Friedensstifter bieten regelmaessig Frieden an; Alvenia nie einem Suender / peacemakers offer peace regularly; Alvenia never to a sinner
+    const sinner = judges(s, f) && isSinner(s, g);
+    if (rel === 'war' && prof.peacemaker && !sinner && (s.round + f) % 2 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
       const cmd: Command = { type: 'diplomacy', action: 'proposePeace', target: g };
       if (!failed.has(cmdKey(cmd))) return cmd;
     }
-    if (rel === 'war' && prof.difficulty !== 'easy' && (s.round + f) % 4 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g) && !nearVictory(ctx, g)) {
+    if (rel === 'war' && prof.difficulty !== 'easy' && !sinner && (s.round + f) % 4 === 0 && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g) && !nearVictory(ctx, g)) {
       // Frieden anbieten, wenn schwach und bedroht oder zur Schwerpunktbildung
       // propose peace when weak and threatened, or to focus on one enemy
       const pressed = ctx.enemies.some((e) => e.owner === g && ctx.myCities.some((c) => dist(c, e) <= 3));
@@ -193,11 +181,11 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     if (rel === 'peace') {
       // Frieden brechen: Eroberung erzwingt am Ende Krieg / break peace: conquest eventually forces war
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
-      // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
-      // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
+      // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia bricht nie (Friedensbruch ist Suende)
+      // break peace when the partner is close to its faction victory; Alvenia never breaks (breaking a peace is a sin)
       // Kult: ohne Krieg keine Beute / cult: no war, no loot
-      const cultBreak = isCultFaction(s, f) && ctx.roundsLeft > 3 && (noWar || mine > theirs * AI.cultBreakStrength) && canBreakLeague(ctx, g);
-      const brk = leagueSeeker(ctx) || isCampaignBond(s, f, g) ? false : (nearVictory(ctx, g) && canBreakLeague(ctx, g)) || cultBreak || (ctx.conquest
+      const cultBreak = isCultFaction(s, f) && ctx.roundsLeft > 3 && (noWar || mine > theirs * AI.cultBreakStrength);
+      const brk = judges(s, f) || isCampaignBond(s, f, g) ? false : nearVictory(ctx, g) || cultBreak || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {
@@ -303,7 +291,7 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
     const ct = counterShares(ctx);
     mil += (t === 'armsIndustry' ? ct.antiVehicle : ct.antiAir) * 70 * prof.militaryW;
   }
-  if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW * (leagueSeeker(ctx) ? 3 : 1);
+  if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW;
   // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
   if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
@@ -358,7 +346,8 @@ function resourceValue(ctx: Ctx, c: City, b: BuildingId, x: number, y: number, p
   let value = pop * popVal;
   let stars = st.stars ?? 0;
   if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'navalBase')) stars += RESOURCE.harbourNavalBonus;
-  if (b === 'hillVineyard') stars += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, f));
+  // Klosterweingut: Heilung im Stadtgebiet / monastery vineyard: healing in the city territory
+  if (b === 'hillVineyard') value += RESOURCE.vineyardHeal * Math.min(horizon, 15) * 0.3;
   value += stars * Math.min(horizon, 15) * 0.45;
   if (b === 'polarStation' && countBuildings(s, f, b) < RESOURCE.polarMax) {
     value += TECH_IDS.filter((tt) => !fa.techs.includes(tt)).length * RESOURCE.polarDiscount * 45 * Math.min(1, horizon / 12);
@@ -428,6 +417,9 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     sniper: 0.06,
     // Velkar-Bauarten wie ihre Grundtypen (VARIANTS) / Velkar designs like their base types (VARIANTS)
     railSniper: 0.07,
+    // Alvenia: Lichtschuetzen als Kern der Armee, Sonnenlanzen gegen Staedte und zur Verteidigung / Alvenia: Light Wardens as the core of the army, Sun Lances against cities and for defence
+    lightWarden: (avail('mg') ? 0.3 : 0.55) * soft,
+    sunLance: ctx.hostileCities.length ? 0.16 : 0.08,
     // Festungsbau: Pionier, solange Stellungsplaetze frei sind / fortification: a pioneer while emplacement slots are free
     pioneer: 0.05 + emplacementPioneerShare(ctx),
     artillery: ctx.hostileCities.length ? 0.16 : 0.04,
@@ -444,6 +436,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
+    lightWarden: 0.7, sunLance: 1,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
@@ -455,12 +448,12 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   for (const t of list) {
     if (!avail(t)) continue;
     const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
-    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? 1.6 : t === 'infantry' ? 1.2 : 1;
-    if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery')) sc -= 0.6;
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? 1.6 : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
+    if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery' || t === 'sunLance')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
     if (sc > bs) { bs = sc; best = t; }
@@ -674,7 +667,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
         let value = popVal;
         if (ub === 'kolkhoz') value += popVal * 0.6 * Math.floor(Math.min(horizon, 24) / UNIQUE.kolkhozInterval);
         else if (ub === 'mercenaryBarracks') value = hasCityUpgrade(c, 'barracks') || c.level < 2 ? 0 : value + chk.cost * (0.3 + 0.08 * Math.min(4, c.level)) * prof.militaryW;
-        else if (ub === 'embassyPalace') value += UNIQUE.palacePerPeace * peaceTreaties(s, f) * Math.min(horizon, 15) * 0.45;
+        // Lichtdom: Busszehnt je Suender (mindestens einer erwartet) / Cathedral of Light: penance tithe per sinner (at least one expected)
+        else if (ub === 'embassyPalace') value += UNIQUE.cathedralPerSinner * Math.max(1, Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f))) * Math.min(horizon, 15) * 0.45;
         else if (ub === 'tradingPost') value += UNIQUE.tradingPostPerHarbour * harbourCities(s, f) * Math.min(horizon, 15) * 0.45;
         else if (ub === 'testLab') value += TECH_IDS.filter((t) => !fa.techs.includes(t)).length * UNIQUE.testLabDiscount * 45 * Math.min(1, horizon / 12);
         if (value <= 0) continue;
@@ -812,12 +806,11 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
   // Botschaften / embassies
   if (hasTech(s, f, 'intelligence')) {
-    const mult = fa.id === 'alvenia' ? 2 : 1;
     for (const g of fa.contacts) {
       if (fa.embassies.includes(g) || !s.factions[g].alive) continue;
       const hq = hqOf(s, g);
       if (!hq || !fa.explored[idx(s.size, hq.x, hq.y)]) continue;
-      const value = 10 * mult * Math.min(ctx.roundsLeft, 15) * 0.45 * prof.embassyW * (leagueSeeker(ctx) ? 4 : 1);
+      const value = 10 * Math.min(ctx.roundsLeft, 15) * 0.45 * prof.embassyW;
       buys.push({ cmd: { type: 'diplomacy', action: 'embassy', target: g }, cost: embassyCost(s, f), value, save: true });
     }
   }
@@ -868,8 +861,6 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
     if (s.round < from || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
     // Korvat: nur, wenn das Staedteziel in Reichweite ist / Korvat: only when the city target is within reach
     if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * WONDERS.aiKorvatResearchShare) return;
-    // Alvenia: kein Voelkerbund mit weniger als 3 Fraktionen / Alvenia: no league with fewer than 3 factions
-    if (fa.id === 'alvenia' && !leagueAvailable(s)) return;
     const cost = researchCost(s, f, tech);
     buys.push({ cmd: { type: 'research', tech }, cost, value: cost * 2.5, save: true, horizon: WONDERS.aiSaveRounds });
     return;

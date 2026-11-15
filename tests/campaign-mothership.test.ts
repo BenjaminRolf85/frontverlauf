@@ -235,7 +235,7 @@ describe('m2: das Mutterschiff / the mothership', () => {
   it('Geschuetzstellungen nie auf dem Wrack, der Orbitallaser trifft dort nur Einheiten / gun emplacements never on the wreck, the orbital laser only hits units there', () => {
     const s = game('dravon');
     const ship = s.campaign!.ship!;
-    const pio = s.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
+    const pio = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
     pio.type = 'pioneer';
     placeAt(s, pio, workSpots(s).find((p) => p.x === ship.x - 1 && p.y === ship.y) ?? spot(s));
     for (const q of shipTiles(ship)) if (dist(pio, q) === 1) expect(emplacementCheck(s, pio, q.x, q.y)).not.toBe('ok');

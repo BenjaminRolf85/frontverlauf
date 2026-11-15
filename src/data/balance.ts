@@ -39,7 +39,12 @@ export type CampaignUnitId = 'scientist';
  * Velkar faction variants (replace tank, helicopter and sniper in their roster, see VARIANTS).
  */
 export type VelkarUnitId = 'teslaTank' | 'octocopter' | 'railSniper';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId;
+/**
+ * Fraktionsvarianten des Heiligen Alvenia (ersetzen Infanterie, Panzer und Artillerie in seiner Liste, siehe VARIANTS).
+ * Holy Alvenia faction variants (replace infantry, tank and artillery in its roster, see VARIANTS).
+ */
+export type AlveniaUnitId = 'lightWarden' | 'reliquary' | 'sunLance';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -62,7 +67,7 @@ export type TechId =
   | VictoryTechId;
 /** Siegtechnologien / victory techs */
 export type VictoryTechId =
-  | 'fiveYearPlan' | 'waalProgram' | 'leagueCharter' | 'tradeMonopoly' | 'fusionResearch' | 'dimensionalRift' | 'coreDrilling' | 'singularity';
+  | 'fiveYearPlan' | 'waalProgram' | 'greatJudgement' | 'tradeMonopoly' | 'fusionResearch' | 'dimensionalRift' | 'coreDrilling' | 'singularity';
 export type BuildingId =
   | 'storehouse' | 'ranch' | 'fishery' | 'lumberCamp' | 'farm' | 'mine'
   | 'materialsPlant' | 'foodFactory' | 'steelMill' | 'logisticsCenter'
@@ -149,22 +154,23 @@ export const WONDERS = {
   meridonStars: 1000,
   meridonStarsPerRound: 11,
   meridonStarsMin: 300,
-  /** Alvenia, Voelkerbund: Runden in Folge, Mindestzahl bekannter lebender Fraktionen / League of Nations: consecutive rounds, minimum known living factions */
-  alveniaRounds: 5,
-  alveniaMinFactions: 2,
+  /**
+   * Alvenia, Grosses Strafgericht: so viele vernichtete Einheiten von Suendern (SIN) je Kartengroesse; es zaehlen nur Abschuesse
+   * mit erforschter Siegtechnologie.
+   * Alvenia, Great Judgement: this many destroyed units of sinners (SIN) per map size; only kills with the victory tech
+   * researched count.
+   */
+  judgementKills: { 11: 15, 14: 19, 16: 21, 18: 23, 22: 26, 26: 30 } as Record<MapSize, number>,
   /** KI: Siegtechnologie ab dieser Runde erforschen; Wert eines feindlichen Wunders / AI: research the victory tech from this round; worth of a hostile wonder */
   aiResearchRound: 10,
   aiWorth: 150,
   /** KI spart fuer Siegtechnologie und Wunder bis zu so viele Runden Einkommen an / AI saves up to this many rounds of income for the victory tech and wonder */
   aiSaveRounds: 6,
   /**
-   * KI: Gegner gilt ab diesem Gesamtfortschritt als kurz vor dem Sieg (kein Frieden, Frieden brechen); Voelkerbund eigener Wert.
-   * AI: a rival counts as close to victory from this overall progress (no peace, break peace); the League has its own value.
+   * KI: Gegner gilt ab diesem Gesamtfortschritt als kurz vor dem Sieg (kein Frieden, Frieden brechen).
+   * AI: a rival counts as close to victory from this overall progress (no peace, break peace).
    */
   aiNearVictory: 0.5,
-  aiNearVictoryLeague: 0.8,
-  /** KI bricht den Voelkerbund nur mit mindestens diesem Anteil an Alvenias Staerke / AI breaks the League only with at least this share of Alvenia's strength */
-  aiLeagueBreakStrength: 1.5,
   /** KI: Bohrer erst ab so vielen eigenen Staedten / AI: drill only from this many own cities */
   aiDrillMinCities: 2,
   /** KI Korvat: Fuenfjahresplan erst ab diesem Anteil der benoetigten Staedte / AI Korvat: Five-Year Plan only from this share of the needed cities */
@@ -174,7 +180,7 @@ export const WONDERS = {
 };
 /** Siegtechnologie je Fraktion / victory tech per faction */
 export const VICTORY_TECH: Record<FactionId, VictoryTechId> = {
-  korvat: 'fiveYearPlan', dravon: 'waalProgram', alvenia: 'leagueCharter', meridon: 'tradeMonopoly',
+  korvat: 'fiveYearPlan', dravon: 'waalProgram', alvenia: 'greatJudgement', meridon: 'tradeMonopoly',
   velkar: 'fusionResearch', zyrr: 'dimensionalRift', vesper: 'coreDrilling', nexus: 'singularity',
 };
 export const WONDER_UNITS: WonderUnitId[] = ['portal', 'hackRelay', 'fusionPlant', 'waal', 'coreDrill'];
@@ -232,7 +238,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   steppeRider: { cost: 14, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash'], tech: 'livestock', ship: false, faction: 'korvat' },
   // Dravon: Sturmbrecher, Angriffe ohne Gegenschlag, aber verwundbar / Stormbreakers, attacks draw no retaliation, but vulnerable
   stormbreaker: { cost: 30, hp: 15, attack: 4, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'shock'], tech: 'mining', ship: false, faction: 'dravon' },
-  // Alvenia: Friedenswacht, Verteidiger mit Selbstheilung / Peacekeepers, defenders with self-repair
+  // Alvenia: Ordenswacht (ID aus alten Spielstaenden), Verteidiger mit Selbstheilung / Order Guard (ID from old saves), defenders with self-repair
   peacekeeper: { cost: 20, hp: 15, attack: 2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify', 'mend'], tech: 'fortification', ship: false, faction: 'alvenia' },
   // Meridon: Kaperschiff (Aufruestung wie andere Schiffe), Beute je Abschuss / Privateer (upgrade like other ships), prize per kill
   privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: 'coastalEconomy', ship: true, faction: 'meridon' },
@@ -245,6 +251,13 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: 'armyAviation', ship: false, faction: 'velkar' },
   // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise / railgun marksman: range 3, fires only from a standstill (no dash), precise
   railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: 'camouflage', ship: false, faction: 'velkar' },
+  // Alvenia-Varianten (siehe VARIANTS): Fernkampf aus dem Stand, starke Verteidigung / Alvenia variants (see VARIANTS): ranged from a standstill, strong defence
+  // Lichtschuetzen: Reichweite 2, schiessen nur aus dem Stand (kein Sturm), gute Verteidigung, schwacher Angriff / Light Wardens: range 2, fire only from a standstill (no dash), good defence, weak attack
+  lightWarden: { cost: 12, hp: 10, attack: 1.8, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
+  // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, fires only from a standstill
+  reliquary: { cost: null, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
+  // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
+  sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'alvenia' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -297,6 +310,7 @@ export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'ra
 export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
 export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
+export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance'];
 
 /**
  * Fraktionsvarianten: die eigene Bauart ersetzt eine Grundeinheit in Liste, Stadtbelohnung und Kampagnen-Verstaerkung.
@@ -306,6 +320,9 @@ export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSni
  */
 export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, UnitTypeId>>>> = {
   velkar: { tank: 'teslaTank', heli: 'octocopter', sniper: 'railSniper' },
+  // Heiliges Alvenia: Lichtschuetzen statt Infanterie, Reliquiar statt Panzer, Sonnenlanze statt Artillerie
+  // Holy Alvenia: Light Wardens instead of infantry, Reliquary instead of the tank, Sun Lance instead of artillery
+  alvenia: { infantry: 'lightWarden', tank: 'reliquary', artillery: 'sunLance' },
 };
 
 /**
@@ -316,7 +333,7 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
  */
 export const VEHICLE_UNITS: UnitTypeId[] = [
   'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank',
+  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank', 'reliquary', 'sunLance',
 ];
 /** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
 export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
@@ -337,8 +354,12 @@ export const UNIQUE = {
   /** Kolchose: +1 Bevoelkerung alle 5 Runden / kolkhoz: +1 population every 5 rounds */
   kolkhozInterval: 5,
   kolkhozPop: 1,
-  /** Botschaftspalast: Sterne je Friedensvertrag und Runde / embassy palace: stars per peace treaty and round */
-  palacePerPeace: 3,
+  /**
+   * Lichtdom (ID embassyPalace aus alten Spielstaenden), Busszehnt: Sterne je Runde und je als Suender gezeichneter Fraktion, hoechstens so viele Fraktionen.
+   * Cathedral of Light (ID embassyPalace from old saves), penance tithe: stars per round per faction marked as a sinner, at most this many factions.
+   */
+  cathedralPerSinner: 3,
+  cathedralMaxSinners: 3,
   /** Handelskontor: Sterne je verbundener Hafenstadt und Runde / trading post: stars per connected harbour city and round */
   tradingPostPerHarbour: 2,
   /** Versuchslabor: Forschungsrabatt je Labor, hoechstens so viele Labore / test lab: research discount per lab, at most this many labs */
@@ -363,7 +384,7 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * Upkeep: running cost per round. The first units (oldest first) are free, each further one costs
  * a share of its price (rounded up); tanks cost a flat amount.
  */
-export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12 } as Partial<Record<UnitTypeId, number>> };
+export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12 } as Partial<Record<UnitTypeId, number>> };
 
 /** Kartenbesonderheiten / map hazards and gimmicks */
 export type HazardLevel = 'none' | 'normal' | 'many';
@@ -485,7 +506,7 @@ export const XENO = {
 export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 export const SHIP_UPGRADES: ShipId[] = ['submarine', 'destroyer', 'battleship'];
 /** Infanterietypen fuer Aussenposten / infantry types for outposts */
-export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper'];
+export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper', 'lightWarden'];
 
 export const COMBAT = {
   damageFactor: 4.5,
@@ -612,12 +633,49 @@ export const MOVE_FIRE = {
 /**
  * Verteidigung auf eigenem Gebiet je Fraktion (Anteil): wirkt auf den Verteidigungswert, wenn die Einheit angegriffen wird,
  * als eigener Faktor nach Deckung, Stadt, Gelaende und Fernkampfdeckung; nicht beim eigenen Angriff, nicht fuer den Gegenschlag.
- * Alvenia "Friedensbollwerk": +25 %.
+ * Alvenia "Glaubensbollwerk": +30 % (vorher Friedensbollwerk +25 %).
  * Defence on own territory per faction (share): applies to the defence value when the unit is attacked, as its own factor
- * after cover, city, terrain and ranged cover; not when attacking, not for return fire. Alvenia "Peace Bulwark": +25 %.
+ * after cover, city, terrain and ranged cover; not when attacking, not for return fire. Alvenia "Bulwark of Faith": +30 % (formerly Peace Bulwark +25 %).
  */
 export const HOME_DEFENSE = {
-  bonus: { alvenia: 0.25 } as Partial<Record<FactionId, number>>,
+  bonus: { alvenia: 0.3 } as Partial<Record<FactionId, number>>,
+};
+
+/** Suendentaten / sinful deeds */
+export type SinDeed = 'plunder' | 'burn' | 'convert' | 'capture' | 'breakPeace' | 'sacrilege';
+export const SIN_DEEDS: SinDeed[] = ['plunder', 'burn', 'convert', 'capture', 'breakPeace', 'sacrilege'];
+
+/**
+ * Suende und Strafgericht (Heiliges Alvenia). Eine Fraktion, die eine Suendentat begeht, ist rounds Runden als Suender
+ * gezeichnet (die Runde der Tat zaehlt mit); jede neue Tat frischt das Zeichen auf. Taten: Pluendern (Kult), Brandschatzen
+ * (Brand-Angriff), Bekehren feindlicher Einheiten, Erobern einer Stadt einer anderen Fraktion, Friedensbruch (Ankuendigung),
+ * Frevel (Angriff auf eine Einheit der richtenden Fraktion; gezeichnet erst nach dem Angriff, die Vorschau bleibt genau).
+ * Gezeichnet wird nur, solange eine richtende Fraktion (Merkmal 'judgement') lebt; sie selbst wird nie gezeichnet.
+ * Strafgericht: Einheiten der richtenden Fraktion machen gegen Einheiten von Suendern judgement mehr Schaden (Angriff und
+ * Gegenschlag), vor dem Trefferglueck.
+ * Sin and Judgement (Holy Alvenia). A faction that commits a sinful deed is marked as a sinner for rounds rounds (the round
+ * of the deed counts); every new deed refreshes the mark. Deeds: plundering (cult), burning (burn attack), converting hostile
+ * units, capturing a city of another faction, breaking a peace (announcement), sacrilege (attacking a unit of the judging
+ * faction; marked only after the attack, so the preview stays exact). Marks are only given while a judging faction
+ * (perk 'judgement') lives; it is never marked itself.
+ * Judgement: units of the judging faction deal judgement more damage to units of sinners (attack and return fire), before
+ * hit luck.
+ */
+export const SIN = {
+  rounds: 4,
+  judgement: 0.35,
+};
+
+/**
+ * Maertyrer-Segen (Alvenia, zweites Merkmal): faellt eine eigene Einheit im Kampf, heilen eigene Einheiten daneben heal LP
+ * und verteidigen sich rounds Runden (diese und die naechste) mit +defense, als Faktor auf den Verteidigungswert.
+ * Martyr's Blessing (Alvenia, second trait): when an own unit falls in battle, own adjacent units heal heal HP and defend
+ * with +defense for rounds rounds (this one and the next), as a factor on the defence value.
+ */
+export const MARTYR = {
+  heal: 3,
+  defense: 0.3,
+  rounds: 2,
 };
 
 export const DEFENSE_BONUS = {
@@ -634,7 +692,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -679,7 +737,7 @@ export const COUNTER = {
 
 /** Kettenspuren (optisch) / track marks (visual) */
 export const TRACKS = {
-  units: ['tank', 'teslaTank'] as UnitTypeId[],
+  units: ['tank', 'teslaTank', 'reliquary'] as UnitTypeId[],
   keepRounds: 8,
   maxPerTile: 3,
 };
@@ -700,7 +758,7 @@ export const WEATHER = {
    */
   desertWeights: { clear: 0.5, rain: 0, snow: 0, wind: 0, dust: 0.3, meteor: 0.2, acid: 0, quake: 0 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
-  rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli', 'octocopter'] as UnitTypeId[], moveDelta: -1 },
+  rain: { rangeUnits: ['artillery', 'sunLance'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli', 'octocopter'] as UnitTypeId[], moveDelta: -1 },
   /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
   snow: { moveUnits: VEHICLE_UNITS, moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
@@ -800,7 +858,7 @@ export const CITY_UPGRADES = {
 
 /** Kriegsspuren (optisch): Krater von schweren Waffen, Brandflecken von allen anderen / war marks (visual) */
 export const WAR_MARKS = {
-  craterUnits: ['artillery', 'battleship', 'tank'] as UnitTypeId[],
+  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance'] as UnitTypeId[],
   maxPerTile: 4,
 };
 
@@ -843,7 +901,6 @@ export const INCOME = {
   logisticsPerAdjacent: 3,
   logisticsMax: 24,
   embassy: 6,
-  embassyAlveniaMultiplier: 2,
   aiBonus: { easy: 0, normal: 0, hard: 3, extreme: 6 } as Record<Difficulty, number>,
 };
 
@@ -1011,7 +1068,7 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   tractorStation: { cost: 35, pop: 3, tech: 'agritech', terrain: ['plain'], resource: 'farmland', upgrades: 'farm', countsAs: 'farm', adjacency: { building: 'farm', pop: 1 } },
   // Dravon: Tiefbauzeche auf Erz, Ausbau des Tagebaus / deep mine on ore, upgrade of the mine
   deepMine: { cost: 40, pop: 3, tech: 'mining', terrain: ['mountain'], resource: 'ore', upgrades: 'mine', countsAs: 'mine', stars: 2 },
-  // Alvenia: Huegelweingut auf Ebenen im Huegelland / hill vineyard on plains in the hills
+  // Alvenia: Klosterweingut (ID hillVineyard aus alten Spielstaenden) auf Ebenen im Huegelland / monastery vineyard (ID hillVineyard from old saves) on plains in the hills
   hillVineyard: { cost: 30, pop: 2, tech: 'agritech', terrain: ['plain'], biomes: ['hills'], onePerCity: true, stars: 2 },
   // Meridon: Handelshafen auf Fischgruenden, Ausbau der Fischerei / trade harbour on fish, upgrade of the fishery
   tradeHarbour: { cost: 30, pop: 2, tech: 'shipbuilding', terrain: ['shallow'], resource: 'fish', upgrades: 'fishery', countsAs: 'fishery', stars: 2 },
@@ -1043,9 +1100,8 @@ export const RESOURCE = {
   polarMax: 3,
   /** Handelshafen: Zusatzsterne, wenn seine Stadt einen Marinestuetzpunkt hat / trade harbour: extra stars if its city has a naval base */
   harbourNavalBonus: 1,
-  /** Huegelweingut: Zusatzsterne je aktiver eigener Botschaft, hoechstens so viele / hill vineyard: extra stars per active own embassy, at most this many */
-  vineyardPerEmbassy: 1,
-  vineyardEmbassyMax: 3,
+  /** Klosterweingut: eigene Einheiten im Gebiet seiner Stadt heilen so viele LP mehr / monastery vineyard: own units in its city's territory heal this many HP more */
+  vineyardHeal: 1,
 };
 export const RESOURCE_BUILDINGS: BuildingId[] = Object.values(RESOURCE.buildings);
 
@@ -1110,7 +1166,7 @@ export const TECHS: Record<TechId, TechStats> = {
   // Siegtechnologien (nur die eigene Fraktion) / victory techs (own faction only)
   fiveYearPlan: { tier: 3, parent: 'agritech', branch: 1, faction: 'korvat' },
   waalProgram: { tier: 3, parent: 'roadbuilding', branch: 0, faction: 'dravon' },
-  leagueCharter: { tier: 3, parent: 'fortification', branch: 1, faction: 'alvenia' },
+  greatJudgement: { tier: 3, parent: 'fortification', branch: 1, faction: 'alvenia' },
   tradeMonopoly: { tier: 3, parent: 'shipbuilding', branch: 3, faction: 'meridon' },
   fusionResearch: { tier: 3, parent: 'highAltitude', branch: 2, faction: 'velkar' },
   coreDrilling: { tier: 3, parent: 'forestry', branch: 4, faction: 'vesper' },
@@ -1133,10 +1189,10 @@ export const TERRAIN_DEFENSE_TECH: Partial<Record<TerrainId, TechId>> = {
 };
 
 /** Zweites Fraktionsmerkmal / second faction trait */
-export type Perk2Id = 'earthworks' | 'battleHardened' | 'fieldHospitals' | 'harbourPilots' | 'engineerCorps' | 'forestSpawn' | 'martyrdom' | 'sensorNet';
+export type Perk2Id = 'earthworks' | 'battleHardened' | 'martyrBlessing' | 'harbourPilots' | 'engineerCorps' | 'forestSpawn' | 'martyrdom' | 'sensorNet';
 
 export interface FactionStats {
-  perk: 'massMobilization' | 'drill' | 'alliancePolicy' | 'boom' | 'researchLead' | 'xenotech' | 'zealotry' | 'hivemind';
+  perk: 'massMobilization' | 'drill' | 'judgement' | 'boom' | 'researchLead' | 'xenotech' | 'zealotry' | 'hivemind';
   /** zweites Merkmal (kleiner Dauerbonus) / second trait (small passive bonus) */
   perk2: Perk2Id;
   discountUnit: UnitTypeId;
@@ -1153,7 +1209,7 @@ export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon
 export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
   dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
-  alvenia: { perk: 'alliancePolicy', perk2: 'fieldHospitals', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
+  alvenia: { perk: 'judgement', perk2: 'martyrBlessing', discountUnit: 'sunLance', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
   meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', perk2: 'martyrdom', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
@@ -1164,8 +1220,6 @@ export const FACTIONS: Record<FactionId, FactionStats> = {
 export const PERKS = {
   massMobilizationExtraUnits: 1,
   drillKills: 2,
-  allianceEmbassyCostFactor: 0.5,
-  allianceEmbassyIncomeFactor: 2,
   boomLevelReduction: 1,
   researchLeadDiscount: 0.12,
 };
@@ -1176,8 +1230,6 @@ export const PERKS2 = {
   earthworksOutpostCost: 15,
   /** Dravon, kampferprobt: Angriff der Veteranen / battle-hardened: veteran attack bonus */
   battleHardenedAttack: 0.5,
-  /** Alvenia, Feldlazarette: zusaetzliche Heilung / field hospitals: extra healing */
-  fieldHospitalsHeal: 1,
   /** Meridon, Lotsenwesen: Landungsboote fahren weiter / harbour pilots: landing boats move further */
   harbourPilotsMove: 1,
   /** Velkar, Ingenieurkorps: Panzersperren-Preis / engineer corps: tank barrier price */
@@ -1361,6 +1413,14 @@ export const AI = {
    * Threatened tile on own territory with a defence bonus (HOME_DEFENSE): bonus per bonus share so Alvenia fights there.
    */
   homeGround: 12,
+  /**
+   * Heiliges Alvenia: Zuschlag fuer Angriffe auf Einheiten von Suendern; Fernkaempfer ohne Sturm meiden Felder neben Gegnern
+   * (Abstand halten) und suchen Felder mit Gegnern in Reichweite.
+   * Holy Alvenia: bonus for attacks on units of sinners; ranged units without dash avoid tiles next to enemies (keep
+   * distance) and seek tiles with enemies in range.
+   */
+  sinnerTarget: 6,
+  keepDistance: 8,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };

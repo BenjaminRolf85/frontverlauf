@@ -8,7 +8,7 @@
  */
 import { ROSTERS, TECHS, TECH_IDS, UNITS, type TechId } from '../data/balance';
 import { dist, neighbors, tileAt } from './grid';
-import { baseBuilding, has, hqOf, isBoss, isHostile, ownCities, score } from './queries';
+import { baseBuilding, factionVariant, has, hqOf, isBoss, isHostile, ownCities, score } from './queries';
 import { freeFor, placeUnit } from './spawn';
 import type { GameEvent, GameState, RandomEventKind, Unit } from './types';
 
@@ -129,7 +129,7 @@ function rebels({ s, ev }: Ctx): boolean {
   const backer = alive(s).filter((g) => g !== f && s.factions[f].relations[g] === 'war')
     .map((g) => ({ g, sc: score(s, g) })).sort((a, b) => b.sc - a.sc || a.g - b.g)[0]?.g;
   if (backer === undefined) return false;
-  const type = ROSTERS[s.factions[backer].id]?.infantry ?? 'infantry';
+  const type = ROSTERS[s.factions[backer].id]?.infantry ?? factionVariant(s, backer, 'infantry');
   const spots = neighbors(s.size, city.x, city.y).filter((p) => freeFor(s, type, p) && tileAt(s, p.x, p.y)!.cityId === null);
   const n = Math.min(E.rebelsUnits, spots.length);
   if (n === 0) return false;

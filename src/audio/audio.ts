@@ -44,10 +44,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   scientist: 'none',
   // Velkar-Bauarten / Velkar designs
   teslaTank: 'tesla', octocopter: 'droneRockets', railSniper: 'coil',
+  // Alvenia-Bauarten: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Alvenia designs: light rifle, light gun, sun beam
+  lightWarden: 'sniper', reliquary: 'railgun', sunLance: 'laser',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {

@@ -6,14 +6,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, cityAt, createGame, dist, factionVictoryOn, hqOf, isLand, MISSIONS, missionById, missionConfig, ownCities, unitAt,
+  variantOf, applyCommand, cityAt, createGame, dist, factionVictoryOn, hqOf, isLand, MISSIONS, missionById, missionConfig, ownCities, unitAt,
   CAMPAIGN_ALLIES, CAMPAIGN_ENEMIES, CAMPAIGN_FACTIONS, allyFor, persuadeCost, defaultConfig, objectiveProgress, FINALE_ID, MISSION_IDS,
   WORLDS, worldOf, worldNumber, missionNumber, UNPLACED_MISSIONS, towersHeld,
   type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import { isValidState, migrateState } from '../src/save/save';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
-import { AI, PERSUADE, SWARM_MOTHER, TOWER_HOLD, UNITS, VARIANTS, type FactionId } from '../src/data/balance';
+import { AI, PERSUADE, SWARM_MOTHER, TOWER_HOLD, UNITS, VARIANTS, type FactionId, type UnitTypeId } from '../src/data/balance';
 
 const game = (id: string, f: FactionId = 'korvat') => createGame(missionConfig(id, f));
 
@@ -360,7 +360,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     const e = game('m4');
     expect(ownCities(e, 1).length).toBe(1);
     const hq = ownCities(e, 1)[0];
-    const u = e.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
+    const u = e.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
     placeAt(e, u, hq);
     // die Hauptstadt faellt, der Kult lebt in seiner Horde weiter / the capital falls, the cult lives on in its horde
     expect(applyCommand(e, { type: 'capture', unit: u.id }).ok).toBe(true);
@@ -527,7 +527,8 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
       expect(c.landing, f).toBe(true);
       expect(c.startCities).toEqual([]);
       const own = s.units.filter((u) => u.owner === 0);
-      expect(own.map((u) => u.type).sort(), f).toEqual(['artillery', 'infantry', 'jeep', 'mg']);
+      // eigene Bauarten (VARIANTS, z. B. Alvenia: Lichtschuetzen, Sonnenlanze) / own designs (VARIANTS, e.g. Alvenia: Light Wardens, Sun Lance)
+      expect(own.map((u) => u.type).sort(), f).toEqual((['artillery', 'infantry', 'jeep', 'mg'] as UnitTypeId[]).map((t) => variantOf(f, t)).sort());
       // alle neben dem Portal, nicht darauf / all next to the portal, not on it
       for (const u of own) { expect(dist(u, c.portal!), f).toBeLessThanOrEqual(3); expect(dist(u, c.portal!), f).toBeGreaterThanOrEqual(1); }
       // Vorposten: Zyrr-Stadt mit Besatzung, das alte Hauptquartier des Spielers / outpost: Zyrr city with a garrison, the player's old HQ
@@ -578,7 +579,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     // ausbilden geht vorher nicht / training is impossible before
     expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'infantry' }).ok).toBe(false);
     s.units = s.units.filter((u) => !(u.owner === 1 && u.x === out.x && u.y === out.y));
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     placeAt(s, inf, out);
     const r = applyCommand(s, { type: 'capture', unit: inf.id });
     expect(r.ok).toBe(true);
@@ -606,7 +607,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     allHuman(l);
     const o2 = cityAt(l, l.campaign!.targets[0].x, l.campaign!.targets[0].y)!;
     l.units = l.units.filter((u) => !(u.owner === 1 && u.x === o2.x && u.y === o2.y));
-    const i2 = l.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const i2 = l.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     placeAt(l, i2, o2);
     expect(applyCommand(l, { type: 'capture', unit: i2.id }).ok).toBe(true);
     placeAt(l, i2, landAt(l, o2, 1));
@@ -623,7 +624,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const s = game('m11', f);
     allHuman(s);
     const hq = s.campaign!.targets[0];
-    const u = s.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
+    const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
     placeAt(s, u, landAt(s, hq, SWARM_MOTHER.emergeRange));
     const r = poke(s);
     const boss = s.units.find((x) => x.type === 'swarmMother')!;
@@ -678,7 +679,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const spots = free(3);
     expect(spots.length).toBeGreaterThanOrEqual(3);
     const mg = s.units.find((u) => u.owner === 0 && u.type === 'mg')!;
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     placeAt(s, mg, spots[0]); placeAt(s, inf, spots[1]);
     // Brut nur auf freien Nachbarfeldern / brood only on free adjacent tiles
     const room = Math.min(SWARM_MOTHER.broodCount, free(8).length);
@@ -716,7 +717,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
 
   it('m11: Schrei kann toeten und zaehlt als Abschuss / the scream can kill and counts as a kill', () => {
     const { s, boss } = withBoss('dravon');
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     const p = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]].map(([dx, dy]) => ({ x: boss.x + dx, y: boss.y + dy }))
       .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.cityId === null && !unitAt(s, q.x, q.y); })!;
     placeAt(s, inf, p);
@@ -731,7 +732,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const { s, boss } = withBoss('alvenia');
     s.config.hitChance = false;
     expect(missionById('m11')!.objectives[0]).toEqual({ k: 'rift', unit: 0 });
-    const tank = s.units.find((u) => u.owner === 0 && u.type === 'tank')!;
+    const tank = s.units.find((u) => u.owner === 0 && (u.type === 'tank' || u.type === 'reliquary'))!;
     const p = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].map(([dx, dy]) => ({ x: boss.x + dx, y: boss.y + dy }))
       .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.cityId === null && !unitAt(s, q.x, q.y); })!;
     placeAt(s, tank, p);
@@ -823,7 +824,7 @@ describe('Kampagne: Ueberzeugen / campaign: persuasion', () => {
       const p = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: c.x + dx, y: c.y + dy }))
         .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.terrain !== 'mountain' && !t.volcano && t.cityId === null && !unitAt(s, q.x, q.y); });
       if (!p) continue;
-      const u = s.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
+      const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
       placeAt(s, u, p);
       return { c, u };
     }

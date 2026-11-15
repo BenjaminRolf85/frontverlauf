@@ -356,45 +356,7 @@ describe('Bedingungen ohne Bauwerk / conditions without a structure', () => {
     expect(s.victory?.faction).toBe('meridon');
   });
 
-  it('Alvenia: Voelkerbund zaehlt 5 Runden, Krieg oder fehlende Botschaft setzt zurueck / League counts 5 rounds, war or missing embassy resets', () => {
-    expect(WONDERS.alveniaRounds).toBe(5);
-    const s = blankGame({ factions: ['alvenia', 'korvat', 'dravon'], stars: 50 });
-    addCity(s, 2, 2, 0, { hq: true }); addCity(s, 8, 8, 1, { hq: true }); addCity(s, 2, 8, 2, { hq: true });
-    giveTech(s, 0);
-    const peace = (a: number, b: number) => { s.factions[a].relations[b] = 'peace'; s.factions[b].relations[a] = 'peace'; };
-    peace(0, 1); peace(0, 2);
-    s.factions[0].embassies = [1, 2];
-    rounds(s, 0, 4);
-    expect(s.factions[0].league).toBe(4);
-    // Krieg setzt zurueck / war resets
-    s.factions[0].relations[2] = 'war'; s.factions[2].relations[0] = 'war';
-    rounds(s, 0, 1);
-    expect(s.factions[0].league).toBe(0);
-    peace(0, 2);
-    // fehlende Botschaft setzt zurueck / a missing embassy resets
-    rounds(s, 0, 2);
-    expect(s.factions[0].league).toBe(2);
-    s.factions[0].embassies = [1];
-    rounds(s, 0, 1);
-    expect(s.factions[0].league).toBe(0);
-    s.factions[0].embassies = [1, 2];
-    rounds(s, 0, 4);
-    expect(s.over).toBe(false);
-    rounds(s, 0, 1);
-    expect(s.winner).toBe(0);
-    expect(s.victory?.faction).toBe('alvenia');
-  });
-
-  it('Alvenia braucht mindestens zwei bekannte Fraktionen / Alvenia needs at least two known factions', () => {
-    const s = game('alvenia', 'korvat', 50, { contacts: false });
-    giveTech(s, 0);
-    s.factions[0].contacts = [1];
-    s.factions[0].relations[1] = 'peace'; s.factions[1].relations[0] = 'peace';
-    s.factions[0].embassies = [1];
-    rounds(s, 0, 7);
-    expect(s.factions[0].league).toBe(0);
-    expect(s.over).toBe(false);
-  });
+  // Alvenia, Grosses Strafgericht: siehe tests/alvenia.test.ts / Alvenia, Great Judgement: see tests/alvenia.test.ts
 });
 
 describe('Regeln rund um Wunder / rules around wonders', () => {
@@ -537,30 +499,6 @@ describe('KI und Wunder / AI and wonders', () => {
     s.factions[0].stars = 500;
     for (const u of s.units) if (u.owner === 0) u.recruitReady = 0;
     expect(aiTurn(s, 0).some(drill)).toBe(true);
-  });
-
-  it('Voelkerbund: Rivalen brechen den Frieden erst spaet und nur mit Uebermacht / League: rivals break peace only late and only when much stronger', () => {
-    const setup = (league: number, rivalInf: number) => {
-      const s = blankGame({ factions: ['korvat', 'alvenia', 'dravon'], stars: 0, mode: 'points', roundLimit: 30 });
-      addCity(s, 2, 2, 0, { hq: true }); addCity(s, 8, 8, 1, { hq: true }); addCity(s, 2, 8, 2, { hq: true });
-      revealAll(s, 0);
-      s.factions[0].human = false;
-      s.factions[1].techs.push('leagueCharter');
-      for (const [a, b] of [[0, 1], [1, 2], [0, 2]]) { s.factions[a].relations[b] = 'peace'; s.factions[b].relations[a] = 'peace'; }
-      s.factions[1].embassies = [0, 2];
-      s.factions[1].league = league;
-      for (let i = 0; i < rivalInf; i++) addUnit(s, 'infantry', 0, 1 + i, 1);
-      addUnit(s, 'infantry', 1, 8, 7);
-      return s;
-    };
-    const breaks = (s: GameState) => aiTurn(s, 0).some((c) => c.type === 'diplomacy' && c.action === 'announceBreak' && c.target === 1);
-    expect(WONDERS.aiNearVictoryLeague).toBeGreaterThan(WONDERS.aiNearVictory);
-    // 3 von 5: noch kein Bruch / 3 of 5: no break yet
-    expect(breaks(setup(3, 4))).toBe(false);
-    // 4 von 5 und deutlich staerker: Bruch / 4 of 5 and clearly stronger: break
-    expect(breaks(setup(4, 4))).toBe(true);
-    // 4 von 5, aber nicht stark genug: kein Bruch / 4 of 5 but not strong enough: no break
-    expect(breaks(setup(4, 0))).toBe(false);
   });
 
   for (const ids of [['zyrr', 'nexus', 'velkar', 'dravon'], ['vesper', 'korvat', 'alvenia', 'meridon']] as FactionId[][]) {

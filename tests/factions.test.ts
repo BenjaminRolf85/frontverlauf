@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { embassyCost, embassyIncome, levelUpCost, researchCost, unitCost, unitLimit, veteranKills } from '../src/core';
-import { FACTIONS, FACTION_IDS, type FactionId, type UnitTypeId } from '../src/data/balance';
+import { FACTIONS, FACTION_IDS, UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { addCity, addUnit, blankGame, ok, revealAll, unit } from './helpers';
 
 function game(f: FactionId, other: FactionId = f === 'korvat' ? 'dravon' : 'korvat') {
@@ -27,7 +27,7 @@ describe('Fraktionen / factions', () => {
     const cases: [FactionId, UnitTypeId, number, number, string | null][] = [
       ['korvat', 'infantry', 8, 10, null],
       ['dravon', 'jeep', 11, 15, 'motorization'], // 15*0.7=10.5 -> 11
-      ['alvenia', 'medic', 20, 25, 'cybernetics'],
+      ['alvenia', 'sunLance', 36, 45, 'ballistics'],
       ['meridon', 'spy', 32, 40, 'intelligence'],
       ['velkar', 'pioneer', 12, 15, 'fortification'],
     ];
@@ -37,7 +37,8 @@ describe('Fraktionen / factions', () => {
         expect(FACTIONS[f].discountUnit).toBe(type);
         expect(unitCost(s, 0, type)).toBe(price);
         // andere Fraktion zahlt voll / other faction pays full price
-        expect(unitCost(s, 1, type)).toBe(full);
+        expect(UNITS[type].cost).toBe(full);
+        if (!UNITS[type].faction) expect(unitCost(s, 1, type)).toBe(full);
         if (tech && !s.factions[0].techs.includes(tech as never)) s.factions[0].techs.push(tech as never);
         ok(s, { type: 'train', city: hq.id, unitType: type });
         expect(s.factions[0].stars).toBe(1000 - price);
@@ -75,17 +76,16 @@ describe('Fraktionen / factions', () => {
     expect(veteranKills(k, addUnit(k, 'infantry', 0, 5, 5))).toBe(3);
   });
 
-  it('Alvenia (alliance policy): embassies cost half and bring double income', () => {
+  it('Alvenia: embassies cost and bring the same as for everyone (no more alliance policy)', () => {
     const { s } = game('alvenia');
     const k = game('korvat', 'dravon').s;
     expect(embassyCost(k, 0)).toBe(25);
-    expect(embassyCost(s, 0)).toBe(13); // ceil(25*0.5)
+    expect(embassyCost(s, 0)).toBe(25);
     s.factions[0].embassies = [1];
     k.factions[0].embassies = [1];
-    expect(embassyCost(s, 0)).toBe(25); // ceil(50*0.5)
-    expect(embassyIncome(s, 0)).toBe(12);
+    expect(embassyCost(s, 0)).toBe(50);
+    expect(embassyIncome(s, 0)).toBe(6);
     expect(embassyIncome(k, 0)).toBe(6);
-    // die Gastgeberseite bekommt normales Einkommen / the host side gets normal income
     expect(embassyIncome(s, 1)).toBe(6);
   });
 

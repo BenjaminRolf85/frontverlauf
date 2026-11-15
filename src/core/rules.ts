@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, ORBITAL, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, MARTYR, ORBITAL, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
@@ -21,10 +21,10 @@ import {
   recruitCheck, plunderValue, isCultFaction, cultUnits, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
-  hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
+  hasTech, hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
-  isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
+  isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -82,7 +82,8 @@ export function createGame(cfg: GameConfig): GameState {
     if (alien) for (const q of area(s.size, p.x, p.y, CITY.baseRadius)) { const tt = tileAt(s, q.x, q.y)!; if (tt.terrain !== 'ocean') tt.xeno = true; }
     const cult = isCultFaction(s, i);
     // Kult: Einheiten gehoeren zu keiner Stadt / cult: units belong to no city
-    const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? START.unit, i, p.x, p.y, cult ? null : s.cities[i].id);
+    // eigene Bauart (VARIANTS, z. B. Alvenia: Lichtschuetzen) / own design (VARIANTS, e.g. Alvenia: Light Wardens)
+    const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? factionVariant(s, i, START.unit), i, p.x, p.y, cult ? null : s.cities[i].id);
     u.fresh = false;
     // Kult: Starthorde auf freien Feldern neben dem Hauptquartier / cult: starting horde on free tiles next to the HQ
     if (cult) {
@@ -244,6 +245,48 @@ function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], lea
   }
   // Vesper, Maertyrertum: im Kampf Gefallene bringen Sterne / martyrdom: units fallen in battle bring stars
   if (by !== null && leaveRemains && perk2Of(s, u.owner) === 'martyrdom' && s.factions[u.owner].alive) s.factions[u.owner].stars += PERKS2.martyrdomStars;
+  // Grosses Strafgericht: eine richtende Fraktion mit Siegtechnologie vernichtet eine Einheit eines Suenders
+  // Great Judgement: a judging faction with the victory tech destroys a unit of a sinner
+  const killer = by !== null ? unitById(s, by) : undefined;
+  if (killer && killer.owner !== u.owner && judges(s, killer.owner) && isSinner(s, u.owner) && factionVictoryOn(s) && hasTech(s, killer.owner, VICTORY_TECH[s.factions[killer.owner].id])) {
+    const jf = s.factions[killer.owner];
+    jf.judged = (jf.judged ?? 0) + 1;
+  }
+  // Alvenia, Maertyrer-Segen: im Kampf Gefallene segnen eigene Nachbarn / Martyr's Blessing: units fallen in battle bless own neighbours
+  if (by !== null && leaveRemains && perk2Of(s, u.owner) === 'martyrBlessing') martyrBlessing(s, u, ev);
+}
+
+/**
+ * Maertyrer-Segen: eigene Einheiten neben der gefallenen Einheit u heilen MARTYR.heal LP und sind bis zum Ende der
+ * naechsten Runde gesegnet (Verteidigung, MARTYR). Wunder-Bauwerke nicht. Ohne Nachbarn kein Ereignis.
+ * Martyr's Blessing: own units next to the fallen unit u heal MARTYR.heal HP and are blessed until the end of the next
+ * round (defence, MARTYR). Not wonder structures. No event without neighbours.
+ */
+function martyrBlessing(s: GameState, u: Unit, ev: GameEvent[]) {
+  const until = s.round + MARTYR.rounds - 1;
+  const units: { unit: number; heal: number }[] = [];
+  for (const o of s.units) {
+    if (o.owner !== u.owner || dist(o, u) !== 1 || isWonderStructure(o) || o.hp <= 0) continue;
+    const heal = Math.max(0, Math.min(MARTYR.heal, o.maxHp - o.hp));
+    o.hp += heal;
+    o.blessed = until;
+    units.push({ unit: o.id, heal });
+  }
+  if (units.length) ev.push({ t: 'blessing', unit: u.id, faction: u.owner, x: u.x, y: u.y, until, units });
+}
+
+/**
+ * Suendentat der Fraktion f: Zeichen fuer SIN.rounds Runden (frischt auf). Nur, solange eine richtende Fraktion lebt; die
+ * richtende Fraktion selbst wird nie gezeichnet.
+ * Sinful deed of faction f: mark for SIN.rounds rounds (refreshes). Only while a judging faction lives; the judging faction
+ * itself is never marked.
+ */
+export function markSin(s: GameState, f: number, deed: SinDeed, ev: GameEvent[]) {
+  if (!s.factions[f] || judges(s, f) || !judgeAlive(s)) return;
+  const fresh = !isSinner(s, f);
+  const until = s.round + SIN.rounds - 1;
+  s.factions[f].sin = { deed, until };
+  ev.push({ t: 'sin', faction: f, deed, until, fresh });
 }
 
 /** Markierungen von Wundern entfernen, die es nicht mehr gibt / remove marks of wonders that no longer exist */
@@ -307,12 +350,8 @@ function processFactionVictory(s: GameState, f: number, stillDrills: Set<number>
   if (!fa.techs.includes(VICTORY_TECH[fa.id])) return;
   if (fa.id === 'korvat' && ownCities(s, f).length >= korvatNeed(s)) { declareWinner(s, f, 'faction', ev); return; }
   if (fa.id === 'meridon' && fa.stars >= meridonNeed(s)) { declareWinner(s, f, 'faction', ev); return; }
-  if (fa.id === 'alvenia') {
-    // Voelkerbund: Frieden und Botschaft bei allen bekannten lebenden Fraktionen, sonst zurueck auf 0
-    // League of Nations: peace and an embassy with every known living faction, otherwise back to 0
-    fa.league = leagueMet(s, f) ? (fa.league ?? 0) + 1 : 0;
-    if (fa.league >= WONDERS.alveniaRounds) declareWinner(s, f, 'faction', ev);
-  }
+  // Alvenia, Grosses Strafgericht: genug Einheiten von Suendern vernichtet / Great Judgement: enough units of sinners destroyed
+  if (fa.id === 'alvenia' && (fa.judged ?? 0) >= judgementNeed(s)) declareWinner(s, f, 'faction', ev);
 }
 
 function gainKill(s: GameState, u: Unit, ev: GameEvent[]) {
@@ -948,6 +987,9 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
     }
   }
   ev.push({ t: 'capture', city: c.id, faction: u.owner, from, ...(isCultFaction(s, u.owner) ? { plunder } : {}) });
+  // Suende: Pluendern (Kult mit Beute) oder Erobern einer Stadt einer anderen Fraktion / sin: plundering (cult with loot) or capturing a city of another faction
+  if (isCultFaction(s, u.owner) && plunder > 0) markSin(s, u.owner, 'plunder', ev);
+  else if (from !== null && from !== u.owner) markSin(s, u.owner, 'capture', ev);
   noteCapture(s, u.owner); // Statistik / statistics
   reveal(s, u.owner, c.x, c.y, c.radius + VISION.cityExtra, ev);
   updateConnections(s, u.owner, ev);
@@ -1034,7 +1076,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
         if (unitAt(s, p.x, p.y) || nt.wonderOf || nt.turret || nt.temple || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
         // kein Vulkangipfel, keine Lava, nicht das Artefakt / no volcano peak, no lava, not the artifact
         if (nt.volcano || burning(s, nt) || spawnBlocked(s, p)) continue;
-        spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
+        spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? factionVariant(s, f, 'infantry'), f, p.x, p.y, null);
         spawned++;
       }
       c.noIncomeNext = true;
@@ -1094,6 +1136,10 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch'); }
   ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
+  // Suende: Brandschatzen (Brand-Angriff) oder Frevel (Angriff auf die richtende Fraktion), erst nach dem Treffer
+  // sin: burning (burn attack) or sacrilege (attack on the judging faction), only after the hit
+  if (has(u, 'burn')) markSin(s, u.owner, 'burn', ev);
+  else if (judges(s, target.owner)) markSin(s, u.owner, 'sacrilege', ev);
   if (has(u, 'submerged')) u.revealed = true;
   let killed = false;
   if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); killed = true; }
@@ -1182,6 +1228,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       spare(s, target);
       addMark(s, target.x, target.y, 'scorch');
       ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
+      // Frevel: Angriff auf die richtende Fraktion / sacrilege: attack on the judging faction
+      if (judges(s, target.owner)) markSin(s, f, 'sacrilege', ev);
       if (dmg > 0 && target.hp > 0) interruptWonder(s, target, ev);
       fa.lastAttackRound = s.round;
       if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); }
@@ -1248,6 +1296,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       u.exhausted = true;
       s.factions[f].lastAttackRound = s.round;
       ev.push({ t: 'convert', unit: u.id, target: target.id });
+      // Suende: Bekehren einer feindlichen Einheit / sin: converting a hostile unit
+      markSin(s, f, 'convert', ev);
       res = { ok: true, events: ev };
       break;
     }
@@ -1538,6 +1588,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
           fa.relations[g] = 'breaking'; ga.relations[f] = 'breaking';
           fa.breakRound[g] = s.round;
           ev.push({ t: 'breakAnnounced', from: f, to: g });
+          // Suende: Friedensbruch / sin: breaking a peace
+          markSin(s, f, 'breakPeace', ev);
           break;
         }
         case 'embassy': {

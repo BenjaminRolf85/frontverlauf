@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -134,9 +134,7 @@ export function techState(s: GameState, f: number, tech: TechId): TechState {
 
 export function embassyCost(s: GameState, f: number): number {
   const n = s.factions[f].embassies.length;
-  let cost = ECON.embassyBaseCost + n * ECON.embassyStep;
-  if (FACTIONS[s.factions[f].id].perk === 'alliancePolicy') cost = Math.ceil(cost * PERKS.allianceEmbassyCostFactor);
-  return cost;
+  return ECON.embassyBaseCost + n * ECON.embassyStep;
 }
 
 /**
@@ -223,8 +221,6 @@ export function resourceBuildingStars(s: GameState, c: City, b: BuildingId): num
   let n = st.stars;
   // Handelshafen: mehr mit Marinestuetzpunkt der Stadt / trade harbour: more with a naval base of the city
   if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'navalBase')) n += RESOURCE.harbourNavalBonus;
-  // Huegelweingut: Handel mit Freunden, je aktiver eigener Botschaft / hill vineyard: trade with friends, per active own embassy
-  if (b === 'hillVineyard') n += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, c.owner));
   return n;
 }
 
@@ -234,11 +230,10 @@ export function activeEmbassies(s: GameState, f: number): number {
 }
 
 export function embassyIncome(s: GameState, f: number): number {
-  const mult = FACTIONS[s.factions[f].id].perk === 'alliancePolicy' ? PERKS.allianceEmbassyIncomeFactor : 1;
   let inc = 0;
-  for (const g of s.factions[f].embassies) if (hqOf(s, g)) inc += INCOME.embassy * mult;
+  for (const g of s.factions[f].embassies) if (hqOf(s, g)) inc += INCOME.embassy;
   for (const other of s.factions) {
-    if (other.index !== f && other.alive && other.embassies.includes(f) && hqOf(s, f)) inc += INCOME.embassy * mult;
+    if (other.index !== f && other.alive && other.embassies.includes(f) && hqOf(s, f)) inc += INCOME.embassy;
   }
   return inc;
 }
@@ -278,10 +273,11 @@ export function harbourCities(s: GameState, f: number): number {
   return n;
 }
 
-/** Einkommen aus Botschaftspalast und Handelskontor / income from embassy palace and trading post */
+/** Einkommen aus Lichtdom und Handelskontor / income from the Cathedral of Light and the trading post */
 export function uniqueBuildingIncome(s: GameState, f: number): number {
   let inc = 0;
-  if (countBuildings(s, f, 'embassyPalace')) inc += UNIQUE.palacePerPeace * peaceTreaties(s, f);
+  // Lichtdom (ID embassyPalace): Busszehnt je gezeichnetem Suender / Cathedral of Light (ID embassyPalace): penance tithe per marked sinner
+  if (countBuildings(s, f, 'embassyPalace')) inc += UNIQUE.cathedralPerSinner * Math.min(UNIQUE.cathedralMaxSinners, sinnerCount(s, f));
   if (countBuildings(s, f, 'tradingPost')) inc += UNIQUE.tradingPostPerHarbour * harbourCities(s, f);
   return inc;
 }
@@ -332,8 +328,8 @@ export function researchCenterPoints(s: GameState, t: Tile): number {
   return Math.min(SCORE.researchCenterMax, SCORE.researchCenterBase + steps * SCORE.researchCenterStep);
 }
 
-/** Panzer und Tesla-Panzer (Stadtbelohnung, nicht kaeuflich) / tank and Tesla tank (city reward, not for sale) */
-const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank';
+/** Panzer, Tesla-Panzer und Reliquiar (Stadtbelohnung, nicht kaeuflich) / tank, Tesla tank and Reliquary (city reward, not for sale) */
+const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank' || t === 'reliquary';
 
 export function unitScore(u: Unit): number {
   if (isWonder(u)) return 0;
@@ -539,6 +535,10 @@ export interface CombatPreview {
   moveFire: boolean;
   /** Verteidigungsbonus des Ziels auf eigenem Gebiet (0 = keiner) / target's defence bonus on own territory (0 = none) */
   homeDefense: number;
+  /** Strafgericht: Zusatzschaden gegen einen Suender (0 = keiner) / judgement: extra damage against a sinner (0 = none) */
+  judgement: number;
+  /** Maertyrer-Segen des Ziels: Verteidigungsbonus (0 = keiner) / Martyr's Blessing of the target: defence bonus (0 = none) */
+  blessing: number;
 }
 
 /**
@@ -573,6 +573,40 @@ export function homeDefenseAt(s: GameState, u: Unit, x = u.x, y = u.y): number {
   const t = tileAt(s, x, y);
   return t && territoryOwner(s, t) === u.owner ? b : 0;
 }
+
+// ---------- Suende und Strafgericht (SIN) / sin and judgement (SIN) ----------
+
+/** Richtet Fraktion f (Merkmal 'judgement', Heiliges Alvenia)? / does faction f judge (perk 'judgement', Holy Alvenia)? */
+export const judges = (s: GameState, f: number): boolean => !!s.factions[f] && FACTIONS[s.factions[f].id].perk === 'judgement';
+/** Lebt eine richtende Fraktion? Nur dann werden Suender gezeichnet / is a judging faction alive? Only then are sinners marked */
+export const judgeAlive = (s: GameState): boolean => s.factions.some((fa) => fa.alive && judges(s, fa.index));
+/** Ist Fraktion f in dieser Runde als Suender gezeichnet? / is faction f marked as a sinner this round? */
+export function isSinner(s: GameState, f: number): boolean {
+  const sin = s.factions[f]?.sin;
+  return !!sin && sin.until >= s.round;
+}
+/** Verbleibende Runden des Suendenzeichens inkl. der laufenden (0 = keins) / rounds left of the sinner mark incl. the current one (0 = none) */
+export const sinRoundsLeft = (s: GameState, f: number): number => (isSinner(s, f) ? s.factions[f].sin!.until - s.round + 1 : 0);
+/** Tat des laufenden Suendenzeichens / deed of the current sinner mark */
+export const sinDeed = (s: GameState, f: number): SinDeed | null => (isSinner(s, f) ? s.factions[f].sin!.deed : null);
+/** Andere lebende Fraktionen, die als Suender gezeichnet sind / other living factions marked as sinners */
+export const sinnerCount = (s: GameState, f: number): number => s.factions.filter((g) => g.index !== f && g.alive && isSinner(s, g.index)).length;
+/**
+ * Strafgericht: Zusatzschaden (Anteil) von att gegen def; nur fuer richtende Fraktionen gegen Einheiten von Suendern.
+ * Judgement: extra damage (share) of att against def; only for judging factions against units of sinners.
+ */
+export function judgementAt(s: GameState, att: Unit, def: Unit): number {
+  return att.owner !== def.owner && judges(s, att.owner) && isSinner(s, def.owner) ? SIN.judgement : 0;
+}
+/**
+ * Maertyrer-Segen: Verteidigungsbonus (Anteil) einer gesegneten Einheit in dieser Runde, sonst 0.
+ * Martyr's Blessing: defence bonus (share) of a blessed unit this round, otherwise 0.
+ */
+export const blessingOf = (s: GameState, u: Unit): number => (u.blessed !== undefined && u.blessed >= s.round ? MARTYR.defense : 0);
+/** Verbleibende Runden des Segens inkl. der laufenden / rounds of the blessing left incl. the current one */
+export const blessingRoundsLeft = (s: GameState, u: Unit): number => (blessingOf(s, u) > 0 ? u.blessed! - s.round + 1 : 0);
+/** Siegziel Grosses Strafgericht: vernichtete Einheiten von Suendern je Kartengroesse / Great Judgement goal: destroyed units of sinners per map size */
+export const judgementNeed = (s: GameState): number => WONDERS.judgementKills[s.config.size] ?? WONDERS.judgementKills[14];
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
 export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) ? moveFireMult(s, u) : 1);
@@ -765,7 +799,9 @@ export function returnFire(s: GameState, att: Unit, def: Unit, defHp: number): n
   const total = attackForce + defenseForce;
   // Endgegner schlagen gedaempft zurueck (SWARM_MOTHER.returnFactor) / bosses return fire dampened (SWARM_MOTHER.returnFactor)
   const boss = UNITS[def.type].abilities.includes('boss') ? SWARM_MOTHER.returnFactor : 1;
-  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss) : 0;
+  // Strafgericht: der Verteidiger richtet einen suendigen Angreifer / judgement: the defender judges a sinful attacker
+  const judge = 1 + judgementAt(s, def, att);
+  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss * judge) : 0;
 }
 
 /** Kampfvorschau; rocket = Mech-Raketen (Fernangriff fuer den Wind) / combat preview; rocket = mech rockets (ranged for the wind) */
@@ -783,7 +819,9 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
   // less damage after moving, before hit luck; return fire stays undiminished
   const moveFire = movedThisTurn(att);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att)) : 0;
+  // Strafgericht (Alvenia gegen Suender): eigener Faktor auf den Schaden, vor dem Trefferglueck / judgement (Alvenia against sinners): own factor on the damage, before hit luck
+  const judgement = judgementAt(s, att, def);
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -804,7 +842,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def) };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -844,11 +882,18 @@ export function healAmount(s: GameState, u: Unit): number {
   if (t.xeno && isAlien(u)) h += XENO.groundHeal;
   // Lazarett auf oder neben der Stadt / hospital on or next to the city
   if (s.cities.some((c) => c.owner === u.owner && dist(c, u) <= 1 && (c.upgrades ?? []).includes('hospital'))) h += CITY_UPGRADES.hospitalHeal;
-  // Zweite Merkmale: Feldlazarette (Alvenia), Waldbrut im Wald (Zyrr) / second traits: field hospitals, forest spawn in forests
-  const p2 = perk2Of(s, u.owner);
-  if (p2 === 'fieldHospitals') h += PERKS2.fieldHospitalsHeal;
-  if (p2 === 'forestSpawn' && t.terrain === 'forest') h += PERKS2.forestSpawnHeal;
+  // Zweites Merkmal: Waldbrut im Wald (Zyrr) / second trait: forest spawn in forests
+  if (perk2Of(s, u.owner) === 'forestSpawn' && t.terrain === 'forest') h += PERKS2.forestSpawnHeal;
+  // Klosterweingut (Alvenia, ID hillVineyard) im Gebiet der Stadt, auf der die Einheit steht / monastery vineyard (Alvenia, ID hillVineyard) in the territory of the city the unit stands in
+  if (own && t.territory !== null && vineyardCity(s, u.owner, t.territory)) h += RESOURCE.vineyardHeal;
   return h;
+}
+
+/** Hat die eigene Stadt cityId ein wirksames Klosterweingut im Gebiet? / does own city cityId have a working monastery vineyard in its territory? */
+export function vineyardCity(s: GameState, f: number, cityId: number): boolean {
+  const c = cityById(s, cityId);
+  if (!c || c.owner !== f || !buildingWorksFor(s, f, 'hillVineyard')) return false;
+  return cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'hillVineyard');
 }
 
 /** Wrack fuer die Notreparatur: eigenes Feld zuerst, dann Nachbarn / wreck for the emergency repair: own tile first, then neighbours */
@@ -1364,7 +1409,8 @@ export function effectiveDefense(s: GameState, u: Unit): number {
     const c = cityById(s, t.cityId);
     if (c && c.owner === u.owner && hasCityUpgrade(c, 'bunker')) d += CITY_UPGRADES.bunkerDefense;
   }
-  return d;
+  // Maertyrer-Segen (Alvenia) / Martyr's Blessing (Alvenia)
+  return d * (1 + blessingOf(s, u));
 }
 
 export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel' | 'wrongFaction' | 'relayLimit';
@@ -1783,9 +1829,9 @@ export function wonderSites(s: GameState, f: number, kind: WonderKind, ignoreSta
 }
 
 /** Art der Siegbedingung je Fraktion / kind of victory condition per faction */
-export type VictoryGoal = 'portal' | 'coreDrill' | 'hackRelay' | 'fusionPlant' | 'waal' | 'cities' | 'stars' | 'league';
+export type VictoryGoal = 'portal' | 'coreDrill' | 'hackRelay' | 'fusionPlant' | 'waal' | 'cities' | 'stars' | 'judgement';
 export const VICTORY_GOAL: Record<FactionId, VictoryGoal> = {
-  korvat: 'cities', dravon: 'waal', alvenia: 'league', meridon: 'stars', velkar: 'fusionPlant', zyrr: 'portal', vesper: 'coreDrill', nexus: 'hackRelay',
+  korvat: 'cities', dravon: 'waal', alvenia: 'judgement', meridon: 'stars', velkar: 'fusionPlant', zyrr: 'portal', vesper: 'coreDrill', nexus: 'hackRelay',
 };
 
 /** Stand der Siegbedingung (Siegverfolgung, KI) / state of the victory condition (victory tracker, AI) */
@@ -1794,8 +1840,8 @@ export interface VictoryStatus {
   goal: VictoryGoal;
   /** Siegtechnologie bekannt / victory tech known */
   tech: boolean;
-  /** Phase: none = noch kein Wunder; build, charge, hack, armed, drill; cities, stars, league / phase */
-  phase: 'none' | 'build' | 'charge' | 'hack' | 'armed' | 'drill' | 'cities' | 'stars' | 'league';
+  /** Phase: none = noch kein Wunder; build, charge, hack, armed, drill; cities, stars, judgement / phase */
+  phase: 'none' | 'build' | 'charge' | 'hack' | 'armed' | 'drill' | 'cities' | 'stars' | 'judgement';
   /** Fortschritt der Phase / progress of the phase */
   have: number;
   need: number;
@@ -1806,8 +1852,6 @@ export interface VictoryStatus {
   unit?: number;
   /** Wunder ruht: Ankerfeld nicht im eigenen Gebiet / wonder paused: anchor tile not in own territory */
   paused?: boolean;
-  /** Siegbedingung in diesem Spiel nicht moeglich (Voelkerbund mit weniger als 3 Fraktionen) / condition impossible in this game */
-  unavailable?: boolean;
 }
 
 /** Benoetigte Staedte fuer Korvat: mehr als WONDERS.korvatShare aller Staedte / cities Korvat needs: more than WONDERS.korvatShare of all cities */
@@ -1827,22 +1871,6 @@ export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit)
 /** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */
 export const knows = (s: GameState, a: number, b: number) => s.factions[a].contacts.includes(b) || s.factions[b].contacts.includes(a);
 
-/** Voelkerbund nur mit mindestens 3 Fraktionen im Spiel / League of Nations only with at least 3 factions in the game */
-export const leagueAvailable = (s: GameState) => s.factions.length - 1 >= WONDERS.alveniaMinFactions;
-
-/**
- * Voelkerbund-Bedingung jetzt erfuellt? Jede andere lebende Fraktion zaehlt (nicht nur getroffene): bekannt, im Frieden
- * und mit Botschaft; eine Fraktion ohne Hauptquartier (keine Botschaft moeglich) braucht nur Frieden.
- * League of Nations condition met now? Every other living faction counts (not only met ones): known, at peace and with an
- * embassy; a faction without an HQ (no embassy possible) only needs peace.
- */
-export function leagueMet(s: GameState, f: number): boolean {
-  if (!leagueAvailable(s)) return false;
-  const fa = s.factions[f];
-  const others = s.factions.filter((g) => g.index !== f && g.alive).map((g) => g.index);
-  if (others.length < WONDERS.alveniaMinFactions) return false;
-  return others.every((g) => knows(s, f, g) && fa.relations[g] === 'peace' && (fa.embassies.includes(g) || !hqOf(s, g)));
-}
 
 export function victoryStatus(s: GameState, f: number): VictoryStatus {
   const fa = s.factions[f];
@@ -1858,10 +1886,10 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
       const need = meridonNeed(s);
       return { ...base, phase: 'stars', have: fa.stars, need, ratio: Math.min(1, fa.stars / need), roundsLeft: null };
     }
-    case 'league': {
-      const have = fa.league ?? 0, need = WONDERS.alveniaRounds;
-      const unavailable = !leagueAvailable(s);
-      return { ...base, phase: 'league', have, need, ratio: have / need, roundsLeft: leagueMet(s, f) ? need - have : null, ...(unavailable ? { unavailable } : {}) };
+    case 'judgement': {
+      // Grosses Strafgericht: vernichtete Einheiten von Suendern / Great Judgement: destroyed units of sinners
+      const have = fa.judged ?? 0, need = judgementNeed(s);
+      return { ...base, phase: 'judgement', have, need, ratio: Math.min(1, have / need), roundsLeft: null };
     }
     default: {
       const u = s.units.find((o) => o.owner === f && o.type === goal);

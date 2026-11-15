@@ -1,6 +1,6 @@
 import type {
   BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
-  UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId,
+  UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId, SinDeed,
 } from '../data/balance';
 
 export interface Pos { x: number; y: number }
@@ -129,6 +129,8 @@ export interface Unit {
   wonder?: { stage: number; progress: number };
   /** Erdkernbohrer: Runden in Folge ohne Bewegung / earth-core drill: consecutive rounds without moving */
   stillRounds?: number;
+  /** Maertyrer-Segen (Alvenia): gesegnet bis einschliesslich dieser Runde (fehlt = nie) / Martyr's Blessing (Alvenia): blessed until and including this round (missing = never) */
+  blessed?: number;
   /** Endgegner: Runden, ab denen Schrei und Brut wieder bereit sind / boss: rounds from which scream and brood are ready again */
   boss?: { scream: number; brood: number; hp?: number };
   moved: boolean;
@@ -175,8 +177,13 @@ export interface Faction {
   radarsFound: number[];
   maxStars: number;
   eliminatedRound: number | null;
-  /** Alvenia, Voelkerbund: Runden in Folge mit erfuellter Bedingung / League of Nations: consecutive rounds with the condition met */
-  league?: number;
+  /**
+   * Suendenzeichen (SIN): letzte Tat und letzte Runde des Zeichens (inklusive); fehlt = nie gezeichnet (auch alte Spielstaende).
+   * Sinner mark (SIN): last deed and last round of the mark (inclusive); missing = never marked (old saves too).
+   */
+  sin?: { deed: SinDeed; until: number };
+  /** Alvenia, Grosses Strafgericht: vernichtete Einheiten von Suendern (fehlt = 0) / Great Judgement: destroyed units of sinners (missing = 0) */
+  judged?: number;
   /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
   plunder?: number;
   /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
@@ -364,6 +371,16 @@ export type GameEvent =
   | { t: 'research'; tech: TechId; faction: number }
   | { t: 'heal'; unit: number; amount: number; repair?: boolean }
   | { t: 'convert'; unit: number; target: number }
+  /**
+   * Suendentat: Fraktion faction ist bis Runde until als Suender gezeichnet; fresh = vorher nicht gezeichnet (Meldung).
+   * Sinful deed: faction faction is marked as a sinner until round until; fresh = not marked before (toast).
+   */
+  | { t: 'sin'; faction: number; deed: SinDeed; until: number; fresh: boolean }
+  /**
+   * Maertyrer-Segen: Einheit unit (gefallen, Besitzer faction) segnet die Nachbarn (heal = geheilte LP) bis Runde until.
+   * Martyr's Blessing: unit unit (fallen, owner faction) blesses its neighbours (heal = HP healed) until round until.
+   */
+  | { t: 'blessing'; unit: number; faction: number; x: number; y: number; until: number; units: { unit: number; heal: number }[] }
   | { t: 'veteran'; unit: number }
   | { t: 'bunker'; x: number; y: number; reward: BunkerReward; faction: number }
   | { t: 'radar'; index: number; faction: number }

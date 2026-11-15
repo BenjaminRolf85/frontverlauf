@@ -77,7 +77,8 @@ export function buildingDescText(b: BuildingId): string {
   return t(`buildingDesc.${b}`, {
     pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0, slots: CULT.shrineSlots,
     pct: Math.round(RESOURCE.polarDiscount * 100), max: RESOURCE.polarMax,
-    emb: RESOURCE.vineyardPerEmbassy, embMax: RESOURCE.vineyardEmbassyMax, naval: RESOURCE.harbourNavalBonus,
+    heal: RESOURCE.vineyardHeal, naval: RESOURCE.harbourNavalBonus,
+    perSinner: UNIQUE.cathedralPerSinner, maxSinners: UNIQUE.cathedralMaxSinners,
   });
 }
 

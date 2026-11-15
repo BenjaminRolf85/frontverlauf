@@ -127,7 +127,7 @@ describe('m4: Kriegsplaene / war plans', () => {
     expect(plansCarrier(s)?.id).toBe(j.id);
     expect(j.exhausted).toBe(true);
     // schon getragen: kein zweites Bergen / already carried: no second seizure
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     placeAt(s, inf, templeRing(s)[1] ?? templeRing(s)[0]);
     expect(seizeCheck(s, inf)).toBe('invalid');
     // Hinweis aufs Hauptquartier / hint at the HQ
@@ -180,7 +180,7 @@ describe('m4: Kriegsplaene / war plans', () => {
     // Spieler: eine Einheit neben dem Feld hebt sie auf / player: a unit next to the tile picks them up
     s.current = 0;
     s.units = s.units.filter((u) => u.owner !== 1 || dist(u, at) > 1);
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     const next = around(s, at).find((q) => walk(s, q) && !unitAt(s, q.x, q.y))!;
     placeAt(s, inf, next);
     const p = applyCommand(s, { type: 'seizePlans', unit: inf.id });
@@ -195,7 +195,7 @@ describe('m4: Kriegsplaene / war plans', () => {
     const at = { x: j.x, y: j.y };
     // Traeger verschwindet (z. B. Desertion): Plaene bleiben an seiner letzten Stelle / carrier vanishes (e.g. desertion): plans stay at its last spot
     s.units = s.units.filter((u) => u.id !== j.id && !(u.owner === 1 && dist(u, at) <= 2));
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     inf.hp = inf.maxHp - 1;
     expect(applyCommand(s, { type: 'heal', unit: inf.id }).events.some((e) => e.t === 'plans' && e.what === 'dropped')).toBe(true);
     expect(s.campaign!.plans).toMatchObject({ at: 'dropped', x: at.x, y: at.y, drops: 1 });
