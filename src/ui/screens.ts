@@ -12,9 +12,9 @@ import {
   techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, turretAt, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
-import { getLanguage, setLanguage, t } from '../i18n/i18n';
+import { getLanguage, locale, num, setLanguage, t } from '../i18n/i18n';
 import type { Settings } from '../save/save';
-import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, segmented } from './components';
+import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, rerender, segmented } from './components';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { buildingDescText, cityName, unitDisplayName, unitName } from './hud';
 import { mountStats, statsDialog, statsPanel } from './stats';
@@ -66,7 +66,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
         ${button(t('menu.newGame'), { icon: 'plus', action: 'new', block: true, variant: host.hasSave() ? 'secondary' : 'primary' })}
         ${button(t('campaign.menu'), { icon: 'map', action: 'campaign', block: true, variant: 'secondary' })}
         ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
-        <div class="row">${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', variant: 'secondary', cls: 'grow' })}${button(t('rules.menu'), { icon: 'info', action: 'rules', variant: 'secondary', cls: 'grow', title: t('menu.help') })}</div>
+        <div class="row">${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', variant: 'secondary', cls: 'grow' })}${button(t('rules.menu'), { icon: 'help', action: 'rules', variant: 'secondary', cls: 'grow', title: t('menu.help') })}</div>
         ${button(t('lore.menu'), { icon: 'book', action: 'story', block: true, variant: 'secondary' })}
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.settings'), { icon: 'settings', action: 'settings', variant: 'secondary', cls: 'grow' })}${button(t('menu.credits'), { icon: 'info', action: 'credits', variant: 'secondary', cls: 'grow' })}</div>
@@ -336,7 +336,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
     else if (k === 'aiSpeed') s.aiSpeed = v as Settings['aiSpeed'];
     else if (k === 'quality') s.quality = v as Settings['quality'];
     host.applySettings();
-    d.node.innerHTML = html();
+    rerender(d.node, html());
   });
 }
 
@@ -356,7 +356,7 @@ export function pauseMenu(host: ScreenHost) {
       ${button(t('menu.resume'), { icon: 'play', action: 'close', block: true })}
       ${button(t('history.open'), { icon: 'chart', action: 'stats', block: true, variant: 'secondary' })}
       ${button(t('victory.open'), { icon: 'trophy', action: 'victory', block: true, variant: 'secondary' })}
-      ${button(t('rules.menu'), { icon: 'info', action: 'rules', block: true, variant: 'secondary', title: t('menu.help') })}
+      ${button(t('rules.menu'), { icon: 'help', action: 'rules', block: true, variant: 'secondary', title: t('menu.help') })}
       ${button(t('menu.save'), { icon: 'save', action: 'save', block: true, variant: 'secondary' })}
       ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
       ${button(t('menu.exportFile'), { icon: 'download', action: 'export', block: true, variant: 'secondary' })}
@@ -378,7 +378,8 @@ export function pauseMenu(host: ScreenHost) {
     import: () => { d.close(); host.loadFromFile(); },
     vr: () => { d.close(); host.xr.enter('vr'); },
     ar: () => { d.close(); host.xr.enter('ar'); },
-    settings: () => settingsDialog(host),
+    // nach einem Sprachwechsel das Pausenmenue in der neuen Sprache neu oeffnen / reopen the pause menu in the new language after a language change
+    settings: () => { const lang = getLanguage(); settingsDialog(host, () => { if (getLanguage() !== lang && d.node.isConnected) { d.close(); pauseMenu(host); } }); },
     credits: () => creditsDialog(host),
     quit: () => { d.close(); host.saveNow(); host.showMenu(); },
   });
@@ -527,7 +528,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     // Preis mit Fraktionsrabatt / price including the faction discount
     const price = unitCost(s, f, u);
     return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>
-      <span class="muted">${esc(t('stats.attack'))} ${us.attack} · ${esc(t('stats.defense'))} ${us.defense} · ${esc(t('stats.move'))} ${us.move} · ${esc(t('stats.range'))} ${us.range || esc(t('stats.noRange'))}${price !== null ? ` · ${price} ${esc(t('hud.stars'))}` : ''}</span></li>`;
+      <span class="muted">${esc(t('stats.attack'))} ${num(us.attack)} · ${esc(t('stats.defense'))} ${num(us.defense)} · ${esc(t('stats.move'))} ${num(us.move)} · ${esc(t('stats.range'))} ${us.range ? num(us.range) : esc(t('stats.noRange'))}${price !== null ? ` · ${price} ${esc(t('hud.stars'))}` : ''}</span></li>`;
   });
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b))}</span></li>`);
   const vf = TECHS[tech].faction;
@@ -598,7 +599,7 @@ export function diplomacyDialog(host: ScreenHost) {
           const hq = hqOf(s, o.index);
           if (me.techs.includes('intelligence') && !me.embassies.includes(o.index) && hq && isExplored(s, f, hq.x, hq.y)) {
             const cost = embassyCost(s, f);
-            btns.push(button(t('diplomacy.embassy', { cost }), { action: `embassy-${o.index}`, variant: 'secondary', icon: 'city', disabled: me.stars < cost }));
+            btns.push(button(t('diplomacy.embassy'), { action: `embassy-${o.index}`, variant: 'secondary', icon: 'city', disabled: me.stars < cost, extra: price(cost) }));
           }
         }
         actions = `<div class="row">${tags.join('')}</div><div class="row">${btns.join('')}</div>`;
@@ -619,7 +620,14 @@ export function diplomacyDialog(host: ScreenHost) {
     const map: Record<string, 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy'> = {
       peace: 'proposePeace', accept: 'acceptPeace', decline: 'declinePeace', break: 'announceBreak', embassy: 'embassy',
     };
-    if (map[kind]) { await g.exec({ type: 'diplomacy', action: map[kind], target: Number(idx) }); d.node.innerHTML = html(); }
+    if (!map[kind]) return;
+    if (kind === 'break') {
+      const name = t(`factions.${g.state!.factions[Number(idx)].id}.name`);
+      if (!(await confirmDialog(host, t('diplomacy.breakConfirm', { name }), t('diplomacy.announceBreak'), t('diplomacy.announceBreak')))) return;
+      if (!d.node.isConnected) return;
+    }
+    await g.exec({ type: 'diplomacy', action: map[kind], target: Number(idx) });
+    rerender(d.node, html());
   });
 }
 
@@ -673,8 +681,8 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
     const st = UNITS[u.type];
     html += `<h3 class="display">${esc(unitDisplayName(s, u))}</h3><p class="muted">${esc(unitName(u))} · ${esc(t(`factions.${s.factions[u.owner].id}.short`))}</p>
       <div class="kv"><span>${esc(t('stats.hp'))}</span><span>${u.hp} / ${u.maxHp}</span>
-      <span>${esc(t('stats.attack'))}</span><span>${st.attack}</span><span>${esc(t('stats.defense'))}</span><span>${st.defense}</span>
-      <span>${esc(t('stats.move'))}</span><span>${st.move}</span><span>${esc(t('stats.range'))}</span><span>${st.range || esc(t('stats.noRange'))}</span>
+      <span>${esc(t('stats.attack'))}</span><span>${num(st.attack)}</span><span>${esc(t('stats.defense'))}</span><span>${num(st.defense)}</span>
+      <span>${esc(t('stats.move'))}</span><span>${num(st.move)}</span><span>${esc(t('stats.range'))}</span><span>${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
       <span>${esc(t('stats.cost'))}</span><span>${unitCost(s, viewer >= 0 ? viewer : u.owner, u.type) ?? '-'}</span><span>${esc(t('stats.kills'))}</span><span>${u.kills}</span></div>
       <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
   }
@@ -690,9 +698,9 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
   bind(d.node, { close: () => d.close() });
 }
 
-export function confirmDialog(host: ScreenHost, text: string, ok: string): Promise<boolean> {
+export function confirmDialog(host: ScreenHost, text: string, ok: string, title = t('actions.confirmTitle')): Promise<boolean> {
   return new Promise((resolve) => {
-    const d = openDialog(host.root, `<div class="panel-title"><h2 class="display">${icon('warning')}</h2></div><p>${esc(text)}</p>
+    const d = openDialog(host.root, `<div class="panel-title"><h2 class="display confirm-title">${icon('warning')}<span>${esc(title)}</span></h2></div><p>${esc(text)}</p>
       <div class="dialog-actions">${button(t('actions.cancel'), { action: 'no', variant: 'secondary' })}${button(ok, { action: 'yes', variant: 'danger' })}</div>`, { onClose: () => resolve(false) });
     bind(d.node, { no: () => d.close(), yes: () => { resolve(true); d.close(); } });
   });
@@ -729,7 +737,7 @@ export function gameOverScreen(host: ScreenHost) {
     <h3 class="display">${esc(t('gameover.scores'))}</h3>
     <div class="score-list">${ranking.map((r, i) => `<div class="score-row"><span class="display">${i + 1}.</span>${factionChip(r.f.id, t(`factions.${r.f.id}.short`))}<span class="grow">${esc(t(`factions.${r.f.id}.short`))}</span><span>${esc(t('diplomacy.score', { n: r.sc }))}</span></div>`).join('')}</div>
     ${statsPanel(s, host.game.viewer)}
-    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${s.factions.filter((f) => f.alive).length > 1 ? button(t('gameover.continue'), { action: 'endless', icon: 'hourglass', variant: 'secondary' }) : ''}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false, wide: true });
+    <div class="dialog-actions">${button(t('gameover.toMenu'), { action: 'menu', variant: 'secondary' })}${s.factions.filter((f) => f.alive).length > 1 ? button(t('gameover.continue'), { action: 'endless', icon: 'hourglass', variant: 'secondary' }) : ''}${button(t('gameover.newGame'), { action: 'new', icon: 'play' })}</div>`, { dismissable: false, wide: true, focus: '[data-action="new"]' });
   mountStats(d.node, s, host.game.viewer);
   bind(d.node, {
     endless: () => { d.close(); host.continueEndless(); },
@@ -744,7 +752,7 @@ export { FACTION_EMBLEM };
 export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: number; round: number; faction: string; mode: string; size: number; name: string } | null)[],
   mode: 'save' | 'load', act: { save(i: number): void; load(i: number): void; remove(i: number): void }) {
   const canSave = mode === 'save' && !!host.game.state;
-  const fmt = (ms: number) => { try { return new Date(ms).toLocaleString(); } catch { return ''; } };
+  const fmt = (ms: number) => { try { return new Date(ms).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' }); } catch { return ''; } };
   const html = () => `${dialogTitle(t('saves.title'))}
     <div class="score-list">${slots.map((info, i) => `
       <div class="score-row slot-row">
@@ -755,11 +763,11 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
         <div class="row">
           ${canSave ? button(t('saves.saveHere'), { action: `save-${i}`, icon: 'save', variant: info ? 'secondary' : 'primary' }) : ''}
           ${info ? button(t('saves.load'), { action: `load-${i}`, icon: 'play', variant: canSave ? 'secondary' : 'primary' }) : ''}
-          ${info ? iconButton('close', t('saves.delete'), `del-${i}`) : ''}
+          ${info ? iconButton('trash', t('saves.delete'), `del-${i}`) : ''}
         </div>
       </div>`).join('')}</div>`;
   const d = openDialog(host.root, html());
-  d.node.addEventListener('click', (e) => {
+  d.node.addEventListener('click', async (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
     if (!b) return;
     const a = b.dataset.action!;
@@ -768,13 +776,16 @@ export function slotsDialog(host: ScreenHost, slots: ({ slot: number; savedAt: n
     const i = Number(idx);
     if (kind === 'save') { act.save(i); d.close(); }
     else if (kind === 'load') { d.close(); act.load(i); }
-    else if (kind === 'del') { act.remove(i); slots[i] = null; d.node.innerHTML = html(); }
+    else if (kind === 'del') {
+      if (!(await confirmDialog(host, t('saves.deleteConfirm', { n: i + 1 }), t('saves.delete'), t('saves.delete')))) return;
+      act.remove(i); slots[i] = null; rerender(d.node, html());
+    }
   });
 }
 
 /** Fraktionsfenster mit Anfuehrer und Hintergrund / faction window with leader and background */
 export function factionDialog(root: HTMLElement, f: FactionId) {
-  const d = openDialog(root, `${dialogTitle(t('leaders.title'))}${factionDetails(f)}`, { wide: true });
+  const d = openDialog(root, `${dialogTitle(t(`factions.${f}.name`))}${factionDetails(f)}`, { wide: true });
   d.node.addEventListener('click', (e) => {
     const el = e.target as HTMLElement;
     if (el.closest('[data-action="close"]')) { d.close(); return; }
