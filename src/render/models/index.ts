@@ -313,6 +313,8 @@ export {
   mushroomForest, caveFloorDeco, rockPillars, craterCracks, craterDebris, verdanRemains, alienBones, giantSkull,
   supplyLineGeometry, verdanTurretGeometry, verdanRuinGeometry,
 } from './cavern';
+// Geschuetzstellung der Dravon (Festungsbau) / Dravon gun emplacement (fortification)
+export { emplacementGeometry, emplacementRuinGeometry } from './emplacement';
 
 /**
  * Zusatz: Geometrie mit geglaetteten Normalen fuer eine Inverted-Hull-Kontur (nur position + normal).

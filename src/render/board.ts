@@ -13,7 +13,8 @@ import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './con
 import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
-import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
+import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
+import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
@@ -99,6 +100,8 @@ const rockPillars = (v: number, ore: boolean) => safe(models.rockPillars, semant
 const supplyLineGeometry = (f: FactionId | null, hq: boolean) => safe(models.supplyLineGeometry, f ? factionTokens[f].primary : semantic.neutral, f, hq)!;
 const verdanTurretGeometry = (active: boolean) => safe(models.verdanTurretGeometry, semantic.verdanStone, active);
 const verdanRuinGeometry = () => safe(models.verdanRuinGeometry, semantic.verdanStoneDark);
+const emplacementGeometry = (f: FactionId) => safe(models.emplacementGeometry, factionTokens[f].primary, f);
+const emplacementRuinGeometry = (f: FactionId | null) => safe(models.emplacementRuinGeometry, semantic.neutralDark, f);
 const craterCracks = (ring: number, v: number) => safe(models.craterCracks, null, ring, v);
 const craterDebris = (v: number) => safe(models.craterDebris, null, v);
 /** Skelette in der Hoehle / skeletons in the cavern */
@@ -196,6 +199,8 @@ export class Board {
   readonly desertFx = new DesertWorldFx();
   /** Riss zwischen den Welten (Ende m11) / rift between the worlds (end of m11) */
   readonly rift = new RiftFx();
+  /** Orbitallaser: Zielvorschau, Strahl, Uplink-Licht der Relays / orbital laser: target preview, beam, relay uplink light */
+  readonly orbital = new OrbitalFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -207,7 +212,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -623,13 +628,24 @@ export class Board {
           addDeco(desert && rg ? sandify(rg, `res${t.terrain}${t.resource}${variant}`) : rg, at());
         }
         // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
-        if (t.turret && t.turret.hp > 0) {
+        if (t.turret && t.turret.hp > 0 && t.turret.owner !== undefined) {
+          // Geschuetzstellung: Rohr weg von der naechsten eigenen Stadt (zur Grenze) / gun emplacement: barrel away from the nearest own city (towards the border)
+          const ef = s.factions[t.turret.owner]?.id ?? 'dravon';
+          let home: { x: number; y: number } | null = null, hd = Infinity;
+          for (const c of s.cities) if (c.owner === t.turret.owner) { const d = Math.max(Math.abs(c.x - x), Math.abs(c.y - y)); if (d < hd) { hd = d; home = c; } }
+          const face = home && hd > 0 ? Math.atan2(x - home.x, y - home.y) : ((x * 3 + y) % 8) * (Math.PI / 4);
+          const eg = emplacementGeometry(ef);
+          addDeco(desert && eg ? sandify(eg, `emplacement${ef}`) : eg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.15, 1.15, 1.15)), false, 'built');
+        } else if (t.turret && t.turret.hp > 0) {
           // zum bewachten Punkt gedreht (Artefakt oder Ruinenstaette) / facing the guarded point (artifact or ruin site)
           const g = art ?? (s.campaign?.sites?.length ? turretGuard(s, { x, y }) : undefined);
           const face = g ? Math.atan2(g.x - x, g.y - y) : 0;
           const tg = verdanTurretGeometry(t.turret.active);
           addDeco(desert && tg ? sandify(tg, `turret${t.turret.active}`) : tg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.25, 1.2)), false, 'built');
           if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.6, color: eye });
+        } else if (t.turretRuin && t.turretRuinOwner !== undefined) {
+          // Truemmer einer Geschuetzstellung / rubble of a gun emplacement
+          addDeco(emplacementRuinGeometry(s.factions[t.turretRuinOwner]?.id ?? null), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 8) * (Math.PI / 4)), new THREE.Vector3(1.1, 1.1, 1.1)), false, 'built');
         } else if (t.turretRuin) addDeco(verdanRuinGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (x * 3 + y) % 4), new THREE.Vector3(1, 1, 1)), false, 'built');
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
@@ -835,6 +851,7 @@ export class Board {
 
     // Staedte / cities
     const townCities: TownInput['cities'] = [];
+    const relayLamps: THREE.Vector3[] = [];
     for (const c of s.cities) {
       if (!explored(c.x, c.y)) continue;
       const fid = c.owner !== null ? s.factions[c.owner].id : null;
@@ -868,6 +885,7 @@ export class Board {
         perk.scale.setScalar(PERK_SCALE);
         perk.traverse((o) => { o.raycast = () => {}; if (o === perk.userData.mesh) o.castShadow = true; });
         this.staticLayer.add(perk);
+        if (up === 'satRelay') relayLamps.push(perk.position.clone().add(new THREE.Vector3(...RELAY_LAMP).multiplyScalar(PERK_SCALE)));
       }
       const cname = this.showLabels ? cityNameOf(s, c.id) : '';
       if (cname) {
@@ -908,6 +926,7 @@ export class Board {
     }
     // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
     this.town.build({ cities: townCities, lava: lavaSpots, glow: glowSpots });
+    this.orbital.setRelays(relayLamps);
     // Hoehlenhuelle und Getier / cave shell and creatures
     if (cave) { this.caveShell.build(size, seed, low); this.caveLife.build(creatures); } else { this.caveShell.clear(); this.caveLife.clear(); }
     // Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters
@@ -1140,7 +1159,7 @@ export class Board {
    * (heavy cannon). gunFires = the gun shoots at the unit, otherwise the unit attacks.
    */
   animateTurret(s: GameState, gun: { x: number; y: number }, unitId: number, gunFires: boolean,
-    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void }): Promise<void> {
+    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void; gunFaction?: FactionId }): Promise<void> {
     const GUN = -1;
     const proxy = new THREE.Group();
     proxy.position.copy(this.tileCenter(s, gun.x, gun.y)).add(new THREE.Vector3(0, 0.12, 0));
@@ -1154,9 +1173,11 @@ export class Board {
     const water = (x: number, y: number) => { const tt = s.tiles[y * s.size + x].terrain; return tt === 'shallow' || tt === 'ocean'; };
     const u = s.units.find((x) => x.id === unitId);
     const uw = u ? water(u.x, u.y) : false;
+    // Geschuetzstellung: Muendungsfeuer in der Optik ihrer Fraktion / gun emplacement: muzzle flash in its faction's look
+    const gf: FactionId = o.gunFaction ?? 'nexus';
     const info: AttackInfo = gunFires
-      ? { attacker: 'tank', target: o.unitType, attackerFaction: 'nexus', targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
-      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: 'nexus', attackerWater: uw, targetWater: false, retaliate: o.retaliate,
+      ? { attacker: 'tank', target: o.unitType, attackerFaction: gf, targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
+      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: gf, attackerWater: uw, targetWater: false, retaliate: o.retaliate,
         onImpact: o.onImpact, onReturnFire: o.onReturnFire, onReturnImpact: o.onReturnImpact };
     if (!this.animations) {
       info.onImpact?.();
@@ -1332,8 +1353,43 @@ export class Board {
 
   get busy() { return this.anims.length > 0 || this.combat.active; }
 
+  /** Zielvorschau des Orbitallasers (leere Liste = aus) / orbital laser target preview (empty list = off) */
+  showOrbitalPreview(s: GameState, tiles: { x: number; y: number }[], cols: number, tags: { x: number; y: number; text: string; own: boolean }[], blocked: boolean) {
+    if (!tiles.length) this.orbital.clearPreview();
+    else {
+      const t: OrbitalTag[] = tags.map((g) => ({ pos: this.tileCenter(s, g.x, g.y), text: g.text, own: g.own }));
+      this.orbital.showPreview(tiles.map((p) => this.tileCenter(s, p.x, p.y)), cols, t, blocked);
+    }
+    this.dirty = true;
+  }
+
+  /**
+   * Strahl auf die Flaeche; onImpact beim Einschlag. Ohne Animationen: stiller Einschlag ohne Strahl, kurz sichtbar.
+   * Beam onto the area; onImpact at the moment of impact. Without animations: still impact without the beam, briefly visible.
+   */
+  animateOrbital(s: GameState, tiles: { x: number; y: number }[], cols: number, faction: FactionId | null, animate: boolean, onImpact: () => void): Promise<void> {
+    this.orbital.clearPreview();
+    const c = tiles.reduce((a: THREE.Vector3, p) => a.add(this.tileCenter(s, p.x, p.y)), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, tiles.length));
+    const r = 0.5 * cols + 0.15;
+    if (!animate || !this.animations) {
+      this.orbital.still(c, r, faction);
+      onImpact();
+      this.orbital.endLater(1100, () => { this.dirty = true; });
+      this.dirty = true;
+      return Promise.resolve();
+    }
+    this.orbital.begin(c, r, faction);
+    let hit = false;
+    return this.addAnim(ORBITAL_FX.ms, (t) => {
+      this.orbital.frame(t);
+      if (!hit && t >= ORBITAL_FX.impact) { hit = true; onImpact(); }
+      if (t >= 1) this.orbital.end();
+    });
+  }
+
   finishAnimations() {
     this.combat.clear();
+    this.orbital.end();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;

@@ -3,7 +3,7 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitHome, recruitSpot, rosterUnits,
+  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
@@ -11,12 +11,14 @@ import {
   activeEmbassies, baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
-  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
+import { relayTechBonus, relayValue } from './orbital';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
+import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
 
 type Failed = Set<string>;
 
@@ -128,6 +130,8 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
     // keinen Frieden mit einer Fraktion kurz vor dem Sieg / no peace with a faction close to victory
     else if (nearVictory(ctx, g)) accept = false;
     else if (ctx.conquest) accept = focusPeace(ctx, g) || (mine < theirs * 0.7 && aliveFactions(ctx.s).length > 2 && ctx.s.round <= 60);
+    // Kult: lebt von der Beute, Frieden nur in echter Not / cult: lives off loot, peace only in real need
+    else if (isCultFaction(ctx.s, ctx.f)) accept = mine < theirs * AI.cultPeaceStrength && warCount(ctx) >= 2;
     else accept = mine < theirs * 1.4 || warCount(ctx) >= 2;
     const cmd: Command = { type: 'diplomacy', action: accept ? 'acceptPeace' : 'declinePeace', target: g };
     if (!failed.has(cmdKey(cmd))) return cmd;
@@ -191,7 +195,9 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
       // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
       // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
-      const brk = leagueSeeker(ctx) || isCampaignBond(s, f, g) ? false : (nearVictory(ctx, g) && canBreakLeague(ctx, g)) || (ctx.conquest
+      // Kult: ohne Krieg keine Beute / cult: no war, no loot
+      const cultBreak = isCultFaction(s, f) && ctx.roundsLeft > 3 && (noWar || mine > theirs * AI.cultBreakStrength) && canBreakLeague(ctx, g);
+      const brk = leagueSeeker(ctx) || isCampaignBond(s, f, g) ? false : (nearVictory(ctx, g) && canBreakLeague(ctx, g)) || cultBreak || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {
@@ -266,8 +272,22 @@ const MIL: Partial<Record<TechId, number>> = {
   fieldResearch: 3, forestry: 2, livestock: 2, supply: 2, agritech: 2, foodIndustry: 2, mining: 3,
 };
 
+/**
+ * Kult: Forschung nur fuer Einheiten (und Wege dorthin), Staedte wachsen ohnehin nicht.
+ * Cult: research only for units (and the way there), cities do not grow anyway.
+ */
+const CULT_MIL: Partial<Record<TechId, number>> = {
+  forestry: 70, camouflage: 90, motorization: 6, ballistics: 65, armsIndustry: 75, mountainTraining: 25, mining: 25,
+};
+
 function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconnected: number): number {
   const { prof } = ctx;
+  if (isCultFaction(ctx.s, ctx.f)) {
+    let mil = (CULT_MIL[t] ?? 0) * prof.militaryW;
+    if (t === 'armsIndustry') mil += counterShares(ctx).antiVehicle * 70 * prof.militaryW;
+    if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
+    return mil;
+  }
   const popVal = 10 * prof.buildW;
   let econ = 0;
   for (const b of POP_BUILDINGS) {
@@ -287,6 +307,10 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
   if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
+  // Festungsbau braucht Pioniere (Befestigung) / fortification needs pioneers (Fortification)
+  if (t === UNITS.pioneer.tech) mil += emplacementTechBonus(ctx);
+  else if (t === TECHS[UNITS.pioneer.tech!].parent && !ctx.fa.techs.includes(UNITS.pioneer.tech!)) mil += emplacementTechBonus(ctx) * 0.6;
+  mil += relayTechBonus(ctx, t);
   if (t === 'mountainTraining' || t === 'highAltitude') {
     let m = 0;
     for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (ctx.s.tiles[idx(ctx.s.size, p.x, p.y)].terrain === 'mountain') m++;
@@ -402,7 +426,8 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     mineLayer: army >= 4 && (ctx.enemies.length > 0 || ctx.conquest) ? 0.08 : 0,
     jeep: unexplored ? 0.2 : 0.08,
     sniper: 0.06,
-    pioneer: 0.05,
+    // Festungsbau: Pionier, solange Stellungsplaetze frei sind / fortification: a pioneer while emplacement slots are free
+    pioneer: 0.05 + emplacementPioneerShare(ctx),
     artillery: ctx.hostileCities.length ? 0.16 : 0.04,
     medic: army >= 4 ? 0.08 : 0,
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,
@@ -445,11 +470,12 @@ const ROSTER_SHARE: Partial<Record<UnitTypeId, number>> = {
   zealot: 0.4, torchbearer: 0.2, prophet: 0.1, doomBuggy: 0.12, rocketCart: 0.12, doomCrawler: 0.18,
   android: 0.35, spider: 0.22, quadDrone: 0.12, railgun: 0.12, titan: 0.2,
 };
-function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
+function chooseRosterUnit(ctx: Ctx, urgent: boolean, only?: UnitTypeId[]): UnitTypeId | null {
   const { s, f } = ctx;
   const army = Math.max(1, ctx.my.length);
   const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t).length;
-  const roster = rosterUnits(s, f);
+  // Kult: nur, was der Rekrutierer rufen kann (ohne Bohrer) / cult: only what the recruiter can call up (without the drill)
+  const roster = (only ?? rosterUnits(s, f)).filter((t) => !UNITS[t].abilities.includes('wonder'));
   // Konter der Sonderfraktionen / counters of the special factions
   const ct = counterShares(ctx);
   const shareOf = (t: UnitTypeId) => {
@@ -462,10 +488,12 @@ function chooseRosterUnit(ctx: Ctx, urgent: boolean): UnitTypeId | null {
   let best: UnitTypeId | null = null, bs = -Infinity;
   for (const t of roster) {
     if (!avail(t)) continue;
-    // Kult: ohne Prediger kein Nachschub / cult: no reinforcements without preachers
-    const preachers = ctx.my.filter((u) => UNITS[u.type].abilities.includes('preach')).length;
+    // Kult: ohne Rekrutierer kein Nachschub / cult: no reinforcements without recruiters
+    const preachers = ctx.my.filter((u) => (CULT.recruiters[u.type] ?? []).length > 0).length;
     let sc = (shareOf(t) - count(t) / army) * 4 - UNITS[t].cost! / 250;
-    if (UNITS[t].abilities.includes('preach') && preachers < 2) sc += 1;
+    if ((CULT.recruiters[t] ?? []).length > 0 && preachers < 3) sc += 1;
+    // Propheten rufen alles, einer reicht fuer den Anfang / prophets call up everything, one is enough to start with
+    if (t === 'prophet' && !count('prophet')) sc += 0.8;
     if (urgent) sc = UNITS[t].hp * 0.05 + UNITS[t].attack * 0.2 - UNITS[t].cost! / 100;
     if (sc > bs) { bs = sc; best = t; }
   }
@@ -554,7 +582,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   // Sold: neue Einheiten nur, wenn das Netto-Einkommen sie traegt / upkeep: new units only if net income carries them
   const net = netIncome(s, f);
   const upFor = (t: UnitTypeId) => (ctx.my.length >= UPKEEP.freeUnits ? UPKEEP.flat[t] ?? Math.ceil((UNITS[t].cost ?? 0) * UPKEEP.share) : 0);
-  for (const c of ctx.myCities) {
+  // Kult bildet in Staedten nicht aus / the cult does not train in cities
+  for (const c of isCultFaction(s, f) ? [] : ctx.myCities) {
     if (unitAt(s, c.x, c.y) || supportedUnits(s, c) >= unitLimit(s, c)) continue;
     const urgent = ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0);
     const type = chooseUnitType(ctx, c, urgent);
@@ -575,24 +604,27 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? 'infantry';
     if (type !== cheap) mk(cheap, 0.8);
   }
-  // Kult: Prediger rekrutieren auf Nachbarfeldern / cult: preachers recruit on adjacent tiles
-  if (isCultFaction(s, f)) {
-    for (const u of ctx.my) {
-      if (!UNITS[u.type].abilities.includes('preach') || u.exhausted || u.fresh || u.attacked) continue;
-      const home = recruitHome(s, f, u.x, u.y);
-      if (!home) continue;
+  // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
+  // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
+  const horde = isCultFaction(s, f) ? hordeCount(s, f) : null;
+  if (horde) {
+    const free = horde.cap - horde.units;
+    for (const u of free > 0 ? ctx.my : []) {
+      const types = recruitTypes(u).filter((t) => !UNITS[t].abilities.includes('wonder'));
+      if (!types.length || u.exhausted || u.fresh || u.attacked || recruitWait(s, u) > 0) continue;
       const urgent = ctx.enemies.some((e) => dist(e, u) <= 2 && UNITS[e.type].attack > 0);
-      const types = [chooseUnitType(ctx, home, urgent), 'zealot' as UnitTypeId];
-      types.forEach((t, i) => {
-        if (!t || (i === 1 && t === types[0])) return;
-        const spot = recruitSpot(s, u, t) ?? null;
-        const probe = spot ? 'ok' : neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, f, u.id, t, q.x, q.y)).find((r) => r === 'notEnoughStars');
-        if (!probe) return;
-        const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y) === 'notEnoughStars')!;
+      // Wunschtyp und billigster Typ des Rekrutierers / desired type and the recruiter's cheapest type
+      const cheap = types.slice().sort((a, b) => unitCost(s, f, a)! - unitCost(s, f, b)!)[0];
+      const want = chooseRosterUnit(ctx, urgent, types);
+      [want, cheap].forEach((t, i) => {
+        if (!t || (i === 1 && t === want)) return;
+        const spot = recruitSpot(s, u, t, horde);
+        const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y, horde) === 'notEnoughStars');
+        if (!p) return;
         const cost = unitCost(s, f, t)!;
-        if (!urgent && net - upFor(t) < 0) return;
+        // wie Ausbildung: Bedarf aus der Wunschgroesse der Horde / like training: demand from the desired horde size
         let value = urgent ? cost * 3.5 : deficit > 0 ? cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW : cost * 0.25;
-        value = value * (i === 0 ? 1 : 0.8) + cost * ctx.pf;
+        value = value * (i === 0 ? 1 : 0.85) + cost * ctx.pf;
         buys.push({ cmd: { type: 'recruit', unit: u.id, unitType: t, x: p.x, y: p.y }, cost, value, save: !urgent });
       });
     }
@@ -666,7 +698,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   }
 
   // Strassen / roads
-  if (hasTech(s, f, 'roadbuilding')) {
+  // Kult: Verbindungen bringen nichts (keine Bevoelkerung) / cult: connections bring nothing (no population)
+  if (hasTech(s, f, 'roadbuilding') && !isCultFaction(s, f)) {
     for (const r of roadPlans(ctx)) {
       const chk = buildCheck(s, f, r.b, r.x, r.y);
       if (!chk.ok && chk.error !== 'notEnoughStars') continue;
@@ -708,6 +741,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
           const chk = buildCheck(s, f, b, p.x, p.y);
           if (!chk.ok && chk.error !== 'notEnoughStars') continue;
           let value = BUILDINGS[b].pop * popVal;
+          // Schrein: Plaetze, wertvoll, wenn das Limit bald voll ist / shrine: slots, valuable once the cap is nearly full
+          if (b === 'shrine' && horde) value = CULT.shrineSlots * (horde.cap - horde.units <= 1 ? 22 : 6) * prof.militaryW;
           // Rechenleistung ausgleichen / balance compute
           if (b === 'dataCenter') value += cs.dataCenters <= cs.powerPlants ? 30 : 0;
           if (b === 'powerPlant') value += cs.powerPlants < cs.dataCenters ? 40 : 0;
@@ -748,6 +783,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       else if (up === 'depot') value = CITY_UPGRADES.depotIncome * Math.min(ctx.points ? ctx.roundsLeft : 20, 20) * 0.45;
       else if (up === 'hospital') value = front ? cost * 1.2 : cost * 0.3;
       else if (up === 'flak') value = ctx.enemies.some((e) => e.type === 'heli' && dist(e, c) <= 4) ? cost * 2 : cost * 0.1;
+      // Satelliten-Relay (Velkar): Wert aus ai/orbital.ts / satellite relay (Velkar): value from ai/orbital.ts
+      else if (up === ORBITAL.relay) { value = relayValue(ctx, c); if (!value) continue; }
       else if (up === 'barracks') value = cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'mercenaryBarracks') ? 0 : cost * (0.55 + 0.1 * Math.min(4, c.level)) * prof.militaryW;
       else {
         const targets = radioTargets(s, f, c);
@@ -823,7 +860,9 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   const tech = victoryTechOf(s, f);
   if (!fa.techs.includes(tech)) {
     const parent = TECHS[tech].parent;
-    if (s.round < WONDERS.aiResearchRound || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
+    // Kult: der Bohrer braucht 14 Runden, also frueher forschen / cult: the drill needs 14 rounds, so research earlier
+    const from = isCultFaction(s, f) ? AI.cultDrillResearchRound : WONDERS.aiResearchRound;
+    if (s.round < from || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
     // Korvat: nur, wenn das Staedteziel in Reichweite ist / Korvat: only when the city target is within reach
     if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * WONDERS.aiKorvatResearchShare) return;
     // Alvenia: kein Voelkerbund mit weniger als 3 Fraktionen / Alvenia: no league with fewer than 3 factions
@@ -835,18 +874,26 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   const kind = wonderKindOf(s, f);
   if (!kind || wondersOf(s, f).length) return;
   if (kind === 'coreDrill') {
-    // erst mit Hinterland: in der einzigen Stadt wird der Bohrer sofort angegriffen / only with a hinterland: in the only city the drill is attacked at once
+    // erst mit Hinterland und Horde: allein wird der Bohrer sofort angegriffen / only with a hinterland and a horde: alone the drill is attacked at once
     if (ctx.myCities.length < WONDERS.aiDrillMinCities) return;
-    // ruhigste Stadt (weit weg von Gegnern) / quietest city (far from enemies)
-    let best: City | null = null, bd = -1;
-    for (const c of ctx.myCities) {
-      const chk = trainCheck(s, c, 'coreDrill');
-      if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
-      let d = 20;
-      for (const e of ctx.enemies) d = Math.min(d, dist(e, c));
-      if (d > bd) { bd = d; best = c; }
+    // ein Prophet im eigenen Gebiet, moeglichst weit weg von Gegnern, ruft ihn auf ein freies Nachbarfeld
+    // a prophet in own territory, as far from enemies as possible, calls it onto a free adjacent tile
+    let best: { u: Unit; x: number; y: number } | null = null, bv = -Infinity;
+    for (const u of ctx.my) {
+      if (!recruitTypes(u).includes('coreDrill')) continue;
+      for (const q of neighbors(s.size, u.x, u.y)) {
+        const r = recruitCheck(s, f, u.id, 'coreDrill', q.x, q.y);
+        if (r !== 'ok' && r !== 'notEnoughStars') continue;
+        let d = 8;
+        for (const e of ctx.enemies) if (UNITS[e.type].attack > 0) d = Math.min(d, dist(e, q));
+        const own = territoryOwner(s, s.tiles[idx(s.size, q.x, q.y)]) === f;
+        // eigenes Gebiet oder weit weg von Gegnern / own territory or far away from enemies
+        if (!own && d < 4) continue;
+        const v = Math.min(6, d) * 3 + (own ? 6 : 0);
+        if (v > bv) { bv = v; best = { u, x: q.x, y: q.y }; }
+      }
     }
-    if (best) buys.push({ cmd: { type: 'train', city: best.id, unitType: 'coreDrill' }, cost: unitCost(s, f, 'coreDrill')!, value: WONDERS.cost.coreDrill * 3, save: true, horizon: WONDERS.aiSaveRounds });
+    if (best) buys.push({ cmd: { type: 'recruit', unit: best.u.id, unitType: 'coreDrill', x: best.x, y: best.y }, cost: unitCost(s, f, 'coreDrill')!, value: WONDERS.cost.coreDrill * 3, save: true, horizon: WONDERS.aiSaveRounds });
     return;
   }
   const sites = wonderSites(s, f, kind as WonderKind, true);

@@ -173,7 +173,17 @@ function boot() {
       const fname = (i: number) => t(`factions.${s.factions[i].id}.short`);
       switch (e.t) {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
-        case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
+        case 'capture': {
+          if (e.faction !== viewer && e.from !== viewer) break;
+          const city = cityName(s, e.city);
+          // Kult: Pluenderung, Beute fuer den Kult, Warnung fuer das Opfer / cult: plunder, loot for the cult, warning for the victim
+          if (e.plunder !== undefined) {
+            toast(root, e.faction !== viewer ? t('cult.plunderedBy', { city, name: fname(e.faction) }) : e.plunder ? t('cult.plundered', { city, n: e.plunder }) : t('cult.plunderedEmpty', { city }), 'star');
+            break;
+          }
+          toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city }), 'capture');
+          break;
+        }
         // Wortwahl nach der Rasse der forschenden Fraktion / wording by the race of the researching faction
         case 'research': if (e.faction === viewer) toast(root, techT('events.research', s.factions[e.faction].id, { tech: t(`techs.${e.tech}`) }), techIcon(s.factions[e.faction].id)); break;
         case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
@@ -229,7 +239,15 @@ function boot() {
         }
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
+        // Geschuetzstellung feuert auf eigene Einheiten / gun emplacement fires at own units
+        case 'turretFire': if (e.owner !== undefined && e.victim === viewer) toast(root, t('emplacement.fires', { name: fname(e.owner), dmg: e.dmg }), 'range'); break;
+        // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
+        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') toast(root, t('emplacement.lost'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
+        // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
+        case 'orbitalStrike':
+          if (viewer < 0 || e.faction === viewer || e.tiles.some((p) => s.factions[viewer].explored[p.y * s.size + p.x] === 1)) toast(root, t('orbital.toast', { name: fname(e.faction) }), 'satellite');
+          break;
       }
       dispatches.onEvent(e, s);
     },
@@ -259,6 +277,12 @@ function boot() {
       const p = view.board.pick(view.raycaster(cx, cy));
       if (p && game.state) detailsDialog(host, p.x, p.y);
     },
+  });
+  // Orbitallaser: die Vorschau folgt dem Mauszeiger / orbital laser: the preview follows the mouse pointer
+  canvas.addEventListener('pointermove', (e) => {
+    if (!game.orbitalMode || e.pointerType !== 'mouse' || e.buttons) return;
+    const p = view.board.pick(view.raycaster(e.clientX, e.clientY));
+    if (p) game.aimOrbital(p.x, p.y);
   });
   window.addEventListener('resize', () => { view.resize(); hud.render(); });
   window.addEventListener('keydown', (e) => {

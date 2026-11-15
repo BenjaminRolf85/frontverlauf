@@ -4,17 +4,19 @@
  */
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets, turretTargets,
+  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
+  orbitalPreview, orbitalWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
-import { UNITS, type HitKind } from '../data/balance';
+import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
+import { ORBITAL_FX } from '../render/fx/orbital';
 import { saveGame } from '../save/save';
 
 export type Tab = 'unit' | 'city' | 'tile';
@@ -54,10 +56,15 @@ export class Controller {
   barrierMode = false;
   /** Zielauswahl fuer eine Mine / target selection for a mine */
   mineMode = false;
+  /** Zielauswahl fuer eine Geschuetzstellung (Festungsbau) / target selection for a gun emplacement (fortification) */
+  emplacementMode = false;
   /** Zielauswahl fuer den Funkturm: Stadt-ID / target selection for the radio tower: city id */
   radioCity: number | null = null;
   /** Zielauswahl fuer den Terraformer / target selection for the terraformer */
   terraformUnit: number | null = null;
+  /** Zielauswahl des Orbitallasers und angepeilte Ecke / orbital laser targeting and the aimed corner */
+  orbitalMode = false;
+  orbitalAim: { x: number; y: number } | null = null;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -115,6 +122,15 @@ export class Controller {
   startMine() {
     this.mineMode = true;
     this.barrierMode = false;
+    this.emplacementMode = false;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  startEmplacement() {
+    this.emplacementMode = true;
+    this.barrierMode = false;
+    this.mineMode = false;
     this.updateHighlights();
     this.ui.update();
   }
@@ -131,9 +147,52 @@ export class Controller {
     this.ui.update();
   }
 
+  /** Orbitallaser: Zielauswahl beginnen (nur bereit und am Zug) / orbital laser: start targeting (only when ready and on turn) */
+  startOrbital() {
+    const s = this.state;
+    if (!s || !this.isHumanTurn) return;
+    const wait = orbitalWait(s, s.current);
+    if (wait === null) return;
+    if (wait > 0) { this.play('error'); this.ui.errorCode('orbitalCooldown'); return; }
+    this.clearSelection();
+    this.orbitalMode = true;
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl abbrechen / cancel targeting */
+  cancelOrbital() {
+    if (!this.orbitalMode) return;
+    this.orbitalMode = false;
+    this.orbitalAim = null;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Ecke anpeilen (Maus folgt, Antippen setzt) / aim a corner (mouse follows, a tap sets it) */
+  aimOrbital(x: number, y: number) {
+    if (!this.orbitalMode || (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y)) return;
+    this.orbitalAim = { x, y };
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Auf die angepeilte Flaeche feuern / fire at the aimed area */
+  async fireOrbital() {
+    const s = this.state, aim = this.orbitalAim;
+    if (!s || !aim || !this.orbitalMode || this.busy) return;
+    this.orbitalMode = false;
+    this.orbitalAim = null;
+    await this.exec({ type: 'orbitalStrike', x: aim.x, y: aim.y });
+  }
+
   clearSelection() {
+    this.orbitalMode = false;
+    this.orbitalAim = null;
     this.barrierMode = false;
     this.mineMode = false;
+    this.emplacementMode = false;
     this.radioCity = null;
     this.terraformUnit = null;
     this.selected = null; this.selectedUnit = null; this.pendingTarget = null; this.pendingTurret = null;
@@ -162,6 +221,8 @@ export class Controller {
       for (const p of barrierTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && this.mineMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of mineTargets(s, u)) list.push({ ...p, kind: 'build' });
+    } else if (u && this.emplacementMode && u.owner === s.current && this.isHumanTurn) {
+      for (const p of emplacementTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && u.owner === s.current && this.isHumanTurn) {
       for (const r of reachable(s, u)) {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
@@ -189,6 +250,17 @@ export class Controller {
     }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);
+    this.updateOrbitalPreview();
+  }
+
+  /** Vorschau der Flaeche mit Schadenszahlen (eigene in Warnfarbe) / area preview with damage numbers (own ones in the warning colour) */
+  private updateOrbitalPreview() {
+    const s = this.state;
+    if (!s) return;
+    if (!this.orbitalMode || !this.orbitalAim || !this.isHumanTurn) { this.view.board.showOrbitalPreview(s, [], ORBITAL.area.w, [], false); return; }
+    const pre = orbitalPreview(s, s.current, this.orbitalAim.x, this.orbitalAim.y);
+    const tags = pre.hits.map((h) => ({ x: h.x, y: h.y, own: h.own, text: t(h.killed ? 'orbital.tagKill' : 'orbital.tag', { dmg: h.dmg }) }));
+    this.view.board.showOrbitalPreview(s, pre.tiles, ORBITAL.area.w, tags, pre.check !== 'ok');
   }
 
   /** Antippen eines Feldes / tapping a tile */
@@ -196,6 +268,13 @@ export class Controller {
     const s = this.state;
     if (!s || this.busy) return;
     audio.unlock();
+    // Orbitallaser: erstes Antippen peilt an, zweites auf dieselbe Ecke feuert / orbital laser: first tap aims, a second on the same corner fires
+    if (this.orbitalMode) {
+      if (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y && orbitalPreview(s, s.current, x, y).check === 'ok') { await this.fireOrbital(); return; }
+      this.aimOrbital(x, y);
+      this.play('select');
+      return;
+    }
     if (this.terraformUnit !== null) {
       const uid = this.terraformUnit;
       this.terraformUnit = null;
@@ -233,6 +312,15 @@ export class Controller {
       this.mineMode = false;
       if (mineTargets(s, u).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'mine', unit: u.id, x, y });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
+    if (u && this.emplacementMode) {
+      this.emplacementMode = false;
+      if (emplacementTargets(s, u).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'emplacement', unit: u.id, x, y });
         return;
       }
       this.updateHighlights(); this.ui.update();
@@ -433,6 +521,14 @@ export class Controller {
             else if (e.from !== null && e.from === this.viewer) audio.sting('cityLost');
             else if (visible(c.x, c.y)) this.play('capture');
             if (visible(c.x, c.y)) this.ui.fx('capture', c.x, c.y);
+            // Kult: erbeutete Sterne ueber der Stadt / cult: plundered stars above the city
+            if (e.plunder && visible(c.x, c.y)) this.ui.fx('num', c.x, c.y, `+${e.plunder}`);
+            break;
+          }
+          // Kult: Rekrut im Feld / cult: recruit in the field
+          case 'recruit': {
+            const nu = unitById(s, e.unit);
+            if (nu && visible(nu.x, nu.y)) { this.play('build'); this.ui.fx('levelUp', nu.x, nu.y); }
             break;
           }
           case 'cityLevel': {
@@ -445,6 +541,7 @@ export class Controller {
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
           // Minen: nur der Besitzer hoert das Legen / mines: only the owner hears the laying
           case 'mine': if (e.faction === this.viewer) this.play('build'); break;
+          case 'emplacement': if (e.faction === this.viewer) this.play('build'); break;
           case 'mineHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); this.ui.fx('num', e.x, e.y, `-${e.dmg}`); if (animate) this.view.shake(SHAKE.barrier * 2); } break;
           case 'aaFire': { const tu = before.get(e.target); if (tu && visible(tu.x, tu.y)) { this.play('hit'); this.ui.fx('num', tu.x, tu.y, `-${e.dmg}`); } break; }
           case 'terraform': if (e.faction === this.viewer) this.play('research'); break;
@@ -480,7 +577,7 @@ export class Controller {
             audio.weapon('tank');
             if (animate && board.unitObject(e.target)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.target, true, {
-                unitType: tb.type, unitFaction: fid(tb.owner), retaliate: false,
+                unitType: tb.type, unitFaction: fid(tb.owner), retaliate: false, ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
                 onImpact: () => { impact(); this.view.shake(impactShake(weaponOf('tank')) * 0.8); },
               });
             } else impact();
@@ -493,13 +590,13 @@ export class Controller {
             const hit = () => {
               this.ui.fx('hit', e.x, e.y);
               this.ui.fx(e.destroyed ? 'boom' : 'num', e.x, e.y, e.destroyed ? undefined : hitText(e.hit, e.dmg));
-              if (e.destroyed) { this.play('kill'); this.ui.toast(t('verdan.destroyed'), 'trophy'); }
+              if (e.destroyed) { this.play('kill'); this.ui.toast(e.owner !== undefined ? t('emplacement.destroyed', { name: t(`factions.${fid(e.owner)}.short`) }) : t('verdan.destroyed'), 'trophy'); }
             };
             const back = () => { if (e.ret || e.retHit === 'miss') this.ui.fx('num', ab.x, ab.y, hitText(e.retHit, e.ret)); };
             audio.weapon(ab.type);
             if (animate && board.unitObject(e.unit)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.unit, false, {
-                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0,
+                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0, ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
                 onImpact: () => { hit(); this.view.shake(e.destroyed ? SHAKE.wreck : impactShake(weaponOf(ab.type))); },
                 onReturnFire: () => audio.weapon('tank'),
                 onReturnImpact: back,
@@ -529,6 +626,17 @@ export class Controller {
               await new Promise((r) => setTimeout(r, RIFT_OPEN_MS));
             }
             this.view.invalidate();
+            break;
+          }
+          // Orbitallaser: Strahl aus dem Himmel, Einschlag mit Beben und Schadenszahlen / orbital laser: beam from the sky, impact with shake and damage numbers
+          case 'orbitalStrike': {
+            if (!(e.faction === this.viewer || e.tiles.some((p) => visible(p.x, p.y)))) break;
+            const impact = () => {
+              for (const h of e.hits) if (visible(h.x, h.y)) { this.ui.fx('hit', h.x, h.y); this.ui.fx('num', h.x, h.y, `-${h.dmg}`); }
+              if (animate) this.view.shake(ORBITAL_FX.shake, ORBITAL_FX.shakeMs);
+            };
+            audio.orbital(animate && board.animations ? (ORBITAL_FX.ms * ORBITAL_FX.impact) / 1000 : 0);
+            await board.animateOrbital(s, e.tiles, ORBITAL.area.w, fid(e.faction) ?? null, animate, impact);
             break;
           }
           // Meteorschauer und Saeureregen: Einschlag oder Zischen auf jeder getroffenen, sichtbaren Einheit
@@ -565,6 +673,8 @@ export class Controller {
     this.ui.update();
     if (s.over) this.finishGame();
     else if (!opts.ai) this.ui.rewards();
+    // Kult im eigenen Zug ausgeschieden (letzte Einheit gefallen): Zug weitergeben / cult eliminated during its own turn (last unit fell): pass the turn
+    if (!s.over && !opts.ai && !s.factions[s.current].alive) void this.endTurn();
     return res;
   }
 

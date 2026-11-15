@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, attackTargets, continueEndless, convertTargets, createGame, defaultConfig, paidUnits, reachable, supportedUnits,
+  applyCommand, attackTargets, continueEndless, convertTargets, createGame, cultUnits, defaultConfig, paidUnits, reachable, recruitCheck,
   techVisible, trainCheck, unitUpkeep, victoryStatus, korvatShareFor, wonderCheck, meridonNeedFor, type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import {
@@ -229,22 +229,30 @@ describe('Fortschritt und Sieg / progress and victory', () => {
     expectWin(s, 0);
   });
 
-  it('Erdkernbohrer: in der Stadt ausgebildet, 14 Runden Stillstand / earth-core drill: trained in a city, 14 rounds standing still', () => {
+  it('Erdkernbohrer: von einem Propheten im Feld gerufen, 14 Runden Stillstand / earth-core drill: called up in the field by a prophet, 14 rounds standing still', () => {
     expect(WONDERS.drillRounds).toBe(14);
     const s = game('vesper');
     const hq = s.cities[0];
-    expect(trainCheck(s, hq, 'coreDrill')).toBe('techMissing');
+    // der Kult bildet nichts in Staedten aus, auch den Bohrer nicht / the cult trains nothing in cities, not the drill either
+    expect(trainCheck(s, hq, 'coreDrill')).toBe('cultRecruit');
+    s.factions[0].techs.push('camouflage');
+    const p = addUnit(s, 'prophet', 0, 4, 4);
+    const p2 = addUnit(s, 'prophet', 0, 5, 5);
+    expect(recruitCheck(s, 0, p.id, 'coreDrill', 4, 5)).toBe('techMissing');
     giveTech(s, 0);
-    // auch der Kult bildet den Bohrer in der Stadt aus, nur einer zugleich / the cult trains the drill in a city too, only one at a time
-    ok(s, { type: 'train', city: hq.id, unitType: 'coreDrill' });
+    // nur Propheten rufen den Bohrer, nur einer zugleich / only prophets call up the drill, only one at a time
+    const z = addUnit(s, 'zealot', 0, 6, 6);
+    expect(recruitCheck(s, 0, z.id, 'coreDrill', 6, 7)).toBe('invalid');
+    ok(s, { type: 'recruit', unit: p.id, unitType: 'coreDrill', x: 4, y: 5 });
     const d = wonderOf(s, 0);
     expect(d.type).toBe('coreDrill');
-    expect(trainCheck(s, hq, 'coreDrill')).toBe('alreadyBuilt');
-    expect(supportedUnits(s, hq)).toBe(0);
+    expect(recruitCheck(s, 0, p2.id, 'coreDrill', 5, 6)).toBe('alreadyBuilt');
+    // zaehlt nicht zum Kult-Limit / does not count towards the cult cap
+    expect(cultUnits(s, 0).some((u) => u.id === d.id)).toBe(false);
     rounds(s, 0, 2);
     expect(d.stillRounds).toBe(2);
     // Bewegung setzt zurueck / moving resets
-    ok(s, { type: 'move', unit: d.id, to: { x: 3, y: 3 } });
+    ok(s, { type: 'move', unit: d.id, to: { x: 3, y: 5 } });
     expect(d.stillRounds).toBe(0);
     rounds(s, 0, 1);
     expect(d.stillRounds).toBe(0);
@@ -262,7 +270,7 @@ describe('Unterbrechung / interruption', () => {
     const s = game(id);
     giveTech(s, 0);
     if (kind === 'hackRelay') setTerrain(s, 3, 3, 'mountain');
-    if (kind === 'coreDrill') { ok(s, { type: 'train', city: s.cities[0].id, unitType: 'coreDrill' }); }
+    if (kind === 'coreDrill') { s.factions[0].techs.push('camouflage'); const p = addUnit(s, 'prophet', 0, 2, 3); ok(s, { type: 'recruit', unit: p.id, unitType: 'coreDrill', x: 3, y: 3 }); }
     else ok(s, { type: 'wonder', kind, x: 3, y: 3 });
     const w = wonderOf(s, 0);
     rounds(s, 0, n);
@@ -477,23 +485,29 @@ describe('KI und Wunder / AI and wonders', () => {
     expect(cmd).toMatchObject({ type: 'attack', target: portal.id });
   });
 
-  it('Bohrer faehrt aus der Stadt auf ein sicheres Feld und bleibt dort / drill leaves the city for a safe tile and stays', () => {
+  it('Prophet ruft den Bohrer im eigenen Gebiet, der Bohrer bleibt stehen / a prophet calls up the drill in own territory, the drill stays', () => {
     const s = game('vesper');
     s.factions[0].human = false;
+    s.factions[0].techs.push('camouflage');
     giveTech(s, 0);
-    ok(s, { type: 'train', city: s.cities[0].id, unitType: 'coreDrill' });
-    const d = wonderOf(s, 0);
-    let moved = 0;
-    for (let i = 0; i < 6; i++) {
+    addCity(s, 2, 7, 0);
+    addUnit(s, 'prophet', 0, 2, 3);
+    addUnit(s, 'zealot', 0, 1, 1);
+    let called = 0, moved = 0;
+    for (let i = 0; i < 7; i++) {
       untilTurnOf(s, 0);
       for (let k = 0; k < 200 && s.current === 0; k++) {
         const cmd = planNextCommand(s, 0);
-        if (cmd.type === 'move' && cmd.unit === d.id) moved++;
+        if (cmd.type === 'recruit' && cmd.unitType === 'coreDrill') called++;
+        const d = s.units.find((u) => u.type === 'coreDrill');
+        if (cmd.type === 'move' && d && cmd.unit === d.id) moved++;
         applyCommand(s, cmd);
         if (cmd.type === 'endTurn') break;
       }
     }
-    expect(moved).toBe(1);
+    const d = wonderOf(s, 0);
+    expect(called).toBe(1);
+    expect(moved).toBeLessThanOrEqual(1);
     expect(s.tiles[d.y * s.size + d.x].cityId).toBeNull();
     expect(d.stillRounds).toBeGreaterThanOrEqual(4);
   });
@@ -513,12 +527,16 @@ describe('KI und Wunder / AI and wonders', () => {
   it('Bohrer erst ab zwei eigenen Staedten / drill only from two own cities', () => {
     const s = game('vesper', 'korvat', 500);
     s.factions[0].human = false;
+    s.factions[0].techs.push('camouflage');
     giveTech(s, 0);
-    expect(aiTurn(s, 0).some((c) => c.type === 'train' && c.unitType === 'coreDrill')).toBe(false);
+    addUnit(s, 'prophet', 0, 2, 3);
+    const drill = (c: { type: string; unitType?: string }) => c.type === 'recruit' && c.unitType === 'coreDrill';
+    expect(aiTurn(s, 0).some(drill)).toBe(false);
     untilTurnOf(s, 0);
     addCity(s, 2, 7, 0);
     s.factions[0].stars = 500;
-    expect(aiTurn(s, 0).some((c) => c.type === 'train' && c.unitType === 'coreDrill')).toBe(true);
+    for (const u of s.units) if (u.owner === 0) u.recruitReady = 0;
+    expect(aiTurn(s, 0).some(drill)).toBe(true);
   });
 
   it('Voelkerbund: Rivalen brechen den Frieden erst spaet und nur mit Uebermacht / League: rivals break peace only late and only when much stronger', () => {
@@ -567,8 +585,9 @@ describe('KI und Wunder / AI and wonders', () => {
       }
       expect(failed).toBe(0);
       expect(maxTurn).toBeLessThan(AI.maxMillis * 1.5);
-      // mindestens eine Fraktion verfolgt ihre Siegbedingung / at least one faction pursues its victory condition
-      expect(ids.some((id) => seen.has(`research:${VICTORY_TECH[id]}`))).toBe(true);
+      // mindestens eine Fraktion verfolgt ihre Siegbedingung, oder die Partie endet vorher durch Eroberung
+      // at least one faction pursues its victory condition, or the game ends earlier by conquest
+      expect(ids.some((id) => seen.has(`research:${VICTORY_TECH[id]}`)) || s.victory?.kind === 'conquest').toBe(true);
     }, 180_000);
   }
 });

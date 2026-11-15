@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -192,6 +192,8 @@ export function outpostClaim(s: GameState, f: number, x: number, y: number): { c
 
 export function cityIncome(s: GameState, c: City): number {
   if (c.owner === null || c.noIncomeNext) return 0;
+  // Kult-Staedte bringen nichts ein, nur Plaetze (CULT) / cult cities bring no income, only slots (CULT)
+  if (isCultFaction(s, c.owner)) return 0;
   let inc = INCOME.perCityLevel * c.level;
   if (c.isHQ && c.hqOf === c.owner) inc += INCOME.hq;
   // Nachschublinie: festes Einkommen statt Stufe und HQ-Bonus / supply line: fixed income instead of level and HQ bonus
@@ -289,6 +291,8 @@ export function income(s: GameState, f: number): number {
   for (const c of ownCities(s, f)) inc += cityIncome(s, c);
   inc += embassyIncome(s, f);
   inc += uniqueBuildingIncome(s, f);
+  // Kult: Zehnt der Horde / cult: tithe of the horde
+  if (isCultFaction(s, f)) inc += cultTithe(s, f);
   const fa = s.factions[f];
   if (!fa.human) inc += INCOME.aiBonus[fa.difficulty];
   return inc;
@@ -307,6 +311,8 @@ export function unitUpkeep(u: Unit): number {
 }
 /** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
 export function paidUnits(s: GameState, f: number): Unit[] {
+  // Kult: die Horde lebt vom Land und kostet keinen Sold / cult: the horde lives off the land and costs no upkeep
+  if (isCultFaction(s, f)) return [];
   // Wunder kosten keinen Sold und belegen kein Freikontingent / wonders cost no upkeep and take no free slot
   // Endgegner ebenso / bosses likewise
   return s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
@@ -350,6 +356,8 @@ export function score(s: GameState, f: number): number {
   if (isAlienFaction(s, f)) for (const c of ownCities(s, f)) for (const pos of cityTiles(s, c)) if (tileAt(s, pos.x, pos.y)!.xeno) p += XENO.tilePoints;
   for (const u of ownUnits(s, f)) p += unitScore(u);
   p += SCORE.grandProject * fa.grandProjectsBuilt.length;
+  // Kult: Beute zaehlt dauerhaft / cult: loot counts permanently
+  p += (fa.plunder ?? 0) * CULT.plunderScore;
   return p;
 }
 
@@ -942,7 +950,7 @@ export const MAX_FUEL = FUEL.tank;
 
 // ---------- Bauen / building ----------
 
-export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt' | 'wrongFaction'; cost: number };
+export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt' | 'wrongFaction' | 'cannotBuild'; cost: number };
 
 export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
   const st = BUILDINGS[b];
@@ -953,6 +961,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   // Fraktionsgebaeude nur fuer ihre Fraktion / faction buildings only for their faction
   const own = FACTION_BUILDINGS[b];
   if (own && own !== s.factions[f].id) return { ok: false, error: 'wrongFaction', cost };
+  // Kult: nur Schrein, Pilgerstaette, Strassen und Bruecken (Staedte wachsen nicht) / cult: only shrine, pilgrimage site, roads and bridges (cities do not grow)
+  if (isCultFaction(s, f) && !CULT.buildings.includes(b)) return { ok: false, error: 'cannotBuild', cost };
   // Ressourcengebaeude der Fraktion: eigene Ortsregeln / the faction's resource building: own site rules
   if (RESOURCE_BUILDINGS.includes(b)) return resourceBuildCheck(s, f, b, x, y);
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
@@ -960,7 +970,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
   if (xenoB) {
     if (!t.xeno) return { ok: false, error: 'invalidTile', cost };
-    if (t.cityId !== null || t.building || t.feature || t.grandProject || t.outpost || !st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
+    if (t.cityId !== null || t.building || t.feature || t.grandProject || t.outpost || t.turret || !st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
     if ((b === 'xenoHarvester') !== !!t.resource) return { ok: false, error: 'invalidTile', cost };
     if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
     return { ok: true, cost };
@@ -969,7 +979,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
     const terr = t.terrain === 'ocean' ? null : (t.terrain as 'plain' | 'forest' | 'mountain' | 'shallow');
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
   } else if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
-  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf) return { ok: false, error: 'invalidTile', cost };
+  // Geschuetzfeld (Verdan oder Stellung): nichts darauf bauen / gun tile (Verdan or emplacement): nothing is built on it
+  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf || t.turret) return { ok: false, error: 'invalidTile', cost };
   if (!st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
   if (b === 'road') {
     if (t.road) return { ok: false, error: 'alreadyBuilt', cost };
@@ -1065,13 +1076,14 @@ export function pilgrimVeteranAt(s: GameState, f: number, x: number, y: number):
 
 export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x: number, y: number): boolean {
   const fa = s.factions[f];
-  if (supplyLines(s)) return false;
+  // keine Grossprojekte an Nachschublinien und beim Kult / no grand projects at supply lines and for the cult
+  if (supplyLines(s) || isCultFaction(s, f)) return false;
   if (!fa.grandProjectsUnlocked.includes(id) || fa.grandProjectsBuilt.includes(id)) return false;
   if (!inBounds(s.size, x, y)) return false;
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return false;
   if (!isLand(t) || t.terrain === 'mountain') return false;
-  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf);
+  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf || t.turret);
 }
 
 export function grandProjectConditionMet(s: GameState, f: number, id: GrandProjectId): boolean {
@@ -1122,8 +1134,9 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
   const alien = isAlienFaction(s, c.owner);
   const roster = ROSTERS[s.factions[c.owner].id];
   if ((st.faction && st.faction !== s.factions[c.owner].id) || (roster && !st.faction)) return 'invalid';
-  // Erdkernbohrer: in der Stadt, auch beim Kult; nur einer zugleich; ohne Stadtlimit
-  // earth-core drill: in a city, also for the cult; only one at a time; no city limit
+  // Kult bildet in Staedten nichts aus, auch den Bohrer nicht (der kommt ueber recruit) / the cult trains nothing in cities, not even the drill (it comes via recruit)
+  if (isCultFaction(s, c.owner)) return 'cultRecruit';
+  // Erdkernbohrer: nur einer zugleich; ohne Stadtlimit / earth-core drill: only one at a time; no city limit
   if (st.abilities.includes('wonder')) {
     if (!factionVictoryOn(s)) return 'invalid';
     if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
@@ -1132,8 +1145,6 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
     if (s.factions[c.owner].stars < unitCost(s, c.owner, type)!) return 'notEnoughStars';
     return 'ok';
   }
-  // Kult rekrutiert nicht in Staedten / the cult does not recruit in cities
-  if (isCultFaction(s, c.owner)) return 'cultRecruit';
   if (st.compute !== undefined && computePower(s, c.owner) < st.compute) return 'computeMissing';
   if (alien && !tileAt(s, c.x, c.y)!.xeno) return 'invalid';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
@@ -1214,7 +1225,7 @@ export function barrierCheck(s: GameState, u: Unit, x: number, y: number): Barri
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf) return 'invalidTile';
+  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf || t.turret) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (s.factions[u.owner].stars < barrierCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
@@ -1329,14 +1340,21 @@ export function effectiveDefense(s: GameState, u: Unit): number {
   return d;
 }
 
-export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel';
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel' | 'wrongFaction' | 'relayLimit';
 
 export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
   if (c.owner !== f) return 'notYourCity';
+  // Fraktionsausbau (Satelliten-Relay: nur Velkar) / faction upgrade (satellite relay: Velkar only)
+  const only = CITY_UPGRADES.faction[up];
+  if (only && s.factions[f].id !== only) return 'wrongFaction';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
+  const max = CITY_UPGRADES.perFaction[up];
+  if (max !== undefined && s.cities.filter((o) => o.owner === f && hasCityUpgrade(o, up)).length >= max) return 'relayLimit';
   // Nachschublinien und Sendetuerme lassen sich nicht ausbauen / supply lines and transmitter towers cannot be upgraded
   if (supplyLines(s) || c.tower) return 'noSlot';
+  // Kult-Staedte haben keine Ausbauten / cult cities have no upgrades
+  if (isCultFaction(s, f)) return 'noSlot';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
   const need = cityUpgradeRequirement(s, f, up);
   if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';
@@ -1435,40 +1453,114 @@ export function computeStats(s: GameState, f: number): { dataCenters: number; po
 }
 export const computePower = (s: GameState, f: number) => computeStats(s, f).compute;
 
-export type RecruitCheck = 'ok' | 'notPreacher' | 'unitExhausted' | 'outOfRange' | 'occupied' | 'invalidTile' | 'invalid' | 'techMissing' | 'unitLimit' | 'notEnoughStars';
-/** Heimatstadt fuer Rekruten: naechste eigene Stadt / home city for recruits: nearest own city */
-export function recruitHome(s: GameState, f: number, x: number, y: number): City | null {
-  let best: City | null = null, bd = Infinity;
-  for (const c of ownCities(s, f)) { const d = dist(c, { x, y }); if (d < bd) { bd = d; best = c; } }
-  return best;
+export type RecruitCheck = 'ok' | 'notPreacher' | 'unitExhausted' | 'recruitCooldown' | 'outOfRange' | 'occupied' | 'invalidTile' | 'invalid' | 'techMissing' | 'unitLimit' | 'notEnoughStars' | 'alreadyBuilt';
+
+// ---------- Kult: Pluendern, Plaetze, Rekrutieren / cult: plunder, slots, recruiting ----------
+
+/** Einheiten, die das Kult-Limit belegen (ohne Wunder und Endgegner) / units that take a slot of the cult cap (without wonders and bosses) */
+export const cultUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u));
+
+/**
+ * Plaetze, die eine Kult-Stadt stellt: Stadtlimit (Stufe + 1, Sendeturm, Nachschublinie), eigenes Hauptquartier + CULT.hqSlots,
+ * Schrein im Stadtgebiet + CULT.shrineSlots.
+ * Slots a cult city provides: city limit (level + 1, tower, supply line), own headquarters + CULT.hqSlots,
+ * shrine in the city territory + CULT.shrineSlots.
+ */
+export function cultSlots(s: GameState, c: City): number {
+  if (c.owner === null) return 0;
+  let n = unitLimit(s, c);
+  if (c.isHQ && c.hqOf === c.owner) n += CULT.hqSlots;
+  if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'shrine')) n += CULT.shrineSlots;
+  return n;
 }
-/** Kann der Prediger diese Einheit auf (x, y) rekrutieren? / can the preacher recruit this unit at (x, y)? */
-export function recruitCheck(s: GameState, f: number, unitId: number, type: UnitTypeId, x: number, y: number): RecruitCheck {
+
+/** Einheitenlimit des Kults: Grundzahl plus Plaetze aller eigenen Staedte / unit cap of the cult: base plus the slots of all own cities */
+export function cultCap(s: GameState, f: number): number {
+  let n = CULT.baseCap;
+  for (const c of ownCities(s, f)) n += cultSlots(s, c);
+  return n;
+}
+
+/** Zehnt der Horde pro Runde / tithe of the horde per round */
+export function cultTithe(s: GameState, f: number): number {
+  const max = Math.min(CULT.titheMax, CULT.titheRival * Math.max(1, s.factions.length - 1));
+  return Math.min(max, Math.floor(cultUnits(s, f).length * CULT.tithePerUnit));
+}
+
+/**
+ * Beute, wenn der Kult diese Stadt jetzt einnimmt: nach Stufe und Hauptquartier; 0 bei eigener Stadt oder wenn die letzte
+ * Pluenderung weniger als CULT.replunderRounds Runden her ist.
+ * Loot if the cult takes this city now: by level and headquarters; 0 for an own city or if the last plunder was less
+ * than CULT.replunderRounds rounds ago.
+ */
+export function plunderValue(s: GameState, f: number, c: City): number {
+  if (!isCultFaction(s, f) || c.owner === f) return 0;
+  if (c.plundered !== undefined && s.round - c.plundered < CULT.replunderRounds) return 0;
+  return CULT.plunderBase + CULT.plunderPerLevel * c.level + (c.isHQ ? CULT.plunderHq : 0);
+}
+
+/** Welche Einheiten ruft dieser Rekrutierer? / which units does this recruiter call up? */
+export const recruitTypes = (u: Unit): UnitTypeId[] => CULT.recruiters[u.type] ?? [];
+/** Runden, bis der Rekrutierer wieder bereit ist (0 = bereit) / rounds until the recruiter is ready again (0 = ready) */
+export const recruitWait = (s: GameState, u: Unit) => Math.max(0, (u.recruitReady ?? 0) - s.round);
+
+/**
+ * Kann der Rekrutierer diese Einheit auf (x, y) rufen? Gleiche Feldregeln wie beim Aufstellen (freeFor, spawnBlocked):
+ * kein Wasser, kein Vulkan, keine Lava, nicht das Artefakt, Berge nur mit Gebirgsausbildung, keine fremde Stadt.
+ * Can the recruiter call up this unit at (x, y)? Same tile rules as for placing (freeFor, spawnBlocked):
+ * no water, no volcano, no lava, not the artifact, mountains only with mountain training, no foreign city.
+ */
+/** Horde und Limit, einmal berechnet fuer viele Pruefungen / horde and cap, computed once for many checks */
+export interface HordeCount { units: number; cap: number }
+export const hordeCount = (s: GameState, f: number): HordeCount => ({ units: cultUnits(s, f).length, cap: cultCap(s, f) });
+
+export function recruitCheck(s: GameState, f: number, unitId: number, type: UnitTypeId, x: number, y: number, horde?: HordeCount): RecruitCheck {
   if (!isCultFaction(s, f)) return 'invalid';
   const u = s.units.find((o) => o.id === unitId);
-  if (!u || u.owner !== f || !has(u, 'preach')) return 'notPreacher';
-  if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
+  if (!u || u.owner !== f || !recruitTypes(u).length) return 'notPreacher';
+  if (!recruitTypes(u).includes(type)) return 'invalid';
   const st = UNITS[type];
-  if (st.faction !== CULT.faction || st.ship || st.cost === null || st.abilities.includes('wonder')) return 'invalid';
+  if (st.faction !== CULT.faction || st.ship || st.cost === null) return 'invalid';
+  const wonder = st.abilities.includes('wonder');
+  if (wonder && !factionVictoryOn(s)) return 'invalid';
+  if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
+  if (recruitWait(s, u) > 0) return 'recruitCooldown';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
   if (!isLand(t)) return 'invalidTile';
-  if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) return 'invalidTile';
+  if (t.terrain === 'mountain' && (wonder || !hasTech(s, f, 'mountainTraining'))) return 'invalidTile';
   // kein Vulkangipfel, keine Lava, nicht das Artefakt der Kampagne / no volcano peak, no lava, not the campaign artifact
   const art = s.campaign?.artifact;
   if (t.volcano || burning(s, t) || (art && art.x === x && art.y === y)) return 'invalidTile';
   if (unitAt(s, x, y) || t.wonderOf || t.turret) return 'occupied';
+  // nie in eine fremde Stadt / never into a foreign city
+  if (t.cityId !== null && cityById(s, t.cityId)?.owner !== f) return 'invalidTile';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
-  const home = recruitHome(s, f, x, y);
-  if (!home || supportedUnits(s, home) >= unitLimit(s, home)) return 'unitLimit';
+  if (wonder) {
+    if (s.units.filter((o) => o.owner === f && o.type === type).length >= WONDERS.drillMax) return 'alreadyBuilt';
+  } else {
+    const h = horde ?? hordeCount(s, f);
+    if (h.units >= h.cap) return 'unitLimit';
+  }
   if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
   return 'ok';
 }
 /** Freies Nachbarfeld fuer eine Rekrutierung / free adjacent tile for a recruit */
-export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
-  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok');
+export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId, horde?: HordeCount): Pos | null {
+  const h = horde ?? hordeCount(s, u.owner);
+  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y, h) === 'ok');
   // zuerst neben einer Pilgerstaette (Veteranen) / next to a pilgrimage site first (veterans)
   return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots[0] ?? null;
+}
+/**
+ * Grund, warum der Rekrutierer diese Einheit nicht rufen kann (Feldfehler nur, wenn kein Feld frei ist): 'ok', wenn ein Feld passt.
+ * Reason why the recruiter cannot call up this unit (tile errors only if no tile is free): 'ok' if a tile fits.
+ */
+export function recruitReason(s: GameState, u: Unit, type: UnitTypeId): RecruitCheck | 'noSpace' {
+  const h = hordeCount(s, u.owner);
+  if (recruitSpot(s, u, type, h)) return 'ok';
+  const tileErr: RecruitCheck[] = ['occupied', 'invalidTile', 'outOfRange'];
+  return neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y, h)).find((r) => !tileErr.includes(r)) ?? 'noSpace';
 }
 
 // ---------- Konter-Einheiten / counter units ----------
@@ -1517,7 +1609,7 @@ export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineChec
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf) return 'invalidTile';
+  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf || t.turret) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (mineCount(s, u.owner) >= COUNTER.mine.maxPerFaction) return 'unitLimit';
   if (s.factions[u.owner].stars < COUNTER.mine.cost) return 'notEnoughStars';
@@ -1618,7 +1710,7 @@ export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number
     if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
     const t = tileAt(s, p.x, p.y)!;
     const terrainOk = WONDERS.terrain[kind].includes(t.terrain);
-    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.volcano || burning(s, t)) return 'invalidTile';
+    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.turret || t.volcano || burning(s, t)) return 'invalidTile';
     // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
     if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
     const own = territoryOwner(s, t) === f || (kind === 'hackRelay' && t.outpost?.owner === f);
@@ -1744,23 +1836,35 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
 
 // ---------- Verdan-Verteidigungslinie / Verdan defence line ----------
 
-/** Lebendes Verdan-Geschuetz auf dem Feld? / living Verdan gun on the tile? */
+/** Lebendes Geschuetz auf dem Feld (Verdan oder Stellung)? / living gun on the tile (Verdan or emplacement)? */
 export const turretAt = (s: GameState, x: number, y: number) => {
   const t = tileAt(s, x, y);
   return t?.turret && t.turret.hp > 0 ? t.turret : null;
 };
-/** Alle lebenden Verdan-Geschuetze mit Position / all living Verdan guns with position */
-export function turretList(s: GameState): (Pos & { hp: number; active: boolean })[] {
-  const out: (Pos & { hp: number; active: boolean })[] = [];
-  s.tiles.forEach((t, k) => { if (t.turret && t.turret.hp > 0) out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active }); });
+/** Werte eines Geschuetzes: neutral = Verdan, mit Besitzer = Geschuetzstellung / stats of a gun: neutral = Verdan, with owner = emplacement */
+export const gunStats = (g: { owner?: number }) => (g.owner === undefined ? VERDAN : EMPLACEMENT);
+/**
+ * Ist das Geschuetz fuer Fraktion f feindlich (darf f es angreifen, beschiesst es f)? Neutral: immer; Stellung: nur im Krieg
+ * mit dem Besitzer (nie im Frieden, nie Verbuendete, nie die eigene).
+ * Is the gun hostile to faction f (may f attack it, does it fire at f)? Neutral: always; emplacement: only at war with the
+ * owner (never at peace, never allies, never the own).
+ */
+export const gunHostile = (s: GameState, g: { owner?: number }, f: number) => g.owner === undefined || isHostile(s, f, g.owner);
+/** Alle lebenden Geschuetze mit Position (owner nur bei Stellungen) / all living guns with position (owner only for emplacements) */
+export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number })[] {
+  const out: (Pos & { hp: number; active: boolean; owner?: number })[] = [];
+  s.tiles.forEach((t, k) => {
+    if (!t.turret || t.turret.hp <= 0) return;
+    out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active, ...(t.turret.owner !== undefined ? { owner: t.turret.owner } : {}) });
+  });
   return out;
 }
 
-/** Geschuetze, die u jetzt angreifen kann (in Reichweite, aufgedeckt) / guns u can attack now (in range, explored) */
+/** Geschuetze, die u jetzt angreifen kann (in Reichweite, aufgedeckt, feindlich) / guns u can attack now (in range, explored, hostile) */
 export function turretTargets(s: GameState, u: Unit): Pos[] {
   if (!canAttackNow(u) || submerged(s, u) || UNITS[u.type].attack <= 0) return [];
   const r = effectiveRange(s, u);
-  return turretList(s).filter((p) => dist(u, p) <= r && isExplored(s, u.owner, p.x, p.y)).map((p) => ({ x: p.x, y: p.y }));
+  return turretList(s).filter((p) => dist(u, p) <= r && isExplored(s, u.owner, p.x, p.y) && gunHostile(s, p, u.owner)).map((p) => ({ x: p.x, y: p.y }));
 }
 
 /**
@@ -1769,28 +1873,34 @@ export function turretTargets(s: GameState, u: Unit): Pos[] {
  */
 export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number; ret: (turretHp: number) => number; odds: Record<HitKind, number>; moveFire: boolean } {
   const t = tileAt(s, p.x, p.y)!.turret!;
+  const G = gunStats(t);
   const atk = effectiveAttack(s, u);
   const attackForce = atk * (u.hp / u.maxHp);
-  const defenseForce = VERDAN.defense * (t.hp / VERDAN.hp);
+  const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
   const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u)) : 0;
-  const near = dist(u, p) <= VERDAN.range;
+  const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;
-    const df = VERDAN.defense * (hp / VERDAN.hp);
+    const df = G.defense * (hp / G.hp);
     const tt = attackForce + df;
-    return tt > 0 ? Math.round((df / tt) * VERDAN.defense * COMBAT.damageFactor) : 0;
+    return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor) : 0;
   };
   return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) };
 }
 
-/** Schuss eines Geschuetzes mit hp LP auf def (voller Treffer) / shot of a gun with hp HP at def (full hit) */
-export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
-  const attackForce = VERDAN.attack * (hp / VERDAN.hp);
+/**
+ * Schuss eines Geschuetzes mit hp LP auf def (voller Treffer); G = Werte (Standard Verdan, Stellung: EMPLACEMENT).
+ * Ein Geschuetz bewegt sich nie, sein Feuer ist immer voller Schaden (kein MOVE_FIRE).
+ * Shot of a gun with hp HP at def (full hit); G = stats (default Verdan, emplacement: EMPLACEMENT).
+ * A gun never moves, its fire is always full damage (no MOVE_FIRE).
+ */
+export function turretShotDamage(s: GameState, hp: number, def: Unit, G: { attack: number; hp: number } = VERDAN): number {
+  const attackForce = G.attack * (hp / G.hp);
   const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def) * (1 + homeDefenseAt(s, def));
   const total = attackForce + defenseForce;
-  return total > 0 ? Math.round((attackForce / total) * VERDAN.attack * COMBAT.damageFactor) : 0;
+  return total > 0 ? Math.round((attackForce / total) * G.attack * COMBAT.damageFactor) : 0;
 }
 
 /**

@@ -53,11 +53,15 @@ export interface Tile {
   wonderOf?: number | null;
   /**
    * Geschuetz der alten Verdan-Verteidigungslinie (neutral, unpassierbar); active = erwacht und feuert.
+   * Mit owner: Geschuetzstellung dieser Fraktion (Festungsbau, EMPLACEMENT), immer aktiv; fehlt = neutral (alte Spielstaende).
    * Gun of the old Verdan defence line (neutral, impassable); active = awake and firing.
+   * With owner: gun emplacement of that faction (fortification, EMPLACEMENT), always active; missing = neutral (old saves).
    */
-  turret?: { hp: number; active: boolean } | null;
-  /** Truemmer eines zerstoerten Verdan-Geschuetzes (optisch) / rubble of a destroyed Verdan gun (visual) */
+  turret?: { hp: number; active: boolean; owner?: number } | null;
+  /** Truemmer eines zerstoerten Geschuetzes (optisch) / rubble of a destroyed gun (visual) */
   turretRuin?: boolean;
+  /** Fraktion der zerstoerten Stellung (nur Optik der Truemmer) / faction of the destroyed emplacement (rubble look only) */
+  turretRuinOwner?: number;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -86,6 +90,8 @@ export interface City {
    * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
    */
   tower?: boolean;
+  /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
+  plundered?: number;
   nameIndex: number;
 }
 
@@ -104,6 +110,8 @@ export interface Unit {
   veteran: boolean;
   /** Geordneter Rueckzug wieder moeglich ab dieser Runde / orderly retreat available again from this round */
   retreatReady?: number;
+  /** Kult: Rekrutieren wieder moeglich ab dieser Runde / cult: recruiting available again from this round */
+  recruitReady?: number;
   /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
   rockets?: number;
   /**
@@ -161,6 +169,10 @@ export interface Faction {
   eliminatedRound: number | null;
   /** Alvenia, Voelkerbund: Runden in Folge mit erfuellter Bedingung / League of Nations: consecutive rounds with the condition met */
   league?: number;
+  /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
+  plunder?: number;
+  /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
+  orbitalReady?: number;
 }
 
 export interface PendingReward {
@@ -300,11 +312,14 @@ export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
   | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
-  | { t: 'capture'; city: number; faction: number; from: number | null }
+  /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
+  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
   | { t: 'train'; unit: number; city: number }
+  /** Kult: Einheit by ruft im Feld die Einheit unit / cult: unit by calls up unit in the field */
+  | { t: 'recruit'; unit: number; by: number }
   | { t: 'build'; building: BuildingId | 'outpost' | GrandProjectId; x: number; y: number; faction: number }
   | { t: 'research'; tech: TechId; faction: number }
   | { t: 'heal'; unit: number; amount: number; repair?: boolean }
@@ -350,9 +365,14 @@ export type GameEvent =
   /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
   | { t: 'verdanActive'; faction: number }
   /** Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit */
-  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind }
+  /** owner/victim nur bei Geschuetzstellungen: Besitzer und Fraktion des Ziels / owner/victim only for emplacements: owner and the target's faction */
+  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind; owner?: number; victim?: number }
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
-  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean }
+  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number }
+  /** Geschuetzstellung gebaut / gun emplacement built */
+  | { t: 'emplacement'; x: number; y: number; faction: number }
+  /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */
+  | { t: 'emplacementLost'; x: number; y: number; faction: number; reason: 'territory' | 'eliminated' }
   /**
    * Endgegner: aufgetaucht, Brut geschluepft (count), psychischer Schrei (hits) / boss: emerged, brood hatched (count), psychic scream (hits)
    */
@@ -361,9 +381,17 @@ export type GameEvent =
   | { t: 'rift'; unit: number; x: number; y: number }
   /** Schadenswetter zu Rundenbeginn (Meteorschauer, Saeureregen): getroffene Einheiten / damaging weather at round start (meteors, acid rain): units hit */
   | { t: 'weatherHit'; kind: 'meteor' | 'acid'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /**
+   * Orbitallaser: Ziel (x, y), getroffene Flaeche, Treffer an Einheiten (unit) und Geschuetzen (turret), deterministisch.
+   * Orbital laser: target (x, y), area hit, hits on units (unit) and guns (turret), deterministic.
+   */
+  | { t: 'orbitalStrike'; faction: number; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
   /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
   | { t: 'ruin'; index: number; x: number; y: number; faction: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
+
+/** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
+export interface OrbitalHit { unit?: number; turret?: boolean; x: number; y: number; dmg: number; killed: boolean }
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
 
@@ -387,15 +415,19 @@ export type Command =
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
   | { type: 'mine'; unit: number; x: number; y: number }
+  /** Geschuetzstellung bauen (Festungsbau, Dravon) / build a gun emplacement (fortification, Dravon) */
+  | { type: 'emplacement'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'terraform'; x: number; y: number; unit?: number }
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
-  /** Wunder bauen (Bohrer wird per 'train' ausgebildet) / build a wonder (the drill is trained via 'train') */
+  /** Wunder bauen (den Bohrer ruft ein Prophet per 'recruit') / build a wonder (a prophet calls up the drill via 'recruit') */
   | { type: 'wonder'; kind: WonderKind; x: number; y: number }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
+  /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
+  | { type: 'orbitalStrike'; x: number; y: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -404,8 +436,10 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory' | 'cannotBuild' | 'quake';
+  | 'notPreacher' | 'recruitCooldown' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
+  | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing'
+  // Orbitallaser / orbital laser
+  | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit';
 
 export interface CommandResult {
   ok: boolean;

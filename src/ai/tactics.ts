@@ -5,9 +5,10 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
-import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
+import { emplacementOption } from './emplacements';
+import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -144,11 +145,14 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
 
 // ---------- Verdan-Geschuetze / Verdan guns ----------
 
-const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean })[]>();
-/** Bekannte (aufgedeckte) Verdan-Geschuetze / known (explored) Verdan guns */
+const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean; owner?: number })[]>();
+/**
+ * Bekannte (aufgedeckte) feindliche Geschuetze: Verdan und Stellungen von Kriegsgegnern (eigene und befreundete nicht).
+ * Known (explored) hostile guns: Verdan and emplacements of enemies at war (not own or friendly ones).
+ */
 function knownGuns(ctx: Ctx) {
   let g = gunCache.get(ctx);
-  if (!g) { g = turretList(ctx.s).filter((p) => ctx.fa.explored[idx(ctx.size, p.x, p.y)]); gunCache.set(ctx, g); }
+  if (!g) { g = turretList(ctx.s).filter((p) => ctx.fa.explored[idx(ctx.size, p.x, p.y)] && gunHostile(ctx.s, p, ctx.f)); gunCache.set(ctx, g); }
   return g;
 }
 
@@ -167,16 +171,25 @@ function gunAttackValue(ctx: Ctx, u: Unit, p: Pos): number {
     expected += o * Math.min(d, gun.hp);
     if (d >= gun.hp) kill += o; else ret += o * pre.ret(gun.hp - d);
   }
-  const prize = gun.active ? 34 : 14;
-  let v = (expected / VERDAN.hp) * prize + kill * prize;
+  // Stellungen: eigener Preis, mehr wenn sie eigene Einheiten oder Staedte bedrohen / emplacements: own prize, more when they threaten own units or cities
+  const own = gun.owner !== undefined;
+  const near = own ? ctx.my.filter((o) => dist(o, p) <= EMPLACEMENT.range).length + ctx.myCities.filter((c) => dist(c, p) <= EMPLACEMENT.range + 1).length * 2 : 0;
+  const prize = own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
+  let v = (expected / gunStats(gun).hp) * prize + kill * prize;
   v -= ret >= u.hp ? worth(u) + 6 : (ret / u.hp) * worth(u) * 0.7;
   return v;
 }
 
-/** Gefahr durch wache Geschuetze auf (x, y) / danger from awake guns at (x, y) */
+/** Gefahr durch wache Verdan-Geschuetze auf (x, y) / danger from awake Verdan guns at (x, y) */
 function gunDanger(ctx: Ctx, x: number, y: number): number {
   let n = 0;
-  for (const g of knownGuns(ctx)) if (g.active && dist(g, { x, y }) <= VERDAN.range) n++;
+  for (const g of knownGuns(ctx)) if (g.active && g.owner === undefined && dist(g, { x, y }) <= VERDAN.range) n++;
+  return n;
+}
+/** Feindliche Geschuetzstellungen in Schussweite von (x, y) / hostile gun emplacements within range of (x, y) */
+function emplacementDanger(ctx: Ctx, x: number, y: number): number {
+  let n = 0;
+  for (const g of knownGuns(ctx)) if (g.owner !== undefined && dist(g, { x, y }) <= EMPLACEMENT.range) n++;
   return n;
 }
 
@@ -334,6 +347,10 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   // awake Verdan guns fire at the start of the round; only worth it for fighters close enough to strike
   const guns = knownGuns(ctx).length ? gunDanger(ctx, x, y) : 0;
   if (guns) v -= guns * worth(u) * 0.35 * prof.caution * (UNITS[type].attack > 0 ? 0.6 : 1.4);
+  // feindliche Stellungen: schwache oder angeschlagene Einheiten bleiben draussen, starke duerfen heran
+  // hostile emplacements: weak or battered units stay out, strong ones may close in
+  const emp = knownGuns(ctx).length ? emplacementDanger(ctx, x, y) : 0;
+  if (emp) v -= emp * worth(u) * 0.3 * prof.caution * (UNITS[type].attack <= 1 || u.hp < u.maxHp * 0.5 ? 1.5 : 0);
   // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
   for (const p of area(size, x, y, 1)) {
     const vt = s.tiles[idx(size, p.x, p.y)];
@@ -459,6 +476,12 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
       const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
       if (stay + mo.v > bestV && ok(failed, c)) { bestV = stay + mo.v; bestCmd = c; }
     }
+    // Festungsbau: Geschuetzstellung an bedrohter Stadt / fortification: gun emplacement at a threatened city
+    const eo = emplacementOption(ctx, u);
+    if (eo) {
+      const c: Command = { type: 'emplacement', unit: u.id, x: eo.x, y: eo.y };
+      if (stay + eo.v > bestV && ok(failed, c)) { bestV = stay + eo.v; bestCmd = c; }
+    }
     // Terraformer: Feld umwandeln, bevorzugt Staedte und Ressourcen / terraformer: convert a tile, cities and resources first
     if (has(u, 'terraform')) {
       for (const p of terraformTargets(s, u)) {
@@ -487,6 +510,11 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
     const mo = mineOption(ctx, u);
     if (mo) {
       const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
+      if (ok(failed, c)) return c;
+    }
+    const eo = emplacementOption(ctx, u);
+    if (eo) {
+      const c: Command = { type: 'emplacement', unit: u.id, x: eo.x, y: eo.y };
       if (ok(failed, c)) return c;
     }
     const oc = outpostOption(ctx, u);

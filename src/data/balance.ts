@@ -108,7 +108,7 @@ export type UnitClass = CounterClass | 'ship' | 'structure';
  * Faction victory conditions (in addition to points and conquest). Rounds count at the start of the own turn.
  */
 export const WONDERS = {
-  /** Sternepreis je Wunder (Bohrer: Ausbildungspreis) / star price per wonder (drill: training price) */
+  /** Sternepreis je Wunder (Bohrer: Rekrutierungspreis) / star price per wonder (drill: recruit price) */
   cost: { portal: 100, hackRelay: 80, fusionPlant: 120, waal: 90, coreDrill: 80 } as Record<WonderUnitId, number>,
   /** Fraktion je Wunder / faction per wonder */
   faction: { portal: 'zyrr', hackRelay: 'nexus', fusionPlant: 'velkar', waal: 'dravon', coreDrill: 'vesper' } as Record<WonderUnitId, FactionId>,
@@ -194,12 +194,14 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   terraformer: { cost: 20, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: ['terraform', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   skimmer: { cost: 40, hp: 12, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'zyrr' },
   mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
-  zealot: { cost: 10, hp: 10, attack: 2, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
-  torchbearer: { cost: 20, hp: 10, attack: 3.5, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn'], tech: 'forestry', ship: false, faction: 'vesper' },
-  prophet: { cost: 30, hp: 10, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
-  doomBuggy: { cost: 18, hp: 10, attack: 2.5, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false, faction: 'vesper' },
-  rocketCart: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'vesper' },
-  doomCrawler: { cost: 55, hp: 30, attack: 4, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: 'armsIndustry', ship: false, faction: 'vesper' },
+  // Kult: Masse statt Klasse, etwa 20 % weniger LP und Angriff als vergleichbare Einheiten, dafuer billiger (CULT)
+  // cult: mass over class, about 20 % less HP and attack than comparable units, but cheaper (CULT)
+  zealot: { cost: 7, hp: 8, attack: 1.6, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
+  torchbearer: { cost: 14, hp: 8, attack: 2.8, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn', 'preach'], tech: 'forestry', ship: false, faction: 'vesper' },
+  prophet: { cost: 22, hp: 8, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
+  doomBuggy: { cost: 13, hp: 8, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false, faction: 'vesper' },
+  rocketCart: { cost: 30, hp: 8, attack: 3.2, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'vesper' },
+  doomCrawler: { cost: 40, hp: 24, attack: 3.2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper' },
   android: { cost: 12, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
   spider: { cost: 25, hp: 12, attack: 3, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker'], tech: null, ship: false, faction: 'nexus', compute: 1 },
   quadDrone: { cost: 35, hp: 10, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'nexus', compute: 2 },
@@ -215,7 +217,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Minenleger: legt verdeckte Minen auf Nachbarfelder / mine layer: lays hidden mines on adjacent tiles
   mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: 'fortification', ship: false },
   // Kult: Panzerfaust-Eiferer / cult: rocket zealot
-  faustZealot: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  faustZealot: { cost: 14, hp: 8, attack: 1.6, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
   // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
   flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
   // Einzigartige Einheiten (siehe UNIQUE) / unique units (see UNIQUE)
@@ -235,8 +237,8 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   fusionPlant: { cost: null, hp: 45, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'fusionResearch', ship: false, faction: 'velkar' },
   // Waal: schiesst erst nach der ersten Bauphase (Reichweite 2), faehrt nie / Waal: fires only after the first build phase (range 2), never drives
   waal: { cost: null, hp: 60, attack: 5, defense: 4, move: 0, range: 2, vision: 2, abilities: ['wonder'], tech: 'waalProgram', ship: false, faction: 'dravon' },
-  // Erdkernbohrer: beweglich, wird in der Stadt ausgebildet / earth-core drill: mobile, trained in a city
-  coreDrill: { cost: WONDERS.cost.coreDrill, hp: 25, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
+  // Erdkernbohrer: beweglich, von einem Propheten im Feld gerufen (CULT.recruiters) / earth-core drill: mobile, called up in the field by a prophet (CULT.recruiters)
+  coreDrill: { cost: WONDERS.cost.coreDrill, hp: 20, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
   // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
   swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
 };
@@ -363,8 +365,66 @@ export const JUNGLE = {
   footDefense: 1.5,
 };
 
-/** Kult: Rekrutieren neben Predigern statt in Staedten / cult: recruit next to preachers instead of in cities */
-export const CULT = { faction: 'vesper' as FactionId };
+/**
+ * Kult der Letzten Stunde: pluendert Staedte statt sie zu bewirtschaften und rekrutiert nur im Feld.
+ * Cult of the Final Hour: plunders cities instead of running them and recruits in the field only.
+ * Kult-Staedte bringen kein Einkommen, wachsen nicht, bilden nicht aus und haben keine Ausbauten oder Grossprojekte;
+ * sie stellen nur Plaetze fuer das Einheitenlimit (Stadtlimit wie bei allen: Stufe + 1). Der Kult zahlt keinen Sold.
+ * Cult cities bring no income, do not grow, do not train and have no upgrades or grand projects; they only provide
+ * slots for the unit cap (city limit as for everyone: level + 1). The cult pays no upkeep.
+ */
+export const CULT = {
+  faction: 'vesper' as FactionId,
+  /**
+   * Pluenderung beim Einnehmen: base + perLevel x Stufe (+ hq fuer ein Hauptquartier). Dieselbe Stadt zahlt erst wieder,
+   * wenn ihre letzte Pluenderung mindestens replunderRounds Runden her ist (kein Hin-und-her-Farmen).
+   * Plunder on capture: base + perLevel x level (+ hq for a headquarters). The same city pays again only once its last
+   * plunder is at least replunderRounds rounds ago (no back-and-forth farming).
+   */
+  plunderBase: 20,
+  plunderPerLevel: 12,
+  plunderHq: 40,
+  replunderRounds: 6,
+  /** Punkte je gepluendertem Stern (Beute zaehlt dauerhaft) / points per plundered star (loot counts permanently) */
+  plunderScore: 7,
+  /**
+   * Einheitenlimit des Kults: baseCap plus die Plaetze seiner Staedte (Stadtlimit, eigenes Hauptquartier + hqSlots,
+   * Schrein im Stadtgebiet + shrineSlots). Wunder zaehlen nicht.
+   * Unit cap of the cult: baseCap plus the slots of its cities (city limit, own headquarters + hqSlots, shrine in the
+   * city territory + shrineSlots). Wonders do not count.
+   */
+  baseCap: 3,
+  hqSlots: 1,
+  shrineSlots: 2,
+  /**
+   * Rekrutieren im Feld: wer welche Einheiten auf ein freies Nachbarfeld ruft. Danach ist der Rekrutierer fuer diesen Zug
+   * erschoepft und erst nach recruitCooldown Runden wieder bereit; der Rekrut handelt ab dem naechsten Zug.
+   * Recruiting in the field: who calls which units onto a free adjacent tile. Afterwards the recruiter is exhausted for
+   * this turn and ready again only after recruitCooldown rounds; the recruit acts from the next turn.
+   */
+  recruiters: {
+    zealot: ['zealot', 'torchbearer', 'faustZealot', 'prophet'],
+    torchbearer: ['zealot'],
+    faustZealot: ['zealot'],
+    prophet: ['zealot', 'torchbearer', 'faustZealot', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'coreDrill'],
+    doomCrawler: ['zealot', 'doomBuggy', 'rocketCart'],
+  } as Partial<Record<UnitTypeId, UnitTypeId[]>>,
+  recruitCooldown: 2,
+  /** Zehnt der Horde: Sterne je Runde pro Einheit (abgerundet), hoechstens titheMax / tithe of the horde: stars per round per unit (rounded down), at most titheMax */
+  tithePerUnit: 1,
+  titheMax: 16,
+  /**
+   * Zehnt hoechstens titheRival je gegnerischer Fraktion der Partie (Zweikampf 4, drei Fraktionen 8, vier 12, fuenf titheMax): mit
+   * nur einem Opfer reicht die Beute auch ohne vollen Zehnt.
+   * Tithe at most titheRival per rival faction of the game (duel 4, three factions 8, four 12, five titheMax): with only one
+   * victim the loot suffices even without the full tithe.
+   */
+  titheRival: 4,
+  /** Starthorde zusaetzlich zur Starteinheit, auf freien Feldern neben dem Hauptquartier / starting horde in addition to the start unit, on free tiles next to the HQ */
+  startUnits: ['zealot', 'zealot', 'zealot'] as UnitTypeId[],
+  /** Gebaeude, die der Kult bauen darf / buildings the cult may build */
+  buildings: ['shrine', 'pilgrimSite', 'road', 'bridge'] as BuildingId[],
+};
 
 /** NEXUS: Rechenleistung aus Rechenzentren mit Energie / NEXUS: compute from powered data centers */
 export const NEXUS = { faction: 'nexus' as FactionId };
@@ -626,17 +686,56 @@ export const WEATHER = {
   quake: { chance: 0.22, salt: 0x2b7e1516 },
 };
 
+/**
+ * Orbitallaser der Velkar: ein Satelliten-Relay (Stadt-Ausbau, siehe CITY_UPGRADES) erlaubt alle cooldown Runden einen
+ * Schuss aus dem Orbit auf eine Flaeche area (w x h Felder, Zielfeld = linke obere Ecke, am Kartenrand nach innen
+ * geschoben). Fester Schaden an allem in der Flaeche, auch an eigenen Einheiten; ohne Trefferglueck.
+ * Velkar orbital laser: a satellite relay (city upgrade, see CITY_UPGRADES) allows one shot from orbit every cooldown
+ * rounds on an area (w x h tiles, target tile = top-left corner, shifted inwards at the map edge). Flat damage to
+ * everything in the area, own units included; without hit luck.
+ */
+export const ORBITAL = {
+  faction: 'velkar' as FactionId,
+  relay: 'satRelay' as const,
+  /** Preis des Relays (Stadt-Ausbau) / price of the relay (city upgrade) */
+  relayCost: 40,
+  /** Runden zwischen zwei Schuessen; auch die Aufladezeit nach dem Bau / rounds between two shots; also the charge time after building */
+  cooldown: 5,
+  /** Flaeche in Feldern (Breite x Hoehe) / area in tiles (width x height) */
+  area: { w: 2, h: 2 },
+  /** fester Schaden je Treffer / flat damage per hit */
+  damage: 2,
+  /** Zielfeld muss fuer den Schuetzen aufgedeckt sein / the target tile must be revealed for the shooter */
+  needsVision: true,
+  /**
+   * KI: Schuss nur bei Nettowert >= minValue (Sterne-Gegenwert: Schaden/LP x Wert x damageWeight, Abschuss = Wert x (1 + killBonus));
+   * eigene Einheiten zaehlen ownWeight-fach negativ. Relay-Wert: shotStars je Schuss bis horizon Runden; techBonus je Stufe der Technik.
+   * AI: fire only at a net value >= minValue (star equivalent: damage/HP x worth x damageWeight, kill = worth x (1 + killBonus));
+   * own units count ownWeight times negative. Relay value: shotStars per shot up to horizon rounds; techBonus per tier of the tech.
+   */
+  ai: {
+    minValue: 4, ownWeight: 1.6, killBonus: 1, damageWeight: 1.5, bossWorth: 120, gunWorth: 40, wonderInterrupt: 25,
+    horizon: 25, shotStars: 18, techBonus: 10,
+    /** Relay erst ab so vielen eigenen Staedten (vorher geht Wachstum vor) / relay only from this many own cities (growth first) */
+    minCities: 3,
+  },
+};
+
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
-export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot';
-export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot'];
+export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot' | 'satRelay';
+export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot', 'satRelay'];
 export const CITY_UPGRADES = {
   slots: 3,
-  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30 } as Record<CityUpgradeId, number>,
+  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30, satRelay: ORBITAL.relayCost } as Record<CityUpgradeId, number>,
   /**
    * Freischaltung durch Forschung; Fraktionen ohne Forschung brauchen stattdessen die Stadtstufe (Stufe der Technologie + 1).
    * Unlock by research; factions without research need the city level instead (tech tier + 1).
    */
-  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics' } as Record<CityUpgradeId, TechId>,
+  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics', satRelay: 'highAltitude' } as Record<CityUpgradeId, TechId>,
+  /** Ausbauten nur fuer eine Fraktion (Satelliten-Relay: Velkar) / upgrades for one faction only (satellite relay: Velkar) */
+  faction: { satRelay: 'velkar' } as Partial<Record<CityUpgradeId, FactionId>>,
+  /** hoechstens so viele je Fraktion zugleich / at most this many per faction at a time */
+  perFaction: { satRelay: 1 } as Partial<Record<CityUpgradeId, number>>,
   /** Lazarett: zusaetzliche Heilung auf und neben der Stadt / hospital: extra healing on and next to the city */
   hospitalHeal: 2,
   /** Flugabwehr: Schaden an feindlichen Hubschraubern, die ihren Zug im Umkreis beenden / flak: damage to hostile helicopters ending their turn within range */
@@ -751,6 +850,46 @@ export const VERDAN = {
   race: 'robot' as HitRace,
 };
 
+/**
+ * Festungsbau (Dravon): Pioniere und Minenleger bauen Geschuetzstellungen auf ein freies Nachbarfeld im eigenen Gebiet.
+ * Eine Stellung ist ein Bauwerk auf dem Feld (Tile.turret mit owner), keine Einheit: unpassierbar, feuert zu Rundenbeginn
+ * wie die Verdan-Geschuetze, aber nur auf Einheiten im Krieg mit ihrem Besitzer. Etwas schwaecher als ein Verdan-Geschuetz.
+ * Fortification (Dravon): pioneers and mine layers build gun emplacements on a free adjacent tile in own territory.
+ * An emplacement is a structure on the tile (Tile.turret with owner), not a unit: impassable, fires at the start of the
+ * round like the Verdan guns, but only at units at war with its owner. Somewhat weaker than a Verdan gun.
+ */
+export const EMPLACEMENT = {
+  /** Fraktionen mit Festungsbau / factions with fortification */
+  factions: ['dravon'] as FactionId[],
+  /** bauende Einheiten / building units */
+  builders: ['pioneer', 'mineLayer'] as UnitTypeId[],
+  cost: 25,
+  hp: 20,
+  attack: 3,
+  defense: 2.5,
+  /** Schussweite / firing range */
+  range: 2,
+  /** Treffsicherheit: menschliche Geschuetzmannschaft / accuracy: human gun crew */
+  race: 'human' as HitRace,
+  /** baubares Gelaende (passierbares Land) / buildable terrain (passable land) */
+  terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+  /** hoechstens so viele Stellungen je eigener Stadt / at most this many emplacements per own city */
+  perCity: 1,
+  /** Mindestabstand zwischen eigenen Stellungen (Felder) / minimum distance between own emplacements (tiles) */
+  minSpacing: 3,
+  /**
+   * KI: Sternereserve fuer Bauten ohne Bedrohung, Bedrohungsradius um das Baufeld, Hoechstabstand zur eigenen Stadt,
+   * Mindestwert eines Bauplatzes, Wunschanteil Pioniere solange Plaetze frei sind, Zuschlag fuer die Technik Befestigung
+   * (erst ab Runde techRound und techCities Staedten; Faktor in der Eroberung 0, weil der Forschungsschub dort die Endspiele
+   * messbar verschleppte), Mindestanteil der Wunscharmee, Preis einer feindlichen Stellung fuer Angreifer.
+   * AI: star reserve for builds without a threat, threat radius around the site, maximum distance to the own city,
+   * minimum value of a site, desired pioneer share while slots are free, bonus for the Fortification tech (only from round
+   * techRound and techCities cities; factor 0 in conquest because the research push measurably dragged out the endgames),
+   * minimum share of the desired army, prize of a hostile emplacement for attackers.
+   */
+  ai: { reserve: 30, armyShare: 0.8, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.35, techBonus: 60, techConquest: 0, techRound: 8, techCities: 2, prize: 30 },
+};
+
 export const ECON = {
   /** (Stufe x Staedte + 4) x 5 */
   researchCost: (tier: number, cities: number) => (tier * cities + 4) * 5,
@@ -808,7 +947,8 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   researchCenter: { cost: 100, pop: 1, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'], onePerCity: true },
   // Nur Zyrr, nur auf Xeno-Boden / Zyrr only, only on xeno ground
   xenoHive: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain'] },
-  shrine: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  // Schrein: Plaetze fuer das Einheitenlimit (CULT.shrineSlots), keine Bevoelkerung (Kult-Staedte wachsen nicht) / shrine: slots for the unit cap (CULT.shrineSlots), no population (cult cities do not grow)
+  shrine: { cost: 20, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
   dataCenter: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest'] },
   powerPlant: { cost: 15, pop: 1, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
   xenoHarvester: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
@@ -832,7 +972,8 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   // Zyrr: Wrackschmelze auf einem Wrack oder einer geborgenen Absturzstelle, ohne Xeno-Boden / wreck smelter on a wreck or salvaged crash site, without xeno ground
   wreckSmelter: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain'], wreck: true, stars: 3 },
   // Vesper: Pilgerstaette in Wueste oder Steppe oder neben einem Vulkan / pilgrimage site in desert or steppe or next to a volcano
-  pilgrimSite: { cost: 25, pop: 2, tech: 'camouflage', terrain: ['plain', 'forest'], biomes: ['desert', 'steppe'], nearVolcano: true, onePerCity: true, stars: 2 },
+  // Pilgerstaette: Rekruten daneben starten als Veteranen; keine Sterne, keine Bevoelkerung / pilgrimage site: recruits next to it start as veterans; no stars, no population
+  pilgrimSite: { cost: 25, pop: 0, tech: 'camouflage', terrain: ['plain', 'forest'], biomes: ['desert', 'steppe'], nearVolcano: true, onePerCity: true },
   // NEXUS: Depotknoten auf Erz / depot node on ore
   depotNode: { cost: 25, pop: 1, tech: null, terrain: ['mountain'], resource: 'ore', compute: 1 },
 };
@@ -1116,6 +1257,16 @@ export const AI = {
   intelRound: 30,
   maxMillis: 2000,
   maxCommandsPerTurn: 400,
+  /** Kult: Zielwert je Beutestern einer Stadt oder Siedlung / cult: goal value per loot star of a city or village */
+  cultPlunderValue: 1.5,
+  /** Kult: Wunschgroesse der Horde = normale Wunschgroesse x Faktor + Zuschlag (hoechstens das Limit) / cult: desired horde = normal desired size x factor + extra (at most the cap) */
+  cultArmyFactor: 1.4,
+  cultArmyExtra: 1,
+  /** Kult: Frieden nur unter diesem Staerkeverhaeltnis, Bruch ab diesem (Punktespiel) / cult: peace only below this strength ratio, break from this one (points game) */
+  cultPeaceStrength: 0.8,
+  cultBreakStrength: 1.2,
+  /** Kult: Siegtechnologie ab dieser Runde (der Bohrer braucht WONDERS.drillRounds) / cult: victory tech from this round (the drill needs WONDERS.drillRounds) */
+  cultDrillResearchRound: 4,
   /**
    * Meteorschauer in der naechsten Runde: Strafe fuer ungepanzerte Einheiten ohne Deckung, plus Zuschlag je fehlendem LP-Anteil.
    * Meteor shower next round: penalty for unarmoured units without cover, plus a surcharge per missing HP share.
