@@ -17,6 +17,7 @@ import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
 import { memo, withDetail } from './kit';
+import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
 
@@ -24,6 +25,8 @@ export { LEADER_MOODS, type LeaderMood } from './leaders';
 const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   // Wesen mit vielen Kugeln/Rohren etwas weniger / creatures with many spheres/tubes slightly less
   jeep: 1.45, terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
+  // Endgegner: gross genug fuer volle Rundung, aber viele Teile / boss: large enough for full roundness, but many parts
+  swarmMother: 1.2,
 };
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
@@ -36,6 +39,7 @@ import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from
 import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
+import { swarmMother } from './boss';
 
 /**
  * PLATZHALTER fuer die Wunder der Siegbedingungen, bis wonders.ts mit wonderGeometry(type, faction, stage) da ist.
@@ -95,6 +99,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'peacekeeper': return peacekeeper(faction).build();
       case 'privateer': return privateer(faction).build();
       case 'protoWalker': return protoWalker(faction).build();
+      // Endgegner (doppelte Einheitengroesse) / boss (twice unit size)
+      case 'swarmMother': return swarmMother(faction).build();
       // Wunder der Siegbedingungen / victory wonders
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
@@ -282,6 +288,31 @@ export function cloudGeometry(variant: number): THREE.BufferGeometry {
   const v = ((Math.floor(variant) % 4) + 4) % 4;
   return memo(`cloud|${v}`, () => cloud(v).build());
 }
+
+/**
+ * Nebelwolke in Hoehlentoenen: die normale Wolke, hell -> caveFog, schattig -> caveFogShade.
+ * Fog cloud in cave tones: the normal cloud, light -> caveFog, shaded -> caveFogShade.
+ */
+export function caveCloudGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 4) + 4) % 4;
+  return memo(`caveCloud|${v}`, () => {
+    const g = cloudGeometry(v).clone();
+    const c = g.getAttribute('color');
+    const light = new THREE.Color(semantic.caveFog), dark = new THREE.Color(semantic.caveFogShade), tmp = new THREE.Color();
+    const ref = new THREE.Color(semantic.cloud);
+    for (let i = 0; i < c.count; i++) {
+      const lit = Math.abs(c.getX(i) - ref.r) + Math.abs(c.getY(i) - ref.g) + Math.abs(c.getZ(i) - ref.b) < 0.02;
+      tmp.copy(lit ? light : dark);
+      c.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+    c.needsUpdate = true;
+    return g;
+  });
+}
+export {
+  mushroomForest, caveFloorDeco, rockPillars, craterCracks, craterDebris, verdanRemains, alienBones, giantSkull,
+  supplyLineGeometry, verdanTurretGeometry, verdanRuinGeometry,
+} from './cavern';
 
 /**
  * Zusatz: Geometrie mit geglaetteten Normalen fuer eine Inverted-Hull-Kontur (nur position + normal).

@@ -79,7 +79,8 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
 }
 
 /** Stadtschild / city sign */
-export function cityLabel(name: string, level: number, color: string, ink: string, capital: boolean, pop = 0, need = 0): THREE.Sprite {
+/** level als Text: '' = leerer Kreis (Nachschublinie) / level as text: '' = empty circle (supply line) */
+export function cityLabel(name: string, level: number | string, color: string, ink: string, capital: boolean, pop = 0, need = 0): THREE.Sprite {
   const key = `city-${name}-${level}-${color}-${capital}-${pop}-${need}`;
   const W = 320, H = need > 0 ? 112 : 80;
   const m = material(key, W, H, (ctx) => {

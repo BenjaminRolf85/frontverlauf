@@ -4,7 +4,7 @@
  */
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets,
+  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, radioTargets, terraformTargets, turretTargets,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { planNextCommand } from '../ai/ai';
@@ -42,6 +42,8 @@ export class Controller {
   tab: Tab = 'tile';
   selectedUnit: number | null = null;
   pendingTarget: number | null = null;
+  /** angewaehltes Verdan-Geschuetz (zweites Antippen greift an) / selected Verdan gun (a second tap attacks) */
+  pendingTurret: { x: number; y: number } | null = null;
   busy = false;
   aiRunning = false;
   aiSpeed: keyof typeof AI_DELAY = 'normal';
@@ -76,8 +78,15 @@ export class Controller {
     this.clearSelection();
     this.view.fit(s.size);
     this.refresh();
-    const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer);
+    const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer && c.owner === this.viewer);
     if (hq) this.view.centerOn(this.view.board.tileCenter(s, hq.x, hq.y));
+    else {
+      // ohne Hauptquartier (Landetrupp der Kampagne): zwischen die eigenen Einheiten und das erste Ziel
+      // without an HQ (campaign landing party): between the own units and the first objective
+      const own = s.units.find((u) => u.owner === this.viewer);
+      const goal = s.campaign?.targets[0] ?? own;
+      if (own && goal) this.view.centerOn(this.view.board.tileCenter(s, Math.round((own.x + goal.x) / 2), Math.round((own.y + goal.y) / 2)));
+    }
     audio.setTheme(this.viewer >= 0 ? s.factions[this.viewer].id : s.factions[0].id);
     this.updateMood();
     this.ui.update();
@@ -122,7 +131,7 @@ export class Controller {
     this.mineMode = false;
     this.radioCity = null;
     this.terraformUnit = null;
-    this.selected = null; this.selectedUnit = null; this.pendingTarget = null;
+    this.selected = null; this.selectedUnit = null; this.pendingTarget = null; this.pendingTurret = null;
     this.updateHighlights();
   }
 
@@ -156,6 +165,8 @@ export class Controller {
       for (const t of attackTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
       for (const t of rocketTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
       for (const t of convertTargets(s, u)) list.push({ x: t.x, y: t.y, kind: 'attack' });
+      // Verdan-Geschuetze in Reichweite / Verdan guns in range
+      for (const p of turretTargets(s, u)) list.push({ ...p, kind: this.pendingTurret && this.pendingTurret.x === p.x && this.pendingTurret.y === p.y ? 'target' : 'attack' });
       if (u.fuel !== null) {
         for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) {
           const tl = s.tiles[y * s.size + x];
@@ -243,6 +254,17 @@ export class Controller {
           return;
         }
       }
+      // Verdan-Geschuetz: erst anwaehlen, zweites Antippen greift an / Verdan gun: select first, a second tap attacks
+      if (turretTargets(s, u).some((p) => p.x === x && p.y === y)) {
+        if (this.pendingTurret && this.pendingTurret.x === x && this.pendingTurret.y === y) {
+          this.pendingTurret = null;
+          await this.exec({ type: 'attackTurret', unit: u.id, x, y });
+          return;
+        }
+        this.pendingTurret = { x, y }; this.pendingTarget = null; this.tab = 'unit';
+        this.play('select'); this.updateHighlights(); this.ui.update();
+        return;
+      }
       if (reachable(s, u).some((r) => r.x === x && r.y === y)) {
         await this.exec({ type: 'move', unit: u.id, to: { x, y } });
         const moved = unitById(s, u.id);
@@ -255,6 +277,7 @@ export class Controller {
     const same = this.selected && this.selected.x === x && this.selected.y === y;
     this.selected = { x, y };
     this.pendingTarget = null;
+    this.pendingTurret = null;
     const unit = unitAt(s, x, y);
     const visibleUnit = unit && (this.viewer < 0 || canSeeUnit(s, this.viewer, unit)) ? unit : undefined;
     const city = cityAt(s, x, y);
@@ -310,6 +333,7 @@ export class Controller {
     const u = unitAt(s, this.selected.x, this.selected.y);
     this.selectedUnit = tab === 'unit' && u && (this.viewer < 0 || canSeeUnit(s, this.viewer, u)) ? u.id : null;
     this.pendingTarget = null;
+    this.pendingTurret = null;
     this.play('click');
     this.updateHighlights();
     this.ui.update();
@@ -439,6 +463,53 @@ export class Controller {
             }
             break;
           }
+          // Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit
+          case 'turretFire': {
+            const tb = before.get(e.target);
+            const seen = visible(e.x, e.y) || (tb && visible(tb.x, tb.y));
+            if (!seen || !tb) break;
+            const impact = () => { audio.impact(tb.type, killedIds.has(e.target), fid(tb.owner)); this.ui.fx('hit', tb.x, tb.y); this.ui.fx('num', tb.x, tb.y, hitText(e.hit, e.dmg)); };
+            audio.weapon('tank');
+            if (animate && board.unitObject(e.target)) {
+              await board.animateTurret(s, { x: e.x, y: e.y }, e.target, true, {
+                unitType: tb.type, unitFaction: fid(tb.owner), retaliate: false,
+                onImpact: () => { impact(); this.view.shake(impactShake(weaponOf('tank')) * 0.8); },
+              });
+            } else impact();
+            break;
+          }
+          // Einheit beschiesst ein Geschuetz / unit attacks a gun
+          case 'turretHit': {
+            const ab = before.get(e.unit);
+            if (!ab || !(visible(e.x, e.y) || visible(ab.x, ab.y))) break;
+            const hit = () => {
+              this.ui.fx('hit', e.x, e.y);
+              this.ui.fx(e.destroyed ? 'boom' : 'num', e.x, e.y, e.destroyed ? undefined : hitText(e.hit, e.dmg));
+              if (e.destroyed) { this.play('kill'); this.ui.toast(t('verdan.destroyed'), 'trophy'); }
+            };
+            const back = () => { if (e.ret || e.retHit === 'miss') this.ui.fx('num', ab.x, ab.y, hitText(e.retHit, e.ret)); };
+            audio.weapon(ab.type);
+            if (animate && board.unitObject(e.unit)) {
+              await board.animateTurret(s, { x: e.x, y: e.y }, e.unit, false, {
+                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0,
+                onImpact: () => { hit(); this.view.shake(e.destroyed ? SHAKE.wreck : impactShake(weaponOf(ab.type))); },
+                onReturnFire: () => audio.weapon('tank'),
+                onReturnImpact: back,
+              });
+            } else { hit(); back(); }
+            break;
+          }
+          // Endgegner: Auftauchen, psychischer Schrei, Brut / boss: emergence, psychic scream, brood
+          case 'boss': {
+            if (!visible(e.x, e.y)) break;
+            if (e.what === 'emerge') { this.play('capture'); this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.eruption, SHAKE.eruptionMs); }
+            else if (e.what === 'scream') {
+              this.play('hit');
+              if (animate) this.view.shake(SHAKE.wreck, 420);
+              for (const h of e.hits ?? []) { const p = before.get(h.unit) ?? unitById(s, h.unit); if (p && visible(p.x, p.y)) { this.ui.fx('hit', p.x, p.y); this.ui.fx('num', p.x, p.y, `-${h.dmg}`); } }
+            } else if (e.what === 'brood') { this.play('levelUp'); this.ui.fx('levelUp', e.x, e.y); }
+            break;
+          }
           case 'turn': break;
           default: break;
         }
@@ -452,6 +523,7 @@ export class Controller {
     this.ui.afterCommand?.(res.events);
     if (this.selectedUnit !== null && !unitById(s, this.selectedUnit)) { this.selectedUnit = null; this.pendingTarget = null; }
     if (this.pendingTarget !== null && !unitById(s, this.pendingTarget)) this.pendingTarget = null;
+    if (this.pendingTurret && !s.tiles[this.pendingTurret.y * s.size + this.pendingTurret.x].turret) this.pendingTurret = null;
     this.updateHighlights();
     this.ui.update();
     if (s.over) {

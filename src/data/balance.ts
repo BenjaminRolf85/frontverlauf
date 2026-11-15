@@ -30,7 +30,9 @@ export type UniqueUnitId = 'steppeRider' | 'stormbreaker' | 'peacekeeper' | 'pri
  */
 export type WonderKind = 'portal' | 'hackRelay' | 'fusionPlant' | 'waal';
 export type WonderUnitId = WonderKind | 'coreDrill';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId;
+/** Endgegner der Kampagne (nicht ausbildbar) / campaign bosses (not trainable) */
+export type BossUnitId = 'swarmMother';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -40,7 +42,9 @@ export type Ability =
   // unique units: shock assault without retaliation, self-repair, prize money
   | 'shock' | 'mend' | 'plunder'
   // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
-  | 'wonder';
+  | 'wonder'
+  // Endgegner: kein Sold, nicht bekehrbar, nimmt nichts ein, Faehigkeiten siehe SWARM_MOTHER / boss: no upkeep, not convertible, captures nothing, abilities see SWARM_MOTHER
+  | 'boss';
 export type TechId =
   | 'motorization' | 'roadbuilding' | 'logistics' | 'aerodynamics' | 'armyAviation'
   | 'supply' | 'agritech' | 'foodIndustry' | 'fortification' | 'intelligence'
@@ -233,6 +237,32 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   waal: { cost: null, hp: 60, attack: 5, defense: 4, move: 0, range: 2, vision: 2, abilities: ['wonder'], tech: 'waalProgram', ship: false, faction: 'dravon' },
   // Erdkernbohrer: beweglich, wird in der Stadt ausgebildet / earth-core drill: mobile, trained in a city
   coreDrill: { cost: WONDERS.cost.coreDrill, hp: 25, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
+  // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
+  swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+};
+
+/**
+ * Schwarmmutter (Endgegner Akt I): alle Faehigkeiten wirken zu Beginn ihres eigenen Zuges, deterministisch, ohne Wurf.
+ * Swarm Mother (boss of act I): all abilities trigger at the start of her own turn, deterministic, without a roll.
+ */
+export const SWARM_MOTHER = {
+  /** Heilung je eigenem Zug auf Xeno-Boden / healing per own turn on xeno ground */
+  xenoHeal: 4,
+  /** Brut: alle so viele Runden so viele Graue auf Nachbarfeldern / brood: every this many rounds this many greys on adjacent tiles */
+  broodEvery: 3,
+  broodCount: 2,
+  broodUnit: 'grey' as UnitTypeId,
+  /** keine Brut mehr ab so vielen eigenen Einheiten / no more brood from this many own units */
+  broodCap: 14,
+  /** Psychischer Schrei: Schaden an allen feindlichen Einheiten im Umkreis, danach Abklingzeit / psychic scream: damage to all hostile units in range, then a cooldown */
+  screamDamage: 4,
+  screamRange: 1,
+  screamEvery: 2,
+  /** Auftauchen: eine Spielereinheit so nah am Hauptquartier oder ab dieser Runde / emergence: a player unit this close to the HQ or from this round */
+  emergeRange: 3,
+  emergeRound: 9,
+  /** KI: sie verlaesst ihr Hauptquartier hoechstens so weit / AI: she leaves her HQ at most this far */
+  aiLeash: 3,
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
@@ -602,6 +632,43 @@ export const CITY = {
   connectionPopulation: 1,
 };
 
+/**
+ * Nachschublinien (Hoehlen-Finale): Staedte wachsen nicht, bringen festes Einkommen und tragen eine feste Zahl Einheiten.
+ * Supply lines (cavern finale): cities do not grow, give a fixed income and support a fixed number of units.
+ */
+export const SUPPLY_LINE = {
+  /** Einkommen je Nachschublinie und Runde / income per supply line and round */
+  income: 6,
+  /** Einkommen des Hauptschachts (statt Stufe + HQ-Bonus) / income of the main shaft (instead of level + HQ bonus) */
+  mainShaftIncome: 14,
+  /** Einheitenlimit je Nachschublinie / unit limit per supply line */
+  unitLimit: 3,
+  /** Einheitenlimit des Hauptschachts / unit limit of the main shaft */
+  mainShaftUnitLimit: 5,
+};
+
+/**
+ * Alte Verteidigungslinie der Verdan um das Artefakt: neutrale Geschuetze, die erwachen, sobald eine Einheit nahe kommt,
+ * und dann zu Rundenbeginn auf alles in Reichweite feuern.
+ * Old Verdan defence line around the artifact: neutral guns that wake up once a unit comes close
+ * and then fire at everything in range at the start of each round.
+ */
+export const VERDAN = {
+  hp: 24,
+  attack: 3,
+  defense: 3,
+  /** Schussweite / firing range */
+  range: 2,
+  /** Abstand zum Artefakt, ab dem die Linie erwacht / distance to the artifact that wakes the line */
+  wakeRange: 3,
+  /** Abstand der Geschuetze zum Artefakt / distance of the guns to the artifact */
+  ringDistance: 3,
+  /** Anzahl Geschuetze / number of guns */
+  count: 6,
+  /** Treffsicherheit einer Maschine / accuracy of a machine */
+  race: 'robot' as HitRace,
+};
+
 export const ECON = {
   /** (Stufe x Staedte + 4) x 5 */
   researchCost: (tier: number, cities: number) => (tier * cities + 4) * 5,
@@ -910,6 +977,9 @@ export const MAPGEN = {
   minStartIsland: 18,
   /** Startinseln unter dieser Groesse bekommen ein Wasserfeld im Stadtgebiet (Hafen) / start islands below this size get a water tile in the city area (harbour) */
   coastalStartBelow: 25,
+  /** Hoehle: eigener Zufallsstrom und Felsanteil am Kartenrand / cavern: own random stream and rock share at the map edge */
+  cavernSeedSalt: 0x6c1a7e3,
+  cavernEdgeRock: 0.55,
 };
 
 export const SANDBOX = {

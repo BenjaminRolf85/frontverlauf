@@ -500,7 +500,7 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('unit swarmMother') ? 16000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name === 'artifact all') {
       // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2

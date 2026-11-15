@@ -29,6 +29,8 @@ const generalList = () => tList('cityNames');
  * Culture of a city: faction id or null (general). Purely from start data.
  */
 export function cityCulture(s: GameState, c: City): FactionId | null {
+  // Heimatwelt der Zyrr (Kampagne): alle Orte tragen Zyrr-Namen / Zyrr homeworld (campaign): every place carries a Zyrr name
+  if (s.config.theme === 'alien') return 'zyrr';
   if (c.isHQ && c.hqOf !== null && s.factions[c.hqOf]) return s.factions[c.hqOf].id;
   let best = Infinity;
   let owners = new Set<FactionId>();

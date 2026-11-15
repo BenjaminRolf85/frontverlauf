@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -23,6 +23,16 @@ export const cityAt = (s: GameState, x: number, y: number) => {
 export const ownCities = (s: GameState, f: number) => s.cities.filter((c) => c.owner === f);
 export const ownUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f);
 export const hqOf = (s: GameState, f: number) => s.cities.find((c) => c.isHQ && c.hqOf === f && c.owner === f);
+
+/** Hoehlen-Karte (Kampagnenfinale)? / cavern map (campaign finale)? */
+export const isCavern = (s: GameState) => s.config.theme === 'cavern';
+/**
+ * Staedte sind Nachschublinien: kein Wachstum, keine Belohnungen, Ausbauten oder Grossprojekte, festes Einkommen.
+ * Cities are supply lines: no growth, rewards, upgrades or grand projects, fixed income.
+ */
+export const supplyLines = (s: GameState) => isCavern(s);
+/** Hauptschacht (Hauptquartier im eigenen Besitz) / main shaft (HQ held by its owner) */
+const mainShaft = (c: City) => c.isHQ && c.hqOf === c.owner;
 
 export function stats(u: Unit): UnitStats {
   return UNITS[u.type];
@@ -78,6 +88,8 @@ export function unitCost(s: GameState, f: number, type: UnitTypeId): number | nu
 export function unitLimit(s: GameState, c: City): number {
   const extra = c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'massMobilization'
     ? PERKS.massMobilizationExtraUnits : 0;
+  // Nachschublinie: feste Zahl statt Stufe / supply line: fixed number instead of the level
+  if (supplyLines(s)) return (mainShaft(c) ? SUPPLY_LINE.mainShaftUnitLimit : SUPPLY_LINE.unitLimit) + extra;
   return c.level + CITY.unitLimitExtra + extra;
 }
 // Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
@@ -174,6 +186,8 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.owner === null || c.noIncomeNext) return 0;
   let inc = INCOME.perCityLevel * c.level;
   if (c.isHQ && c.hqOf === c.owner) inc += INCOME.hq;
+  // Nachschublinie: festes Einkommen statt Stufe und HQ-Bonus / supply line: fixed income instead of level and HQ bonus
+  if (supplyLines(s)) inc = mainShaft(c) ? SUPPLY_LINE.mainShaftIncome : SUPPLY_LINE.income;
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
@@ -273,7 +287,7 @@ const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil((UNITS[t
 
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
-  if (isWonder(u)) return 0;
+  if (isWonder(u) || isBoss(u)) return 0;
   // Landungsboot: Wert der getragenen Einheit / landing boat: value of the carried unit
   const own = typeUpkeep(u.type === 'landingBoat' && u.carried ? u.carried : u.type);
   // Schiffe kosten mindestens den Sold der getragenen Einheit / ships cost at least the upkeep of the carried unit
@@ -282,7 +296,8 @@ export function unitUpkeep(u: Unit): number {
 /** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
 export function paidUnits(s: GameState, f: number): Unit[] {
   // Wunder kosten keinen Sold und belegen kein Freikontingent / wonders cost no upkeep and take no free slot
-  return s.units.filter((u) => u.owner === f && !isWonder(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
+  // Endgegner ebenso / bosses likewise
+  return s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
 }
 /** Gesamtsold pro Runde / total upkeep per round */
 export function upkeep(s: GameState, f: number): number {
@@ -415,7 +430,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
       if (has(u, 'wade') && !walkable(fromTile)) stop = true;
       // Lava, Vulkangipfel und Wunder-Grundflaechen sind unpassierbar / lava, volcano peaks and wonder footprints are impassable
-      if (t.volcano || burning(s, t) || t.wonderOf) continue;
+      if (t.volcano || burning(s, t) || t.wonderOf || t.turret) continue;
       // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
       // jungle: vehicles only as the first step, every step in or out ends the move
       if (!fly && !ship) {
@@ -538,17 +553,24 @@ export const unitRace = (s: GameState, u: Unit): HitRace => hitRace(u.type, s.fa
  */
 export function hitOdds(s: GameState, u: Unit, ranged = false): Record<HitKind, number> {
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
-  const race = unitRace(s, u);
+  // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
+  const windOk = ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
+  return raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk);
+}
+
+/**
+ * Trefferwahrscheinlichkeiten einer Rasse bei aktuellem Wetter und LP-Anteil (auch fuer Verdan-Geschuetze).
+ * Hit odds of a race in the current weather at an HP share (also used for Verdan guns).
+ */
+export function raceOdds(s: GameState, race: HitRace, hpShare: number, windOk: boolean): Record<HitKind, number> {
+  if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
   const base = HIT.odds[race];
   const w = weather(s);
-  // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
-  const windOk = w !== 'wind' || ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
-  let f = windOk ? HIT.weatherFactor[race] : 0;
+  let f = w !== 'wind' || windOk ? HIT.weatherFactor[race] : 0;
   if (race === 'alien' && w === 'snow') f *= HIT.alienSnowFactor;
   const shift = HIT.weather[w];
   const out = {} as Record<HitKind, number>;
   let sum = 0;
-  const hpShare = u.hp / Math.max(1, u.maxHp);
   // Roboter: je beschaedigter, desto ungenauer (0 bei vollen LP, 1 bei 20 % LP) / robots: less accurate the more damaged
   const worn = race === 'robot' ? Math.min(1, Math.max(0, (1 - hpShare) / (1 - HIT.robotDamagedAt))) : 0;
   for (const k of HIT_KINDS) {
@@ -703,8 +725,8 @@ export function attackTargets(s: GameState, u: Unit): Unit[] {
 
 export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
-  // Wunder lassen sich nicht bekehren / wonders cannot be converted
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o));
+  // Wunder und Endgegner lassen sich nicht bekehren / wonders and bosses cannot be converted
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o));
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
@@ -771,7 +793,7 @@ export function persuadeCheck(s: GameState, u: Unit, c: City): 'ok' | import('./
   if (!canPersuadeFaction(s, u.owner)) return 'wrongFaction';
   if (u.fresh) return 'fresh';
   if (u.exhausted || u.attacked) return 'unitExhausted';
-  if (isShip(u) || has(u, 'wonder')) return 'cannotCapture';
+  if (isShip(u) || has(u, 'wonder') || has(u, 'boss')) return 'cannotCapture';
   if (c.owner !== null) return 'invalidTarget';
   if (dist(u, c) > PERSUADE.range) return 'outOfRange';
   const occ = unitAt(s, c.x, c.y);
@@ -788,7 +810,7 @@ export function persuadeTargets(s: GameState, u: Unit): City[] {
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;
-  if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder')) return null;
+  if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder') || has(u, 'boss')) return null;
   const t = tileAt(s, u.x, u.y)!;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
@@ -969,6 +991,7 @@ export function pilgrimVeteranAt(s: GameState, f: number, x: number, y: number):
 
 export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x: number, y: number): boolean {
   const fa = s.factions[f];
+  if (supplyLines(s)) return false;
   if (!fa.grandProjectsUnlocked.includes(id) || fa.grandProjectsBuilt.includes(id)) return false;
   if (!inBounds(s.size, x, y)) return false;
   const t = tileAt(s, x, y)!;
@@ -1183,6 +1206,8 @@ export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgra
   if (c.owner !== f) return 'notYourCity';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
+  // Nachschublinien lassen sich nicht ausbauen / supply lines cannot be upgraded
+  if (supplyLines(s)) return 'noSlot';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
   const need = cityUpgradeRequirement(s, f, up);
   if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';
@@ -1300,7 +1325,7 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   const t = tileAt(s, x, y)!;
   if (!isLand(t)) return 'invalidTile';
   if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) return 'invalidTile';
-  if (unitAt(s, x, y) || t.wonderOf) return 'occupied';
+  if (unitAt(s, x, y) || t.wonderOf || t.turret) return 'occupied';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
   const home = recruitHome(s, f, x, y);
   if (!home || supportedUnits(s, home) >= unitLimit(s, home)) return 'unitLimit';
@@ -1373,6 +1398,8 @@ export function mineTargets(s: GameState, u: Unit): Pos[] {
 
 // ---------- Fraktions-Siegbedingungen / faction victory conditions ----------
 
+/** Endgegner (Kampagne)? / boss (campaign)? */
+export const isBoss = (u: Unit) => UNITS[u.type].abilities.includes('boss');
 /** Wunder-Einheit (Bauwerk oder Bohrer)? / wonder unit (structure or drill)? */
 export function isWonder(u: Unit): boolean {
   return UNITS[u.type].abilities.includes('wonder');
@@ -1581,4 +1608,69 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
       return { ...base, phase, have, need: phases[stage], ratio: done / total, roundsLeft: paused ? null : total - done, unit: u.id, ...(paused ? { paused } : {}) };
     }
   }
+}
+
+// ---------- Verdan-Verteidigungslinie / Verdan defence line ----------
+
+/** Lebendes Verdan-Geschuetz auf dem Feld? / living Verdan gun on the tile? */
+export const turretAt = (s: GameState, x: number, y: number) => {
+  const t = tileAt(s, x, y);
+  return t?.turret && t.turret.hp > 0 ? t.turret : null;
+};
+/** Alle lebenden Verdan-Geschuetze mit Position / all living Verdan guns with position */
+export function turretList(s: GameState): (Pos & { hp: number; active: boolean })[] {
+  const out: (Pos & { hp: number; active: boolean })[] = [];
+  s.tiles.forEach((t, k) => { if (t.turret && t.turret.hp > 0) out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active }); });
+  return out;
+}
+
+/** Geschuetze, die u jetzt angreifen kann (in Reichweite, aufgedeckt) / guns u can attack now (in range, explored) */
+export function turretTargets(s: GameState, u: Unit): Pos[] {
+  if (!canAttackNow(u) || submerged(s, u) || UNITS[u.type].attack <= 0) return [];
+  const r = effectiveRange(s, u);
+  return turretList(s).filter((p) => dist(u, p) <= r && isExplored(s, u.owner, p.x, p.y)).map((p) => ({ x: p.x, y: p.y }));
+}
+
+/**
+ * Kampf gegen ein Geschuetz nach der normalen Formel: Schaden bei vollem Treffer und Gegenschlag (nur wach und in Reichweite).
+ * Fight against a gun with the normal formula: damage on a full hit and return fire (only awake and in range).
+ */
+export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number; ret: (turretHp: number) => number; odds: Record<HitKind, number> } {
+  const t = tileAt(s, p.x, p.y)!.turret!;
+  const atk = effectiveAttack(s, u);
+  const attackForce = atk * (u.hp / u.maxHp);
+  const defenseForce = VERDAN.defense * (t.hp / VERDAN.hp);
+  const total = attackForce + defenseForce;
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor) : 0;
+  const near = dist(u, p) <= VERDAN.range;
+  const ret = (hp: number) => {
+    if (hp <= 0 || !near || has(u, 'shock')) return 0;
+    const df = VERDAN.defense * (hp / VERDAN.hp);
+    const tt = attackForce + df;
+    return tt > 0 ? Math.round((df / tt) * VERDAN.defense * COMBAT.damageFactor) : 0;
+  };
+  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2) };
+}
+
+/** Schuss eines Geschuetzes mit hp LP auf def (voller Treffer) / shot of a gun with hp HP at def (full hit) */
+export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
+  const attackForce = VERDAN.attack * (hp / VERDAN.hp);
+  const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def);
+  const total = attackForce + defenseForce;
+  return total > 0 ? Math.round((attackForce / total) * VERDAN.attack * COMBAT.damageFactor) : 0;
+}
+
+/**
+ * Ziel eines Geschuetzes: Einheiten jeder Fraktion in Reichweite, die dem Artefakt naechste zuerst (dann ID).
+ * Target of a gun: units of any faction in range, the one closest to the artifact first (then id).
+ */
+export function turretTarget(s: GameState, p: Pos): Unit | null {
+  const art = s.campaign?.artifact ?? { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
+  let best: Unit | null = null, bestKey = Infinity;
+  for (const u of s.units) {
+    if (dist(u, p) > VERDAN.range || isWonder(u) || submerged(s, u)) continue;
+    const key = dist(u, art) * 1e6 + u.id;
+    if (key < bestKey) { bestKey = key; best = u; }
+  }
+  return best;
 }

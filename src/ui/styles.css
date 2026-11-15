@@ -18,6 +18,37 @@ html, body {
   -webkit-tap-highlight-color: transparent; touch-action: none; user-select: none; -webkit-user-select: none;
 }
 #app { position: fixed; inset: 0; }
+/*
+ * Heimatwelt der Zyrr (Kartenthema 'alien', gesetzt von View): violett-magenta Himmel mit zwei Monden und Sternen hinter
+ * dem Brett; die Tageszeit (data-phase) verschiebt die Farben. Nur Verlaeufe, kein Bild.
+ * Zyrr homeworld (map theme 'alien', set by View): violet-magenta sky with two moons and stars behind the board;
+ * the time of day (data-phase) shifts the colours. Gradients only, no image.
+ */
+#app.world-alien {
+  --alien-top: var(--s-alien-sky-top); --alien-high: var(--s-alien-sky-high); --alien-mid: var(--s-alien-sky-mid); --alien-low: var(--s-alien-sky-low);
+  background-color: var(--alien-top);
+  background-image:
+    radial-gradient(circle at 73% 15%, var(--s-alien-moon-shade) 0 1.4vmin, transparent 1.5vmin),
+    radial-gradient(circle at 80% 21%, var(--s-alien-moon-shade) 0 2vmin, transparent 2.1vmin),
+    radial-gradient(circle at 75% 22%, var(--s-alien-moon-shade) 0 0.9vmin, transparent 1vmin),
+    radial-gradient(circle at 77% 17%, var(--s-alien-moon) 0 9vmin, transparent 9.3vmin),
+    radial-gradient(circle at 77% 17%, color-mix(in srgb, var(--s-alien-moon) 35%, transparent) 0, transparent 20vmin),
+    radial-gradient(circle at 21% 11%, var(--s-alien-moon-small) 0 3.6vmin, transparent 3.8vmin),
+    radial-gradient(circle at 21% 11%, color-mix(in srgb, var(--s-alien-moon-small) 30%, transparent) 0, transparent 10vmin),
+    linear-gradient(to bottom, var(--alien-top) 0%, var(--alien-high) 30%, var(--alien-mid) 68%, var(--alien-low) 100%);
+}
+#app.world-alien[data-phase="dusk"], #app.world-alien[data-phase="dawn"] { --alien-high: var(--s-alien-sky-mid); --alien-mid: var(--s-alien-sky-low); }
+#app.world-alien[data-phase="night"] { --alien-high: var(--s-alien-sky-top); --alien-mid: var(--s-alien-sky-high); --alien-low: var(--s-alien-sky-mid); }
+#app.world-alien::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.8;
+  background-image:
+    radial-gradient(circle, var(--s-alien-moon) 0 0.18vmin, transparent 0.3vmin),
+    radial-gradient(circle, var(--s-alien-moon-small) 0 0.14vmin, transparent 0.24vmin),
+    radial-gradient(circle, var(--s-alien-moon-shade) 0 0.2vmin, transparent 0.32vmin);
+  background-size: 17vmin 13vmin, 23vmin 19vmin, 11vmin 29vmin;
+  background-position: 3vmin 5vmin, 11vmin 2vmin, 7vmin 13vmin;
+  mask-image: linear-gradient(to bottom, var(--s-alien-moon) 0%, transparent 60%);
+}
 #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; outline: none; }
 #ui { position: absolute; inset: 0; pointer-events: none; z-index: var(--p-z-hud); }
 #ui > * { pointer-events: auto; }

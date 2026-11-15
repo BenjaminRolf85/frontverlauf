@@ -49,6 +49,40 @@ const PRESETS: Record<DayPhase, Preset> = {
   },
 };
 
+/**
+ * Hoehle (Kampagnenfinale): kein Himmel und keine Tageszeit; kuehles blau-violettes Umgebungslicht, schwaches Licht
+ * von oben, volles Eigenleuchten und dichter Dunst in Hoehlentoenen zum Rand hin.
+ * Cavern (campaign finale): no sky and no time of day; cool blue-violet ambient light, a weak light from above,
+ * full self glow and dense haze in cave tones towards the edge.
+ */
+const CAVE: Preset = {
+  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 1.1, sun: semantic.caveKeyLight, sunI: 1.05, sunDir: [-3, 9, 4],
+  night: 1, glow: 1.6, window: 1, haze: semantic.caveHaze, hazeAmt: 0.6, light: [0.42, 0.48, 0.78], bloom: 1.35,
+};
+
+/**
+ * Heimatwelt der Zyrr (Thema 'alien'): violetter Himmel, rosa Sonne, violetter Dunst, auch tagsueber leichtes Leuchten.
+ * Zyrr homeworld (theme 'alien'): violet sky, pink sun, violet haze, a slight glow even by day.
+ */
+const ALIEN_PRESETS: Record<DayPhase, Preset> = {
+  day: {
+    sky: semantic.alienSkyLow, ground: semantic.alienGroundDark, hemi: 1.5, sun: semantic.alienSun, sunI: 2.0, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0.2, glow: 0.55, window: 0.2, haze: semantic.alienHaze, hazeAmt: 0.3, light: [0.96, 0.86, 1], bloom: 0.75,
+  },
+  dusk: {
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [-10, 4.6, -3.5],
+    night: 0.5, glow: 0.75, window: 0.8, haze: semantic.alienHaze, hazeAmt: 0.36, light: [0.9, 0.74, 0.96], bloom: 0.85,
+  },
+  night: {
+    sky: semantic.alienSkyHigh, ground: semantic.alienSkyTop, hemi: 1.5, sun: semantic.alienMoon, sunI: 1.2, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.alienHazeNight, hazeAmt: 0.42, light: [0.5, 0.42, 0.78], bloom: 1,
+  },
+  dawn: {
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [8, 5, 8],
+    night: 0.35, glow: 0.65, window: 0.45, haze: semantic.alienHaze, hazeAmt: 0.33, light: [0.94, 0.8, 0.98], bloom: 0.8,
+  },
+};
+
 /** Zahlenform eines Zustands zum Mischen / numeric form of a state for blending */
 interface State {
   sky: THREE.Color; ground: THREE.Color; hemi: number; sun: THREE.Color; sunI: number; sunDir: THREE.Vector3;
@@ -75,19 +109,30 @@ export class Sky {
   private blending = false;
   /** Bewoelkung durch Wetter 0..1 / overcast from weather 0..1 */
   private overcast = 0;
+  /** Kartenthema der Partie (nur 'alien' hat eigene Lichtstimmungen) / map theme of the game (only 'alien' has own light moods) */
+  private world: 'cavern' | 'alien' | null = null;
   bloom = PRESETS.day.bloom;
 
   constructor(private hemi: THREE.HemisphereLight, private sun: THREE.DirectionalLight) {
     this.apply();
   }
 
-  /** Neue Tageszeit setzen; animate = sanft ueberblenden / set a new time of day; animate = blend smoothly */
-  set(phase: DayPhase, overcast: number, animate: boolean) {
-    if (phase === this.phase && overcast === this.overcast) return;
+  /**
+   * Neue Tageszeit setzen; animate = sanft ueberblenden; world = Kartenthema ('cavern' = Hoehlenlicht ohne Tageszeit,
+   * 'alien' = Lichtstimmungen der Zyrr-Heimatwelt).
+   * Set a new time of day; animate = blend smoothly; world = map theme ('cavern' = cavern light without time of day,
+   * 'alien' = light moods of the Zyrr homeworld).
+   */
+  set(phase: DayPhase, overcast: number, animate: boolean, world: 'cavern' | 'alien' | null = null) {
+    if (world === 'cavern') overcast = 0;
+    if (phase === this.phase && overcast === this.overcast && world === this.world) return;
+    // Wechsel zwischen Oberflaeche und Hoehle nie ueberblenden / never blend between surface and cavern
+    if ((world === 'cavern') !== (this.world === 'cavern')) animate = false;
     this.phase = phase;
     this.overcast = overcast;
+    this.world = world;
     this.from = clone(this.cur);
-    this.to = toState(PRESETS[phase]);
+    this.to = toState(world === 'cavern' ? CAVE : (world === 'alien' ? ALIEN_PRESETS : PRESETS)[phase]);
     this.to.sunI *= 1 - overcast * 0.35;
     this.to.hemi *= 1 - overcast * 0.05;
     this.to.hazeAmt += overcast * 0.08;

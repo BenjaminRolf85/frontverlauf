@@ -5,8 +5,8 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, type Pos } from '../core';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
 export type GoalKind =
@@ -141,7 +141,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     }
     if (water && !bridge && wader) lok = true;
     // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
-    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf) lok = false;
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret) lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
@@ -510,8 +510,9 @@ function assignGoals(ctx: Ctx) {
   }
   if (main) { main.value += 25; main.cap = ctx.siege ? 14 : 8; main.distW = 2; }
   const pairs: { u: Unit; g: number; sc: number }[] = [];
-  // Wunder planen eigens (planWonderUnits) / wonders are planned separately (planWonderUnits)
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u);
+  // Wunder planen eigens (planWonderUnits), Endgegner bewachen ihr Hauptquartier (bossGoal)
+  // wonders are planned separately (planWonderUnits), bosses guard their HQ (bossGoal)
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -546,11 +547,36 @@ function assignGoals(ctx: Ctx) {
   const front = frontGoal(ctx);
   for (const u of ctx.my) {
     if (ctx.goals.has(u.id) || isWonder(u)) continue;
+    if (isBoss(u)) { ctx.goals.set(u.id, bossGoal(ctx, u)); continue; }
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }
     if (has(u, 'mines')) { ctx.goals.set(u.id, minerGoal(ctx)); continue; }
     ctx.goals.set(u.id, front);
   }
+}
+
+/**
+ * Endgegner: Heimatfeld ist das eigene Hauptquartier, sonst die naechste eigene Stadt, sonst das eigene Feld.
+ * Boss: the home tile is the own HQ, else the nearest own city, else its own tile.
+ */
+export function bossHome(ctx: Ctx, u: Unit): Pos {
+  const hq = hqOf(ctx.s, ctx.f) ?? ctx.myCities.slice().sort((a, b) => dist(a, u) - dist(b, u) || a.id - b.id)[0];
+  return hq ? { x: hq.x, y: hq.y } : { x: u.x, y: u.y };
+}
+
+/**
+ * Endgegner: jagt Eindringlinge im Umkreis SWARM_MOTHER.aiLeash um ihr Hauptquartier (die schwaechsten zuerst, dort
+ * wirken Schrei und Brut), sonst bewacht sie es. Die Zuege bleiben an der Leine (planUnitMoves).
+ * Boss: hunts intruders within SWARM_MOTHER.aiLeash of her HQ (the weakest first, where scream and brood work),
+ * otherwise she guards it. Moves stay on the leash (planUnitMoves).
+ */
+function bossGoal(ctx: Ctx, u: Unit): Goal {
+  const home = bossHome(ctx, u);
+  const near = ctx.enemies.filter((e) => dist(e, home) <= SWARM_MOTHER.aiLeash && !isWonder(e))
+    .sort((a, b) => a.hp - b.hp || dist(a, u) - dist(b, u) || a.id - b.id);
+  const e = near[0];
+  if (e) return { kind: 'hunt', x: e.x, y: e.y, value: 90, cap: 99, distW: 0, src: `t${e.y * ctx.size + e.x}l`, water: false, targetId: e.id };
+  return { kind: 'defend', x: home.x, y: home.y, value: 60, cap: 99, distW: 0, src: `t${home.y * ctx.size + home.x}l`, water: false };
 }
 
 function frontGoal(ctx: Ctx): Goal {

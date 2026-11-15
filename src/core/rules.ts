@@ -4,24 +4,24 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, RETREAT, ROCKETS, START, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
-import { addHazards, erupts } from './hazards';
+import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
-import { evaluateCampaign, setupMission } from './campaign';
+import { evaluateCampaign, landingPartyHolds, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
 import {
-  recruitCheck, recruitHome, mineCheck, mineTriggers, unitClass,
+  recruitCheck, recruitHome, supplyLines, turretTargets, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
-  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  cityAt, isBoss, isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -34,7 +34,7 @@ export function createGame(cfg: GameConfig): GameState {
   // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
   const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
-  const map = generateMap(config.seed, config.size, config.mapType, ids);
+  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' ? 'cavern' : undefined);
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
@@ -170,7 +170,7 @@ function reveal(s: GameState, f: number, x: number, y: number, r: number, ev: Ga
 function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: number; y: number } | null {
   for (const p of neighbors(s.size, x, y)) {
     const t = tileAt(s, p.x, p.y)!;
-    if (unitAt(s, p.x, p.y) || t.wonderOf) continue;
+    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret) continue;
     if (water ? !isWater(t) : !isLand(t)) continue;
     if (!water && t.terrain === 'mountain') continue;
     return p;
@@ -179,6 +179,8 @@ function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: 
 }
 
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
+  // Nachschublinien wachsen nicht / supply lines do not grow
+  if (supplyLines(s)) return;
   c.pop += amount;
   while (c.pop >= levelUpCost(s, c)) {
     c.pop -= levelUpCost(s, c);
@@ -380,6 +382,8 @@ function updateConnections(s: GameState, f: number, ev: GameEvent[]) {
 
 function updateGrandProjects(s: GameState, f: number, ev: GameEvent[]) {
   const fa = s.factions[f];
+  // keine Grossprojekte an Nachschublinien / no grand projects at supply lines
+  if (supplyLines(s)) return;
   for (const id of GRAND_PROJECT_IDS) {
     if (fa.grandProjectsUnlocked.includes(id)) continue;
     if (grandProjectConditionMet(s, f, id)) { fa.grandProjectsUnlocked.push(id); ev.push({ t: 'unlockGrand', id, faction: f }); }
@@ -389,7 +393,8 @@ function updateGrandProjects(s: GameState, f: number, ev: GameEvent[]) {
 function checkElimination(s: GameState, ev: GameEvent[]) {
   for (const f of s.factions) {
     if (!f.alive) continue;
-    if (ownCities(s, f.index).length === 0) {
+    // Kampagne: der Landetrupp lebt ohne Stadt, solange er Einheiten hat / campaign: the landing party lives without a city while it has units
+    if (ownCities(s, f.index).length === 0 && !landingPartyHolds(s, f.index)) {
       f.alive = false;
       f.eliminatedRound = s.round;
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
@@ -463,8 +468,50 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     }
   }
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
+  for (const u of s.units.filter((o) => o.owner === f && isBoss(o))) bossTurn(s, u, ev);
   afterAction(s, f, ev);
   processFactionVictory(s, f, stillDrills, ev);
+}
+
+/**
+ * Endgegner zu Beginn seines Zuges: Heilung auf Xeno-Boden, psychischer Schrei gegen alle feindlichen Nachbarn,
+ * Brut auf freien Nachbarfeldern. Alles deterministisch, ohne Wurf; Zahlen in SWARM_MOTHER.
+ * Boss at the start of its turn: healing on xeno ground, psychic scream against all hostile neighbours,
+ * brood on free adjacent tiles. All deterministic, without a roll; numbers in SWARM_MOTHER.
+ */
+function bossTurn(s: GameState, u: Unit, ev: GameEvent[]) {
+  const B = SWARM_MOTHER;
+  const ready = u.boss ?? (u.boss = { scream: s.round, brood: s.round });
+  if (tileAt(s, u.x, u.y)!.xeno && u.hp < u.maxHp) {
+    const amount = Math.min(B.xenoHeal, u.maxHp - u.hp);
+    u.hp += amount;
+    ev.push({ t: 'heal', unit: u.id, amount });
+  }
+  const foes = s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(o, u) <= B.screamRange && !isWonder(o) && !submerged(s, o))
+    .sort((a, b) => a.id - b.id);
+  if (foes.length && s.round >= ready.scream) {
+    const hits = foes.map((o) => ({ unit: o.id, dmg: Math.min(o.hp, B.screamDamage) }));
+    ready.scream = s.round + B.screamEvery;
+    ev.push({ t: 'boss', what: 'scream', unit: u.id, faction: u.owner, x: u.x, y: u.y, hits });
+    for (const o of foes) {
+      o.hp -= B.screamDamage;
+      if (o.hp <= 0) { killUnit(s, o, u.id, ev); gainKill(s, u, ev); }
+    }
+  }
+  if (s.round >= ready.brood && s.units.filter((o) => o.owner === u.owner).length < B.broodCap) {
+    let count = 0;
+    for (const p of neighbors(s.size, u.x, u.y)) {
+      if (count >= B.broodCount) break;
+      const t = tileAt(s, p.x, p.y)!;
+      if (!isLand(t) || t.terrain === 'mountain' || t.volcano || t.wonderOf || burning(s, t) || unitAt(s, p.x, p.y) || spawnBlocked(s, p)) continue;
+      const c = cityAt(s, p.x, p.y);
+      if (c && c.owner !== u.owner) continue;
+      spawnUnit(s, B.broodUnit, u.owner, p.x, p.y, null);
+      count++;
+    }
+    ready.brood = s.round + B.broodEvery;
+    if (count) ev.push({ t: 'boss', what: 'brood', unit: u.id, faction: u.owner, x: u.x, y: u.y, count });
+  }
 }
 
 function endTurnProcessing(s: GameState, ev: GameEvent[]) {
@@ -573,7 +620,7 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (s.factions[next].alive) break;
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
-  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processRandomEvents(s, ev); }
+  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processTurrets(s, ev); processRandomEvents(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -640,6 +687,79 @@ function processVolcanoes(s: GameState, ev: GameEvent[]) {
       else interruptWonder(s, u, ev); // Lava unterbricht Wunder wie ein Treffer / lava interrupts wonders like a hit
     }
   }
+}
+
+/**
+ * Verdan-Verteidigungslinie: erwacht, sobald eine Einheit dem Artefakt nahe kommt (nach jedem Kommando geprueft).
+ * Verdan defence line: wakes up once a unit comes close to the artifact (checked after every command).
+ */
+function wakeTurrets(s: GameState, ev: GameEvent[]) {
+  const art = s.campaign?.artifact;
+  if (!art) return;
+  const guns = s.tiles.filter((t) => t.turret && t.turret.hp > 0 && !t.turret.active);
+  if (!guns.length) return;
+  const near = s.units.filter((u) => dist(u, art) <= VERDAN.wakeRange).sort((a, b) => a.id - b.id)[0];
+  if (!near) return;
+  for (const t of guns) t.turret!.active = true;
+  ev.push({ t: 'verdanActive', faction: near.owner });
+}
+
+/**
+ * Zu Rundenbeginn feuert jedes wache Geschuetz einmal auf die dem Artefakt naechste Einheit in Reichweite (jede Fraktion).
+ * Normale Kampfformel, Trefferglueck einer Maschine aus dem Zufallsstrom des Spiels.
+ * At the start of each round every awake gun fires once at the unit in range closest to the artifact (any faction).
+ * Normal combat formula, machine hit luck from the game's random stream.
+ */
+function processTurrets(s: GameState, ev: GameEvent[]) {
+  for (const p of turretList(s)) {
+    if (!p.active) continue;
+    const u = turretTarget(s, p);
+    if (!u) continue;
+    const base = turretShotDamage(s, p.hp, u);
+    const hit: HitKind = hitChanceOn(s) ? rollHit(raceOdds(s, VERDAN.race, p.hp / VERDAN.hp, true), nextRandom(s)) : 'full';
+    const dmg = hitDamage(base, hit);
+    u.hp -= dmg;
+    if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
+    ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}) });
+    if (u.hp <= 0) killUnit(s, u, null, ev);
+    else if (dmg > 0) interruptWonder(s, u, ev);
+  }
+}
+
+/** Angriff auf ein Verdan-Geschuetz / attack on a Verdan gun */
+function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEvent[]): CommandResult {
+  const t = tileAt(s, x, y);
+  if (!t?.turret || t.turret.hp <= 0) return fail('invalidTarget');
+  if (!turretTargets(s, u).some((p) => p.x === x && p.y === y)) {
+    if (!canAttackNow(u) || submerged(s, u)) return fail('cannotAttack');
+    return fail(dist(u, { x, y }) > effectiveRange(s, u) ? 'outOfRange' : 'invalidTarget');
+  }
+  const pre = turretPreview(s, u, { x, y });
+  const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
+  const dealt = hitDamage(pre.toTurret, hit);
+  const left = t.turret.hp - dealt;
+  // ein Angriff weckt die ganze Linie; Gegenschlag einer Maschine / an attack wakes the whole line; return fire of a machine
+  const wasAwake = t.turret.active;
+  const retBase = left > 0 ? pre.ret(left) : 0;
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(raceOdds(s, VERDAN.race, left / VERDAN.hp, true), nextRandom(s)) : 'full';
+  const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
+  t.turret.hp = Math.max(0, left);
+  if (!wasAwake) {
+    for (const o of s.tiles) if (o.turret && o.turret.hp > 0) o.turret.active = true;
+    ev.push({ t: 'verdanActive', faction: u.owner });
+  }
+  const destroyed = t.turret.hp <= 0;
+  if (destroyed) { t.turret = null; t.turretRuin = true; }
+  if (ret > 0) u.hp -= ret;
+  ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  s.factions[u.owner].lastAttackRound = s.round;
+  if (has(u, 'submerged')) u.revealed = true;
+  // Geschuetze zaehlen nie als Abschuss (Punkte, Statistik, Bonusziele) / guns never count as kills (score, stats, bonus objectives)
+  if (u.hp <= 0) { killUnit(s, u, null, ev); return { ok: true, events: ev }; }
+  u.attacked = true;
+  if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
+  if (u.moved && u.attacked) u.exhausted = true;
+  return { ok: true, events: ev };
 }
 
 function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
@@ -788,7 +908,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
       for (const p of neighbors(s.size, c.x, c.y)) {
         if (spawned >= max) break;
         const nt = tileAt(s, p.x, p.y)!;
-        if (unitAt(s, p.x, p.y) || nt.wonderOf || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
+        if (unitAt(s, p.x, p.y) || nt.wonderOf || nt.turret || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
         spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
         spawned++;
       }
@@ -903,6 +1023,12 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const target = unitById(s, cmd.target);
       if (!target || target.owner === f) return fail('invalidTarget');
       res = doAttack(s, u, target, ev);
+      break;
+    }
+    case 'attackTurret': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      res = doAttackTurret(s, u, cmd.x, cmd.y, ev);
       break;
     }
     case 'rocket': {
@@ -1287,6 +1413,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       endTurnProcessing(s, ev);
       advance(s, ev);
       if (s.campaign) evaluateCampaign(s, ev, true);
+      wakeTurrets(s, ev);
       res = { ok: true, events: ev };
       s.log.push(...ev.filter((e) => e.t !== 'move'));
       if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
@@ -1296,6 +1423,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       return fail('invalid');
   }
   if (res.ok && !s.over) afterAction(s, f, ev);
+  if (res.ok) wakeTurrets(s, ev);
   if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);

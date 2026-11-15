@@ -1,6 +1,7 @@
 /**
  * Kriegsnebel: aufgedeckte Felder verlieren ihre Wolke mit einer kurzen Aufloese-Animation
  * (Wolke steigt, blaeht sich auf und schrumpft weg). Das Treiben der ruhenden Wolken macht der Shader (atmosphere.ts).
+ * In der Hoehle liefert der Erzeuger Wolken in Hoehlentoenen (Board.theme, caveCloudGeometry).
  * Fog of war: revealed tiles lose their cloud with a short dissolve animation
  * (cloud rises, puffs up and shrinks away). The drift of resting clouds is done by the shader (atmosphere.ts).
  */
@@ -71,6 +72,13 @@ export class FogFx {
       if (alive.length || alive.length !== bucket.length) any = true;
     });
     return any;
+  }
+
+  /** Neue Wolkenform (z. B. Hoehlentoene): Netze beim naechsten Aufdecken neu anlegen / new cloud shape (e.g. cave tones): recreate meshes on the next reveal */
+  reset() {
+    this.clear();
+    for (const { mesh, line } of this.meshes) { this.group.remove(mesh, line); mesh.dispose(); line.dispose(); }
+    this.meshes = [];
   }
 
   /** Alles sofort beenden (z. B. ohne Animationen) / finish everything at once (e.g. without animations) */

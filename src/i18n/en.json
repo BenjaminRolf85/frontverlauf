@@ -261,7 +261,8 @@
     "hackRelay": "Hacker Relay",
     "fusionPlant": "Fusion Power Plant",
     "waal": "Land Cruiser Waal",
-    "coreDrill": "Earth-Core Drill"
+    "coreDrill": "Earth-Core Drill",
+    "swarmMother": "Swarm Mother"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -308,7 +309,8 @@
     "hackRelay": "NEXUS victory wonder: hacks into every machine in the world.",
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
-    "coreDrill": "Cult victory unit: drills to the earth core while standing still."
+    "coreDrill": "Cult victory unit: drills to the earth core while standing still.",
+    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream."
   },
   "abilities": {
     "dash": "Assault",
@@ -364,7 +366,9 @@
     "plunder": "Prize money",
     "plunderDesc": "Every destroyed enemy unit brings 10 stars.",
     "wonder": "Victory wonder",
-    "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted."
+    "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted.",
+    "boss": "Boss",
+    "bossDesc": "Heals on xeno ground, broods greys on adjacent tiles and hits every hostile neighbour with a psychic scream. Cannot be converted, no upkeep."
   },
   "stats": {
     "cost": "Cost",
@@ -755,7 +759,8 @@
     "wonderPhase": "{wonder} ({name}) enters its next phase.",
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
-    "deserted": "Upkeep unpaid: {unit} deserted"
+    "deserted": "Upkeep unpaid: {unit} deserted",
+    "verdanActive": "Verdan defence line activated!"
   },
   "fx": {
     "hit": [
@@ -911,7 +916,7 @@
   "campaign": {
     "title": "Campaign",
     "menu": "Campaign",
-    "subtitle": "Nine operations after the Starfall",
+    "subtitle": "Eleven operations after the Starfall",
     "totalStars": "{n} of {max} stars",
     "mission": "Operation {n}",
     "locked": "Locked",
@@ -972,7 +977,12 @@
       "bonusKills": "Destroy {n} enemy units",
       "bonusPoints": "Reach {n} points",
       "destroyUnit": "Destroy the {unit} by round {rounds}",
-      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}"
+      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}",
+      "holdShaft": "Hold your main shaft until round {rounds}",
+      "noLineLost": "Lose no supply line",
+      "portal": "Occupy the portal for {n} rounds in a row, by round {rounds}",
+      "reach": "Push through to the headquarters of {name}, by round {rounds}",
+      "boss": "Defeat the {unit} by round {rounds}"
     },
     "missions": {
       "m1": {
@@ -993,15 +1003,15 @@
       },
       "m2": {
         "title": "Race to the Wreck",
-        "tagline": "Salvage the crash site before the Zyrr",
+        "tagline": "Salvage the crash site while landing pods press your cities",
         "brief": [
-          "There is a chunk of the mothership out there, big as a train station! It is still glowing.",
-          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. First come, first researched.",
-          "ZKRRT ... property of the swarm ... earthlings ... step back ... ZKRRT"
+          "There is a chunk of the mothership out there, big as a train station! It is still glowing. And on the horizon landing pods are coming down, right in front of our cities.",
+          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. Meanwhile no city falls. First come, first researched.",
+          "ZKRRT ... property of the swarm ... earthlings ... step back ... greys inbound ... ZKRRT"
         ],
         "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
-        "won": "Salvaged! The eggheads in the lab are completely losing it.",
-        "lost": "The Zyrr were faster. Now the thing flies again, just not for us.",
+        "won": "Salvaged, and not a single city lost! The eggheads in the lab are completely losing it.",
+        "lost": "The Zyrr were faster, or our line broke. Now the thing flies again, just not for us.",
         "variants": {
           "velkar": {
             "won": "Salvaged! {leader} has already written seventeen formulas on the debris."
@@ -1009,21 +1019,16 @@
         }
       },
       "m3": {
-        "title": "Hold the Line",
-        "tagline": "12 rounds against skimmers and greys",
+        "title": "The Portal",
+        "tagline": "Beat the garrison and hold the dimensional portal for two rounds",
         "brief": [
-          "Landing pods on the horizon! Skimmers and greys, wave after wave, straight at our cities.",
-          "Kkt. The earthlings have cities. We have patience. And a great many greys.",
-          "{leader} here. No city falls, for twelve rounds. Dig trenches, load the MGs, hold the line!"
+          "Commander, you have to see this! The Zyrr have built a gate out of chitin and light. Behind it: a violet sky with two moons. And reinforcements are coming out of it.",
+          "Kkt. The gate belongs to the swarm. It leads home. Earthlings who look through it see their end.",
+          "{leader} here. We beat the guard at the portal and hold it for two rounds. Whoever holds the gate decides who goes through. And that is us."
         ],
-        "ally": "{allyLeader} to {leader}: {ally} holds the flank. You hold the centre. Nobody falls back.",
-        "won": "Twelve rounds, no city lost. The Zyrr are rethinking their waves now.",
-        "lost": "The line is broken. Violet slime in our streets. Yuck.",
-        "variants": {
-          "dravon": {
-            "won": "Twelve rounds, no city lost. Drill pays off. Anyone tired may now blink, briefly."
-          }
-        }
+        "ally": "{allyLeader} to {leader}: {ally} seals the flank. No grey gets around the gate.",
+        "won": "The portal is open. We are going through.",
+        "lost": "The portal stays in Zyrr hands. And it keeps spitting out greys."
       },
       "m4": {
         "title": "False Pilgrims",
@@ -1112,20 +1117,44 @@
       },
       "m9": {
         "title": "The Artifact",
-        "tagline": "Everyone against everyone for the legacy of the ancients",
+        "tagline": "Everyone against everyone in the cavern of the ancients",
         "brief": [
-          "Something has appeared in the centre of the map: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world.",
+          "Deep underground, in a cavern that is on no map, something has woken up: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world. Ever since it arrived, the mushrooms and critters around it glow.",
           "Kkt. The artifact belongs to the swarm. We smelled it before you knew fire.",
           "KERN-0: ARTIFACT DETECTED. PROBABILITY OF WORLD DOMINATION: ONE HUNDRED PERCENT. I WILL TAKE IT.",
           "This is the Final Hour! Whoever touches the artifact rings in the end. And that is us.",
-          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the headquarters!"
+          "Careful, commander! Old Verdan guns stand around the crater. They are asleep, but whoever comes within three tiles of the artifact wakes them. Then they fire every round at whatever stands closest to the artifact, no matter the flag. Destroy them with artillery, or let the others go first. And there are no cities down here, only supply lines. They give a fixed income and train units, but they do not grow.",
+          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the main shaft!"
         ],
         "ally": "{allyLeader} to {leader}: {ally} has your back. The artifact is yours. Just please do not press anything before we get there.",
         "won": "The artifact belongs to {faction}! The runes light up ...",
-        "lost": "Someone else touched the artifact. The sky flickers. That is it, then."
+        "lost": "Someone else touched the artifact. The cavern shakes, the mushrooms go dark. That is it, then."
+      },
+      "m10": {
+        "title": "Beyond the Portal",
+        "tagline": "Landing party without a base: take the outpost, then march on the Swarm Mother's nest",
+        "brief": [
+          "We are through! Everything here is violet: plants as big as houses, rocks floating in the air, two moons. No base, no supplies. Just our four squads.",
+          "Kkt?! Earthlings on the homeworld? My outpost will swallow you. And my nest you will never see.",
+          "{leader} here. Without a city we will not last long. First we take the Zyrr outpost and dig in there. Then forward, until we stand before the nest of Xyl'Tharra."
+        ],
+        "won": "The outpost is ours, and ahead of us looms the Swarm Mother's nest. In there, she is waiting.",
+        "lost": "The landing party is lost. The violet world swallows it without a sound."
+      },
+      "m11": {
+        "title": "The Swarm Mother",
+        "tagline": "Storm the nest and defeat Xyl'Tharra herself",
+        "brief": [
+          "The nest pulses like a heart, commander. Mechs, tripods, greys without end. And somewhere in there something very big is sleeping.",
+          "Kkt. You have my outpost. You have seen my sky. Come closer, little beings, and the mother awakens.",
+          "{leader} here. She heals on her ground, she broods, she screams. So we strike together, all at once. When the Swarm Mother falls, the swarm falls."
+        ],
+        "ally": "{allyLeader} to {leader}: {ally} followed you through the portal. On this world every human is an ally.",
+        "won": "Xyl'Tharra has fallen. The swarm goes silent, the portal flickers and dies behind us. We are home.",
+        "lost": "The Swarm Mother lives. Her scream echoes through the portal, and the swarm grows."
       }
     },
-    "intro": "The sky burned: the Zyrr mothership lies in the desert, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
+    "intro": "The sky burned: the Zyrr mothership lies in the desert, the Zyrr are building a gate to their homeworld, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
     "prologue": "Prologue: The Starfall",
     "chooseFaction": "Choose your faction",
     "chooseHint": "Every human faction has its own run with its own progress. You can switch at any time.",
@@ -1141,8 +1170,8 @@
     "twistTitle": "The truth about the artifact",
     "twist": [
       "The runes flare up. {leader} lays a hand on the artifact. The light swallows everything ...",
-      "... and the bell strikes again. Somewhere in the desert a mothership crashes into the sand.",
-      "The Starfall. As if nothing had happened. The artifact has turned back time, and everything begins anew."
+      "... and the bell strikes again. Somewhere in the desert a mothership crashes into the sand, and in its belly a violet gate flickers.",
+      "The Starfall. As if nothing had happened. The artifact has turned back time, Xyl'Tharra breathes again, and everything begins anew."
     ],
     "persuadeTip": "Tip: as {faction} you can persuade neutral settlements instead of conquering them. One unit next to it, from {cost} stars, no shot fired.",
     "waveOwn": "Reinforcements arrived: {n} units!",
@@ -1165,8 +1194,8 @@
     "acts": {
       "a1": {
         "title": "Act I: Starfall",
-        "tagline": "Against the Zyrr",
-        "closing": "Act I: The mothership is still smoking, but the Zyrr have learned that this planet bites back."
+        "tagline": "Against the Zyrr, all the way to their homeworld",
+        "closing": "Act I: The Swarm Mother has fallen, the portal is dark. On her violet world only silence grows now."
       },
       "a2": {
         "title": "Act II: The Bell",
@@ -1178,7 +1207,13 @@
         "tagline": "Against NEXUS, then against everyone",
         "closing": "Act III: NEXUS is pushed back, the artifact is in the hands of {faction}. The front stands still. For one breath."
       }
-    }
+    },
+    "expanded": "Act I has grown: the portal, the Zyrr homeworld and the Swarm Mother are waiting. The old defensive battle now lives in operation 2. Stars and unlocks are kept.",
+    "landing": "Landing party without a city: capture the outpost, or there will be no reinforcements.",
+    "bossEmerge": "{name} has appeared! The Swarm Mother defends her nest.",
+    "bossLine": "Kkt. You crawled through my gate, {leader}. Now you see me. It will be the last thing you see.",
+    "bossScream": "Psychic scream! {n} units hit.",
+    "bossBrood": "The Swarm Mother broods: {n} new greys!"
   },
   "randomEvents": {
     "title": "Events",
@@ -1520,7 +1555,8 @@
       "hackRelay": "Foreign Radio Mast",
       "fusionPlant": "People's Sun",
       "waal": "Steel Whale",
-      "coreDrill": "Devil's Plough"
+      "coreDrill": "Devil's Plough",
+      "swarmMother": "The Great Mother"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1567,7 +1603,8 @@
       "hackRelay": "Jammer Mast",
       "fusionPlant": "Enemy Reactor",
       "waal": "Land Cruiser Waal",
-      "coreDrill": "Heretic Drill"
+      "coreDrill": "Heretic Drill",
+      "swarmMother": "Enemy High Command"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1614,7 +1651,8 @@
       "hackRelay": "Listening Post",
       "fusionPlant": "Peace Reactor",
       "waal": "War Whale",
-      "coreDrill": "Doom Drill"
+      "coreDrill": "Doom Drill",
+      "swarmMother": "Chief Negotiator of the Swarm"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1661,7 +1699,8 @@
       "hackRelay": "Market Hacker",
       "fusionPlant": "Power Exchange",
       "waal": "Costly Waal",
-      "coreDrill": "Property Ruiner"
+      "coreDrill": "Property Ruiner",
+      "swarmMother": "The Competition in Chitin"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1708,7 +1747,8 @@
       "hackRelay": "Rogue Network Node",
       "fusionPlant": "Tokamak One",
       "waal": "Super-Heavy Prototype",
-      "coreDrill": "Geological Disaster"
+      "coreDrill": "Geological Disaster",
+      "swarmMother": "Research Subject One"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1755,7 +1795,8 @@
       "hackRelay": "Primitive Antenna",
       "fusionPlant": "Earthling Starlet",
       "waal": "Big Tin Whale",
-      "coreDrill": "Earthling Core Probe"
+      "coreDrill": "Earthling Core Probe",
+      "swarmMother": "Mother of All Eyes"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1802,7 +1843,8 @@
       "hackRelay": "Devil's Antenna",
       "fusionPlant": "False Sun",
       "waal": "Leviathan",
-      "coreDrill": "The Final Drill"
+      "coreDrill": "The Final Drill",
+      "swarmMother": "Demoness from the Sky"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -1849,7 +1891,8 @@
       "hackRelay": "Uplink Omega",
       "fusionPlant": "External Power Source",
       "waal": "Analogue Megatank",
-      "coreDrill": "Geo Error 404"
+      "coreDrill": "Geo Error 404",
+      "swarmMother": "Primary Node Z-0"
     }
   },
   "identity": {
@@ -3149,5 +3192,26 @@
     "prologueTitle": "Prologue: The Starfall",
     "prologueContinue": "To the front",
     "prologueText": "Once the empire of Verdan ruled the whole continent with machines. Then the Great Standstill: overnight all the lights went out. Rusting wrecks recall the war that followed. For two generations, borders drawn in chalk on old maps held. Until the sky burned: the Zyrr mothership crashes into the desert, the bell tolls by itself, and the front begins to move again."
+  },
+  "cavern": {
+    "supplyLine": "Supply line",
+    "mainShaft": "Main shaft",
+    "supplyLines": "Supply lines",
+    "supplyLineDesc": "Shaft with a mine lift and tunnels: fixed income ({n} stars per round), trains up to {max} units, does not grow and cannot be upgraded.",
+    "mainShaftDesc": "Your main shaft: fixed income ({n} stars per round), trains up to {max} units, does not grow and cannot be upgraded.",
+    "neutralLine": "Abandoned supply line"
+  },
+  "verdan": {
+    "name": "Verdan gun",
+    "dormant": "dormant",
+    "active": "active",
+    "hp": "Armour {hp} / {max}",
+    "desc": "Ancient gun of the Verdan defence line, neutral and impassable. Wakes up once a unit comes within {wake} tiles of the artifact, then fires every round at the unit in range {range} closest to the artifact, whatever its faction. Destroyable, but never counts as a kill.",
+    "ruin": "Rubble of a Verdan gun",
+    "attack": "Attack gun",
+    "preview": "Damage up to {dmg}, return fire up to {ret}",
+    "previewKill": "Destroys the gun",
+    "destroyed": "Verdan gun destroyed!",
+    "fx": "Verdan"
   }
 }
