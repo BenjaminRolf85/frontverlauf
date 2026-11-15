@@ -441,12 +441,13 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       const away = { x: clamp(2 * out.x - b.x), y: clamp(2 * out.y - b.y) };
       const gate = ringNear(k, out, k.toward(out, away, 3), 3, 4);
       k.portal(gate);
-      for (const t of ['infantry', 'infantry', 'mg', 'jeep', 'artillery'] as UnitTypeId[]) k.spawn(t, 0, gate, { min: 1 });
+      // vier Trupps: alle im Freibetrag des Solds, ohne Einkommen desertiert sonst einer / four squads: all within the upkeep allowance, without income one would desert otherwise
+      for (const t of ['infantry', 'mg', 'jeep', 'artillery'] as UnitTypeId[]) k.spawn(t, 0, gate, { min: 1 });
       revealArea(s, 0, gate.x, gate.y, 2);
       revealArea(s, 0, out.x, out.y, 1);
       revealArea(s, 0, b.x, b.y, 1);
-      // Besatzung des Vorpostens und die Schwarmstadt / outpost garrison and the hive city
-      k.spawn('grey', 1, out);
+      // die Hoehle ist verlassen, die Zyrr kommen mit der ersten Welle zurueck; die Schwarmstadt ist besetzt
+      // the burrow is deserted, the Zyrr return with the first wave; the hive city is garrisoned
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
       k.upgrade(b, 'bunker');
       k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });

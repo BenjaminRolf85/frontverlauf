@@ -514,20 +514,21 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
       expect(c.landing, f).toBe(true);
       expect(c.startCities).toEqual([]);
       const own = s.units.filter((u) => u.owner === 0);
-      expect(own.map((u) => u.type).sort(), f).toEqual(['artillery', 'infantry', 'infantry', 'jeep', 'mg']);
+      expect(own.map((u) => u.type).sort(), f).toEqual(['artillery', 'infantry', 'jeep', 'mg']);
       // alle neben dem Portal, nicht darauf / all next to the portal, not on it
       for (const u of own) { expect(dist(u, c.portal!), f).toBeLessThanOrEqual(3); expect(dist(u, c.portal!), f).toBeGreaterThanOrEqual(1); }
       // Vorposten: Zyrr-Stadt mit Besatzung, das alte Hauptquartier des Spielers / outpost: Zyrr city with a garrison, the player's old HQ
       const out = cityAt(s, c.targets[0].x, c.targets[0].y)!;
       expect(out.owner).toBe(1);
       expect(out.hqOf).toBe(0);
-      expect(unitAt(s, out.x, out.y)?.owner).toBe(1);
+      // die Hoehle ist verlassen, die Zyrr kommen mit der ersten Welle / the burrow is deserted, the Zyrr come with the first wave
+      expect(unitAt(s, out.x, out.y)).toBeUndefined();
       expect(dist(out, c.portal!)).toBeGreaterThanOrEqual(3);
       // Ziel 2: das Hauptquartier der Zyrr / objective 2: the Zyrr HQ
       expect(c.targets[1]).toEqual({ x: hqOf(s, 1)!.x, y: hqOf(s, 1)!.y });
       expect(s.factions[0].explored[c.targets[1].y * s.size + c.targets[1].x]).toBe(1);
-      // der Sold frisst den Landetrupp nicht auf (eine Einheit ueber dem Freibetrag) / upkeep does not eat the landing party (one unit above the free share)
-      expect(own.length).toBeLessThanOrEqual(5);
+      // der Sold frisst den Landetrupp nicht auf / upkeep does not eat the landing party
+      expect(own.length).toBeLessThanOrEqual(4);
     }
   });
 
@@ -545,7 +546,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(applyCommand(s, { type: 'capture', unit: z.id }).ok).toBe(true);
     expect(village.owner).toBe(1);
     expect(s.factions[0].alive).toBe(true);
-    expect(s.units.filter((u) => u.owner === 0)).toHaveLength(5);
+    expect(s.units.filter((u) => u.owner === 0)).toHaveLength(4);
     expect(s.campaign!.result).toBeNull();
 
     // ohne Einheiten ist der Landetrupp verloren / without units the landing party is lost
