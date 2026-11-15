@@ -310,7 +310,7 @@
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
     "coreDrill": "Cult victory unit: drills to the earth core while standing still.",
-    "swarmMother": "Xyl'Tharra herself: 60 HP, range 2. Heals on xeno ground, broods greys and hits neighbours with a psychic scream."
+    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream."
   },
   "abilities": {
     "dash": "Assault",
@@ -366,7 +366,9 @@
     "plunder": "Prize money",
     "plunderDesc": "Every destroyed enemy unit brings 10 stars.",
     "wonder": "Victory wonder",
-    "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted."
+    "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted.",
+    "boss": "Boss",
+    "bossDesc": "Heals on xeno ground, broods greys on adjacent tiles and hits every hostile neighbour with a psychic scream. Cannot be converted, no upkeep."
   },
   "stats": {
     "cost": "Cost",

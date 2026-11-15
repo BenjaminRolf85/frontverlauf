@@ -310,7 +310,7 @@
     "fusionPlant": "Siegbauwerk von Velkar: liefert nach der Fertigstellung endlose Energie.",
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
     "coreDrill": "Siegeinheit des Kults: bohrt sich im Stillstand zum Erdkern.",
-    "swarmMother": "Xyl'Tharra selbst: 60 LP, Reichweite 2. Heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei."
+    "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei."
   },
   "abilities": {
     "dash": "Sturm",
@@ -366,7 +366,9 @@
     "plunder": "Kaperbeute",
     "plunderDesc": "Jede vernichtete feindliche Einheit bringt 10 Sterne.",
     "wonder": "Siegbauwerk",
-    "wonderDesc": "Kein Sold, zählt nicht zum Stadtlimit, nicht bekehrbar."
+    "wonderDesc": "Kein Sold, zählt nicht zum Stadtlimit, nicht bekehrbar.",
+    "boss": "Endgegnerin",
+    "bossDesc": "Heilt auf Xeno-Boden, brütet Graue auf Nachbarfeldern und trifft mit einem psychischen Schrei alle feindlichen Nachbarn. Nicht bekehrbar, kein Sold."
   },
   "stats": {
     "cost": "Kosten",

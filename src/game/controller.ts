@@ -441,6 +441,17 @@ export class Controller {
             }
             break;
           }
+          // Endgegner: Auftauchen, psychischer Schrei, Brut / boss: emergence, psychic scream, brood
+          case 'boss': {
+            if (!visible(e.x, e.y)) break;
+            if (e.what === 'emerge') { this.play('capture'); this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.eruption, SHAKE.eruptionMs); }
+            else if (e.what === 'scream') {
+              this.play('hit');
+              if (animate) this.view.shake(SHAKE.wreck, 420);
+              for (const h of e.hits ?? []) { const p = before.get(h.unit) ?? unitById(s, h.unit); if (p && visible(p.x, p.y)) { this.ui.fx('hit', p.x, p.y); this.ui.fx('num', p.x, p.y, `-${h.dmg}`); } }
+            } else if (e.what === 'brood') { this.play('levelUp'); this.ui.fx('levelUp', e.x, e.y); }
+            break;
+          }
           case 'turn': break;
           default: break;
         }
