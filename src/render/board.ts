@@ -13,7 +13,8 @@ import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './con
 import { attackIcon, cityLabel, hpBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
-import { PERK_SCALE, SLOT_SPOT, perkGeometry } from './cityPerks';
+import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
+import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
@@ -196,6 +197,8 @@ export class Board {
   readonly desertFx = new DesertWorldFx();
   /** Riss zwischen den Welten (Ende m11) / rift between the worlds (end of m11) */
   readonly rift = new RiftFx();
+  /** Orbitallaser: Zielvorschau, Strahl, Uplink-Licht der Relays / orbital laser: target preview, beam, relay uplink light */
+  readonly orbital = new OrbitalFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -207,7 +210,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -835,6 +838,7 @@ export class Board {
 
     // Staedte / cities
     const townCities: TownInput['cities'] = [];
+    const relayLamps: THREE.Vector3[] = [];
     for (const c of s.cities) {
       if (!explored(c.x, c.y)) continue;
       const fid = c.owner !== null ? s.factions[c.owner].id : null;
@@ -868,6 +872,7 @@ export class Board {
         perk.scale.setScalar(PERK_SCALE);
         perk.traverse((o) => { o.raycast = () => {}; if (o === perk.userData.mesh) o.castShadow = true; });
         this.staticLayer.add(perk);
+        if (up === 'satRelay') relayLamps.push(perk.position.clone().add(new THREE.Vector3(...RELAY_LAMP).multiplyScalar(PERK_SCALE)));
       }
       const cname = this.showLabels ? cityNameOf(s, c.id) : '';
       if (cname) {
@@ -908,6 +913,7 @@ export class Board {
     }
     // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
     this.town.build({ cities: townCities, lava: lavaSpots, glow: glowSpots });
+    this.orbital.setRelays(relayLamps);
     // Hoehlenhuelle und Getier / cave shell and creatures
     if (cave) { this.caveShell.build(size, seed, low); this.caveLife.build(creatures); } else { this.caveShell.clear(); this.caveLife.clear(); }
     // Heimatwelt der Zyrr: schwebende Felsen und Fremdtiere / Zyrr homeworld: floating rocks and critters
@@ -1332,8 +1338,43 @@ export class Board {
 
   get busy() { return this.anims.length > 0 || this.combat.active; }
 
+  /** Zielvorschau des Orbitallasers (leere Liste = aus) / orbital laser target preview (empty list = off) */
+  showOrbitalPreview(s: GameState, tiles: { x: number; y: number }[], cols: number, tags: { x: number; y: number; text: string; own: boolean }[], blocked: boolean) {
+    if (!tiles.length) this.orbital.clearPreview();
+    else {
+      const t: OrbitalTag[] = tags.map((g) => ({ pos: this.tileCenter(s, g.x, g.y), text: g.text, own: g.own }));
+      this.orbital.showPreview(tiles.map((p) => this.tileCenter(s, p.x, p.y)), cols, t, blocked);
+    }
+    this.dirty = true;
+  }
+
+  /**
+   * Strahl auf die Flaeche; onImpact beim Einschlag. Ohne Animationen: stiller Einschlag ohne Strahl, kurz sichtbar.
+   * Beam onto the area; onImpact at the moment of impact. Without animations: still impact without the beam, briefly visible.
+   */
+  animateOrbital(s: GameState, tiles: { x: number; y: number }[], cols: number, faction: FactionId | null, animate: boolean, onImpact: () => void): Promise<void> {
+    this.orbital.clearPreview();
+    const c = tiles.reduce((a: THREE.Vector3, p) => a.add(this.tileCenter(s, p.x, p.y)), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, tiles.length));
+    const r = 0.5 * cols + 0.15;
+    if (!animate || !this.animations) {
+      this.orbital.still(c, r, faction);
+      onImpact();
+      this.orbital.endLater(1100, () => { this.dirty = true; });
+      this.dirty = true;
+      return Promise.resolve();
+    }
+    this.orbital.begin(c, r, faction);
+    let hit = false;
+    return this.addAnim(ORBITAL_FX.ms, (t) => {
+      this.orbital.frame(t);
+      if (!hit && t >= ORBITAL_FX.impact) { hit = true; onImpact(); }
+      if (t >= 1) this.orbital.end();
+    });
+  }
+
   finishAnimations() {
     this.combat.clear();
+    this.orbital.end();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;
