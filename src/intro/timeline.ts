@@ -35,7 +35,7 @@ const FACTION_START = 18;
 
 export const SCENES: readonly Scene[] = [
   { id: 'standstill', start: 0, end: 6, key: 4.6 },
-  { id: 'starfall', start: 6, end: 11, key: 9.6 },
+  { id: 'starfall', start: 6, end: 11, key: 9.2 },
   { id: 'impact', start: 11, end: 14, key: 12.8 },
   { id: 'fracture', start: 14, end: 18, key: 17.4 },
   ...HUMANS.map((id, i): Scene => {
@@ -64,7 +64,7 @@ export const HITS: readonly Hit[] = [
   { at: 16, shake: 0.55, flash: 0.35 },
   ...HUMANS.flatMap((_, i): Hit[] => {
     const s = FACTION_START + i * FACTION_BEAT;
-    return [{ at: s + 1, shake: 0.35, flash: 0 }, { at: s + 2, shake: 0.45, flash: 0 }];
+    return [{ at: s + 1, shake: 0.35, flash: 0 }, { at: s + 2, shake: 0.45, flash: 0 }, { at: s + 4, shake: 0.3, flash: 0 }];
   }),
   // Orbitallaser von Velkar / Velkar's orbital laser
   { at: 39.5, shake: 0.7, flash: 0.7 },
