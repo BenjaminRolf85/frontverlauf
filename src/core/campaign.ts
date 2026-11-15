@@ -1253,6 +1253,16 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   } else s.winner = winner;
 }
 
+/**
+ * Spielstand einer Kriegsplaene-Mission ohne Tempel (alte m4-Fassung "Falsche Pilger"): nicht mehr spielbar.
+ * Save of a war-plans mission without a temple (old m4 version "False Pilgrims"): no longer playable.
+ */
+export function staleTempleSave(s: GameState): boolean {
+  const c = s.campaign;
+  const m = c ? missionById(c.mission) : undefined;
+  return !!c && !!m && m.objectives.some((o) => o.k === 'plans') && (!c.temple || !c.plans);
+}
+
 /** Runden bis zum Missionsende / rounds until the end of the mission */
 export function missionRoundsLeft(s: GameState): number | null {
   const m = s.campaign ? missionById(s.campaign.mission) : undefined;
