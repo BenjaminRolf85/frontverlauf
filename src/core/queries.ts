@@ -1278,12 +1278,17 @@ export function effectiveDefense(s: GameState, u: Unit): number {
   return d;
 }
 
-export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel';
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel' | 'wrongFaction' | 'relayLimit';
 
 export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
   if (c.owner !== f) return 'notYourCity';
+  // Fraktionsausbau (Satelliten-Relay: nur Velkar) / faction upgrade (satellite relay: Velkar only)
+  const only = CITY_UPGRADES.faction[up];
+  if (only && s.factions[f].id !== only) return 'wrongFaction';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
+  const max = CITY_UPGRADES.perFaction[up];
+  if (max !== undefined && s.cities.filter((o) => o.owner === f && hasCityUpgrade(o, up)).length >= max) return 'relayLimit';
   // Nachschublinien und Sendetuerme lassen sich nicht ausbauen / supply lines and transmitter towers cannot be upgraded
   if (supplyLines(s) || c.tower) return 'noSlot';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';

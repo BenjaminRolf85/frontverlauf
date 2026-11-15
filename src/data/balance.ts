@@ -595,17 +595,50 @@ export const WEATHER = {
   quake: { chance: 0.22, salt: 0x2b7e1516 },
 };
 
+/**
+ * Orbitallaser der Velkar: ein Satelliten-Relay (Stadt-Ausbau, siehe CITY_UPGRADES) erlaubt alle cooldown Runden einen
+ * Schuss aus dem Orbit auf eine Flaeche area (w x h Felder, Zielfeld = linke obere Ecke, am Kartenrand nach innen
+ * geschoben). Fester Schaden an allem in der Flaeche, auch an eigenen Einheiten; ohne Trefferglueck.
+ * Velkar orbital laser: a satellite relay (city upgrade, see CITY_UPGRADES) allows one shot from orbit every cooldown
+ * rounds on an area (w x h tiles, target tile = top-left corner, shifted inwards at the map edge). Flat damage to
+ * everything in the area, own units included; without hit luck.
+ */
+export const ORBITAL = {
+  faction: 'velkar' as FactionId,
+  relay: 'satRelay' as const,
+  /** Preis des Relays (Stadt-Ausbau) / price of the relay (city upgrade) */
+  relayCost: 40,
+  /** Runden zwischen zwei Schuessen; auch die Aufladezeit nach dem Bau / rounds between two shots; also the charge time after building */
+  cooldown: 5,
+  /** Flaeche in Feldern (Breite x Hoehe) / area in tiles (width x height) */
+  area: { w: 2, h: 2 },
+  /** fester Schaden je Treffer / flat damage per hit */
+  damage: 2,
+  /** Zielfeld muss fuer den Schuetzen aufgedeckt sein / the target tile must be revealed for the shooter */
+  needsVision: true,
+  /**
+   * KI: Schuss nur bei Nettowert >= minValue (Sterne-Gegenwert: Schaden x Wert/LP, Abschuss = voller Wert);
+   * eigene Einheiten zaehlen ownWeight-fach negativ.
+   * AI: fire only at a net value >= minValue (star equivalent: damage x worth/HP, kill = full worth); own units count ownWeight times negative.
+   */
+  ai: { minValue: 9, ownWeight: 1.6, killBonus: 1, bossWorth: 120 },
+};
+
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
-export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot';
-export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot'];
+export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot' | 'satRelay';
+export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot', 'satRelay'];
 export const CITY_UPGRADES = {
   slots: 3,
-  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30 } as Record<CityUpgradeId, number>,
+  cost: { radioTower: 15, bunker: 25, barracks: 35, hospital: 20, flak: 30, depot: 30, satRelay: ORBITAL.relayCost } as Record<CityUpgradeId, number>,
   /**
    * Freischaltung durch Forschung; Fraktionen ohne Forschung brauchen stattdessen die Stadtstufe (Stufe der Technologie + 1).
    * Unlock by research; factions without research need the city level instead (tech tier + 1).
    */
-  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics' } as Record<CityUpgradeId, TechId>,
+  tech: { hospital: 'supply', barracks: 'mountainTraining', radioTower: 'aerodynamics', bunker: 'fortification', flak: 'ballistics', depot: 'logistics', satRelay: 'aerodynamics' } as Record<CityUpgradeId, TechId>,
+  /** Ausbauten nur fuer eine Fraktion (Satelliten-Relay: Velkar) / upgrades for one faction only (satellite relay: Velkar) */
+  faction: { satRelay: 'velkar' } as Partial<Record<CityUpgradeId, FactionId>>,
+  /** hoechstens so viele je Fraktion zugleich / at most this many per faction at a time */
+  perFaction: { satRelay: 1 } as Partial<Record<CityUpgradeId, number>>,
   /** Lazarett: zusaetzliche Heilung auf und neben der Stadt / hospital: extra healing on and next to the city */
   hospitalHeal: 2,
   /** Flugabwehr: Schaden an feindlichen Hubschraubern, die ihren Zug im Umkreis beenden / flak: damage to hostile helicopters ending their turn within range */
