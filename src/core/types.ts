@@ -350,8 +350,8 @@ export type GameEvent =
   | { t: 'boss'; what: 'emerge' | 'brood' | 'scream'; unit: number; faction: number; x: number; y: number; count?: number; hits?: { unit: number; dmg: number }[] }
   /** Kampagne m11: der Riss reisst auf (an der Schwarmmutter) / campaign m11: the rift tears open (at the Swarm Mother) */
   | { t: 'rift'; unit: number; x: number; y: number }
-  /** Meteorschauer zu Rundenbeginn: getroffene Einheiten / meteor shower at the start of the round: units hit */
-  | { t: 'meteor'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /** Schadenswetter zu Rundenbeginn (Meteorschauer, Saeureregen): getroffene Einheiten / damaging weather at round start (meteors, acid rain): units hit */
+  | { t: 'weatherHit'; kind: 'meteor' | 'acid'; hits: { unit: number; dmg: number; x: number; y: number }[] }
   /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
   | { t: 'ruin'; index: number; x: number; y: number; faction: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
@@ -396,7 +396,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory';
+  | 'enemyTerritory' | 'quake';
 
 export interface CommandResult {
   ok: boolean;

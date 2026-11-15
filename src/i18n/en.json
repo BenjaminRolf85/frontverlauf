@@ -722,7 +722,8 @@
     "noWreck": "No wreck on or next to the tile.",
     "noXenoGround": "Aliens only heal on terraformed xeno ground.",
     "noRockets": "No rockets left. Reload in an own city with a depot.",
-    "enemyTerritory": "Not inside another faction's territory."
+    "enemyTerritory": "Not inside another faction's territory.",
+    "quake": "Earthquake: vehicles and mechs cannot move this round."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -762,7 +763,8 @@
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
     "verdanActive": "Verdan defence line activated!",
-    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!"
+    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!",
+    "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
   },
   "fx": {
     "hit": [
@@ -1992,7 +1994,13 @@
     "dust": "Dust storm",
     "dustDesc": "Vision 1 tile less, units with range 2 or more lose 1 range, helicopters move 1 tile less; with hit luck, clearly more misses",
     "meteor": "Meteor shower",
-    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside cities and bunkers, never lethal"
+    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside cities and bunkers, never lethal",
+    "acid": "Acid rain",
+    "acidDesc": "At the start of each round 1 to 2 damage to every unit that is not Zyrr, outside cities and bunkers, never lethal; with hit luck more misses and grazes, as in rain",
+    "quake": "Earthquake",
+    "quakeDesc": "Vehicles, mechs, walkers and machines cannot move this round; foot troops move, attacks and Verdan guns carry on",
+    "calm": "Calm",
+    "calmDesc": "The cavern is calm, no effects"
   },
   "barks": {
     "korvat": {

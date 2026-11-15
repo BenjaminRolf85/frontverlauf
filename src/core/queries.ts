@@ -380,6 +380,8 @@ function zoc(s: GameState, u: Unit, x: number, y: number): boolean {
 /** Erreichbare Felder (Dijkstra) / reachable tiles (Dijkstra) */
 export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
   if (!ignoreState && !canMove(u)) return [];
+  // Erdbeben: Fahrzeuge und Mechs stehen still / earthquake: vehicles and mechs stand still
+  if (quakeLocked(s, u)) return [];
   const st = UNITS[u.type];
   const fly = has(u, 'fly');
   const ship = st.ship;
@@ -1161,7 +1163,8 @@ export function barrierTargets(s: GameState, u: Unit): Pos[] {
  */
 export function weatherFor(seed: number, round: number, theme?: GameConfig['theme']): WeatherId {
   if (round <= 1) return 'clear';
-  const weights = theme === 'desert' ? WEATHER.desertWeights : WEATHER.weights;
+  if (theme === 'cavern') return quakeFor(seed, round) ? 'quake' : 'clear';
+  const weights = theme === 'desert' ? WEATHER.desertWeights : theme === 'alien' ? WEATHER.alienWeights : WEATHER.weights;
   const block = Math.floor((round - 1) / WEATHER.cycleRounds);
   let h = (seed ^ WEATHER.salt ^ Math.imul(block + 1, 0x9e3779b1)) | 0;
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
@@ -1171,11 +1174,40 @@ export function weatherFor(seed: number, round: number, theme?: GameConfig['them
   for (const [w, p] of Object.entries(weights) as [WeatherId, number][]) { acc += p; if (r < acc) return w; }
   return 'clear';
 }
+/**
+ * Erdbeben in der Hoehle: eigener Wurf je Runde aus Seed und Runde (nicht in Bloecken wie das Wetter).
+ * Earthquake in the cavern: an own roll per round from seed and round (not in blocks like the weather).
+ */
+export function quakeFor(seed: number, round: number): boolean {
+  let h = (seed ^ WEATHER.quake.salt ^ Math.imul(round + 1, 0x27d4eb2d)) | 0;
+  h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296 < WEATHER.quake.chance;
+}
+
 /** Wetter der Partie in einer Runde (Standard: aktuelle Runde) / weather of the game in a round (default: current round) */
-// Hoehle (m9): kein Wetter unter Tage / cavern (m9): no weather underground
-export const weatherAt = (s: GameState, round = s.round): WeatherId => (s.config.weather === false || s.config.theme === 'cavern' ? 'clear' : weatherFor(s.config.seed, round, s.config.theme));
+// Hoehle (m9): kein normales Wetter unter Tage, nur Erdbeben / cavern (m9): no normal weather underground, only earthquakes
+export const weatherAt = (s: GameState, round = s.round): WeatherId => (s.config.weather === false ? 'clear' : weatherFor(s.config.seed, round, s.config.theme));
 /** Hat die Partie Wetter (sonst kein Wetterchip, keine Vorhersage)? / does the game have weather (otherwise no weather chip, no forecast)? */
-export const hasWeather = (s: GameState) => s.config.weather !== false && s.config.theme !== 'cavern';
+export const hasWeather = (s: GameState) => s.config.weather !== false;
+/** Wechselt das Wetter je Runde (Hoehle) statt in Bloecken? / does the weather change per round (cavern) instead of in blocks? */
+export const weatherPerRound = (s: GameState) => s.config.theme === 'cavern';
+/** Runde der naechsten Wetteraenderung fuer die Vorhersage / round of the next weather change for the forecast */
+export const nextWeatherRound = (s: GameState) => (weatherPerRound(s) ? s.round + 1 : (Math.floor((s.round - 1) / WEATHER.cycleRounds) + 1) * WEATHER.cycleRounds + 1);
+
+/**
+ * Erdbeben: Einheiten ausser Fusstruppen (Klasse 'foot') koennen sich nicht bewegen (Fahrzeuge, Mechs, Laeufer, Maschinen).
+ * Earthquake: units other than foot troops (class 'foot') cannot move (vehicles, mechs, walkers, machines).
+ */
+export const quakeLocked = (s: GameState, u: Unit) => weather(s) === 'quake' && unitClass(u.type) !== 'foot';
+/** Trifft Saeureregen diese Einheit (keine Zyrr-Bauart, ohne Deckung)? / does acid rain hit this unit (no Zyrr type, without cover)? */
+export const acidExposed = (s: GameState, u: Unit, x = u.x, y = u.y) => !isAlien(u) && !meteorCover(s, x, y);
+/** Trifft das Wetter w diese Einheit mit Schaden (Meteore, Saeure)? / does weather w damage this unit (meteors, acid)? */
+export function weatherHurts(s: GameState, w: WeatherId, u: Unit, x = u.x, y = u.y): boolean {
+  if (w === 'meteor') return meteorExposed(s, u, x, y);
+  if (w === 'acid') return acidExposed(s, u, x, y);
+  return false;
+}
 
 /**
  * Schuetzt das Feld vor Meteoren (Stadt oder Bunker)? / does the tile protect from meteors (city or bunker)?

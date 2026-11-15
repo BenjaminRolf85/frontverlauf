@@ -14,7 +14,7 @@ import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
 import {
-  recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, meteorExposed, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
+  recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -745,23 +745,26 @@ function processTurrets(s: GameState, ev: GameEvent[]) {
 }
 
 /**
- * Meteorschauer (Wuestenwelt) zu Rundenbeginn: leichter Schaden an jeder ungepanzerten Einheit ohne Deckung, nie toedlich.
- * Meteor shower (desert world) at the start of the round: light damage to every unarmoured unit without cover, never lethal.
+ * Schadenswetter zu Rundenbeginn: Meteorschauer (Wueste, ungepanzerte Einheiten) und Saeureregen (Alienwelt, alles ausser
+ * Zyrr); leichter Schaden ohne Deckung, nie toedlich. Wurf aus dem Zufallsstrom des Spiels.
+ * Damaging weather at the start of the round: meteor shower (desert, unarmoured units) and acid rain (alien world,
+ * everything but the Zyrr); light damage without cover, never lethal. Roll from the game's random stream.
  */
 function processMeteors(s: GameState, ev: GameEvent[]) {
-  if (weather(s) !== 'meteor') return;
-  const M = WEATHER.meteor;
+  const w = weather(s);
+  if (w !== 'meteor' && w !== 'acid') return;
+  const M = WEATHER[w];
   const hits: { unit: number; dmg: number; x: number; y: number }[] = [];
   for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
-    if (!meteorExposed(s, u)) continue;
+    if (!weatherHurts(s, w, u)) continue;
     const roll = nextRandom(s);
     const dmg = Math.min(u.hp - M.minHp, M.damage + (roll < M.extraChance ? 1 : 0));
     if (dmg <= 0) continue;
     u.hp -= dmg;
-    addMark(s, u.x, u.y, 'scorch');
+    if (w === 'meteor') addMark(s, u.x, u.y, 'scorch');
     hits.push({ unit: u.id, dmg, x: u.x, y: u.y });
   }
-  ev.push({ t: 'meteor', hits });
+  ev.push({ t: 'weatherHit', kind: w, hits });
 }
 
 /** Angriff auf ein Verdan-Geschuetz / attack on a Verdan gun */
@@ -1056,6 +1059,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
       if (u.fresh) return fail('fresh');
+      if (quakeLocked(s, u)) return fail('quake');
       res = doMove(s, u, cmd.to, ev);
       break;
     }

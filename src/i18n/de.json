@@ -722,7 +722,8 @@
     "noWreck": "Kein Wrack auf oder neben dem Feld.",
     "noXenoGround": "Außerirdische heilen nur auf terraformtem Xeno-Boden.",
     "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
-    "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion."
+    "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
+    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -762,7 +763,8 @@
     "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
     "deserted": "Sold nicht bezahlt: {unit} desertiert",
     "verdanActive": "Verteidigungslinie der Verdan aktiviert!",
-    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!"
+    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!",
+    "acid": "Säureregen! {n} Einheiten verätzt, davon {own} eigene. In Städte und Bunker!"
   },
   "fx": {
     "hit": [
@@ -1992,7 +1994,13 @@
     "dust": "Sandsturm",
     "dustDesc": "Sicht 1 Feld weniger, Einheiten ab Reichweite 2 haben 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung; mit Trefferglück deutlich mehr Fehlschüsse",
     "meteor": "Meteorschauer",
-    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Städten und Bunkern, nie tödlich"
+    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Städten und Bunkern, nie tödlich",
+    "acid": "Säureregen",
+    "acidDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder Einheit, die nicht zu den Zyrr gehört, außerhalb von Städten und Bunkern, nie tödlich; mit Trefferglück mehr Fehl- und Streifschüsse wie bei Regen",
+    "quake": "Erdbeben",
+    "quakeDesc": "Fahrzeuge, Mechs, Läufer und Maschinen können sich diese Runde nicht bewegen; Fußtruppen ziehen, Angriffe und Verdan-Geschütze gehen weiter",
+    "calm": "Ruhig",
+    "calmDesc": "Die Höhle ist ruhig, keine Auswirkungen"
   },
   "barks": {
     "korvat": {

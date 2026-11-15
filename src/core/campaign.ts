@@ -560,8 +560,8 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     id: 'm9', level: 'extreme',
     enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'hard' }],
     // groesste Karte, in einer Hoehle unter der Wueste; mehr Runden fuer die weiten Wege / largest map, in a cave below the desert; more rounds for the long roads
-    // kein Wetter unter Tage / no weather underground
-    seed: 9916, size: 26, mapType: 'continent', hazards: 'normal', weather: false, events: true, startStars: 40, rounds: 30,
+    // unter Tage kein normales Wetter, nur Erdbeben (weatherFor) / underground no normal weather, only earthquakes (weatherFor)
+    seed: 9916, size: 26, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 30,
     objectives: [{ k: 'artifact', rounds: 3 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 10 }, { k: 'noCityLost' }],
     briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'scout', 'hq'],
     artifact: true, persuade: true, theme: 'cavern', turrets: true,

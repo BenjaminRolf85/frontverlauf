@@ -325,7 +325,7 @@ export class Controller {
     audio.setLeading(late && scores.length > 1 && scores[0].i === v && scores[0].p >= scores[1].p * 1.25);
     // Sandsturm klingt wie heulender Wind / a dust storm sounds like howling wind
     const w = weather(s);
-    audio.setAmbience(w === 'dust' ? 'wind' : w === 'meteor' ? 'clear' : w);
+    audio.setAmbience(w === 'dust' ? 'wind' : w === 'acid' ? 'rain' : w === 'meteor' || w === 'quake' ? 'clear' : w);
   }
 
   setTab(tab: Tab) {

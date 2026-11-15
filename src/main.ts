@@ -181,7 +181,9 @@ function boot() {
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {
           if (e.weather && e.weather !== lastWeather && s.factions[e.faction].human) {
-            if (lastWeather !== null || e.weather !== 'clear') toast(root, `${t(`weather.${e.weather}`)}: ${t(`weather.${e.weather}Desc`)}`, ({ clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning' } as Record<string, string>)[e.weather]);
+            // Hoehle: 'klar' heisst dort 'ruhig' / cavern: 'clear' means 'calm' there
+            const wk = e.weather === 'clear' && s.config.theme === 'cavern' ? 'calm' : e.weather;
+            if (lastWeather !== null || e.weather !== 'clear') toast(root, `${t(`weather.${wk}`)}: ${t(`weather.${wk}Desc`)}`, ({ clear: 'sun', calm: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning', acid: 'rain', quake: 'warning' } as Record<string, string>)[wk]);
             lastWeather = e.weather;
           }
           break;
@@ -214,10 +216,10 @@ function boot() {
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
         case 'wave': waveToast(root, s, e.faction, e.count); break;
         case 'ruin': ruinToast(root, s); break;
-        // Meteorschauer: Bescheid, wenn eigene Einheiten getroffen sind / meteor shower: tell when own units are hit
-        case 'meteor': {
+        // Meteorschauer und Saeureregen: Bescheid, wenn eigene Einheiten getroffen sind / meteors and acid rain: tell when own units are hit
+        case 'weatherHit': {
           const own = e.hits.filter((h) => s.units.find((u) => u.id === h.unit)?.owner === viewer).length;
-          if (own) toast(root, t('events.meteor', { n: e.hits.length, own }), 'lightning');
+          if (own) toast(root, t(`events.${e.kind}`, { n: e.hits.length, own }), e.kind === 'acid' ? 'rain' : 'lightning');
           break;
         }
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)

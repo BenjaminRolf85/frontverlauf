@@ -436,6 +436,9 @@ export const HIT = {
     dust: { miss: 0.08, graze: 0.06, full: -0.14 },
     // Meteorschauer: Blitze am Himmel lenken ab / meteor shower: flashes in the sky distract
     meteor: { miss: 0.03, full: -0.03 },
+    // Saeureregen trifft wie Regen / acid rain hits like rain
+    acid: { miss: 0.05, graze: 0.05, full: -0.1 },
+    quake: {},
   } as Record<WeatherId, Partial<Record<HitKind, number>>>,
   /** Wie stark das Wetter je Rasse wirkt / how strongly weather affects each race */
   weatherFactor: { human: 1, alien: 1, robot: 0.4, cult: 1 } as Record<HitRace, number>,
@@ -543,15 +546,20 @@ export const TRACKS = {
 };
 
 /** Wetter: gilt fuer die ganze Karte, wechselt alle `cycleRounds` Runden / weather: map-wide, changes every `cycleRounds` rounds */
-export type WeatherId = 'clear' | 'rain' | 'snow' | 'wind' | 'dust' | 'meteor';
+export type WeatherId = 'clear' | 'rain' | 'snow' | 'wind' | 'dust' | 'meteor' | 'acid' | 'quake';
 export const WEATHER = {
   cycleRounds: 3,
-  weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18, dust: 0, meteor: 0 } as Record<WeatherId, number>,
+  weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18, dust: 0, meteor: 0, acid: 0, quake: 0 } as Record<WeatherId, number>,
+  /**
+   * Heimatwelt der Zyrr (Thema 'alien'): Saeureregen statt Schnee, sonst wie die Erde.
+   * Zyrr homeworld (theme 'alien'): acid rain instead of snow, otherwise like Earth.
+   */
+  alienWeights: { clear: 0.45, rain: 0.22, snow: 0, wind: 0.18, dust: 0, meteor: 0, acid: 0.15, quake: 0 } as Record<WeatherId, number>,
   /**
    * Wuestenwelt (Kartenthema 'desert'): kein Regen, kein Schnee, kein Wind; nur klar, Sandsturm und Meteorschauer.
    * Desert world (map theme 'desert'): no rain, no snow, no wind; only clear, dust storm and meteor shower.
    */
-  desertWeights: { clear: 0.5, rain: 0, snow: 0, wind: 0, dust: 0.3, meteor: 0.2 } as Record<WeatherId, number>,
+  desertWeights: { clear: 0.5, rain: 0, snow: 0, wind: 0, dust: 0.3, meteor: 0.2, acid: 0, quake: 0 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
   /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
@@ -571,6 +579,20 @@ export const WEATHER = {
    * and bunkers for damage HP, with extraChance one more (the game's random stream); never below minHp, never the boss.
    */
   meteor: { damage: 1, extraChance: 0.5, minHp: 1 },
+  /**
+   * Saeureregen (Heimatwelt der Zyrr): wie der Meteorschauer, trifft aber jede Einheit, die nicht zu den Zyrr gehoert
+   * (Bauart, nicht Besitzer); Zyrr und die Schwarmmutter sind immun.
+   * Acid rain (Zyrr homeworld): like the meteor shower, but it hits every unit that is not a Zyrr unit (by type, not
+   * owner); the Zyrr and the Swarm Mother are immune.
+   */
+  acid: { damage: 1, extraChance: 0.4, minHp: 1 },
+  /**
+   * Erdbeben (Hoehle): je Runde mit chance (aus Seed und Runde, eine Runde vorhersehbar); dann bewegen sich nur Fusstruppen
+   * (Klasse 'foot'), Angriffe und Verdan-Geschuetze bleiben.
+   * Earthquake (cavern): each round with chance (from seed and round, foreseeable one round ahead); then only foot troops
+   * (class 'foot') move, attacks and Verdan guns stay.
+   */
+  quake: { chance: 0.22, salt: 0x2b7e1516 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
