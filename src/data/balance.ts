@@ -1330,7 +1330,7 @@ export const CAMPAIGN_AI = {
  */
 export const TEMPLE_PLANS = {
   /** Abstand des Tempels (naechstes Tempelfeld) zum Hauptquartier des Spielers, Wunschwert und Grenzen / distance of the temple (nearest temple tile) to the player's HQ, preferred value and bounds */
-  hqDistance: 9, hqMin: 8, hqMax: 10,
+  hqDistance: 8, hqMin: 7, hqMax: 10,
   /** Abstand zum Hauptquartier des Kults: Mindestwert, Wunschwert / distance to the cult HQ: minimum, preferred value */
   enemyMin: 3, enemyPref: 5,
   /** Abstand zu jeder Stadt (auch Siedlungen) / distance to every city (settlements too) */
@@ -1340,7 +1340,7 @@ export const TEMPLE_PLANS = {
   /** Abliefern: Abstand zum eigenen Hauptquartier / delivery: distance to the own HQ */
   deliverRange: 1,
   /** Tempelwache zu Beginn / temple guard at the start */
-  guards: ['zealot', 'zealot', 'torchbearer'] as UnitTypeId[],
+  guards: ['zealot', 'zealot'] as UnitTypeId[],
   /**
    * Verfolgung: die erste Welle zu Beginn des naechsten Spielerzugs nach dem Bergen, dann alle pursuitEvery Runden,
    * hoechstens pursuitWaves Wellen; je Welle Einheiten am Tempel (abwechselnd aus pursuitTemple) und an den
@@ -1351,7 +1351,7 @@ export const TEMPLE_PLANS = {
    */
   pursuitEvery: 2, pursuitWaves: 4,
   pursuitTemple: [['zealot', 'zealot'], ['zealot', 'doomBuggy'], ['zealot', 'torchbearer'], ['doomBuggy', 'zealot']] as UnitTypeId[][],
-  pursuitCity: ['zealot'] as UnitTypeId[], pursuitCities: 2, pursuitStars: 10,
+  pursuitCity: ['zealot'] as UnitTypeId[], pursuitCities: 1, pursuitStars: 10,
   /** m4: Missionsdauer und Bonus "Abliefern bis Runde" / m4: mission length and bonus "deliver by round" */
   m4Rounds: 18, m4FastRound: 13,
 };

@@ -6,7 +6,8 @@
  * plans, brings the carrier to the HQ, escorts it and picks up dropped plans. The cult guards the temple before,
  * hunts the carrier afterwards and recovers dropped plans.
  */
-import { canCarryPlans, dist, hqOf, isHostile, neighbors, plansCarrier, seizeCheck, templeRing, unitAt, type Command, type Pos, type Unit } from '../core';
+import { canCarryPlans, dist, hqOf, isHostile, isLand, neighbors, plansCarrier, seizeCheck, templeRing, unitAt, type Command, type GameState, type Pos, type Unit } from '../core';
+import { nearestTile } from '../core/spawn';
 import { CAMPAIGN_AI, UNITS } from '../data/balance';
 import type { Ctx, Goal } from './analysis';
 
@@ -38,7 +39,13 @@ export function plansGoals(ctx: Ctx): Goal[] {
     }
     if (p.at === 'carried') {
       const u = plansCarrier(s);
-      if (u) out.push(goal('defend', u, A.plansEscortValue, A.plansEscortCap));
+      const hq = hqOf(s, 0);
+      if (u) {
+        // einer bleibt dicht am Traeger, die anderen raeumen den Heimweg frei (kein Stau in Engstellen)
+        // one stays close to the carrier, the others clear the way home (no jam in chokepoints)
+        out.push(goal('defend', u, A.plansEscortValue, 1));
+        if (hq) out.push(goal('defend', ahead(s, u, hq), A.plansEscortValue - 5, A.plansEscortCap - 1));
+      }
     }
     if (p.at === 'dropped' && p.x !== undefined && p.y !== undefined) {
       const at = { x: p.x, y: p.y };
@@ -87,8 +94,23 @@ export function carrierGoal(ctx: Ctx): { unit: Unit; goal: Goal } | null {
   if (!r) return null;
   // erst losrennen, wenn Begleitschutz am Ziel steht; vorher zieht der Laeufer mit der Armee / only dash once an escort stands at the target; before that the runner moves with the army
   const escort = ctx.my.filter((o) => o.id !== r.unit.id && UNITS[o.type].attack > 0 && dist(o, r.spot) <= A.plansEscortRange).length;
-  if (escort < A.plansEscortMin && dist(r.unit, r.spot) > 1) return null;
+  if (escort < A.plansEscortMin && dist(r.unit, r.spot) > 1) {
+    // bis dahin hinter der vordersten eigenen Kampfeinheit bleiben / until then stay behind the foremost own fighter
+    const lead = ctx.my.filter((o) => o.id !== r.unit.id && UNITS[o.type].attack > 0).sort((a, b) => dist(a, r.spot) - dist(b, r.spot) || a.id - b.id)[0];
+    return lead ? { unit: r.unit, goal: { kind: 'support', x: lead.x, y: lead.y, value: A.plansCarryValue, cap: 1, distW: 0, src: src(ctx, lead), water: false, targetId: lead.id } } : null;
+  }
   return { unit: r.unit, goal: mk(r.spot) };
+}
+
+/**
+ * Feld zwei Schritte vor dem Traeger in Richtung Hauptquartier (begehbares Land), fuer die Vorhut der Eskorte.
+ * Tile two steps ahead of the carrier towards the HQ (walkable land), for the escort's vanguard.
+ */
+function ahead(s: GameState, u: Pos, hq: Pos): Pos {
+  const n = Math.min(2, dist(u, hq));
+  const f = n / Math.max(1, dist(u, hq));
+  const want = { x: Math.round(u.x + (hq.x - u.x) * f), y: Math.round(u.y + (hq.y - u.y) * f) };
+  return nearestTile(s, want, (q) => { const t = s.tiles[q.y * s.size + q.x]; return isLand(t) && t.terrain !== 'mountain' && !t.temple; }, 2) ?? want;
 }
 
 /**
