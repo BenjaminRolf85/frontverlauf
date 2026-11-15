@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -909,7 +909,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
   if (xenoB) {
     if (!t.xeno) return { ok: false, error: 'invalidTile', cost };
-    if (t.cityId !== null || t.building || t.feature || t.grandProject || t.outpost || !st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
+    if (t.cityId !== null || t.building || t.feature || t.grandProject || t.outpost || t.turret || !st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
     if ((b === 'xenoHarvester') !== !!t.resource) return { ok: false, error: 'invalidTile', cost };
     if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
     return { ok: true, cost };
@@ -918,7 +918,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
     const terr = t.terrain === 'ocean' ? null : (t.terrain as 'plain' | 'forest' | 'mountain' | 'shallow');
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
   } else if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
-  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf) return { ok: false, error: 'invalidTile', cost };
+  // Geschuetzfeld (Verdan oder Stellung): nichts darauf bauen / gun tile (Verdan or emplacement): nothing is built on it
+  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf || t.turret) return { ok: false, error: 'invalidTile', cost };
   if (!st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
   if (b === 'road') {
     if (t.road) return { ok: false, error: 'alreadyBuilt', cost };
@@ -1020,7 +1021,7 @@ export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return false;
   if (!isLand(t) || t.terrain === 'mountain') return false;
-  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf);
+  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf || t.turret);
 }
 
 export function grandProjectConditionMet(s: GameState, f: number, id: GrandProjectId): boolean {
@@ -1163,7 +1164,7 @@ export function barrierCheck(s: GameState, u: Unit, x: number, y: number): Barri
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf) return 'invalidTile';
+  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf || t.turret) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (s.factions[u.owner].stars < barrierCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
@@ -1466,7 +1467,7 @@ export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineChec
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf) return 'invalidTile';
+  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf || t.turret) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (mineCount(s, u.owner) >= COUNTER.mine.maxPerFaction) return 'unitLimit';
   if (s.factions[u.owner].stars < COUNTER.mine.cost) return 'notEnoughStars';
@@ -1567,7 +1568,7 @@ export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number
     if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
     const t = tileAt(s, p.x, p.y)!;
     const terrainOk = WONDERS.terrain[kind].includes(t.terrain);
-    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.volcano || burning(s, t)) return 'invalidTile';
+    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.turret || t.volcano || burning(s, t)) return 'invalidTile';
     // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
     if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
     const own = territoryOwner(s, t) === f || (kind === 'hackRelay' && t.outpost?.owner === f);
@@ -1693,23 +1694,35 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
 
 // ---------- Verdan-Verteidigungslinie / Verdan defence line ----------
 
-/** Lebendes Verdan-Geschuetz auf dem Feld? / living Verdan gun on the tile? */
+/** Lebendes Geschuetz auf dem Feld (Verdan oder Stellung)? / living gun on the tile (Verdan or emplacement)? */
 export const turretAt = (s: GameState, x: number, y: number) => {
   const t = tileAt(s, x, y);
   return t?.turret && t.turret.hp > 0 ? t.turret : null;
 };
-/** Alle lebenden Verdan-Geschuetze mit Position / all living Verdan guns with position */
-export function turretList(s: GameState): (Pos & { hp: number; active: boolean })[] {
-  const out: (Pos & { hp: number; active: boolean })[] = [];
-  s.tiles.forEach((t, k) => { if (t.turret && t.turret.hp > 0) out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active }); });
+/** Werte eines Geschuetzes: neutral = Verdan, mit Besitzer = Geschuetzstellung / stats of a gun: neutral = Verdan, with owner = emplacement */
+export const gunStats = (g: { owner?: number }) => (g.owner === undefined ? VERDAN : EMPLACEMENT);
+/**
+ * Ist das Geschuetz fuer Fraktion f feindlich (darf f es angreifen, beschiesst es f)? Neutral: immer; Stellung: nur im Krieg
+ * mit dem Besitzer (nie im Frieden, nie Verbuendete, nie die eigene).
+ * Is the gun hostile to faction f (may f attack it, does it fire at f)? Neutral: always; emplacement: only at war with the
+ * owner (never at peace, never allies, never the own).
+ */
+export const gunHostile = (s: GameState, g: { owner?: number }, f: number) => g.owner === undefined || isHostile(s, f, g.owner);
+/** Alle lebenden Geschuetze mit Position (owner nur bei Stellungen) / all living guns with position (owner only for emplacements) */
+export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number })[] {
+  const out: (Pos & { hp: number; active: boolean; owner?: number })[] = [];
+  s.tiles.forEach((t, k) => {
+    if (!t.turret || t.turret.hp <= 0) return;
+    out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active, ...(t.turret.owner !== undefined ? { owner: t.turret.owner } : {}) });
+  });
   return out;
 }
 
-/** Geschuetze, die u jetzt angreifen kann (in Reichweite, aufgedeckt) / guns u can attack now (in range, explored) */
+/** Geschuetze, die u jetzt angreifen kann (in Reichweite, aufgedeckt, feindlich) / guns u can attack now (in range, explored, hostile) */
 export function turretTargets(s: GameState, u: Unit): Pos[] {
   if (!canAttackNow(u) || submerged(s, u) || UNITS[u.type].attack <= 0) return [];
   const r = effectiveRange(s, u);
-  return turretList(s).filter((p) => dist(u, p) <= r && isExplored(s, u.owner, p.x, p.y)).map((p) => ({ x: p.x, y: p.y }));
+  return turretList(s).filter((p) => dist(u, p) <= r && isExplored(s, u.owner, p.x, p.y) && gunHostile(s, p, u.owner)).map((p) => ({ x: p.x, y: p.y }));
 }
 
 /**
@@ -1718,27 +1731,33 @@ export function turretTargets(s: GameState, u: Unit): Pos[] {
  */
 export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number; ret: (turretHp: number) => number; odds: Record<HitKind, number> } {
   const t = tileAt(s, p.x, p.y)!.turret!;
+  const G = gunStats(t);
   const atk = effectiveAttack(s, u);
   const attackForce = atk * (u.hp / u.maxHp);
-  const defenseForce = VERDAN.defense * (t.hp / VERDAN.hp);
+  const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor) : 0;
-  const near = dist(u, p) <= VERDAN.range;
+  const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;
-    const df = VERDAN.defense * (hp / VERDAN.hp);
+    const df = G.defense * (hp / G.hp);
     const tt = attackForce + df;
-    return tt > 0 ? Math.round((df / tt) * VERDAN.defense * COMBAT.damageFactor) : 0;
+    return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor) : 0;
   };
   return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2) };
 }
 
-/** Schuss eines Geschuetzes mit hp LP auf def (voller Treffer) / shot of a gun with hp HP at def (full hit) */
-export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
-  const attackForce = VERDAN.attack * (hp / VERDAN.hp);
+/**
+ * Schuss eines Geschuetzes mit hp LP auf def (voller Treffer); G = Werte (Standard Verdan, Stellung: EMPLACEMENT).
+ * Ein Geschuetz bewegt sich nie, sein Feuer ist immer voller Schaden.
+ * Shot of a gun with hp HP at def (full hit); G = stats (default Verdan, emplacement: EMPLACEMENT).
+ * A gun never moves, its fire is always full damage.
+ */
+export function turretShotDamage(s: GameState, hp: number, def: Unit, G: { attack: number; hp: number } = VERDAN): number {
+  const attackForce = G.attack * (hp / G.hp);
   const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def);
   const total = attackForce + defenseForce;
-  return total > 0 ? Math.round((attackForce / total) * VERDAN.attack * COMBAT.damageFactor) : 0;
+  return total > 0 ? Math.round((attackForce / total) * G.attack * COMBAT.damageFactor) : 0;
 }
 
 /**

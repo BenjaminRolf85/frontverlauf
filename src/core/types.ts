@@ -53,11 +53,15 @@ export interface Tile {
   wonderOf?: number | null;
   /**
    * Geschuetz der alten Verdan-Verteidigungslinie (neutral, unpassierbar); active = erwacht und feuert.
+   * Mit owner: Geschuetzstellung dieser Fraktion (Festungsbau, EMPLACEMENT), immer aktiv; fehlt = neutral (alte Spielstaende).
    * Gun of the old Verdan defence line (neutral, impassable); active = awake and firing.
+   * With owner: gun emplacement of that faction (fortification, EMPLACEMENT), always active; missing = neutral (old saves).
    */
-  turret?: { hp: number; active: boolean } | null;
-  /** Truemmer eines zerstoerten Verdan-Geschuetzes (optisch) / rubble of a destroyed Verdan gun (visual) */
+  turret?: { hp: number; active: boolean; owner?: number } | null;
+  /** Truemmer eines zerstoerten Geschuetzes (optisch) / rubble of a destroyed gun (visual) */
   turretRuin?: boolean;
+  /** Fraktion der zerstoerten Stellung (nur Optik der Truemmer) / faction of the destroyed emplacement (rubble look only) */
+  turretRuinOwner?: number;
 }
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
@@ -350,9 +354,13 @@ export type GameEvent =
   /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
   | { t: 'verdanActive'; faction: number }
   /** Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit */
-  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind }
+  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind; owner?: number }
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
-  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean }
+  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number }
+  /** Geschuetzstellung gebaut / gun emplacement built */
+  | { t: 'emplacement'; x: number; y: number; faction: number }
+  /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */
+  | { t: 'emplacementLost'; x: number; y: number; faction: number; reason: 'territory' | 'eliminated' }
   /**
    * Endgegner: aufgetaucht, Brut geschluepft (count), psychischer Schrei (hits) / boss: emerged, brood hatched (count), psychic scream (hits)
    */
@@ -387,6 +395,8 @@ export type Command =
   | { type: 'outpost'; unit: number }
   | { type: 'barrier'; unit: number; x: number; y: number }
   | { type: 'mine'; unit: number; x: number; y: number }
+  /** Geschuetzstellung bauen (Festungsbau, Dravon) / build a gun emplacement (fortification, Dravon) */
+  | { type: 'emplacement'; unit: number; x: number; y: number }
   | { type: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; target?: Pos }
   | { type: 'terraform'; x: number; y: number; unit?: number }
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
@@ -405,7 +415,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory' | 'cannotBuild' | 'quake';
+  | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing';
 
 export interface CommandResult {
   ok: boolean;
