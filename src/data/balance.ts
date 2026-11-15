@@ -203,12 +203,12 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   // Kult: Masse statt Klasse, etwa 20 % weniger LP und Angriff als vergleichbare Einheiten, dafuer billiger (CULT)
   // cult: mass over class, about 20 % less HP and attack than comparable units, but cheaper (CULT)
-  zealot: { cost: 7, hp: 6, attack: 1.6, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
-  torchbearer: { cost: 14, hp: 6, attack: 2.8, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn', 'preach'], tech: 'forestry', ship: false, faction: 'vesper' },
-  prophet: { cost: 22, hp: 6, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
-  doomBuggy: { cost: 13, hp: 6, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false, faction: 'vesper' },
-  rocketCart: { cost: 30, hp: 6, attack: 3.2, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'vesper' },
-  doomCrawler: { cost: 40, hp: 18, attack: 3.2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper' },
+  zealot: { cost: 7, hp: 7, attack: 1.6, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
+  torchbearer: { cost: 14, hp: 7, attack: 2.8, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn', 'preach'], tech: 'forestry', ship: false, faction: 'vesper' },
+  prophet: { cost: 22, hp: 7, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
+  doomBuggy: { cost: 13, hp: 7, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false, faction: 'vesper' },
+  rocketCart: { cost: 30, hp: 7, attack: 3.2, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'vesper' },
+  doomCrawler: { cost: 40, hp: 21, attack: 3.2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper' },
   android: { cost: 12, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
   spider: { cost: 25, hp: 12, attack: 3, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker'], tech: null, ship: false, faction: 'nexus', compute: 1 },
   quadDrone: { cost: 35, hp: 10, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'nexus', compute: 2 },
@@ -224,7 +224,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Minenleger: legt verdeckte Minen auf Nachbarfelder / mine layer: lays hidden mines on adjacent tiles
   mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: 'fortification', ship: false },
   // Kult: Panzerfaust-Eiferer / cult: rocket zealot
-  faustZealot: { cost: 14, hp: 6, attack: 1.6, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  faustZealot: { cost: 14, hp: 7, attack: 1.6, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
   // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
   flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
   // Einzigartige Einheiten (siehe UNIQUE) / unique units (see UNIQUE)
@@ -412,8 +412,17 @@ export const CULT = {
   plunderPerLevel: 12,
   plunderHq: 40,
   replunderRounds: 6,
-  /** Punkte je gepluendertem Stern (Beute zaehlt dauerhaft) / points per plundered star (loot counts permanently) */
+  /**
+   * Abnehmende Beute: die n-te Pluenderung derselben Stadt zahlt plunderDecay[n] (danach der letzte Wert). Gegen das
+   * Melken weniger Staedte im Zweikampf.
+   * Diminishing loot: the n-th plunder of the same city pays plunderDecay[n] (then the last value). Against milking
+   * a few cities in a duel.
+   */
+  plunderDecay: [1, 0.5, 0.25],
+  /** Punkte je gepluendertem Stern bei vier und mehr Gegnern (Beute zaehlt dauerhaft) / points per plundered star with four or more rivals (loot counts permanently) */
   plunderScore: 7,
+  /** Punkte je Stern nach Zahl der Gegner (Index = Gegner, danach plunderScore) / points per star by number of rivals (index = rivals, then plunderScore) */
+  plunderScoreByRivals: [7, 4, 5, 6, 7],
   /**
    * Einheitenlimit des Kults: baseCap plus die Plaetze seiner Staedte (Stadtlimit, eigenes Hauptquartier + hqSlots,
    * Schrein im Stadtgebiet + shrineSlots). Wunder zaehlen nicht.
