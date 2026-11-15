@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -346,7 +346,8 @@ export function defBonusAt(ctx: Ctx, u: Unit, x: number, y: number, asShip = isS
   if (t.outpost && t.outpost.owner === f && INFANTRY_TYPES.includes(u.type)) b = Math.max(b, DEFENSE_BONUS.outpost);
   // Wrack als Deckung / wreck as cover
   if (t.remains?.kind === 'wreck' && !asShip) b += REMAINS.wreckDefenseBonus;
-  return b;
+  // eigenes Gebiet (Alvenia: Friedensbollwerk) / own territory (Alvenia: Peace Bulwark)
+  return b * (1 + homeDefenseAt(s, u, x, y));
 }
 
 /** Erwarteter Schaden durch sichtbare Gegner an Position / expected damage from visible enemies at position */

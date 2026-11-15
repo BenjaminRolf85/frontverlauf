@@ -5,7 +5,7 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
@@ -325,6 +325,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // Friedensbollwerk (Alvenia): bedroht lieber auf eigenem Gebiet stehen / Peace Bulwark (Alvenia): when threatened, prefer own territory
+  if (dmg > 0) v += homeDefenseAt(s, u, x, y) * AI.homeGround;
   // Meteorschauer oder Saeureregen zu Beginn der naechsten Runde: verletzte Einheiten in Staedte und Bunker
   // meteor shower or acid rain at the start of the next round: hurt units into cities and bunkers
   if (weatherHurts(s, weatherAt(s, s.round + 1), u, x, y)) v -= AI.meteorExposed + (1 - u.hp / u.maxHp) * AI.meteorHurt;
