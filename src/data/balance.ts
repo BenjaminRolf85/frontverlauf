@@ -269,7 +269,7 @@ export const SWARM_MOTHER = {
    * Riss (Kampagne m11): bei so wenigen LP stirbt sie nicht, ein Riss reisst auf und der Einsatz ist gewonnen.
    * Rift (campaign m11): at this few HP she does not die, a rift tears open and the mission is won.
    */
-  riftHp: 20,
+  riftHp: 25,
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
@@ -1115,8 +1115,11 @@ export const RUINS = {
   /** Mindestabstand der Staetten zu Staedten und untereinander / minimum distance of the sites to cities and to each other */
   cityDistance: 2,
   spacing: 4,
-  /** Abstand der Wache zur Staette / distance of the sentinel to the site */
-  sentinelDistance: 2,
+  /**
+   * Abstand der Wache zur Staette: ausserhalb ihrer Schussweite (VERDAN.range), sie bewacht den Zugang, nicht die Staette selbst.
+   * Distance of the sentinel to the site: beyond its firing range (VERDAN.range), it guards the approach, not the site itself.
+   */
+  sentinelDistance: 3,
 };
 
 export const PERSUADE = { factions: ['alvenia', 'meridon'] as FactionId[], cost: 20, perLevel: 5, range: 1 };

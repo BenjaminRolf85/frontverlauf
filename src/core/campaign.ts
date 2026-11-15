@@ -416,7 +416,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
   // ---------- Welt II: Heimatwelt der Zyrr / World II: Zyrr homeworld ----------
   {
     // Jenseits des Portals: Landetrupp ohne Stadt auf der Heimatwelt der Zyrr / beyond the portal: landing party without a city on the Zyrr homeworld
-    id: 'm10', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'hard' }],
+    id: 'm10', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
     seed: 10010, size: 16, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 45, rounds: 20,
     objectives: [{ k: 'capture', target: 0 }, { k: 'reach', target: 1, range: 2 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', 'hq'], theme: 'alien', landing: true,
@@ -446,7 +446,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       revealArea(s, 0, out.x, out.y, 1);
       revealArea(s, 0, b.x, b.y, 1);
       // Besatzung des Vorpostens und die Schwarmstadt / outpost garrison and the hive city
-      k.spawn('grey', 1, out); k.spawn('grey', 1, out, { min: 1 });
+      k.spawn('grey', 1, out);
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
       k.upgrade(b, 'bunker');
       k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
@@ -483,7 +483,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     id: 'm12', level: 'hard',
     enemies: [{ id: 'zyrr', difficulty: 'normal' }, { id: 'nexus', difficulty: 'normal' }, { id: 'vesper', difficulty: 'normal' }],
     seed: 12012, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 40, rounds: 18,
-    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 3 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
+    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 10 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'], theme: 'desert', landing: true,
     setup(k) {
       const s = k.s;
@@ -509,9 +509,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
         revealArea(s, 0, p.x, p.y, 2);
       });
       // die anderen sind ebenso gestrandet: je ein Trupp an ihrer Zuflucht / the others are stranded too: one squad each at their refuge
-      k.spawn('grey', 1, k.hq(1), { min: 1 });
-      k.spawn('android', 2, k.hq(2), { min: 1 });
-      k.spawn('zealot', 3, k.hq(3), { min: 1 });
+      for (let f = 1; f <= 3; f++) for (const t of [['grey', 'skimmer'], ['android', 'spider'], ['zealot', 'torchbearer']][f - 1] as UnitTypeId[]) k.spawn(t, f, k.hq(f), { min: 1 });
     },
   },
   {
@@ -711,7 +709,10 @@ function openLand(s: GameState, q: Pos): boolean {
  */
 function placeRuin(s: GameState, c: CampaignState, near: Pos): Pos | null {
   const sites = (c.sites ??= []);
-  const p = nearestTile(s, near, (q) => openLand(s, q) && s.cities.every((x) => dist(x, q) >= RUINS.cityDistance) && sites.every((o) => dist(o, q) >= RUINS.spacing));
+  // nie naeher an der Wache einer anderen Staette als deren eigene Staette / never closer to another site's sentinel than its own site
+  const guns = s.tiles.flatMap((t, k) => (t.turret ? [{ x: k % s.size, y: Math.floor(k / s.size) }] : []));
+  const p = nearestTile(s, near, (q) => openLand(s, q) && s.cities.every((x) => dist(x, q) >= RUINS.cityDistance) && sites.every((o) => dist(o, q) >= RUINS.spacing) &&
+    guns.every((g) => dist(g, q) > RUINS.sentinelDistance));
   if (!p) return null;
   Object.assign(tileAt(s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null, road: false, mine: null, barrier: null, remains: null });
   sites.push({ x: p.x, y: p.y });
@@ -721,7 +722,7 @@ function placeRuin(s: GameState, c: CampaignState, near: Pos): Pos | null {
   // Wache zur Kartenmitte hin, nie neben einer Stadt oder einem anderen Geschuetz / sentinel towards the map centre, never next to a city or another gun
   const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
   const want = { x: p.x + Math.sign(mid.x - p.x) * RUINS.sentinelDistance, y: p.y + Math.sign(mid.y - p.y) * RUINS.sentinelDistance };
-  const g = nearestTile(s, want, (q) => dist(q, p) === RUINS.sentinelDistance && openLand(s, q) && !sites.some((o) => o.x === q.x && o.y === q.y) &&
+  const g = nearestTile(s, want, (q) => dist(q, p) === RUINS.sentinelDistance && openLand(s, q) && sites.every((o) => o === sites[sites.length - 1] || dist(o, q) > RUINS.sentinelDistance) &&
     !neighbors(s.size, q.x, q.y).some((n) => { const o = tileAt(s, n.x, n.y)!; return o.cityId !== null || !!o.turret; }), RUINS.sentinelDistance * 2);
   if (g) Object.assign(tileAt(s, g.x, g.y)!, { turret: { hp: VERDAN.hp, active: false }, resource: null, building: null, road: false, mine: null, barrier: null });
   for (const f of s.factions) revealArea(s, f.index, p.x, p.y, 0);

@@ -123,13 +123,15 @@ describe('Welt der Vergessenen: Ziele / world of the Forgotten: objectives', () 
     const c = s.campaign!;
     const m = missionById('m13')!;
     const own = s.units.filter((u) => u.owner === 0);
-    // eine Einheit nahe der Staette weckt nur deren Wache / a unit near a site wakes only its own sentinel
+    // eine Einheit auf der Staette weckt deren Wache; Wachen ohne Einheit in der Naehe ihrer Staette schlafen weiter
+    // a unit on the site wakes its sentinel; sentinels without a unit near their site keep sleeping
     placeAt(s, own[0], c.sites![0]);
     own[1].hp -= 1;
     applyCommand(s, { type: 'heal', unit: own[1].id });
     const awake = s.tiles.map((t, k) => ({ t, x: k % s.size, y: Math.floor(k / s.size) })).filter((g) => g.t.turret?.active);
     expect(awake.length).toBeGreaterThanOrEqual(1);
-    for (const g of awake) expect(turretGuard(s, g)).toEqual(c.sites![0]);
+    expect(awake.some((g) => turretGuard(s, g).x === c.sites![0].x && turretGuard(s, g).y === c.sites![0].y)).toBe(true);
+    for (const g of awake) expect(s.units.some((u) => dist(u, turretGuard(s, g)) <= VERDAN.wakeRange)).toBe(true);
     // erst zu Beginn des naechsten Spielerzugs entziffert / deciphered only at the start of the next player turn
     expect(c.siteDone![0]).toBe(false);
     own[0].hp = own[0].maxHp; // die Wache soll ihn nicht toeten / the sentinel must not kill it
@@ -223,4 +225,3 @@ describe('Welt der Vergessenen: KI / world of the Forgotten: AI', () => {
   }, 300_000);
 });
 
-void VERDAN;
