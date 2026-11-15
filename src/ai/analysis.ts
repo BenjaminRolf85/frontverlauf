@@ -191,7 +191,8 @@ export function buildCtx(s: GameState, f: number): Ctx {
     prof.retreatHp *= 1 - push;
     ctx.siege = true;
   }
-  if (desired > my.length && fa.stars >= 10) {
+  // Kult bildet nicht aus: seine Staedte muessen nicht frei bleiben / the cult does not train: its cities need not stay free
+  if (desired > my.length && fa.stars >= 10 && !cult) {
     for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c)) ctx.trainable.add(c.id);
   }
   ctx.navalNeed = computeNavalNeed(ctx);
