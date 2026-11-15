@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { FACTIONS, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { FACTIONS, MOVE_FIRE, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -23,7 +23,22 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+
+/**
+ * Text zum Kampfbonus beim Feuern nach Bewegung (MOVE_FIRE.bonus), sonst null; Zahlen aus balance.ts.
+ * Text of the combat bonus for firing after moving (MOVE_FIRE.bonus), else null; numbers from balance.ts.
+ */
+export function moveFireBonusText(f: FactionId): { name: string; desc: string } | null {
+  const b = MOVE_FIRE.bonus[f];
+  if (!b) return null;
+  const pct = (x: number) => Math.round(x * 100);
+  const rider = SIGNATURE_UNIT[f];
+  return {
+    name: t(`moveFire.bonus.${f}`),
+    desc: t(`moveFire.bonusDesc.${f}`, { pct: pct(b.all), base: pct(MOVE_FIRE.damage), rider: pct((rider && b.units?.[rider]) ?? b.all) }),
+  };
+}
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -43,6 +58,9 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme
   const rb = RESOURCE.buildings[f];
   out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
+  // Kampfbonus beim Feuern nach Bewegung (Korvat: Steppensturm) / combat bonus for firing after moving (Korvat: Steppe Storm)
+  const mf = moveFireBonusText(f);
+  if (mf) out.push({ kind: 'combat', icon: 'boot', label: t('traits.combat'), value: mf.name, desc: mf.desc });
   // Treffsicherheit der Rasse / race accuracy
   const race = factionRace(f);
   out.push({ kind: 'aim', icon: 'dice', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });

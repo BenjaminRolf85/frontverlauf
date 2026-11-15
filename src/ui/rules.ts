@@ -3,7 +3,7 @@
  * Rules / help: short collapsible sections. All numbers come from balance.ts so the page stays correct.
  */
 import {
-  BARRIER, CITY_UPGRADES, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
+  BARRIER, CITY_UPGRADES, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
   VICTORY_TECH,
 } from '../data/balance';
 import type { FactionId } from '../data/balance';
@@ -12,6 +12,7 @@ import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
 import { techT } from './terms';
 import { victoryShortText } from './victory';
+import { moveFireBonusText } from './factionInfo';
 
 const pct = (f: number) => Math.round(f * 100);
 /** Faktor als Text mit Komma im Deutschen / factor as text, comma in German */
@@ -25,14 +26,19 @@ function sections(): Section[] {
     { id: 'goal', icon: 'medal', params: { rounds: MODES.pointsRounds, tile: SCORE.revealedTile, territory: SCORE.territoryTile, level: SCORE.cityLevel, tech: SCORE.techPerTier } },
     { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq } },
     { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0 } },
-    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit) } },
+    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: moveFireBonusLines },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
-    { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot') } },
+    { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
+}
+
+/** Fraktionsboni beim Feuern nach Bewegung (MOVE_FIRE.bonus) / faction bonuses for firing after moving (MOVE_FIRE.bonus) */
+function moveFireBonusLines(): string {
+  return FACTION_IDS.map((f) => { const b = moveFireBonusText(f); return b ? `<p><strong>${esc(b.name)} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(b.desc)}</p>` : ''; }).join('');
 }
 
 /** Eine Zeile je Fraktion: Siegbedingung und Siegtechnologie / one line per faction: victory condition and victory tech */

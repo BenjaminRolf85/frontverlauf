@@ -10,7 +10,7 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview, missionById,
+  supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, canAttackNow,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -98,17 +98,38 @@ export function cityName(s: GameState, cityId: number): string {
  * Angriffsvorschau mit Trefferglueck: kurz (zweite Zeile im Knopf) und voll (Hinweiszeile).
  * Attack preview with hit luck: short (second line in the button) and full (hint line).
  */
-function attackPreview(s: GameState, p: CombatPreview): { short: string; full: string } {
+function attackPreview(s: GameState, p: CombatPreview, u: Unit): { short: string; full: string } {
+  // nach Bewegung: Zahlen sind schon verringert, die Hinweiszeile sagt warum / after moving: numbers are already reduced, the hint line says why
+  const moved = p.moveFire ? `. ${moveFireHint(s, u)}` : '';
   if (!hitChanceOn(s)) {
     const txt = p.kills ? t('actions.previewKill') : t('actions.preview', { dmg: p.toDefender, ret: p.toAttacker });
-    return { short: txt, full: txt };
+    return { short: txt, full: `${txt}${moved}` };
   }
   const pct = Math.round(p.killChance * 100);
   const ret = Math.round(p.expectedRet / Math.max(0.01, 1 - p.killChance));
-  if (pct >= 100) return { short: t('actions.previewKill'), full: t('actions.previewKill') };
+  if (pct >= 100) return { short: t('actions.previewKill'), full: `${t('actions.previewKill')}${moved}` };
   const dmg = t('hit.previewDmg', { exp: Math.round(p.expected), min: p.min, max: p.max });
   const kill = pct > 0 ? ` · ${t('hit.killChance', { pct })}` : '';
-  return { short: `${dmg}${kill}`, full: `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}. ${t('hit.hintLuck')}` };
+  return { short: `${dmg}${kill}`, full: `${dmg}${kill}${p.retFull > 0 ? ` · ${t('hit.previewRet', { ret })}` : ''}${moved}. ${t('hit.hintLuck')}` };
+}
+
+/**
+ * Kurzhinweis zum Feuern nach Bewegung, mit Fraktionsbonus (z. B. "Nach Bewegung: 75 % (Steppensturm)").
+ * Short note on firing after moving, with the faction bonus (e.g. "After moving: 75 % (Steppe Storm)").
+ */
+function moveFireHint(s: GameState, u: Unit, key: 'hint' | 'tag' = 'hint'): string {
+  const b = moveFireBonus(s, u);
+  return b ? t(`moveFire.${key}Bonus`, { pct: Math.round(moveFireMult(s, u) * 100), name: t(`moveFire.bonus.${b}`) }) : t(`moveFire.${key}`);
+}
+
+/**
+ * Hinweis im Einheitenfeld: in diesem Zug gezogen, ein Angriff jetzt zaehlt als Feuern nach Bewegung (MOVE_FIRE).
+ * Note in the unit panel: moved this turn, an attack now counts as firing after moving (MOVE_FIRE).
+ */
+function moveFireTag(s: GameState, u: Unit): string {
+  if (u.owner !== s.current || !movedThisTurn(u) || !canAttackNow(u)) return '';
+  const tip = t('moveFire.tagDesc', { pct: Math.round(moveFireMult(s, u) * 100) });
+  return `<div class="row"><span class="stat tag warn" title="${esc(tip)}" aria-label="${esc(tip)}">${icon('warning', 'icon-sm')}${esc(moveFireHint(s, u, 'tag'))}</span></div>`;
 }
 
 /** Kurzwerte eines Einheitentyps fuer die Hinweiszeile / short stats of a unit type for the hint line */
@@ -143,6 +164,8 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** Angriffsaktion nach Bewegung angeboten (Hinweiszeile) / attack action after moving offered (hint line) */
+  private moveFireNote = '';
   /** Infofeld auf dem Handy aufgeklappt? / info panel expanded on phones? */
   private expanded = false;
   /** Hinweis auf gesperrte Stadt-Ausbauten / note about locked city upgrades */
@@ -193,6 +216,8 @@ export class Hud {
   /** Text der Hinweiszeile / text of the hint line */
   private hintHtml(): string {
     const a = this.hintId ? this.actions.find((x) => x.id === this.hintId) : undefined;
+    // nach Bewegung: halber Schaden gleich sichtbar / after moving: half damage visible right away
+    if (!a && this.moveFireNote) return `${icon('warning', 'icon-sm')}<span class="hint-text"><strong>${esc(this.moveFireNote)}</strong></span>`;
     if (!a) return `${icon('info', 'icon-sm')}<span class="hint-text muted">${esc(t('hud.hintPrompt'))}</span>`;
     const text = (a.enabled ? a.desc ?? a.reason : a.reason) ?? (a.sub && a.sub !== a.label ? a.sub : '');
     const name = a.sub && a.sub !== a.label && a.id !== 'attack' && a.id !== 'rocket' ? `${a.label} (${a.sub})` : a.label;
@@ -331,6 +356,7 @@ export class Hud {
     } else this.banner.hidden = true;
 
     this.actions = [];
+    this.moveFireNote = '';
     this.portraitFor = null;
     const prevKey = this.hintKey;
     const prevScroll = this.bottom.querySelector<HTMLElement>('.action-bar')?.scrollLeft ?? 0;
@@ -404,7 +430,7 @@ export class Hud {
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${moveFireTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -533,8 +559,9 @@ export class Hud {
       const pre = turretPreview(s, u, gunAt);
       const kill = pre.toTurret >= gun.hp;
       const sub = kill ? t('verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      if (pre.moveFire) this.moveFireNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t('verdan.attack'), sub, desc: `${sub}. ${t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range })}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t('verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range })}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
@@ -542,7 +569,9 @@ export class Hud {
       const target = unitById(s, g.pendingTarget);
       // Mech-Raketen / mech rockets
       if (target && rocketTargets(s, u).some((o) => o.id === target.id)) {
-        const p = attackPreview(s, combatPreview(s, u, target, true));
+        const pre = combatPreview(s, u, target, true);
+        const p = attackPreview(s, pre, u);
+        if (pre.moveFire) this.moveFireNote = moveFireHint(s, u);
         this.actions.push({
           id: 'rocket', icon: 'lightning', variant: 'danger', enabled: true,
           label: t('rockets.action', { n: rocketsLeft(u), max: ROCKETS.max }), sub: p.short, desc: `${p.full} ${t('rockets.desc')}`,
@@ -552,7 +581,9 @@ export class Hud {
       // nur, solange der Angriff noch moeglich ist / only while the attack is still possible
       if (target && attackTargets(s, u).some((o) => o.id === target.id)) {
         // kurzer Name, Vorschau als zweite Zeile / short label, preview as a second line
-        const p = attackPreview(s, combatPreview(s, u, target));
+        const pre = combatPreview(s, u, target);
+        const p = attackPreview(s, pre, u);
+        if (pre.moveFire) this.moveFireNote = moveFireHint(s, u);
         this.actions.push({
           id: 'attack', icon: 'attack', variant: 'danger', enabled: true,
           label: t('actions.attack'), sub: p.short, desc: p.full,
@@ -563,11 +594,13 @@ export class Hud {
           const rc = retreatCheck(s, u, target);
           if (rc !== 'cannotRetreat' && rc !== 'outOfRange') {
             const wait = (u.retreatReady ?? 0) - s.round;
+            // Schuss vor dem Schritt: nach einer Bewegung ebenfalls verringert / shot before the step: also reduced after a move
+            const retreatDesc = movedThisTurn(u) ? `${t('retreat.desc')} ${moveFireHint(s, u)}.` : t('retreat.desc');
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',
               label: t('retreat.action', { dmg: retreatDamage(s, u, target) }),
-              desc: t('retreat.desc'),
-              reason: rc === 'ok' ? t('retreat.desc') : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : this.err(rc),
+              desc: retreatDesc,
+              reason: rc === 'ok' ? retreatDesc : rc === 'retreatCooldown' ? `${t('retreat.cooldown', { n: wait })}. ${t('retreat.desc')}` : this.err(rc),
               run: () => void g.exec({ type: 'retreat', unit: u.id, target: target.id }),
             });
           }

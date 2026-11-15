@@ -1,6 +1,6 @@
 /** Kurzes spielbares Tutorial fuer die erste Partie / short playable tutorial for the first game */
 import { defaultConfig, ownCities, ownUnits, type GameConfig, type GameState } from '../core';
-import { FACTIONS, HIT, MODES, UPKEEP } from '../data/balance';
+import { FACTIONS, HIT, MODES, MOVE_FIRE, UPKEEP } from '../data/balance';
 import type { Controller } from '../game/controller';
 import { t } from '../i18n/i18n';
 import { button, esc } from './components';
@@ -19,7 +19,7 @@ export const TUTORIAL_FACTION = TUTORIAL_CONFIG.factions[0].id;
 /** Platzhalter der Tutorialtexte (Zahlen aus balance.ts) / placeholders of the tutorial texts (numbers from balance.ts) */
 const TUTORIAL_PARAMS: Record<string, Record<string, number>> = {
   goal: { rounds: MODES.pointsRounds },
-  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100) },
+  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100), move: Math.round(MOVE_FIRE.damage * 100) },
   upkeep: { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100) },
 };
 

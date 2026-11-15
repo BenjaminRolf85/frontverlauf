@@ -314,7 +314,7 @@
   },
   "abilities": {
     "dash": "Assault",
-    "dashDesc": "May attack after moving in the same turn.",
+    "dashDesc": "May attack after moving in the same turn, but with less damage (usually half).",
     "escape": "Retreat",
     "escapeDesc": "May keep moving after attacking.",
     "persist": "Follow-up",
@@ -913,7 +913,7 @@
     "goal": "The goal: in points mode the highest score wins after {rounds} rounds (medal at the top). In conquest the last side holding cities wins, as here. With faction victories every faction can also win through its own goal. The victory tracker in the menu shows the standings.",
     "goalOpen": "Open victory tracker",
     "upkeep": "Upkeep: your first {free} units are core troops and cost nothing. Every further unit costs about {pct} % of its price per round. Next to the stars at the top you see your net income per round: income minus upkeep.",
-    "attack": "Combat: select a unit and tap an enemy in range. The attack button shows a preview first, such as “≈4 damage (0–6)”, and the chance to destroy the target. Hit luck: a shot can miss or land a critical hit ({min} to {max} % damage). A survivor strikes back. Press and hold an action and the line below the bar explains what it does."
+    "attack": "Combat: select a unit and tap an enemy in range. The attack button shows a preview first, such as “≈4 damage (0–6)”, and the chance to destroy the target. Hit luck: a shot can miss or land a critical hit ({min} to {max} % damage). A survivor strikes back. After moving in the same turn an attack deals only {move} % damage. Press and hold an action and the line below the bar explains what it does."
   },
   "a11y": {
     "map": "Game map",
@@ -2552,7 +2552,8 @@
     "leader": "Leader",
     "details": "Details",
     "detailsFor": "Details on {name}",
-    "victory": "Victory condition"
+    "victory": "Victory condition",
+    "combat": "Combat bonus"
   },
   "dispatchUi": {
     "kicker": "Dispatch",
@@ -3129,6 +3130,19 @@
     "cooldown": "Retreat ready in {n} rounds",
     "fx": "Retreat"
   },
+  "moveFire": {
+    "hint": "After moving: half damage",
+    "tag": "Moved: half damage",
+    "tagDesc": "This unit has already moved this turn. If it attacks now, it deals only {pct} % damage, then hit luck applies. The target's return fire stays unchanged.",
+    "hintBonus": "After moving: {pct} % ({name})",
+    "tagBonus": "Moved: {pct} % ({name})",
+    "bonus": {
+      "korvat": "Steppe Storm"
+    },
+    "bonusDesc": {
+      "korvat": "After moving, all Korvat units attack with {pct} % instead of {base} % damage, Steppe Riders even with {rider} %. Hit luck still applies."
+    }
+  },
   "repair": {
     "action": "Emergency repair from wreck +{n}",
     "desc": "Salvages a wreck on or next to the tile: double the normal healing, the unit does not fight this round. The wreck is used up."
@@ -3246,7 +3260,7 @@
     },
     "combat": {
       "title": "Combat & hit luck",
-      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes."
+      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes. Firing after moving: a unit that first moves and then attacks in the same turn deals only {move} % damage, and only then is hit luck rolled. This applies to melee, ranged attacks, rockets, guns and splash damage. A unit that stands still fires at full strength, and the defender's return fire stays unchanged."
     },
     "cover": {
       "title": "Cover",
@@ -3254,7 +3268,7 @@
     },
     "abilities": {
       "title": "Abilities (retreat, repair, rockets)",
-      "text": "Orderly retreat (human ground troops): fires with {retreat} % damage without return fire and falls back one tile, then locked for {cooldown} rounds. Emergency repair (robots): salvages a wreck on or next to the tile and heals {repair} % of normal healing; the unit does not fight this round. Rockets (mechs): ranged attack on targets exactly {range} tiles away, {max} rockets, reloaded at turn start in an own city with a {depot}."
+      "text": "Orderly retreat (human ground troops): fires with {retreat} % damage without return fire and falls back one tile, then locked for {cooldown} rounds; after a move in the same turn this shot is reduced to {move} % as well, the step back does not count for it. Emergency repair (robots): salvages a wreck on or next to the tile and heals {repair} % of normal healing; the unit does not fight this round. Rockets (mechs): ranged attack on targets exactly {range} tiles away, {max} rockets, reloaded at turn start in an own city with a {depot}."
     },
     "cities": {
       "title": "Cities & research",
