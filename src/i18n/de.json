@@ -3143,6 +3143,17 @@
       "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin."
     }
   },
+  "homeDefense": {
+    "hint": "Ziel verteidigt +{pct} % ({name})",
+    "tag": "{name} +{pct} %",
+    "tagDesc": "Steht auf eigenem Gebiet: +{pct} % Verteidigung, wenn diese Einheit angegriffen wird. Gilt nicht beim eigenen Angriff und nicht für den Gegenschlag.",
+    "bonus": {
+      "alvenia": "Friedensbollwerk"
+    },
+    "bonusDesc": {
+      "alvenia": "Alle Alvenia-Einheiten verteidigen sich auf eigenem Gebiet mit +{pct} %, zusätzlich zu Stadt, Gelände und Deckung. Nur wenn sie angegriffen werden, nicht beim eigenen Angriff und nicht für den Gegenschlag."
+    }
+  },
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
     "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: doppelt so viel Heilung wie normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."

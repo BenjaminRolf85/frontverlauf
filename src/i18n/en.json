@@ -3143,6 +3143,17 @@
       "korvat": "After moving, all Korvat units attack with {pct} % instead of {base} % damage, Steppe Riders even with {rider} %. Hit luck still applies."
     }
   },
+  "homeDefense": {
+    "hint": "Target defends +{pct} % ({name})",
+    "tag": "{name} +{pct} %",
+    "tagDesc": "Stands on own territory: +{pct} % defence when this unit is attacked. Does not apply when it attacks, nor to return fire.",
+    "bonus": {
+      "alvenia": "Peace Bulwark"
+    },
+    "bonusDesc": {
+      "alvenia": "All Alvenia units defend with +{pct} % on their own territory, on top of city, terrain and cover. Only when they are attacked, not when they attack and not for return fire."
+    }
+  },
   "repair": {
     "action": "Emergency repair from wreck +{n}",
     "desc": "Salvages a wreck on or next to the tile: double the normal healing, the unit does not fight this round. The wreck is used up."
