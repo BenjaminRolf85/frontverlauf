@@ -264,7 +264,8 @@
     "fusionPlant": "Fusion Power Plant",
     "waal": "Land Cruiser Waal",
     "coreDrill": "Earth-Core Drill",
-    "swarmMother": "Swarm Mother"
+    "swarmMother": "Swarm Mother",
+    "scientist": "Scientist"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -312,7 +313,8 @@
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
-    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream."
+    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
+    "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign)."
   },
   "abilities": {
     "dash": "Assault",
@@ -410,7 +412,8 @@
     "wreckCover": "+1 cover for land units on this tile",
     "barrier": "Tank barrier",
     "mine": "Mine",
-    "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it."
+    "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it.",
+    "mothership": "Zyrr mothership"
   },
   "buildings": {
     "storehouse": "Build storehouse",
@@ -1016,7 +1019,11 @@
       "burrow": "Capture the Zyrr burrow by round {rounds}",
       "bonusBurrow": "Capture the Zyrr burrow",
       "towers": "Capture the transmitter towers and hold all of them at once for {n} rounds in a row, by round {rounds}",
-      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})"
+      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})",
+      "work": "Let the scientist work on the mothership for {n} rounds, by round {rounds}",
+      "workPanel": "Let the scientist work on the mothership for {n} rounds ({have}/{n})",
+      "scientist": "The scientist must not fall",
+      "scientistHp": "The scientist never drops below {share}% of his HP"
     },
     "missions": {
       "m1": {
@@ -1036,19 +1043,19 @@
         }
       },
       "m2": {
-        "title": "Race to the Wreck",
-        "tagline": "Salvage the crash site while landing pods press your cities",
+        "title": "The Mothership",
+        "tagline": "Bring the scientist to the wreck and let him work on it for 8 rounds",
         "brief": [
-          "There is a chunk of the mothership out there, big as a train station! It is still glowing. And on the horizon landing pods are coming down, right in front of our cities.",
-          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. Meanwhile no city falls. First come, first in production.",
-          "ZKRRT ... property of the swarm ... earthlings ... step back ... greys inbound ... ZKRRT"
+          "Commander, the transmitter towers got a fix: the mothership lies in a crater, broken in half and big as a village. It is still glowing, it is smoking, and greys stand guard.",
+          "Kkt. The mothership is sacred. Whoever touches its hull gets taken apart. Swarm, land and find the white coat!",
+          "{leader} to all units: our scientist needs eight rounds at that wreck, then we know how the Zyrr fly. Clear out the guards and cover him with everything we have. If he falls, it was all for nothing."
         ],
-        "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
-        "won": "Salvaged, and not a single city lost! The eggheads in the lab are completely losing it.",
-        "lost": "The Zyrr were faster, or our line broke. Now the thing flies again, just not for us.",
+        "ally": "{allyLeader} here. {ally} secures the crater, {leader}. Your scholar tinkers, we keep the greys away.",
+        "won": "Eight rounds of work, and the scientist grins like a kid at Christmas. Now we know how the thing flies. And where it came from.",
+        "lost": "The scientist has fallen, or we ran out of time. The wreck falls silent, and the Zyrr take their secrets back.",
         "variants": {
           "velkar": {
-            "won": "Salvaged! {leader} has already written seventeen formulas on the debris."
+            "won": "Eight rounds! {leader} has already turned half the wreck into formulas and wants the other half tonight."
           }
         }
       },
@@ -1653,7 +1660,8 @@
       "fusionPlant": "People's Sun",
       "waal": "Steel Whale",
       "coreDrill": "Devil's Plough",
-      "swarmMother": "The Great Mother"
+      "swarmMother": "The Great Mother",
+      "scientist": "Scientist"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1701,7 +1709,8 @@
       "fusionPlant": "Enemy Reactor",
       "waal": "Land Cruiser Waal",
       "coreDrill": "Heretic Drill",
-      "swarmMother": "Enemy High Command"
+      "swarmMother": "Enemy High Command",
+      "scientist": "Scientist"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1749,7 +1758,8 @@
       "fusionPlant": "Peace Reactor",
       "waal": "War Whale",
       "coreDrill": "Doom Drill",
-      "swarmMother": "Chief Negotiator of the Swarm"
+      "swarmMother": "Chief Negotiator of the Swarm",
+      "scientist": "Scientist"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1797,7 +1807,8 @@
       "fusionPlant": "Power Exchange",
       "waal": "Costly Waal",
       "coreDrill": "Property Ruiner",
-      "swarmMother": "The Competition in Chitin"
+      "swarmMother": "The Competition in Chitin",
+      "scientist": "Scientist"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1845,7 +1856,8 @@
       "fusionPlant": "Tokamak One",
       "waal": "Super-Heavy Prototype",
       "coreDrill": "Geological Disaster",
-      "swarmMother": "Test Subject One"
+      "swarmMother": "Test Subject One",
+      "scientist": "Scientist"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1893,7 +1905,8 @@
       "fusionPlant": "Earthling Starlet",
       "waal": "Big Tin Whale",
       "coreDrill": "Earthling Core Probe",
-      "swarmMother": "Mother of All Eyes"
+      "swarmMother": "Mother of All Eyes",
+      "scientist": "Scientist"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1941,7 +1954,8 @@
       "fusionPlant": "False Sun",
       "waal": "Leviathan",
       "coreDrill": "The Final Drill",
-      "swarmMother": "Demoness from the Sky"
+      "swarmMother": "Demoness from the Sky",
+      "scientist": "Scientist"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -1989,7 +2003,8 @@
       "fusionPlant": "External Power Source",
       "waal": "Analogue Megatank",
       "coreDrill": "Geo Error 404",
-      "swarmMother": "Primary Node Z-0"
+      "swarmMother": "Primary Node Z-0",
+      "scientist": "Scientist"
     }
   },
   "identity": {
@@ -3572,5 +3587,17 @@
     "unlockHint": "Satellite relay from the research {tech}.",
     "own1": "Warning: 1 own unit in the target",
     "hits1": "1 hit, {kills} destroyed"
+  },
+  "mothership": {
+    "name": "Zyrr mothership",
+    "sub": "Crashed · impassable",
+    "work": "Work on the ship",
+    "progress": "Work {have}/{need}",
+    "workDesc": "The scientist examines the wreck. This ends his turn and counts one work round ({have}/{need}). Breaks do no harm, the rounds add up.",
+    "notAdjacent": "Only right next to the mothership.",
+    "done": "He has already worked this round.",
+    "tileDesc": "A crashed Zyrr mothership on four tiles: impassable, not capturable, not attackable. The scientist works on one of the tiles next to it ({have}/{need} rounds).",
+    "toast": "The scientist worked on the mothership: {have}/{need} rounds.",
+    "toastDone": "Done! The scientist has cracked the mothership."
   }
 }

@@ -8,7 +8,7 @@ import {
   turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
-import { scientistAttackBonus } from './mothership';
+import { scientistAttackBonus, workSpotPenalty } from './mothership';
 import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
@@ -311,6 +311,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     else if (g.kind === 'bunker' && s.campaign) v += CAMPAIGN_AI.holdBonus;
   }
   const type = layer === 1 ? u.type : (u.carried ?? u.type);
+  // Kampagne m2: den Arbeitsplatz des Wissenschaftlers freilassen / campaign m2: keep the scientist's work spot free
+  v -= workSpotPenalty(ctx, u, x, y);
   // Belagerungsring: bei Sturm direkt neben die Zielstadt / siege ring: next to the target city when assaulting
   if (g.kind === 'city' && !onGoal && dist(g, { x, y }) === 1 && cautionFor(ctx, g) < 0.5) v += 12;
   if (t.feature === 'bunker' && ctx.fa.explored[k]) v += 20; // Bunkerbelohnung / bunker reward

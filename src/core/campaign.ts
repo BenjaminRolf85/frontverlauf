@@ -315,14 +315,16 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       const v = k.grantNear(0, a) ?? a;
       const ship = k.mothership(a, b);
       k.scientist(a);
-      k.spawn('tank', 0, a); k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
+      for (const type of M2.playerUnits) k.spawn(type, 0, a);
       if (v !== a) k.spawn('infantry', 0, v);
+      k.s.factions[1].stars = M2.zyrrStars;
       if (!ship) return;
       // Wachen der Zyrr rund um das Wrack / Zyrr guards around the wreck
       const c = { x: ship.x + 1, y: ship.y + 1 };
       for (const type of M2.guards) k.spawn(type, 1, c, { min: 1 });
       // Landeplaetze: hinter dem Schiff (von uns aus) und an der Flanke / landing spots: behind the ship (seen from us) and at the flank
-      const off = (q: Pos) => shipDist(ship, q) >= M2.waveDistance && shipDist(ship, q) <= M2.waveDistance + 1;
+      // nie naeher an unserem Hauptquartier als das Schiff selbst / never closer to our HQ than the ship itself
+      const off = (q: Pos) => shipDist(ship, q) >= M2.waveDistance && shipDist(ship, q) <= M2.waveDistance + 1 && dist(q, a) >= shipDist(ship, a);
       const back = k.landNear(k.toward(c, { x: 2 * c.x - a.x, y: 2 * c.y - a.y }, M2.waveDistance + 1), off);
       k.point(back);
       const side = { x: c.x + (c.y - a.y), y: c.y - (c.x - a.x) };
@@ -860,6 +862,8 @@ function placeTowers(s: GameState, count: number) {
       if (placed.some((p) => dist(p, q) < TOWER.spacing)) continue;
       if (s.campaign?.sites?.some((p) => dist(p, q) < 2) || (s.campaign?.cave && dist(s.campaign.cave, q) < 2)) continue;
       if (s.campaign?.portal && dist(s.campaign.portal, q) < 2) continue;
+      // Mutterschiff (m2): Arbeitsplaetze und Anmarsch bleiben frei / mothership (m2): work spots and the approach stay free
+      if (s.campaign?.ship && shipDist(s.campaign.ship, q) < 3) continue;
       const d = Math.min(...hqs.map((h) => dist(h, q)), ...placed.map((p) => dist(p, q) * 1.5));
       if (d > bestD) { bestD = d; best = q; }
     }

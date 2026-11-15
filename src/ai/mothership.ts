@@ -27,9 +27,10 @@ export function bestWorkSpot(ctx: Ctx, u: Unit): Pos | null {
   let best: Pos | null = null, bv = Infinity;
   for (const p of workSpots(ctx.s)) {
     const occ = unitAt(ctx.s, p.x, p.y);
-    if (occ && occ.id !== u.id) continue;
+    // fremd besetzte Plaetze nie, eigene nur notfalls (die Einheit zieht weiter) / never spots held by others, own ones only if need be (the unit moves on)
+    if (occ && occ.id !== u.id && occ.owner !== u.owner) continue;
     if (!ctx.landOk[p.y * ctx.size + p.x]) continue;
-    const v = expectedDamage(ctx, u, p.x, p.y) * 4 + Math.max(Math.abs(p.x - u.x), Math.abs(p.y - u.y)) - (occ ? 1 : 0);
+    const v = expectedDamage(ctx, u, p.x, p.y) * 4 + Math.max(Math.abs(p.x - u.x), Math.abs(p.y - u.y)) + (occ && occ.id !== u.id ? 6 : occ ? -1 : 0);
     if (v < bv) { bv = v; best = p; }
   }
   return best;
@@ -61,7 +62,12 @@ export function mothershipGoals(ctx: Ctx): Goal[] {
   const spots = workSpots(s);
   const near = sci ? spots.slice().sort((a, b) => Math.max(Math.abs(a.x - sci.x), Math.abs(a.y - sci.y)) - Math.max(Math.abs(b.x - sci.x), Math.abs(b.y - sci.y)))[0] : spots[0];
   if (playerSide(ctx)) {
-    if (sci) out.push({ kind: 'defend', x: sci.x, y: sci.y, value: A.escortValue, cap: A.escortCap, distW: 6, src: tile(ctx, sci), water: false });
+    // Eskorte: vor der Ankunft zum Arbeitsplatz des Wissenschaftlers (ihn freikaempfen), danach bei ihm
+    // escort: before the arrival to the scientist's work spot (fight it free), then with it
+    if (sci) {
+      const p = shipDist(c.ship, sci) === 1 ? sci : bestWorkSpot(ctx, sci) ?? sci;
+      out.push({ kind: 'defend', x: p.x, y: p.y, value: A.escortValue, cap: A.escortCap, distW: 6, src: tile(ctx, p), water: false });
+    }
     // Verbuendete: den Schiffsbereich sichern / allies: secure the ship area
     if (f !== 0 && near) out.push({ kind: 'defend', x: near.x, y: near.y, value: A.shipValue, cap: A.shipCap, distW: 6, src: tile(ctx, near), water: false });
     // Wachen am Schiff vertreiben, damit der Wissenschaftler arbeiten kann / drive off the guards at the ship so the scientist can work
@@ -76,6 +82,22 @@ export function mothershipGoals(ctx: Ctx): Goal[] {
   // Wachen bleiben am Wrack / guards stay at the wreck
   if (near && shipDist(c.ship, near) === 1) out.push({ kind: 'defend', x: near.x, y: near.y, value: A.guardValue, cap: A.guardCap, distW: 10, src: tile(ctx, near), water: false });
   return out;
+}
+
+const spotCache = new WeakMap<Ctx, Pos | null>();
+/**
+ * Spieler-Seite: Abzug fuer andere Einheiten auf dem Arbeitsplatz, den der Wissenschaftler ansteuert (der Platz bleibt frei).
+ * Player side: penalty for other units on the work spot the scientist is heading for (the spot stays free).
+ */
+export function workSpotPenalty(ctx: Ctx, u: Unit, x: number, y: number): number {
+  const c = ctx.s.campaign;
+  if (!c?.ship || u.type === 'scientist' || !playerSide(ctx)) return 0;
+  if (!spotCache.has(ctx)) {
+    const sci = scientistOf(ctx.s);
+    spotCache.set(ctx, sci && sci.owner === 0 && shipDist(c.ship, sci) > 1 ? bestWorkSpot(ctx, sci) : null);
+  }
+  const p = spotCache.get(ctx);
+  return p && p.x === x && p.y === y ? M2.ai.spotPenalty : 0;
 }
 
 /** Angriffszuschlag der Gegner auf den Wissenschaftler / attack bonus of the enemies against the scientist */

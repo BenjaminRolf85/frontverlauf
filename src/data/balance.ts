@@ -244,7 +244,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
   swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   // Kampagne m2: Wissenschaftler, kaempft nicht, wenig LP, arbeitet am Mutterschiff (M2) / campaign m2: scientist, no combat, low HP, works on the mothership (M2)
-  scientist: { cost: null, hp: 8, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: [], tech: null, ship: false },
+  scientist: { cost: null, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: [], tech: null, ship: false },
 };
 
 /**
@@ -1268,13 +1268,17 @@ export const M2 = {
   /** freie Landfelder im Ring um das Schiff (von 12) / free land tiles in the ring around the ship (of 12) */
   ringLand: 9,
   waveDistance: 3,
+  /** Truppe des Spielers am Hauptquartier (dazu der Wissenschaftler) / the player's troops at the HQ (plus the scientist) */
+  playerUnits: ['tank', 'jeep', 'infantry', 'mg'] as UnitTypeId[],
+  /** Sterne der Zyrr zu Beginn (ihr Lager ist ausgebrannt) / Zyrr stars at the start (their camp is burnt out) */
+  zyrrStars: 0,
   /** Wachen am Schiff zu Beginn / guards at the ship at the start */
   guards: ['grey', 'grey', 'grey', 'mech'] as UnitTypeId[],
   /**
    * KI: Gegner jagen den Wissenschaftler, Wachen bleiben am Schiff; die Spieler-Seite eskortiert ihn.
    * AI: enemies hunt the scientist, guards stay at the ship; the player side escorts it.
    */
-  ai: { huntValue: 125, huntCap: 4, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3, shipValue: 60, shipCap: 2, clearValue: 95, clearCap: 2, clearRange: 2 },
+  ai: { huntValue: 125, huntCap: 2, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3, shipValue: 60, shipCap: 2, clearValue: 95, clearCap: 2, clearRange: 2, spotPenalty: 40 },
 };
 
 /**

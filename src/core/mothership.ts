@@ -94,6 +94,12 @@ function open(s: GameState, q: Pos): boolean {
   return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
 }
 
+/** Ringfeld: Land ohne Stadt, Vulkan, Geschuetz und Einheit; Berge werden eingeebnet / ring tile: land without city, volcano, gun and unit; mountains get levelled */
+function ringOk(s: GameState, q: Pos): boolean {
+  const t = tileAt(s, q.x, q.y);
+  return !!t && isLand(t) && t.cityId === null && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
+}
+
 /** Begehbares Land fuer die Erreichbarkeit (ohne Berge und Wasser) / walkable land for reachability (no mountains, no water) */
 function walk(s: GameState, q: Pos, ship: Pos | null): boolean {
   const t = tileAt(s, q.x, q.y);
@@ -145,7 +151,7 @@ export function findShipSpot(s: GameState, home: Pos, enemy: Pos): Pos | null {
       let land = 0, reach = false;
       for (let yy = y - 1; yy <= y + SHIP_SIZE; yy++) for (let xx = x - 1; xx <= x + SHIP_SIZE; xx++) {
         const q = { x: xx, y: yy };
-        if (shipDist(p, q) !== 1 || !open(s, q)) continue;
+        if (shipDist(p, q) !== 1 || !ringOk(s, q)) continue;
         land++;
         if (steps[yy * s.size + xx] >= 0) reach = true;
       }
@@ -175,6 +181,13 @@ export function placeShip(s: GameState, p: Pos) {
       terrain: 'plain', biome, feature: 'mothership', resource: null, building: null, road: false, river: false, mine: null, barrier: null,
       remains: null, outpost: null, grandProject: null, looted: false, xeno: false, marks: [], tracks: [],
     });
+  }
+  // der Aufprall hat die Berge rundherum eingeebnet: die Arbeitsplaetze sind begehbar / the impact levelled the mountains around: the work spots are walkable
+  for (let y = p.y - 1; y <= p.y + SHIP_SIZE; y++) for (let x = p.x - 1; x <= p.x + SHIP_SIZE; x++) {
+    const t = tileAt(s, x, y);
+    if (!t || shipDist(p, { x, y }) !== 1 || t.terrain !== 'mountain' || t.cityId !== null || t.turret) continue;
+    Object.assign(t, { terrain: 'plain', volcano: false, peak: undefined, building: null, mine: null });
+    if (t.resource === 'ore') t.resource = null;
   }
   for (const f of s.factions) for (const q of shipTiles(p)) revealArea(s, f.index, q.x, q.y, 1);
 }
