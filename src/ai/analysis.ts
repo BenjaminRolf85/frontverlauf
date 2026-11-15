@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, isCultFaction, cultCap, cultUnits, plunderValue, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -167,12 +167,16 @@ export function buildCtx(s: GameState, f: number): Ctx {
   if (ctx.conquest) desired += Math.floor((s.round / 8) * prof.aggression);
   desired += Math.min(4, enemies.filter((e) => myCities.some((c) => dist(c, e) <= 3)).length);
   if (neutralCities.length) desired += 1;
+  // Kult: Masse, groessere Horde als andere, hoechstens bis zum Limit / cult: mass, a bigger horde than others, at most up to the cap
+  const cult = isCultFaction(s, f);
+  if (cult) desired = Math.min(cultCap(s, f), Math.ceil(desired * AI.cultArmyFactor) + AI.cultArmyExtra);
   ctx.desiredArmy = desired;
   // Volle Armee oder voller Sternespeicher: Stillstand aufbrechen und angreifen
   // full army or a big star bank: break the standstill and attack
   let capacity = 0;
   for (const c of myCities) capacity += unitLimit(s, c);
-  const saturation = capacity > 0 ? my.length / capacity : 0;
+  if (cult) capacity = cultCap(s, f);
+  const saturation = capacity > 0 ? (cult ? cultUnits(s, f).length : my.length) / capacity : 0;
   // Armee kann nicht weiter wachsen (Sold frisst das Einkommen) oder genug Truppen fuer einen Vorstoss
   // army cannot grow further (upkeep eats the income) or enough troops for a push
   const stalled = netIncome(s, f) < 4 && my.length >= 6;
@@ -442,8 +446,10 @@ function buildGoals(ctx: Ctx): Goal[] {
   const { s, f, prof, size } = ctx;
   const goals: Goal[] = [];
   const tileSrc = (x: number, y: number, water = false) => `t${y * size + x}${water ? 's' : 'l'}`;
+  // Kult: Beute macht Siedlungen und Staedte lohnender / cult: loot makes villages and cities more attractive
+  const loot = (c: City) => plunderValue(s, f, c) * AI.cultPlunderValue;
   for (const c of ctx.neutralCities) {
-    goals.push({ kind: 'village', x: c.x, y: c.y, value: 75, cap: 1, distW: 9, src: tileSrc(c.x, c.y), water: false });
+    goals.push({ kind: 'village', x: c.x, y: c.y, value: 75 + loot(c), cap: 1, distW: 9, src: tileSrc(c.x, c.y), water: false });
   }
   // schwaechsten Gegner zuerst ausschalten / finish off the weakest enemy first
   const cityCount = new Map<number, number>();
@@ -454,7 +460,7 @@ function buildGoals(ctx: Ctx): Goal[] {
     const defended = !!def && def.owner !== f && canSeeUnit(s, f, def);
     const owned = s.cities.filter((o) => o.owner === c.owner).length;
     const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25 + prof.raid) +
-      (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0);
+      (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0) + loot(c);
     goals.push({ kind: 'city', x: c.x, y: c.y, value: value + (ctx.siege ? 20 : 0), cap: ctx.siege ? (defended ? 5 : 3) : defended ? 4 : 2, distW: ctx.siege ? 3 : 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
   }
   for (let k = 0; k < ctx.n; k++) {
@@ -491,9 +497,9 @@ function buildGoals(ctx: Ctx): Goal[] {
     const ratio = victoryStatus(s, e.owner).ratio;
     goals.push({ kind: 'hunt', x: e.x, y: e.y, value: 95 + ratio * 80, cap: 6, distW: 3, src: tileSrc(e.x, e.y), water: false, targetId: e.id });
   }
-  // Eigene Wunder bewachen / guard own wonders
+  // Eigene Wunder bewachen (den Bohrer nur der Kult mit seiner Horde) / guard own wonders (the drill only the cult with its horde)
   for (const u of ctx.my) {
-    if (!isWonder(u) || u.type === 'coreDrill') continue;
+    if (!isWonder(u) || (u.type === 'coreDrill' && !isCultFaction(s, f))) continue;
     const near = ctx.enemies.filter((e) => dist(e, u) <= 4 && UNITS[e.type].attack > 0).length;
     goals.push({ kind: 'defend', x: u.x, y: u.y, value: 60 + 12 * near + victoryStatus(s, f).ratio * 30, cap: 2 + Math.min(3, near), distW: 8, src: tileSrc(u.x, u.y), water: false });
   }

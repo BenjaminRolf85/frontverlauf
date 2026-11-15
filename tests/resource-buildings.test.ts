@@ -26,6 +26,8 @@ function setup(f: FactionId, other: FactionId = f === 'dravon' ? 'korvat' : 'dra
   const b = RESOURCE.buildings[f];
   const tech = BUILDINGS[b].tech;
   if (tech && !s.factions[0].techs.includes(tech)) s.factions[0].techs.push(tech);
+  // Kult: ohne Einheit ausgeschieden, ein Eiferer in der Ecke haelt ihn im Spiel / cult: eliminated without a unit, a zealot in the corner keeps it in the game
+  if (f === 'vesper') addUnit(s, 'zealot', 0, 0, s.size - 1);
   return { s, c, enemy, b };
 }
 
@@ -243,7 +245,7 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     expect(buildCheck(s, 0, 'xenoHive', 3, 3)).toMatchObject({ ok: false, error: 'invalidTile' });
   });
 
-  it('Vesper, pilgrimage site: desert, steppe or next to a volcano, +2 stars, recruits next to it start as veterans', () => {
+  it('Vesper, pilgrimage site: desert, steppe or next to a volcano, no stars, recruits next to it start as veterans', () => {
     const { s, c, b } = setup('vesper');
     expect(b).toBe('pilgrimSite');
     expect(buildCheck(s, 0, b, 5, 4)).toMatchObject({ ok: false, error: 'invalidTile' });
@@ -252,22 +254,23 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     expect(buildCheck(s, 0, b, 5, 4)).toMatchObject({ ok: true });
     tile(s, 3, 3).biome = 'steppe';
     expect(buildCheck(s, 0, b, 3, 3)).toMatchObject({ ok: true });
-    const inc0 = cityInc(s, c.id);
     ok(s, { type: 'build', building: b, x: 5, y: 4 });
-    expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.pilgrimSite.stars);
+    // Kult-Staedte bringen nichts ein, auch mit Staette nicht / cult cities bring nothing, not even with a site
+    expect(BUILDINGS.pilgrimSite.stars).toBeUndefined();
+    expect(cityInc(s, c.id)).toBe(0);
     expect(buildCheck(s, 0, b, 3, 3)).toMatchObject({ ok: false, error: 'onePerCity' });
     // Prediger auf (5,5): Rekrut auf einem Feld neben der Staette / preacher at (5,5): recruit on a tile next to the site
-    const z = addUnit(s, 'zealot', 0, 5, 6, { homeCity: c.id });
+    const z = addUnit(s, 'zealot', 0, 5, 6);
     const spot = recruitSpot(s, z, 'zealot')!;
     expect(Math.max(Math.abs(spot.x - 5), Math.abs(spot.y - 4))).toBeLessThanOrEqual(1);
     const r = ok(s, { type: 'recruit', unit: z.id, unitType: 'zealot', x: spot.x, y: spot.y });
-    const nu = unit(s, (r.events.find((e) => e.t === 'train') as { unit: number }).unit)!;
+    const nu = unit(s, (r.events.find((e) => e.t === 'recruit') as { unit: number }).unit)!;
     expect(nu.veteran).toBe(true);
     expect(nu.maxHp).toBe(UNITS.zealot.hp + VETERAN.bonusHp);
     // fern der Staette kein Veteran / far from the site no veteran
-    const z2 = addUnit(s, 'zealot', 0, 2, 2, { homeCity: c.id });
+    const z2 = addUnit(s, 'zealot', 0, 2, 2);
     const r2 = ok(s, { type: 'recruit', unit: z2.id, unitType: 'zealot', x: 1, y: 1 });
-    expect(unit(s, (r2.events.find((e) => e.t === 'train') as { unit: number }).unit)!.veteran).toBe(false);
+    expect(unit(s, (r2.events.find((e) => e.t === 'recruit') as { unit: number }).unit)!.veteran).toBe(false);
   });
 
   it('NEXUS, depot node: ore only, +1 compute without a power plant', () => {

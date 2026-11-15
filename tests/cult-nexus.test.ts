@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildCheck, combatPreview, computePower, createGame, defaultConfig, recruitCheck, trainCheck } from '../src/core';
-import { UNITS } from '../src/data/balance';
+import {
+  buildCheck, cityIncome, cityUpgradeCheck, combatPreview, computePower, createGame, cultCap, cultSlots, cultTithe, cultUnits, defaultConfig, income,
+  plunderValue, recruitCheck, trainCheck, upkeep,
+} from '../src/core';
+import { CITY, CULT, UNITS } from '../src/data/balance';
 import { playAiTurn } from '../src/ai/ai';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, tile } from './helpers';
 
@@ -16,25 +19,107 @@ describe('Kult der Letzten Stunde / Cult of the Final Hour', () => {
   it('startet mit Eiferer und forscht normal / starts with a zealot and researches', () => {
     const s = createGame(defaultConfig({ seed: 4, size: 14, factions: [{ id: 'vesper', human: true, difficulty: 'normal' }, { id: 'korvat', human: false, difficulty: 'normal' }] }));
     expect(s.units.find((u) => u.owner === 0)!.type).toBe('zealot');
+    // Starthorde / starting horde
+    expect(s.units.filter((u) => u.owner === 0)).toHaveLength(1 + CULT.startUnits.length);
     s.factions[0].stars = 50;
     ok(s, { type: 'research', tech: 'motorization' });
   });
-  it('rekrutiert nicht in Staedten, sondern neben Predigern / recruits next to preachers, not in cities', () => {
+  it('rekrutiert nicht in Staedten, sondern im Feld / recruits in the field, not in cities', () => {
     const { s, hq } = g(['vesper', 'korvat']);
     expect(trainCheck(s, hq, 'zealot')).toBe('cultRecruit');
+    expect(trainCheck(s, hq, 'coreDrill')).toBe('cultRecruit');
     fails(s, { type: 'train', city: hq.id, unitType: 'zealot' }, 'cultRecruit');
     const z = addUnit(s, 'zealot', 0, 5, 5);
     expect(recruitCheck(s, 0, z.id, 'zealot', 5, 7)).toBe('outOfRange');
     expect(recruitCheck(s, 0, z.id, 'torchbearer', 5, 6)).toBe('techMissing');
     expect(recruitCheck(s, 0, z.id, 'infantry', 5, 6)).toBe('invalid');
+    // Eiferer rufen nur Fusstruppen / zealots call up foot troops only
+    expect(recruitCheck(s, 0, z.id, 'doomCrawler', 5, 6)).toBe('invalid');
     ok(s, { type: 'recruit', unit: z.id, unitType: 'zealot', x: 5, y: 6 });
     const n = s.units.find((u) => u.x === 5 && u.y === 6)!;
     expect(n.type).toBe('zealot');
-    expect(n.homeCity).toBe(hq.id);
+    // Rekruten gehoeren zu keiner Stadt / recruits belong to no city
+    expect(n.homeCity).toBeNull();
     expect(s.factions[0].stars).toBe(200 - UNITS.zealot.cost!);
-    // Prediger ist erschoepft, Rekrut ist frisch / preacher is exhausted, recruit is fresh
+    // Rekrutierer ist erschoepft, Rekrut ist frisch / recruiter is exhausted, recruit is fresh
     fails(s, { type: 'recruit', unit: z.id, unitType: 'zealot', x: 4, y: 5 }, 'unitExhausted');
     expect(recruitCheck(s, 0, n.id, 'zealot', 5, 7)).toBe('unitExhausted');
+    expect(z.recruitReady).toBe(s.round + CULT.recruitCooldown);
+  });
+  it('Abklingzeit, Feldregeln und Einheitenlimit aus den Plaetzen / cooldown, tile rules and the unit cap from slots', () => {
+    const { s, hq } = g(['vesper', 'korvat']);
+    const z = addUnit(s, 'zealot', 0, 5, 5);
+    // kein Wasser, kein Vulkan, keine Lava, keine fremde Stadt / no water, no volcano, no lava, no foreign city
+    setTerrain(s, 6, 5, 'shallow');
+    expect(recruitCheck(s, 0, z.id, 'zealot', 6, 5)).toBe('invalidTile');
+    setTerrain(s, 4, 5, 'mountain');
+    tile(s, 4, 5).volcano = true;
+    expect(recruitCheck(s, 0, z.id, 'zealot', 4, 5)).toBe('invalidTile');
+    tile(s, 5, 4).lava = s.round;
+    expect(recruitCheck(s, 0, z.id, 'zealot', 5, 4)).toBe('invalidTile');
+    // Limit: Grundzahl plus Plaetze des Hauptquartiers / cap: base plus the slots of the HQ
+    expect(cultCap(s, 0)).toBe(CULT.baseCap + hq.level + CITY.unitLimitExtra + CULT.hqSlots);
+    while (cultUnits(s, 0).length < cultCap(s, 0)) addUnit(s, 'zealot', 0, cultUnits(s, 0).length, 10);
+    expect(recruitCheck(s, 0, z.id, 'zealot', 5, 6)).toBe('unitLimit');
+    // ein Schrein bringt Plaetze / a shrine brings slots
+    ok(s, { type: 'build', building: 'shrine', x: 2, y: 3 });
+    expect(cultCap(s, 0)).toBe(CULT.baseCap + hq.level + CITY.unitLimitExtra + CULT.hqSlots + CULT.shrineSlots);
+    ok(s, { type: 'recruit', unit: z.id, unitType: 'zealot', x: 5, y: 6 });
+    // Abklingzeit: erst nach CULT.recruitCooldown Runden wieder / cooldown: again only after CULT.recruitCooldown rounds
+    s.round += 1; z.exhausted = false;
+    expect(recruitCheck(s, 0, z.id, 'zealot', 6, 6)).toBe('recruitCooldown');
+    s.round += CULT.recruitCooldown - 1;
+    s.cities[0].level = 3;
+    expect(recruitCheck(s, 0, z.id, 'zealot', 6, 6)).toBe('ok');
+  });
+  it('Kult-Stadt: kein Einkommen, kein Wachstum, keine Ausbauten, kein Sold / cult city: no income, no growth, no upgrades, no upkeep', () => {
+    const { s, hq } = g(['vesper', 'korvat']);
+    for (let i = 0; i < 6; i++) addUnit(s, 'zealot', 0, 5 + (i % 3), 5 + Math.floor(i / 3));
+    expect(cityIncome(s, hq)).toBe(0);
+    expect(income(s, 0)).toBe(cultTithe(s, 0));
+    expect(cultTithe(s, 0)).toBe(Math.min(CULT.titheMax, Math.floor(6 * CULT.tithePerUnit)));
+    expect(upkeep(s, 0)).toBe(0);
+    expect(cityUpgradeCheck(s, 0, hq, 'bunker')).toBe('noSlot');
+    // nur Kult-Gebaeude, Strassen und Bruecken / only cult buildings, roads and bridges
+    expect(buildCheck(s, 0, 'storehouse', 2, 3)).toMatchObject({ ok: false, error: 'cannotBuild' });
+    const pop = hq.pop;
+    ok(s, { type: 'build', building: 'shrine', x: 2, y: 3 });
+    expect(hq.pop).toBe(pop);
+  });
+  it('Pluendern: Sterne nach Stufe, die Stadt faellt an den Kult, kein doppeltes Pluendern / plunder: stars by level, the city falls to the cult, no double plunder', () => {
+    const { s } = g(['vesper', 'korvat']);
+    const enemy = s.cities.find((c) => c.owner === 1)!;
+    enemy.level = 3;
+    const z = addUnit(s, 'zealot', 0, enemy.x, enemy.y);
+    const stars = s.factions[0].stars;
+    const r = ok(s, { type: 'capture', unit: z.id });
+    const loot = CULT.plunderBase + CULT.plunderPerLevel * 3 + CULT.plunderHq;
+    expect(r.events.find((e) => e.t === 'capture')).toMatchObject({ plunder: loot });
+    expect(s.factions[0].stars).toBe(stars + loot);
+    expect(enemy.owner).toBe(0);
+    expect(enemy.level).toBe(3);
+    // Plaetze nach Stufe / slots by level
+    expect(cultSlots(s, enemy)).toBe(3 + CITY.unitLimitExtra);
+    // zurueckerobert und gleich wieder genommen: keine Beute / retaken and taken again at once: no loot
+    enemy.owner = 1;
+    s.round += CULT.replunderRounds - 1;
+    expect(plunderValue(s, 0, enemy)).toBe(0);
+    s.round += 1;
+    expect(plunderValue(s, 0, enemy)).toBe(loot);
+    // Punkte fuer die Beute / points for the loot
+    expect(s.factions[0].plunder).toBe(loot);
+  });
+  it('ausgeschieden ohne Einheit, Staedte werden neutral / eliminated without a unit, cities turn neutral', () => {
+    const { s, hq } = g(['vesper', 'korvat']);
+    const z = addUnit(s, 'zealot', 0, 5, 5);
+    const k = addUnit(s, 'infantry', 1, 5, 6);
+    z.hp = 1;
+    s.current = 1;
+    ok(s, { type: 'attack', unit: k.id, target: z.id });
+    expect(s.factions[0].alive).toBe(false);
+    expect(hq.owner).toBeNull();
+    expect(s.over).toBe(true);
+    expect(s.victory).toMatchObject({ kind: 'conquest', faction: 'korvat' });
   });
   it('Nicht-Prediger und andere Fraktionen koennen nicht rekrutieren / non-preachers and others cannot recruit', () => {
     const { s } = g(['vesper', 'korvat']);

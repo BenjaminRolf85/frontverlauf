@@ -342,7 +342,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(ok.campaign!.result).toBe('won');
   });
 
-  it('m4: Abschuesse; alle Gegner ausgeschieden = Sieg / kills; all enemies eliminated = win', () => {
+  it('m4: Abschuesse; alle Gegner ausgeschieden = Sieg (der Kult mit seiner letzten Einheit) / kills; all enemies eliminated = win (the cult with its last unit)', () => {
     const s = game('m4');
     s.factions[0].kills = 7;
     poke(s);
@@ -356,8 +356,15 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     const hq = ownCities(e, 1)[0];
     const u = e.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
     placeAt(e, u, hq);
-    const r = applyCommand(e, { type: 'capture', unit: u.id });
+    // die Hauptstadt faellt, der Kult lebt in seiner Horde weiter / the capital falls, the cult lives on in its horde
+    expect(applyCommand(e, { type: 'capture', unit: u.id }).ok).toBe(true);
+    expect(e.factions[1].alive).toBe(true);
+    expect(e.campaign!.result).toBeNull();
+    // die letzte Einheit faellt: ausgeschieden / the last unit falls: eliminated
+    e.units = e.units.filter((x) => x.owner !== 1);
+    const r = applyCommand(e, { type: 'endTurn' });
     expect(r.ok).toBe(true);
+    expect(e.factions[1].alive).toBe(false);
     expect(e.campaign!.result).toBe('won');
     expect(r.events.filter((x) => x.t === 'gameOver').length).toBe(1);
     // Sieg ohne Gegner: offene Hauptziele gelten als erfuellt, nie als verfehlt / win without enemies: open primary objectives count as met, never failed
@@ -487,10 +494,10 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(s.winner).not.toBe(0);
 
     const a = game('m4', 'alvenia');
-    const hq = ownCities(a, 1)[0];
-    const u = a.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
-    placeAt(a, u, hq);
-    expect(applyCommand(a, { type: 'capture', unit: u.id }).ok).toBe(true);
+    // Kult ohne Einheit: ausgeschieden / cult without a unit: eliminated
+    a.units = a.units.filter((x) => x.owner !== 1);
+    expect(applyCommand(a, { type: 'endTurn' }).ok).toBe(true);
+    expect(a.factions[1].alive).toBe(false);
     expect(a.factions[2].alive).toBe(true); // Verbuendeter lebt / the ally is alive
     expect(a.campaign!.result).toBe('won');
   });

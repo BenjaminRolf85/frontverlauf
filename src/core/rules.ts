@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, CRASH, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  COUNTER, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
@@ -14,7 +14,7 @@ import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
 import {
-  recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
+  recruitCheck, plunderValue, isCultFaction, cultUnits, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -76,8 +76,19 @@ export function createGame(cfg: GameConfig): GameState {
     const alien = s.factions[i].id === XENO.faction;
     // Zyrr: Hauptquartier startet terraformt / Zyrr: HQ starts terraformed
     if (alien) for (const q of area(s.size, p.x, p.y, CITY.baseRadius)) { const tt = tileAt(s, q.x, q.y)!; if (tt.terrain !== 'ocean') tt.xeno = true; }
-    const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? START.unit, i, p.x, p.y, s.cities[i].id);
+    const cult = isCultFaction(s, i);
+    // Kult: Einheiten gehoeren zu keiner Stadt / cult: units belong to no city
+    const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? START.unit, i, p.x, p.y, cult ? null : s.cities[i].id);
     u.fresh = false;
+    // Kult: Starthorde auf freien Feldern neben dem Hauptquartier / cult: starting horde on free tiles next to the HQ
+    if (cult) {
+      for (const type of CULT.startUnits) {
+        const q = freeNeighbor(s, p.x, p.y, false);
+        if (!q) break;
+        const h = spawnUnit(s, type, i, q.x, q.y, null);
+        h.fresh = false;
+      }
+    }
   });
   addHazards(s, config.hazards ?? 'none');
   for (const f of s.factions) {
@@ -183,8 +194,8 @@ function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: 
 }
 
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
-  // Nachschublinien und Sendetuerme wachsen nicht / supply lines and transmitter towers do not grow
-  if (supplyLines(s) || c.tower) return;
+  // Nachschublinien, Sendetuerme und Kult-Staedte wachsen nicht / supply lines, transmitter towers and cult cities do not grow
+  if (supplyLines(s) || c.tower || (c.owner !== null && isCultFaction(s, c.owner))) return;
   c.pop += amount;
   while (c.pop >= levelUpCost(s, c)) {
     c.pop -= levelUpCost(s, c);
@@ -397,19 +408,30 @@ function updateConnections(s: GameState, f: number, ev: GameEvent[]) {
 
 function updateGrandProjects(s: GameState, f: number, ev: GameEvent[]) {
   const fa = s.factions[f];
-  // keine Grossprojekte an Nachschublinien / no grand projects at supply lines
-  if (supplyLines(s)) return;
+  // keine Grossprojekte an Nachschublinien und beim Kult / no grand projects at supply lines and for the cult
+  if (supplyLines(s) || isCultFaction(s, f)) return;
   for (const id of GRAND_PROJECT_IDS) {
     if (fa.grandProjectsUnlocked.includes(id)) continue;
     if (grandProjectConditionMet(s, f, id)) { fa.grandProjectsUnlocked.push(id); ev.push({ t: 'unlockGrand', id, faction: f }); }
   }
 }
 
-function checkElimination(s: GameState, ev: GameEvent[]) {
+/**
+ * Ausgeschieden? Normal ohne Stadt (der Landetrupp der Kampagne lebt, solange er Einheiten hat); der Kult ohne Einheit
+ * (Wunder zaehlen nicht), seine Staedte werden dann neutral.
+ * Eliminated? Normally without a city (the campaign landing party lives while it has units); the cult without a unit
+ * (wonders do not count), its cities then turn neutral.
+ */
+function eliminatedNow(s: GameState, f: number): boolean {
+  if (isCultFaction(s, f)) return cultUnits(s, f).length === 0;
+  return ownCities(s, f).length === 0 && !landingPartyHolds(s, f);
+}
+
+/** cultOnly: nur den Kult pruefen (nach jedem Kommando und Zugwechsel) / only check the cult (after every command and turn change) */
+function checkElimination(s: GameState, ev: GameEvent[], cultOnly = false) {
   for (const f of s.factions) {
-    if (!f.alive) continue;
-    // Kampagne: der Landetrupp lebt ohne Stadt, solange er Einheiten hat / campaign: the landing party lives without a city while it has units
-    if (ownCities(s, f.index).length === 0 && !landingPartyHolds(s, f.index)) {
+    if (!f.alive || (cultOnly && !isCultFaction(s, f.index))) continue;
+    if (eliminatedNow(s, f.index)) {
       f.alive = false;
       f.eliminatedRound = s.round;
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
@@ -422,6 +444,8 @@ function checkElimination(s: GameState, ev: GameEvent[]) {
       }
       clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
+      // Kult: verlassene Staedte werden neutral / cult: abandoned cities turn neutral
+      for (const c of ownCities(s, f.index)) { c.owner = null; c.connected = false; }
       ev.push({ t: 'eliminated', faction: f.index });
     }
   }
@@ -641,6 +665,9 @@ export function continueEndless(s: GameState): GameEvent[] {
 
 function advance(s: GameState, ev: GameEvent[]) {
   const count = s.factions.length;
+  // Verluste am Zugende (Absturz, Flak) koennen den Kult ausscheiden lassen / losses at the end of the turn (crash, flak) can eliminate the cult
+  checkElimination(s, ev, true);
+  if (s.over) return;
   let next = s.current;
   let wrapped = false;
   for (let i = 0; i < count; i++) {
@@ -649,7 +676,13 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (s.factions[next].alive) break;
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
-  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev); }
+  if (wrapped) {
+    recordRound(s); s.round++; processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
+    // Vulkane und Geschuetze koennen den Kult ausscheiden lassen / volcanoes and guns can eliminate the cult
+    checkElimination(s, ev, true);
+    if (s.over) return;
+    for (let i = 0; i < count && !s.factions[next].alive; i++) next = (next + 1) % count;
+  }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -847,7 +880,7 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
     case 'population': {
       // Nachschublinien wachsen nicht: dann Sterne / supply lines do not grow: stars instead
       const hq = hqOf(s, f) ?? ownCities(s, f)[0];
-      if (hq && !supplyLines(s)) addPop(s, hq, BUNKER.population, ev); else giveStars();
+      if (hq && !supplyLines(s) && !isCultFaction(s, f)) addPop(s, hq, BUNKER.population, ev); else giveStars();
       break;
     }
     case 'veteranMg': {
@@ -875,7 +908,15 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
 
 function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   const from = c.owner;
+  // Kult: Pluenderung vor dem Besitzwechsel (Stufe der Stadt zaehlt) / cult: plunder before the change of owner (the city's level counts)
+  const plunder = plunderValue(s, u.owner, c);
   c.owner = u.owner;
+  if (isCultFaction(s, u.owner)) {
+    c.plundered = plunder > 0 ? s.round : c.plundered;
+    const fa = s.factions[u.owner];
+    fa.stars += plunder;
+    fa.plunder = (fa.plunder ?? 0) + plunder;
+  }
   if (from === null) {
     c.level = 1; c.pop = 0;
     claimTerritory(s, c, CITY.baseRadius);
@@ -888,7 +929,7 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
       for (const f of s.factions) f.embassies = f.embassies.filter((g) => g !== c.hqOf);
     }
   }
-  ev.push({ t: 'capture', city: c.id, faction: u.owner, from });
+  ev.push({ t: 'capture', city: c.id, faction: u.owner, from, ...(isCultFaction(s, u.owner) ? { plunder } : {}) });
   noteCapture(s, u.owner); // Statistik / statistics
   reveal(s, u.owner, c.x, c.y, c.radius + VISION.cityExtra, ev);
   updateConnections(s, u.owner, ev);
@@ -1323,13 +1364,21 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       break;
     }
     case 'recruit': {
+      // Kult: im Feld rekrutieren, auch den Erdkernbohrer (Prophet) / cult: recruit in the field, the earth-core drill too (prophet)
       const check = recruitCheck(s, f, cmd.unit, cmd.unitType, cmd.x, cmd.y);
       if (check !== 'ok') return fail(check);
       fa.stars -= unitCost(s, f, cmd.unitType)!;
-      unitById(s, cmd.unit)!.exhausted = true;
-      const home = recruitHome(s, f, cmd.x, cmd.y)!;
-      const nu = spawnUnit(s, cmd.unitType, f, cmd.x, cmd.y, home.id);
-      ev.push({ t: 'train', unit: nu.id, city: home.id });
+      const by = unitById(s, cmd.unit)!;
+      by.exhausted = true;
+      by.recruitReady = s.round + CULT.recruitCooldown;
+      // Rekruten gehoeren zu keiner Stadt, das Kult-Limit zaehlt alle Einheiten / recruits belong to no city, the cult cap counts all units
+      const nu = spawnUnit(s, cmd.unitType, f, cmd.x, cmd.y, null);
+      ev.push({ t: 'recruit', unit: nu.id, by: by.id });
+      if (isWonder(nu)) {
+        ev.push({ t: 'wonder', what: 'started', kind: nu.type as WonderUnitId, unit: nu.id, faction: f, x: nu.x, y: nu.y, stage: 0 });
+        res = { ok: true, events: ev };
+        break;
+      }
       // Pilgerstaette: Rekruten daneben starten als Veteranen / pilgrimage site: recruits next to it start as veterans
       if (pilgrimVeteranAt(s, f, cmd.x, cmd.y)) {
         nu.veteran = true; nu.maxHp += VETERAN.bonusHp; nu.hp = nu.maxHp;
@@ -1493,6 +1542,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     default:
       return fail('invalid');
   }
+  // Kult: der letzte Mann kann im eigenen Zug fallen / cult: the last man can fall during the own turn
+  if (res.ok && !s.over) checkElimination(s, ev, true);
   if (res.ok && !s.over) afterAction(s, f, ev);
   if (res.ok) wakeTurrets(s, ev);
   if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
