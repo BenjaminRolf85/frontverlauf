@@ -150,6 +150,15 @@ export class Dispatches {
     if (held) { this.held.delete(viewer); for (const it of held) this.push(it); }
   }
 
+  /**
+   * Funkspruch mit festem Text (Kampagne, z. B. die Schwarmmutter taucht auf) fuer den Betrachter.
+   * Dispatch with a fixed text (campaign, e.g. the Swarm Mother emerges) for the viewer.
+   */
+  say(f: FactionId, mood: LeaderMood, text: string) {
+    if (!this.enabled || this.blocked() || !text) return;
+    this.push({ occasion: 'war', faction: f, target: this.viewer(), mood, text, priority: 3 });
+  }
+
   /** Spielereignis pruefen / check a game event */
   onEvent(e: GameEvent, s: GameState) {
     if (e.t === 'gameOver') { this.clear(); this.held.clear(); return; }

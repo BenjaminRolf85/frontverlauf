@@ -5,6 +5,11 @@
  * Campaign progress: pure functions (testable) plus localStorage access wrapped in try/catch.
  * Every human faction has its own run. The old progress (v1, without a faction) is carried over once
  * as the Korvat run (the old campaign started with Korvat) and announced with a notice.
+ *
+ * Missionsreihe (layout): 1 = neun Einsaetze, 2 = elf Einsaetze (Akt I mit Portal, Alienwelt und Schwarmmutter).
+ * Beim Einlesen eines aelteren Stands werden die IDs nach LAYOUT_MIGRATION umgeschrieben; alle anderen IDs bleiben.
+ * Mission layout: 1 = nine missions, 2 = eleven missions (act I with portal, alien world and Swarm Mother).
+ * When an older state is read, ids are rewritten according to LAYOUT_MIGRATION; all other ids stay.
  */
 import { CAMPAIGN_FACTIONS, isCampaignFaction } from '../core/campaign';
 import type { FactionId } from '../data/balance';
@@ -30,24 +35,43 @@ export interface CampaignProgress {
 /** Gesamter gespeicherter Stand / whole stored state */
 export interface CampaignStore {
   v: 2;
+  /** Missionsreihe (fehlt = 1, neun Einsaetze) / mission layout (missing = 1, nine missions) */
+  layout?: number;
   /** gewaehlte Fraktion (null = noch keine Wahl) / chosen faction (null = not chosen yet) */
   faction: FactionId | null;
   runs: Partial<Record<FactionId, CampaignProgress>>;
-  /** einmaliger Hinweis nach der Uebernahme / one-time notice after the migration */
-  notice?: 'migrated';
+  /** einmaliger Hinweis nach der Uebernahme oder nach neuen Einsaetzen / one-time notice after the migration or after new missions */
+  notice?: 'migrated' | 'expanded';
 }
 
+/** Aktuelle Missionsreihe / current mission layout */
+export const LAYOUT = 2;
+/**
+ * Alte IDs (Reihe 1, neun Einsaetze) auf neue: die alte m3 (Die Linie haelt) ist in m2 aufgegangen, m3 ist jetzt das Portal.
+ * m1, m2 und m4 bis m9 behalten ihre ID; m10 und m11 sind neu.
+ * Old ids (layout 1, nine missions) to new ones: the old m3 (Hold the Line) merged into m2, m3 is now the portal.
+ * m1, m2 and m4 to m9 keep their id; m10 and m11 are new.
+ */
+export const LAYOUT_MIGRATION: Record<string, string> = { m3: 'm2' };
+/** IDs der Reihe 1 ab der geaenderten Stelle: wer so weit war, bekommt einen Hinweis / layout-1 ids from the changed part on */
+const LAYOUT1_LATER = ['m3', 'm4', 'm5', 'm6', 'm7', 'm8', 'm9'];
+
 export const emptyProgress = (): CampaignProgress => ({ missions: {} });
-export const emptyStore = (): CampaignStore => ({ v: 2, faction: null, runs: {} });
+export const emptyStore = (): CampaignStore => ({ v: 2, layout: LAYOUT, faction: null, runs: {} });
 
 /** Mission abgeschlossen (mindestens ein Sieg)? / mission completed (at least one win)? */
 export const isCompleted = (p: CampaignProgress, id: string) => (p.missions[id]?.wins ?? 0) > 0;
 
-/** Freigeschaltet: erste Mission immer, sonst wenn die vorige gewonnen ist / unlocked: first always, else when the previous one is won */
+/**
+ * Freigeschaltet: erste Mission immer, sonst wenn die vorige gewonnen ist; schon gewonnene bleiben offen (auch wenn davor
+ * neue Einsaetze eingefuegt wurden).
+ * Unlocked: first always, else when the previous one is won; missions already won stay open (even when new missions were
+ * inserted before them).
+ */
 export function isUnlocked(p: CampaignProgress, order: readonly string[], id: string): boolean {
   const i = order.indexOf(id);
   if (i < 0) return false;
-  return i === 0 || isCompleted(p, order[i - 1]);
+  return i === 0 || isCompleted(p, order[i - 1]) || isCompleted(p, id);
 }
 
 /** Naechste Mission in der Reihenfolge / next mission in order */
@@ -111,6 +135,26 @@ export const loopsDone = (st: CampaignStore, finaleId: string): FactionId[] => C
 
 // ---------- Einlesen / parsing ----------
 
+/** Zwei Eintraege derselben Mission vereinen (beste Wertung, schnellste Runde, Siege addiert) / merge two records of one mission */
+function mergeRecord(a: MissionRecord | undefined, b: MissionRecord): MissionRecord {
+  if (!a) return { ...b };
+  const rounds = [a.bestRound, b.bestRound].filter((r) => r > 0);
+  return { stars: Math.max(a.stars, b.stars), bestRound: rounds.length ? Math.min(...rounds) : 0, wins: a.wins + b.wins };
+}
+
+/** Feldzug der Reihe 1 auf die aktuelle Reihe umschreiben / rewrite a layout-1 run to the current layout */
+export function migrateRun(p: CampaignProgress): CampaignProgress {
+  const out = emptyProgress();
+  for (const [id, rec] of Object.entries(p.missions)) {
+    const to = LAYOUT_MIGRATION[id] ?? id;
+    out.missions[to] = mergeRecord(out.missions[to], rec);
+  }
+  return out;
+}
+
+/** War der Feldzug schon hinter der geaenderten Stelle? / was the run already past the changed part? */
+const pastChange = (p: CampaignProgress) => LAYOUT1_LATER.some((id) => isCompleted(p, id));
+
 function parseRun(d: unknown): CampaignProgress | null {
   if (!d || typeof d !== 'object') return null;
   const ms = (d as { missions?: unknown }).missions;
@@ -146,18 +190,24 @@ export function parseStore(raw: string | null, rawV1: string | null = null): Cam
       if (d && d.v === 2 && typeof d.runs === 'object' && d.runs !== null) {
         const out = emptyStore();
         if (isCampaignFaction(d.faction)) out.faction = d.faction;
+        const old = d.layout !== LAYOUT;
+        let past = false;
         for (const [f, r] of Object.entries(d.runs)) {
           const run = isCampaignFaction(f) ? parseRun(r) : null;
-          if (run) out.runs[f as FactionId] = run;
+          if (!run) continue;
+          if (old) past ||= pastChange(run);
+          out.runs[f as FactionId] = old ? migrateRun(run) : run;
         }
-        if (d.notice === 'migrated') out.notice = 'migrated';
+        if (d.notice === 'migrated' || d.notice === 'expanded') out.notice = d.notice;
+        // neue Einsaetze in Akt I: einmal Bescheid geben / new missions in act I: tell once
+        else if (past) out.notice = 'expanded';
         return out;
       }
     } catch { /* weiter mit v1 / fall back to v1 */ }
   }
   const old = parseProgress(rawV1);
   if (!Object.keys(old.missions).length) return emptyStore();
-  return { v: 2, faction: MIGRATION_FACTION, runs: { [MIGRATION_FACTION]: old }, notice: 'migrated' };
+  return { v: 2, layout: LAYOUT, faction: MIGRATION_FACTION, runs: { [MIGRATION_FACTION]: migrateRun(old) }, notice: 'migrated' };
 }
 
 export function loadStore(): CampaignStore {
@@ -166,5 +216,5 @@ export function loadStore(): CampaignStore {
 
 export function saveStore(st: CampaignStore): boolean {
   // v1 bleibt unangetastet liegen (Rueckweg fuer aeltere Fassungen) / v1 stays untouched (way back for older versions)
-  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(st)); return true; } catch { return false; }
+  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify({ ...st, layout: LAYOUT })); return true; } catch { return false; }
 }

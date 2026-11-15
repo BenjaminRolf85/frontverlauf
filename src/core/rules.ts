@@ -4,14 +4,14 @@
  */
 import {
   COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
-  MODES, PERKS2, RETREAT, ROCKETS, START, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
+  MODES, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
-import { addHazards, erupts } from './hazards';
+import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
-import { evaluateCampaign, setupMission } from './campaign';
+import { evaluateCampaign, landingPartyHolds, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
 import {
   recruitCheck, recruitHome, supplyLines, turretTargets, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
@@ -21,7 +21,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
-  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  cityAt, isBoss, isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -34,7 +34,7 @@ export function createGame(cfg: GameConfig): GameState {
   // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
   const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
-  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme);
+  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' ? 'cavern' : undefined);
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
@@ -393,7 +393,8 @@ function updateGrandProjects(s: GameState, f: number, ev: GameEvent[]) {
 function checkElimination(s: GameState, ev: GameEvent[]) {
   for (const f of s.factions) {
     if (!f.alive) continue;
-    if (ownCities(s, f.index).length === 0) {
+    // Kampagne: der Landetrupp lebt ohne Stadt, solange er Einheiten hat / campaign: the landing party lives without a city while it has units
+    if (ownCities(s, f.index).length === 0 && !landingPartyHolds(s, f.index)) {
       f.alive = false;
       f.eliminatedRound = s.round;
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
@@ -467,8 +468,50 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     }
   }
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
+  for (const u of s.units.filter((o) => o.owner === f && isBoss(o))) bossTurn(s, u, ev);
   afterAction(s, f, ev);
   processFactionVictory(s, f, stillDrills, ev);
+}
+
+/**
+ * Endgegner zu Beginn seines Zuges: Heilung auf Xeno-Boden, psychischer Schrei gegen alle feindlichen Nachbarn,
+ * Brut auf freien Nachbarfeldern. Alles deterministisch, ohne Wurf; Zahlen in SWARM_MOTHER.
+ * Boss at the start of its turn: healing on xeno ground, psychic scream against all hostile neighbours,
+ * brood on free adjacent tiles. All deterministic, without a roll; numbers in SWARM_MOTHER.
+ */
+function bossTurn(s: GameState, u: Unit, ev: GameEvent[]) {
+  const B = SWARM_MOTHER;
+  const ready = u.boss ?? (u.boss = { scream: s.round, brood: s.round });
+  if (tileAt(s, u.x, u.y)!.xeno && u.hp < u.maxHp) {
+    const amount = Math.min(B.xenoHeal, u.maxHp - u.hp);
+    u.hp += amount;
+    ev.push({ t: 'heal', unit: u.id, amount });
+  }
+  const foes = s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(o, u) <= B.screamRange && !isWonder(o) && !submerged(s, o))
+    .sort((a, b) => a.id - b.id);
+  if (foes.length && s.round >= ready.scream) {
+    const hits = foes.map((o) => ({ unit: o.id, dmg: Math.min(o.hp, B.screamDamage) }));
+    ready.scream = s.round + B.screamEvery;
+    ev.push({ t: 'boss', what: 'scream', unit: u.id, faction: u.owner, x: u.x, y: u.y, hits });
+    for (const o of foes) {
+      o.hp -= B.screamDamage;
+      if (o.hp <= 0) { killUnit(s, o, u.id, ev); gainKill(s, u, ev); }
+    }
+  }
+  if (s.round >= ready.brood && s.units.filter((o) => o.owner === u.owner).length < B.broodCap) {
+    let count = 0;
+    for (const p of neighbors(s.size, u.x, u.y)) {
+      if (count >= B.broodCount) break;
+      const t = tileAt(s, p.x, p.y)!;
+      if (!isLand(t) || t.terrain === 'mountain' || t.volcano || t.wonderOf || burning(s, t) || unitAt(s, p.x, p.y) || spawnBlocked(s, p)) continue;
+      const c = cityAt(s, p.x, p.y);
+      if (c && c.owner !== u.owner) continue;
+      spawnUnit(s, B.broodUnit, u.owner, p.x, p.y, null);
+      count++;
+    }
+    ready.brood = s.round + B.broodEvery;
+    if (count) ev.push({ t: 'boss', what: 'brood', unit: u.id, faction: u.owner, x: u.x, y: u.y, count });
+  }
 }
 
 function endTurnProcessing(s: GameState, ev: GameEvent[]) {

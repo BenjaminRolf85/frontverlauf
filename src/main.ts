@@ -24,7 +24,7 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
-import { ObjectivePanel, campaignResult, objectiveToast, waveToast } from './ui/campaign';
+import { ObjectivePanel, bossToast, campaignResult, objectiveToast, waveToast } from './ui/campaign';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -215,6 +215,7 @@ function boot() {
         case 'wave': waveToast(root, s, e.faction, e.count); break;
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
+        case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
       }
       dispatches.onEvent(e, s);
     },

@@ -8,9 +8,9 @@ import { audio } from '../audio/audio';
 import './campaign.css';
 import {
   CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, allyFor, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
-  type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
+  type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
-import { PERSUADE, type FactionId } from '../data/balance';
+import { PERSUADE, UNITS, type FactionId } from '../data/balance';
 import { t, tList } from '../i18n/i18n';
 import {
   chooseFaction, clearNotice, currentMissionId, isCompleted, isUnlocked, loadStore, loopDone, loopsDone, nextMissionId, recordRunResult,
@@ -65,8 +65,17 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
     case 'kills': return bonus ? t('campaign.obj.bonusKills', { n: o.n }) : t('campaign.obj.kills', { n: o.n, rounds });
     case 'points': return bonus ? t('campaign.obj.bonusPoints', { n: o.n }) : t('campaign.obj.points', { n: o.n, rounds });
     case 'fast': return t('campaign.obj.fast', { n: o.rounds });
-    case 'destroyUnit': return t('campaign.obj.destroyUnit', { unit: t(`units.${o.type}`), rounds });
+    // Endgegner mit eigenem Satz (Artikel) / bosses with their own sentence (article)
+    case 'destroyUnit': return t(UNITS[o.type].abilities.includes('boss') ? 'campaign.obj.boss' : 'campaign.obj.destroyUnit', { unit: t(`units.${o.type}`), rounds });
     case 'artifact': return t('campaign.obj.artifact', { n: o.rounds, rounds });
+    case 'portal': return t('campaign.obj.portal', { n: o.rounds, rounds });
+    case 'reach': {
+      // Anfuehrer des Besitzers am Zielfeld, sonst des ersten Gegners / leader of the owner at the target, else of the first enemy
+      const p = s?.campaign?.targets[o.target];
+      const owner = p ? s?.cities.find((c) => c.x === p.x && c.y === p.y)?.owner : undefined;
+      const id = owner !== undefined && owner !== null && s ? s.factions[owner].id : m.enemies[0].id;
+      return t('campaign.obj.reach', { name: t(`factions.${id}.leader`), rounds });
+    }
     case 'eliminate': {
       const id = s ? s.factions[o.faction]?.id : m.enemies[o.faction - 1]?.id;
       return t('campaign.obj.eliminate', { name: id ? t(`factions.${id}.short`) : '', rounds });
@@ -186,7 +195,7 @@ export function campaignScreen(host: ScreenHost, opts: { pick?: boolean } = {}):
         <p>${esc(t('campaign.intro'))}</p>
         <button type="button" class="btn secondary lore-btn" data-action="prologue">${icon('book', 'icon-sm')}<span>${esc(t('campaign.prologue'))}</span></button>
       </div>
-      ${st.notice === 'migrated' ? `<div class="campaign-notice" role="status"><p>${icon('info', 'icon-sm')}<span>${esc(t('campaign.migrated', { faction: t(`factions.${f ?? 'korvat'}.short`) }))}</span></p>${button(t('campaign.noticeOk'), { action: 'notice-ok', variant: 'secondary' })}</div>` : ''}
+      ${st.notice ? `<div class="campaign-notice" role="status"><p>${icon('info', 'icon-sm')}<span>${esc(st.notice === 'migrated' ? t('campaign.migrated', { faction: t(`factions.${f ?? 'korvat'}.short`) }) : t('campaign.expanded'))}</span></p>${button(t('campaign.noticeOk'), { action: 'notice-ok', variant: 'secondary' })}</div>` : ''}
       ${loops ? `<p class="campaign-loops">${icon('rotateLeft', 'icon-sm')}<span>${esc(t('campaign.loops', { n: loops, max: CAMPAIGN_FACTIONS.length }))}</span></p>` : ''}`;
     if (!f || picking) { n.innerHTML = head + pickerHtml(f); return; }
     const p = runOf(st, f);
@@ -381,7 +390,7 @@ export class ObjectivePanel {
     const m = c ? missionById(c.mission) : undefined;
     if (!s || !c || !m || !this.visible) { this.node.hidden = true; return; }
     this.node.hidden = false;
-    const key = JSON.stringify([c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
+    const key = JSON.stringify([c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
     if (key === this.lastState) return;
     this.lastState = key;
     const done = c.status.filter((x) => x === 'done').length;
@@ -395,7 +404,9 @@ export class ObjectivePanel {
     const h = c.hold;
     const art = m.objectives.find((o) => o.k === 'artifact');
     const warn = art && art.k === 'artifact' && h && h.faction !== null && h.faction !== 0 && !c.allies?.includes(h.faction)
-      ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.artifactHeld', { name: t(`factions.${s.factions[h.faction].id}.short`), have: h.n, need: art.rounds }))}</div>` : '';
+      ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.artifactHeld', { name: t(`factions.${s.factions[h.faction].id}.short`), have: h.n, need: art.rounds }))}</div>`
+      // Landetrupp ohne Stadt / landing party without a city
+      : c.landing ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.landing'))}</div>` : '';
     this.node.classList.toggle('collapsed', this.collapsed);
     this.node.innerHTML = `<button type="button" class="obj-toggle" data-action="obj-toggle" aria-expanded="${!this.collapsed}" aria-label="${esc(t('campaign.toggle'))}">
         ${icon('capture', 'icon-sm')}<span class="title">${esc(this.collapsed ? t('campaign.short') : missionTitle(m.id))}</span>
@@ -414,6 +425,20 @@ export function objectiveToast(root: HTMLElement, s: GameState, index: number, b
   const text = objectiveText(m, o, bonus, s);
   if (status === 'done') toast(root, t(bonus ? 'campaign.bonusDone' : 'campaign.objectiveDone', { text }), bonus ? 'star' : 'check');
   else toast(root, t('campaign.objectiveFailed', { text }), 'warning');
+}
+
+/**
+ * Endgegner: Auftauchen (Hinweis und Funkspruch der Schwarmmutter), Schrei und Brut (Hinweise).
+ * Boss: emergence (toast and the Swarm Mother's dispatch), scream and brood (toasts).
+ */
+export function bossToast(root: HTMLElement, s: GameState, e: Extract<GameEvent, { t: 'boss' }>, say: (f: FactionId, text: string) => void) {
+  const f = s.factions[e.faction]?.id;
+  if (!f) return;
+  if (e.what === 'emerge') {
+    toast(root, t('campaign.bossEmerge', { name: t(`factions.${f}.leader`) }), 'warning');
+    say(f, t('campaign.bossLine', { leader: t(`factions.${s.factions[0].id}.leader`) }));
+  } else if (e.what === 'scream') toast(root, t('campaign.bossScream', { n: e.hits?.length ?? 0 }), 'warning');
+  else if (e.what === 'brood' && s.factions[0].explored[e.y * s.size + e.x]) toast(root, t('campaign.bossBrood', { n: e.count ?? 0 }), 'warning');
 }
 
 /** Hinweis, wenn eine Welle eintrifft / toast when a wave arrives */

@@ -7,7 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   chooseFaction, clearNotice, currentMissionId, emptyProgress, emptyStore, isCompleted, isUnlocked, loopDone, loopsDone, MIGRATION_FACTION,
-  nextMissionId, parseProgress, parseStore, recordResult, recordRunResult, runOf, totalStars,
+  nextMissionId, parseProgress, parseStore, recordResult, recordRunResult, runOf, totalStars, LAYOUT, LAYOUT_MIGRATION, migrateRun,
 } from '../src/save/progress';
 import { FINALE_ID, MISSION_IDS } from '../src/core';
 
@@ -105,7 +105,52 @@ describe('Kampagnenfortschritt / campaign progress', () => {
     expect(parseProgress(JSON.stringify({ v: 1, missions: { a: { stars: 'x' }, b: { stars: 9, wins: 1, bestRound: 4 } } })))
       .toEqual({ missions: { b: { stars: 3, wins: 1, bestRound: 4 } } });
     expect(parseStore('kaputt{')).toEqual(emptyStore());
-    expect(parseStore(JSON.stringify({ v: 2, faction: 'zyrr', runs: { zyrr: { missions: {} }, korvat: { missions: { m1: { stars: 1, wins: 1, bestRound: 3 } } } } })))
-      .toEqual({ v: 2, faction: null, runs: { korvat: { missions: { m1: { stars: 1, wins: 1, bestRound: 3 } } } } });
+    expect(parseStore(JSON.stringify({ v: 2, layout: LAYOUT, faction: 'zyrr', runs: { zyrr: { missions: {} }, korvat: { missions: { m1: { stars: 1, wins: 1, bestRound: 3 } } } } })))
+      .toEqual({ v: 2, layout: LAYOUT, faction: null, runs: { korvat: { missions: { m1: { stars: 1, wins: 1, bestRound: 3 } } } } });
+  });
+
+  it('Uebernahme der neun alten Einsaetze in die elf neuen / migration of the nine old missions to the eleven new ones', () => {
+    expect(LAYOUT).toBe(2);
+    expect(LAYOUT_MIGRATION).toEqual({ m3: 'm2' });
+    // die neuen Einsaetze stehen in Akt I, alte IDs bleiben / the new missions sit in act I, old ids stay
+    expect(MISSION_IDS.indexOf('m10')).toBe(MISSION_IDS.indexOf('m3') + 1);
+    expect(MISSION_IDS.indexOf('m11')).toBe(MISSION_IDS.indexOf('m4') - 1);
+    const rec = (stars: number, wins: number, bestRound: number) => ({ stars, wins, bestRound });
+    const nine = { v: 2, faction: 'korvat', runs: {
+      korvat: { missions: { m1: rec(3, 1, 7), m2: rec(1, 1, 9), m3: rec(3, 2, 6), m4: rec(2, 1, 11) } },
+      velkar: { missions: { m1: rec(2, 1, 8) } },
+    } };
+    const st = parseStore(JSON.stringify(nine));
+    expect(st.layout).toBe(LAYOUT);
+    expect(st.notice).toBe('expanded');
+    const k = runOf(st, 'korvat');
+    // alte m3 (Die Linie haelt) geht in m2 auf: beste Wertung, schnellste Runde, Siege addiert
+    // old m3 (Hold the Line) merges into m2: best rating, fastest round, wins added
+    expect(k.missions.m2).toEqual(rec(3, 2 + 1, 6));
+    expect(k.missions.m3).toBeUndefined();
+    expect(k.missions.m4).toEqual(rec(2, 1, 11));
+    expect(totalStars(k)).toBe(3 + 3 + 2);
+    // weiter mit dem neuen Portal-Einsatz, schon Gewonnenes bleibt offen / continue with the new portal mission, won ones stay open
+    expect(currentMissionId(k, MISSION_IDS)).toBe('m3');
+    expect(isUnlocked(k, MISSION_IDS, 'm3')).toBe(true);
+    expect(isUnlocked(k, MISSION_IDS, 'm10')).toBe(false);
+    expect(isUnlocked(k, MISSION_IDS, 'm11')).toBe(false);
+    expect(isUnlocked(k, MISSION_IDS, 'm4')).toBe(true);
+    expect(isUnlocked(k, MISSION_IDS, 'm5')).toBe(true);
+    expect(isUnlocked(k, MISSION_IDS, 'm6')).toBe(false);
+    expect(runOf(st, 'velkar').missions).toEqual({ m1: rec(2, 1, 8) });
+    // einmalig: der gespeicherte neue Stand wird nicht erneut umgeschrieben / once only: the saved new state is not rewritten again
+    let again = recordRunResult(clearNotice(st), 'korvat', 'm3', true, 2, 10);
+    again = parseStore(JSON.stringify(again));
+    expect(runOf(again, 'korvat').missions.m3).toEqual(rec(2, 1, 10));
+    expect(runOf(again, 'korvat').missions.m2).toEqual(rec(3, 3, 6));
+    expect(again.notice).toBeUndefined();
+    // nur wer schon hinter der Aenderung war, bekommt den Hinweis / only players past the change get the notice
+    expect(parseStore(JSON.stringify({ v: 2, faction: 'dravon', runs: { dravon: { missions: { m1: rec(1, 1, 5), m2: rec(1, 1, 9) } } } })).notice).toBeUndefined();
+    // v1 (ohne Fraktion) wird ebenfalls umgeschrieben / v1 (without a faction) is rewritten as well
+    const v1 = parseStore(null, JSON.stringify({ v: 1, missions: { m1: rec(1, 1, 9), m2: rec(2, 1, 8), m3: rec(1, 1, 12) } }));
+    expect(v1.notice).toBe('migrated');
+    expect(runOf(v1, 'korvat').missions).toEqual({ m1: rec(1, 1, 9), m2: rec(2, 2, 8) });
+    expect(migrateRun({ missions: {} })).toEqual({ missions: {} });
   });
 });

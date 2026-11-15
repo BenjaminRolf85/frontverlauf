@@ -25,6 +25,8 @@ export { LEADER_MOODS, type LeaderMood } from './leaders';
 const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   // Wesen mit vielen Kugeln/Rohren etwas weniger / creatures with many spheres/tubes slightly less
   jeep: 1.45, terraformer: 1.25, spider: 1.25, tripod: 1.5, mech: 1.5, grey: 1.4, skimmer: 1.5, quadDrone: 1.5, railgun: 1.4,
+  // Endgegner: gross genug fuer volle Rundung, aber viele Teile / boss: large enough for full roundness, but many parts
+  swarmMother: 1.2,
 };
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
@@ -37,6 +39,7 @@ import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from
 import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
+import { swarmMother } from './boss';
 
 /**
  * PLATZHALTER fuer die Wunder der Siegbedingungen, bis wonders.ts mit wonderGeometry(type, faction, stage) da ist.
@@ -96,6 +99,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'peacekeeper': return peacekeeper(faction).build();
       case 'privateer': return privateer(faction).build();
       case 'protoWalker': return protoWalker(faction).build();
+      // Endgegner (doppelte Einheitengroesse) / boss (twice unit size)
+      case 'swarmMother': return swarmMother(faction).build();
       // Wunder der Siegbedingungen / victory wonders
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
