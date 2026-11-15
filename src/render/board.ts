@@ -35,7 +35,8 @@ import { towerGeometry } from './models/towers';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
 import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
-import { turretGuard } from '../core';
+import { shipTiles, turretGuard } from '../core';
+import { plansGeometry, templeGeometry } from './models/temple';
 
 /**
  * Dimensionsportal der Kampagne als Landschaftsmodell (fertige Stufe, Brett-Groesse), leuchtende Runen und Wirbel.
@@ -86,6 +87,10 @@ const lavaGeometry = (v: number) => safe(models.lavaGeometry, semantic.lava, v);
 const crashSiteGeometry = (v: number) => safe(models.crashSiteGeometry, semantic.metal, v);
 const labRuinGeometry = (v: number) => safe(models.labRuinGeometry, semantic.neutral, v);
 const jungleDecoration = (v: number) => safe(models.jungleDecoration, semantic.biomeJungleDark, v);
+const mothershipGeometry = (lite: boolean) => safe(models.mothershipGeometry, semantic.xenoGround, lite);
+const mothershipSmokeGeometry = (lite: boolean) => safe(models.mothershipSmokeGeometry, null, lite);
+/** Mutterschiff (m2): Breitseite zur Standardkamera / mothership (m2): broadside towards the default camera */
+const SHIP_TURN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
 /** Deckkraft erschoepfter Einheiten / opacity of exhausted units */
 const DONE_OPACITY = 0.5;
 /** Eintauchtiefe watender Einheiten / sink depth of wading units */
@@ -406,6 +411,8 @@ export class Board {
     const glowC = [semantic.caveGlowTeal, semantic.caveGlowMagenta, semantic.caveGlowLime].map((h) => new THREE.Color(hex(h)));
     const amber = new THREE.Color(hex(semantic.caveLantern)), eye = new THREE.Color(hex(semantic.verdanEye));
     const relic = new THREE.Color(hex(semantic.artifactGlow)), gold = new THREE.Color(hex(semantic.artifactGold));
+    const xenoLight = new THREE.Color(hex(semantic.xenoGlow));
+    const templeFire = new THREE.Color(hex(semantic.templeFire));
     const seed = s.config.seed;
     this.clearGroup(this.staticLayer);
     this.artifactOrbit = null;
@@ -443,6 +450,9 @@ export class Board {
     };
     const fishTiles: { x: number; z: number; y: number }[] = [];
     const occupied = new Set(s.units.filter((u) => viewer < 0 || canSeeUnit(s, viewer, u)).map((u) => u.y * size + u.x));
+    // fallen gelassene Kriegsplaene (m4) halten das Feld frei wie eine Einheit / dropped war plans (m4) keep the tile clear like a unit
+    const dropped = s.campaign?.plans?.at === 'dropped' ? s.campaign.plans : null;
+    if (dropped) occupied.add(dropped.y! * size + dropped.x!);
     const lavaSpots: TownInput['lava'] = [];
     const decals = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const roadSegs: THREE.Matrix4[] = [];
@@ -480,7 +490,7 @@ export class Board {
           new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y * 5) % 4) * (Math.PI / 2)),
           new THREE.Vector3(Math.min(1.15, 0.85 + ps * 0.15), ps, Math.min(1.15, 0.85 + ps * 0.15)));
         const variant = (x * 7 + y * 13) % 3;
-        const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature || t.turret || t.turretRuin;
+        const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature || t.turret || t.turretRuin || t.temple;
         // Auf Feldern mit Einheit keine Baeume, Graeser oder Felsen, damit die Einheit frei steht
         // no trees, grass or rocks on tiles with a unit so the unit stands out
         const occ = occupied.has(k);
@@ -661,7 +671,19 @@ export class Board {
         if (t.outpost) addDeco(buildingGeometry('outpost', s.factions[t.outpost.owner]?.id ?? null), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
-        else if (t.feature) { const fg = featureGeometry(t.feature); addDeco(desert && fg ? sandify(fg, `feature${t.feature}`) : fg, new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built'); }
+        else if (t.feature === 'mothership') {
+          // Mutterschiff (m2): ein Modell ueber 2x2 Feldern, an der linken oberen Ecke gesetzt, auf dem tiefsten der vier Felder
+          // mothership (m2): one model over 2x2 tiles, set at the top-left corner, on the lowest of the four tiles
+          const sh = s.campaign?.ship;
+          if (sh && sh.x === x && sh.y === y) {
+            let ty = Infinity;
+            for (const q of shipTiles(sh)) ty = Math.min(ty, tileTop(s.tiles[q.y * size + q.x]));
+            const m = new THREE.Matrix4().compose(new THREE.Vector3(x - off + 0.5, ty, y - off + 0.5), SHIP_TURN, new THREE.Vector3(1, 1, 1));
+            addDeco(mothershipGeometry(low), m, false, 'built');
+            addDeco(mothershipSmokeGeometry(low), m, true);
+            glowSpots.push({ x: x - off + 0.5, y: ty, z: y - off + 0.5, size: 2.4, color: xenoLight });
+          }
+        } else if (t.feature) { const fg = featureGeometry(t.feature); addDeco(desert && fg ? sandify(fg, `feature${t.feature}`) : fg, new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built'); }
         // Ruinenstaette (m13): leuchtet, sobald entziffert / ruin site (m13): glows once deciphered
         const si = s.campaign?.sites?.findIndex((p) => p.x === x && p.y === y) ?? -1;
         if (si >= 0) {
@@ -682,6 +704,19 @@ export class Board {
           addDeco(caveMouthGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off),
             new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.2, 1.2, 1.2)), false, 'built');
           glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.8, color: relic });
+        }
+        // Fanatiker-Tempel (m4): ein Modell ueber 2x2 Felder am Anker, Feuerschalen leuchten nachts
+        // Fanatic temple (m4): one model over 2x2 tiles at the anchor, braziers glow at night
+        const tp = s.campaign?.temple;
+        if (tp && tp.x === x && tp.y === y) {
+          addDeco(templeGeometry(low), new THREE.Matrix4().makeTranslation(x + 0.5 - off, top, y + 0.5 - off), false, 'built');
+          for (const [dx, dz] of [[0.66, 0.66], [-0.66, 0.66], [0.66, -0.66], [-0.66, -0.66]]) glowSpots.push({ x: x + 0.5 - off + dx, y: top, z: y + 0.5 - off + dz, size: 1.3, color: templeFire });
+        }
+        // fallen gelassene Kriegsplaene (m4) / dropped war plans (m4)
+        const pl = s.campaign?.plans;
+        if (pl?.at === 'dropped' && pl.x === x && pl.y === y) {
+          addDeco(plansGeometry('dropped', low), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion(), new THREE.Vector3(1.6, 1.6, 1.6)), false, 'built');
+          glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.1, color: templeFire });
         }
         // Dimensionsportal der Kampagne (begehbar) / campaign dimensional portal (walkable)
         if (portal && portal.x === x && portal.y === y) {
@@ -1008,6 +1043,18 @@ export class Board {
         if (isWading(s, u)) v.group.position.y -= WADE_SINK;
         v.group.scale.setScalar(1);
       }
+      // Kriegsplaene (m4): Koecher am Traeger / war plans (m4): case at the carrier
+      const carry = s.campaign?.plans?.at === 'carried' && s.campaign.plans.unit === u.id;
+      const pm = v.group.getObjectByName('plans');
+      if (carry && !pm) {
+        // eigenes Material: wird bei erschoepften Einheiten nicht abgeblendet; schwebt ueber dem Lebensbalken
+        // own material: not dimmed on exhausted units; floats above the health badge
+        const m = outlined(plansGeometry('carried', this.quality === 'low'), OUTLINE.unit, toonMaterial());
+        m.name = 'plans';
+        m.position.set(0, u.type === 'heli' ? 1.3 : 1.08, 0);
+        m.traverse((o) => { o.raycast = () => {}; });
+        v.group.add(m);
+      } else if (!carry && pm) v.group.remove(pm);
       const ft = factionTokens[f];
       // keine Aktion mehr moeglich (nur im Zug eines Menschen) / no action left (only during a human turn)
       const done = u.owner === s.current && s.factions[s.current].human &&

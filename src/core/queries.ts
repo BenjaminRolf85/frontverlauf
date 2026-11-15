@@ -451,8 +451,9 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       }
       // aus dem Wasser an Land: ebenfalls Halt / out of the water onto land: stop as well
       if (has(u, 'wade') && !walkable(fromTile)) stop = true;
-      // Lava, Vulkangipfel und Wunder-Grundflaechen sind unpassierbar / lava, volcano peaks and wonder footprints are impassable
-      if (t.volcano || burning(s, t) || t.wonderOf || t.turret) continue;
+      // Lava, Vulkangipfel, Wunder-Grundflaechen, das Mutterschiff (m2) und der Fanatiker-Tempel (m4) sind unpassierbar
+      // lava, volcano peaks, wonder footprints, the mothership (m2) and the Fanatic temple (m4) are impassable
+      if (t.volcano || burning(s, t) || t.wonderOf || t.turret || t.feature === 'mothership' || t.temple) continue;
       // Dschungel: Fahrzeuge nur als ersten Schritt, jeder Schritt hinein oder heraus endet die Bewegung
       // jungle: vehicles only as the first step, every step in or out ends the move
       if (!fly && !ship) {
@@ -806,8 +807,9 @@ export function attackTargets(s: GameState, u: Unit): Unit[] {
 
 export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
-  // Wunder und Endgegner lassen sich nicht bekehren / wonders and bosses cannot be converted
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o));
+  // Wunder, Endgegner und der Traeger der Kriegsplaene (m4) lassen sich nicht bekehren / wonders, bosses and the carrier of the war plans (m4) cannot be converted
+  const carrier = s.campaign?.plans?.at === 'carried' ? s.campaign.plans.unit : undefined;
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o) && o.id !== carrier);
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
@@ -980,7 +982,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
   } else if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
   // Geschuetzfeld (Verdan oder Stellung): nichts darauf bauen / gun tile (Verdan or emplacement): nothing is built on it
-  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf || t.turret) return { ok: false, error: 'invalidTile', cost };
+  if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf || t.turret || t.temple) return { ok: false, error: 'invalidTile', cost };
   if (!st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
   if (b === 'road') {
     if (t.road) return { ok: false, error: 'alreadyBuilt', cost };
@@ -1041,7 +1043,7 @@ export function upgradeCost(b: BuildingId, existing: BuildingId | null): number 
 export function resourceSiteOk(s: GameState, b: BuildingId, x: number, y: number): boolean {
   const st = BUILDINGS[b];
   const t = tileAt(s, x, y);
-  if (!t || t.cityId !== null || t.grandProject || t.outpost || t.wonderOf || t.road) return false;
+  if (!t || t.cityId !== null || t.grandProject || t.outpost || t.wonderOf || t.temple || t.road) return false;
   if (t.building && t.building !== st.upgrades) return false;
   if (!st.terrain.includes(t.terrain)) return false;
   if (st.wreck) {
@@ -1083,7 +1085,7 @@ export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return false;
   if (!isLand(t) || t.terrain === 'mountain') return false;
-  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf || t.turret);
+  return !(t.cityId !== null || t.building || t.road || t.feature || t.grandProject || t.outpost || t.resource || t.wonderOf || t.turret || t.temple);
 }
 
 export function grandProjectConditionMet(s: GameState, f: number, id: GrandProjectId): boolean {
@@ -1225,7 +1227,7 @@ export function barrierCheck(s: GameState, u: Unit, x: number, y: number): Barri
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf || t.turret) return 'invalidTile';
+  if (!BARRIER.terrain.includes(t.terrain) || t.cityId !== null || t.barrier || t.outpost || t.feature || t.wonderOf || t.turret || t.temple) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (s.factions[u.owner].stars < barrierCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
@@ -1532,7 +1534,7 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   // kein Vulkangipfel, keine Lava, nicht das Artefakt der Kampagne / no volcano peak, no lava, not the campaign artifact
   const art = s.campaign?.artifact;
   if (t.volcano || burning(s, t) || (art && art.x === x && art.y === y)) return 'invalidTile';
-  if (unitAt(s, x, y) || t.wonderOf || t.turret) return 'occupied';
+  if (unitAt(s, x, y) || t.wonderOf || t.turret || t.feature === 'mothership' || t.temple) return 'occupied';
   // nie in eine fremde Stadt / never into a foreign city
   if (t.cityId !== null && cityById(s, t.cityId)?.owner !== f) return 'invalidTile';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
@@ -1609,7 +1611,7 @@ export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineChec
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
-  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf || t.turret) return 'invalidTile';
+  if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf || t.turret || t.temple) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (mineCount(s, u.owner) >= COUNTER.mine.maxPerFaction) return 'unitLimit';
   if (s.factions[u.owner].stars < COUNTER.mine.cost) return 'notEnoughStars';
@@ -1710,7 +1712,7 @@ export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number
     if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
     const t = tileAt(s, p.x, p.y)!;
     const terrainOk = WONDERS.terrain[kind].includes(t.terrain);
-    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.turret || t.volcano || burning(s, t)) return 'invalidTile';
+    if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.turret || t.temple || t.volcano || burning(s, t)) return 'invalidTile';
     // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
     if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
     const own = territoryOwner(s, t) === f || (kind === 'hackRelay' && t.outpost?.owner === f);

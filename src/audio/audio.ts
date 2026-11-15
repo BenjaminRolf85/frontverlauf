@@ -38,10 +38,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   portal: 'none', hackRelay: 'none', fusionPlant: 'none', waal: 'cannon', coreDrill: 'none',
   // Endgegner / boss
   swarmMother: 'deathRay',
+  // Kampagne m2: Wissenschaftler / campaign m2: scientist
+  scientist: 'none',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {
@@ -80,8 +82,18 @@ const VOICE_BASE = `${import.meta.env.BASE_URL ?? '/'}audio/voices/`;
 /** Vokal-Formanten (F1, F2) fuer Schreie / vowel formants (F1, F2) for screams */
 const VOWEL = { a: [800, 1200], o: [500, 900], u: [350, 800], e: [550, 1800] } as const;
 
-class AudioEngine {
-  private ctx: AudioContext | null = null;
+/** Klangereignis, das eine Zeitleiste (Intro) auf einen festen Zeitpunkt legt / sound event a timeline (intro) puts at a fixed time */
+export type ScoreCue =
+  | 'explosion' | 'boom' | 'radio' | 'bell' | 'engine' | 'heavyEngine' | 'laser' | 'charge' | 'horn' | 'fanfare' | 'cry' | 'gunshot'
+  | 'mg' | 'whistle' | 'riser' | 'drone' | 'crackle' | 'hooves' | 'beep' | 'shield' | 'coins' | 'kick' | 'snare' | 'roll' | 'crash' | 'stab';
+
+/** Audio-Engine; eine Instanz (audio) fuer das Spiel, weitere fuer das Intro / audio engine; one instance (audio) for the game, more for the intro */
+export class AudioEngine {
+  private ctx: BaseAudioContext | null = null;
+  /** Zufallsquelle (das Intro setzt eine mit Saat) / random source (the intro sets a seeded one) */
+  private rnd: () => number = Math.random;
+  /** Knoten nicht nach Wanduhr trennen (alles im Voraus geplant oder offline) / do not disconnect nodes by wall clock (all pre-scheduled or offline) */
+  private keepNodes = false;
   private master: GainNode | null = null;
   private musicBus: GainNode | null = null;
   private sfxBus: GainNode | null = null;
@@ -115,38 +127,62 @@ class AudioEngine {
   private clipSource: AudioBufferSourceNode | null = null;
   private radioCurve: Float32Array | null = null;
 
-  private ensure(): AudioContext | null {
+  private ensure(): BaseAudioContext | null {
     if (this.ctx) return this.ctx;
     try {
       const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new Ctx();
-      this.ctx = ctx;
-      // Kompressor gegen Uebersteuern bei vielen gleichzeitigen Klaengen / compressor against clipping with many sounds
-      const comp = ctx.createDynamicsCompressor();
-      comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
-      comp.connect(ctx.destination);
-      this.master = ctx.createGain(); this.master.gain.value = 0.55; this.master.connect(comp);
-      this.musicBus = ctx.createGain(); this.musicBus.gain.value = 0.16; this.musicBus.connect(this.master);
-      this.sfxBus = ctx.createGain(); this.sfxBus.gain.value = 0.9; this.sfxBus.connect(this.master);
-      this.voiceBus = ctx.createGain(); this.voiceBus.gain.value = 0.8; this.voiceBus.connect(this.master);
-      this.ambBus = ctx.createGain(); this.ambBus.gain.value = 0.22; this.ambBus.connect(this.master);
-      // kuenstlicher Hall / synthetic reverb
-      this.reverb = ctx.createConvolver();
-      this.reverb.buffer = this.impulse(1.8, 2.6);
-      const wet = ctx.createGain(); wet.gain.value = 0.22;
-      this.reverb.connect(wet); wet.connect(this.master);
-      this.noiseBuf = this.makeNoise(4);
+      this.build(new Ctx(), null);
     } catch {
       this.ctx = null;
     }
     return this.ctx;
   }
 
+  /** Busse, Kompressor und Hall auf einem Kontext aufbauen / build buses, compressor and reverb on a context */
+  private build(ctx: BaseAudioContext, dest: AudioNode | null, music = 0.16) {
+    this.ctx = ctx;
+    // Kompressor gegen Uebersteuern bei vielen gleichzeitigen Klaengen / compressor against clipping with many sounds
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.2;
+    comp.connect(dest ?? ctx.destination);
+    this.master = ctx.createGain(); this.master.gain.value = 0.55; this.master.connect(comp);
+    this.musicBus = ctx.createGain(); this.musicBus.gain.value = music; this.musicBus.connect(this.master);
+    this.sfxBus = ctx.createGain(); this.sfxBus.gain.value = 0.9; this.sfxBus.connect(this.master);
+    this.voiceBus = ctx.createGain(); this.voiceBus.gain.value = 0.8; this.voiceBus.connect(this.master);
+    this.ambBus = ctx.createGain(); this.ambBus.gain.value = 0.22; this.ambBus.connect(this.master);
+    // kuenstlicher Hall / synthetic reverb
+    this.reverb = ctx.createConvolver();
+    this.reverb.buffer = this.impulse(1.8, 2.6);
+    const wet = ctx.createGain(); wet.gain.value = 0.22;
+    this.reverb.connect(wet); wet.connect(this.master);
+    this.noiseBuf = this.makeNoise(4);
+  }
+
+  /**
+   * Eigene Instanz an einen fremden Kontext haengen (Intro: live oder OfflineAudioContext). Alles wird im Voraus geplant,
+   * deshalb trennt sie keine Knoten nach Wanduhr, und der Zufall kommt aus rnd (mit Saat: gleiche Klangspur bei jedem Lauf).
+   * Attach this instance to an external context (intro: live or OfflineAudioContext). Everything is scheduled ahead,
+   * so it never disconnects nodes by wall clock, and randomness comes from rnd (seeded: the same soundtrack on every run).
+   */
+  attach(ctx: BaseAudioContext, dest: AudioNode, opts: { music?: number; rnd?: () => number } = {}) {
+    this.keepNodes = true;
+    if (opts.rnd) this.rnd = opts.rnd;
+    this.build(ctx, dest, opts.music ?? 0.3);
+  }
+
+  /** Laufender Spielkontext (nach einer Nutzergeste) / running game context (after a user gesture) */
+  context(): BaseAudioContext | null { return this.ensure(); }
+
+  /** Knoten spaeter trennen (nur im Spiel) / disconnect a node later (game only) */
+  private release(node: AudioNode, ms: number) {
+    if (!this.keepNodes) window.setTimeout(() => node.disconnect(), ms);
+  }
+
   /** Nach einer Nutzergeste aufrufen / call after a user gesture */
   unlock() {
     this.music.unlock();
     const ctx = this.ensure();
-    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    if (ctx && ctx.state === 'suspended') (ctx as AudioContext).resume().catch(() => {});
     this.applyAmbience();
   }
 
@@ -213,11 +249,11 @@ class AudioEngine {
   /** Ziel fuer einen Effekt mit Hall / destination for an effect with reverb */
   private fxOut(amount = 0.4): GainNode {
     const g = this.ctx!.createGain(); g.gain.value = 1; g.connect(this.sfx); this.wetSend(g, amount);
-    window.setTimeout(() => g.disconnect(), 6000);
+    this.release(g, 6000);
     return g;
   }
 
-  private ready(): AudioContext | null {
+  private ready(): BaseAudioContext | null {
     if (!this.effectsOn) return null;
     const ctx = this.ensure();
     if (!ctx || !this.master) return null;
@@ -420,7 +456,7 @@ class AudioEngine {
     }
     if (flesh) {
       this.noise(t, 0.12, 0.45, 500, out);
-      if (faction && Math.random() < 0.5) this.pain(faction, t + 0.05);
+      if (faction && this.rnd() < 0.5) this.pain(faction, t + 0.05);
     } else {
       // metallischer Treffer / metallic hit
       this.tone(420, t, 0.3, 'square', 0.18, out, 0.6, 0.002);
@@ -458,7 +494,7 @@ class AudioEngine {
 
   private voiceOut(): GainNode {
     const g = this.ctx!.createGain(); g.gain.value = 1; g.connect(this.voiceBus!); this.wetSend(g, 0.35);
-    window.setTimeout(() => g.disconnect(), 6000);
+    this.release(g, 6000);
     return g;
   }
 
@@ -469,13 +505,15 @@ class AudioEngine {
     const now = ctx.currentTime;
     if (!big && now - this.lastCry < 2.5) return;
     this.lastCry = now;
-    const t = now + 0.05;
-    const out = this.voiceOut();
+    this.cry(f, now + 0.05, big, this.voiceOut());
+  }
+
+  private cry(f: FactionId, t: number, big: boolean, out: AudioNode) {
     const v = VOICES[f];
     const n = big ? 6 : 3;
     for (let i = 0; i < n; i++) {
-      const p = v.pitch * (0.85 + Math.random() * 0.35);
-      const d = t + Math.random() * 0.12;
+      const p = v.pitch * (0.85 + this.rnd() * 0.35);
+      const d = t + this.rnd() * 0.12;
       // "Hu-" kurz, dann langes "-raaa" mit steigender Tonhoehe / short "hu-", then long rising "-raaa"
       this.voice(f, d, 0.16, p, 1.05, 'u', 0.24, out);
       this.voice(f, d + 0.16, big ? 1.1 : 0.75, p * 1.12, big ? 1.35 : 1.2, 'a', 0.32, out);
@@ -555,7 +593,7 @@ class AudioEngine {
     this.lastUnitVoice = now;
     const t = now + 0.03;
     const out = ctx.createGain(); out.gain.value = 0.9; out.connect(this.sfxBus!); this.wetSend(out, 0.2);
-    window.setTimeout(() => out.disconnect(), 4000);
+    this.release(out, 4000);
     const u = UNITS[type];
     const kind = VOICES[f].kind;
     const walker = u.abilities.includes('walker');
@@ -584,7 +622,7 @@ class AudioEngine {
     if (kind === 'robot') { this.servo(t, out, 1.6); this.chirps(t + 0.2, out, 4); this.voiceLine(f, t + 0.3, 0); return; }
     if (kind === 'alien') { this.hover(t, out); this.chirps(t + 0.1, out, 3, 0.6); this.voiceLine(f, t + 0.25, 0); return; }
     if (kind === 'cult') { this.bell(t, out); this.voiceLine(f, t + 0.25, 3); return; }
-    this.voiceLine(f, t, 3 + Math.floor(Math.random() * 2));
+    this.voiceLine(f, t, 3 + Math.floor(this.rnd() * 2));
   }
 
   /**
@@ -603,7 +641,7 @@ class AudioEngine {
       return;
     }
     if (!list.length) { if (words > 0) this.radio(f, t, words); return; }
-    let i = Math.floor(Math.random() * list.length);
+    let i = Math.floor(this.rnd() * list.length);
     if (list.length > 1 && i === this.lastClip[kind]) i = (i + 1) % list.length;
     this.lastClip[kind] = i;
     // vorherige Zeile abbrechen, damit nichts uebereinander spricht / stop the previous line so nothing talks over it
@@ -654,16 +692,16 @@ class AudioEngine {
     const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
     const ws = ctx.createWaveShaper(); ws.curve = this.radioCurve as Float32Array<ArrayBuffer>;
     g.connect(hp); hp.connect(ws); ws.connect(lp); lp.connect(this.voiceBus!);
-    window.setTimeout(() => lp.disconnect(), 5000);
+    this.release(lp, 5000);
     // Sprechtaste / push-to-talk click
     this.noise(t, 0.035, 0.35, 2500, g, { type: 'highpass' });
     let at = t + 0.06;
     const start = at;
     for (let i = 0; i < words; i++) {
-      const syl = 1 + Math.floor(Math.random() * 2);
+      const syl = 1 + Math.floor(this.rnd() * 2);
       for (let k = 0; k < syl; k++) {
-        const dur = 0.05 + Math.random() * 0.07;
-        this.tone(v.pitch * (0.9 + Math.random() * 0.35), at, dur, v.wave, 0.32, g, 0.8 + Math.random() * 0.5);
+        const dur = 0.05 + this.rnd() * 0.07;
+        this.tone(v.pitch * (0.9 + this.rnd() * 0.35), at, dur, v.wave, 0.32, g, 0.8 + this.rnd() * 0.5);
         at += dur + 0.015;
       }
       at += 0.05;
@@ -721,7 +759,7 @@ class AudioEngine {
 
   /** Datenzirpen / data chirps */
   private chirps(t: number, out: AudioNode, n: number, vol = 1) {
-    for (let i = 0; i < n; i++) this.tone(1400 + Math.random() * 1600, t + i * 0.07, 0.04, 'square', 0.07 * vol, out);
+    for (let i = 0; i < n; i++) this.tone(1400 + this.rnd() * 1600, t + i * 0.07, 0.04, 'square', 0.07 * vol, out);
   }
 
   /** Schwebendes Summen (Ausserirdische) / hovering hum (aliens) */
@@ -827,6 +865,104 @@ class AudioEngine {
 
   private musicLevel() { return 0.14 + this.intensity * 0.025; }
 
+
+  // ---------- Zeitleiste (Intro) / timeline (intro) ----------
+
+  /**
+   * Ein Achtel der prozeduralen Fraktionsmusik zum Zeitpunkt when (Takt beat in Sekunden je Achtel).
+   * One eighth note of the procedural faction music at time when (beat = seconds per eighth).
+   */
+  scoreMusic(f: FactionId, lvl: Intensity, step: number, when: number, beat: number) {
+    if (!this.ctx || !this.musicBus) return;
+    this.musicStep(THEMES[f], lvl, step, when, beat, this.musicBus);
+  }
+
+  /** Langer Grundton unter der Musik / long pad note under the music */
+  scorePad(freq: number, when: number, dur: number, vol = 0.12) {
+    if (!this.ctx || !this.musicBus) return;
+    this.tone(freq, when, dur, 'sawtooth', vol, this.musicBus, 1, Math.min(0.6, dur / 3));
+    this.tone(freq * 1.5, when, dur, 'triangle', vol * 0.7, this.musicBus, 1, Math.min(0.6, dur / 3));
+  }
+
+  /** Effekt zum Zeitpunkt when / effect at time when */
+  scoreCue(kind: ScoreCue, when: number, f: FactionId = 'korvat', vol = 1) {
+    const ctx = this.ctx;
+    if (!ctx || !this.sfxBus) return;
+    const t = when;
+    const out = ctx.createGain(); out.gain.value = vol; out.connect(this.sfxBus); this.wetSend(out, 0.35);
+    this.release(out, 6000);
+    switch (kind) {
+      case 'explosion': this.explosionTo(t, 1, out); break;
+      case 'boom': this.boom(t, 0.9, 60, out); break;
+      case 'radio': this.radio(f, t, 4); break;
+      case 'bell': this.bigBell(t, out); break;
+      case 'engine': this.engine(t, 62, 1.2, false, out); break;
+      case 'heavyEngine': this.engine(t, 38, 1.6, true, out); break;
+      case 'laser': this.laserZap(t, out); break;
+      case 'charge': this.charge(t, out); break;
+      case 'horn': this.horn(t, 82, out); break;
+      case 'fanfare': this.fanfareTo(t, true, out); break;
+      case 'cry': this.cry(f, t, true, out); break;
+      case 'gunshot': this.gunshot(t, 0.5, 1400, out); break;
+      case 'mg': for (let i = 0; i < 7; i++) this.gunshot(t + i * 0.075, 0.32, 1700, out); break;
+      case 'whistle': this.tone(1800, t, 1.1, 'sine', 0.09, out, 0.35, 0.2); this.noise(t, 1.1, 0.06, 2500, out, { type: 'bandpass', q: 3, freqEnd: 700, attack: 0.3 }); break;
+      case 'riser': this.noise(t, 2, 0.35, 300, out, { type: 'bandpass', q: 1.4, freqEnd: 5000, attack: 1.8 }); this.tone(90, t, 2, 'sawtooth', 0.12, out, 4, 1.8); break;
+      case 'drone': this.tone(55, t, 6, 'sawtooth', 0.12, out, 1.02, 1.5); this.noise(t, 6, 0.12, 220, out, { attack: 2 }); break;
+      case 'crackle': for (let i = 0; i < 16; i++) this.noise(t + i * 0.11 + this.rnd() * 0.05, 0.03, 0.14, 2500 + this.rnd() * 2500, out, { type: 'bandpass', q: 4 }); this.noise(t, 2, 0.18, 500, out, { attack: 0.3 }); break;
+      case 'hooves': for (let i = 0; i < 12; i++) { const at = t + i * 0.16 + (i % 3) * 0.035; this.tone(95, at, 0.09, 'sine', 0.3, out, 0.5, 0.002); this.noise(at, 0.05, 0.14, 700, out); } break;
+      case 'beep': this.tone(1320, t, 0.08, 'square', 0.08, out); this.tone(1320, t + 0.16, 0.08, 'square', 0.08, out); break;
+      case 'shield': this.tone(220, t, 1.2, 'triangle', 0.18, out, 2, 0.05); this.tone(660, t, 0.9, 'sine', 0.1, out, 1.5, 0.05); this.noise(t, 0.6, 0.12, 3000, out, { type: 'bandpass', q: 5, freqEnd: 6000 }); break;
+      case 'coins': for (let i = 0; i < 9; i++) { const at = t + i * 0.07; this.tone(2400 + (i % 3) * 420, at, 0.18, 'triangle', 0.07, out, 1, 0.002); this.tone(3900 + (i % 2) * 300, at, 0.1, 'sine', 0.04, out, 1, 0.002); } break;
+      case 'kick': this.kick(t, out, 0.8); this.tone(55, t, 0.5, 'sine', 0.5, out, 0.5, 0.004); break;
+      case 'snare': this.snare(t, out, 0.45); break;
+      case 'roll': for (let i = 0; i < 16; i++) this.noise(t + i * 0.0625, 0.06, 0.05 + i * 0.016, 2500, out, { type: 'bandpass', q: 0.9 }); break;
+      case 'crash': this.noise(t, 1.6, 0.3, 6000, out, { type: 'highpass', attack: 0.002 }); this.noise(t, 0.4, 0.2, 3000, out, { type: 'bandpass', q: 0.6 }); break;
+      case 'stab': { const th = THEMES[f]; for (const n of [0, 7, 12, 16]) this.tone(th.root * Math.pow(2, n / 12), t, 0.5, 'sawtooth', 0.09, out, 1, 0.01); this.kick(t, out, 0.7); break; }
+    }
+  }
+
+  /** Grosse Glocke (Sternfall) / big bell (Starfall) */
+  private bigBell(t: number, out: AudioNode) {
+    [1, 2.01, 2.76, 4.07, 5.4].forEach((m, i) => this.tone(196 * m, t, 4.2 - i * 0.7, 'sine', 0.3 / (i + 1), out, 1, 0.004));
+    this.tone(98, t, 3.5, 'sine', 0.25, out, 1, 0.01);
+    this.noise(t, 0.05, 0.2, 4000, out, { type: 'bandpass', q: 2 });
+    this.wetSend(out, 0.8);
+  }
+
+  /** Laserschuss: abfallender Pfeifton mit Knistern / laser zap: falling whistle with crackle */
+  private laserZap(t: number, out: AudioNode) {
+    this.tone(2600, t, 0.55, 'sawtooth', 0.16, out, 0.12, 0.003);
+    this.tone(1300, t, 0.7, 'square', 0.1, out, 0.2, 0.003);
+    this.noise(t, 1.2, 0.35, 5000, out, { type: 'bandpass', q: 1.5, freqEnd: 400 });
+    this.tone(48, t + 0.05, 1.4, 'sine', 0.6, out, 0.6, 0.01);
+  }
+
+  /** Aufladen: steigender Ton / charge-up: rising tone */
+  private charge(t: number, out: AudioNode) {
+    this.tone(180, t, 1, 'sawtooth', 0.06, out, 6, 0.6);
+    this.tone(360, t, 1, 'sine', 0.08, out, 6, 0.6);
+  }
+
+  private explosionTo(t: number, vol: number, out: AudioNode) {
+    this.tone(70, t, 0.9, 'sine', vol, out, 0.3, 0.004);
+    this.tone(42, t, 2.2, 'sine', vol * 0.8, out, 0.6, 0.01);
+    this.noise(t, 1.6, vol * 0.9, 1800, out, { freqEnd: 60 });
+    this.noise(t + 0.05, 0.25, vol * 0.4, 4000, out, { type: 'highpass' });
+    for (let i = 0; i < 6; i++) this.noise(t + 0.25 + i * 0.09, 0.05, vol * 0.18, 3000, out, { type: 'bandpass', q: 4 });
+  }
+
+  private fanfareTo(t: number, major: boolean, out: AudioNode) {
+    const notes = major ? [0, 4, 7, 12, 7, 12] : [12, 10, 7, 6, 3, 0];
+    const times = [0, 0.125, 0.25, 0.375, 0.75, 1];
+    notes.forEach((n, i) => {
+      const fr = 262 * Math.pow(2, n / 12);
+      const d = i === notes.length - 1 ? 1.6 : 0.2;
+      this.tone(fr, t + times[i], d, 'sawtooth', 0.12, out, 1, 0.02);
+      this.tone(fr * 2, t + times[i], d, 'square', 0.05, out, 1, 0.02);
+    });
+    this.tone(major ? 98 : 73, t + 1, 1.4, 'sine', 0.45, out, 0.8);
+  }
+
   // ---------- Musik / music ----------
 
   /** Fraktionsthema abspielen / play faction theme */
@@ -877,34 +1013,38 @@ class AudioEngine {
     const m = this.musicBus;
     if (this.nextTime < ctx.currentTime) this.nextTime = ctx.currentTime + 0.05;
     while (this.nextTime < ctx.currentTime + 0.4) {
-      const t = this.nextTime;
-      const pat = lvl >= 1 ? th.tense : th.pattern;
-      const i = this.step % pat.length;
-      const bar = Math.floor(this.step / 16);
-      const deg = pat[i] + (lvl === 2 && bar % 2 === 1 ? 1 : 0);
-      const semis = th.scale[deg % th.scale.length] + 12 * Math.floor(deg / th.scale.length);
-      const freq = th.root * Math.pow(2, semis / 12);
-      // Melodie / melody
-      if (this.step % 16 < 14 || lvl > 0) this.tone(freq, t, beat * 0.9, th.wave, lvl === 2 ? 0.17 : 0.22, m);
-      // Bass: ruhig lange Noten, angespannt Ostinato / bass: calm long notes, tense ostinato
-      const b = th.bass[Math.floor(this.step / 8) % th.bass.length];
-      const bf = th.root / 2 * Math.pow(2, th.scale[b % th.scale.length] / 12);
-      if (lvl === 0 && i % 2 === 0) this.tone(bf, t, beat * 1.8, 'triangle', 0.3, m);
-      if (lvl >= 1) this.tone(bf, t, beat * 0.8, lvl === 2 ? 'sawtooth' : 'triangle', 0.22, m);
-      // Schlagzeug / drums
-      if (lvl >= 1) {
-        if (i % 4 === 0) this.kick(t, m);
-        if (i % 4 === 2) this.snare(t, m, lvl === 2 ? 0.35 : 0.2);
-        if (lvl === 2) this.hat(t, m);
-        else if (i % 2 === 1) this.hat(t, m);
-        if (lvl === 2 && i === 7 && bar % 2 === 1) { this.snare(t + beat / 2, m, 0.25); this.snare(t + beat * 0.75, m, 0.3); }
-      } else if (i === 0 && bar % 2 === 0) this.kick(t, m, 0.25);
-      // Blaeser-Stoesse im Gefecht / brass stabs in battle
-      if (lvl === 2 && i === 0) {
-        for (const n of [0, 7, 12]) this.tone(th.root * Math.pow(2, n / 12), t, beat * 1.5, 'sawtooth', 0.08, m, 1, 0.01);
-      }
+      this.musicStep(th, lvl, this.step, this.nextTime, beat, m);
       this.nextTime += beat;
       this.step++;
+    }
+  }
+
+  /** Ein Achtel der Fraktionsmusik / one eighth note of the faction music */
+  private musicStep(th: Theme, lvl: Intensity, step: number, t: number, beat: number, m: AudioNode) {
+    const pat = lvl >= 1 ? th.tense : th.pattern;
+    const i = step % pat.length;
+    const bar = Math.floor(step / 16);
+    const deg = pat[i] + (lvl === 2 && bar % 2 === 1 ? 1 : 0);
+    const semis = th.scale[deg % th.scale.length] + 12 * Math.floor(deg / th.scale.length);
+    const freq = th.root * Math.pow(2, semis / 12);
+    // Melodie / melody
+    if (step % 16 < 14 || lvl > 0) this.tone(freq, t, beat * 0.9, th.wave, lvl === 2 ? 0.17 : 0.22, m);
+    // Bass: ruhig lange Noten, angespannt Ostinato / bass: calm long notes, tense ostinato
+    const b = th.bass[Math.floor(step / 8) % th.bass.length];
+    const bf = th.root / 2 * Math.pow(2, th.scale[b % th.scale.length] / 12);
+    if (lvl === 0 && i % 2 === 0) this.tone(bf, t, beat * 1.8, 'triangle', 0.3, m);
+    if (lvl >= 1) this.tone(bf, t, beat * 0.8, lvl === 2 ? 'sawtooth' : 'triangle', 0.22, m);
+    // Schlagzeug / drums
+    if (lvl >= 1) {
+      if (i % 4 === 0) this.kick(t, m);
+      if (i % 4 === 2) this.snare(t, m, lvl === 2 ? 0.35 : 0.2);
+      if (lvl === 2) this.hat(t, m);
+      else if (i % 2 === 1) this.hat(t, m);
+      if (lvl === 2 && i === 7 && bar % 2 === 1) { this.snare(t + beat / 2, m, 0.25); this.snare(t + beat * 0.75, m, 0.3); }
+    } else if (i === 0 && bar % 2 === 0) this.kick(t, m, 0.25);
+    // Blaeser-Stoesse im Gefecht / brass stabs in battle
+    if (lvl === 2 && i === 0) {
+      for (const n of [0, 7, 12]) this.tone(th.root * Math.pow(2, n / 12), t, beat * 1.5, 'sawtooth', 0.08, m, 1, 0.01);
     }
   }
 
@@ -975,21 +1115,21 @@ class AudioEngine {
   private scheduleDetails() {
     if (this.detailTimer !== null) window.clearTimeout(this.detailTimer);
     const tick = () => {
-      this.detailTimer = window.setTimeout(tick, 2500 + Math.random() * 4500);
+      this.detailTimer = window.setTimeout(tick, 2500 + this.rnd() * 4500);
       const ctx = this.ctx;
       if (!ctx || ctx.state !== 'running' || !this.effectsOn || !this.ambienceOn || !this.theme) return;
       const t = ctx.currentTime + 0.05;
       const out = this.ctx!.createGain(); out.gain.value = 0.6; out.connect(this.ambBus!); this.wetSend(out, 0.6);
-      window.setTimeout(() => out.disconnect(), 5000);
-      if (this.intensity >= 1 && Math.random() < 0.55 + this.intensity * 0.15) {
+      this.release(out, 5000);
+      if (this.intensity >= 1 && this.rnd() < 0.55 + this.intensity * 0.15) {
         // ferner Einschlag oder MG-Salve / distant impact or MG burst
-        if (Math.random() < 0.5) { this.tone(55, t, 1.2, 'sine', 0.35, out, 0.5); this.noise(t, 1.2, 0.25, 300, out, { freqEnd: 60 }); }
+        if (this.rnd() < 0.5) { this.tone(55, t, 1.2, 'sine', 0.35, out, 0.5); this.noise(t, 1.2, 0.25, 300, out, { freqEnd: 60 }); }
         else for (let i = 0; i < 6; i++) this.noise(t + i * 0.07, 0.05, 0.12, 900, out, { type: 'bandpass', q: 1 });
-      } else if (this.ambience === 'clear' && Math.random() < 0.6) {
+      } else if (this.ambience === 'clear' && this.rnd() < 0.6) {
         // Vogelgezwitscher / bird chirps
-        const base = 2600 + Math.random() * 1400;
-        for (let i = 0; i < 2 + Math.floor(Math.random() * 3); i++) this.tone(base, t + i * 0.13, 0.08, 'sine', 0.05, out, 1.25 + Math.random() * 0.3, 0.005);
-      } else if (this.ambience === 'rain' && Math.random() < 0.25) {
+        const base = 2600 + this.rnd() * 1400;
+        for (let i = 0; i < 2 + Math.floor(this.rnd() * 3); i++) this.tone(base, t + i * 0.13, 0.08, 'sine', 0.05, out, 1.25 + this.rnd() * 0.3, 0.005);
+      } else if (this.ambience === 'rain' && this.rnd() < 0.25) {
         // Donner / thunder
         this.noise(t, 2.5, 0.4, 200, out, { freqEnd: 50, attack: 0.3 });
         this.tone(40, t, 2.2, 'sine', 0.3, out, 0.7, 0.2);

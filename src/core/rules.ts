@@ -15,6 +15,8 @@ import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlo
 import { processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
+import { doWork, workCheck } from './mothership';
+import { seizeCheck, seizePlans } from './temple';
 import {
   recruitCheck, plunderValue, isCultFaction, cultUnits, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -187,7 +189,7 @@ function reveal(s: GameState, f: number, x: number, y: number, r: number, ev: Ga
 function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: number; y: number } | null {
   for (const p of neighbors(s.size, x, y)) {
     const t = tileAt(s, p.x, p.y)!;
-    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret || spawnBlocked(s, p)) continue;
+    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret || t.temple || spawnBlocked(s, p)) continue;
     if (water ? !isWater(t) : !isLand(t)) continue;
     if (!water && (t.terrain === 'mountain' || t.volcano || burning(s, t))) continue;
     return p;
@@ -558,7 +560,7 @@ function bossTurn(s: GameState, u: Unit, ev: GameEvent[]) {
     for (const p of neighbors(s.size, u.x, u.y)) {
       if (count >= B.broodCount) break;
       const t = tileAt(s, p.x, p.y)!;
-      if (!isLand(t) || t.terrain === 'mountain' || t.volcano || t.wonderOf || burning(s, t) || unitAt(s, p.x, p.y) || spawnBlocked(s, p)) continue;
+      if (!isLand(t) || t.terrain === 'mountain' || t.volcano || t.wonderOf || t.temple || burning(s, t) || unitAt(s, p.x, p.y) || spawnBlocked(s, p)) continue;
       const c = cityAt(s, p.x, p.y);
       if (c && c.owner !== u.owner) continue;
       spawnUnit(s, B.broodUnit, u.owner, p.x, p.y, null);
@@ -1028,7 +1030,7 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
       for (const p of neighbors(s.size, c.x, c.y)) {
         if (spawned >= max) break;
         const nt = tileAt(s, p.x, p.y)!;
-        if (unitAt(s, p.x, p.y) || nt.wonderOf || nt.turret || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
+        if (unitAt(s, p.x, p.y) || nt.wonderOf || nt.turret || nt.temple || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
         // kein Vulkangipfel, keine Lava, nicht das Artefakt / no volcano peak, no lava, not the artifact
         if (nt.volcano || burning(s, nt) || spawnBlocked(s, p)) continue;
         spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
@@ -1565,6 +1567,26 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
       });
       checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    // Kampagne m2: Wissenschaftler am Mutterschiff, eigene Datei mothership.ts / campaign m2: scientist at the mothership, own file mothership.ts
+    case 'workShip': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = workCheck(s, u);
+      if (check !== 'ok') return fail(check);
+      doWork(s, u, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    // Kriegsplaene (Kampagne m4): eigene Datei temple.ts / war plans (campaign m4): own file temple.ts
+    case 'seizePlans': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = seizeCheck(s, u);
+      if (check !== 'ok') return fail(check);
+      seizePlans(s, u, ev);
       res = { ok: true, events: ev };
       break;
     }

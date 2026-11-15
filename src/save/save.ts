@@ -1,6 +1,6 @@
 /** Spielstand als JSON im localStorage (immer in try/catch) und als Datei / save game as JSON in localStorage and as a file */
 import type { GameState } from '../core';
-import { CAMPAIGN_REV } from '../core/campaign';
+import { outdatedCampaign, staleTempleSave } from '../core/campaign';
 import type { Lang } from '../i18n/i18n';
 
 const SAVE_KEY = 'frontverlauf.save.v1';
@@ -16,6 +16,8 @@ export interface Settings {
   tutorialDone: boolean;
   /** Prolog schon gesehen / prologue already seen */
   prologueSeen?: boolean;
+  /** Intro vor dem ersten Kampagnenstart schon gezeigt / intro already shown before the first campaign start */
+  introSeen?: boolean;
   barks: boolean;
   /** Funksprueche der Anfuehrer / leader dispatches */
   dispatches: boolean;
@@ -62,7 +64,9 @@ export function migrateState(s: GameState): GameState {
   for (const u of s.units) if (typeof u.moved !== 'boolean') u.moved = false;
   // Kampagnen-Spielstaende der alten Missionsfassung laufen als freie Eroberungspartie weiter (die Missionen gibt es so nicht mehr)
   // campaign saves of the old mission data continue as a free conquest game (those missions no longer exist)
-  if (s.campaign && s.campaign.rev !== CAMPAIGN_REV) {
+  // dazu laufende m2-Partien der alten Bergung (vor dem Mutterschiff) und m4 vor den Kriegsplaenen (ohne Tempel)
+  // plus running m2 games of the old salvage (before the mothership) and m4 before the war plans (no temple)
+  if (s.campaign && (outdatedCampaign(s.campaign) || staleTempleSave(s))) {
     delete s.campaign;
     delete s.config.campaign;
     s.config.factionVictory = false;

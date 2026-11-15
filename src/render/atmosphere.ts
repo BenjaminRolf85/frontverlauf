@@ -48,7 +48,9 @@ const KEYS = {
     // Riss zwischen den Welten / rift between the worlds
     keyColor(semantic.riftSick), keyColor(semantic.riftGold),
     // Uplink-Licht des Satelliten-Relays / uplink light of the satellite relay
-    keyColor(semantic.orbitalUplink)],
+    keyColor(semantic.orbitalUplink),
+    // Feuerschalen des Fanatiker-Tempels (m4) / braziers of the Fanatic temple (m4)
+    keyColor(semantic.templeFire), keyColor(semantic.templeFireCore)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };

@@ -10,7 +10,7 @@ import {
   CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, towerCount, towersHeld, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
   type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
-import { PERSUADE, UNITS, type FactionId } from '../data/balance';
+import { M2, PERSUADE, UNITS, type FactionId } from '../data/balance';
 import { getLanguage, t, tList } from '../i18n/i18n';
 import {
   chooseFaction, clearNotice, currentMission, isCompleted, missionUnlocked, loadStore, loopDone, loopsDone, nextMissionId, recordRunResult,
@@ -21,6 +21,7 @@ import { icon } from './icons';
 import { leaderPortrait } from './leaders';
 import { openPrologue } from './lore';
 import { attachOverworld } from './overworld';
+import { plansPanelText, plansTip } from './temple';
 import type { ScreenHost } from './screens';
 
 const STATUS_ICON: Record<ObjectiveStatus, string> = { pending: 'hourglass', done: 'check', failed: 'close' };
@@ -87,6 +88,10 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
     case 'towers': return t('campaign.obj.towers', { n: o.rounds, rounds });
     case 'ruins': return t('campaign.obj.ruins', { n: o.n, rounds });
     case 'rift': return t('campaign.obj.rift', { unit: t('units.swarmMother'), rounds });
+    // Mutterschiff (m2) / mothership (m2)
+    case 'work': return t('campaign.obj.work', { n: o.rounds, rounds });
+    case 'scientist': return t('campaign.obj.scientist');
+    case 'scientistHp': return t('campaign.obj.scientistHp', { share: Math.round(M2.hpShare * 100) });
     case 'reach': {
       // Anfuehrer des Besitzers am Zielfeld, sonst des ersten Gegners / leader of the owner at the target, else of the first enemy
       const p = s?.campaign?.targets[o.target];
@@ -146,6 +151,8 @@ export function briefingPanels(x: MissionCtx): Panel[] {
   if (towerCount(x.m) > 0 && (towerGoal || WORLDS.some((w) => w.missions[0] === x.m.id))) {
     panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'scout', text: t(towerGoal ? 'campaign.towerHoldTip' : 'campaign.towerTip') });
   }
+  // Kriegsplaene (m4): der Spaeher erklaert Bergen und Verfolgung / war plans (m4): the scout explains seizing and pursuit
+  if (x.m.objectives.some((o) => o.k === 'plans')) panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'scout', text: plansTip() });
   if (x.m.persuade && PERSUADE.factions.includes(x.f)) {
     // vor der Schlusszeile des eigenen Anfuehrers / before the own leader's closing line
     panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'scout', text: t('campaign.persuadeTip', { ...textVars(x), cost: PERSUADE.cost }) });
@@ -419,7 +426,7 @@ export class ObjectivePanel {
     if (!s || !c || !m || !this.visible) { this.node.hidden = true; return; }
     this.node.hidden = false;
     // Sprache im Schluessel: nach einem Sprachwechsel neu zeichnen / language in the key: redraw after a language change
-    const key = JSON.stringify([getLanguage(), c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.caveHold, c.towerHold, c.siteDone, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
+    const key = JSON.stringify([getLanguage(), c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.caveHold, c.towerHold, c.siteDone, c.landing, c.plans, c.work, s.units.find((u) => u.id === c.scientist)?.hp ?? 0, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
     if (key === this.lastState) return;
     this.lastState = key;
     const done = c.status.filter((x) => x === 'done').length;
@@ -428,8 +435,13 @@ export class ObjectivePanel {
       const pr = st === 'pending' ? objectiveProgress(s, o, m.rounds) : null;
       // Turm-Ziel: gehaltene Tuerme und Runden stehen im Text / tower objective: held towers and rounds are part of the text
       const towers = o.k === 'towers' && pr ? { ...towersHeld(s), have: pr.have } : null;
-      const prog = pr && !towers && !(isHoldObjective(o) && bonus) ? `<span class="prog">${esc(t('campaign.progress', { have: pr.have, need: pr.need }))}</span>` : '<span></span>';
-      const text = towers && o.k === 'towers' ? t('campaign.obj.towersPanel', { n: o.rounds, ...towers }) : objectiveText(m, o, bonus, s);
+      // Mutterschiff: Arbeitsrunden stehen im Text / mothership: work rounds are part of the text
+      const work = o.k === 'work' && pr ? pr : null;
+      const prog = pr && !towers && !work && !(isHoldObjective(o) && bonus) ? `<span class="prog">${esc(t('campaign.progress', { have: pr.have, need: pr.need }))}</span>` : '<span></span>';
+      const text = towers && o.k === 'towers' ? t('campaign.obj.towersPanel', { n: o.rounds, ...towers })
+        : work ? t('campaign.obj.workPanel', { n: work.need, have: work.have })
+        // Kriegsplaene: Zustand im Text (im Tempel, getragen von, am Boden) / war plans: state in the text (in the temple, carried by, on the ground)
+        : o.k === 'plans' && !bonus ? plansPanelText(s, objectiveText(m, o, bonus, s)) : objectiveText(m, o, bonus, s);
       return `<li class="${st} ${bonus ? 'bonus' : ''}">${icon(bonus && st === 'pending' ? 'star' : STATUS_ICON[st], 'icon-sm')}<span>${esc(text)}</span>${prog}</li>`;
     };
     // Artefakt in fremder Hand: Warnzeile / artifact in enemy hands: warning line

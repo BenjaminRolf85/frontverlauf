@@ -47,6 +47,8 @@ export interface ScreenHost {
   startTutorial(): void;
   xr: { vr: boolean; ar: boolean; enter(mode: 'vr' | 'ar'): void };
   showMenu(): void;
+  /** 3D-Szene anhalten, solange ein Vollbild-Dialog sie verdeckt / pause the 3D scene while a full-screen dialog covers it */
+  pauseScene?(on: boolean): void;
 }
 
 function bind(node: HTMLElement, handlers: Record<string, (el: HTMLElement) => void>) {
@@ -54,6 +56,16 @@ function bind(node: HTMLElement, handlers: Record<string, (el: HTMLElement) => v
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
     if (b && handlers[b.dataset.action!]) handlers[b.dataset.action!](b);
   });
+}
+
+/**
+ * Intro "Die Menschheit im Sternfall" (src/intro, per dynamischem Import, damit es den Hauptteil nicht vergroessert).
+ * Intro "Humanity in the Starfall" (src/intro, via dynamic import so it does not grow the main chunk).
+ */
+export function openIntro(host: ScreenHost, onClose?: () => void) {
+  void import('../intro/player').then((m) => m.playIntro(host.root, {
+    music: host.settings.music, effects: host.settings.effects, animations: host.settings.animations, pause: host.pauseScene, onClose,
+  })).catch(() => onClose?.());
 }
 
 // ---------- Hauptmenue / main menu ----------
@@ -71,7 +83,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
         ${button(t('campaign.menu'), { icon: 'map', action: 'campaign', block: true, variant: 'secondary' })}
         ${button(t('saves.title'), { icon: 'folder', action: 'slots', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.tutorial'), { icon: 'tutorial', action: 'tutorial', variant: 'secondary', cls: 'grow' })}${button(t('rules.menu'), { icon: 'help', action: 'rules', variant: 'secondary', cls: 'grow', title: t('menu.help') })}</div>
-        ${button(t('lore.menu'), { icon: 'book', action: 'story', block: true, variant: 'secondary' })}
+        <div class="row">${button(t('lore.menu'), { icon: 'book', action: 'story', variant: 'secondary', cls: 'grow' })}${button(t('intro.menu'), { icon: 'play', action: 'intro', variant: 'secondary', cls: 'grow' })}</div>
         ${button(t('menu.importFile'), { icon: 'upload', action: 'import', block: true, variant: 'secondary' })}
         <div class="row">${button(t('menu.settings'), { icon: 'settings', action: 'settings', variant: 'secondary', cls: 'grow' })}${button(t('menu.credits'), { icon: 'info', action: 'credits', variant: 'secondary', cls: 'grow' })}</div>
         ${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}
@@ -87,12 +99,20 @@ export function mainMenu(host: ScreenHost): HTMLElement {
       tutorialPrompt(host, () => n.replaceWith(setupScreen(host)));
     },
     rules: () => rulesDialog(host.root),
-    campaign: () => { n.replaceWith(campaignScreen(host)); },
+    // vor dem ersten Kampagnenstart einmal das Intro / the intro once before the first campaign start
+    campaign: () => {
+      const toCampaign = () => { if (n.isConnected) n.replaceWith(campaignScreen(host)); };
+      if (host.settings.introSeen) { toCampaign(); return; }
+      host.settings.introSeen = true;
+      host.applySettings();
+      openIntro(host, toCampaign);
+    },
     tutorial: () => host.startTutorial(),
     import: () => host.loadFromFile(),
     settings: () => settingsDialog(host, render),
     credits: () => creditsDialog(host),
     story: () => openPrologue(host.root),
+    intro: () => openIntro(host),
   });
   // Prolog einmal beim ersten Start zeigen / show the prologue once on first start
   if (!host.settings.prologueSeen) {

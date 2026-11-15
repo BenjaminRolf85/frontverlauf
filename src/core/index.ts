@@ -9,11 +9,14 @@ export { dist, idx, inBounds, isLand, isWater, neighbors, tileAt, area } from '.
 export * from './hazards';
 export * from './history';
 export * from './orbital';
+// Kriegsplaene und Fanatiker-Tempel (m4) / war plans and Fanatic temple (m4)
+export * from './temple';
 export {
   MISSIONS, MISSION_IDS, missionById, missionConfig, objectiveProgress, isHoldObjective, missionRoundsLeft,
   CAMPAIGN_FACTIONS, CAMPAIGN_ENEMIES, CAMPAIGN_ALLIES, CAMPAIGN_REV, FINALE_ID, allyFor, isCampaignFaction, isCampaignAlly, panelOf,
-  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount, towersHeld,
+  UNPLACED_MISSIONS, worldNumber, missionNumber, riftSpares, towerCount, towersHeld, outdatedCampaign,
   type MissionDef, type ObjectiveDef, type Speaker, type BriefPanel, type WaveDef,
 } from './campaign';
 export { WORLDS, worldOf, type WorldId } from './worlds';
+export * from './mothership';
 export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRandomEvent } from './events';

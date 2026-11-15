@@ -32,7 +32,9 @@ export type WonderKind = 'portal' | 'hackRelay' | 'fusionPlant' | 'waal';
 export type WonderUnitId = WonderKind | 'coreDrill';
 /** Endgegner der Kampagne (nicht ausbildbar) / campaign bosses (not trainable) */
 export type BossUnitId = 'swarmMother';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId;
+/** Sondereinheiten einzelner Kampagnen-Einsaetze (nicht ausbildbar) / special units of single campaign missions (not trainable) */
+export type CampaignUnitId = 'scientist';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -241,6 +243,8 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   coreDrill: { cost: WONDERS.cost.coreDrill, hp: 20, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
   // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
   swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+  // Kampagne m2: Wissenschaftler, kaempft nicht, wenig LP, arbeitet am Mutterschiff (M2) / campaign m2: scientist, no combat, low HP, works on the mothership (M2)
+  scientist: { cost: null, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: [], tech: null, ship: false },
 };
 
 /**
@@ -586,7 +590,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -1243,6 +1247,41 @@ export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hq
 export const TOWER_HOLD = { m1Rounds: 5, m1Towers: 2, m1FastRound: 12, m1MissionRounds: 16, m1RaidRound: 8, m1RaidDistance: 2 };
 
 /**
+ * Kampagne m2 (Das Mutterschiff): ein abgestuerztes Zyrr-Mutterschiff (2x2 Felder, unpassierbar) liegt shipMin..shipMax
+ * Felder vor dem eigenen Hauptquartier, mindestens zyrrDistance Felder vom Hauptquartier der Zyrr. Der Wissenschaftler
+ * arbeitet daneben ("Am Schiff arbeiten", beendet seinen Zug): workRounds Arbeitsrunden insgesamt (nicht in Folge) gewinnen
+ * den Einsatz, sein Tod verliert ihn. Wellen landen waveDistance Felder vom Schiff. Bonus: Sieg bis fastRound, der
+ * Wissenschaftler faellt nie unter hpShare seiner LP.
+ * Campaign m2 (The Mothership): a crashed Zyrr mothership (2x2 tiles, impassable) lies shipMin..shipMax tiles in front of
+ * the own HQ, at least zyrrDistance tiles from the Zyrr HQ. The scientist works next to it ("Work on the ship", ends its
+ * turn): workRounds work rounds in total (not in a row) win the mission, its death loses it. Waves land waveDistance tiles
+ * from the ship. Bonus: win by fastRound, the scientist never drops below hpShare of its HP.
+ */
+export const M2 = {
+  workRounds: 8,
+  missionRounds: 18,
+  fastRound: 14,
+  hpShare: 0.5,
+  shipMin: 6,
+  shipMax: 8,
+  zyrrDistance: 4,
+  /** freie Landfelder im Ring um das Schiff (von 12) / free land tiles in the ring around the ship (of 12) */
+  ringLand: 9,
+  waveDistance: 3,
+  /** Truppe des Spielers am Hauptquartier (dazu der Wissenschaftler) / the player's troops at the HQ (plus the scientist) */
+  playerUnits: ['tank', 'jeep', 'infantry', 'mg'] as UnitTypeId[],
+  /** Sterne der Zyrr zu Beginn (ihr Lager ist ausgebrannt) / Zyrr stars at the start (their camp is burnt out) */
+  zyrrStars: 0,
+  /** Wachen am Schiff zu Beginn / guards at the ship at the start */
+  guards: ['grey', 'grey', 'grey', 'mech'] as UnitTypeId[],
+  /**
+   * KI: Gegner jagen den Wissenschaftler, Wachen bleiben am Schiff; die Spieler-Seite eskortiert ihn.
+   * AI: enemies hunt the scientist, guards stay at the ship; the player side escorts it.
+   */
+  ai: { huntValue: 125, huntCap: 2, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3, shipValue: 60, shipCap: 2, clearValue: 95, clearCap: 2, clearRange: 2, spotPenalty: 40 },
+};
+
+/**
  * Aussenposten der Vergessenen (Wuestenwelt): weniger Orte, dafuer mehr Einkommen je Aussenposten.
  * Outposts of the Forgotten (desert world): fewer places, therefore more income per outpost.
  */
@@ -1304,6 +1343,56 @@ export const CAMPAIGN_AI = {
   holdBonus: 45,
   /** Angriffswert gegen den markierten Endgegner (Spieler-Seite) / attack value against the marked boss (player side) */
   bossAttackBonus: 40,
+  /**
+   * Kriegsplaene (m4): Spieler-Seite laeuft die Tempelfelder an, eskortiert den Traeger und hebt fallen gelassene Plaene auf;
+   * der Kult bewacht den Tempel, jagt den Traeger und bringt fallen gelassene Plaene zurueck.
+   * War plans (m4): the player side heads for the temple, escorts the carrier and picks up dropped plans; the cult guards
+   * the temple, hunts the carrier and takes dropped plans back.
+   */
+  plansSeizeValue: 150, plansSeizeCap: 2, plansGatherValue: 140, plansGatherCap: 6, plansEscortValue: 150, plansEscortCap: 4, plansPickValue: 150, plansPickCap: 2,
+  plansGuardValue: 75, plansGuardCap: 3, plansHuntValue: 160, plansHuntCap: 8, plansReturnValue: 150, plansReturnCap: 3, plansDistW: 2,
+  /** Der Laeufer wartet, bis so viele eigene Kampfeinheiten nahe am Tempel stehen / the runner waits until this many own fighters stand near the temple */
+  plansEscortMin: 2, plansEscortRange: 3,
+  /** Zielwert des Traegers zum Hauptquartier (immer zugeteilt) / goal value of the carrier towards the HQ (always assigned) */
+  plansCarryValue: 400,
+  /** Angriffswert gegen den Traeger (Gegner) / attack value against the carrier (enemies) */
+  plansCarrierAttackBonus: 45,
+  /** Langsame Einheiten bergen nicht, wenn ein schnellerer Laeufer so nahe ist / slow units do not seize while a faster runner is this close */
+  plansWaitRange: 4,
+};
+
+/**
+ * Kriegsplaene aus dem Fanatiker-Tempel (Kampagne m4, "Die Kriegsplaene"): 2x2-Tempel, Bergen neben dem Tempel,
+ * Abliefern am eigenen Hauptquartier, Verfolgerwellen des Kults, solange die Plaene unterwegs sind.
+ * War plans from the Fanatic temple (campaign m4, "The War Plans"): 2x2 temple, seizing next to the temple,
+ * delivery at the own HQ, cult pursuit waves while the plans are on the move.
+ */
+export const TEMPLE_PLANS = {
+  /** Abstand des Tempels (naechstes Tempelfeld) zum Hauptquartier des Spielers, Wunschwert und Grenzen / distance of the temple (nearest temple tile) to the player's HQ, preferred value and bounds */
+  hqDistance: 8, hqMin: 7, hqMax: 10,
+  /** Abstand zum Hauptquartier des Kults: Mindestwert, Wunschwert / distance to the cult HQ: minimum, preferred value */
+  enemyMin: 3, enemyPref: 5,
+  /** Abstand zu jeder Stadt (auch Siedlungen) / distance to every city (settlements too) */
+  cityGap: 2,
+  /** Bergen: Abstand zu einem Tempelfeld oder zu fallen gelassenen Plaenen / seizing: distance to a temple tile or to dropped plans */
+  seizeRange: 1,
+  /** Abliefern: Abstand zum eigenen Hauptquartier / delivery: distance to the own HQ */
+  deliverRange: 1,
+  /** Tempelwache zu Beginn / temple guard at the start */
+  guards: ['zealot', 'zealot'] as UnitTypeId[],
+  /**
+   * Verfolgung: die erste Welle zu Beginn des naechsten Spielerzugs nach dem Bergen, dann alle pursuitEvery Runden,
+   * hoechstens pursuitWaves Wellen; je Welle Einheiten am Tempel (abwechselnd aus pursuitTemple) und an den
+   * pursuitCities naechsten Kultstaedten (pursuitCity), dazu pursuitStars Sterne fuer den Sold.
+   * Pursuit: the first wave at the start of the next player turn after the seizure, then every pursuitEvery rounds,
+   * at most pursuitWaves waves; per wave units at the temple (cycling through pursuitTemple) and at the pursuitCities
+   * nearest cult cities (pursuitCity), plus pursuitStars stars for the upkeep.
+   */
+  pursuitEvery: 2, pursuitWaves: 4,
+  pursuitTemple: [['zealot', 'zealot'], ['zealot', 'doomBuggy'], ['zealot', 'torchbearer'], ['doomBuggy', 'zealot']] as UnitTypeId[][],
+  pursuitCity: ['zealot'] as UnitTypeId[], pursuitCities: 1, pursuitStars: 10,
+  /** m4: Missionsdauer und Bonus "Abliefern bis Runde" / m4: mission length and bonus "deliver by round" */
+  m4Rounds: 18, m4FastRound: 13,
 };
 
 /**

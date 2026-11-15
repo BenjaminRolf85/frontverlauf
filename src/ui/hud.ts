@@ -28,6 +28,8 @@ import { icon } from './icons';
 import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
+import { shipSheet, workAction } from './mothership';
+import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
@@ -483,7 +485,7 @@ export class Hud {
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -565,6 +567,14 @@ export class Hud {
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
         if (this.cityNote) body += `<p class="muted">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
       }
+    } else if (explored && tile.feature === 'mothership') {
+      // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress
+      ({ head, body } = shipSheet(s));
+    } else if (explored && templeSheet(s, x, y)) {
+      // Fanatiker-Tempel (m4) / Fanatic temple (m4)
+      const ts = templeSheet(s, x, y)!;
+      head = ts.head;
+      body += ts.body;
     } else if (explored && turretAt(s, x, y)?.owner !== undefined) {
       // Geschuetzstellung: Besitzer, Panzerung, Reichweite, feuert jede Runde / gun emplacement: owner, armour, range, fires every round
       const gun = turretAt(s, x, y)!;
@@ -597,6 +607,9 @@ export class Hud {
       if (tile.outpost) tags.push(`${t('features.outpost')} (${t(`factions.${s.factions[tile.outpost.owner].id}.short`)})`);
       if (tile.grandProject) tags.push(t(`grand.${tile.grandProject}`));
       if (tile.wonderOf) { const w = unitById(s, tile.wonderOf); if (w) tags.push(t('victory.footprint', { name: t(`units.${w.type}`) })); }
+      // fallen gelassene Kriegsplaene (m4) / dropped war plans (m4)
+      const dropped = droppedPlansTag(s, x, y);
+      if (dropped) tags.push(dropped);
       if (tile.turretRuin) tags.push(tile.turretRuinOwner !== undefined ? t('emplacement.ruin') : t('verdan.ruin'));
       if (tile.barrier) tags.push(`${t('features.barrier')} (${t(`factions.${s.factions[tile.barrier.owner].id}.short`)})`);
       if (tile.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) tags.push(`${t('features.mine')} (${t(`factions.${s.factions[tile.mine.owner].id}.short`)}): ${t('features.mineDesc', { foot: COUNTER.mine.damageFoot, vehicle: COUNTER.mine.damageVehicle })}`);
@@ -691,6 +704,9 @@ export class Hud {
         }
       }
     }
+    // Kampagne m2: Wissenschaftler am Mutterschiff / campaign m2: scientist at the mothership
+    const work = workAction(s, u, g, (c) => this.err(c));
+    if (work) this.actions.push(work);
     const cap = captureKind(s, u);
     // Kult: Einnehmen heisst Pluendern, mit Beute / cult: capturing means plundering, with loot
     const plunderCity = cap === 'city' || cap === 'village' ? cityAt(s, u.x, u.y) : undefined;
@@ -698,6 +714,9 @@ export class Hud {
     if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: loot !== null ? t('cult.plunder') : t('actions.capture'), sub: loot ? `+${loot}` : undefined,
       desc: loot !== null ? (loot ? t('cult.loot', { n: loot }) : t('cult.lootEmpty', { n: (plunderCity!.plundered ?? 0) + CULT.replunderRounds })) : undefined,
       variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
+    // Kampagne m4: Kriegsplaene bergen oder aufheben / campaign m4: seize or pick up the war plans
+    const plans = plansAction(s, u, (c) => this.err(c), () => void g.exec({ type: 'seizePlans', unit: u.id }));
+    if (plans) this.actions.push(plans);
     // Kampagne, Alvenia und Meridon: Siedlung ueberzeugen / campaign, Alvenia and Meridon: persuade a settlement
     for (const c of persuadeTargets(s, u)) {
       const pc = persuadeCheck(s, u, c);

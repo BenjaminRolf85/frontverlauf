@@ -28,7 +28,7 @@ import { crawlerGeometry, lizardGeometry, mothBodyGeometry, mothWingGeometry, sp
 export type LifeKind = 'foot' | 'vehicle' | 'walker' | 'flyer' | 'ship';
 
 /** Fusstruppen / foot troops */
-const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper']);
+const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist']);
 /** Laeufer: schwer und langsam / walkers: heavy and slow */
 const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider', 'flakDrone', 'protoWalker']);
 

@@ -25,7 +25,9 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
+import { shipWorkToast } from './ui/mothership';
 import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
+import { plansToast } from './ui/temple';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -134,6 +136,7 @@ function boot() {
       get ar() { return xr.supported.ar; },
       enter: (mode) => void xr.start(mode),
     },
+    pauseScene(on) { view.paused = on; },
     showMenu() {
       tutorial?.finish(); tutorial = null;
       barks.clear();
@@ -230,6 +233,9 @@ function boot() {
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
         case 'wave': waveToast(root, s, e.faction, e.count); break;
         case 'ruin': ruinToast(root, s); break;
+        case 'shipWork': shipWorkToast(root, e); break;
+        // Kriegsplaene (m4) / war plans (m4)
+        case 'plans': plansToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Meteorschauer und Saeureregen: Bescheid, wenn eigene Einheiten getroffen sind / meteors and acid rain: tell when own units are hit
         case 'weatherHit': {
           const own = e.hits.filter((h) => s.units.find((u) => u.id === h.unit)?.owner === viewer).length;
@@ -308,4 +314,8 @@ function boot() {
   (window as unknown as { __game: Controller }).__game = game;
 }
 
-boot();
+// Nur Entwicklung: Exportseite des Intro-Videos (scripts/intro-export.mjs), sonst das Spiel
+// development only: export page of the intro video (scripts/intro-export.mjs), otherwise the game
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('intro-export')) {
+  void import('./intro/export').then((m) => m.bootExport(new URLSearchParams(location.search)));
+} else boot();

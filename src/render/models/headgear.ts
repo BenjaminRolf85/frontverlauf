@@ -38,7 +38,7 @@ function onDome(b: Builder, centre: V3, rad: number, scale: V3, theta: number, p
 }
 
 /** Gesicht mit Augen, Brauen, Nase, Mund / face with eyes, brows, nose, mouth */
-function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', seed: number) {
+export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', seed: number) {
   const R = rng(seed);
   b.add(d >= 1 ? geo.rbox(0.104, 0.098, 0.1, 0.02) : geo.box(0.104, 0.098, 0.1), mat.skin, { p: [0, 0.049, 0] });
   // Nase / nose

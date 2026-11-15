@@ -4,10 +4,11 @@
  */
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
-  ownUnits, reachable, unitAt, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
+  ownUnits, reachable, unitAt, workSpots, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
   orbitalPreview, orbitalWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
+import { plansHints } from '../core/temple';
 import { planNextCommand } from '../ai/ai';
 import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
@@ -231,6 +232,8 @@ export class Controller {
       for (const t of attackTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
       for (const t of rocketTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
       for (const t of convertTargets(s, u)) list.push({ x: t.x, y: t.y, kind: 'attack' });
+      // Kampagne m2: Arbeitsplaetze am Mutterschiff fuer den Wissenschaftler / campaign m2: work spots at the mothership for the scientist
+      if (u.type === 'scientist' && u.id === s.campaign?.scientist) for (const p of workSpots(s)) if (!unitAt(s, p.x, p.y)) list.push({ ...p, kind: 'build' });
       // Verdan-Geschuetze in Reichweite / Verdan guns in range
       for (const p of turretTargets(s, u)) list.push({ ...p, kind: this.pendingTurret && this.pendingTurret.x === p.x && this.pendingTurret.y === p.y ? 'target' : 'attack' });
       if (u.fuel !== null) {
@@ -247,6 +250,8 @@ export class Controller {
       // Zieleinheiten (folgen der Einheit) und das Artefakt / target units (follow the unit) and the artifact
       for (const id of s.campaign.units ?? []) { const u = s.units.find((x) => x.id === id); if (u) list.push({ x: u.x, y: u.y, kind: 'hint' }); }
       if (s.campaign.artifact) list.push({ ...s.campaign.artifact, kind: 'hint' });
+      // Kriegsplaene (m4): Tempel, fallen gelassene Plaene oder Hauptquartier / war plans (m4): temple, dropped plans or HQ
+      for (const p of plansHints(s)) list.push({ ...p, kind: 'hint' });
     }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);

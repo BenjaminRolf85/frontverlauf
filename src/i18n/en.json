@@ -264,7 +264,8 @@
     "fusionPlant": "Fusion Power Plant",
     "waal": "Land Cruiser Waal",
     "coreDrill": "Earth-Core Drill",
-    "swarmMother": "Swarm Mother"
+    "swarmMother": "Swarm Mother",
+    "scientist": "Scientist"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -312,7 +313,8 @@
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
-    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream."
+    "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
+    "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign)."
   },
   "abilities": {
     "dash": "Assault",
@@ -410,7 +412,8 @@
     "wreckCover": "+1 cover for land units on this tile",
     "barrier": "Tank barrier",
     "mine": "Mine",
-    "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it."
+    "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it.",
+    "mothership": "Zyrr mothership"
   },
   "buildings": {
     "storehouse": "Build storehouse",
@@ -677,7 +680,10 @@
     "mine": "Lay mine",
     "mineHint": "Tap a free adjacent tile for the mine.",
     "persuade": "Persuade",
-    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only)."
+    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only).",
+    "seizePlans": "Seize the war plans",
+    "pickPlans": "Pick up the war plans",
+    "seizePlansDesc": "Takes the war plans and ends the unit's turn. Bring them into or next to your HQ."
   },
   "errors": {
     "gameOver": "The game is over.",
@@ -719,8 +725,6 @@
     "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
     "cityLevel": "The city needs a higher level.",
     "mineLimit": "At most {n} mines per faction.",
-    "emplacementSpacing": "Too close to another own gun emplacement.",
-    "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "cannotRetreat": "Only human ground troops can retreat in order.",
     "retreatCooldown": "The retreat is not ready yet.",
     "noRetreatTile": "No free tile to retreat to.",
@@ -731,11 +735,14 @@
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
     "quake": "Earthquake: vehicles and mechs cannot move this round.",
+    "emplacementSpacing": "Too close to another own gun emplacement.",
+    "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "recruitCooldown": "Recruiting is not ready again yet.",
     "noRelay": "No orbital laser without a satellite relay.",
     "orbitalCooldown": "The orbital laser is still charging.",
     "notVisible": "The target tile is not revealed.",
-    "relayLimit": "Velkar already owns a satellite relay."
+    "relayLimit": "Velkar already owns a satellite relay.",
+    "cannotCarry": "This unit cannot carry the war plans"
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1016,7 +1023,17 @@
       "burrow": "Capture the Zyrr burrow by round {rounds}",
       "bonusBurrow": "Capture the Zyrr burrow",
       "towers": "Capture the transmitter towers and hold all of them at once for {n} rounds in a row, by round {rounds}",
-      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})"
+      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})",
+      "work": "Let the scientist work on the mothership for {n} rounds, by round {rounds}",
+      "workPanel": "Let the scientist work on the mothership for {n} rounds ({have}/{n})",
+      "scientist": "The scientist must not fall",
+      "scientistHp": "The scientist never drops below {share}% of his HP",
+      "plans": "Seize the war plans from the Fanatic temple and bring them to your HQ by round {rounds}",
+      "plansKept": "The carrier never loses the war plans",
+      "plansTemple": "War plans: in the temple",
+      "plansCarried": "War plans: carried by {unit}",
+      "plansDropped": "War plans: lying on the ground",
+      "plansDelivered": "War plans: delivered"
     },
     "missions": {
       "m1": {
@@ -1036,19 +1053,19 @@
         }
       },
       "m2": {
-        "title": "Race to the Wreck",
-        "tagline": "Salvage the crash site while landing pods press your cities",
+        "title": "The Mothership",
+        "tagline": "Bring the scientist to the wreck and let him work on it for 8 rounds",
         "brief": [
-          "There is a chunk of the mothership out there, big as a train station! It is still glowing. And on the horizon landing pods are coming down, right in front of our cities.",
-          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. Meanwhile no city falls. First come, first in production.",
-          "ZKRRT ... property of the swarm ... earthlings ... step back ... greys inbound ... ZKRRT"
+          "Commander, the transmitter towers got a fix: the mothership lies in a crater, broken in half and big as a village. It is still glowing, it is smoking, and greys stand guard.",
+          "Kkt. The mothership is sacred. Whoever touches its hull gets taken apart. Swarm, land and find the white coat!",
+          "{leader} to all units: our scientist needs eight rounds at that wreck, then we know how the Zyrr fly. Clear out the guards and cover him with everything we have. If he falls, it was all for nothing."
         ],
-        "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
-        "won": "Salvaged, and not a single city lost! The eggheads in the lab are completely losing it.",
-        "lost": "The Zyrr were faster, or our line broke. Now the thing flies again, just not for us.",
+        "ally": "{allyLeader} here. {ally} secures the crater, {leader}. Your scholar tinkers, we keep the greys away.",
+        "won": "Eight rounds of work, and the scientist grins like a kid at Christmas. Now we know how the thing flies. And where it came from.",
+        "lost": "The scientist has fallen, or we ran out of time. The wreck falls silent, and the Zyrr take their secrets back.",
         "variants": {
           "velkar": {
-            "won": "Salvaged! {leader} has already written seventeen formulas on the debris."
+            "won": "Eight rounds! {leader} has already turned half the wreck into formulas and wants the other half tonight."
           }
         }
       },
@@ -1065,19 +1082,19 @@
         "lost": "The portal stays in Zyrr hands. And it keeps spitting out greys."
       },
       "m4": {
-        "title": "False Pilgrims",
-        "tagline": "Deal with the zealots in your land",
+        "title": "The War Plans",
+        "tagline": "Take the war plans from the Fanatic temple and bring them home",
         "brief": [
-          "The pilgrims we took in are suddenly wearing bone masks! They are right in front of our gates.",
-          "The bell has tolled. By itself! Brothers, sisters, convert them or burn them down.",
-          "{leader} here. Eight zealots fewer and peace returns. Quickly, before they start preaching."
+          "Commander, we found it: a Fanatic temple covering four tiles, with a bell tower and fire braziers. Their war plans lie inside. Our jeep is fast enough to get them out.",
+          "{enemyLeader} speaks: the bell tolled by itself. Our plans rest in the temple. Whoever touches them will be hunted by every bell in the land, to the end of the world.",
+          "{leader} here. One unit next to the temple, take the plans, back to the HQ. Cover the carrier! If he falls, the plans lie in the dirt and we take them back. Eighteen rounds."
         ],
-        "ally": "{allyLeader} here. {ally} has pilgrims in the house too. We clean up together, {leader}.",
-        "won": "The masks lie in the dust. The rest of the pilgrims suddenly just want tea.",
-        "lost": "The zealots preach in our market squares. The baker is already wearing a robe.",
+        "ally": "{allyLeader} here. {ally} escorts your carrier, {leader}. Whoever hunts him deals with us.",
+        "won": "The plans lie on the map table: a pilgrim city full of zealots, a giant bell and a drill down to the earth's core. Now we know what the bell tolls for.",
+        "lost": "The war plans are back in the temple. The bell tolls, and we still do not know what for.",
         "variants": {
           "alvenia": {
-            "won": "The masks lie in the dust. Our medics are bandaging the zealots too. That is how we do things."
+            "won": "The plans are ours. Our diplomats read them with very serious faces: a pilgrim city, a bell, a drill down to the earth's core."
           }
         }
       },
@@ -1085,7 +1102,7 @@
         "title": "The Pilgrim City",
         "tagline": "Capture the cult's capital",
         "brief": [
-          "{leader} to all units: the cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
+          "{leader} to all units: the war plans are clear. The cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
           "{enemyLeader} speaks: come then. Our city is built on faith. And on very thick walls.",
           "Torchbearers on the walls, zealots in the alleys. The lakes slow us down, commander. Take the shores."
         ],
@@ -1102,7 +1119,7 @@
         "title": "The Earth-Core Drill",
         "tagline": "Destroy the drill before it breaks through",
         "brief": [
-          "The ground is shaking, commander! The cult has set up a giant drill. It wants to reach the earth's core!",
+          "The ground is shaking, commander! The drill from the war plans is really there. The cult wants to reach the earth's core!",
           "The Final Hour needs a hole to come through. We are drilling it.",
           "{leader} here. Tanks and artillery forward! The drill must go before it breaks through. Fourteen rounds, no more."
         ],
@@ -1310,7 +1327,14 @@
     "riftOpen": "The rift tears open!",
     "landingBurrow": "Landing party without a base: capture the Zyrr burrow, or there will be no reinforcements.",
     "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow.",
-    "towerHoldTip": "One more thing, commander: the transmitter towers train troops but do not grow. The count happens at the start of your turn. If a tower falls, the count starts over."
+    "towerHoldTip": "One more thing, commander: the transmitter towers train troops but do not grow. The count happens at the start of your turn. If a tower falls, the count starts over.",
+    "plansSeized": "War plans seized! Bring the carrier to the HQ.",
+    "plansPicked": "War plans picked up again!",
+    "plansDropped": "The carrier has fallen. The war plans lie on the ground!",
+    "plansReturned": "The Fanatics took the war plans back to the temple.",
+    "plansDelivered": "War plans delivered!",
+    "plansLine": "Thieves in the temple! Brothers, sisters, bring me back the plans, and the thief with them!",
+    "plansTip": "Tip: only land units right next to the temple can seize the plans. Send a fast jeep with an escort. Once the plans are gone, the cult sends pursuers every {n} rounds."
   },
   "randomEvents": {
     "title": "Events",
@@ -1653,7 +1677,8 @@
       "fusionPlant": "People's Sun",
       "waal": "Steel Whale",
       "coreDrill": "Devil's Plough",
-      "swarmMother": "The Great Mother"
+      "swarmMother": "The Great Mother",
+      "scientist": "Scientist"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1701,7 +1726,8 @@
       "fusionPlant": "Enemy Reactor",
       "waal": "Land Cruiser Waal",
       "coreDrill": "Heretic Drill",
-      "swarmMother": "Enemy High Command"
+      "swarmMother": "Enemy High Command",
+      "scientist": "Scientist"
     },
     "alvenia": {
       "infantry": "Blue Berets",
@@ -1749,7 +1775,8 @@
       "fusionPlant": "Peace Reactor",
       "waal": "War Whale",
       "coreDrill": "Doom Drill",
-      "swarmMother": "Chief Negotiator of the Swarm"
+      "swarmMother": "Chief Negotiator of the Swarm",
+      "scientist": "Scientist"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1797,7 +1824,8 @@
       "fusionPlant": "Power Exchange",
       "waal": "Costly Waal",
       "coreDrill": "Property Ruiner",
-      "swarmMother": "The Competition in Chitin"
+      "swarmMother": "The Competition in Chitin",
+      "scientist": "Scientist"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1845,7 +1873,8 @@
       "fusionPlant": "Tokamak One",
       "waal": "Super-Heavy Prototype",
       "coreDrill": "Geological Disaster",
-      "swarmMother": "Test Subject One"
+      "swarmMother": "Test Subject One",
+      "scientist": "Scientist"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1893,7 +1922,8 @@
       "fusionPlant": "Earthling Starlet",
       "waal": "Big Tin Whale",
       "coreDrill": "Earthling Core Probe",
-      "swarmMother": "Mother of All Eyes"
+      "swarmMother": "Mother of All Eyes",
+      "scientist": "Scientist"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -1941,7 +1971,8 @@
       "fusionPlant": "False Sun",
       "waal": "Leviathan",
       "coreDrill": "The Final Drill",
-      "swarmMother": "Demoness from the Sky"
+      "swarmMother": "Demoness from the Sky",
+      "scientist": "Scientist"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -1989,7 +2020,8 @@
       "fusionPlant": "External Power Source",
       "waal": "Analogue Megatank",
       "coreDrill": "Geo Error 404",
-      "swarmMother": "Primary Node Z-0"
+      "swarmMother": "Primary Node Z-0",
+      "scientist": "Scientist"
     }
   },
   "identity": {
@@ -2570,7 +2602,6 @@
   "traits": {
     "perk": "Bonus",
     "perk2": "Second bonus",
-    "feature": "Faction feature",
     "unit": "Signature unit",
     "discount": "Discount",
     "discountValue": "{unit} −{pct}%",
@@ -2580,7 +2611,8 @@
     "details": "Details",
     "detailsFor": "Details on {name}",
     "victory": "Victory condition",
-    "combat": "Combat bonus"
+    "combat": "Combat bonus",
+    "feature": "Faction feature"
   },
   "dispatchUi": {
     "kicker": "Dispatch",
@@ -3316,10 +3348,6 @@
       "title": "Outposts",
       "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
     },
-    "emplacements": {
-      "title": "Gun emplacements (Dravon)",
-      "text": "Fortress building: with {tech}, Dravon pioneer squads and mine layers build a gun emplacement for {cost} stars on a free adjacent tile in own territory (passable land without a city, building, resource, feature or unit). At most {per} per own city, at least {spacing} tiles apart. The emplacement is a structure, not a unit: armour {hp}, attack {atk}, defence {def}, impassable, no upkeep and no score. At the start of every round it fires once at a visible unit in range {range} that is at war with Dravon (never at peace, never at allies), always with full damage and hit luck. Enemies attack it like a Verdan gun; once destroyed, rubble remains and no kill is counted. If the territory is lost or Dravon is eliminated, it is razed."
-    },
     "diplomacy": {
       "title": "Diplomacy",
       "text": "Factions you have not met stay hidden. After the first contact you are at war. You can offer peace, the other side accepts or declines. Breaking a peace is announced one round in advance. With {tech} and a discovered headquarters you open embassies (the first costs {cost} stars, each further one {step} more); each gives both sides {income} stars per round."
@@ -3328,11 +3356,15 @@
       "title": "Faction victories",
       "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
     },
+    "productionNote": "Human factions call this production: they unlock production capabilities, while the Zyrr, NEXUS and the cult research. Rules and costs are the same.",
+    "emplacements": {
+      "title": "Gun emplacements (Dravon)",
+      "text": "Fortress building: with {tech}, Dravon pioneer squads and mine layers build a gun emplacement for {cost} stars on a free adjacent tile in own territory (passable land without a city, building, resource, feature or unit). At most {per} per own city, at least {spacing} tiles apart. The emplacement is a structure, not a unit: armour {hp}, attack {atk}, defence {def}, impassable, no upkeep and no score. At the start of every round it fires once at a visible unit in range {range} that is at war with Dravon (never at peace, never at allies), always with full damage and hit luck. Enemies attack it like a Verdan gun; once destroyed, rubble remains and no kill is counted. If the territory is lost or Dravon is eliminated, it is razed."
+    },
     "cult": {
       "title": "Cult: plunder & horde",
       "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round), every plundered star counts {score} points. If the cult has no unit left, it is eliminated and its cities turn neutral."
-    },
-    "productionNote": "Human factions call this production: they unlock production capabilities, while the Zyrr, NEXUS and the cult research. Rules and costs are the same."
+    }
   },
   "lore": {
     "button": "Story as a comic",
@@ -3373,25 +3405,6 @@
     "previewKill": "Destroys the gun",
     "destroyed": "Verdan gun destroyed!",
     "fx": "Verdan"
-  },
-  "emplacement": {
-    "name": "Gun emplacement",
-    "nameOf": "{name} gun emplacement",
-    "every": "fires every round",
-    "stats": "Armour {hp} / {max} · Range {range} · Attack {atk} · Defence {def}",
-    "desc": "Fixed structure of {name}, not a unit and impassable. At the start of every round it fires once at a visible unit in range {range} that is at war with {name}; never at peace and never at allies. It can be attacked and destroyed, but never counts as a kill. If the territory is lost, it is razed.",
-    "build": "Build gun emplacement",
-    "count": "{n}/{max} emplacements",
-    "hint": "Pick a free adjacent tile in your own territory.",
-    "limitReason": "Limit reached: {n}/{max} emplacements. More cities allow more emplacements.",
-    "spacingReason": "Too close to an own emplacement: at least {n} tiles apart.",
-    "territoryReason": "Only on a free adjacent tile in your own territory.",
-    "attack": "Attack emplacement",
-    "previewKill": "Destroys the emplacement",
-    "destroyed": "{name} gun emplacement destroyed!",
-    "fires": "{name} gun emplacement fires! {dmg} damage to your unit.",
-    "lost": "Gun emplacement razed: the territory is lost.",
-    "ruin": "Rubble of a gun emplacement"
   },
   "overworld": {
     "title": "Overworld",
@@ -3549,6 +3562,63 @@
       "unlockHint": "Satellite relay from the production capability {tech}."
     }
   },
+  "intro": {
+    "menu": "Watch intro",
+    "title": "Intro: Humanity in the Starfall",
+    "skip": "Skip",
+    "skipHint": "Tap again or press and hold to skip",
+    "loading": "Loading intro …",
+    "back": "Back",
+    "next": "Next",
+    "slide": "Frame {n} of {total}",
+    "replay": "Watch again",
+    "boom": "KABOOM!",
+    "quote": "“{q}”",
+    "tagline": "Hold the front",
+    "sub": {
+      "standstill": "After the Great Standstill, borders drawn in chalk held for two generations.",
+      "skyBurned": "Until the sky burned.",
+      "crash": "Zyrr debris rains down, and their mothership crashes into the desert.",
+      "fracture": "The bell tolls by itself. The human front breaks into five pieces.",
+      "korvat": "Korvat storms: in the Steppe Storm, the steppe riders strike at full gallop.",
+      "alvenia": "Alvenia holds: on home ground, the peacekeepers do not yield a single step.",
+      "dravon": "Dravon builds fortresses: gun emplacements, minefields, iron drill.",
+      "velkar": "Velkar strikes from orbit: a satellite relay guides the technocrats' laser.",
+      "meridon": "Meridon trades: every harbour has its price, and the privateers collect it.",
+      "banners": "Five banners, one continent. And the front is moving again."
+    },
+    "kicker": {
+      "korvat": "Korvat storms",
+      "alvenia": "Alvenia holds",
+      "dravon": "Dravon fortifies",
+      "velkar": "Velkar aims from orbit",
+      "meridon": "Meridon trades"
+    },
+    "tag": {
+      "dravon": "Guns and mines",
+      "velkar": "Orbital laser",
+      "meridon": "Letters of marque"
+    }
+  },
+  "emplacement": {
+    "name": "Gun emplacement",
+    "nameOf": "{name} gun emplacement",
+    "every": "fires every round",
+    "stats": "Armour {hp} / {max} · Range {range} · Attack {atk} · Defence {def}",
+    "desc": "Fixed structure of {name}, not a unit and impassable. At the start of every round it fires once at a visible unit in range {range} that is at war with {name}; never at peace and never at allies. It can be attacked and destroyed, but never counts as a kill. If the territory is lost, it is razed.",
+    "build": "Build gun emplacement",
+    "count": "{n}/{max} emplacements",
+    "hint": "Pick a free adjacent tile in your own territory.",
+    "limitReason": "Limit reached: {n}/{max} emplacements. More cities allow more emplacements.",
+    "spacingReason": "Too close to an own emplacement: at least {n} tiles apart.",
+    "territoryReason": "Only on a free adjacent tile in your own territory.",
+    "attack": "Attack emplacement",
+    "previewKill": "Destroys the emplacement",
+    "destroyed": "{name} gun emplacement destroyed!",
+    "fires": "{name} gun emplacement fires! {dmg} damage to your unit.",
+    "lost": "Gun emplacement razed: the territory is lost.",
+    "ruin": "Rubble of a gun emplacement"
+  },
   "orbital": {
     "name": "Orbital laser",
     "ready": "ready",
@@ -3572,5 +3642,28 @@
     "unlockHint": "Satellite relay from the research {tech}.",
     "own1": "Warning: 1 own unit in the target",
     "hits1": "1 hit, {kills} destroyed"
+  },
+  "mothership": {
+    "name": "Zyrr mothership",
+    "sub": "Crashed · impassable",
+    "work": "Work on the ship",
+    "progress": "Work {have}/{need}",
+    "workDesc": "The scientist examines the wreck. This ends his turn and counts one work round ({have}/{need}). Breaks do no harm, the rounds add up.",
+    "notAdjacent": "Only right next to the mothership.",
+    "done": "He has already worked this round.",
+    "tileDesc": "A crashed Zyrr mothership on four tiles: impassable, not capturable, not attackable. The scientist works on one of the tiles next to it ({have}/{need} rounds).",
+    "toast": "The scientist worked on the mothership: {have}/{need} rounds.",
+    "toastDone": "Done! The scientist has cracked the mothership."
+  },
+  "temple": {
+    "name": "Fanatic temple",
+    "sub": "Landmark, 2x2 tiles",
+    "desc": "Impassable, not capturable, not attackable. An own land unit right next to it can seize the war plans.",
+    "plansInside": "The war plans lie inside the temple.",
+    "plansGone": "The war plans are gone.",
+    "carrier": "Carries the war plans",
+    "carrierDesc": "Cannot be converted. Into or next to the HQ the plans are delivered. If the carrier falls, the plans drop onto its tile.",
+    "dropped": "War plans lie here",
+    "droppedDesc": "An own unit on or next to the tile picks them up. If a Fanatic steps onto the tile, he takes them back to the temple."
   }
 }

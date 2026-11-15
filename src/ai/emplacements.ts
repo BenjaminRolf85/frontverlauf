@@ -24,7 +24,7 @@ export function freeEmplacementSlots(ctx: Ctx): number {
 /** Durchgang fuer Landeinheiten (fuer Engstellen) / passage for land units (for chokepoints) */
 function open(ctx: Ctx, x: number, y: number): boolean {
   const t = ctx.s.tiles[idx(ctx.size, x, y)];
-  return isLand(t) && !t.turret && !t.wonderOf;
+  return isLand(t) && !t.turret && !t.wonderOf && !t.temple;
 }
 
 /**

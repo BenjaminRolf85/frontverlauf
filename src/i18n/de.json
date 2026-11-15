@@ -264,7 +264,8 @@
     "fusionPlant": "Fusionskraftwerk",
     "waal": "Landkreuzer Waal",
     "coreDrill": "Erdkernbohrer",
-    "swarmMother": "Schwarmmutter"
+    "swarmMother": "Schwarmmutter",
+    "scientist": "Wissenschaftler"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -312,7 +313,8 @@
     "fusionPlant": "Siegbauwerk von Velkar: liefert nach der Fertigstellung endlose Energie.",
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
-    "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei."
+    "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
+    "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne)."
   },
   "abilities": {
     "dash": "Sturm",
@@ -410,7 +412,8 @@
     "wreckCover": "+1 Deckung für Landeinheiten auf diesem Feld",
     "barrier": "Panzersperre",
     "mine": "Mine",
-    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus."
+    "mineDesc": "Feindliche Bodeneinheiten nehmen beim Betreten {foot} Schaden, Fahrzeuge {vehicle}. Flieger und Schiffe lösen nicht aus.",
+    "mothership": "Mutterschiff der Zyrr"
   },
   "buildings": {
     "storehouse": "Vorratslager anlegen",
@@ -677,7 +680,10 @@
     "mine": "Mine legen",
     "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine.",
     "persuade": "Überzeugen",
-    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne)."
+    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne).",
+    "seizePlans": "Kriegspläne bergen",
+    "pickPlans": "Kriegspläne aufheben",
+    "seizePlansDesc": "Nimmt die Kriegspläne an sich und beendet den Zug der Einheit. Bring sie in oder neben dein Hauptquartier."
   },
   "errors": {
     "gameOver": "Die Partie ist vorbei.",
@@ -719,8 +725,6 @@
     "cultRecruit": "Der Kult bildet nicht in Städten aus. Seine Truppen rekrutieren im Feld.",
     "cityLevel": "Die Stadt braucht eine höhere Stufe.",
     "mineLimit": "Höchstens {n} Minen je Fraktion.",
-    "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
-    "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "cannotRetreat": "Nur menschliche Bodentruppen können sich geordnet zurückziehen.",
     "retreatCooldown": "Der Rückzug ist noch nicht wieder bereit.",
     "noRetreatTile": "Kein freies Feld für den Rückzug.",
@@ -731,11 +735,14 @@
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
     "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
+    "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
+    "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit.",
     "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
     "orbitalCooldown": "Der Orbitallaser lädt noch.",
     "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
-    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay."
+    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
+    "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen"
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1016,7 +1023,17 @@
       "burrow": "Erobere die Höhle der Zyrr bis Runde {rounds}",
       "bonusBurrow": "Erobere die Höhle der Zyrr",
       "towers": "Erobere die Sendetürme und halte alle gleichzeitig {n} Runden in Folge, bis Runde {rounds}",
-      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})"
+      "towersPanel": "Erobere die Sendetürme und halte sie {n} Runden ({held}/{total} gehalten, Runde {have}/{n})",
+      "work": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten, bis Runde {rounds}",
+      "workPanel": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten ({have}/{n})",
+      "scientist": "Der Wissenschaftler darf nicht fallen",
+      "scientistHp": "Der Wissenschaftler fällt nie unter {share} % seiner LP",
+      "plans": "Berge die Kriegspläne aus dem Fanatiker-Tempel und bringe sie zu deinem Hauptquartier, bis Runde {rounds}",
+      "plansKept": "Der Träger verliert die Kriegspläne nie",
+      "plansTemple": "Kriegspläne: im Tempel",
+      "plansCarried": "Kriegspläne: getragen von {unit}",
+      "plansDropped": "Kriegspläne: liegen am Boden",
+      "plansDelivered": "Kriegspläne: abgeliefert"
     },
     "missions": {
       "m1": {
@@ -1036,19 +1053,19 @@
         }
       },
       "m2": {
-        "title": "Wettlauf zum Wrack",
-        "tagline": "Berge die Absturzstelle, während Landekapseln deine Städte bedrängen",
+        "title": "Das Mutterschiff",
+        "tagline": "Bring den Wissenschaftler ans Wrack und lass ihn 8 Runden daran arbeiten",
         "brief": [
-          "Da liegt ein Trümmerteil vom Mutterschiff, groß wie ein Bahnhof! Es glüht noch. Und am Horizont gehen Landekapseln nieder, direkt vor unseren Städten.",
-          "{leader} an alle: Erreicht die Absturzstelle vor den Zyrr und bergt die Technik. Gleichzeitig fällt keine Stadt. Wer zuerst kommt, produziert zuerst.",
-          "ZKRRT ... Eigentum des Schwarms ... Erdlinge ... zurücktreten ... Graue unterwegs ... ZKRRT"
+          "Kommandant, die Peilung der Sendetürme hat es gefunden: Das Mutterschiff liegt in einem Krater, mitten durchgebrochen und groß wie ein Dorf. Es glüht noch, es raucht, und Graue stehen Wache.",
+          "Kkt. Das Mutterschiff ist heilig. Wer seine Hülle berührt, wird zerlegt. Schwarm, landet und findet den Weißkittel!",
+          "{leader} an alle: Unser Wissenschaftler braucht acht Runden an diesem Wrack, dann wissen wir, wie die Zyrr fliegen. Räumt die Wachen weg und deckt ihn mit allem, was wir haben. Fällt er, war alles umsonst."
         ],
-        "ally": "{allyLeader} hier. {ally} steht an eurer Seite, {leader}. Gegen Sterne vom Himmel halten Menschen zusammen.",
-        "won": "Geborgen, und keine Stadt verloren! Die Eierköpfe im Labor flippen gerade völlig aus.",
-        "lost": "Die Zyrr waren schneller, oder unsere Linie ist gebrochen. Jetzt fliegt das Ding wieder, nur nicht für uns.",
+        "ally": "{allyLeader} hier. {ally} sichert den Krater, {leader}. Euer Gelehrter schraubt, wir halten die Grauen fern.",
+        "won": "Acht Runden Arbeit, und der Wissenschaftler grinst wie ein Kind an Weihnachten. Wir wissen jetzt, wie das Ding fliegt. Und woher es kam.",
+        "lost": "Der Wissenschaftler ist gefallen, oder die Zeit lief uns davon. Das Wrack schweigt, und die Zyrr holen sich ihre Geheimnisse zurück.",
         "variants": {
           "velkar": {
-            "won": "Geborgen! {leader} hat schon siebzehn Formeln auf die Trümmer geschrieben."
+            "won": "Acht Runden! {leader} hat das halbe Wrack schon in Formeln übersetzt und will die andere Hälfte noch heute Nacht."
           }
         }
       },
@@ -1065,19 +1082,19 @@
         "lost": "Das Portal bleibt in der Hand der Zyrr. Und es spuckt weiter Graue aus."
       },
       "m4": {
-        "title": "Falsche Pilger",
-        "tagline": "Erledige die Eiferer in deinem Land",
+        "title": "Die Kriegspläne",
+        "tagline": "Hol die Kriegspläne aus dem Fanatiker-Tempel und bring sie heim",
         "brief": [
-          "Die Pilger, die wir aufgenommen haben, tragen plötzlich Knochenmasken! Sie stehen direkt vor unseren Toren.",
-          "Die Glocke hat geschlagen. Von selbst! Brüder, Schwestern, bekehrt sie oder brennt sie nieder.",
-          "{leader} hier. Acht Eiferer weniger, und die Ruhe kehrt zurück. Schnell, bevor sie anfangen zu predigen."
+          "Kommandant, wir haben ihn gefunden: einen Tempel der Fanatiker, vier Felder groß, mit Glockenturm und Feuerschalen. Darin liegen ihre Kriegspläne. Unser Jeep ist schnell genug, um sie herauszuholen.",
+          "{enemyLeader} spricht: Die Glocke hat von selbst geschlagen. Unsere Pläne ruhen im Tempel. Wer sie berührt, den jagen alle Glocken des Landes, bis ans Ende der Welt.",
+          "{leader} hier. Eine Einheit neben den Tempel, Pläne an uns nehmen, zurück zum Hauptquartier. Deckt den Träger! Fällt er, liegen die Pläne im Dreck, und wir holen sie uns wieder. Achtzehn Runden."
         ],
-        "ally": "{allyLeader} hier. {ally} hat auch Pilger im Haus. Wir räumen gemeinsam auf, {leader}.",
-        "won": "Die Masken liegen im Staub. Der Rest der Pilger will plötzlich nur noch Tee.",
-        "lost": "Die Eiferer predigen auf unseren Marktplätzen. Der Bäcker trägt schon eine Kutte.",
+        "ally": "{allyLeader} hier. {ally} gibt deinem Träger Geleit, {leader}. Wer ihn jagt, bekommt es mit uns zu tun.",
+        "won": "Die Pläne liegen auf dem Kartentisch: eine Pilgerstadt voller Eiferer, eine riesige Glocke und ein Bohrer bis zum Erdkern. Jetzt wissen wir, wofür die Glocke läutet.",
+        "lost": "Die Kriegspläne sind wieder im Tempel. Die Glocke läutet, und wir wissen immer noch nicht, wofür.",
         "variants": {
           "alvenia": {
-            "won": "Die Masken liegen im Staub. Unsere Sanitäter verbinden jetzt auch die Eiferer. So ist das bei uns."
+            "won": "Die Pläne sind bei uns. Unsere Diplomaten lesen sie mit sehr ernsten Gesichtern: eine Pilgerstadt, eine Glocke, ein Bohrer bis zum Erdkern."
           }
         }
       },
@@ -1085,7 +1102,7 @@
         "title": "Die Pilgerstadt",
         "tagline": "Erobere die Hauptstadt des Kults",
         "brief": [
-          "{leader} an alle: Der Kult sammelt sich in seiner Pilgerstadt. Nehmt sie ein, dann verstummt die Glocke vielleicht.",
+          "{leader} an alle: Die Kriegspläne sind eindeutig. Der Kult sammelt sich in seiner Pilgerstadt. Nehmt sie ein, dann verstummt die Glocke vielleicht.",
           "{enemyLeader} spricht: Kommt nur. Unsere Stadt ist auf Glauben gebaut. Und auf sehr dicken Mauern.",
           "Fackelträger auf den Mauern, Eiferer in den Gassen. Die Seen bremsen uns, Kommandant. Nehmt die Ufer."
         ],
@@ -1102,7 +1119,7 @@
         "title": "Der Erdkernbohrer",
         "tagline": "Zerstöre den Bohrer, bevor er durchbricht",
         "brief": [
-          "Der Boden zittert, Kommandant! Der Kult hat einen riesigen Bohrer aufgestellt. Er will bis zum Erdkern!",
+          "Der Boden zittert, Kommandant! Der Bohrer aus den Kriegsplänen steht wirklich da. Der Kult will bis zum Erdkern!",
           "Die Letzte Stunde braucht ein Loch, durch das sie kommen kann. Wir bohren es ihr.",
           "{leader} hier. Panzer und Artillerie vor! Der Bohrer muss weg, bevor er durchbricht. Vierzehn Runden, keine mehr."
         ],
@@ -1310,7 +1327,14 @@
     "riftOpen": "Der Riss reißt auf!",
     "landingBurrow": "Landetrupp ohne Basis: Erobere die Höhle der Zyrr, sonst gibt es keinen Nachschub.",
     "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht.",
-    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn."
+    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn.",
+    "plansSeized": "Kriegspläne geborgen! Bring den Träger zum Hauptquartier.",
+    "plansPicked": "Kriegspläne wieder aufgehoben!",
+    "plansDropped": "Der Träger ist gefallen. Die Kriegspläne liegen am Boden!",
+    "plansReturned": "Die Fanatiker haben die Kriegspläne zurück in den Tempel gebracht.",
+    "plansDelivered": "Kriegspläne abgeliefert!",
+    "plansLine": "Diebe im Tempel! Brüder, Schwestern, holt mir die Pläne zurück, und den Dieb dazu!",
+    "plansTip": "Tipp: Nur Landeinheiten direkt neben dem Tempel können die Pläne bergen. Schick einen schnellen Jeep mit Begleitschutz. Sobald die Pläne fort sind, schickt der Kult alle {n} Runden Verfolger."
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -1653,7 +1677,8 @@
       "fusionPlant": "Volkssonne",
       "waal": "Stahlwal",
       "coreDrill": "Teufelspflug",
-      "swarmMother": "Die große Mutter"
+      "swarmMother": "Die große Mutter",
+      "scientist": "Wissenschaftler"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1701,7 +1726,8 @@
       "fusionPlant": "Feindreaktor",
       "waal": "Landkreuzer Waal",
       "coreDrill": "Ketzerbohrer",
-      "swarmMother": "Feindliches Oberkommando"
+      "swarmMother": "Feindliches Oberkommando",
+      "scientist": "Wissenschaftler"
     },
     "alvenia": {
       "infantry": "Blaubarette",
@@ -1749,7 +1775,8 @@
       "fusionPlant": "Friedensreaktor",
       "waal": "Kriegswal",
       "coreDrill": "Untergangsbohrer",
-      "swarmMother": "Verhandlungsführerin des Schwarms"
+      "swarmMother": "Verhandlungsführerin des Schwarms",
+      "scientist": "Wissenschaftler"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1797,7 +1824,8 @@
       "fusionPlant": "Stromkontor",
       "waal": "Teurer Waal",
       "coreDrill": "Grundstücksruin",
-      "swarmMother": "Die Konkurrenz im Chitinkleid"
+      "swarmMother": "Die Konkurrenz im Chitinkleid",
+      "scientist": "Wissenschaftler"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1845,7 +1873,8 @@
       "fusionPlant": "Tokamak Eins",
       "waal": "Überschwerer Prototyp",
       "coreDrill": "Geologische Katastrophe",
-      "swarmMother": "Versuchsobjekt Eins"
+      "swarmMother": "Versuchsobjekt Eins",
+      "scientist": "Wissenschaftler"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1893,7 +1922,8 @@
       "fusionPlant": "Erdlingssönnchen",
       "waal": "Großer Blechwal",
       "coreDrill": "Kernsonde der Erdlinge",
-      "swarmMother": "Mutter aller Augen"
+      "swarmMother": "Mutter aller Augen",
+      "scientist": "Wissenschaftler"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -1941,7 +1971,8 @@
       "fusionPlant": "Falsche Sonne",
       "waal": "Leviathan",
       "coreDrill": "Der Letzte Bohrer",
-      "swarmMother": "Dämonin vom Himmel"
+      "swarmMother": "Dämonin vom Himmel",
+      "scientist": "Wissenschaftler"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -1989,7 +2020,8 @@
       "fusionPlant": "Externe Energiequelle",
       "waal": "Analoger Großpanzer",
       "coreDrill": "Geofehler 404",
-      "swarmMother": "Primärknoten Z-0"
+      "swarmMother": "Primärknoten Z-0",
+      "scientist": "Wissenschaftler"
     }
   },
   "identity": {
@@ -2570,7 +2602,6 @@
   "traits": {
     "perk": "Bonus",
     "perk2": "Zweiter Bonus",
-    "feature": "Fraktionsmerkmal",
     "unit": "Spezialeinheit",
     "discount": "Rabatt",
     "discountValue": "{unit} −{pct} %",
@@ -2580,7 +2611,8 @@
     "details": "Details",
     "detailsFor": "Details zu {name}",
     "victory": "Siegbedingung",
-    "combat": "Kampfbonus"
+    "combat": "Kampfbonus",
+    "feature": "Fraktionsmerkmal"
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -3316,10 +3348,6 @@
       "title": "Außenposten",
       "text": "Mit {tech} bauen Fußtruppen für {cost} Sterne einen Außenposten auf ihrem Feld. Fußtruppen darauf verteidigen ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
     },
-    "emplacements": {
-      "title": "Geschützstellungen (Dravon)",
-      "text": "Festungsbau: Mit {tech} bauen Pioniertrupps und Minenleger der Dravon für {cost} Sterne eine Geschützstellung auf ein freies Nachbarfeld im eigenen Gebiet (passierbares Land ohne Stadt, Gebäude, Ressource, Besonderheit oder Einheit). Höchstens {per} je eigener Stadt, mindestens {spacing} Felder Abstand. Die Stellung ist ein Bauwerk, keine Einheit: Panzerung {hp}, Angriff {atk}, Verteidigung {def}, unpassierbar, ohne Sold und ohne Punkte. Zu Beginn jeder Runde feuert sie einmal auf eine sichtbare Einheit in Reichweite {range}, die mit Dravon im Krieg ist (nie im Frieden, nie auf Verbündete), immer mit vollem Schaden und Trefferglück. Gegner greifen sie wie ein Verdan-Geschütz an; zerstört bleiben Trümmer, ein Abschuss zählt nicht. Geht das Gebiet verloren oder scheidet Dravon aus, wird sie geschleift."
-    },
     "diplomacy": {
       "title": "Diplomatie",
       "text": "Fraktionen, die du noch nicht getroffen hast, bleiben verborgen. Nach dem ersten Kontakt herrscht Krieg. Du kannst Frieden anbieten, die andere Seite nimmt an oder lehnt ab. Ein Friedensbruch wird eine Runde vorher angekündigt. Mit {tech} und entdecktem Hauptquartier eröffnest du Botschaften (die erste kostet {cost} Sterne, jede weitere {step} mehr); jede bringt beiden Seiten {income} Sterne pro Runde."
@@ -3328,11 +3356,15 @@
       "title": "Fraktionssiege",
       "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegtechnologie (Stufe 3), in der Forschung gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
     },
+    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich.",
+    "emplacements": {
+      "title": "Geschützstellungen (Dravon)",
+      "text": "Festungsbau: Mit {tech} bauen Pioniertrupps und Minenleger der Dravon für {cost} Sterne eine Geschützstellung auf ein freies Nachbarfeld im eigenen Gebiet (passierbares Land ohne Stadt, Gebäude, Ressource, Besonderheit oder Einheit). Höchstens {per} je eigener Stadt, mindestens {spacing} Felder Abstand. Die Stellung ist ein Bauwerk, keine Einheit: Panzerung {hp}, Angriff {atk}, Verteidigung {def}, unpassierbar, ohne Sold und ohne Punkte. Zu Beginn jeder Runde feuert sie einmal auf eine sichtbare Einheit in Reichweite {range}, die mit Dravon im Krieg ist (nie im Frieden, nie auf Verbündete), immer mit vollem Schaden und Trefferglück. Gegner greifen sie wie ein Verdan-Geschütz an; zerstört bleiben Trümmer, ein Abschuss zählt nicht. Geht das Gebiet verloren oder scheidet Dravon aus, wird sie geschleift."
+    },
     "cult": {
       "title": "Kult: Plündern & Horde",
       "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde), jeder erbeutete Stern zählt {score} Punkte. Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
-    },
-    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich."
+    }
   },
   "lore": {
     "button": "Geschichte als Comic",
@@ -3373,25 +3405,6 @@
     "previewKill": "Zerstört das Geschütz",
     "destroyed": "Verdan-Geschütz zerstört!",
     "fx": "Verdan"
-  },
-  "emplacement": {
-    "name": "Geschützstellung",
-    "nameOf": "{name}-Geschützstellung",
-    "every": "feuert jede Runde",
-    "stats": "Panzerung {hp} / {max} · Reichweite {range} · Angriff {atk} · Verteidigung {def}",
-    "desc": "Festes Bauwerk von {name}, keine Einheit und unpassierbar. Feuert zu Beginn jeder Runde einmal auf eine sichtbare Einheit in Reichweite {range}, die mit {name} im Krieg ist; nie im Frieden und nie auf Verbündete. Kann angegriffen und zerstört werden, zählt aber nie als Abschuss. Geht das Gebiet verloren, wird sie geschleift.",
-    "build": "Geschützstellung bauen",
-    "count": "{n}/{max} Stellungen",
-    "hint": "Wähle ein freies Nachbarfeld im eigenen Gebiet.",
-    "limitReason": "Limit erreicht: {n}/{max} Stellungen. Mehr Städte erlauben mehr Stellungen.",
-    "spacingReason": "Zu nah an einer eigenen Stellung: mindestens {n} Felder Abstand.",
-    "territoryReason": "Nur auf ein freies Nachbarfeld im eigenen Gebiet.",
-    "attack": "Stellung angreifen",
-    "previewKill": "Zerstört die Stellung",
-    "destroyed": "{name}-Geschützstellung zerstört!",
-    "fires": "{name}-Geschützstellung feuert! {dmg} Schaden an deiner Einheit.",
-    "lost": "Geschützstellung geschleift: Das Gebiet ist verloren.",
-    "ruin": "Trümmer einer Geschützstellung"
   },
   "overworld": {
     "title": "Oberwelt",
@@ -3549,6 +3562,63 @@
       "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
     }
   },
+  "intro": {
+    "menu": "Intro ansehen",
+    "title": "Intro: Die Menschheit im Sternfall",
+    "skip": "Überspringen",
+    "skipHint": "Nochmal tippen oder gedrückt halten zum Überspringen",
+    "loading": "Intro wird geladen …",
+    "back": "Zurück",
+    "next": "Weiter",
+    "slide": "Bild {n} von {total}",
+    "replay": "Nochmal ansehen",
+    "boom": "KAWUMM!",
+    "quote": "„{q}“",
+    "tagline": "Halte die Front",
+    "sub": {
+      "standstill": "Nach dem Großen Stillstand hielten Grenzen aus Kreide, zwei Generationen lang.",
+      "skyBurned": "Bis der Himmel brannte.",
+      "crash": "Trümmer der Zyrr regnen herab, ihr Mutterschiff stürzt in die Wüste.",
+      "fracture": "Die Glocke schlägt von selbst. Die Front der Menschen zerbricht in fünf Teile.",
+      "korvat": "Korvat stürmt: Im Steppensturm schlagen die Steppenreiter aus vollem Galopp zu.",
+      "alvenia": "Alvenia hält: Auf eigenem Boden weicht die Friedenswacht keinen Schritt.",
+      "dravon": "Dravon baut Festungen: Geschützstellungen, Minenfelder, eiserner Drill.",
+      "velkar": "Velkar schlägt aus dem Orbit zu: Ein Satellitenrelais lenkt den Laser der Technokraten.",
+      "meridon": "Meridon handelt: Jeder Hafen hat seinen Preis, die Kaperschiffe treiben ihn ein.",
+      "banners": "Fünf Banner, ein Kontinent. Und die Front wandert wieder."
+    },
+    "kicker": {
+      "korvat": "Korvat stürmt",
+      "alvenia": "Alvenia hält",
+      "dravon": "Dravon befestigt",
+      "velkar": "Velkar zielt vom Orbit",
+      "meridon": "Meridon handelt"
+    },
+    "tag": {
+      "dravon": "Geschütze und Minen",
+      "velkar": "Orbitallaser",
+      "meridon": "Kaperbriefe"
+    }
+  },
+  "emplacement": {
+    "name": "Geschützstellung",
+    "nameOf": "{name}-Geschützstellung",
+    "every": "feuert jede Runde",
+    "stats": "Panzerung {hp} / {max} · Reichweite {range} · Angriff {atk} · Verteidigung {def}",
+    "desc": "Festes Bauwerk von {name}, keine Einheit und unpassierbar. Feuert zu Beginn jeder Runde einmal auf eine sichtbare Einheit in Reichweite {range}, die mit {name} im Krieg ist; nie im Frieden und nie auf Verbündete. Kann angegriffen und zerstört werden, zählt aber nie als Abschuss. Geht das Gebiet verloren, wird sie geschleift.",
+    "build": "Geschützstellung bauen",
+    "count": "{n}/{max} Stellungen",
+    "hint": "Wähle ein freies Nachbarfeld im eigenen Gebiet.",
+    "limitReason": "Limit erreicht: {n}/{max} Stellungen. Mehr Städte erlauben mehr Stellungen.",
+    "spacingReason": "Zu nah an einer eigenen Stellung: mindestens {n} Felder Abstand.",
+    "territoryReason": "Nur auf ein freies Nachbarfeld im eigenen Gebiet.",
+    "attack": "Stellung angreifen",
+    "previewKill": "Zerstört die Stellung",
+    "destroyed": "{name}-Geschützstellung zerstört!",
+    "fires": "{name}-Geschützstellung feuert! {dmg} Schaden an deiner Einheit.",
+    "lost": "Geschützstellung geschleift: Das Gebiet ist verloren.",
+    "ruin": "Trümmer einer Geschützstellung"
+  },
   "orbital": {
     "name": "Orbitallaser",
     "ready": "bereit",
@@ -3572,5 +3642,28 @@
     "unlockHint": "Satelliten-Relay ab der Forschung {tech}.",
     "own1": "Achtung: 1 eigene Einheit im Ziel",
     "hits1": "1 Treffer, {kills} vernichtet"
+  },
+  "mothership": {
+    "name": "Mutterschiff der Zyrr",
+    "sub": "Abgestürzt · unpassierbar",
+    "work": "Am Schiff arbeiten",
+    "progress": "Arbeit {have}/{need}",
+    "workDesc": "Der Wissenschaftler untersucht das Wrack. Das beendet seinen Zug und zählt eine Arbeitsrunde ({have}/{need}). Pausen schaden nicht, die Runden werden zusammengezählt.",
+    "notAdjacent": "Nur direkt neben dem Mutterschiff.",
+    "done": "In dieser Runde hat er schon gearbeitet.",
+    "tileDesc": "Ein abgestürztes Mutterschiff der Zyrr auf vier Feldern: nicht begehbar, nicht einnehmbar, nicht angreifbar. Der Wissenschaftler arbeitet auf einem der Nachbarfelder ({have}/{need} Runden).",
+    "toast": "Der Wissenschaftler hat am Mutterschiff gearbeitet: {have}/{need} Runden.",
+    "toastDone": "Geschafft! Der Wissenschaftler hat das Mutterschiff entschlüsselt."
+  },
+  "temple": {
+    "name": "Fanatiker-Tempel",
+    "sub": "Wahrzeichen, 2x2 Felder",
+    "desc": "Unpassierbar, nicht einnehmbar, nicht angreifbar. Eine eigene Landeinheit direkt daneben kann die Kriegspläne bergen.",
+    "plansInside": "Die Kriegspläne liegen im Tempel.",
+    "plansGone": "Die Kriegspläne sind fort.",
+    "carrier": "Trägt die Kriegspläne",
+    "carrierDesc": "Kann nicht bekehrt werden. In oder neben dem Hauptquartier sind die Pläne abgeliefert. Fällt der Träger, fallen die Pläne auf sein Feld.",
+    "dropped": "Kriegspläne liegen hier",
+    "droppedDesc": "Eine eigene Einheit auf oder neben dem Feld hebt sie auf. Betritt ein Fanatiker das Feld, bringt er sie zurück in den Tempel."
   }
 }
