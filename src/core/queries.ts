@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -39,6 +39,14 @@ export function territoryOwner(s: GameState, t: Tile): number | null {
   if (t.territory === null) return null;
   const c = cityById(s, t.territory);
   return c ? c.owner : null;
+}
+
+/**
+ * Kampagne: Spieler und Verbuendeter sind fest verbunden (kein Friedensbruch) / campaign: player and ally are bound (no breaking peace).
+ */
+export function isCampaignBond(s: GameState, a: number, b: number): boolean {
+  const al = s.campaign?.allies;
+  return !!al && ((a === 0 && al.includes(b)) || (b === 0 && al.includes(a)));
 }
 
 export function isHostile(s: GameState, a: number, b: number): boolean {
@@ -720,6 +728,32 @@ export function veteranKills(s: GameState, u: Unit): number {
 // ---------- Einnahme / capture ----------
 
 export type CaptureKind = 'village' | 'city' | 'outpost';
+/** Preis fuer das Ueberzeugen einer Siedlung / price to persuade a settlement */
+export const persuadeCost = (c: City) => PERSUADE.cost + PERSUADE.perLevel * Math.max(0, c.level - 1);
+/** Darf diese Fraktion ueberzeugen (nur Kampagne, nur diplomatische Fraktionen)? / may this faction persuade (campaign only, diplomatic factions only)? */
+export const canPersuadeFaction = (s: GameState, f: number) => !!s.config.campaign && PERSUADE.factions.includes(s.factions[f]?.id);
+/**
+ * Pruefung: neutrale Siedlung neben (oder unter) einer bereiten eigenen Einheit, keine fremde Einheit darauf, genug Sterne.
+ * Check: neutral settlement next to (or under) a ready own unit, no foreign unit on it, enough stars.
+ */
+export function persuadeCheck(s: GameState, u: Unit, c: City): 'ok' | import('./types').ErrorCode {
+  if (!canPersuadeFaction(s, u.owner)) return 'wrongFaction';
+  if (u.fresh) return 'fresh';
+  if (u.exhausted || u.attacked) return 'unitExhausted';
+  if (isShip(u) || has(u, 'wonder')) return 'cannotCapture';
+  if (c.owner !== null) return 'invalidTarget';
+  if (dist(u, c) > PERSUADE.range) return 'outOfRange';
+  const occ = unitAt(s, c.x, c.y);
+  if (occ && occ.owner !== u.owner) return 'occupied';
+  if (s.factions[u.owner].stars < persuadeCost(c)) return 'notEnoughStars';
+  return 'ok';
+}
+/** Siedlungen, die diese Einheit ueberzeugen koennte (ohne Sternepruefung) / settlements this unit could persuade (without the star check) */
+export function persuadeTargets(s: GameState, u: Unit): City[] {
+  if (!canPersuadeFaction(s, u.owner)) return [];
+  return s.cities.filter((c) => c.owner === null && dist(u, c) <= PERSUADE.range && ['ok', 'notEnoughStars'].includes(persuadeCheck(s, u, c)));
+}
+
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;

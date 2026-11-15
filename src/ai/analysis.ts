@@ -6,7 +6,7 @@ import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
   isWonder, waalArmed, victoryStatus } from '../core';
-import { AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
 export type GoalKind =
@@ -425,6 +425,17 @@ function buildGoals(ctx: Ctx): Goal[] {
     const x = k % size, y = (k / size) | 0;
     const water = isWater(t);
     goals.push({ kind: 'bunker', x, y, value: 45, cap: 1, distW: 9, src: tileSrc(x, y, water), water });
+  }
+  // Kampagnen-Finale: das Artefakt besetzen oder den Besetzer vertreiben; Verbuendete des Spielers ueberlassen es ihm
+  // campaign finale: occupy the artifact or drive off its occupant; the player's allies leave it to the player
+  const art = s.campaign && !s.campaign.result ? s.campaign.artifact : undefined;
+  if (art && !s.campaign!.allies?.includes(f)) {
+    const occ = unitAt(s, art.x, art.y);
+    if (occ && occ.owner !== f && isHostile(s, f, occ.owner)) {
+      goals.push({ kind: 'hunt', x: art.x, y: art.y, value: CAMPAIGN_AI.artifactHuntValue, cap: CAMPAIGN_AI.artifactHuntCap, distW: CAMPAIGN_AI.artifactDistW, src: tileSrc(art.x, art.y), water: false, targetId: occ.id });
+    } else if (!occ || occ.owner === f) {
+      goals.push({ kind: 'bunker', x: art.x, y: art.y, value: CAMPAIGN_AI.artifactValue, cap: CAMPAIGN_AI.artifactCap, distW: CAMPAIGN_AI.artifactDistW, src: tileSrc(art.x, art.y), water: false });
+    }
   }
   for (const c of ctx.myCities) {
     const near = ctx.enemies.filter((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);

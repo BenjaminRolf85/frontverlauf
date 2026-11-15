@@ -33,6 +33,21 @@ function placeholder(color: string, h = 0.3): THREE.BufferGeometry {
   if (!g) { g = paint(new THREE.CylinderGeometry(0.18, 0.22, h, 8).toNonIndexed(), color); g.translate(0, h / 2, 0); placeholderCache.set(key, g); }
   return g;
 }
+/**
+ * Kampagnen-Finale: Marker des Artefakts der Uralten (Ursprung unten mittig, ein Feld gross). Vorerst ein schlichter
+ * Obelisk; das eigentliche Modell wird hier eingesetzt.
+ * Campaign finale: marker of the artifact of the ancients (origin bottom centre, one tile). For now a plain obelisk;
+ * the real model gets plugged in here.
+ */
+let artifactCache: THREE.BufferGeometry | null = null;
+function artifactMarker(): THREE.BufferGeometry {
+  // ARTIFACT_MODEL_HOOK: hier artifactGeometry() aus models/artifact.ts einsetzen / plug in artifactGeometry() from models/artifact.ts here
+  if (!artifactCache) {
+    artifactCache = paint(new THREE.CylinderGeometry(0.05, 0.13, 0.62, 4).toNonIndexed(), semantic.basalt);
+    artifactCache.translate(0, 0.31, 0);
+  }
+  return artifactCache;
+}
 function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null, fallback: string | null, ...args: T): THREE.BufferGeometry | null {
   try { return fn(...args); } catch { return fallback ? placeholder(fallback) : null; }
 }
@@ -265,6 +280,7 @@ export class Board {
     const borderSegs: { m: THREE.Matrix4; color: string }[] = [];
     const clouds: THREE.Matrix4[] = [];
     const off = (size - 1) / 2;
+    const artifact = s.campaign && !s.campaign.result ? s.campaign.artifact : undefined;
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -365,6 +381,8 @@ export class Board {
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+        // Artefakt: schwingt leicht mit (Sway-Gruppe) / artifact: sways gently (sway group)
+        if (artifact && artifact.x === x && artifact.y === y) addDeco(artifactMarker(), new THREE.Matrix4().makeTranslation(x - off, top, y - off), true, 'built');
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;
           addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));

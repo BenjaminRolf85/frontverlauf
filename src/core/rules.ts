@@ -21,7 +21,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet,
-  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk,
+  isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -1014,6 +1014,20 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    case 'persuade': {
+      // Kampagne: Siedlung ohne Kampf gewinnen / campaign: win a settlement without combat
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const c = cityById(s, cmd.city);
+      if (!c) return fail('invalidTarget');
+      const chk = persuadeCheck(s, u, c);
+      if (chk !== 'ok') return fail(chk);
+      fa.stars -= persuadeCost(c);
+      u.exhausted = true;
+      captureCity(s, u, c, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'train': {
       const c = cityById(s, cmd.city);
       if (!c || c.owner !== f) return fail('notYourCity');
@@ -1230,6 +1244,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         }
         case 'announceBreak': {
           if (fa.relations[g] !== 'peace') return fail('invalid');
+          // Kampagne: das Buendnis mit dem Verbuendeten haelt / campaign: the alliance with the ally holds
+          if (isCampaignBond(s, f, g)) return fail('invalid');
           fa.relations[g] = 'breaking'; ga.relations[f] = 'breaking';
           fa.breakRound[g] = s.round;
           ev.push({ t: 'breakAnnounced', from: f, to: g });

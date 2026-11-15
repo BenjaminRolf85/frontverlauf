@@ -842,3 +842,14 @@ export const AI = {
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };
+
+/**
+ * Kampagne: Ueberzeugen. Diplomatische Fraktionen gewinnen neutrale Siedlungen neben einer eigenen Einheit ohne Kampf,
+ * gegen Sterne (Grundpreis plus Aufschlag je Stufe ueber 1). Nur in Kampagnenpartien.
+ * Campaign: persuasion. Diplomatic factions win neutral settlements next to an own unit without combat,
+ * for stars (base price plus a surcharge per level above 1). Campaign games only.
+ */
+/** KI im Kampagnen-Finale: Ziele rund um das Artefakt / AI in the campaign finale: goals around the artifact */
+export const CAMPAIGN_AI = { artifactValue: 100, artifactCap: 2, artifactHuntValue: 120, artifactHuntCap: 4, artifactDistW: 4 };
+
+export const PERSUADE = { factions: ['alvenia', 'meridon'] as FactionId[], cost: 20, perLevel: 5, range: 1 };

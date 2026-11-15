@@ -7,7 +7,7 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities, isCampaignBond,
 } from '../core';
 import {
   UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -180,7 +180,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
       // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
       // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
-      const brk = leagueSeeker(ctx) ? false : nearVictory(ctx, g) || (ctx.conquest
+      const brk = leagueSeeker(ctx) || isCampaignBond(s, f, g) ? false : nearVictory(ctx, g) || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {

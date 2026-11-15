@@ -24,7 +24,7 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
-import { ObjectivePanel, campaignResult, objectiveToast } from './ui/campaign';
+import { ObjectivePanel, campaignResult, objectiveToast, waveToast } from './ui/campaign';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -212,6 +212,7 @@ function boot() {
           break;
         }
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
+        case 'wave': waveToast(root, s, e.faction, e.count); break;
       }
       dispatches.onEvent(e, s);
     },

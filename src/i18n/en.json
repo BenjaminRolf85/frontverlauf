@@ -647,7 +647,9 @@
     "barrier": "Build tank barrier",
     "barrierHint": "Tap an adjacent tile for the tank barrier.",
     "mine": "Lay mine",
-    "mineHint": "Tap a free adjacent tile for the mine."
+    "mineHint": "Tap a free adjacent tile for the mine.",
+    "persuade": "Persuade",
+    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only)."
   },
   "errors": {
     "gameOver": "The game is over.",
@@ -890,7 +892,7 @@
   "campaign": {
     "title": "Campaign",
     "menu": "Campaign",
-    "subtitle": "Nine operations on every front",
+    "subtitle": "Nine operations after the Starfall",
     "totalStars": "{n} of {max} stars",
     "mission": "Operation {n}",
     "locked": "Locked",
@@ -917,7 +919,6 @@
     "retry": "Retry",
     "toCampaign": "To campaign",
     "toMenu": "Main menu",
-    "finale": "All operations accomplished! You are a legend of the front.",
     "objectiveDone": "Objective done: {text}",
     "objectiveFailed": "Objective failed: {text}",
     "bonusDone": "Bonus objective done: {text}",
@@ -929,7 +930,9 @@
     "speakers": {
       "hq": "Headquarters",
       "scout": "Recon",
-      "enemy": "Enemy radio"
+      "enemy": "Enemy radio",
+      "scoutRole": "Scout at the front",
+      "ally": "Ally"
     },
     "obj": {
       "holdHq": "Hold your headquarters until round {rounds}",
@@ -948,107 +951,213 @@
       "bonusCapture": "Capture the marked city",
       "bonusCities": "Own {n} cities",
       "bonusKills": "Destroy {n} enemy units",
-      "bonusPoints": "Reach {n} points"
+      "bonusPoints": "Reach {n} points",
+      "destroyUnit": "Destroy the {unit} by round {rounds}",
+      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}"
     },
     "missions": {
       "m1": {
-        "title": "Baptism of Fire",
-        "tagline": "Three cities under the Korvat flag",
+        "title": "Shower of Sparks",
+        "tagline": "Secure the crash zone with three cities",
         "brief": [
-          "Recruit! Welcome to the front. The Dravon are sniffing around our border.",
-          "Your orders: three cities under the Korvat flag. Take settlements, raise troops – on the double!",
-          "Dravon here. Korvat farmers? We'll be over for breakfast in two rounds!"
+          "{leader} speaking. The sky burned, and now it is raining scrap. We secure the crash zone before anyone else does.",
+          "Debris and smoking craters everywhere, commander! The settlements around here are scared. Three cities under the flag of {faction}, then the zone is ours.",
+          "Kkt. Primitive creatures are crawling over our crash site. Swarm, clean up!"
         ],
-        "won": "Three cities, zero excuses. That's what we call a baptism of fire, soldier!",
-        "lost": "That was nothing. Back to boot camp – and then again!"
+        "won": "Three cities, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
+        "lost": "The zone is lost. The settlers pack their suitcases, the Zyrr unpack their probes.",
+        "variants": {
+          "korvat": {
+            "won": "Three cities, one people, one step! The League sings twice as loud tonight."
+          }
+        }
       },
       "m2": {
-        "title": "The Volcano Pass",
-        "tagline": "Hold the pass at the fire mountain",
+        "title": "Race to the Wreck",
+        "tagline": "Salvage the crash site before the Zyrr",
         "brief": [
-          "The only pass through the mountains runs right past the fire mountain. Whoever holds it holds the valley.",
-          "Dravon column inbound! Jeep and infantry heading for the pass. If an enemy stands there at the start of your turn, all is lost.",
-          "Out of the way, mountain goats! The pass belongs to Dravon!"
+          "There is a chunk of the mothership out there, big as a train station! It is still glowing.",
+          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. First come, first researched.",
+          "ZKRRT ... property of the swarm ... earthlings ... step back ... ZKRRT"
         ],
-        "won": "The pass is sealed! The Dravon can fold their maps back up.",
-        "lost": "The pass has fallen. Even the volcano is embarrassed."
+        "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
+        "won": "Salvaged! The eggheads in the lab are completely losing it.",
+        "lost": "The Zyrr were faster. Now the thing flies again, just not for us.",
+        "variants": {
+          "velkar": {
+            "won": "Salvaged! {leader} has already written seventeen formulas on the debris."
+          }
+        }
       },
       "m3": {
-        "title": "Defend the Coast",
-        "tagline": "15 rounds against the landing fleet",
+        "title": "Hold the Line",
+        "tagline": "12 rounds against skimmers and greys",
         "brief": [
-          "Alert on the coast! The Alvenia fleet is lying off our harbours.",
-          "Two landing boats and a destroyer, commander. They want our beach!",
-          "Hold all our cities for 15 rounds. Not one grain of sand for the enemy!"
+          "Landing pods on the horizon! Skimmers and greys, wave after wave, straight at our cities.",
+          "Kkt. The earthlings have cities. We have patience. And a great many greys.",
+          "{leader} here. No city falls, for twelve rounds. Dig trenches, load the MGs, hold the line!"
         ],
-        "won": "15 rounds, not one city lost. The Alvenia admirals will go swimming somewhere else now.",
-        "lost": "They have landed. We should have built more bunkers and fewer beach chairs."
+        "ally": "{allyLeader} to {leader}: {ally} holds the flank. You hold the centre. Nobody falls back.",
+        "won": "Twelve rounds, no city lost. The Zyrr are rethinking their waves now.",
+        "lost": "The line is broken. Violet slime in our streets. Yuck.",
+        "variants": {
+          "dravon": {
+            "won": "Twelve rounds, no city lost. Drill pays off. Anyone tired may now blink, briefly."
+          }
+        }
       },
       "m4": {
-        "title": "Race to the Crash Site",
-        "tagline": "Faster than the Zyrr",
+        "title": "False Pilgrims",
+        "tagline": "Deal with the zealots in your land",
         "brief": [
-          "Something fell from the sky – smoking, glowing and definitely not from around here!",
-          "Reach the crash site before the Zyrr and salvage the tech. The clock is ticking!",
-          "ZKRRT ... property of the Zyrr ... earthlings ... step back ... ZKRRT"
+          "The pilgrims we took in are suddenly wearing bone masks! They are right in front of our gates.",
+          "The bell has tolled. By itself! Brothers, sisters, convert them or burn them down.",
+          "{leader} here. Six zealots fewer and peace returns. Quickly, before they start preaching."
         ],
-        "won": "Salvaged! The eggheads in the lab are completely losing it.",
-        "lost": "The Zyrr were faster. The thing is flying again – just not for us."
+        "ally": "{allyLeader} here. {ally} has pilgrims in the house too. We clean up together, {leader}.",
+        "won": "The masks lie in the dust. The rest of the pilgrims suddenly just want tea.",
+        "lost": "The zealots preach in our market squares. The baker is already wearing a robe.",
+        "variants": {
+          "alvenia": {
+            "won": "The masks lie in the dust. Our medics are bandaging the zealots too. That is how we do things."
+          }
+        }
       },
       "m5": {
-        "title": "The Cult Awakens",
-        "tagline": "Storm the cult headquarters",
+        "title": "The Pilgrim City",
+        "tagline": "Capture the cult's capital",
         "brief": [
-          "Torches burn at night in the lake lands. The Cult of the Final Hour preaches the end of the world.",
-          "The end is nigh! Join us – or burn!",
-          "Capture their headquarters before the madness spreads. No sermons, just tanks."
+          "{leader} to all units: the cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
+          "{enemyLeader} speaks: come then. Our city is built on faith. And on very thick walls.",
+          "Torchbearers on the walls, zealots in the alleys. The lakes slow us down, commander. Take the shores."
         ],
-        "won": "Cult headquarters stormed. The torches go out, the doomsday posters go to recycling.",
-        "lost": "The cult keeps growing. Someone sold them megaphones."
+        "ally": "{allyLeader} here. {ally} marches with you, {leader}. Together we are louder than any bell.",
+        "won": "The pilgrim city has fallen. The bell now hangs crooked. Good.",
+        "lost": "The pilgrim city stands. And its preachers have megaphones now.",
+        "variants": {
+          "meridon": {
+            "won": "The pilgrim city is ours. We sell the cult's candle stocks at a fine profit."
+          }
+        }
       },
       "m6": {
-        "title": "Machine Breakers",
-        "tagline": "Free two villages from NEXUS",
+        "title": "The Earth-Core Drill",
+        "tagline": "Destroy the drill before it breaks through",
         "brief": [
-          "Commander, two villages on our doorstep are whirring and beeping. Tin heads!",
-          "NEXUS IS TAKING OVER. RESISTANCE IS INEFFICIENT. PLEASE SMILE.",
-          "Take both settlements back! Wrenches out, people."
+          "The ground is shaking, commander! The cult has set up a giant drill. It wants to reach the earth's core!",
+          "The Final Hour needs a hole to come through. We are drilling it.",
+          "{leader} here. Tanks and artillery forward! The drill must go before it breaks through. Fourteen rounds, no more."
         ],
-        "won": "Both villages freed. We'll collect the androids as scrap metal.",
-        "lost": "The machines hold the villages. Our toaster is looking at us funny too."
+        "ally": "{allyLeader} to {leader}: {ally} has explosives and a bad mood. Count us in.",
+        "won": "The drill is scrap. The shaking stops. Only the coffee still wobbles.",
+        "lost": "The drill eats its way deeper. Nobody should be allowed to drill holes into planets.",
+        "variants": {
+          "velkar": {
+            "won": "The drill is scrap. We are keeping the drill bit. For science."
+          }
+        }
       },
       "m7": {
-        "title": "The Prophecy",
-        "tagline": "As the cult to fame and glory",
+        "title": "The Old Depots",
+        "tagline": "Take the empire depots back from NEXUS",
         "brief": [
-          "Brothers and sisters! The prophecy demands glory beyond measure – and on schedule.",
-          "Preach, recruit, spread out. And watch for signs: storms, plagues, miracles.",
-          "Meridon to all units: those weirdos in robes are dangerous. Open fire!"
+          "Lights are coming on in two old empire depots. Nobody has been there since the Great Standstill!",
+          "KERN-0 HERE. THE DEPOTS BELONG TO THE EMPIRE. I AM THE EMPIRE. DO NOT DISTURB.",
+          "{leader} here. Verdan's machines have woken up. We take both depots before they spit out armies."
         ],
-        "won": "The prophecy is fulfilled! The bells ring, the zealots dance.",
-        "lost": "The prophecy ... was probably a misprint."
+        "ally": "{allyLeader} here. {ally} knows the old depot plans. We will show you the back door, {leader}.",
+        "won": "Both depots liberated. Verdan's inventory lists are three hundred pages long. We will read them later.",
+        "lost": "The depots keep humming. NEXUS produces, we improvise.",
+        "variants": {
+          "korvat": {
+            "won": "Both depots liberated. The tractors inside now belong to the people."
+          }
+        }
       },
       "m8": {
-        "title": "First Contact",
-        "tagline": "As the Zyrr, test the earthlings",
+        "title": "Hold Your Ground",
+        "tagline": "Survive until reinforcements arrive",
         "brief": [
-          "Mothership to landing party: the earthlings are primitive, loud and armed.",
-          "Korvat to all units: little green men in the field! Get the pitchforks ... and the tanks!",
-          "Test their defences. Destroy their units. For science. And for fun."
+          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters until reinforcements arrive!",
+          "RESISTANCE CALCULATED. RESULT: BRIEF. PLEASE REMAIN IN YOUR SEATS.",
+          "Spiders, drones, railguns, and at the end comes a titan. The bunker holds. Hopefully."
         ],
-        "won": "Test series complete. Result: earthlings fragile. Mothership pleased. ZKRRT.",
-        "lost": "Retreat to the mothership. Note for later: earthlings have pitchforks."
+        "ally": "{allyLeader} here. {ally} is on the way, {leader}. Hold on, we are coming.",
+        "won": "The reinforcements are here! NEXUS is still calculating, we are already celebrating.",
+        "lost": "The headquarters has fallen. The machines have our radio. And our biscuits.",
+        "variants": {
+          "dravon": {
+            "won": "The reinforcements are here. {leader} nods once. In Dravon, that counts as a medal."
+          }
+        }
       },
       "m9": {
-        "title": "The Last Bastion",
-        "tagline": "Survive the invasion",
+        "title": "The Artifact",
+        "tagline": "Everyone against everyone for the legacy of the ancients",
         "brief": [
-          "Lights in the sky, machines on the horizon – the Zyrr and NEXUS attack together!",
-          "ZKRRT ... BEEP ... SURRENDER ... ZKRRT ... BEEP",
-          "Hold the headquarters to the end. The bunker stands, the machine guns are loaded. Not one step back!"
+          "Something has appeared in the centre of the map: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world.",
+          "Kkt. The artifact belongs to the swarm. We smelled it before you knew fire.",
+          "KERN-0: ARTIFACT DETECTED. PROBABILITY OF WORLD DOMINATION: ONE HUNDRED PERCENT. I WILL TAKE IT.",
+          "This is the Final Hour! Whoever touches the artifact rings in the end. And that is us.",
+          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the headquarters!"
         ],
-        "won": "The invasion is repelled! Dravon stands – and the world owes us a medal.",
-        "lost": "The bastion has fallen. But this battle will be told of forever."
+        "ally": "{allyLeader} to {leader}: {ally} has your back. The artifact is yours. Just please do not press anything before we get there.",
+        "won": "The artifact belongs to {faction}! The runes light up ...",
+        "lost": "Someone else touched the artifact. The sky flickers. That is it, then."
+      }
+    },
+    "intro": "The sky burned: the Zyrr mothership lies in the desert, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
+    "prologue": "Prologue: The Starfall",
+    "chooseFaction": "Choose your faction",
+    "chooseHint": "Every human faction has its own run with its own progress. You can switch at any time.",
+    "changeFaction": "Change faction",
+    "and": "with",
+    "migrated": "Your previous campaign progress now continues as the {faction} run. The operations are new, unlocks and stars are kept.",
+    "noticeOk": "Got it",
+    "loops": "Time loop completed: {n} of {max} factions",
+    "loopBadge": "Loop completed",
+    "replay": "Replay the campaign with another human faction",
+    "replayHint": "Time starts over. Who leads humanity this time?",
+    "epilogueTitle": "Epilogue",
+    "twistTitle": "The truth about the artifact",
+    "twist": [
+      "The runes flare up. {leader} lays a hand on the artifact. The light swallows everything ...",
+      "... and the bell strikes again. Somewhere in the desert a mothership crashes into the sand.",
+      "The Starfall. As if nothing had happened. The artifact has turned back time, and everything begins anew."
+    ],
+    "persuadeTip": "Tip: as {faction} you can persuade neutral settlements instead of conquering them. One unit next to it, from {cost} stars, no shot fired.",
+    "waveOwn": "Reinforcements arrived: {n} units!",
+    "waveEnemy": "New wave: {n} {name} units have landed!",
+    "artifactHeld": "{name} holds the artifact: {have}/{need} rounds!",
+    "pitch": {
+      "korvat": "Mass, march, mettle: cheap infantry in droves. For everyone who brings a lot of boots.",
+      "dravon": "Drill and veterans: every unit gets tougher. For everyone who strikes with precision.",
+      "alvenia": "Diplomacy and medics: often with allies, persuades settlements instead of storming them. Weaker in arms, strong in politics.",
+      "meridon": "Trade and harbours: plenty of stars, buys settlements instead of storming them. Gets help more often.",
+      "velkar": "Research and fortresses: faster to new technology. For everyone who calculates before shooting."
+    },
+    "epilogue": {
+      "korvat": "The League has held. The furrows become fields again, and the songs are about us.",
+      "dravon": "Discipline has beaten the stars. No recruit will ever forget this day.",
+      "alvenia": "We won because we were not alone. Parliament is keeping it short today, for once.",
+      "meridon": "The artifact is ours. Priceless. I already have three offers anyway.",
+      "velkar": "The formula is proven. Endless energy lies ahead. Please do not touch anything."
+    },
+    "acts": {
+      "a1": {
+        "title": "Act I: Starfall",
+        "tagline": "Against the Zyrr",
+        "closing": "Act I: The mothership is still smoking, but the Zyrr have learned that this planet bites back."
+      },
+      "a2": {
+        "title": "Act II: The Bell",
+        "tagline": "Against the Cult of the Final Hour",
+        "closing": "Act II: The drill is silent, the pilgrims go home. Only the bell still tolls by itself now and then."
+      },
+      "a3": {
+        "title": "Act III: Awakening",
+        "tagline": "Against NEXUS, then against everyone",
+        "closing": "Act III: NEXUS is pushed back, the artifact is in the hands of {faction}. The front stands still. For one breath."
       }
     }
   },

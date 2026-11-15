@@ -9,7 +9,7 @@ import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -504,6 +504,15 @@ export class Hud {
     }
     const cap = captureKind(s, u);
     if (cap) this.actions.push({ id: 'capture', icon: 'capture', label: t('actions.capture'), variant: 'primary', enabled: true, run: () => void g.exec({ type: 'capture', unit: u.id }) });
+    // Kampagne, Alvenia und Meridon: Siedlung ueberzeugen / campaign, Alvenia and Meridon: persuade a settlement
+    for (const c of persuadeTargets(s, u)) {
+      const pc = persuadeCheck(s, u, c);
+      this.actions.push({
+        id: `persuade-${c.id}`, icon: 'diplomacy', label: t('actions.persuade'), sub: cityName(s, c.id), cost: persuadeCost(c), enabled: pc === 'ok',
+        desc: t('actions.persuadeDesc'), reason: pc === 'ok' ? t('actions.persuadeDesc') : errText(pc),
+        run: () => void g.exec({ type: 'persuade', unit: u.id, city: c.id }),
+      });
+    }
     // Wunder-Bauwerke heilen nicht / wonder structures do not heal
     if (u.hp < u.maxHp && !isWonderStructure(u)) {
       const blocked = alienHealBlocked(s, u);
