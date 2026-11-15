@@ -1141,6 +1141,8 @@ export class Board {
     });
   }
 
+  private highlightLooks = new Map<HighlightKind, { geo: THREE.BufferGeometry; mat: THREE.MeshBasicMaterial }>();
+
   /** Markierungen / highlights */
   setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind }[]) {
     this.clearGroup(this.highlightLayer);
@@ -1158,11 +1160,19 @@ export class Board {
       byKind.get(h.kind)!.push(m);
     }
     for (const [kind, mats] of byKind) {
-      const big = kind === 'select' || kind === 'target' || kind === 'hint';
-      const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
-      const flat = paint(ring.toNonIndexed(), colors[kind]);
-      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide });
-      const mesh = new THREE.InstancedMesh(flat, mat, mats.length);
+      // Ring und Material je Art einmal bauen (sonst GPU-Leck bei jeder Auswahl) / ring and material built once per kind (otherwise a GPU leak on every selection)
+      let look = this.highlightLooks.get(kind);
+      if (!look) {
+        const big = kind === 'select' || kind === 'target' || kind === 'hint';
+        const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
+        look = {
+          geo: paint(ring.toNonIndexed(), colors[kind]),
+          mat: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide }),
+        };
+        ring.dispose();
+        this.highlightLooks.set(kind, look);
+      }
+      const mesh = new THREE.InstancedMesh(look.geo, look.mat, mats.length);
       mats.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.renderOrder = 5;
       mesh.raycast = () => {};
