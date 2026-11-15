@@ -260,6 +260,11 @@
   --p-color-temple-fire-core: #ffe27a;
   --p-color-plans-parchment: #e9d3a4;
   --p-color-plans-case: #5a2c18;
+  --p-color-velkar-frost: #e6f0f3;
+  --p-color-velkar-lab: #5b6b75;
+  --p-color-velkar-teal: #22e3d0;
+  --p-color-velkar-teal-deep: #0f7f84;
+  --p-color-velkar-arc: #d6fdff;
   --p-font-display: 'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-comic: 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-body: 'Comic Neue', 'Trebuchet MS', 'Segoe UI', sans-serif;
@@ -605,6 +610,11 @@
   --s-temple-fire-core: #ffe27a;
   --s-plans-parchment: #e9d3a4;
   --s-plans-case: #5a2c18;
+  --s-velkar-tech-shell: #e6f0f3;
+  --s-velkar-tech-gear: #5b6b75;
+  --s-velkar-tech-glow: #22e3d0;
+  --s-velkar-tech-coil: #0f7f84;
+  --s-velkar-tech-arc: #d6fdff;
   --faction-korvat-primary: #c8372d;
   --faction-korvat-secondary: #6b7a3a;
   --faction-korvat-terrain: #a6c95a;

@@ -21,7 +21,7 @@ export const weaponOf = (type: UnitTypeId): Weapon => WEAPON[type] ?? 'none';
 const FX_ORDER = 70;
 
 /** Explosive Waffen: Feuerball, Truemmer, Rauch / explosive weapons: fireball, debris, smoke */
-const EXPLOSIVE = new Set<Weapon>(['cannon', 'artillery', 'rocket', 'heliRockets', 'naval', 'bigNaval', 'torpedo', 'plasma']);
+const EXPLOSIVE = new Set<Weapon>(['cannon', 'artillery', 'rocket', 'heliRockets', 'droneRockets', 'naval', 'bigNaval', 'torpedo', 'plasma']);
 /** Nahkampf: Ausfall statt Geschoss / melee: lunge instead of a projectile */
 const MELEE = new Set<Weapon>(['buzz', 'none']);
 
@@ -33,7 +33,9 @@ export function impactShake(w: Weapon): number {
   switch (w) {
     case 'artillery': case 'bigNaval': return 0.75;
     case 'cannon': case 'rocket': return 0.55;
-    case 'naval': case 'heliRockets': case 'plasma': case 'torpedo': case 'railgun': case 'deathRay': return 0.28;
+    case 'naval': case 'heliRockets': case 'droneRockets': case 'plasma': case 'torpedo': case 'railgun': case 'deathRay': case 'coil': return 0.28;
+    // Tesla-Blitz: kurzer, kraeftiger Schlag / Tesla bolt: short, strong jolt
+    case 'tesla': return 0.4;
     default: return 0;
   }
 }
@@ -450,8 +452,10 @@ function shoot(fx: CombatFx, w: Weapon, from: THREE.Vector3, to: THREE.Vector3, 
       trail(fx, path, delay, t, 45, semantic.fxSmokeDark, 0.12);
       return t;
     }
-    case 'rocket': case 'heliRockets': {
+    case 'rocket': case 'heliRockets': case 'droneRockets': {
       const n = w === 'rocket' ? 3 : 2;
+      // Oktokopter: tuerkiser Startblitz / octocopter: teal launch flash
+      if (w === 'droneRockets') flash(fx, from, 0.22, semantic.velkarTechGlow, delay, 90);
       const t = w === 'rocket' ? byDist(6, 220, 300) : byDist(8, 160, 240);
       for (let i = 0; i < n; i++) {
         const tgt = jitter(to, 0.1);
@@ -523,6 +527,24 @@ function shoot(fx: CombatFx, w: Weapon, from: THREE.Vector3, to: THREE.Vector3, 
       for (let i = 1; i <= 5; i++) ring(fx, from.clone().lerp(to, i / 6), 0.03, 0.11, col, delay + i * 12, 340, dir);
       return 15;
     }
+    case 'tesla': {
+      // Blitz statt Granate: dicker Zickzack-Bolzen mit Nebenarmen, flackernd / lightning instead of a shell: thick zigzag bolt with branches, flickering
+      flash(fx, from, 0.45, semantic.velkarTechArc, delay, 160);
+      fx.emit('glow', delay, 260, semantic.velkarTechGlow, (k, q) => { q.obj.position.copy(from); const sc = 0.32 + Math.sin(k * 50) * 0.06; q.obj.scale.set(sc, sc, 1); q.mat.opacity = fade(k, 0.5); });
+      for (let z = 0; z < 3; z++) bigZap(fx, from, to, z === 1 ? semantic.velkarTechArc : semantic.velkarTechGlow, delay + z * 55, 0.16, z === 0 ? 2 : 1);
+      return 40;
+    }
+    case 'coil': {
+      // Spulengewehr: gerader, heller tuerkiser Strahl mit Projektilspur und Ringen / coil rifle: straight bright teal beam with slug trail and rings
+      const tc = semantic.velkarTechGlow;
+      flash(fx, from, 0.3, tc, delay, 110);
+      beam(fx, from, to, semantic.ink, delay, 300, (k) => ({ w: 0.05 * (1 - k * 0.6), o: fade(k, 0.2) * 0.7, reach: Math.min(1, k / 0.1) }));
+      beam(fx, from, to, tc, delay, 300, (k) => ({ w: 0.034 * (1 - k * 0.6), o: fade(k, 0.2), reach: Math.min(1, k / 0.1) })).obj.renderOrder = FX_ORDER + 1;
+      beam(fx, from, to, semantic.white, delay, 160, (k) => ({ w: 0.012, o: fade(k, 0.3), reach: Math.min(1, k / 0.1) })).obj.renderOrder = FX_ORDER + 2;
+      const dir = to.clone().sub(from);
+      for (let i = 1; i <= 3; i++) ring(fx, from.clone().lerp(to, i / 8), 0.02, 0.08, tc, delay + i * 10, 260, dir);
+      return 35;
+    }
     case 'energy': {
       flash(fx, from, 0.2, col, delay, 90);
       for (let z = 0; z < 2; z++) zap(fx, from, to, col, delay + z * 70);
@@ -557,6 +579,30 @@ function muzzleSmoke(fx: CombatFx, from: THREE.Vector3, to: THREE.Vector3, delay
   for (let i = 0; i < n; i++) {
     puff(fx, from, dir.clone().multiplyScalar(rnd(0.3, 0.7)).add(new THREE.Vector3(rnd(-0.15, 0.15), rnd(0.15, 0.35), rnd(-0.15, 0.15))),
       0.1, 0.26, semantic.fxSmoke, delay + 30 + i * 25, 420, { fadeFrom: 0.3 });
+  }
+}
+
+/**
+ * Grosser Blitz des Tesla-Panzers: Zickzack mit staerkerem Ausschlag und kurzen Nebenarmen.
+ * Big bolt of the Tesla tank: zigzag with a wider swing and short side branches.
+ */
+function bigZap(fx: CombatFx, from: THREE.Vector3, to: THREE.Vector3, color: string, delay: number, swing: number, branches: number) {
+  const dir = to.clone().sub(from);
+  const side = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+  const pts = [from.clone()];
+  const n = 6;
+  for (let i = 1; i < n; i++) pts.push(from.clone().lerp(to, i / n).addScaledVector(side, rnd(-swing, swing)).add(new THREE.Vector3(0, rnd(-swing, swing) * 0.6 + Math.sin((i / n) * Math.PI) * 0.12, 0)));
+  pts.push(to.clone());
+  const life = 190;
+  for (let i = 0; i < n; i++) {
+    beam(fx, pts[i], pts[i + 1], semantic.ink, delay, life, (k) => ({ w: 0.06, o: (Math.sin(k * 70) > -0.3 ? 0.8 : 0.1) * fade(k, 0.5) }));
+    beam(fx, pts[i], pts[i + 1], color, delay, life, (k) => ({ w: 0.042, o: (Math.sin(k * 70) > -0.3 ? 1 : 0.15) * fade(k, 0.5) })).obj.renderOrder = FX_ORDER + 1;
+    beam(fx, pts[i], pts[i + 1], semantic.white, delay, life, (k) => ({ w: 0.016, o: fade(k, 0.5) })).obj.renderOrder = FX_ORDER + 2;
+  }
+  for (let j = 0; j < branches; j++) {
+    const a = pts[2 + j * 2] ?? pts[2];
+    const end = a.clone().addScaledVector(side, rnd(-0.25, 0.25)).add(new THREE.Vector3(0, rnd(-0.12, 0.05), 0));
+    beam(fx, a, end, color, delay + 20, 120, (k) => ({ w: 0.022, o: fade(k, 0.4) })).obj.renderOrder = FX_ORDER + 1;
   }
 }
 
@@ -615,6 +661,15 @@ function impact(fx: CombatFx, w: Weapon, at: THREE.Vector3, floor: number, surfa
           0.12, 0.28, semantic.fxFire, delay + i * 35, 360, { to: semantic.fxSmokeDark, fadeFrom: 0.5 });
       }
       break;
+    case 'tesla': case 'coil': {
+      // tuerkiser Einschlag mit Funken; der Blitz verkohlt den Boden / teal impact with sparks; the bolt scorches the ground
+      const tc = semantic.velkarTechGlow;
+      flash(fx, at, w === 'tesla' ? 0.7 : 0.45, w === 'tesla' ? semantic.velkarTechArc : tc, delay, 150);
+      sparks(fx, at, w === 'tesla' ? 10 : 6, tc, delay, 1.5);
+      if (w === 'tesla') ring(fx, ground, 0.08, 0.4, tc, delay, 260);
+      if (surface !== 'water') puff(fx, ground, new THREE.Vector3(0, 0.35, 0), 0.1, 0.26, semantic.fxSmokeDark, delay + 40, 400, { to: semantic.fxSmoke });
+      break;
+    }
     case 'laser': case 'energy': case 'deathRay': case 'railgun':
       flash(fx, at, w === 'railgun' ? 0.5 : 0.3, col, delay, 130);
       sparks(fx, at, w === 'railgun' ? 7 : 5, col, delay, 1.3);
@@ -659,9 +714,11 @@ const MUZZLE: Partial<Record<UnitTypeId, [number, number]>> = {
   quadDrone: [0.36, 0.12], railgun: [0.32, 0.4], rocketCart: [0.32, 0.12], android: [0.3, 0.15],
   antiTank: [0.33, 0.36], faustZealot: [0.33, 0.36], antiAir: [0.45, 0.22], flakDrone: [0.45, 0.16],
   privateer: [0.1, 0.4], protoWalker: [0.58, 0.28], steppeRider: [0.5, 0.3],
+  // Velkar: Spitze der Tesla-Spulen, Kapsel des Oktokopters, Schienenmuendung / Velkar: Tesla coil tops, octocopter pod, rail muzzle
+  teslaTank: [0.52, 0.0], octocopter: [0.24, 0.12], railSniper: [0.3, 0.5],
 };
 /** Trefferhoehe / hit height */
-const HIT_H: Partial<Record<UnitTypeId, number>> = { heli: 0.36, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34, protoWalker: 0.4, steppeRider: 0.3 };
+const HIT_H: Partial<Record<UnitTypeId, number>> = { heli: 0.36, octocopter: 0.34, teslaTank: 0.3, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34, protoWalker: 0.4, steppeRider: 0.3 };
 
 /** Angaben des Controllers zu einem Angriff / controller details for an attack */
 export interface AttackInfo {

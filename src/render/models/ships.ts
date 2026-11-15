@@ -8,6 +8,7 @@ import { addEmblem } from './emblems';
 import { Builder, geo, shade } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { soldier, standPose } from './soldiers';
+import { TECH, techDot } from './velkarTech';
 
 const HALF_PI = Math.PI / 2;
 
@@ -89,7 +90,8 @@ export function superBlock(b: Builder, f: FactionId, L: Look, x: number, y: numb
       break;
     case 'velkar':
       b.add(geo.taper(w, d, w * 0.72, d * 0.72, h), base, { p: [x, y + h / 2, z] });
-      b.add(geo.taper(w * 0.86, d * 0.86, w * 0.82, d * 0.82, h * 0.13), L.secondary, { p: [x, y + h * 0.65, z] });
+      // Velkar selbst: tuerkises Leuchtband / Velkar itself: teal light band
+      b.add(geo.taper(w * 0.86, d * 0.86, w * 0.82, d * 0.82, h * 0.13), f === 'velkar' ? TECH.glow : L.secondary, { p: [x, y + h * 0.65, z] });
       break;
   }
 }
@@ -166,7 +168,9 @@ export function mast(b: Builder, L: Look, f: FactionId, z: number, y: number, h:
     b.box(0.09, 0.016, 0.008, mat.white, [0, 0.026, 0]);
   });
   if (styleOf(f) === 'velkar' || styleOf(f) === 'alvenia') b.add(geo.sphere(0.026, 8, 4), mat.white, { p: [0, y + h * 0.58, z + 0.035] });
-  if (styleOf(f) === 'velkar') b.add(geo.ico(0.01, 0), L.secondary, { p: [0, y + h + 0.01, z] });
+  if (styleOf(f) === 'velkar') b.add(geo.ico(0.01, 0), f === 'velkar' ? TECH.glow : L.secondary, { p: [0, y + h + 0.01, z] });
+  // Velkar: Sensorringe am Mast / Velkar: sensor rings on the mast
+  if (f === 'velkar') for (const k of [0.45, 0.62]) b.add(geo.torus(0.014, 0.003, 3, 10), TECH.glow, { p: [0, y + h * k, z], r: [HALF_PI, 0, 0] });
   // Wimpel in Fraktionsfarbe / pennant in faction colour
   b.add(geo.profileZY([[0, 0], [-0.07, -0.015], [0, -0.03]], 0.004), L.trim, { p: [0, y + h, z - 0.004] });
 }
@@ -230,6 +234,8 @@ export function landingBoat(f: FactionId, carried: THREE.BufferGeometry | null):
   b.box(0.01, 0.01, 0.01, mat.red, [-0.135, top + 0.02, 0.2]);
   b.box(0.01, 0.01, 0.01, mat.green, [0.135, top + 0.02, 0.2]);
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [w / 2 + 0.003, 0.045, -0.08], r: [0, HALF_PI, 0] });
+  // Velkar: Leuchtleisten auf den Bordwaenden / Velkar: light strips on the side walls
+  if (f === 'velkar') for (const sx of [-1, 1]) b.box(0.036, 0.004, len * 0.6, TECH.glow, [sx * (w / 2 - 0.015), top + 0.004, 0.0]);
   // Ladung: kleine getragene Einheit / cargo: tiny carried unit marker
   if (carried) b.addColored(carried, { p: [-0.02, 0.029, 0.04], s: 0.5 });
   else b.add(geo.cbox(0.08, 0.05, 0.08, 0.012), L.gear, { p: [0, 0.054, 0.04] });
@@ -280,7 +286,13 @@ export function submarine(f: FactionId): Builder {
       break;
     case 'velkar':
       b.add(geo.rtaper(0.08, 0.16, 0.04, 0.1, 0.12, 0.01, -0.01), L.hull, { p: [0, 0.09, sz] });
-      b.box(0.042, 0.012, 0.06, L.secondary, [0, 0.12, sz - 0.01]);
+      b.box(0.042, 0.012, 0.06, f === 'velkar' ? TECH.glow : L.secondary, [0, 0.12, sz - 0.01]);
+      // Velkar: Sensormast und Leuchtlinie am Rumpf / Velkar: sensor mast and light line on the hull
+      if (f === 'velkar') {
+        b.tube([0, 0.15, sz - 0.03], [0, 0.27, sz - 0.04], 0.004, 4, TECH.gear);
+        techDot(b, [0, 0.275, sz - 0.04], 0.011);
+        for (const sx of [-1, 1]) b.box(0.004, 0.006, 0.4, TECH.glow, [sx * 0.064, 0.04, 0]);
+      }
       break;
   }
   // Bruecke, Tiefenruder, Periskope, Schnorchel, Antenne / bridge, planes, periscopes, snorkel, antenna
@@ -338,7 +350,13 @@ export function destroyer(f: FactionId): Builder {
   b.add(geo.sphere(0.02, 10, 5), mat.white, { p: [0, d + 0.13, -0.1] });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [0.101, 0.035, 0.18], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [-0.101, 0.035, 0.18], r: [0, -HALF_PI, 0] });
+  if (f === 'velkar') techHullLine(b, 0.1, 0.05, 0.5);
   return b;
+}
+
+/** Velkar: tuerkise Leuchtlinie an beiden Rumpfseiten / Velkar: teal light line on both hull sides */
+function techHullLine(b: Builder, x: number, y: number, len: number) {
+  for (const s of [-1, 1]) b.box(0.004, 0.007, len, TECH.glow, [s * x, y, -0.02]);
 }
 
 export function battleship(f: FactionId): Builder {
@@ -381,5 +399,6 @@ export function battleship(f: FactionId): Builder {
   b.box(0.02, 0.008, 0.12, mat.metal, [-0.05, d + 0.004, -0.33]);
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [0.141, 0.04, 0.2], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [-0.141, 0.04, 0.2], r: [0, -HALF_PI, 0] });
+  if (f === 'velkar') techHullLine(b, 0.14, 0.055, 0.52);
   return b;
 }

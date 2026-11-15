@@ -12,6 +12,7 @@ import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, xfMatrix, type ColorLike, type V3 } from './kit';
 import { headgear } from './headgear';
 import { look, mat, type Look } from './look';
+import { TECH, techArmour, techDot, techPack } from './velkarTech';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -129,7 +130,6 @@ export function seatPose(hands: [V3, V3]): Pose {
 export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {}): void {
   const L = look(f);
   const d: Detail = o.detail ?? 2;
-  const R = rng(o.seed ?? 1);
   // Teil-Geometrie je Detailstufe / part geometry per detail level
   const part = (w: number, h: number, dd: number, ch = 0.22, minDetail: Detail = 2) =>
     d >= minDetail ? (d === 2 ? geo.rbox(w, h, dd, Math.min(w, h, dd) * ch) : geo.cbox(w, h, dd, Math.min(w, dd) * ch)) : geo.box(w, h, dd);
@@ -216,19 +216,13 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         b.box(0.11, 0.014, 0.008, L.secondary, [0, 0.08, 0.052]);
         b.box(0.11, 0.014, 0.008, L.secondary, [0, 0.04, 0.05]);
       }
-      if (f === 'velkar' && !o.coat) {
-        const n = d === 2 ? 5 : d === 1 ? 3 : 0;
-        for (let i = 0; i < n; i++) {
-          const front = R() < 0.6;
-          const side = R() < 0.5 ? -1 : 1;
-          const w = 0.026 + R() * 0.03, h = 0.018 + R() * 0.024, y = 0.015 + R() * 0.08;
-          if (front) b.box(w, h, 0.008, mat.snow, [side * R() * 0.05, y, 0.051]);
-          else b.box(0.008, h, w, mat.snow, [side * 0.082, y, (R() - 0.5) * 0.05]);
-        }
-        if (d >= 1) b.box(0.03, 0.016, 0.008, L.secondary, [-0.035, 0.09, 0.052]);
-      }
+      // Velkar "Labor im Feld": frostweisse Brustplatte mit Leuchtleiste statt Schneetarn / frost-white chest plate with a light strip instead of snow camo
+      if (f === 'velkar' && !o.coat && !o.robe) techArmour(b, d);
+      // Velkar: Generator-Rucksack statt Tornister (nicht fuer Besatzungen) / Velkar: generator backpack instead of a pack (not for crews)
+      const techGen = f === 'velkar' && !o.coat && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
+      if (techGen) techPack(b, d);
       // Rucksack / pack
-      if (o.pack === 'pack' || o.pack === 'pioneer') {
+      else if (o.pack === 'pack' || o.pack === 'pioneer') {
         const big = o.pack === 'pioneer' ? 1.35 : 1.1;
         b.add(part(0.12 * big, 0.1 * big, 0.055 * big, 0.2, 1), L.gear, { p: [0, 0.058 + (big - 1) * 0.04, -0.078 - (big - 1) * 0.03] });
         if (o.pack === 'pioneer' && d >= 1) {
@@ -285,6 +279,11 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.027, len * 0.55, 0], r: [0, -HALF_PI, 0] });
       }
       if (f === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
+      // Velkar: frostweisse Schulterplatte mit Leuchtpunkt / frost-white shoulder plate with a light dot
+      if (f === 'velkar' && !o.coat && d >= 1) {
+        b.add(geo.rtaper(0.07, 0.07, 0.06, 0.06, 0.03, 0.008), TECH.shell, { p: [0, 0.012, 0] });
+        if (d === 2) techDot(b, [side * 0.034, 0.012, 0.02], 0.007);
+      }
     });
     b.segment(E, H, (len) => part(0.046, Math.max(0.01, len - 0.022), 0.048, 0.22, 1).translate(0, -0.011, 0), sleeve, (len) => {
       if (d === 2) b.box(0.05, 0.014, 0.052, shade(sleeve, 0.82), [0, len - 0.03, 0]);
@@ -413,8 +412,12 @@ export function infantry(f: FactionId, lite = false): Builder {
     twist: [0, 0.45, 0],
     head: [0, -0.35, 0],
   }, { detail: d, pack: 'pack', seed: 11 });
-  rifle(b, G, D, { len: 0.3, detail: d, heavy: 1.35, bayonet: true });
-  if (d === 2) {
+  rifle(b, G, D, { len: 0.3, detail: d, heavy: 1.35, bayonet: f !== 'velkar' });
+  if (f === 'velkar') {
+    // Laborwache: Leuchtleiste und Energiezelle am Gewehr / lab guard: light strip and energy cell on the rifle
+    b.add(geo.cbox(0.03, 0.03, 0.05, 0.006), TECH.shell, { p: along(G, D, 0.13) });
+    b.box(0.008, 0.008, 0.06, TECH.glow, along([G[0] + 0.02, G[1] + 0.01, G[2]], D, 0.17));
+  } else if (d === 2) {
     // Stielhandgranaten am Koppel + Funkgeraet / stick grenades on the belt + field radio
     for (const x of [-0.03, 0.0]) {
       b.cyl(0.006, 0.006, 0.07, 6, mat.wood, [x, 0.17, 0.065], [0.2, 0, 0.3]);
@@ -489,8 +492,9 @@ export function sniper(f: FactionId, lite = false): Builder {
   return b;
 }
 
-function sandbag(b: Builder, x: number, y: number, z: number, ry: number, d: Detail) {
-  b.add(d >= 1 ? geo.ctaper(0.118, 0.072, 0.1, 0.056, 0.046, 0.016) : geo.taper(0.118, 0.072, 0.1, 0.056, 0.046), mat.sandbag, { p: [x, y + 0.023, z], r: [0, ry, 0] });
+function sandbag(b: Builder, x: number, y: number, z: number, ry: number, d: Detail, tech = false) {
+  // Velkar: frostweisse Fertigteil-Bloecke statt Sandsaecken / Velkar: frost-white prefab blocks instead of sandbags
+  b.add(d >= 1 ? geo.ctaper(0.118, 0.072, 0.1, 0.056, 0.046, 0.016) : geo.taper(0.118, 0.072, 0.1, 0.056, 0.046), tech ? TECH.shell : mat.sandbag, { p: [x, y + 0.023, z], r: [0, ry, 0] });
 }
 
 export function pioneer(f: FactionId, lite = false): Builder {
@@ -518,12 +522,22 @@ export function pioneer(f: FactionId, lite = false): Builder {
       b.add(geo.rbox(0.06, 0.014, 0.014, 0.004), mat.dark, {});
       for (const sx of [-1, 1]) b.box(0.01, 0.03, 0.012, mat.dark, [sx * 0.025, 0.015, 0]);
     });
+    if (f === 'velkar') {
+      // Frostschneider: Motorgehaeuse mit Schneidscheibe und Leuchtrand / frost cutter: motor housing with cutting disc and glowing rim
+      b.group({ p: along(G, D, len - 0.03), r: [e.x, e.y, e.z] }, () => {
+        b.add(geo.cbox(0.05, 0.06, 0.05, 0.01), TECH.shell, { p: [0, 0.02, 0] });
+        b.add(geo.cyl(0.075, 0.075, 0.01, d >= 1 ? 16 : 10), mat.metalLight, { p: [0, 0.075, 0.0], r: [0, 0, HALF_PI] });
+        b.add(geo.torus(0.075, 0.006, 3, d >= 1 ? 16 : 10), TECH.glow, { p: [0, 0.075, 0.0], r: [0, HALF_PI, 0] });
+        b.add(geo.cyl(0.02, 0.02, 0.022, 8), TECH.gear, { p: [0, 0.075, 0.0], r: [0, 0, HALF_PI] });
+      });
+    } else {
     // grosses Blatt / big blade
     b.group({ p: along(G, D, len - 0.03), r: [e.x, e.y, e.z] }, () => {
       b.add(d >= 1 ? geo.rtaper(0.1, 0.016, 0.115, 0.01, 0.13, 0.005) : geo.taper(0.1, 0.016, 0.115, 0.01, 0.13), mat.metalLight, { p: [0, 0.07, 0] });
       b.add(geo.cyl(0.016, 0.02, 0.04, 8), mat.metal, { p: [0, 0.0, 0] });
       if (d === 2) for (const sx of [-1, 1]) b.box(0.006, 0.12, 0.02, mat.metal, [sx * 0.052, 0.072, 0]);
     });
+    }
     // Spitzhacke in der linken Hand / pickaxe in the left hand
     b.tube([-0.11, 0.19, 0.08], [-0.13, 0.03, 0.18], 0.009, 6, mat.wood);
     b.group({ p: [-0.132, 0.025, 0.19], r: [0.55, 0, 0] }, () => {
@@ -533,13 +547,15 @@ export function pioneer(f: FactionId, lite = false): Builder {
     });
   });
   // Sandsackstapel / sandbag stack
-  sandbag(b, -0.13, 0, 0.21, 0.35, d);
-  sandbag(b, -0.01, 0, 0.24, 0.05, d);
-  sandbag(b, 0.11, 0, 0.22, -0.3, d);
-  if (!lite) sandbag(b, -0.07, 0.046, 0.225, 0.2, d);
-  sandbag(b, 0.05, 0.046, 0.23, -0.12, d);
-  if (!lite) sandbag(b, -0.01, 0.092, 0.23, 0.05, d);
-  if (!lite) sandbag(b, 0.23, 0, 0.1, -1.0, 1);
+  const tk = f === 'velkar';
+  sandbag(b, -0.13, 0, 0.21, 0.35, d, tk);
+  sandbag(b, -0.01, 0, 0.24, 0.05, d, tk);
+  sandbag(b, 0.11, 0, 0.22, -0.3, d, tk);
+  if (!lite) sandbag(b, -0.07, 0.046, 0.225, 0.2, d, tk);
+  sandbag(b, 0.05, 0.046, 0.23, -0.12, d, tk);
+  if (!lite) sandbag(b, -0.01, 0.092, 0.23, 0.05, d, tk);
+  if (!lite) sandbag(b, 0.23, 0, 0.1, -1.0, 1, tk);
+  if (tk) b.box(0.07, 0.008, 0.006, TECH.glow, [-0.01, 0.07, 0.262], [0, 0.05, 0]);
   return b;
 }
 
@@ -558,9 +574,17 @@ export function mgTeam(f: FactionId, lite = false): Builder {
     b.add(geo.cbox(0.05, 0.052, 0.14, 0.01), mat.dark, { p: [0, gy, 0.0] });
     b.box(0.044, 0.014, 0.1, mat.metal, [0, gy + 0.032, 0.0]);
     b.box(0.012, 0.03, 0.04, mat.dark, [0, gy + 0.05, 0.02]);
-    // Laufmantel mit Kuehlringen / barrel jacket with cooling rings
-    b.cyl(0.021, 0.021, 0.18, 12, mat.metal, [0, gy + 0.004, 0.16], [HALF_PI, 0, 0]);
-    if (!lite) for (const z of [0.11, 0.16, 0.21]) b.add(geo.cyl(0.025, 0.025, 0.008, 12, true), mat.dark, { p: [0, gy + 0.004, z], r: [HALF_PI, 0, 0] });
+    if (f === 'velkar') {
+      // gekuehlter Laufmantel mit Leuchtringen und Kuehlmitteltank / cooled barrel shroud with glowing rings and coolant tank
+      b.add(geo.cyl(0.03, 0.03, 0.19, 10), TECH.shell, { p: [0, gy + 0.004, 0.16], r: [HALF_PI, 0, 0] });
+      for (const z of lite ? [0.16] : [0.1, 0.145, 0.19, 0.235]) b.add(geo.cyl(0.033, 0.033, 0.01, 10, true), TECH.glow, { p: [0, gy + 0.004, z], r: [HALF_PI, 0, 0] });
+      b.cyl(0.018, 0.018, 0.09, 8, TECH.gear, [0, gy + 0.045, 0.12], [HALF_PI, 0, 0]);
+      b.tube([0, gy + 0.045, 0.075], [0.06, 0.06, 0.0], 0.005, 4, TECH.gearDark);
+    } else {
+      // Laufmantel mit Kuehlringen / barrel jacket with cooling rings
+      b.cyl(0.021, 0.021, 0.18, 12, mat.metal, [0, gy + 0.004, 0.16], [HALF_PI, 0, 0]);
+      if (!lite) for (const z of [0.11, 0.16, 0.21]) b.add(geo.cyl(0.025, 0.025, 0.008, 12, true), mat.dark, { p: [0, gy + 0.004, z], r: [HALF_PI, 0, 0] });
+    }
     b.cyl(0.009, 0.009, 0.06, 8, mat.ink, [0, gy + 0.004, 0.28], [HALF_PI, 0, 0]);
     b.cyl(0.016, 0.013, 0.03, 8, mat.dark, [0, gy + 0.004, 0.3], [HALF_PI, 0, 0]);
     // Griffe / grips
@@ -612,9 +636,18 @@ export function medic(f: FactionId, lite = false): Builder {
     ...standPose([[-0.105, 0.155, 0.07], [0.125, 0.13, 0.03]]),
     twist: [0, -0.1, 0],
   }, { detail: d, pack: 'medbag', armband: true, seed: 51 });
-  // zusammengerollte Decke oben auf dem Rucksack / rolled blanket on top of the pack
-  b.cyl(0.03, 0.03, 0.2, 12, shade(L.gear, 1.25), [0, 0.37, -0.11], [0, 0, HALF_PI]);
-  for (const x of [-0.06, 0.06]) b.add(geo.torus(0.032, 0.005, 3, 12), mat.dark, { p: [x, 0.37, -0.11], r: [0, HALF_PI, 0] });
+  if (f === 'velkar') {
+    // Kryo-Kanister auf dem Rucksack: Frostzylinder mit Leuchtfenster und Ventilkappen / cryo canister on the pack: frost cylinder with glowing window and valve caps
+    b.cyl(0.042, 0.042, 0.17, 12, TECH.shell, [0, 0.39, -0.11]);
+    b.add(geo.cyl(0.044, 0.044, 0.07, 12, true), TECH.glow, { p: [0, 0.39, -0.11] });
+    for (const y of [0.3, 0.48]) b.cyl(0.03, 0.036, 0.022, 10, TECH.gear, [0, y, -0.11]);
+    b.tube([0.0, 0.48, -0.11], [0.06, 0.52, -0.06], 0.005, 4, TECH.gearDark);
+    techDot(b, [0.06, 0.525, -0.06], 0.009);
+  } else {
+    // zusammengerollte Decke oben auf dem Rucksack / rolled blanket on top of the pack
+    b.cyl(0.03, 0.03, 0.2, 12, shade(L.gear, 1.25), [0, 0.37, -0.11], [0, 0, HALF_PI]);
+    for (const x of [-0.06, 0.06]) b.add(geo.torus(0.032, 0.005, 3, 12), mat.dark, { p: [x, 0.37, -0.11], r: [0, HALF_PI, 0] });
+  }
   });
   // Krankentrage neben dem Sanitaeter / stretcher on the ground next to the medic
   b.group({ p: [0.17, 0, -0.02], r: [0, -0.35, 0] }, () => {
@@ -641,7 +674,7 @@ export function medic(f: FactionId, lite = false): Builder {
   // weisser Koffer in der Hand / white case in hand
   b.add(geo.rbox(0.032, 0.065, 0.085, 0.01), mat.white, { p: [0.128, 0.08, 0.03] });
   b.add(geo.rbox(0.034, 0.016, 0.087, 0.004), L.primary, { p: [0.128, 0.08, 0.03] });
-  b.add(geo.rbox(0.012, 0.014, 0.04, 0.003), L.secondary, { p: [0.128, 0.118, 0.03] });
+  b.add(geo.rbox(0.012, 0.014, 0.04, 0.003), f === 'velkar' ? TECH.glow : L.secondary, { p: [0.128, 0.118, 0.03] });
   if (!lite) addEmblem(b, f, 0.018, 0.004, L.primary, { p: [0.145, 0.08, 0.03], r: [0, HALF_PI, 0] });
   });
   return b;
@@ -671,6 +704,14 @@ export function spy(f: FactionId, lite = false): Builder {
   // Schal in Zweitfarbe / scarf in secondary colour
   b.add(geo.rbox(0.11, 0.022, 0.09, 0.008), L.secondary, { p: [0, 0.29, 0.005] });
   b.add(geo.rbox(0.03, 0.07, 0.012, 0.004), L.secondary, { p: [0.03, 0.25, 0.055], r: [0.1, 0, 0.1] });
+  if (f === 'velkar') {
+    // Datensammler: Leuchtbrille unter dem Hut, Handscanner mit Antenne / data collector: glowing goggles under the hat, hand scanner with antenna
+    b.box(0.1, 0.016, 0.01, TECH.glow, [0, 0.355, 0.068], [0, 0.25, 0]);
+    b.add(geo.cbox(0.05, 0.03, 0.07, 0.006), TECH.shell, { p: [-0.11, 0.17, 0.07] });
+    b.box(0.03, 0.006, 0.04, TECH.glow, [-0.11, 0.187, 0.07]);
+    b.tube([-0.125, 0.18, 0.04], [-0.135, 0.27, 0.02], 0.003, 4, mat.dark);
+    techDot(b, [-0.135, 0.275, 0.02], 0.007);
+  }
   // Aktentasche / briefcase
   b.add(geo.rbox(0.03, 0.07, 0.095, 0.008), mat.dark, { p: [0.128, 0.08, -0.01] });
   b.add(geo.rbox(0.032, 0.012, 0.097, 0.003), shade(mat.dark, 1.4), { p: [0.128, 0.1, -0.01] });
