@@ -479,6 +479,8 @@ input[type="text"], select {
   .res .sub { display: none; }
   /* nur in der Statusleiste und neben ausgeschriebenen Namen nur das Symbol / icon only in the top bar and next to spelled-out names */
   .top-bar .faction-chip .label, .score-row .faction-chip .label { display: none; }
+  /* Kult: Platz fuer die Horde, das Portraet zeigt die Fraktion schon / cult: room for the horde, the portrait already shows the faction */
+  .top-bar:has(.res[data-res="people"]) .faction-btn .faction-chip { display: none; }
   .nav-bar .btn:not(.end) span { display: none; }
   .nav-bar .btn:not(.end) { flex: none; width: var(--p-size-touch-lg); padding: 0; }
 }

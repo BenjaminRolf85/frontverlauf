@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, hqOf, income, ownUnits, cityIncome, logisticsIncome } from '../src/core';
-import { FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS } from '../src/data/balance';
+import { CULT, FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, ok, setTerrain, untilTurnOf } from './helpers';
 
 describe('Start', () => {
-  it('every faction starts with a level-1 HQ, one infantry, 25 stars and its start tech', () => {
+  it('every faction starts with a level-1 HQ, one infantry (the cult with its horde), 25 stars and its start tech', () => {
     const s = createGame(defaultConfig({
       seed: 99, size: 18, mapType: 'continent',
       factions: FACTION_IDS.map((id) => ({ id, human: true, difficulty: 'normal' as const })),
@@ -17,8 +17,12 @@ describe('Start', () => {
       expect(hq.isHQ).toBe(true);
       expect(s.cities.filter((c) => c.owner === f.index)).toHaveLength(1);
       const units = ownUnits(s, f.index);
-      expect(units).toHaveLength(1);
+      // Kult: Starthorde neben dem Hauptquartier / cult: starting horde next to the HQ
+      const horde = f.id === CULT.faction ? CULT.startUnits : [];
+      expect(units).toHaveLength(1 + horde.length);
       expect(units[0].type).toBe(ROSTERS[f.id]?.start ?? 'infantry');
+      expect(units.slice(1).map((u) => u.type)).toEqual(horde);
+      for (const u of units.slice(1)) expect(Math.max(Math.abs(u.x - hq.x), Math.abs(u.y - hq.y))).toBe(1);
       expect(units[0].x).toBe(hq.x);
       expect(units[0].y).toBe(hq.y);
       expect(f.stars).toBe(25);

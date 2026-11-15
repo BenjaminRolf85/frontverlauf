@@ -90,6 +90,8 @@ export interface City {
    * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
    */
   tower?: boolean;
+  /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
+  plundered?: number;
   nameIndex: number;
 }
 
@@ -108,6 +110,8 @@ export interface Unit {
   veteran: boolean;
   /** Geordneter Rueckzug wieder moeglich ab dieser Runde / orderly retreat available again from this round */
   retreatReady?: number;
+  /** Kult: Rekrutieren wieder moeglich ab dieser Runde / cult: recruiting available again from this round */
+  recruitReady?: number;
   /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
   rockets?: number;
   /**
@@ -165,6 +169,8 @@ export interface Faction {
   eliminatedRound: number | null;
   /** Alvenia, Voelkerbund: Runden in Folge mit erfuellter Bedingung / League of Nations: consecutive rounds with the condition met */
   league?: number;
+  /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
+  plunder?: number;
   /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
   orbitalReady?: number;
 }
@@ -306,11 +312,14 @@ export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
   | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
-  | { t: 'capture'; city: number; faction: number; from: number | null }
+  /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
+  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
   | { t: 'train'; unit: number; city: number }
+  /** Kult: Einheit by ruft im Feld die Einheit unit / cult: unit by calls up unit in the field */
+  | { t: 'recruit'; unit: number; by: number }
   | { t: 'build'; building: BuildingId | 'outpost' | GrandProjectId; x: number; y: number; faction: number }
   | { t: 'research'; tech: TechId; faction: number }
   | { t: 'heal'; unit: number; amount: number; repair?: boolean }
@@ -413,7 +422,7 @@ export type Command =
   | { type: 'recruit'; unit: number; unitType: UnitTypeId; x: number; y: number }
   | { type: 'upgrade'; unit: number; to: UnitTypeId }
   | { type: 'research'; tech: TechId }
-  /** Wunder bauen (Bohrer wird per 'train' ausgebildet) / build a wonder (the drill is trained via 'train') */
+  /** Wunder bauen (den Bohrer ruft ein Prophet per 'recruit') / build a wonder (a prophet calls up the drill via 'recruit') */
   | { type: 'wonder'; kind: WonderKind; x: number; y: number }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
@@ -427,7 +436,7 @@ export type ErrorCode =
   | 'invalidTile' | 'occupied' | 'unitLimit' | 'notYourCity' | 'alreadyResearched' | 'parentMissing'
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
-  | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
+  | 'notPreacher' | 'recruitCooldown' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
   | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing'
   // Orbitallaser / orbital laser
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit';
