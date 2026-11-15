@@ -276,15 +276,16 @@ export function runPursuit(s: GameState, c: CampaignState, ev: GameEvent[], spaw
 }
 
 /**
- * Felder, die die Oberflaeche markiert: der Tempel, solange die Plaene darin liegen; das Hauptquartier, solange sie
- * getragen werden; die Stelle fallen gelassener Plaene.
- * Tiles the UI highlights: the temple while the plans are inside; the HQ while they are carried; the spot of dropped plans.
+ * Felder, die die Oberflaeche markiert: das Hauptquartier, solange die Plaene getragen werden; die Stelle fallen
+ * gelassener Plaene. Den Tempel markiert sein Modell selbst.
+ * Tiles the UI highlights: the HQ while the plans are carried; the spot of dropped plans. The temple's model marks itself.
  */
 export function plansHints(s: GameState): Pos[] {
   const c = s.campaign;
   const p = c?.plans;
   if (!c || !p || c.result || !c.temple) return [];
-  if (p.at === 'temple') return templeTiles(c.temple);
+  // der Tempel selbst ist auffaellig genug; Ringe darauf verdecken ihn / the temple itself stands out; rings on it would hide it
+  if (p.at === 'temple') return [];
   if (p.at === 'dropped') return [{ x: p.x!, y: p.y! }];
   if (p.at === 'carried') { const hq = hqOf(s, PLAYER); return hq ? [{ x: hq.x, y: hq.y }] : []; }
   return [];

@@ -208,7 +208,7 @@ describe('m4: Kriegsplaene / war plans', () => {
     expect(r.ok).toBe(true);
     expect(r.events.some((e) => e.t === 'plans' && e.what === 'returned')).toBe(true);
     expect(s.campaign!.plans).toMatchObject({ at: 'temple', drops: 1 });
-    expect(plansHints(s).length).toBe(4);
+    expect(plansHints(s)).toEqual([]);
   });
 
   it('der Traeger laesst sich nicht bekehren / the carrier cannot be converted', () => {

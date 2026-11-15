@@ -279,6 +279,14 @@ export const primitives = {
     orbitalUplink: '#6dffb4',
     orbitalAim: '#ff3355',
     orbitalScorch: '#241a16',
+    // Fanatiker-Tempel und Kriegsplaene (m4) / Fanatic temple and war plans (m4)
+    templeStone700: '#2c2629',
+    templeStone500: '#4a3f40',
+    templeStone300: '#6e5f5a',
+    templeFire: '#ff8f2b',
+    templeFireCore: '#ffe27a',
+    plansParchment: '#e9d3a4',
+    plansCase: '#5a2c18',
   },
   font: {
     display: "'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif",
@@ -608,6 +616,17 @@ export const semantic = {
   orbitalAim: c.orbitalAim,
   orbitalOwn: c.orange500,
   orbitalScorch: c.orbitalScorch,
+  /**
+   * Fanatiker-Tempel (m4): dunkler Stein in drei Stufen, Feuer der Schalen (leuchtet, KEYS), Pergament und Koecher der Kriegsplaene.
+   * Fanatic temple (m4): dark stone in three steps, brazier fire (glows, KEYS), parchment and case of the war plans.
+   */
+  templeStoneDark: c.templeStone700,
+  templeStone: c.templeStone500,
+  templeStoneLight: c.templeStone300,
+  templeFire: c.templeFire,
+  templeFireCore: c.templeFireCore,
+  plansParchment: c.plansParchment,
+  plansCase: c.plansCase,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */
