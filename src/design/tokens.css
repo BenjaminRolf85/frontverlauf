@@ -236,6 +236,7 @@
   --p-z-map: 0;
   --p-z-hud: 10;
   --p-z-sheet: 20;
+  --p-z-dispatch: 25;
   --p-z-dialog: 30;
   --p-z-toast: 40;
   --p-z-overlay: 50;

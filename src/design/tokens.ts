@@ -229,7 +229,7 @@ export const primitives = {
   size: { touch: '44px', touchLg: '56px', icon: '24px', iconSm: '18px', bar: '52px' },
   /** Umbruchpunkte (nur Dokumentation, CSS-Media-Queries koennen keine Variablen lesen) / breakpoints */
   breakpoint: { narrow: '480px', sm: '560px', lg: '900px', compactHeight: '520px' },
-  z: { map: '0', hud: '10', sheet: '20', dialog: '30', toast: '40', overlay: '50' },
+  z: { map: '0', hud: '10', sheet: '20', dispatch: '25', dialog: '30', toast: '40', overlay: '50' },
 } as const;
 
 const c = primitives.color;
