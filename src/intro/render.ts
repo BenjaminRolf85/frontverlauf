@@ -862,6 +862,7 @@ function motifKorvat(r: R, l: number, a: Stage) {
   }
 }
 
+/** Alvenia: goldene Lichtkuppel, Granaten prallen ab, Lichtstrahlen richten die Schuetzen / golden dome of light, shells bounce off, beams of light judge the shooters */
 function motifAlvenia(r: R, l: number, a: Stage) {
   const ctx = r.ctx, { u } = r;
   const q = easeOutBack(seg(l, 1.9, 2.5));
@@ -904,7 +905,15 @@ function motifAlvenia(r: R, l: number, a: Stage) {
       ctx.lineWidth = 10 * u; ctx.strokeStyle = C.ink; ctx.stroke(); ctx.lineWidth = 5 * u; ctx.strokeStyle = C.tracer; ctx.stroke();
     }
     const sp = seg(l, h, h + 0.35);
-    if (sp > 0 && sp < 1) { ctx.save(); ctx.globalAlpha = 1 - sp; burst(r, hx, hy, (44 + sp * 50) * u, C.accent, 500 + i, 9, 4); ctx.restore(); }
+    if (sp > 0 && sp < 1) {
+      ctx.save(); ctx.globalAlpha = 1 - sp; burst(r, hx, hy, (44 + sp * 50) * u, C.accent, 500 + i, 9, 4);
+      // Strafgericht: goldener Lichtstrahl zurueck zum Schuetzen / judgement: golden beam of light back to the shooter
+      const ex = hx + p.w * 0.4, ey = hy - ry * 0.5;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + (ex - hx) * Math.min(1, sp * 2.5), hy + (ey - hy) * Math.min(1, sp * 2.5));
+      ctx.lineWidth = 12 * u; ctx.strokeStyle = C.ink; ctx.stroke(); ctx.lineWidth = 6 * u; ctx.strokeStyle = C.shield; ctx.stroke();
+      ctx.lineWidth = 2 * u; ctx.strokeStyle = C.shieldCore; ctx.stroke();
+      ctx.restore();
+    }
   });
 }
 
