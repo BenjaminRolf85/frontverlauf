@@ -49,6 +49,17 @@ const PRESETS: Record<DayPhase, Preset> = {
   },
 };
 
+/**
+ * Hoehle (Kampagnenfinale): kein Himmel und keine Tageszeit; kuehles blau-violettes Umgebungslicht, schwaches Licht
+ * von oben, volles Eigenleuchten und dichter Dunst in Hoehlentoenen zum Rand hin.
+ * Cavern (campaign finale): no sky and no time of day; cool blue-violet ambient light, a weak light from above,
+ * full self glow and dense haze in cave tones towards the edge.
+ */
+const CAVE: Preset = {
+  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 1.25, sun: semantic.caveKeyLight, sunI: 1.15, sunDir: [-3, 9, 4],
+  night: 1, glow: 1.25, window: 1, haze: semantic.caveHaze, hazeAmt: 0.7, light: [0.42, 0.48, 0.78], bloom: 1.15,
+};
+
 /** Zahlenform eines Zustands zum Mischen / numeric form of a state for blending */
 interface State {
   sky: THREE.Color; ground: THREE.Color; hemi: number; sun: THREE.Color; sunI: number; sunDir: THREE.Vector3;
@@ -81,13 +92,20 @@ export class Sky {
     this.apply();
   }
 
-  /** Neue Tageszeit setzen; animate = sanft ueberblenden / set a new time of day; animate = blend smoothly */
-  set(phase: DayPhase, overcast: number, animate: boolean) {
-    if (phase === this.phase && overcast === this.overcast) return;
+  /** Hoehle statt Himmel / cavern instead of sky */
+  private cave = false;
+
+  /** Neue Tageszeit setzen; animate = sanft ueberblenden; cave = Hoehlenlicht / set a new time of day; animate = blend smoothly; cave = cavern light */
+  set(phase: DayPhase, overcast: number, animate: boolean, cave = false) {
+    if (cave) overcast = 0;
+    if (phase === this.phase && overcast === this.overcast && cave === this.cave) return;
+    // Wechsel zwischen Oberflaeche und Hoehle nie ueberblenden / never blend between surface and cavern
+    if (cave !== this.cave) animate = false;
     this.phase = phase;
     this.overcast = overcast;
+    this.cave = cave;
     this.from = clone(this.cur);
-    this.to = toState(PRESETS[phase]);
+    this.to = toState(cave ? CAVE : PRESETS[phase]);
     this.to.sunI *= 1 - overcast * 0.35;
     this.to.hemi *= 1 - overcast * 0.05;
     this.to.hazeAmt += overcast * 0.08;

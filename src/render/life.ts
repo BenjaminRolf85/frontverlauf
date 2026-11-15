@@ -19,7 +19,9 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { UNITS, type UnitTypeId } from '../data/balance';
 import type { GameState, Unit } from '../core';
 import { hex, semantic } from '../design/tokens';
-import { hullGeometry, outlineMaterial, paint, toonMaterial } from './toon';
+import { hullGeometry, outlineMaterial, outlinedInstanced, paint, toonMaterial } from './toon';
+import { landMaterial, withGlow } from './atmosphere';
+import { crawlerGeometry, lizardGeometry, mothBodyGeometry, mothWingGeometry, sporeDrifterGeometry } from './models/cavern';
 
 // ---------- Einordnung / classification ----------
 
@@ -601,3 +603,110 @@ export class UnitLife {
 }
 
 const v3 = new THREE.Vector3();
+
+// ---------- Hoehlengetier (Kampagnenfinale) / cavern creatures (campaign finale) ----------
+
+/** Art eines Hoehlentiers / kind of cavern creature */
+export type CreatureKind = 'crawler' | 'drifter' | 'lizard' | 'moth';
+export interface CreatureSpot { kind: CreatureKind; x: number; y: number; z: number; phase: number }
+
+const CREATURE_GEO: Record<CreatureKind, () => THREE.BufferGeometry> = {
+  crawler: crawlerGeometry, drifter: sporeDrifterGeometry, lizard: lizardGeometry, moth: mothBodyGeometry,
+};
+
+/**
+ * Mutierte, leuchtende Hoehlentiere statt Oberflaechentieren: Krabbler laufen kleine Kreise, Sporentreiber schweben auf
+ * und ab, blinde Echsen huschen und verharren, Riesenmotten flattern um Pilze. Instanziert, ohne Allokationen pro Bild;
+ * ohne Animationen stehen sie still.
+ * Mutated glowing cavern creatures instead of surface animals: crawlers walk small circles, spore drifters bob up and
+ * down, blind lizards dart and pause, giant moths flutter around mushrooms. Instanced, no per-frame allocations;
+ * without animations they stand still.
+ */
+export class CaveLife {
+  readonly group = new THREE.Group();
+  private meshes = new Map<CreatureKind, { mesh: THREE.InstancedMesh; line: THREE.InstancedMesh; list: CreatureSpot[] }>();
+  private wings: { mesh: THREE.InstancedMesh; list: CreatureSpot[] } | null = null;
+  private tmp = new THREE.Object3D();
+  private wingM = new THREE.Matrix4();
+  private wingOut = new THREE.Matrix4();
+
+  get active() { return this.meshes.size > 0; }
+
+  build(spots: CreatureSpot[]) {
+    this.clear();
+    for (const kind of Object.keys(CREATURE_GEO) as CreatureKind[]) {
+      const list = spots.filter((p) => p.kind === kind);
+      if (!list.length) continue;
+      const { mesh, line } = outlinedInstanced(withGlow(CREATURE_GEO[kind](), 'nature'), list.length, 0.008, landMaterial());
+      for (const m of [mesh, line]) { m.raycast = () => {}; m.frustumCulled = false; this.group.add(m); }
+      this.meshes.set(kind, { mesh, line, list });
+      if (kind === 'moth') {
+        // zwei Fluegel je Motte / two wings per moth
+        const w = new THREE.InstancedMesh(withGlow(mothWingGeometry(), 'nature'), landMaterial(), list.length * 2);
+        w.raycast = () => {}; w.frustumCulled = false;
+        this.group.add(w);
+        this.wings = { mesh: w, list };
+      }
+    }
+    this.update(0);
+  }
+
+  /** time in Sekunden / time in seconds */
+  update(time: number) {
+    const o = this.tmp;
+    for (const [kind, { mesh, line, list }] of this.meshes) {
+      list.forEach((p, i) => {
+        const t = time + p.phase * 10;
+        o.rotation.set(0, 0, 0);
+        o.scale.setScalar(1);
+        switch (kind) {
+          case 'crawler': {
+            // kleiner Kreis um den Ankerpunkt / small circle around the anchor
+            const a = t * 0.5 + p.phase * 6;
+            o.position.set(p.x + Math.cos(a) * 0.22, p.y, p.z + Math.sin(a) * 0.22);
+            o.rotation.y = -a;
+            break;
+          }
+          case 'drifter':
+            o.position.set(p.x + Math.sin(t * 0.3) * 0.12, p.y + 0.55 + Math.sin(t * 0.8) * 0.12, p.z + Math.cos(t * 0.25) * 0.12);
+            o.rotation.y = t * 0.2;
+            break;
+          case 'lizard': {
+            // huschen und verharren / dart and pause
+            const cyc = (t * 0.35) % 1;
+            const k = cyc < 0.25 ? cyc / 0.25 : 1;
+            const leg = Math.floor(t * 0.35) % 4;
+            const a0 = leg * (Math.PI / 2) + p.phase * 4;
+            o.position.set(p.x + Math.cos(a0) * 0.12 + Math.cos(a0 + Math.PI / 2) * 0.18 * k, p.y, p.z + Math.sin(a0) * 0.12 + Math.sin(a0 + Math.PI / 2) * 0.18 * k);
+            o.rotation.y = Math.PI / 2 - a0 - Math.PI / 2;
+            break;
+          }
+          case 'moth': {
+            const a = t * 0.7 + p.phase * 6;
+            o.position.set(p.x + Math.cos(a) * 0.32, p.y + 0.62 + Math.sin(t * 2.1) * 0.06, p.z + Math.sin(a) * 0.32);
+            o.rotation.y = -a;
+            o.scale.setScalar(1.4);
+            break;
+          }
+        }
+        o.updateMatrix();
+        mesh.setMatrixAt(i, o.matrix); line.setMatrixAt(i, o.matrix);
+        if (kind === 'moth' && this.wings) {
+          const flap = Math.sin(t * 14) * 0.7;
+          for (let side = 0; side < 2; side++) {
+            this.wingM.makeRotationZ(side ? Math.PI - flap : flap);
+            this.wings.mesh.setMatrixAt(i * 2 + side, this.wingOut.multiplyMatrices(o.matrix, this.wingM));
+          }
+        }
+      });
+      mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
+    }
+    if (this.wings) this.wings.mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  clear() {
+    for (const c of [...this.group.children]) { this.group.remove(c); (c as THREE.InstancedMesh).dispose(); }
+    this.meshes.clear();
+    this.wings = null;
+  }
+}

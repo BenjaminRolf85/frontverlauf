@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { attackTargets, levelUpCost, burning, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, type GameState, type Unit } from '../core';
+import { attackTargets, levelUpCost, burning, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -25,6 +25,9 @@ import { WATER_BOX_TOP, buildWater } from './water';
 import { buildLandscape, cliffRock } from './landscape';
 import { TownFx, type TownInput } from './lights';
 import { FogFx } from './fog';
+import { CaveShell } from './cave';
+import { CaveLife, type CreatureSpot } from './life';
+import { setWaterTheme } from './water';
 
 /** Platzhalter, solange ein Modell fehlt: Grundkoerper in Fraktionsfarbe / placeholder while a model is missing */
 const placeholderCache = new Map<string, THREE.BufferGeometry>();
@@ -67,6 +70,31 @@ const DONE_OPACITY = 0.5;
 const WADE_SINK = 0.14;
 const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
+const caveCloudGeometry = (v: number) => safe(models.caveCloudGeometry, semantic.caveFog, v)!;
+// Hoehle (Kampagnenfinale) / cavern (campaign finale)
+const mushroomForest = (v: number) => safe(models.mushroomForest, semantic.mushroomCapA, v);
+const caveFloorDeco = (v: number) => safe(models.caveFloorDeco, null, v);
+const rockPillars = (v: number, ore: boolean) => safe(models.rockPillars, semantic.caveRock, v, ore);
+const supplyLineGeometry = (f: FactionId | null, hq: boolean) => safe(models.supplyLineGeometry, f ? factionTokens[f].primary : semantic.neutral, f, hq)!;
+const verdanTurretGeometry = (active: boolean) => safe(models.verdanTurretGeometry, semantic.verdanStone, active);
+const verdanRuinGeometry = () => safe(models.verdanRuinGeometry, semantic.verdanStoneDark);
+const craterCracks = (ring: number, v: number) => safe(models.craterCracks, null, ring, v);
+const craterDebris = (v: number) => safe(models.craterDebris, null, v);
+/** Skelette in der Hoehle / skeletons in the cavern */
+const caveBones = (kind: 0 | 1 | 2, v: number) => safe(kind === 0 ? models.verdanRemains : kind === 1 ? models.alienBones : models.giantSkull, semantic.bone, v);
+
+/** Deterministischer Zufall je Feld und Seed (nur Optik) / deterministic random per tile and seed (visual only) */
+function tileHash(x: number, y: number, seed: number, salt: number): number {
+  let h = Math.imul(x + 1, 374761393) ^ Math.imul(y + 1, 668265263) ^ Math.imul(seed | 0, 1103515245) ^ Math.imul(salt + 7, 1597334677);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+/** Absenkung der Kraterfelder je Ring (Mitte, 1, 2), nur Optik / dip of crater tiles per ring (centre, 1, 2), visual only */
+const CRATER_DIP = [0.15, 0.1, 0.05];
+/** Kraterradius um das Artefakt / crater radius around the artifact */
+const CRATER_RADIUS = 2;
+const craterDip = new WeakMap<Tile, number>();
 import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
 
 export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build';
@@ -81,7 +109,7 @@ const mix = (a: string, b: string, t: number) => {
 
 /** Oberkante eines Feldes inkl. Landschaft / tile top including biome */
 export function tileTop(t: Tile): number {
-  return TILE_TOP[t.terrain] + (t.biome && t.terrain !== 'shallow' && t.terrain !== 'ocean' ? BIOME_LIFT[t.biome] : 0) +
+  return -(craterDip.get(t) ?? 0) + TILE_TOP[t.terrain] + (t.biome && t.terrain !== 'shallow' && t.terrain !== 'ocean' ? BIOME_LIFT[t.biome] : 0) +
     (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
 }
 
@@ -128,7 +156,15 @@ export class Board {
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
-  readonly fogFx = new FogFx((v) => cloudGeometry(v));
+  readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : cloudGeometry(v)));
+  /** Kartenthema des gezeigten Spiels / map theme of the shown game */
+  theme: 'cavern' | null = null;
+  /** Darstellungsqualitaet (View.setQuality): 'low' = weniger Hoehlen-Deko / render quality: 'low' = less cavern decoration */
+  quality: 'low' | 'high' = 'high';
+  /** Felswaende, Gewoelbe und Tropfsteine der Hoehle / rock walls, vault and stalactites of the cavern */
+  readonly caveShell = new CaveShell();
+  /** Leuchtende Hoehlentiere / glowing cavern creatures */
+  readonly caveLife = new CaveLife();
   /** Runde des zuletzt gezeigten Zustands (fuer die Tageszeit) / round of the last shown state (for the time of day) */
   round = 1;
   /** Zaehlt Neuaufbauten der statischen Ebene (Schattenkarte) / counts static rebuilds (shadow map) */
@@ -153,7 +189,7 @@ export class Board {
     clearer.onBeforeRender = (renderer) => renderer.clearDepth();
     clearer.raycast = () => {};
     this.unitLayer.add(clearer);
-    this.group.add(this.life.group);
+    this.group.add(this.life.group, this.caveShell.group, this.caveLife.group);
     this.life.busy = (id) => this.animating.has(id);
   }
 
@@ -172,6 +208,7 @@ export class Board {
   }
   /** Ober- und Seitenfarbe eines Feldes / top and side colour of a tile */
   private tileColors(terrain: TerrainId, tint: string | null, biome?: BiomeId, xeno = false): { top: string; side: string } {
+    if (this.theme === 'cavern') return this.caveColors(terrain, tint, biome, xeno);
     let topColor: string;
     let side: string = semantic.terrainPlainSide;
     switch (terrain) {
@@ -195,19 +232,43 @@ export class Board {
     if (this.snowy && terrain !== 'shallow' && terrain !== 'ocean') topColor = mix(topColor, semantic.snow, 0.5);
     return { top: topColor, side };
   }
-  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false): THREE.BufferGeometry {
-    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}`;
+  /**
+   * Hoehlenpalette: Boden, Moos, Fels und Teich bleiben deutlich unterscheidbar; Landschaft und Heimat faerben nur leicht,
+   * der Krater ist versengt (crater = Ring 0..2).
+   * Cavern palette: floor, moss, rock and pool stay clearly distinguishable; biome and home tint only lightly,
+   * the crater is scorched (crater = ring 0..2).
+   */
+  private caveColors(terrain: TerrainId, tint: string | null, biome?: BiomeId, xeno = false, crater = -1): { top: string; side: string } {
+    let top: string, side: string = semantic.caveFloorSide;
+    switch (terrain) {
+      case 'plain': top = semantic.caveFloor; break;
+      case 'forest': top = semantic.caveMoss; break;
+      case 'mountain': top = semantic.caveRock; side = semantic.caveRockDark; break;
+      default: top = semantic.cavePool; side = semantic.cavePoolDeep; break;
+    }
+    const land = terrain !== 'shallow' && terrain !== 'ocean';
+    const bt = biomeTop(terrain, biome);
+    if (bt && land) top = mix(top, bt.top, 0.1);
+    if (tint && land) top = mix(top, tint, 0.12);
+    if (xeno && land) top = mix(semantic.xenoGround, top, 0.45);
+    if (crater >= 0 && land) top = mix(top, semantic.craterScorch, [0.7, 0.55, 0.35][crater] ?? 0);
+    return { top, side };
+  }
+
+  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false, crater = -1): THREE.BufferGeometry {
+    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}-${this.theme}-${crater}`;
     let g = this.tileGeoCache.get(key);
     if (g) return g;
     if (terrain === 'fog') {
-      g = coloredBox(0.98, 0.32, 0.98, semantic.cloudShade, semantic.neutralDark);
+      const cave = this.theme === 'cavern';
+      g = coloredBox(0.98, 0.32, 0.98, cave ? semantic.caveFogShade : semantic.cloudShade, cave ? semantic.caveWallDark : semantic.neutralDark);
       g.translate(0, 0.32 / 2 + TILE_BOTTOM, 0);
     } else {
       // Wasserfelder: Kasten unter der animierten Oberflaeche (water.ts) / water tiles: box below the animated surface
       const top = terrain === 'shallow' || terrain === 'ocean' ? WATER_BOX_TOP
-        : TILE_TOP[terrain] + (biome ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0);
+        : TILE_TOP[terrain] + (biome ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0) - (crater >= 0 && terrain !== 'mountain' ? CRATER_DIP[crater] : 0);
       const h = top - TILE_BOTTOM;
-      const c = this.tileColors(terrain, tint, biome, xeno);
+      const c = this.theme === 'cavern' ? this.caveColors(terrain, tint, biome, xeno, crater) : this.tileColors(terrain, tint, biome, xeno);
       g = coloredBox(0.98, h, 0.98, c.top, c.side);
       g.translate(0, TILE_BOTTOM + h / 2, 0);
     }
@@ -231,8 +292,36 @@ export class Board {
   /** Statische Ebene neu aufbauen / rebuild static layer */
   rebuild(s: GameState, viewer: number) {
     this.size = s.size;
-    this.weatherFx.set(weather(s), s.size);
-    this.snowy = weather(s) === 'snow';
+    const cave = isCavern(s);
+    const low = this.quality === 'low';
+    const theme = cave ? 'cavern' : null;
+    if (theme !== this.theme) {
+      this.theme = theme;
+      this.fogFx.reset();
+      setWaterTheme(cave);
+    }
+    this.weatherFx.set(weather(s), s.size, cave, low);
+    // unter Tage kein Schnee auf dem Boden / no snow on the ground underground
+    this.snowy = !cave && weather(s) === 'snow';
+    // Krater um das Artefakt (nur Optik): Ring je Feld, Absenkung fuer tileTop / crater around the artifact (visual only): ring per tile, dip for tileTop
+    const crater = new Map<number, number>();
+    const art = cave ? s.campaign?.artifact : undefined;
+    if (art) {
+      for (let dy = -CRATER_RADIUS; dy <= CRATER_RADIUS; dy++) for (let dx = -CRATER_RADIUS; dx <= CRATER_RADIUS; dx++) {
+        const x = art.x + dx, y = art.y + dy;
+        if (x < 0 || y < 0 || x >= s.size || y >= s.size) continue;
+        const ring = Math.max(Math.abs(dx), Math.abs(dy));
+        crater.set(y * s.size + x, ring);
+        const t = s.tiles[y * s.size + x];
+        if (t.terrain === 'plain' || t.terrain === 'forest') craterDip.set(t, CRATER_DIP[ring]);
+      }
+    }
+    const glowSpots: NonNullable<TownInput['glow']> = [];
+    const creatures: CreatureSpot[] = [];
+    const glowC = [semantic.caveGlowTeal, semantic.caveGlowMagenta, semantic.caveGlowLime].map((h) => new THREE.Color(hex(h)));
+    const amber = new THREE.Color(hex(semantic.caveLantern)), eye = new THREE.Color(hex(semantic.verdanEye));
+    const relic = new THREE.Color(hex(semantic.artifactGlow)), gold = new THREE.Color(hex(semantic.artifactGold));
+    const seed = s.config.seed;
     this.clearGroup(this.staticLayer);
     this.artifactOrbit = null;
     this.clearGroup(this.labelLayer);
@@ -245,7 +334,7 @@ export class Board {
     this.revealFog(s, viewer, explored);
 
     // Scholle / slab
-    const slab = outlined(withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), semantic.soil), 'none'), OUTLINE.tile, landMaterial());
+    const slab = outlined(withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), cave ? semantic.caveWallDark : semantic.soil), 'none'), OUTLINE.tile, landMaterial());
     slab.position.y = TILE_BOTTOM - SLAB_DEPTH / 2 + 0.001;
     this.staticLayer.add(slab);
 
@@ -295,7 +384,8 @@ export class Board {
           continue;
         }
         const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
-        add(this.tileGeo(t.terrain, homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno), pos, k);
+        const ring = crater.get(k) ?? -1;
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring), pos, k);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -303,7 +393,7 @@ export class Board {
           new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y * 5) % 4) * (Math.PI / 2)),
           new THREE.Vector3(Math.min(1.15, 0.85 + ps * 0.15), ps, Math.min(1.15, 0.85 + ps * 0.15)));
         const variant = (x * 7 + y * 13) % 3;
-        const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature;
+        const hasStructure = t.cityId !== null || t.building || t.grandProject || t.outpost || t.feature || t.turret || t.turretRuin;
         // Auf Feldern mit Einheit keine Baeume, Graeser oder Felsen, damit die Einheit frei steht
         // no trees, grass or rocks on tiles with a unit so the unit stands out
         const occ = occupied.has(k);
@@ -315,6 +405,54 @@ export class Board {
           addDeco(volcanoGeometry(variant), at(), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.15 });
           addDeco(volcanoSmokeGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.78, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1)), true);
+        } else if (cave && !t.xeno) {
+          // Hoehle: Felssaeulen, Leuchtpilzwald, Hoehlenboden statt Bergen, Wald und Wiese
+          // cavern: rock pillars, glowing mushroom forest, cave floor instead of mountains, forest and meadow
+          const corner = (sc: number, h: number) => new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(sc, h, sc));
+          const free = !hasStructure || t.building === 'road';
+          if (t.terrain === 'mountain') {
+            if (occ) addDeco(rockPillars(variant, false), corner(0.45, 0.6));
+            else if (free) addDeco(rockPillars((x * 5 + y * 11) % 4, t.resource === 'ore'), at());
+          } else if (t.terrain === 'forest' && free) {
+            const mv = (x * 5 + y * 11) % 4;
+            addDeco(mushroomForest(mv), occ ? corner(0.5, 0.8) : at(), true);
+            if (!low || (x + y) % 2 === 0) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.15, color: glowC[(mv + x) % 3] });
+          } else if (t.terrain === 'plain' && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && ring < 0) {
+            addDeco(caveFloorDeco((x * 7 + y * 13 + x * y) % 8), at(), true);
+          }
+          if (t.terrain === 'shallow' && (!low || (x + y) % 2 === 0)) glowSpots.push({ x: x - off, y: top, z: y - off, size: 0.95, color: glowC[0] });
+          // Skelette, deterministisch aus dem Seed; dichter rund um den Krater / skeletons, deterministic from the seed; denser around the crater
+          const d = art ? dist(art, { x, y }) : 99;
+          if ((t.terrain === 'plain' || t.terrain === 'forest') && !occ && !hasStructure && !t.resource && !t.remains && d > 1) {
+            const dens = (d >= 2 && d <= 6 ? 0.22 : 0.075) * (low ? 0.5 : 1);
+            if (tileHash(x, y, seed, 5) < dens) {
+              const h3 = tileHash(x, y, seed, 7);
+              const kind: 0 | 1 | 2 = t.terrain === 'plain' && h3 < 0.22 ? 2 : h3 < 0.62 ? 0 : 1;
+              const sc = t.terrain === 'forest' ? 0.75 : 1;
+              const sx = t.terrain === 'forest' ? 0.24 : (tileHash(x, y, seed, 9) - 0.5) * 0.3;
+              addDeco(caveBones(kind, Math.floor(tileHash(x, y, seed, 11) * 3)), new THREE.Matrix4().compose(
+                new THREE.Vector3(x - off + sx, top, y - off + (t.terrain === 'forest' ? 0.26 : 0)),
+                new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 13) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)));
+            }
+          }
+          // leuchtende Hoehlentiere / glowing cavern creatures
+          if (!occ && !hasStructure && t.terrain !== 'mountain') {
+            const hc = tileHash(x, y, seed, 17) * (low ? 2 : 1);
+            const kind = t.terrain === 'forest' ? (hc < 0.09 ? 'moth' : hc < 0.16 ? 'drifter' : null)
+              : t.terrain === 'shallow' ? (hc < 0.07 ? 'drifter' : null)
+                : t.terrain === 'plain' ? (hc < 0.045 ? 'crawler' : hc < 0.075 ? 'lizard' : null) : null;
+            if (kind) creatures.push({ kind, x: x - off, y: top, z: y - off, phase: tileHash(x, y, seed, 19) });
+          }
+          // Krater: glimmende Risse, Truemmerring am Rand / crater: glowing cracks, debris ring at the rim
+          if (art && ring >= 0) {
+            addDeco(craterCracks(ring, (x + y * 3) % 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.001, y - off),
+              new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(x - art.x, y - art.y)), new THREE.Vector3(1, 1, 1)));
+            if (ring > 0) glowSpots.push({ x: x - off, y: top, z: y - off, size: 0.9, color: (x + y) % 2 ? relic : gold });
+          }
+          if (art && (d === CRATER_RADIUS || d === CRATER_RADIUS + 1) && !occ && !hasStructure && t.terrain !== 'shallow' && t.terrain !== 'mountain') {
+            const ox = Math.sign(x - art.x) * 0.22, oz = Math.sign(y - art.y) * 0.22;
+            addDeco(craterDebris((x * 3 + y) % 3), new THREE.Matrix4().makeTranslation(x - off + ox, top, y - off + oz));
+          }
         } else if (occ && t.terrain === 'mountain') {
           // Berg bleibt erkennbar: kleiner Gipfel in der hinteren Ecke / mountain stays readable: small peak in the back corner
           addDeco(decorationGeometry(t.terrain, null, variant), new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.3, top, y - off - 0.3), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.6, 0.45)));
@@ -330,7 +468,7 @@ export class Board {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
-        if (!jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!cave && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
         if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken / craters and scorch marks
@@ -362,7 +500,14 @@ export class Board {
           }
           if (!any) riverSegs.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.008, y - off), new THREE.Quaternion(), new THREE.Vector3(1, 1, 0.3)));
         }
-        else if (!occ && t.resource && !t.building && t.cityId === null) addDeco(decorationGeometry(t.terrain, t.resource, variant), at());
+        // Hoehle: nur die Ressourcen-Requisiten (Fels und Pilze zeichnet der Hoehlenzweig) / cavern: only resource props (rock and mushrooms come from the cavern branch)
+        else if (!occ && t.resource && !t.building && t.cityId === null && !(cave && t.terrain === 'mountain')) addDeco(decorationGeometry(cave && t.terrain === 'forest' ? 'plain' : t.terrain, t.resource, variant), at());
+        // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
+        if (t.turret && t.turret.hp > 0) {
+          const face = art ? Math.atan2(art.x - x, art.y - y) : 0;
+          addDeco(verdanTurretGeometry(t.turret.active), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1, 1, 1)), false, 'built');
+          if (t.turret.active) glowSpots.push({ x: x - off, y: top, z: y - off, size: 1.1, color: eye });
+        } else if (t.turretRuin) addDeco(verdanRuinGeometry(), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), (x * 3 + y) % 4), new THREE.Vector3(1, 1, 1)), false, 'built');
         const owner = t.territory !== null ? cityById(s, t.territory)?.owner ?? null : null;
         const ownerFaction = owner !== null ? s.factions[owner].id : null;
         if (t.building && t.building !== 'road') {
@@ -383,6 +528,7 @@ export class Board {
           addDeco(artifactMarker(), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
           const orbit = outlined(withGlow(artifactGeometry('orbit'), 'built'), OUTLINE.building, landMaterial());
           orbit.position.set(x - off, top + ARTIFACT_ORBIT_Y, y - off);
+          if (cave) glowSpots.push({ x: x - off, y: top, z: y - off, size: 5.5, color: relic });
           this.artifactOrbit = orbit;
           this.staticLayer.add(orbit);
         }
@@ -542,12 +688,15 @@ export class Board {
       const level = c.owner === null ? 1 : c.level;
       const flags = { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter };
       // Fensterlicht: groessere Staedte haben mehr beleuchtete Fenster / window light: larger cities have more lit windows
-      const g = withGlow(cityGeometry(fid, level, flags), 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
+      // Hoehle: Nachschublinie statt Stadt, Hauptschacht groesser / cavern: supply line instead of a city, main shaft bigger
+      const g = cave ? withGlow(supplyLineGeometry(fid, flags.hq), 'built', 0)
+        : withGlow(cityGeometry(fid, level, flags), 'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
-      townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g });
+      if (cave) glowSpots.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, size: flags.hq ? 1.7 : 1.35, color: amber });
+      else townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g });
       // Stadt-Ausbauten / city upgrades
       for (const [slot, up] of (c.upgrades ?? []).entries()) {
         const perk = outlined(withGlow(perkGeometry(up, fid), 'built'), OUTLINE.building, landMaterial());
@@ -562,8 +711,9 @@ export class Board {
         const color = fid ? factionTokens[fid].primary : semantic.neutral;
         const ink = fid ? factionTokens[fid].ink : semantic.text;
         // Stufe und Fortschritt zur naechsten Stufe (nur fuer Staedte von Fraktionen) / level and progress to the next level (faction cities only)
-        const need = c.owner !== null ? levelUpCost(s, c) : 0;
-        const label = cityLabel(cname, c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
+        // Nachschublinien wachsen nicht: kein Stufenkreis, kein Fortschritt / supply lines do not grow: no level, no progress
+        const need = c.owner !== null && !cave ? levelUpCost(s, c) : 0;
+        const label = cityLabel(cname, cave ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
         label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
         label.center.set(0.5, 1);
         this.labelLayer.add(label);
@@ -593,7 +743,9 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
-    this.town.build({ cities: townCities, lava: lavaSpots });
+    this.town.build({ cities: townCities, lava: lavaSpots, glow: glowSpots });
+    // Hoehlenhuelle und Getier / cave shell and creatures
+    if (cave) { this.caveShell.build(size, seed, low); this.caveLife.build(creatures); } else { this.caveShell.clear(); this.caveLife.clear(); }
     this.dirty = true;
   }
 

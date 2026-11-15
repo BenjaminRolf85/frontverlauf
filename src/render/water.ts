@@ -19,6 +19,23 @@ const SHORE_H = TILE_TOP.shallow;
 
 const isWater = (terrain: string) => terrain === 'shallow' || terrain === 'ocean';
 
+
+/**
+ * Hoehle: unterirdische Teiche, dunkel tuerkis mit hellem, leuchtendem Ufer; sonst die normalen Wasserfarben.
+ * Cavern: underground pools, dark teal with a bright glowing shore; otherwise the normal water colours.
+ */
+export function setWaterTheme(cave: boolean) {
+  const m = waterMaterial();
+  const set = (k: string, h: string) => (m.uniforms[k].value as THREE.Color).set(hex(h));
+  set('uShore', cave ? semantic.cavePoolShore : semantic.waterShore);
+  set('uShallow', cave ? semantic.cavePool : semantic.terrainShallow);
+  set('uOcean', cave ? semantic.cavePool : semantic.terrainOcean);
+  set('uDeep', cave ? semantic.cavePoolDeep : semantic.waterAbyss);
+  set('uGlint', cave ? semantic.caveCrystal : semantic.waterGlint);
+  set('uFoam', cave ? semantic.cavePoolShore : semantic.waterFoam);
+  m.uniforms.uCaveGlow.value = cave ? 1 : 0;
+}
+
 let material: THREE.ShaderMaterial | null = null;
 /** Gemeinsames Wassermaterial / shared water material */
 export function waterMaterial(): THREE.ShaderMaterial {
@@ -30,6 +47,8 @@ export function waterMaterial(): THREE.ShaderMaterial {
       uHaze: ATMO.uHaze, uHazeColor: ATMO.uHazeColor, uHazeHalf: ATMO.uHazeHalf,
       uShore: C(semantic.waterShore), uShallow: C(semantic.terrainShallow), uOcean: C(semantic.terrainOcean),
       uDeep: C(semantic.waterAbyss), uFoam: C(semantic.waterFoam), uGlint: C(semantic.waterGlint),
+      // Hoehle: Ufer und Schaum leuchten selbst / cavern: shore and foam glow by themselves
+      uCaveGlow: { value: 0 },
     },
     vertexShader: /* glsl */ `
       uniform float uTime;
@@ -56,6 +75,7 @@ export function waterMaterial(): THREE.ShaderMaterial {
       uniform vec3 uDeep;
       uniform vec3 uFoam;
       uniform vec3 uGlint;
+      uniform float uCaveGlow;
       varying vec3 vW;
       varying vec2 vWater;
       ${HAZE_GLSL}
@@ -85,6 +105,8 @@ export function waterMaterial(): THREE.ShaderMaterial {
         float foam = max(edge, ring);
         col = mix(col, uFoam * mix(uLight, vec3(1.0), 0.35), foam * (1.0 - uNight * 0.25));
         col += uGlint * uLight * glint * 0.45 * (1.0 - foam);
+        // Hoehle: leuchtendes Ufer, Schaum und Glitzern (fuer den Bloom ueberhell) / cavern: glowing shore, foam and glints (over-bright for bloom)
+        col += (uShore * (1.0 - step(0.2, d)) * 0.35 + uFoam * foam * 0.9 + uGlint * glint * 1.2) * uCaveGlow;
         col = mix(col, uHazeColor, atmoHaze(vW));
         gl_FragColor = vec4(col, 1.0);
         #include <colorspace_fragment>

@@ -15,6 +15,8 @@ export interface TownInput {
   cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry }[];
   /** Lava und Vulkane / lava and volcanoes */
   lava: { x: number; z: number; y: number; size: number }[];
+  /** Hoehle: farbige Lichtflecken (Pilze, Teiche, Krater, Laternen, Verdan-Auge) / cavern: coloured light pools */
+  glow?: { x: number; z: number; y: number; size: number; color: THREE.Color }[];
 }
 
 // ---------- Lichtkegel / light pools ----------
@@ -114,6 +116,7 @@ export class TownFx {
   private poolMats = {
     city: poolMaterial(ATMO.uWindow, 0, 0.55),
     lava: poolMaterial(ATMO.uNight, 0.22, 0.6),
+    cave: poolMaterial(ATMO.uGlow, 0.1, 0.42),
   };
   private smokeMat = flatToon(semantic.chimneySmoke);
   private beaconMat = new THREE.MeshBasicMaterial({ color: glowColor(hex(semantic.beacon), 3) });
@@ -149,6 +152,7 @@ export class TownFx {
     pools(inp.cities.map((c) => ({ x: c.x, y: c.y + 0.015, z: c.z, s: 1.2 + Math.min(8, c.level) * 0.08, c: tint(c.faction) })), this.poolMats.city);
     const lavaC = new THREE.Color(hex(semantic.lavaLight));
     pools(inp.lava.map((l) => ({ x: l.x, y: l.y + 0.02, z: l.z, s: l.size, c: lavaC })), this.poolMats.lava);
+    pools((inp.glow ?? []).map((l) => ({ x: l.x, y: l.y + 0.018, z: l.z, s: l.size, c: l.color })), this.poolMats.cave);
 
     // Leuchtfeuer am HQ-Mast / beacon on the HQ mast
     for (const c of inp.cities) {

@@ -17,6 +17,7 @@ import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
 import { memo, withDetail } from './kit';
+import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
 
@@ -282,6 +283,31 @@ export function cloudGeometry(variant: number): THREE.BufferGeometry {
   const v = ((Math.floor(variant) % 4) + 4) % 4;
   return memo(`cloud|${v}`, () => cloud(v).build());
 }
+
+/**
+ * Nebelwolke in Hoehlentoenen: die normale Wolke, hell -> caveFog, schattig -> caveFogShade.
+ * Fog cloud in cave tones: the normal cloud, light -> caveFog, shaded -> caveFogShade.
+ */
+export function caveCloudGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 4) + 4) % 4;
+  return memo(`caveCloud|${v}`, () => {
+    const g = cloudGeometry(v).clone();
+    const c = g.getAttribute('color');
+    const light = new THREE.Color(semantic.caveFog), dark = new THREE.Color(semantic.caveFogShade), tmp = new THREE.Color();
+    const ref = new THREE.Color(semantic.cloud);
+    for (let i = 0; i < c.count; i++) {
+      const lit = Math.abs(c.getX(i) - ref.r) + Math.abs(c.getY(i) - ref.g) + Math.abs(c.getZ(i) - ref.b) < 0.02;
+      tmp.copy(lit ? light : dark);
+      c.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+    c.needsUpdate = true;
+    return g;
+  });
+}
+export {
+  mushroomForest, caveFloorDeco, rockPillars, craterCracks, craterDebris, verdanRemains, alienBones, giantSkull,
+  supplyLineGeometry, verdanTurretGeometry, verdanRuinGeometry,
+} from './cavern';
 
 /**
  * Zusatz: Geometrie mit geglaetteten Normalen fuer eine Inverted-Hull-Kontur (nur position + normal).

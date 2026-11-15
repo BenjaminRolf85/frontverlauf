@@ -10,6 +10,7 @@ import { ANIM, CAMERA, SUN } from './config';
 import { ATMO } from './atmosphere';
 import { Sky, phaseOf } from './sky';
 import { Bloom } from './post';
+import { caveBackground } from './cave';
 
 export class View {
   readonly renderer: THREE.WebGLRenderer;
@@ -67,6 +68,8 @@ export class View {
 
   setQuality(q: 'low' | 'high') {
     this.quality = q;
+    // Hoehlen-Deko richtet sich nach der Qualitaet (wirkt beim naechsten Neuaufbau) / cavern decoration follows the quality (applies on the next rebuild)
+    this.board.quality = q;
     if (q === 'low' && this.bloom) { this.bloom.dispose(); this.bloom = null; }
     this.resize();
     this.applyShadows();
@@ -140,6 +143,8 @@ export class View {
     );
     this.camera.lookAt(look);
     this.camera.updateProjectionMatrix();
+    // Hoehle: hohe Waende nur auf den abgewandten Seiten / cavern: tall walls only on the far sides
+    this.board.caveShell.setView(this.angle);
     this.needs = true;
   }
 
@@ -250,7 +255,11 @@ export class View {
     const inXr = this.renderer.xr.isPresenting;
     // Tageszeit aus der Runde, Wetter dunkelt etwas ab / time of day from the round, weather darkens a little
     const wk = this.board.weatherFx.kind;
-    this.sky.set(phaseOf(this.board.round), wk === 'rain' ? 1 : wk === 'snow' ? 0.5 : 0, this.board.animations && this.skyReady);
+    const cave = this.board.theme === 'cavern';
+    this.sky.set(phaseOf(this.board.round), wk === 'rain' ? 1 : wk === 'snow' ? 0.5 : 0, this.board.animations && this.skyReady, cave);
+    // Hoehle: dunkler Hintergrund statt durchsichtigem Himmel (nicht in XR) / cavern: dark background instead of the clear sky (not in XR)
+    const bg = cave && !inXr ? caveBackground() : null;
+    if (this.scene.background !== bg) { this.scene.background = bg; this.needs = true; }
     this.skyReady = this.board.staticVersion > 0;
     const skyChanged = this.sky.update(now);
     ATMO.uHaze.value = inXr ? 0 : this.sky.hazeAmount;
@@ -264,6 +273,7 @@ export class View {
       const targetWind = this.board.weatherFx.kind === 'wind' ? 1 : 0;
       SWAY.uWind.value += (targetWind - SWAY.uWind.value) * 0.03;
       this.board.ambient.update(sec);
+      if (this.board.caveLife.active) this.board.caveLife.update(sec);
       this.board.pulseMarkers(sec);
       this.needs = true;
     }
