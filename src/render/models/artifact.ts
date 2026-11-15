@@ -262,7 +262,8 @@ function ring(pts: THREE.Vector3[], ctr: THREE.Vector3, n: THREE.Vector3, k: num
  * Exploded dodecahedron: twelve obsidian plates float away from the core, each with a glowing rim; the core shines through the gaps.
  */
 function shell(b: Builder, r: number, explode: number, thick: number) {
-  const src = new THREE.DodecahedronGeometry(r, 0).toNonIndexed();
+  // Polyeder sind schon nicht indiziert / polyhedra are already non-indexed
+  const src = new THREE.DodecahedronGeometry(r, 0);
   const pos = src.getAttribute('position');
   const faces = new Map<string, { n: THREE.Vector3; pts: THREE.Vector3[] }>();
   const a = new THREE.Vector3(), bb = new THREE.Vector3(), c = new THREE.Vector3();
