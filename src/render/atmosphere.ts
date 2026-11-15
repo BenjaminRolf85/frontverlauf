@@ -39,7 +39,7 @@ const keyColor = (h: string) => new THREE.Color(hex(h));
 const p = primitives.color;
 /** Schluesselfarben: Vertexfarben, die leuchten / key colours: vertex colours that glow */
 const KEYS = {
-  self: [keyColor(semantic.xenoGlow), keyColor(semantic.xenoAcid), keyColor(factionTokens.nexus.marker)],
+  self: [keyColor(semantic.xenoGlow), keyColor(semantic.xenoAcid), keyColor(factionTokens.nexus.marker), keyColor(semantic.artifactGlow), keyColor(semantic.artifactGold), keyColor(semantic.artifactCore)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };

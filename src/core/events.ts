@@ -8,7 +8,7 @@
  */
 import { ROSTERS, TECHS, TECH_IDS, UNITS, type TechId } from '../data/balance';
 import { dist, neighbors, tileAt } from './grid';
-import { has, hqOf, isHostile, ownCities, score } from './queries';
+import { baseBuilding, has, hqOf, isHostile, ownCities, score } from './queries';
 import { freeFor, placeUnit } from './spawn';
 import type { GameEvent, GameState, RandomEventKind, Unit } from './types';
 
@@ -83,7 +83,8 @@ const weakest = (s: GameState) => alive(s).map((f) => ({ f, sc: score(s, f) })).
 const farmCount = (s: GameState, f: number) => {
   let n = 0;
   for (const t of s.tiles) {
-    if (!t.building || !(FARMS as readonly string[]).includes(t.building) || t.territory === null) continue;
+    // Ressourcengebaeude zaehlen als ihr Grundgebaeude / resource buildings count as their base building
+    if (!t.building || !(FARMS as readonly string[]).includes(baseBuilding(t.building)) || t.territory === null) continue;
     if (s.cities.find((c) => c.id === t.territory)?.owner === f) n++;
   }
   return n;

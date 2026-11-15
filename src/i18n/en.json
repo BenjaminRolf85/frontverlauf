@@ -52,7 +52,8 @@
     "special": "Special faction",
     "takenBy": "taken by slot {n}",
     "swapHint": "A taken faction is swapped with the other slot.",
-    "current": "selected"
+    "current": "selected",
+    "advanced": "Advanced"
   },
   "modes": {
     "points": "Points",
@@ -101,7 +102,7 @@
       "alignment": "dictatorial",
       "perk": "Drill",
       "perkDesc": "Veteran status after 2 instead of 3 destroyed enemies.",
-      "discount": "Jeep 20 % cheaper",
+      "discount": "Jeep 30 % cheaper",
       "home": "industrial land rich in ore",
       "leader": "Sarek Voss",
       "leaderTitle": "Commander of the Protectorate",
@@ -151,7 +152,7 @@
       "short": "Velkar",
       "alignment": "defensive and research-driven",
       "perk": "Research lead",
-      "perkDesc": "All technologies cost 20 % less.",
+      "perkDesc": "All technologies cost 12 % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
@@ -176,9 +177,9 @@
       "quote": "Kkt. This planet will be violet.",
       "lore": "The Zyrr are a scouting swarm whose mothership crashed over the desert. Swarm Mother Xyl'Tharra decided to stay and turn the planet into a second home. Wherever her terraformers work, violet xeno ground grows, and on it the Zyrr are hard to beat.",
       "style": "saucers, death rays, xeno ground",
-      "aiStyle": "Opportunistic raiders: skimmers and tripods go around the front and strike undefended cities.",
+      "aiStyle": "Opportunistic raiders: hover skimmers and death-ray walkers go around the front and strike undefended cities.",
       "perk2": "Forest brood",
-      "perk2Desc": "Units heal 1 more HP in forests."
+      "perk2Desc": "Units heal 1 more HP in forests, but only in terraformed forest (aliens only heal on xeno ground)."
     },
     "vesper": {
       "name": "Cult of the Final Hour",
@@ -262,6 +263,53 @@
     "waal": "Land Cruiser Waal",
     "coreDrill": "Earth-Core Drill"
   },
+  "unitDesc": {
+    "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
+    "sniper": "Fires from two tiles away but is fragile itself.",
+    "jeep": "Fast scout: hit and run.",
+    "pioneer": "Sturdy defender that builds tank barriers.",
+    "mg": "Heavy firepower for the front line, strong on defence.",
+    "medic": "Heals its neighbours and talks enemies into defecting.",
+    "artillery": "Shells targets from three tiles away but needs an escort.",
+    "spy": "Invisible behind the lines, sparks uprisings in enemy cities.",
+    "heli": "Flies over everything and strikes again after every kill, but needs fuel.",
+    "tank": "Steel fist: not for sale, comes as a city reward.",
+    "landingBoat": "Ferries a land unit across water but cannot attack.",
+    "submarine": "Hides underwater and torpedoes from two tiles away.",
+    "destroyer": "Fast warship that keeps the coasts clear.",
+    "battleship": "Floating fortress: splash shelling from three tiles.",
+    "grey": "Tough Zyrr foot soldier that wades through water and climbs mountains.",
+    "terraformer": "Turns land into xeno ground, where the Zyrr heal and build.",
+    "skimmer": "Fast flyer with no fuel worries, ideal for raids.",
+    "mech": "Heavy walker with rockets that reach two tiles.",
+    "tripod": "Death ray from two tiles that no cover stops.",
+    "zealot": "Cheap fanatic who recruits new believers.",
+    "torchbearer": "Flamethrower that no cover protects against.",
+    "prophet": "Heals, converts enemies and recruits new believers.",
+    "doomBuggy": "Rusty speedster: hit and run.",
+    "rocketCart": "Rocket launcher on a flatbed, fires from three tiles.",
+    "doomCrawler": "The cult's heavy roller, its answer to the tank.",
+    "android": "Cheap standard machine soldier that needs no compute.",
+    "spider": "Climbing bot that scales mountains without research.",
+    "quadDrone": "Fast combat drone that flies without fuel.",
+    "railgun": "Precision gun with three tiles of range that never strikes back.",
+    "titan": "Huge combat robot, the bulwark of NEXUS.",
+    "antiTank": "Cracks vehicles from two tiles, weak against foot troops.",
+    "antiAir": "Swats flyers out of the sky; whoever ends a turn next to it gets shot.",
+    "mineLayer": "Lays hidden mines on adjacent tiles.",
+    "faustZealot": "Zealot with a rocket launcher: vehicle hunter from two tiles.",
+    "flakDrone": "Flak platform on four legs that guards the ground against flyers.",
+    "steppeRider": "Cheap, fast riders that count as foot troops.",
+    "stormbreaker": "Shock troops whose targets cannot strike back, but vulnerable themselves.",
+    "peacekeeper": "Sturdy defender that patches itself up every turn.",
+    "privateer": "Fast raider ship: every kill pays prize money.",
+    "protoWalker": "Expensive walker with splash damage at range two.",
+    "portal": "Zyrr victory wonder: opens the gate home after building and charging.",
+    "hackRelay": "NEXUS victory wonder: hacks into every machine in the world.",
+    "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
+    "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
+    "coreDrill": "Cult victory unit: drills to the earth core while standing still."
+  },
   "abilities": {
     "dash": "Assault",
     "dashDesc": "May attack after moving in the same turn.",
@@ -270,7 +318,7 @@
     "persist": "Follow-up",
     "persistDesc": "May attack again immediately after each destroyed enemy.",
     "fortify": "Dig in",
-    "fortifyDesc": "Receives the defence bonus in cities and outposts.",
+    "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers and pioneers receive the outpost bonus.",
     "heal": "Heal",
     "healDesc": "Restores 4 HP to all adjacent own units.",
     "convert": "Defect",
@@ -282,7 +330,7 @@
     "invisible": "Invisible",
     "invisibleDesc": "Enemies only see this unit from an adjacent tile.",
     "uprising": "Uprising",
-    "uprisingDesc": "When the spy enters an enemy city, own infantry appears around it.",
+    "uprisingDesc": "When the spy enters an enemy city, it is used up: up to as many own infantry as the city has levels (at most 4) appear around it, and the city loses its next income.",
     "fly": "Flight",
     "flyDesc": "Flies over any terrain, including water and mountains.",
     "fuel": "Fuel",
@@ -302,7 +350,7 @@
     "preach": "Preach",
     "preachDesc": "Recruits new units on free adjacent tiles. The preacher is exhausted afterwards.",
     "burn": "Flames",
-    "burnDesc": "Fire ignores terrain cover.",
+    "burnDesc": "Flames ignore all cover: terrain, cities, outposts and wrecks.",
     "wade": "Wade",
     "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there.",
     "flak": "Flak zone",
@@ -319,7 +367,7 @@
     "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted."
   },
   "stats": {
-    "cost": "Price",
+    "cost": "Cost",
     "hp": "HP",
     "attack": "Attack",
     "defense": "Defence",
@@ -353,7 +401,7 @@
     "road": "Road",
     "wreck": "Wreck",
     "skeleton": "Bones of fallen soldiers ({n})",
-    "wreckCover": "+1 cover for units on this tile",
+    "wreckCover": "+1 cover for land units on this tile",
     "barrier": "Tank barrier",
     "mine": "Mine",
     "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it."
@@ -383,7 +431,15 @@
     "mercenaryBarracks": "Mercenary barracks",
     "embassyPalace": "Embassy palace",
     "tradingPost": "Trading post",
-    "testLab": "Test lab"
+    "testLab": "Test lab",
+    "tractorStation": "Tractor station",
+    "deepMine": "Deep mine",
+    "hillVineyard": "Hill vineyard",
+    "tradeHarbour": "Trade harbour",
+    "polarStation": "Polar station",
+    "wreckSmelter": "Wreck smelter",
+    "pilgrimSite": "Pilgrimage site",
+    "depotNode": "Depot node"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -399,19 +455,30 @@
     "navalBase": "1 population point, embarking, sea connection",
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
-    "researchCenter": "1 population point and growing points",
-    "outpost": "Defence bonus 3.0 for infantry types, refuel point for helicopters. If it borders own territory, the territory grows by the free tiles around it.",
-    "barrier": "Hostile vehicles stop and move only 1 tile next round",
+    "researchCenter": "1 population point; 100 points, 50 more every 3 rounds, at most 300",
+    "outpost": "Defence bonus 3.0 for infantry, MG infantry, snipers and pioneers, refuel point for helicopters. Own units heal there as in own territory. If it borders own territory, the territory grows by the free tiles around it.",
+    "barrier": "Hostile tanks, jeeps, artillery, flak tanks and mine layers stop and move only 1 tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "2 population, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
     "powerPlant": "1 population, powers one data center, NEXUS only",
-    "kolkhoz": "1 population, then +1 population for the city every 5 rounds, one per city, Korvat only",
-    "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
-    "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
-    "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
-    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
+    "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
+    "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
+    "embassyPalace": "3 population, +3 stars per round per peace treaty, one per faction, Alvenia only",
+    "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
+    "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
+    "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
+    "hillVineyard": "{pop} population, +{stars} stars per round and +{emb} per active own embassy (at most +{embMax}). Only on plains in the hills biome without a resource, one per city, Alvenia only",
+    "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
+    "polarStation": "{pop} population, research {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
+    "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
+    "pilgrimSite": "{pop} population and +{stars} stars per round; recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
+    "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only"
+  },
+  "resource": {
+    "upgrade": "Upgrade, only the difference"
   },
   "grand": {
     "peaceMonument": "Peace monument",
@@ -482,10 +549,10 @@
     "waalProgram": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
     "leagueCharter": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
     "tradeMonopoly": "Have {n} stars in the treasury. Victory at the start of your turn.",
-    "fusionResearch": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+    "fusionResearch": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
     "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
     "coreDrilling": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
-    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
+    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept."
   },
   "tech": {
     "title": "Research and development",
@@ -502,25 +569,27 @@
     "needParent": "Research {tech} first.",
     "notYourTurn": "You can only research on your own turn.",
     "confirm": "Research",
-    "done": "Already researched."
+    "done": "Already researched.",
+    "legendVictory": "Victory tech (dashed)",
+    "victoryGroup": "Victory tech"
   },
   "rewards": {
     "title": "{city} reaches level {level}",
     "choose": "Choose a reward",
     "factory": "Factory hall",
-    "factoryDesc": "5 more stars per round",
+    "factoryDesc": "4 more stars per round",
     "drone": "Recon drone",
     "droneDesc": "reveals a large area",
     "bunkerRing": "Bunker ring",
     "bunkerRingDesc": "Defence bonus 4.0 in the city",
     "stars": "Stars",
-    "starsDesc": "25 stars right away",
+    "starsDesc": "15 stars right away",
     "expand": "Border expansion",
     "expandDesc": "City territory grows to 5 x 5 tiles",
     "population": "Influx",
     "populationDesc": "3 population points right away",
     "govQuarter": "Government quarter",
-    "govQuarterDesc": "5 more stars per round and 250 points",
+    "govQuarterDesc": "4 more stars per round and 250 points",
     "tank": "Tank",
     "tankDesc": "a tank appears in the city"
   },
@@ -557,13 +626,18 @@
     "crashWarning": "Crash ahead! A helicopter cannot reach a refuel point.",
     "crashWarningConfirm": "End anyway",
     "pendingReward": "Choose a city reward first.",
-    "noIncomeNext": "No income next round (uprising)",
+    "noIncomeNext": "No income next round",
     "slowed": "Slowed: 1 tile only",
     "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
     "upkeepUnit": "Upkeep {n} per round",
     "upkeepFree": "No upkeep (core troop)",
     "moreInfo": "Show more values",
-    "lessInfo": "Show fewer values"
+    "lessInfo": "Show fewer values",
+    "upkeepRule": "The {free} oldest units are free; each further one costs {pct} % of its price (rounded up), tanks {tank}.",
+    "needsTech": "Requires: {tech}",
+    "hintPrompt": "Hold or hover over an action: this line says what it does.",
+    "hintExpand": "Show the full explanation",
+    "moreActions": "More actions"
   },
   "actions": {
     "move": "Move",
@@ -592,7 +666,9 @@
     "barrier": "Build tank barrier",
     "barrierHint": "Tap an adjacent tile for the tank barrier.",
     "mine": "Lay mine",
-    "mineHint": "Tap a free adjacent tile for the mine."
+    "mineHint": "Tap a free adjacent tile for the mine.",
+    "persuade": "Persuade",
+    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only)."
   },
   "errors": {
     "gameOver": "The game is over.",
@@ -640,17 +716,18 @@
     "cannotRepair": "Only robots can repair themselves from wrecks.",
     "noWreck": "No wreck on or next to the tile.",
     "noXenoGround": "Aliens only heal on terraformed xeno ground.",
-    "noRockets": "No rockets left. Reload in an own city with a depot."
+    "noRockets": "No rockets left. Reload in an own city with a depot.",
+    "enemyTerritory": "Not inside another faction's territory."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
     "capture": "{name} captures {city}",
     "levelUp": "{city} grows to level {level}",
     "research": "{tech} researched",
-    "veteran": "A {unit} becomes a veteran",
-    "bunkerStars": "Bunker searched: 50 stars",
+    "veteran": "A {unit} becomes a veteran: +{hp} max HP, fully healed",
+    "bunkerStars": "Bunker searched: {n} stars",
     "bunkerTech": "Bunker searched: free technology",
-    "bunkerPopulation": "Bunker searched: 3 population points for the HQ",
+    "bunkerPopulation": "Bunker searched: {pop} population points for the HQ",
     "bunkerVeteranMg": "Bunker searched: veteran MG infantry",
     "bunkerReveal": "Bunker searched: surroundings revealed",
     "bunkerDestroyer": "Bunker searched: a destroyer appears",
@@ -671,13 +748,14 @@
     "convert": "A unit defects",
     "barrierHit": "A vehicle is stuck in a tank barrier",
     "cityUpgrade": "{name} built in {city}",
-    "flak": "Anti-aircraft hits a helicopter (-{dmg})",
+    "flak": "City anti-aircraft hits a flyer (-{dmg})",
     "mineHit": "A mine explodes (-{dmg})",
     "aaFire": "Flak hits a flyer (-{dmg})",
     "wonderStarted": "{name} begins: {wonder}",
     "wonderPhase": "{wonder} ({name}) enters its next phase.",
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
-    "wonderDestroyed": "{wonder} ({name}) was destroyed!"
+    "wonderDestroyed": "{wonder} ({name}) was destroyed!",
+    "deserted": "Upkeep unpaid: {unit} deserted"
   },
   "fx": {
     "hit": [
@@ -710,7 +788,7 @@
     "noContact": "Not met yet",
     "eliminated": "eliminated",
     "breakHint": "Breaking peace is announced one round ahead.",
-    "embassyHint": "Embassies need Intelligence and the discovered HQ.",
+    "embassyHint": "Embassies need Intelligence and the discovered HQ. Each embassy gives both sides {inc} stars per round (Alvenia double). The first costs {base} stars, each further one {step} more (Alvenia pays half).",
     "score": "{n} points"
   },
   "settings": {
@@ -818,7 +896,11 @@
     "s6": "Stars are the only currency. Open research and research a technology.",
     "s7": "Tap a resource tile inside your city territory and build something. Buildings add population, cities grow.",
     "s8": "Tap your headquarters and train a unit.",
-    "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!"
+    "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!",
+    "goal": "The goal: in points mode the highest score wins after {rounds} rounds (medal at the top). In conquest the last side holding cities wins, as here. With faction victories every faction can also win through its own goal. The victory tracker in the menu shows the standings.",
+    "goalOpen": "Open victory tracker",
+    "upkeep": "Upkeep: your first {free} units are core troops and cost nothing. Every further unit costs about {pct} % of its price per round. Next to the stars at the top you see your net income per round: income minus upkeep.",
+    "attack": "Combat: select a unit and tap an enemy in range. The attack button shows a preview first, such as “≈4 damage (0–6)”, and the chance to destroy the target. Hit luck: a shot can miss or land a critical hit ({min} to {max} % damage). A survivor strikes back. Press and hold an action and the line below the bar explains what it does."
   },
   "a11y": {
     "map": "Game map",
@@ -829,7 +911,7 @@
   "campaign": {
     "title": "Campaign",
     "menu": "Campaign",
-    "subtitle": "Nine operations on every front",
+    "subtitle": "Nine operations after the Starfall",
     "totalStars": "{n} of {max} stars",
     "mission": "Operation {n}",
     "locked": "Locked",
@@ -856,7 +938,6 @@
     "retry": "Retry",
     "toCampaign": "To campaign",
     "toMenu": "Main menu",
-    "finale": "All operations accomplished! You are a legend of the front.",
     "objectiveDone": "Objective done: {text}",
     "objectiveFailed": "Objective failed: {text}",
     "bonusDone": "Bonus objective done: {text}",
@@ -868,7 +949,9 @@
     "speakers": {
       "hq": "Headquarters",
       "scout": "Recon",
-      "enemy": "Enemy radio"
+      "enemy": "Enemy radio",
+      "scoutRole": "Scout at the front",
+      "ally": "Ally"
     },
     "obj": {
       "holdHq": "Hold your headquarters until round {rounds}",
@@ -887,107 +970,213 @@
       "bonusCapture": "Capture the marked city",
       "bonusCities": "Own {n} cities",
       "bonusKills": "Destroy {n} enemy units",
-      "bonusPoints": "Reach {n} points"
+      "bonusPoints": "Reach {n} points",
+      "destroyUnit": "Destroy the {unit} by round {rounds}",
+      "artifact": "Occupy the artifact for {n} rounds in a row, by round {rounds}"
     },
     "missions": {
       "m1": {
-        "title": "Baptism of Fire",
-        "tagline": "Three cities under the Korvat flag",
+        "title": "Shower of Sparks",
+        "tagline": "Secure the crash zone with three cities",
         "brief": [
-          "Recruit! Welcome to the front. The Dravon are sniffing around our border.",
-          "Your orders: three cities under the Korvat flag. Take settlements, raise troops – on the double!",
-          "Dravon here. Korvat farmers? We'll be over for breakfast in two rounds!"
+          "{leader} speaking. The sky burned, and now it is raining scrap. We secure the crash zone before anyone else does.",
+          "Debris and smoking craters everywhere, commander! The settlements around here are scared. Three cities under the flag of {faction}, then the zone is ours.",
+          "Kkt. Primitive creatures are crawling over our crash site. Swarm, clean up!"
         ],
-        "won": "Three cities, zero excuses. That's what we call a baptism of fire, soldier!",
-        "lost": "That was nothing. Back to boot camp – and then again!"
+        "won": "Three cities, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
+        "lost": "The zone is lost. The settlers pack their suitcases, the Zyrr unpack their probes.",
+        "variants": {
+          "korvat": {
+            "won": "Three cities, one people, one step! The League sings twice as loud tonight."
+          }
+        }
       },
       "m2": {
-        "title": "The Volcano Pass",
-        "tagline": "Hold the pass at the fire mountain",
+        "title": "Race to the Wreck",
+        "tagline": "Salvage the crash site before the Zyrr",
         "brief": [
-          "The only pass through the mountains runs right past the fire mountain. Whoever holds it holds the valley.",
-          "Dravon column inbound! Jeep and infantry heading for the pass. If an enemy stands there at the start of your turn, all is lost.",
-          "Out of the way, mountain goats! The pass belongs to Dravon!"
+          "There is a chunk of the mothership out there, big as a train station! It is still glowing.",
+          "{leader} to all units: reach the crash site before the Zyrr and salvage the tech. First come, first researched.",
+          "ZKRRT ... property of the swarm ... earthlings ... step back ... ZKRRT"
         ],
-        "won": "The pass is sealed! The Dravon can fold their maps back up.",
-        "lost": "The pass has fallen. Even the volcano is embarrassed."
+        "ally": "{allyLeader} here. {ally} stands at your side, {leader}. Against stars from the sky, humans stick together.",
+        "won": "Salvaged! The eggheads in the lab are completely losing it.",
+        "lost": "The Zyrr were faster. Now the thing flies again, just not for us.",
+        "variants": {
+          "velkar": {
+            "won": "Salvaged! {leader} has already written seventeen formulas on the debris."
+          }
+        }
       },
       "m3": {
-        "title": "Defend the Coast",
-        "tagline": "15 rounds against the landing fleet",
+        "title": "Hold the Line",
+        "tagline": "12 rounds against skimmers and greys",
         "brief": [
-          "Alert on the coast! The Alvenia fleet is lying off our harbours.",
-          "Two landing boats and a destroyer, commander. They want our beach!",
-          "Hold all our cities for 15 rounds. Not one grain of sand for the enemy!"
+          "Landing pods on the horizon! Skimmers and greys, wave after wave, straight at our cities.",
+          "Kkt. The earthlings have cities. We have patience. And a great many greys.",
+          "{leader} here. No city falls, for twelve rounds. Dig trenches, load the MGs, hold the line!"
         ],
-        "won": "15 rounds, not one city lost. The Alvenia admirals will go swimming somewhere else now.",
-        "lost": "They have landed. We should have built more bunkers and fewer beach chairs."
+        "ally": "{allyLeader} to {leader}: {ally} holds the flank. You hold the centre. Nobody falls back.",
+        "won": "Twelve rounds, no city lost. The Zyrr are rethinking their waves now.",
+        "lost": "The line is broken. Violet slime in our streets. Yuck.",
+        "variants": {
+          "dravon": {
+            "won": "Twelve rounds, no city lost. Drill pays off. Anyone tired may now blink, briefly."
+          }
+        }
       },
       "m4": {
-        "title": "Race to the Crash Site",
-        "tagline": "Faster than the Zyrr",
+        "title": "False Pilgrims",
+        "tagline": "Deal with the zealots in your land",
         "brief": [
-          "Something fell from the sky – smoking, glowing and definitely not from around here!",
-          "Reach the crash site before the Zyrr and salvage the tech. The clock is ticking!",
-          "ZKRRT ... property of the Zyrr ... earthlings ... step back ... ZKRRT"
+          "The pilgrims we took in are suddenly wearing bone masks! They are right in front of our gates.",
+          "The bell has tolled. By itself! Brothers, sisters, convert them or burn them down.",
+          "{leader} here. Six zealots fewer and peace returns. Quickly, before they start preaching."
         ],
-        "won": "Salvaged! The eggheads in the lab are completely losing it.",
-        "lost": "The Zyrr were faster. The thing is flying again – just not for us."
+        "ally": "{allyLeader} here. {ally} has pilgrims in the house too. We clean up together, {leader}.",
+        "won": "The masks lie in the dust. The rest of the pilgrims suddenly just want tea.",
+        "lost": "The zealots preach in our market squares. The baker is already wearing a robe.",
+        "variants": {
+          "alvenia": {
+            "won": "The masks lie in the dust. Our medics are bandaging the zealots too. That is how we do things."
+          }
+        }
       },
       "m5": {
-        "title": "The Cult Awakens",
-        "tagline": "Storm the cult headquarters",
+        "title": "The Pilgrim City",
+        "tagline": "Capture the cult's capital",
         "brief": [
-          "Torches burn at night in the lake lands. The Vesper cult preaches the end of the world.",
-          "The end is nigh! Join us – or burn!",
-          "Capture their headquarters before the madness spreads. No sermons, just tanks."
+          "{leader} to all units: the cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
+          "{enemyLeader} speaks: come then. Our city is built on faith. And on very thick walls.",
+          "Torchbearers on the walls, zealots in the alleys. The lakes slow us down, commander. Take the shores."
         ],
-        "won": "Cult headquarters stormed. The torches go out, the doomsday posters go to recycling.",
-        "lost": "The cult keeps growing. Someone sold them megaphones."
+        "ally": "{allyLeader} here. {ally} marches with you, {leader}. Together we are louder than any bell.",
+        "won": "The pilgrim city has fallen. The bell now hangs crooked. Good.",
+        "lost": "The pilgrim city stands. And its preachers have megaphones now.",
+        "variants": {
+          "meridon": {
+            "won": "The pilgrim city is ours. We sell the cult's candle stocks at a fine profit."
+          }
+        }
       },
       "m6": {
-        "title": "Machine Breakers",
-        "tagline": "Free two villages from NEXUS",
+        "title": "The Earth-Core Drill",
+        "tagline": "Destroy the drill before it breaks through",
         "brief": [
-          "Commander, two villages on our doorstep are whirring and beeping. Tin heads!",
-          "NEXUS IS TAKING OVER. RESISTANCE IS INEFFICIENT. PLEASE SMILE.",
-          "Take both settlements back! Wrenches out, people."
+          "The ground is shaking, commander! The cult has set up a giant drill. It wants to reach the earth's core!",
+          "The Final Hour needs a hole to come through. We are drilling it.",
+          "{leader} here. Tanks and artillery forward! The drill must go before it breaks through. Fourteen rounds, no more."
         ],
-        "won": "Both villages freed. We'll collect the androids as scrap metal.",
-        "lost": "The machines hold the villages. Our toaster is looking at us funny too."
+        "ally": "{allyLeader} to {leader}: {ally} has explosives and a bad mood. Count us in.",
+        "won": "The drill is scrap. The shaking stops. Only the coffee still wobbles.",
+        "lost": "The drill eats its way deeper. Nobody should be allowed to drill holes into planets.",
+        "variants": {
+          "velkar": {
+            "won": "The drill is scrap. We are keeping the drill bit. For science."
+          }
+        }
       },
       "m7": {
-        "title": "The Prophecy",
-        "tagline": "As the cult to fame and glory",
+        "title": "The Old Depots",
+        "tagline": "Take the empire depots back from NEXUS",
         "brief": [
-          "Brothers and sisters! The prophecy demands glory beyond measure – and on schedule.",
-          "Preach, recruit, spread out. And watch for signs: storms, plagues, miracles.",
-          "Meridon to all units: those weirdos in robes are dangerous. Open fire!"
+          "Lights are coming on in two old empire depots. Nobody has been there since the Great Standstill!",
+          "KERN-0 HERE. THE DEPOTS BELONG TO THE EMPIRE. I AM THE EMPIRE. DO NOT DISTURB.",
+          "{leader} here. Verdan's machines have woken up. We take both depots before they spit out armies."
         ],
-        "won": "The prophecy is fulfilled! The bells ring, the zealots dance.",
-        "lost": "The prophecy ... was probably a misprint."
+        "ally": "{allyLeader} here. {ally} knows the old depot plans. We will show you the back door, {leader}.",
+        "won": "Both depots liberated. Verdan's inventory lists are three hundred pages long. We will read them later.",
+        "lost": "The depots keep humming. NEXUS produces, we improvise.",
+        "variants": {
+          "korvat": {
+            "won": "Both depots liberated. The tractors inside now belong to the people."
+          }
+        }
       },
       "m8": {
-        "title": "First Contact",
-        "tagline": "As the Zyrr, test the earthlings",
+        "title": "Hold Your Ground",
+        "tagline": "Survive until reinforcements arrive",
         "brief": [
-          "Mothership to landing party: the earthlings are primitive, loud and armed.",
-          "Korvat to all units: little green men in the field! Get the pitchforks ... and the tanks!",
-          "Test their defences. Destroy their units. For science. And for fun."
+          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters until reinforcements arrive!",
+          "RESISTANCE CALCULATED. RESULT: BRIEF. PLEASE REMAIN IN YOUR SEATS.",
+          "Spiders, drones, railguns, and at the end comes a titan. The bunker holds. Hopefully."
         ],
-        "won": "Test series complete. Result: earthlings fragile. Mothership pleased. ZKRRT.",
-        "lost": "Retreat to the mothership. Note for later: earthlings have pitchforks."
+        "ally": "{allyLeader} here. {ally} is on the way, {leader}. Hold on, we are coming.",
+        "won": "The reinforcements are here! NEXUS is still calculating, we are already celebrating.",
+        "lost": "The headquarters has fallen. The machines have our radio. And our biscuits.",
+        "variants": {
+          "dravon": {
+            "won": "The reinforcements are here. {leader} nods once. In Dravon, that counts as a medal."
+          }
+        }
       },
       "m9": {
-        "title": "The Last Bastion",
-        "tagline": "Survive the invasion",
+        "title": "The Artifact",
+        "tagline": "Everyone against everyone for the legacy of the ancients",
         "brief": [
-          "Lights in the sky, machines on the horizon – the Zyrr and NEXUS attack together!",
-          "ZKRRT ... BEEP ... SURRENDER ... ZKRRT ... BEEP",
-          "Hold the headquarters to the end. The bunker stands, the machine guns are loaded. Not one step back!"
+          "Something has appeared in the centre of the map: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world.",
+          "Kkt. The artifact belongs to the swarm. We smelled it before you knew fire.",
+          "KERN-0: ARTIFACT DETECTED. PROBABILITY OF WORLD DOMINATION: ONE HUNDRED PERCENT. I WILL TAKE IT.",
+          "This is the Final Hour! Whoever touches the artifact rings in the end. And that is us.",
+          "{leader} here. Zyrr, NEXUS and the cult all want it, and they all hate each other. Occupy the artifact for three rounds in a row and hold the headquarters!"
         ],
-        "won": "The invasion is repelled! Dravon stands – and the world owes us a medal.",
-        "lost": "The bastion has fallen. But this battle will be told of forever."
+        "ally": "{allyLeader} to {leader}: {ally} has your back. The artifact is yours. Just please do not press anything before we get there.",
+        "won": "The artifact belongs to {faction}! The runes light up ...",
+        "lost": "Someone else touched the artifact. The sky flickers. That is it, then."
+      }
+    },
+    "intro": "The sky burned: the Zyrr mothership lies in the desert, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
+    "prologue": "Prologue: The Starfall",
+    "chooseFaction": "Choose your faction",
+    "chooseHint": "Every human faction has its own run with its own progress. You can switch at any time.",
+    "changeFaction": "Change faction",
+    "and": "with",
+    "migrated": "Your previous campaign progress now continues as the {faction} run. The operations are new, unlocks and stars are kept.",
+    "noticeOk": "Got it",
+    "loops": "Time loop completed: {n} of {max} factions",
+    "loopBadge": "Loop completed",
+    "replay": "Replay the campaign with another human faction",
+    "replayHint": "Time starts over. Who leads humanity this time?",
+    "epilogueTitle": "Epilogue",
+    "twistTitle": "The truth about the artifact",
+    "twist": [
+      "The runes flare up. {leader} lays a hand on the artifact. The light swallows everything ...",
+      "... and the bell strikes again. Somewhere in the desert a mothership crashes into the sand.",
+      "The Starfall. As if nothing had happened. The artifact has turned back time, and everything begins anew."
+    ],
+    "persuadeTip": "Tip: as {faction} you can persuade neutral settlements instead of conquering them. One unit next to it, from {cost} stars, no shot fired.",
+    "waveOwn": "Reinforcements arrived: {n} units!",
+    "waveEnemy": "New wave: {n} {name} units have landed!",
+    "artifactHeld": "{name} holds the artifact: {have}/{need} rounds!",
+    "pitch": {
+      "korvat": "Mass, march, mettle: cheap infantry in droves. For everyone who brings a lot of boots.",
+      "dravon": "Drill and veterans: every unit gets tougher. For everyone who strikes with precision.",
+      "alvenia": "Diplomacy and medics: often with allies, persuades settlements instead of storming them. Weaker in arms, strong in politics.",
+      "meridon": "Trade and harbours: plenty of stars, buys settlements instead of storming them. Gets help more often.",
+      "velkar": "Research and fortresses: faster to new technology. For everyone who calculates before shooting."
+    },
+    "epilogue": {
+      "korvat": "The League has held. The furrows become fields again, and the songs are about us.",
+      "dravon": "Discipline has beaten the stars. No recruit will ever forget this day.",
+      "alvenia": "We won because we were not alone. Parliament is keeping it short today, for once.",
+      "meridon": "The artifact is ours. Priceless. I already have three offers anyway.",
+      "velkar": "The formula is proven. Endless energy lies ahead. Please do not touch anything."
+    },
+    "acts": {
+      "a1": {
+        "title": "Act I: Starfall",
+        "tagline": "Against the Zyrr",
+        "closing": "Act I: The mothership is still smoking, but the Zyrr have learned that this planet bites back."
+      },
+      "a2": {
+        "title": "Act II: The Bell",
+        "tagline": "Against the Cult of the Final Hour",
+        "closing": "Act II: The drill is silent, the pilgrims go home. Only the bell still tolls by itself now and then."
+      },
+      "a3": {
+        "title": "Act III: Awakening",
+        "tagline": "Against NEXUS, then against everyone",
+        "closing": "Act III: NEXUS is pushed back, the artifact is in the hands of {faction}. The front stands still. For one breath."
       }
     }
   },
@@ -1683,11 +1872,11 @@
     "snow": "Snow",
     "wind": "Wind",
     "clearDesc": "no effects",
-    "rainDesc": "artillery range -1, helicopter movement -1",
-    "snowDesc": "Jeeps, tanks and artillery move 1 tile less",
-    "windDesc": "Helicopters burn 2 fuel per round",
+    "rainDesc": "Artillery range -1, helicopter movement -1; with hit luck, more misses and grazes",
+    "snowDesc": "Jeeps, tanks, artillery, flak tanks and mine layers move 1 tile less; with hit luck, more misses (aliens freeze most)",
+    "windDesc": "Helicopters burn 2 fuel per round; with hit luck, ranged units and flyers miss more often",
     "forecast": "from round {round}: {weather}",
-    "setupHint": "Changes every 3 rounds. Rain weakens artillery and helicopters."
+    "setupHint": "Changes every 3 rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely)."
   },
   "barks": {
     "korvat": {
@@ -2129,15 +2318,15 @@
     "barracks": "Barracks",
     "radioTowerDesc": "Reveals a hidden 5 x 5 tile area within 6 tiles, once.",
     "bunkerDesc": "Own units in this city get +2 defence.",
-    "barracksDesc": "Units trained here start as veterans (+5 HP).",
+    "barracksDesc": "Units trained here start as veterans (+5 max HP).",
     "radioHint": "Tap a highlighted tile to reveal the area.",
     "noTargets": "Nothing hidden left within range.",
     "hospital": "Field hospital",
     "flak": "Anti-aircraft",
     "depot": "Depot",
     "hospitalDesc": "Own units on and next to the city heal 2 HP more.",
-    "flakDesc": "Hostile helicopters ending their turn next to the city lose 3 HP.",
-    "depotDesc": "5 more stars per round.",
+    "flakDesc": "Hostile flyers (helicopters, skimmers, drones) ending their turn next to the city take 3 damage.",
+    "depotDesc": "5 more stars per round. Battle mechs reload their rockets here at the start of the own turn.",
     "full": "All 3 slots are taken.",
     "unlock": "City upgrade: {name}",
     "lockedHint": "More upgrades are unlocked by research ({n}).",
@@ -2170,7 +2359,8 @@
     "compute": "Compute",
     "computeNeed": "Needs {n} compute",
     "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
-    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)"
+    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)",
+    "computeStateDepot": "Compute {have} ({dc} data centers, {pp} power plants, {dn} depot nodes)"
   },
   "hazards": {
     "title": "Map features",
@@ -2187,7 +2377,7 @@
     "jungle": "Jungle",
     "jungleDesc": "Every step in or out ends the move. Vehicles only as their first step. Foot troops: cover {def}.",
     "crash": "Crash site",
-    "crashDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a saucer. Cover +1.",
+    "crashDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
     "crashLooted": "Crash site (salvaged): cover +1",
     "eruption": "Volcanic eruption!",
     "salvaged": "Crash site salvaged: +{n} stars",
@@ -2216,6 +2406,7 @@
     "discount": "Discount",
     "discountValue": "{unit} −{pct}%",
     "building": "Own building",
+    "resource": "Resource building",
     "leader": "Leader",
     "details": "Details",
     "detailsFor": "Details on {name}",
@@ -2787,7 +2978,8 @@
       "cult": "Often critical, often off target: fanatic and unpredictable."
     },
     "frenzy": "Frenzy: more critical hits",
-    "worn": "damaged: less accurate"
+    "worn": "damaged: less accurate",
+    "hintLuck": "Hit luck: the result ranges from a miss to a critical hit."
   },
   "retreat": {
     "action": "Orderly retreat (−{dmg})",
@@ -2797,7 +2989,7 @@
   },
   "repair": {
     "action": "Emergency repair from wreck +{n}",
-    "desc": "Salvages a wreck on or next to the tile: 50 % more healing than normal, the unit does not fight this round. The wreck is used up."
+    "desc": "Salvages a wreck on or next to the tile: double the normal healing, the unit does not fight this round. The wreck is used up."
   },
   "rockets": {
     "action": "Rockets {n}/{max}",
@@ -2806,27 +2998,27 @@
     "fx": "Rocket"
   },
   "cover": {
-    "ranged": "Cover against ranged attacks (troops and tanks)"
+    "ranged": "Cover against ranged attacks: ×1.4 defence against attacks from 2+ tiles (ground troops and vehicles)"
   },
   "victory": {
     "title": "Victory tracker",
-    "open": "Victory conditions",
+    "open": "Victory tracker",
     "hint": "Every faction has its own victory condition. Factions without contact stay hidden.",
     "unknown": "No contact yet",
     "noTech": "Victory tech not researched yet",
-    "off": "Faction victory conditions are off in this game.",
+    "off": "Faction victory is off in this game.",
     "eliminated": "Eliminated",
     "you": "You",
     "roundsLeft": "{n} rounds left",
     "leagueNotMet": "Condition not met right now",
-    "setupTitle": "Faction victories",
+    "setupTitle": "Faction victory",
     "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory tech).",
     "build": "Build {name}",
     "footprint": "Footprint: {name}",
     "researchOnly": "Your faction does not research otherwise. Only the victory tech can be researched.",
     "kindPoints": "Victory on points",
     "kindConquest": "Conquest victory",
-    "kindFaction": "Victory condition met",
+    "kindFaction": "Faction victory achieved",
     "unitTitle": "Victory wonder",
     "stage": "Phase {n}/{max}",
     "roundsTotal": "Victory in {n} rounds",
@@ -2850,23 +3042,25 @@
       "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
       "alvenia": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
-      "velkar": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+      "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
       "vesper": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
-      "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
+      "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept.",
+      "meridonAny": "Have {n} stars in the treasury in points games ({m} in games without a round limit). Victory at the start of your turn."
     },
     "short": {
-      "korvat": "Majority of cities",
+      "korvat": "Over {pct} % of the cities",
       "dravon": "Land cruiser Waal",
       "alvenia": "League of Nations",
       "meridon": "{n} stars",
       "velkar": "Fusion power plant",
       "zyrr": "Dimensional portal",
       "vesper": "Earth-core drill",
-      "nexus": "Hacker relay"
+      "nexus": "Hacker relay",
+      "meridonAny": "{n} or {m} stars"
     },
     "reason": {
-      "korvat": "The Collective rules the majority of the world.",
+      "korvat": "The Collective rules large parts of the world.",
       "dravon": "The Waal rolls out, no army can stop it now.",
       "alvenia": "The League of Nations is founded, the world makes peace.",
       "meridon": "Meridon buys the world.",
@@ -2876,6 +3070,84 @@
       "nexus": "The relay has taken over all machines."
     },
     "armed": "Armed",
-    "ruleReset": "Every attack resets the construction to 0."
+    "ruleReset": "Every attack resets the construction to 0.",
+    "leagueUnavailable": "Only possible with at least 3 factions in the game",
+    "paused": "Paused: site not in own territory",
+    "modeTitle": "Objective",
+    "modePoints": "Round {round}/{max}, you are in place {rank}. After round {max} the highest score wins."
+  },
+  "onboarding": {
+    "title": "Play the tutorial?",
+    "text": "Your first operation. In a few turns the tutorial covers the goal, moving, capturing, research, building, training, upkeep and combat.",
+    "play": "Play tutorial",
+    "playDesc": "A short practice game against an easy AI. You can quit at any time.",
+    "skip": "Skip",
+    "skipDesc": "Straight to the setup.",
+    "later": "You can find the tutorial and the rules in the main menu at any time."
+  },
+  "rules": {
+    "menu": "Rules",
+    "title": "Rules",
+    "intro": "The essentials in brief. Tap a section to expand or collapse it.",
+    "decimal": ".",
+    "goal": {
+      "title": "Goal & game modes",
+      "text": "Points mode: after {rounds} rounds the highest score wins (medal at the top). Points come from explored tiles ({tile}), territory tiles ({territory}), city levels ({level}), techs ({tech} per tier) and more. Conquest: the last side holding cities wins. Endless and sandbox have no round limit. Faction victories (optional): every faction can also win through its own goal. The victory tracker in the menu shows the standings."
+    },
+    "turn": {
+      "title": "Round & stars",
+      "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, research and upgrades. You start with {start} stars."
+    },
+    "upkeep": {
+      "title": "Upkeep",
+      "text": "The first {free} units are core troops and pay no upkeep. Every further unit costs {pct} % of its price per round (rounded up), tanks a flat {tank}. Upkeep is deducted from income. Next to the stars at the top you see the net income per round, the unit panel shows each unit's upkeep."
+    },
+    "combat": {
+      "title": "Combat & hit luck",
+      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes."
+    },
+    "cover": {
+      "title": "Cover",
+      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+    },
+    "abilities": {
+      "title": "Abilities (retreat, repair, rockets)",
+      "text": "Orderly retreat (human ground troops): fires with {retreat} % damage without return fire and falls back one tile, then locked for {cooldown} rounds. Emergency repair (robots): salvages a wreck on or next to the tile and heals {repair} % of normal healing; the unit does not fight this round. Rockets (mechs): ranged attack on targets exactly {range} tiles away, {max} rockets, reloaded at turn start in an own city with a {depot}."
+    },
+    "cities": {
+      "title": "Cities & research",
+      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+    },
+    "outposts": {
+      "title": "Outposts",
+      "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
+    },
+    "diplomacy": {
+      "title": "Diplomacy",
+      "text": "Factions you have not met stay hidden. After the first contact you are at war. You can offer peace, the other side accepts or declines. Breaking a peace is announced one round in advance. With {tech} and a discovered headquarters you open embassies (the first costs {cost} stars, each further one {step} more); each gives both sides {income} stars per round."
+    },
+    "factions": {
+      "title": "Faction victories",
+      "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
+    }
+  },
+  "lore": {
+    "button": "Story as a comic",
+    "title": "{name}: Story",
+    "textToggle": "Text of the comic page",
+    "text": {
+      "korvat": "People's League of Korvat, humans. Leader: Grand Marshal Ilja Brodnik. Mass armies, red banners, choir song. Born from a hundred farming cooperatives of the steppe. In the League every ploughman is also a soldier. Brodnik, once a tractor driver, leads with iron paternalism. Furrows become front lines.",
+      "zyrr": "Zyrr Swarm, alien race. Swarm Mother Xyl'Tharra. Once the Zyrr Swarm was only a scouting force, a vanguard searching for new worlds. But over the desert their mothership crashed, badly damaged. Instead of retreating, the Zyrr did the unthinkable: they began to change the world. Led by Swarm Mother Xyl'Tharra, an emergency landing site became a new home, the second world of the Zyrr Swarm.",
+      "vesper": "Cult of the Final Hour, fanatics. Prophet Malachar. Robes, bone masks, bells, flames. At dusty pilgrimage sites the desperate gathered, the exiled, the sick, the guilty and the lost, waiting for the end of the world, for the Final Hour in which everything old passes away. From these gatherings rose Malachar, the prophet. He proclaimed: the end is no catastrophe, it is salvation. The cult needs no cities, no industry and no laws, only fire, faith and the certainty that the Final Hour will come.",
+      "dravon": "Protectorate of Dravon, humans. Commander Sarek Voss. Drill, camouflage green, balaclavas, barracks state. Mercenary companies guarded the ore mines of the desert, for anyone who paid. When the Standstill came, nobody paid anymore. The mercenaries kept the mines. Camps became barracks, barracks became a state. Nobody has ever seen Voss without his balaclava. In Dravon every recruit becomes a veteran, or is forgotten.",
+      "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
+      "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
+      "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Research, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
+      "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
+    },
+    "menu": "Story",
+    "prologueTitle": "Prologue: The Starfall",
+    "prologueContinue": "To the front",
+    "prologueText": "Once the empire of Verdan ruled the whole continent with machines. Then the Great Standstill: overnight all the lights went out. Rusting wrecks recall the war that followed. For two generations, borders drawn in chalk on old maps held. Until the sky burned: the Zyrr mothership crashes into the desert, the bell tolls by itself, and the front begins to move again."
   }
 }

@@ -2,11 +2,12 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { FACTIONS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { FACTIONS, RESOURCE, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
-import { BUILD_ICON, UNIT_ICON } from './hud';
+import { loreButton } from './lore';
+import { BUILD_ICON, UNIT_ICON, buildingDescText } from './hud';
 import { icon } from './icons';
 import { victoryGoalText, victoryShortText } from './victory';
 
@@ -21,7 +22,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
   zyrr: 'xenoHive', vesper: 'shrine', nexus: 'dataCenter',
 };
 
-export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
+export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
@@ -37,21 +38,26 @@ export function factionTraits(f: FactionId): FactionTrait[] {
       value: t('traits.discountValue', { unit: t(`units.${fs.discountUnit}`), pct: Math.round(fs.discount * 100) }), desc: '' });
   }
   const b = SIGNATURE_BUILDING[f];
-  if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? t(`buildingDesc.${b}`) : '' });
+  if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? buildingDescText(b) : '' });
+  // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme
+  const rb = RESOURCE.buildings[f];
+  out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
   // Treffsicherheit der Rasse / race accuracy
   const race = f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
-  out.push({ kind: 'aim', icon: 'range', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });
+  out.push({ kind: 'aim', icon: 'dice', label: t('hit.title'), value: t(`hit.race.${race}`), desc: t(`hit.raceDesc.${race}`) });
   // eigene Siegbedingung / own victory condition
-  out.push({ kind: 'victory', icon: 'crown', label: t('traits.victory'), value: victoryShortText(f), desc: victoryGoalText(f) });
+  out.push({ kind: 'victory', icon: 'trophy', label: t('traits.victory'), value: victoryShortText(f), desc: victoryGoalText(f) });
   return out;
 }
 
 /** Marken als HTML / chips as HTML */
-export function traitChips(f: FactionId, opts: { desc?: boolean } = {}): string {
+/** compact: nur Bonus und Spezialeinheit in einer Zeile (Rest ueber "Details") / only perk and special unit in one row (rest via "Details") */
+export function traitChips(f: FactionId, opts: { desc?: boolean; compact?: boolean } = {}): string {
+  const traits = factionTraits(f).filter((tr) => !opts.compact || tr.kind === 'perk' || tr.kind === 'unit');
   // span statt ul/li, damit die Marken auch in Knoepfen gueltig sind / spans instead of ul/li so chips are valid inside buttons
-  return `<span class="trait-list" role="list" style="--trait-accent:var(--faction-${f}-primary)">${factionTraits(f).map((tr) => `
-    <span class="trait trait-${tr.kind}" role="listitem" title="${esc(tr.desc || tr.value)}">${icon(tr.icon, 'icon-sm')}
-      <span class="trait-text"><span class="trait-label">${esc(tr.label)}</span> <strong>${esc(tr.value)}</strong>${opts.desc && tr.desc ? `<span class="trait-desc">${esc(tr.desc)}</span>` : ''}</span></span>`).join('')}</span>`;
+  return `<span class="trait-list ${opts.compact ? 'compact' : ''}" role="list" style="--trait-accent:var(--faction-${f}-primary)">${traits.map((tr) => `
+    <span class="trait trait-${tr.kind}" role="listitem" title="${esc(opts.compact ? `${tr.label}: ${tr.value}` : tr.desc || tr.value)}">${icon(tr.icon, 'icon-sm')}
+      <span class="trait-text">${opts.compact ? `<span class="sr-only">${esc(tr.label)}:</span>` : `<span class="trait-label">${esc(tr.label)}</span>`} <strong>${esc(tr.value)}</strong>${opts.desc && tr.desc ? `<span class="trait-desc">${esc(tr.desc)}</span>` : ''}</span></span>`).join('')}</span>`;
 }
 
 /** Link zur ausfuehrlichen Ansicht / link to the detailed view */
@@ -71,6 +77,7 @@ export function factionDetails(f: FactionId): string {
       <q class="leader-quote">${k('quote')}</q>
       ${traitChips(f, { desc: true })}
       <p>${k('lore')}</p>
+      ${loreButton(f)}
       ${opt('style', t('leaders.style'))}
       ${opt('aiStyle', t('identity.aiStyle'))}
     </div>

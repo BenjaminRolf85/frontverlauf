@@ -117,6 +117,15 @@ export const primitives = {
     xeno600: '#5a2d7a',
     xeno400: '#8a4fb8',
     xenoGlow: '#d18cff',
+    // Artefakt der Vorlaeufer / precursor artifact
+    relicBone: '#e6e0cb',
+    relicBoneDark: '#b3aa90',
+    relicObsidian: '#262c36',
+    relicObsidianEdge: '#46505e',
+    relicTealDeep: '#0e6f74',
+    relicTeal: '#3fe8c8',
+    relicGold: '#ffd98a',
+    relicCore: '#fffbe8',
     // Kampfeffekte / combat effects
     flash100: '#fff4b0',
     smoke500: '#9a95a3',
@@ -225,6 +234,14 @@ export const semantic = {
   xenoGroundDark: c.xeno600,
   xenoGlow: c.xenoGlow,
   xenoAcid: c.zyrrAcid,
+  artifactStone: c.relicBone,
+  artifactStoneDark: c.relicBoneDark,
+  artifactObsidian: c.relicObsidian,
+  artifactObsidianEdge: c.relicObsidianEdge,
+  artifactGlowDeep: c.relicTealDeep,
+  artifactGlow: c.relicTeal,
+  artifactGold: c.relicGold,
+  artifactCore: c.relicCore,
   flowerA: c.flowerRed,
   flowerB: c.flowerYellow,
   flowerC: c.flowerWhite,
@@ -366,7 +383,9 @@ export const components = {
   },
   unitCard: { bg: semantic.surfaceRaised, hpFill: c.green500, hpLow: c.red500 },
   halftone: { dot: 'rgba(21, 19, 31, 0.12)', size: '8px', dotRadius: '1px', dotFade: '1.3px' },
-  action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px' },
+  action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px', subMaxWidthWide: '148px' },
+  /** Hinweiszeile unter der Aktionsleiste / hint line below the action bar */
+  actionHint: { bg: semantic.surfaceSunken, blocked: semantic.warning, fontSize: primitives.fontSize.xs, accent: primitives.borderWidth.thick },
   layout: {
     sheetMaxWidth: '760px', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
@@ -379,7 +398,7 @@ export const components = {
     showMs: '5200ms', gapMs: '240ms', tilt: '-0.8deg', bubbleBg: semantic.surfaceRaised, kickerInk: semantic.stamp,
     angryInk: semantic.dangerBright, offsetGap: primitives.space[2],
   },
-  techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6' },
+  techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6', labelHalo: '4', dash: '6 3' },
   /** Lagekarte (Canvas liest die Farben direkt) / minimap (the canvas reads the colours directly) */
   minimap: {
     size: '136px', sizeDesktop: '184px', bg: semantic.surfaceInverse, border: semantic.outline, fog: c.ink800,

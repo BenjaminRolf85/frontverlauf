@@ -10,6 +10,7 @@ import { clearLabelCache } from './render/labels';
 import { View } from './render/view';
 import { clearSave, deleteSlot, exportFile, hasSave, importFile, listSlots, loadFromSlot, loadGame, loadSettings, saveGame, saveSettings, saveToSlot, type Settings } from './save/save';
 import { continueEndless } from './core';
+import { BUNKER, VETERAN } from './data/balance';
 import { cityName as cityNameOf } from './ui/hud';
 import { toast } from './ui/components';
 import { Fx } from './ui/fx';
@@ -23,7 +24,7 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
-import { ObjectivePanel, campaignResult, objectiveToast } from './ui/campaign';
+import { ObjectivePanel, campaignResult, objectiveToast, waveToast } from './ui/campaign';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -170,10 +171,12 @@ function boot() {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
         case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t('events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
         case 'research': if (e.faction === viewer) toast(root, t('events.research', { tech: t(`techs.${e.tech}`) }), 'research'); break;
-        case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u) }), 'medal'); break; }
-        case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`), 'star'); break;
+        case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
+        case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
         case 'radar': if (e.faction === viewer) toast(root, t('events.radar', { n: s.factions[viewer].radarsFound.length }), 'range'); break;
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
+        // Sold nicht bezahlt: Einheit desertiert / upkeep unpaid: unit deserts
+        case 'deserted': if (e.faction === viewer) toast(root, t('events.deserted', { unit: t(`units.${e.unitType}`) }), 'warning'); break;
         case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {
@@ -205,10 +208,11 @@ function boot() {
           const seen = viewer < 0 || e.faction === viewer || s.factions[viewer].contacts.includes(e.faction) || s.factions[viewer].explored[e.y * s.size + e.x] === 1;
           if (!seen) break;
           const key = { started: 'events.wonderStarted', phase: 'events.wonderPhase', interrupted: 'events.wonderInterrupted', destroyed: 'events.wonderDestroyed' }[e.what];
-          toast(root, t(key, { name: fname(e.faction), wonder: t(`units.${e.kind}`) }), e.what === 'interrupted' || e.what === 'destroyed' ? 'warning' : 'grand');
+          toast(root, t(key, { name: fname(e.faction), wonder: t(`units.${e.kind}`) }), e.what === 'interrupted' || e.what === 'destroyed' ? 'warning' : 'trophy');
           break;
         }
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
+        case 'wave': waveToast(root, s, e.faction, e.count); break;
       }
       dispatches.onEvent(e, s);
     },

@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VETERAN, VISION, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -39,6 +39,14 @@ export function territoryOwner(s: GameState, t: Tile): number | null {
   if (t.territory === null) return null;
   const c = cityById(s, t.territory);
   return c ? c.owner : null;
+}
+
+/**
+ * Kampagne: Spieler und Verbuendeter sind fest verbunden (kein Friedensbruch) / campaign: player and ally are bound (no breaking peace).
+ */
+export function isCampaignBond(s: GameState, a: number, b: number): boolean {
+  const al = s.campaign?.allies;
+  return !!al && ((a === 0 && al.includes(b)) || (b === 0 && al.includes(a)));
 }
 
 export function isHostile(s: GameState, a: number, b: number): boolean {
@@ -90,6 +98,9 @@ export function researchCost(s: GameState, f: number, tech: TechId): number {
   // Versuchslabore / test labs
   const labs = Math.min(UNIQUE.testLabMax, countBuildings(s, f, 'testLab'));
   if (labs) factor *= 1 - UNIQUE.testLabDiscount * labs;
+  // Polarstationen (eigene Grenze) / polar stations (own cap)
+  const polar = Math.min(RESOURCE.polarMax, countBuildings(s, f, 'polarStation'));
+  if (polar) factor *= 1 - RESOURCE.polarDiscount * polar;
   return Math.ceil(cost * factor - 1e-9);
 }
 
@@ -108,11 +119,17 @@ export function embassyCost(s: GameState, f: number): number {
   return cost;
 }
 
+/**
+ * Grundgebaeude, als das ein Gebaeude fuer Werke, Logistikzentrum und Duerre zaehlt (Tiefbauzeche = Tagebau usw.).
+ * Base building a building counts as for works, logistics centre and drought (deep mine = mine etc.).
+ */
+export const baseBuilding = (b: BuildingId): BuildingId => BUILDINGS[b].countsAs ?? b;
+
 export function logisticsIncome(s: GameState, x: number, y: number): number {
   let n = 0;
   for (const p of neighbors(s.size, x, y)) {
     const b = tileAt(s, p.x, p.y)!.building;
-    if (b && LOGISTICS_SOURCES.includes(b)) n++;
+    if (b && LOGISTICS_SOURCES.includes(baseBuilding(b))) n++;
   }
   return Math.min(INCOME.logisticsMax, n * INCOME.logisticsPerAdjacent);
 }
@@ -161,9 +178,31 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
   for (const p of cityTiles(s, c)) {
-    if (tileAt(s, p.x, p.y)!.building === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
+    const b = tileAt(s, p.x, p.y)!.building;
+    if (b === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
+    else if (b && BUILDINGS[b].stars) inc += resourceBuildingStars(s, c, b);
   }
   return inc;
+}
+
+/**
+ * Sterne eines Ressourcengebaeudes im Gebiet der Stadt c pro Runde (0, wenn es fuer den Besitzer nicht wirkt).
+ * Stars per round of a resource building in the territory of city c (0 if it does not work for the owner).
+ */
+export function resourceBuildingStars(s: GameState, c: City, b: BuildingId): number {
+  const st = BUILDINGS[b];
+  if (c.owner === null || !st.stars || !buildingWorksFor(s, c.owner, b)) return 0;
+  let n = st.stars;
+  // Handelshafen: mehr mit Marinestuetzpunkt der Stadt / trade harbour: more with a naval base of the city
+  if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'navalBase')) n += RESOURCE.harbourNavalBonus;
+  // Huegelweingut: Handel mit Freunden, je aktiver eigener Botschaft / hill vineyard: trade with friends, per active own embassy
+  if (b === 'hillVineyard') n += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, c.owner));
+  return n;
+}
+
+/** Eigene Botschaften bei lebenden Fraktionen (mit Hauptquartier) / own embassies at living factions (with HQ) */
+export function activeEmbassies(s: GameState, f: number): number {
+  return s.factions[f].embassies.filter((g) => hqOf(s, g)).length;
 }
 
 export function embassyIncome(s: GameState, f: number): number {
@@ -176,8 +215,20 @@ export function embassyIncome(s: GameState, f: number): number {
   return inc;
 }
 
-/** Gebaeude eines Typs im Gebiet der Fraktion / buildings of a type in the faction's territory */
+/**
+ * Wirkt ein Gebaeude fuer Fraktion f? Fraktionsgebaeude (FACTION_BUILDINGS) nur fuer ihre eigene Fraktion; eroberte geben nur
+ * ihre Bevoelkerung (beim Bau).
+ * Does a building work for faction f? Faction buildings (FACTION_BUILDINGS) only for their own faction; captured ones give
+ * nothing but their population (on construction).
+ */
+export function buildingWorksFor(s: GameState, f: number, b: BuildingId): boolean {
+  const own = FACTION_BUILDINGS[b];
+  return !own || own === s.factions[f]?.id;
+}
+
+/** Wirksame Gebaeude eines Typs im Gebiet der Fraktion / working buildings of a type in the faction's territory */
 export function countBuildings(s: GameState, f: number, b: BuildingId): number {
+  if (!buildingWorksFor(s, f, b)) return 0;
   let n = 0;
   for (const t of s.tiles) if (t.building === b && territoryOwner(s, t) === f) n++;
   return n;
@@ -217,16 +268,16 @@ export function income(s: GameState, f: number): number {
   return inc;
 }
 
+/** Sold eines Einheitentyps (pauschal oder Anteil am Preis) / upkeep of a unit type (flat or share of the price) */
+const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil((UNITS[type].cost ?? 0) * UPKEEP.share);
+
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
   if (isWonder(u)) return 0;
-  const flat = UPKEEP.flat[u.type];
-  if (flat !== undefined) return flat;
   // Landungsboot: Wert der getragenen Einheit / landing boat: value of the carried unit
-  const type = u.type === 'landingBoat' && u.carried ? u.carried : u.type;
-  const fl = UPKEEP.flat[type];
-  if (fl !== undefined) return fl;
-  return Math.ceil((UNITS[type].cost ?? 0) * UPKEEP.share);
+  const own = typeUpkeep(u.type === 'landingBoat' && u.carried ? u.carried : u.type);
+  // Schiffe kosten mindestens den Sold der getragenen Einheit / ships cost at least the upkeep of the carried unit
+  return UNITS[u.type].ship && u.carried ? Math.max(own, typeUpkeep(u.carried)) : own;
 }
 /** Einheiten, die Sold kosten: alle ausser den aeltesten freien / units that cost upkeep: all but the oldest free ones */
 export function paidUnits(s: GameState, f: number): Unit[] {
@@ -427,8 +478,8 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
   if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite' || t.feature === 'labRuin') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
-  // Dschungel: Hinterhalt fuer Fusstruppen / jungle: ambush cover for foot troops
-  if (isJungle(t) && !JUNGLE.vehicles.includes(def.type) && !isShip(def)) b = Math.max(b, JUNGLE.footDefense);
+  // Dschungel: Hinterhalt nur fuer Fusstruppen (keine Fahrzeuge, Schiffe oder Bauwerke) / jungle: ambush cover for foot troops only (no vehicles, ships or structures)
+  if (isJungle(t) && unitClass(def.type) === 'foot') b = Math.max(b, JUNGLE.footDefense);
   return b;
 }
 
@@ -463,23 +514,35 @@ export function rocketTargets(s: GameState, u: Unit): Unit[] {
   return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === ROCKETS.range && canSeeUnit(s, u.owner, o));
 }
 
-/** Trefferglueck aktiv? / hit luck active? */
-export const hitChanceOn = (s: GameState) => s.config.hitChance !== false;
+/**
+ * Trefferglueck aktiv? Nur wenn ausdruecklich an: neue Spiele setzen das Feld (createGame), alte Spielstaende ohne Feld sind aus
+ * (save.ts migrateState). Hit luck active? Only when explicitly on: new games set the field (createGame), old saves without it are off.
+ */
+export const hitChanceOn = (s: GameState) => s.config.hitChance === true;
 
-/** Rasse einer Einheit fuer die Treffsicherheit (nach Bauart, nicht nach Besitzer) / race of a unit for accuracy (by type, not owner) */
-export function hitRace(type: UnitTypeId): HitRace {
-  const f = UNITS[type].faction;
-  return f === 'zyrr' ? 'alien' : f === 'nexus' ? 'robot' : f === 'vesper' ? 'cult' : 'human';
+/**
+ * Rasse einer Einheit fuer die Treffsicherheit: Fraktionseinheiten nach Bauart, allgemeine Schiffe nach der Fraktion ihres Besitzers.
+ * Race of a unit for accuracy: faction units by type, common ships by their owner's faction.
+ */
+export function hitRace(type: UnitTypeId, owner?: FactionId): HitRace {
+  const st = UNITS[type];
+  const f = st.faction ?? (st.ship ? owner : undefined);
+  return (f && HIT.race[f]) || 'human';
 }
+/** Rasse einer konkreten Einheit (Schiffe: Besitzer) / race of a concrete unit (ships: owner) */
+export const unitRace = (s: GameState, u: Unit): HitRace => hitRace(u.type, s.factions[u.owner]?.id);
 
-/** Wahrscheinlichkeiten der Trefferarten fuer einen Angreifer bei aktuellem Wetter / hit-kind odds for an attacker in the current weather */
-export function hitOdds(s: GameState, u: Unit): Record<HitKind, number> {
+/**
+ * Wahrscheinlichkeiten der Trefferarten fuer einen Angreifer bei aktuellem Wetter; ranged = Fernangriff (z. B. Mech-Raketen).
+ * Hit-kind odds for an attacker in the current weather; ranged = ranged attack (e.g. mech rockets).
+ */
+export function hitOdds(s: GameState, u: Unit, ranged = false): Record<HitKind, number> {
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
-  const race = hitRace(u.type);
+  const race = unitRace(s, u);
   const base = HIT.odds[race];
   const w = weather(s);
-  // Wind trifft nur Fernkaempfer und Flieger / wind only affects ranged units and fliers
-  const windOk = w !== 'wind' || UNITS[u.type].range >= 2 || has(u, 'fly');
+  // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
+  const windOk = w !== 'wind' || ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
   let f = windOk ? HIT.weatherFactor[race] : 0;
   if (race === 'alien' && w === 'snow') f *= HIT.alienSnowFactor;
   const shift = HIT.weather[w];
@@ -501,8 +564,8 @@ export function hitOdds(s: GameState, u: Unit): Record<HitKind, number> {
   return out;
 }
 
-/** Rasender Fanatiker (unter 20 % LP)? / frenzied fanatic (below 20 % HP)? */
-export const cultFrenzy = (u: Unit) => hitRace(u.type) === 'cult' && u.hp / Math.max(1, u.maxHp) < HIT.cultFrenzyHp;
+/** Rasender Fanatiker (unter 20 % LP)? race = Rasse der Einheit / frenzied fanatic (below 20 % HP)? race = the unit's race */
+export const cultFrenzy = (u: Unit, race: HitRace = hitRace(u.type)) => race === 'cult' && u.hp / Math.max(1, u.maxHp) < HIT.cultFrenzyHp;
 
 /** Kann die Einheit sich geordnet zurueckziehen (menschliche Bodentruppen)? / can the unit retreat in order (human ground troops)? */
 export function canOrderlyRetreat(u: Unit): boolean {
@@ -533,10 +596,16 @@ export function retreatDamage(s: GameState, u: Unit, target: Unit): number {
   return full > 0 ? Math.max(1, Math.round(full * RETREAT.damage)) : 0;
 }
 
-/** Pruefung des geordneten Rueckzugs / check of the orderly retreat */
-export function retreatCheck(s: GameState, u: Unit, target: Unit): 'ok' | 'cannotRetreat' | 'retreatCooldown' | 'outOfRange' | 'noRetreatTile' {
+/**
+ * Pruefung des geordneten Rueckzugs. Er ist ein Angriff samt Schritt: nur, solange die Einheit noch angreifen kann
+ * (nicht nach einem Angriff) und ihre Bewegung nicht beendet wurde (z. B. durch eine Mine).
+ * Check of the orderly retreat. It is an attack plus a step: only while the unit can still attack
+ * (not after an attack) and its movement has not been ended (e.g. by a mine).
+ */
+export function retreatCheck(s: GameState, u: Unit, target: Unit): 'ok' | 'cannotRetreat' | 'retreatCooldown' | 'unitExhausted' | 'outOfRange' | 'noRetreatTile' {
   if (!canOrderlyRetreat(u)) return 'cannotRetreat';
   if ((u.retreatReady ?? 0) > s.round) return 'retreatCooldown';
+  if (!canAttackNow(u) || u.moveDone) return 'unitExhausted';
   if (!attackTargets(s, u).some((o) => o.id === target.id)) return 'outOfRange';
   if (!retreatTile(s, u, target)) return 'noRetreatTile';
   return 'ok';
@@ -552,12 +621,37 @@ export function rollHit(odds: Record<HitKind, number>, r: number): HitKind {
   return 'full';
 }
 
-export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview {
-  const d = UNITS[def.type];
-  // Todesstrahl ignoriert Deckung / death ray ignores cover
-  const ignoresCover = has(att, 'deathRay') || has(att, 'burn');
+/** Deckung des Ziels gegen diesen Angreifer (Todesstrahl und Brand ignorieren sie) / the target's cover against this attacker (death ray and burn ignore it) */
+function coverBonus(s: GameState, att: Unit, def: Unit): number {
+  if (has(att, 'deathRay') || has(att, 'burn')) return DEFENSE_BONUS.open;
   // Deckung gegen Fernangriffe: Panzer und Truppen in Wald oder Stadt / cover against ranged attacks: tanks and troops in forest or city
-  const bonus = ignoresCover ? DEFENSE_BONUS.open : defenseBonus(s, def, att) * rangedCover(s, att, def);
+  return defenseBonus(s, def, att) * rangedCover(s, att, def);
+}
+
+/** Kann das Ziel ueberhaupt zurueckschlagen? / can the target strike back at all? */
+function canReturnFire(s: GameState, att: Unit, def: Unit): boolean {
+  // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
+  return !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && UNITS[def.type].range > 0 && dist(att, def) <= effectiveRange(s, def);
+}
+
+/**
+ * Gegenschlag (voller Treffer) eines Verteidigers, der nach dem Angriff noch defHp LP hat: seine Kraft sinkt mit den
+ * verbleibenden LP. 0, wenn er vernichtet ist oder nicht zurueckschlagen kann.
+ * Return fire (full hit) of a defender left with defHp HP after the attack: its force scales with the remaining HP.
+ * 0 if it is destroyed or cannot strike back.
+ */
+export function returnFire(s: GameState, att: Unit, def: Unit, defHp: number): number {
+  if (defHp <= 0 || !canReturnFire(s, att, def)) return 0;
+  const defense = effectiveDefense(s, def);
+  const attackForce = effectiveAttack(s, att) * (att.hp / att.maxHp);
+  const defenseForce = defense * (defHp / def.maxHp) * coverBonus(s, att, def);
+  const total = attackForce + defenseForce;
+  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
+}
+
+/** Kampfvorschau; rocket = Mech-Raketen (Fernangriff fuer den Wind) / combat preview; rocket = mech rockets (ranged for the wind) */
+export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false): CombatPreview {
+  const bonus = coverBonus(s, att, def);
   const defense = effectiveDefense(s, def);
   const atk = effectiveAttack(s, att);
   const attackForce = atk * (att.hp / att.maxHp);
@@ -566,25 +660,26 @@ export function combatPreview(s: GameState, att: Unit, def: Unit): CombatPreview
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
   const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type)) : 0;
   const kills = toDefender >= def.hp;
-  // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
-  const retaliates = !kills && !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def);
-  const retBase = !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && d.range > 0 && dist(att, def) <= effectiveRange(s, def) && total > 0
-    ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
-  const toAttacker = retaliates ? retBase : 0;
-  // Trefferglueck: Erwartungswert, Spanne und Vernichtungschance / hit luck: expected value, range and kill chance
-  const odds = hitOdds(s, att);
-  const defOdds = hitOdds(s, def);
+  // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
+  const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
+  const retaliates = !kills && canReturnFire(s, att, def);
+  const toAttacker = retaliates ? retFull : 0;
+  // Trefferglueck: Erwartungswert, Spanne und Vernichtungschance; Gegenschlag je Trefferart mit den LP danach
+  // hit luck: expected value, range and kill chance; return fire per hit kind with the HP left afterwards
+  const odds = hitOdds(s, att, rocket || dist(att, def) >= 2);
   let expected = 0, killChance = 0, expectedRet = 0, min = Infinity, max = 0;
-  const defMean = HIT_KINDS.reduce((a, k) => a + defOdds[k] * hitDamage(retBase, k), 0);
   for (const k of HIT_KINDS) {
     if (odds[k] <= 0) continue;
     const dmg = hitDamage(toDefender, k);
     expected += odds[k] * dmg;
     min = Math.min(min, dmg); max = Math.max(max, dmg);
-    if (dmg >= def.hp) killChance += odds[k];
-    else if (retBase > 0) expectedRet += odds[k] * defMean;
+    if (dmg >= def.hp) { killChance += odds[k]; continue; }
+    const rb = returnFire(s, att, def, def.hp - dmg);
+    if (rb <= 0) continue;
+    const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
+    expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull: retBase };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -643,15 +738,19 @@ export const repairAmount = (s: GameState, u: Unit) => Math.min(Math.round(healA
 
 /** Pruefung der Notreparatur (nur Roboter) / check of the emergency repair (robots only) */
 export function repairCheck(s: GameState, u: Unit): 'ok' | 'cannotRepair' | 'unitExhausted' | 'noWreck' {
-  if (hitRace(u.type) !== 'robot' || UNITS[u.type].ship) return 'cannotRepair';
+  // Wunder-Bauwerke lassen sich nicht reparieren / wonder structures cannot be repaired
+  if (hitRace(u.type) !== 'robot' || UNITS[u.type].ship || isWonderStructure(u)) return 'cannotRepair';
   if (!canHeal(u)) return 'unitExhausted';
   if (!repairWreck(s, u)) return 'noWreck';
   return 'ok';
 }
 
+/** Kann die Einheit sich jetzt heilen? Wunder-Bauwerke nie / can the unit heal now? wonder structures never */
 export function canHeal(u: Unit): boolean {
-  return !u.fresh && !u.exhausted && !u.moved && !u.attacked && u.hp < u.maxHp;
+  return !u.fresh && !u.exhausted && !u.moved && !u.attacked && u.hp < u.maxHp && !isWonderStructure(u);
 }
+/** Kann ein Sanitaeter diese Einheit heilen? Nicht Bauwerke, nicht Ausserirdische abseits von Xeno-Boden / can a medic heal this unit? */
+export const medicCanHeal = (s: GameState, o: Unit) => o.hp < o.maxHp && !isWonderStructure(o) && !alienHealBlocked(s, o);
 
 export function veteranKills(s: GameState, u: Unit): number {
   return FACTIONS[s.factions[u.owner].id].perk === 'drill' ? VETERAN.killsDravon : VETERAN.kills;
@@ -660,6 +759,32 @@ export function veteranKills(s: GameState, u: Unit): number {
 // ---------- Einnahme / capture ----------
 
 export type CaptureKind = 'village' | 'city' | 'outpost';
+/** Preis fuer das Ueberzeugen einer Siedlung / price to persuade a settlement */
+export const persuadeCost = (c: City) => PERSUADE.cost + PERSUADE.perLevel * Math.max(0, c.level - 1);
+/** Darf diese Fraktion ueberzeugen (nur Kampagne, nur diplomatische Fraktionen)? / may this faction persuade (campaign only, diplomatic factions only)? */
+export const canPersuadeFaction = (s: GameState, f: number) => !!s.config.campaign && PERSUADE.factions.includes(s.factions[f]?.id);
+/**
+ * Pruefung: neutrale Siedlung neben (oder unter) einer bereiten eigenen Einheit, keine fremde Einheit darauf, genug Sterne.
+ * Check: neutral settlement next to (or under) a ready own unit, no foreign unit on it, enough stars.
+ */
+export function persuadeCheck(s: GameState, u: Unit, c: City): 'ok' | import('./types').ErrorCode {
+  if (!canPersuadeFaction(s, u.owner)) return 'wrongFaction';
+  if (u.fresh) return 'fresh';
+  if (u.exhausted || u.attacked) return 'unitExhausted';
+  if (isShip(u) || has(u, 'wonder')) return 'cannotCapture';
+  if (c.owner !== null) return 'invalidTarget';
+  if (dist(u, c) > PERSUADE.range) return 'outOfRange';
+  const occ = unitAt(s, c.x, c.y);
+  if (occ && occ.owner !== u.owner) return 'occupied';
+  if (s.factions[u.owner].stars < persuadeCost(c)) return 'notEnoughStars';
+  return 'ok';
+}
+/** Siedlungen, die diese Einheit ueberzeugen koennte (ohne Sternepruefung) / settlements this unit could persuade (without the star check) */
+export function persuadeTargets(s: GameState, u: Unit): City[] {
+  if (!canPersuadeFaction(s, u.owner)) return [];
+  return s.cities.filter((c) => c.owner === null && dist(u, c) <= PERSUADE.range && ['ok', 'notEnoughStars'].includes(persuadeCheck(s, u, c)));
+}
+
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;
@@ -732,6 +857,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   // Fraktionsgebaeude nur fuer ihre Fraktion / faction buildings only for their faction
   const own = FACTION_BUILDINGS[b];
   if (own && own !== s.factions[f].id) return { ok: false, error: 'wrongFaction', cost };
+  // Ressourcengebaeude der Fraktion: eigene Ortsregeln / the faction's resource building: own site rules
+  if (RESOURCE_BUILDINGS.includes(b)) return resourceBuildCheck(s, f, b, x, y);
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
   const xenoB = b === 'xenoHive' || b === 'xenoHarvester';
   if (xenoB !== isAlienFaction(s, f)) return { ok: false, error: 'techMissing', cost };
@@ -771,6 +898,75 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   return { ok: true, cost };
 }
 
+/**
+ * Baupruefung der Ressourcengebaeude (Gebiet und Fraktion sind schon geprueft). Regeln je Gebaeude in BUILDINGS:
+ * Gelaende, Ressource, Landschaft oder Vulkannachbar, Wrack, Ausbau eines eigenen Grundgebaeudes.
+ * Build check of the resource buildings (territory and faction already checked). Rules per building in BUILDINGS:
+ * terrain, resource, biome or volcano neighbour, wreck, upgrade of an own base building.
+ */
+function resourceBuildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
+  const st = BUILDINGS[b];
+  const t = tileAt(s, x, y)!;
+  const cost = upgradeCost(b, t.building);
+  if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
+  if (t.building && t.building !== st.upgrades) return { ok: false, error: 'alreadyBuilt', cost };
+  if (!resourceSiteOk(s, b, x, y)) return { ok: false, error: 'invalidTile', cost };
+  if (st.onePerCity) {
+    const c = cityById(s, t.territory!)!;
+    if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === b)) return { ok: false, error: 'onePerCity', cost };
+  }
+  if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
+  return { ok: true, cost };
+}
+
+/** Preis eines Ressourcengebaeudes; als Ausbau nur die Differenz / price of a resource building; as an upgrade only the difference */
+export function upgradeCost(b: BuildingId, existing: BuildingId | null): number {
+  const st = BUILDINGS[b];
+  return existing && existing === st.upgrades ? Math.max(0, st.cost - BUILDINGS[existing].cost) : st.cost;
+}
+
+/**
+ * Passt das Feld (x, y) zu den Ortsregeln des Ressourcengebaeudes b (ohne Gebiet, Technik und Sterne)?
+ * Ein Feld mit dem Grundgebaeude, das b ausbaut, zaehlt als frei.
+ * Does tile (x, y) match the site rules of resource building b (without territory, tech and stars)?
+ * A tile holding the base building that b upgrades counts as free.
+ */
+export function resourceSiteOk(s: GameState, b: BuildingId, x: number, y: number): boolean {
+  const st = BUILDINGS[b];
+  const t = tileAt(s, x, y);
+  if (!t || t.cityId !== null || t.grandProject || t.outpost || t.wonderOf || t.road) return false;
+  if (t.building && t.building !== st.upgrades) return false;
+  if (!st.terrain.includes(t.terrain)) return false;
+  if (st.wreck) {
+    // Wrack oder geborgene Absturzstelle, Ressource egal / wreck or salvaged crash site, resource does not matter
+    const salvaged = t.feature === 'crashSite' && !!t.looted;
+    return (t.remains?.kind === 'wreck' && !t.feature) || salvaged;
+  }
+  if (t.feature !== null) return false;
+  if (st.resource ? t.resource !== st.resource : t.resource !== null) return false;
+  if (st.biomes || st.nearVolcano) {
+    const biomeOk = !!st.biomes && !!t.biome && st.biomes.includes(t.biome);
+    const volcanoOk = !!st.nearVolcano && neighbors(s.size, x, y).some((p) => !!tileAt(s, p.x, p.y)!.volcano);
+    if (!biomeOk && !volcanoOk) return false;
+  }
+  return true;
+}
+
+/** Ressourcengebaeude einer Fraktion / resource building of a faction */
+export const resourceBuildingOf = (id: FactionId): BuildingId => RESOURCE.buildings[id];
+
+/**
+ * Pilgerstaette: Rekruten auf (x, y) oder daneben starten als Veteranen (nur fuer die eigene Fraktion).
+ * Pilgrimage site: recruits on (x, y) or next to it start as veterans (own faction only).
+ */
+export function pilgrimVeteranAt(s: GameState, f: number, x: number, y: number): boolean {
+  if (!buildingWorksFor(s, f, 'pilgrimSite')) return false;
+  return area(s.size, x, y, 1).some((p) => {
+    const t = tileAt(s, p.x, p.y)!;
+    return t.building === 'pilgrimSite' && territoryOwner(s, t) === f;
+  });
+}
+
 export function grandProjectCheck(s: GameState, f: number, id: GrandProjectId, x: number, y: number): boolean {
   const fa = s.factions[f];
   if (!fa.grandProjectsUnlocked.includes(id) || fa.grandProjectsBuilt.includes(id)) return false;
@@ -796,13 +992,16 @@ export function grandProjectConditionMet(s: GameState, f: number, id: GrandProje
 }
 export { GRAND_PROJECT_IDS };
 
-export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'invalidTile' | 'notEnoughStars' | 'cannotCapture' {
+export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'invalidTile' | 'enemyTerritory' | 'notEnoughStars' | 'cannotCapture' {
   if (!INFANTRY_TYPES.includes(u.type)) return 'cannotCapture';
   if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   const t = tileAt(s, u.x, u.y)!;
   if (!['plain', 'forest', 'mountain'].includes(t.terrain)) return 'invalidTile';
   if (t.cityId !== null || t.outpost || t.building || t.feature || t.grandProject) return 'invalidTile';
+  // nur auf eigenem oder neutralem Gebiet / only on own or neutral territory
+  const owner = territoryOwner(s, t);
+  if (owner !== null && owner !== u.owner) return 'enemyTerritory';
   if (s.factions[u.owner].stars < outpostCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
 }
@@ -1052,6 +1251,7 @@ export function terraformTargets(s: GameState, u: Unit): Pos[] {
 export const FACTION_BUILDINGS: Partial<Record<BuildingId, string>> = {
   xenoHive: XENO.faction, xenoHarvester: XENO.faction, shrine: CULT.faction, dataCenter: NEXUS.faction, powerPlant: NEXUS.faction,
   ...Object.fromEntries(Object.entries(UNIQUE.buildings).map(([f, b]) => [b, f])),
+  ...Object.fromEntries(Object.entries(RESOURCE.buildings).map(([f, b]) => [b, f])),
 };
 export const isCultFaction = (s: GameState, f: number) => s.factions[f]?.id === CULT.faction;
 export const isRobotFaction = (s: GameState, f: number) => s.factions[f]?.id === NEXUS.faction;
@@ -1068,14 +1268,16 @@ export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
-export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; compute: number } {
+export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; depotNodes: number; compute: number } {
   let dataCenters = 0, powerPlants = 0;
   for (const t of s.tiles) {
     if (t.building !== 'dataCenter' && t.building !== 'powerPlant') continue;
     if (territoryOwner(s, t) !== f) continue;
     if (t.building === 'dataCenter') dataCenters++; else powerPlants++;
   }
-  return { dataCenters, powerPlants, compute: Math.min(dataCenters, powerPlants) };
+  // Depotknoten: eigene Rechenleistung ohne Kraftwerk / depot nodes: own compute without a power plant
+  const depotNodes = countBuildings(s, f, 'depotNode');
+  return { dataCenters, powerPlants, depotNodes, compute: Math.min(dataCenters, powerPlants) + depotNodes * (BUILDINGS.depotNode.compute ?? 0) };
 }
 export const computePower = (s: GameState, f: number) => computeStats(s, f).compute;
 
@@ -1107,8 +1309,9 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
 }
 /** Freies Nachbarfeld fuer eine Rekrutierung / free adjacent tile for a recruit */
 export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
-  for (const p of neighbors(s.size, u.x, u.y)) if (recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok') return p;
-  return null;
+  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok');
+  // zuerst neben einer Pilgerstaette (Veteranen) / next to a pilgrimage site first (veterans)
+  return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots[0] ?? null;
 }
 
 // ---------- Konter-Einheiten / counter units ----------
@@ -1118,6 +1321,7 @@ export function unitClass(type: UnitTypeId): UnitClass {
   const st = UNITS[type];
   if (st.ship) return 'ship';
   if (st.abilities.includes('fly')) return 'air';
+  if (isStructureType(type)) return 'structure';
   return COUNTER.vehicles.includes(type) ? 'vehicle' : 'foot';
 }
 
@@ -1126,7 +1330,9 @@ export function counterFactor(attacker: UnitTypeId, target: UnitTypeId): number 
   const bonus = UNITS[attacker].bonusVs;
   if (!bonus) return 1;
   const cls = unitClass(target);
-  return cls === 'ship' ? 1 : bonus[cls] ?? 1;
+  if (cls === 'ship') return 1;
+  // Bauwerke nehmen Konter-Schaden wie Fahrzeuge / structures take counter damage like vehicles
+  return bonus[cls === 'structure' ? COUNTER.structureAs : cls] ?? 1;
 }
 
 /** Sieht Fraktion f die Mine auf (x, y)? Besitzer immer, sonst nur mit eigener Einheit daneben / does faction f see the mine? */
@@ -1171,17 +1377,37 @@ export function mineTargets(s: GameState, u: Unit): Pos[] {
 export function isWonder(u: Unit): boolean {
   return UNITS[u.type].abilities.includes('wonder');
 }
+/** Ist der Typ ein unbewegliches Wunder-Bauwerk (nicht der Bohrer)? / is the type an immobile wonder structure (not the drill)? */
+export function isStructureType(type: UnitTypeId): boolean {
+  return UNITS[type].abilities.includes('wonder') && type !== 'coreDrill';
+}
 /** Ist die Einheit ein unbewegliches Wunder-Bauwerk? / is the unit an immobile wonder structure? */
 export function isWonderStructure(u: Unit): boolean {
-  return isWonder(u) && u.type !== 'coreDrill';
+  return isStructureType(u.type);
+}
+/**
+ * Steht das Wunder-Bauwerk auf eigenem Boden (Ankerfeld im eigenen Gebiet, Relais auch auf eigenem Aussenposten)?
+ * Sonst ruht sein Fortschritt. Der Bohrer und andere Einheiten: immer true.
+ * Does the wonder structure stand on own ground (anchor tile in own territory, the relay also on an own outpost)?
+ * Otherwise its progress pauses. The drill and other units: always true.
+ */
+export function wonderGroundOk(s: GameState, u: Unit): boolean {
+  if (!isWonderStructure(u)) return true;
+  const t = tileAt(s, u.x, u.y)!;
+  return territoryOwner(s, t) === u.owner || (u.type === 'hackRelay' && t.outpost?.owner === u.owner);
 }
 /** Waal bewaffnet (erste Bauphase fertig)? / Waal armed (first build phase done)? */
 export function waalArmed(u: Unit): boolean {
   return (u.wonder?.stage ?? 0) >= 1;
 }
-/** Fraktions-Siegbedingungen aktiv? Fehlt = an, Kampagnen immer aus / faction victories active? missing = on, campaigns always off */
+/**
+ * Fraktions-Siegbedingungen aktiv? Nur wenn ausdruecklich an, Kampagnen immer aus. Neue Spiele setzen das Feld ausdruecklich,
+ * alte Spielstaende ohne Feld werden beim Laden auf aus gesetzt (save.ts migrateState).
+ * Faction victories active? Only when explicitly on, campaigns always off. New games set the field explicitly, old saves without it are set to off on
+ * load (save.ts migrateState).
+ */
 export function factionVictoryOn(s: GameState): boolean {
-  return s.config.factionVictory !== false && !s.config.campaign;
+  return s.config.factionVictory === true && !s.config.campaign;
 }
 /** Siegtechnologie der Fraktion / the faction's victory tech */
 export const victoryTechOf = (s: GameState, f: number): TechId => VICTORY_TECH[s.factions[f].id];
@@ -1218,9 +1444,11 @@ export type WonderCheck = 'ok' | 'invalid' | 'wrongFaction' | 'techMissing' | 'a
 
 /**
  * Kann Fraktion f das Wunder auf (x, y) bauen? Portal und Waal: freies Land im eigenen Gebiet; Relais: Berg im eigenen Gebiet
- * oder mit eigenem Aussenposten; Kraftwerk: 2x2 freies Land im eigenen Gebiet (Anker + rechts, unten, diagonal).
+ * oder mit eigenem Aussenposten; Kraftwerk: 2x2 freies Land (auch Berge) im eigenen Gebiet (Anker + rechts, unten, diagonal).
+ * Gelaende je Wunder: WONDERS.terrain.
  * Can faction f build the wonder at (x, y)? Portal and Waal: free land in own territory; relay: mountain in own territory
- * or with an own outpost; power plant: 2x2 free land in own territory (anchor + right, down, diagonal).
+ * or with an own outpost; power plant: 2x2 free land (mountains too) in own territory (anchor + right, down, diagonal).
+ * Terrain per wonder: WONDERS.terrain.
  */
 export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number, y: number): WonderCheck {
   if (!factionVictoryOn(s) || !(WONDERS.phases as Record<string, number[]>)[kind]) return 'invalid';
@@ -1230,7 +1458,7 @@ export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number
   for (const p of wonderFootprint(kind, x, y)) {
     if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
     const t = tileAt(s, p.x, p.y)!;
-    const terrainOk = kind === 'hackRelay' ? t.terrain === 'mountain' : t.terrain === 'plain' || t.terrain === 'forest';
+    const terrainOk = WONDERS.terrain[kind].includes(t.terrain);
     if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.volcano || burning(s, t)) return 'invalidTile';
     // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
     if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
@@ -1276,17 +1504,44 @@ export interface VictoryStatus {
   /** Runden bis zum Sieg (falls planbar) / rounds to victory (if predictable) */
   roundsLeft: number | null;
   unit?: number;
+  /** Wunder ruht: Ankerfeld nicht im eigenen Gebiet / wonder paused: anchor tile not in own territory */
+  paused?: boolean;
+  /** Siegbedingung in diesem Spiel nicht moeglich (Voelkerbund mit weniger als 3 Fraktionen) / condition impossible in this game */
+  unavailable?: boolean;
 }
 
-/** Benoetigte Staedte fuer Korvat: mehr als die Haelfte aller Staedte / cities Korvat needs: more than half of all cities */
-export const korvatNeed = (s: GameState) => Math.floor(s.cities.length * WONDERS.korvatShare) + 1;
+/** Benoetigte Staedte fuer Korvat: mehr als WONDERS.korvatShare aller Staedte / cities Korvat needs: more than WONDERS.korvatShare of all cities */
+export const korvatShareFor = (s: GameState) => Math.max(WONDERS.korvatShare, WONDERS.korvatSharePerFaction / Math.max(1, s.factions.length));
+export const korvatNeed = (s: GameState) => Math.floor(s.cities.length * korvatShareFor(s)) + 1;
 
-/** Voelkerbund-Bedingung jetzt erfuellt? / League of Nations condition met now? */
+/**
+ * Sterneziel fuer Meridon: ohne Rundenlimit WONDERS.meridonStars, sonst Runden x meridonStarsPerRound (begrenzt).
+ * Star target for Meridon: WONDERS.meridonStars without a round limit, otherwise rounds x meridonStarsPerRound (clamped).
+ */
+export function meridonNeedFor(roundLimit: number | null): number {
+  if (roundLimit === null) return WONDERS.meridonStars;
+  return Math.min(WONDERS.meridonStars, Math.max(WONDERS.meridonStarsMin, Math.round(roundLimit * WONDERS.meridonStarsPerRound)));
+}
+export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit);
+
+/** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */
+export const knows = (s: GameState, a: number, b: number) => s.factions[a].contacts.includes(b) || s.factions[b].contacts.includes(a);
+
+/** Voelkerbund nur mit mindestens 3 Fraktionen im Spiel / League of Nations only with at least 3 factions in the game */
+export const leagueAvailable = (s: GameState) => s.factions.length - 1 >= WONDERS.alveniaMinFactions;
+
+/**
+ * Voelkerbund-Bedingung jetzt erfuellt? Jede andere lebende Fraktion zaehlt (nicht nur getroffene): bekannt, im Frieden
+ * und mit Botschaft; eine Fraktion ohne Hauptquartier (keine Botschaft moeglich) braucht nur Frieden.
+ * League of Nations condition met now? Every other living faction counts (not only met ones): known, at peace and with an
+ * embassy; a faction without an HQ (no embassy possible) only needs peace.
+ */
 export function leagueMet(s: GameState, f: number): boolean {
+  if (!leagueAvailable(s)) return false;
   const fa = s.factions[f];
-  const known = fa.contacts.filter((g) => g !== f && s.factions[g]?.alive);
-  if (known.length < WONDERS.alveniaMinFactions) return false;
-  return known.every((g) => fa.relations[g] === 'peace' && fa.embassies.includes(g));
+  const others = s.factions.filter((g) => g.index !== f && g.alive).map((g) => g.index);
+  if (others.length < WONDERS.alveniaMinFactions) return false;
+  return others.every((g) => knows(s, f, g) && fa.relations[g] === 'peace' && (fa.embassies.includes(g) || !hqOf(s, g)));
 }
 
 export function victoryStatus(s: GameState, f: number): VictoryStatus {
@@ -1300,12 +1555,13 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
       return { ...base, phase: 'cities', have, need, ratio: Math.min(1, have / need), roundsLeft: null };
     }
     case 'stars': {
-      const need = WONDERS.meridonStars;
+      const need = meridonNeed(s);
       return { ...base, phase: 'stars', have: fa.stars, need, ratio: Math.min(1, fa.stars / need), roundsLeft: null };
     }
     case 'league': {
       const have = fa.league ?? 0, need = WONDERS.alveniaRounds;
-      return { ...base, phase: 'league', have, need, ratio: have / need, roundsLeft: leagueMet(s, f) ? need - have : null };
+      const unavailable = !leagueAvailable(s);
+      return { ...base, phase: 'league', have, need, ratio: have / need, roundsLeft: leagueMet(s, f) ? need - have : null, ...(unavailable ? { unavailable } : {}) };
     }
     default: {
       const u = s.units.find((o) => o.owner === f && o.type === goal);
@@ -1320,7 +1576,9 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
       const have = u.wonder?.progress ?? 0;
       const done = phases.slice(0, stage).reduce((a, b) => a + b, 0) + have;
       const phase = stage === 0 ? 'build' : goal === 'portal' ? 'charge' : goal === 'hackRelay' ? 'hack' : 'armed';
-      return { ...base, phase, have, need: phases[stage], ratio: done / total, roundsLeft: total - done, unit: u.id };
+      // ruhender Fortschritt: keine Prognose / paused progress: no forecast
+      const paused = !wonderGroundOk(s, u);
+      return { ...base, phase, have, need: phases[stage], ratio: done / total, roundsLeft: paused ? null : total - done, unit: u.id, ...(paused ? { paused } : {}) };
     }
   }
 }

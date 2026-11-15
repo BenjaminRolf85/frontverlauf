@@ -68,11 +68,11 @@ describe('Bonusschaden / bonus damage', () => {
     const jeep = addUnit(s, 'jeep', 0, 4, 5);
     jeep.maxHp = 20; jeep.hp = 20;
     const p = combatPreview(s, jeep, at);
-    // Jeep 2 vs 1.5: 5 Schaden; Gegenschlag (Vorschau mit vollen LP) 1.5/3.5*1.5*4.5 = 2.9 -> 3, x2.5 = 7.2 -> 7
-    // jeep 2 vs 1.5: 5 damage; retaliation (preview with full HP) 2.9 -> 3 without bonus, 7 with it
+    // Jeep 2 vs 1.5: 5 Schaden; Gegenschlag mit den LP danach (5/10): 0.75/2.75*1.5*4.5 = 1.84 -> 2, x2.5 = 4.6 -> 5
+    // jeep 2 vs 1.5: 5 damage; retaliation with the HP left (5/10): 1.84 -> 2 without bonus, 5 with it
     expect(p.toDefender).toBe(5);
-    expect(p.toAttacker).toBe(7);
-    expect(combatPreview(s, jeep, { ...at, type: 'zealot' }).toAttacker).toBe(3);
+    expect(p.toAttacker).toBe(5);
+    expect(combatPreview(s, jeep, { ...at, type: 'zealot' }).toAttacker).toBe(2);
   });
 
   it('Flak: holt Hubschrauber und Drohnen herunter, schwach gegen Bodenziele / AA: downs helicopters and drones, weak vs ground', () => {

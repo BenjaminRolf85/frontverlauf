@@ -58,7 +58,9 @@ export type BuildingId =
   | 'navalBase' | 'road' | 'bridge' | 'researchCenter'
   | 'xenoHive' | 'xenoHarvester' | 'shrine' | 'dataCenter' | 'powerPlant'
   // Einzigartige Gebaeude der klassischen Fraktionen / unique buildings of the classic factions
-  | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab';
+  | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab'
+  // Ressourcengebaeude der Fraktionen (je eins, siehe RESOURCE) / faction resource buildings (one each, see RESOURCE)
+  | 'tractorStation' | 'deepMine' | 'hillVineyard' | 'tradeHarbour' | 'polarStation' | 'wreckSmelter' | 'pilgrimSite' | 'depotNode';
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
@@ -91,8 +93,11 @@ export interface UnitStats {
 
 /** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
 export type CounterClass = 'foot' | 'vehicle' | 'air';
-/** Einheitenklasse (Schiffe bekommen nie Konter-Boni) / unit class (ships never receive counter bonuses) */
-export type UnitClass = CounterClass | 'ship';
+/**
+ * Einheitenklasse (Schiffe bekommen nie Konter-Boni; Bauwerke = Wunder-Bauwerke, fuer Konter wie COUNTER.structureAs)
+ * unit class (ships never receive counter bonuses; structures = wonder structures, for counters like COUNTER.structureAs)
+ */
+export type UnitClass = CounterClass | 'ship' | 'structure';
 
 /**
  * Fraktions-Siegbedingungen (zusaetzlich zu Punkten und Eroberung). Runden zaehlen zu Beginn des eigenen Zuges.
@@ -109,27 +114,52 @@ export const WONDERS = {
    * Phasen in Runden: Portal Bau + Aufladen, Relais Bau + Hacken, Kraftwerk ein Bau, Waal Bau bis bewaffnet + Fertigstellung.
    * Phases in rounds: portal build + charge, relay build + hack, power plant one build, Waal build until armed + completion.
    */
-  phases: { portal: [8, 8], hackRelay: [8, 8], fusionPlant: [16], waal: [8, 8] } as Record<WonderKind, number[]>,
+  phases: { portal: [9, 10], hackRelay: [8, 9], fusionPlant: [14], waal: [8, 8] } as Record<WonderKind, number[]>,
+  /**
+   * Gelaende des Bauplatzes (Kraftwerk: alle vier Felder) / terrain of the site (power plant: all four tiles)
+   */
+  terrain: { portal: ['plain', 'forest'], hackRelay: ['mountain'], fusionPlant: ['plain', 'forest', 'mountain'], waal: ['plain', 'forest'] } as Record<WonderKind, TerrainId[]>,
   /** Angriffe setzen die laufende Phase auf 0 / attacks reset the current phase to 0 */
-  interruptible: { portal: true, hackRelay: false, fusionPlant: true, waal: false, coreDrill: true } as Record<WonderUnitId, boolean>,
+  interruptible: { portal: true, hackRelay: true, fusionPlant: true, waal: false, coreDrill: true } as Record<WonderUnitId, boolean>,
   /** Waal: LP im Bau, nach der ersten Phase (bewaffnet); fertig = volle LP / Waal: HP while building, after the first phase (armed); done = full HP */
   waalBuildHp: 15,
   waalArmedHp: 30,
   /** Erdkernbohrer: Runden Stillstand bis zum Weltende, hoechstens so viele gleichzeitig / earth-core drill: rounds standing still, at most this many at once */
-  drillRounds: 12,
+  drillRounds: 14,
   drillMax: 1,
   /** Korvat: Anteil aller Staedte (inkl. Siedlungen), der ueberschritten werden muss / Korvat: share of all cities (incl. villages) that must be exceeded */
-  korvatShare: 0.5,
-  /** Meridon: Sterne in der Kasse / Meridon: stars in the treasury */
+  korvatShare: 0.4,
+  /** bei wenigen Fraktionen hoeher: Anteil mindestens korvatSharePerFaction / Fraktionen (2: 80 %, 3: 53 %, 4+: 40 %) / higher with few factions */
+  korvatSharePerFaction: 1.6,
+  /**
+   * Meridon: Sterne in der Kasse ohne Rundenlimit; mit Rundenlimit Runden x meridonStarsPerRound, begrenzt auf meridonStarsMin..meridonStars.
+   * Meridon: stars in the treasury without a round limit; with a round limit rounds x meridonStarsPerRound, clamped to meridonStarsMin..meridonStars.
+   */
   meridonStars: 1000,
+  meridonStarsPerRound: 11,
+  meridonStarsMin: 300,
   /** Alvenia, Voelkerbund: Runden in Folge, Mindestzahl bekannter lebender Fraktionen / League of Nations: consecutive rounds, minimum known living factions */
-  alveniaRounds: 6,
+  alveniaRounds: 5,
   alveniaMinFactions: 2,
   /** KI: Siegtechnologie ab dieser Runde erforschen; Wert eines feindlichen Wunders / AI: research the victory tech from this round; worth of a hostile wonder */
   aiResearchRound: 10,
   aiWorth: 150,
   /** KI spart fuer Siegtechnologie und Wunder bis zu so viele Runden Einkommen an / AI saves up to this many rounds of income for the victory tech and wonder */
   aiSaveRounds: 6,
+  /**
+   * KI: Gegner gilt ab diesem Gesamtfortschritt als kurz vor dem Sieg (kein Frieden, Frieden brechen); Voelkerbund eigener Wert.
+   * AI: a rival counts as close to victory from this overall progress (no peace, break peace); the League has its own value.
+   */
+  aiNearVictory: 0.5,
+  aiNearVictoryLeague: 0.8,
+  /** KI bricht den Voelkerbund nur mit mindestens diesem Anteil an Alvenias Staerke / AI breaks the League only with at least this share of Alvenia's strength */
+  aiLeagueBreakStrength: 1.5,
+  /** KI: Bohrer erst ab so vielen eigenen Staedten / AI: drill only from this many own cities */
+  aiDrillMinCities: 2,
+  /** KI Korvat: Fuenfjahresplan erst ab diesem Anteil der benoetigten Staedte / AI Korvat: Five-Year Plan only from this share of the needed cities */
+  aiKorvatResearchShare: 0.35,
+  /** KI Meridon: ab diesem Anteil des Sterneziels nur noch Dringendes kaufen / AI Meridon: only urgent buys from this share of the star target */
+  aiMeridonHoardShare: 0.4,
 };
 /** Siegtechnologie je Fraktion / victory tech per faction */
 export const VICTORY_TECH: Record<FactionId, VictoryTechId> = {
@@ -213,6 +243,19 @@ export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'pea
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
 
 /**
+ * Die eine Fahrzeugliste (Klasse 'vehicle', inkl. Laeufer, Mechs und Erdkernbohrer). Konter, Panzersperre, Schnee,
+ * Dschungel und Wracks lesen alle diese Liste. Wunder-Bauwerke (auch der Waal) sind Klasse 'structure', nicht hier.
+ * The one vehicle list (class 'vehicle', incl. walkers, mechs and the earth-core drill). Counters, tank barrier, snow,
+ * jungle and wrecks all read this list. Wonder structures (the Waal too) are class 'structure', not listed here.
+ */
+export const VEHICLE_UNITS: UnitTypeId[] = [
+  'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
+  'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill',
+];
+/** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
+export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
+
+/**
  * Einzigartige Einheiten und Gebaeude der klassischen Fraktionen.
  * Unique units and buildings of the classic factions.
  */
@@ -229,9 +272,9 @@ export const UNIQUE = {
   kolkhozInterval: 5,
   kolkhozPop: 1,
   /** Botschaftspalast: Sterne je Friedensvertrag und Runde / embassy palace: stars per peace treaty and round */
-  palacePerPeace: 4,
+  palacePerPeace: 3,
   /** Handelskontor: Sterne je verbundener Hafenstadt und Runde / trading post: stars per connected harbour city and round */
-  tradingPostPerHarbour: 3,
+  tradingPostPerHarbour: 2,
   /** Versuchslabor: Forschungsrabatt je Labor, hoechstens so viele Labore / test lab: research discount per lab, at most this many labs */
   testLabDiscount: 0.05,
   testLabMax: 3,
@@ -278,7 +321,8 @@ export const CRASH = { stars: 30, revealRadius: 3, alienUnit: 'skimmer' as UnitT
 /** Dschungel: Fahrzeuge nur als erster Schritt, jeder Schritt aus dem Dschungel endet die Bewegung, Deckung fuer Fusstruppen
  *  jungle: vehicles only as first step, every step out of the jungle ends the move, cover for foot troops */
 export const JUNGLE = {
-  vehicles: ['jeep', 'tank', 'artillery', 'doomBuggy', 'rocketCart', 'doomCrawler', 'railgun', 'titan', 'mech', 'antiAir', 'mineLayer', 'flakDrone', 'protoWalker', 'coreDrill'] as UnitTypeId[],
+  // alle Fahrzeuge (VEHICLE_UNITS) / all vehicles (VEHICLE_UNITS)
+  vehicles: VEHICLE_UNITS,
   footDefense: 1.5,
 };
 
@@ -292,13 +336,13 @@ export const NEXUS = { faction: 'nexus' as FactionId };
 export const XENO = {
   faction: 'zyrr' as FactionId,
   /** Preis je Feld im eigenen Gebiet / price per tile in own territory */
-  terraformCost: 5,
+  terraformCost: 7,
   /** Verteidigungsbonus fuer Alien-Einheiten auf Xeno-Boden / defence bonus for alien units on xeno ground */
   groundDefense: 1.5,
   /** zusaetzliche Heilung auf Xeno-Boden / extra healing on xeno ground */
   groundHeal: 2,
   /** Punkte je terraformtem Feld / points per terraformed tile */
-  tilePoints: 10,
+  tilePoints: 6,
   startUnit: 'grey' as UnitTypeId,
   /** Ersatz fuer menschliche Belohnungen / replacement for human rewards */
   rewardTank: 'mech' as UnitTypeId,
@@ -328,6 +372,11 @@ export const HIT_KINDS: HitKind[] = ['miss', 'graze', 'partial', 'full', 'crit']
 export const HIT = {
   /** Schadensfaktor je Trefferart / damage factor per hit kind */
   mult: { miss: 0, graze: 0.5, partial: 0.8, full: 1, crit: 1.5 } as Record<HitKind, number>,
+  /**
+   * Rasse je Fraktion (Fraktionseinheiten nach Bauart, Schiffe nach Besitzer); fehlt = Menschen
+   * race per faction (faction units by type, ships by owner); missing = humans
+   */
+  race: { zyrr: 'alien', nexus: 'robot', vesper: 'cult' } as Partial<Record<FactionId, HitRace>>,
   /** Grundwahrscheinlichkeiten je Rasse (Summe 1) / base odds per race (sum 1) */
   odds: {
     // Menschen: solide, gelegentlich kritisch / humans: solid, occasionally critical
@@ -377,7 +426,7 @@ export const RANGED_COVER = {
 /** Notreparatur der Roboter aus Wracks / emergency repair of robots from wrecks */
 export const REPAIR = {
   /** Faktor auf die normale Heilung / factor on normal healing */
-  factor: 1.5,
+  factor: 2,
 };
 
 /** Geordneter Rueckzug (menschliche Truppen) / orderly retreat (human troops) */
@@ -400,7 +449,8 @@ export const DEFENSE_BONUS = {
 export const REMAINS = {
   /** Wracks geben +1 auf den Verteidigungsbonus / wrecks add +1 to the defense bonus */
   wreckDefenseBonus: 1,
-  wreckUnits: ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer', 'protoWalker'] as UnitTypeId[],
+  /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
+  wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
   skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper'] as UnitTypeId[],
 };
 
@@ -408,8 +458,8 @@ export const REMAINS = {
 export const BARRIER = {
   cost: 10,
   builders: ['pioneer'] as UnitTypeId[],
-  /** betroffene Fahrzeuge / affected vehicles */
-  vehicles: ['tank', 'jeep', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[],
+  /** betroffene Fahrzeuge: alle (VEHICLE_UNITS) / affected vehicles: all (VEHICLE_UNITS) */
+  vehicles: VEHICLE_UNITS,
   /** Bewegung in der naechsten Runde / movement in the next round */
   slowedMove: 1,
   terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
@@ -417,16 +467,17 @@ export const BARRIER = {
 
 /**
  * Konter-Einheiten (Schere-Stein-Papier) / counter units (rock-paper-scissors).
- * Klassen: Flieger = Faehigkeit 'fly', Schiffe = ship, Fahrzeuge = Liste unten (inkl. Laeufer und Mechs), sonst Fusstruppen.
- * Classes: air = ability 'fly', ships = ship, vehicles = list below (incl. walkers and mechs), otherwise foot troops.
+ * Klassen: Flieger = Faehigkeit 'fly', Schiffe = ship, Bauwerke = Wunder-Bauwerke, Fahrzeuge = VEHICLE_UNITS (inkl. Laeufer
+ * und Mechs), sonst Fusstruppen.
+ * Classes: air = ability 'fly', ships = ship, structures = wonder structures, vehicles = VEHICLE_UNITS (incl. walkers and
+ * mechs), otherwise foot troops.
  * Der Faktor bonusVs der Einheit multipliziert den Schaden gegen die Klasse (Angriff und Gegenschlag).
  * The unit's bonusVs factor multiplies its damage against the class (attack and retaliation).
  */
 export const COUNTER = {
-  vehicles: [
-    'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
-    'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'waal', 'coreDrill',
-  ] as UnitTypeId[],
+  vehicles: VEHICLE_UNITS,
+  /** Wunder-Bauwerke nehmen Konter-Schaden wie diese Klasse / wonder structures take counter damage like this class */
+  structureAs: 'vehicle' as CounterClass,
   /** Flak-Feuerzone: feindliche Flieger, die im Umkreis ihren Zug beenden, nehmen Schaden / flak zone: hostile flyers ending their turn within range take damage */
   flak: { range: 1, damage: 3 },
   /**
@@ -457,8 +508,8 @@ export const WEATHER = {
   weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
-  /** Schnee: Fahrzeuge 1 Feld weniger / snow: vehicles 1 tile less */
-  snow: { moveUnits: ['jeep', 'tank', 'artillery', 'antiAir', 'mineLayer'] as UnitTypeId[], moveDelta: -1 },
+  /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
+  snow: { moveUnits: VEHICLE_UNITS, moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
   wind: { fuelBurn: 2 },
 };
@@ -574,6 +625,21 @@ export interface BuildingStats {
   onePerFaction?: boolean;
   /** Bevoelkerung je angrenzendem Gebaeude dieses Typs / population per adjacent building of this type */
   adjacency?: { building: BuildingId; pop: number };
+  // Ressourcengebaeude (siehe RESOURCE) / resource buildings (see RESOURCE)
+  /** nur in diesen Landschaften / only in these biomes */
+  biomes?: BiomeId[];
+  /** alternativ zur Landschaft: neben einem Vulkan / alternatively to the biome: next to a volcano */
+  nearVolcano?: boolean;
+  /** nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie / only on a wreck or a salvaged crash site, consumes it */
+  wreck?: boolean;
+  /** darf dieses eigene Gebaeude ersetzen (Ausbau, Preis = Differenz) / may replace this own building (upgrade, price = difference) */
+  upgrades?: BuildingId;
+  /** zaehlt fuer Werke, Logistikzentrum und Duerre als dieses Grundgebaeude / counts as this base building for works, logistics centre and drought */
+  countsAs?: BuildingId;
+  /** Sterne pro Runde fuer die Stadt / stars per round for the city */
+  stars?: number;
+  /** Rechenleistung (NEXUS) / compute (NEXUS) */
+  compute?: number;
 }
 
 export const BUILDINGS: Record<BuildingId, BuildingStats> = {
@@ -599,11 +665,51 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   xenoHarvester: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
   // Einzigartige Gebaeude (siehe UNIQUE) / unique buildings (see UNIQUE)
   kolkhoz: { cost: 35, pop: 1, tech: 'livestock', terrain: ['plain'], onePerCity: true },
-  mercenaryBarracks: { cost: 35, pop: 2, tech: 'motorization', terrain: ['plain', 'forest'], onePerCity: true },
+  mercenaryBarracks: { cost: 35, pop: 3, tech: 'motorization', terrain: ['plain', 'forest'], onePerCity: true },
   embassyPalace: { cost: 30, pop: 3, tech: 'supply', terrain: ['plain', 'forest'], onePerFaction: true },
   tradingPost: { cost: 30, pop: 1, tech: 'coastalEconomy', terrain: ['plain'], onePerFaction: true },
   testLab: { cost: 30, pop: 1, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], onePerCity: true },
+  // Ressourcengebaeude der Fraktionen (siehe RESOURCE) / faction resource buildings (see RESOURCE)
+  // Korvat: Traktorstation auf Ackerland, Ausbau des Agrarbetriebs / tractor station on farmland, upgrade of the farm
+  tractorStation: { cost: 35, pop: 3, tech: 'agritech', terrain: ['plain'], resource: 'farmland', upgrades: 'farm', countsAs: 'farm', adjacency: { building: 'farm', pop: 1 } },
+  // Dravon: Tiefbauzeche auf Erz, Ausbau des Tagebaus / deep mine on ore, upgrade of the mine
+  deepMine: { cost: 40, pop: 3, tech: 'mining', terrain: ['mountain'], resource: 'ore', upgrades: 'mine', countsAs: 'mine', stars: 2 },
+  // Alvenia: Huegelweingut auf Ebenen im Huegelland / hill vineyard on plains in the hills
+  hillVineyard: { cost: 30, pop: 2, tech: 'agritech', terrain: ['plain'], biomes: ['hills'], onePerCity: true, stars: 2 },
+  // Meridon: Handelshafen auf Fischgruenden, Ausbau der Fischerei / trade harbour on fish, upgrade of the fishery
+  tradeHarbour: { cost: 30, pop: 2, tech: 'shipbuilding', terrain: ['shallow'], resource: 'fish', upgrades: 'fishery', countsAs: 'fishery', stars: 2 },
+  // Velkar: Polarstation in der Tundra / polar station in the tundra
+  polarStation: { cost: 25, pop: 2, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], biomes: ['tundra'] },
+  // Zyrr: Wrackschmelze auf einem Wrack oder einer geborgenen Absturzstelle, ohne Xeno-Boden / wreck smelter on a wreck or salvaged crash site, without xeno ground
+  wreckSmelter: { cost: 20, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain'], wreck: true, stars: 3 },
+  // Vesper: Pilgerstaette in Wueste oder Steppe oder neben einem Vulkan / pilgrimage site in desert or steppe or next to a volcano
+  pilgrimSite: { cost: 25, pop: 2, tech: 'camouflage', terrain: ['plain', 'forest'], biomes: ['desert', 'steppe'], nearVolcano: true, onePerCity: true, stars: 2 },
+  // NEXUS: Depotknoten auf Erz / depot node on ore
+  depotNode: { cost: 25, pop: 1, tech: null, terrain: ['mountain'], resource: 'ore', compute: 1 },
 };
+
+/**
+ * Ressourcengebaeude: je Fraktion ein Gebaeude zum Rohstoff-Thema ihrer Comics. Nur die eigene Fraktion baut es und nur ihr
+ * wirkt es; erobert gibt es nur die beim Bau erhaltene Bevoelkerung.
+ * Resource buildings: one building per faction on the resource theme of its comics. Only the own faction builds it and only
+ * for it does it work; captured, it gives nothing but the population gained on construction.
+ */
+export const RESOURCE = {
+  /** Gebaeude je Fraktion / building per faction */
+  buildings: {
+    korvat: 'tractorStation', dravon: 'deepMine', alvenia: 'hillVineyard', meridon: 'tradeHarbour',
+    velkar: 'polarStation', zyrr: 'wreckSmelter', vesper: 'pilgrimSite', nexus: 'depotNode',
+  } as Record<FactionId, BuildingId>,
+  /** Polarstation: Forschungsrabatt je Station, hoechstens so viele (eigene Grenze neben dem Versuchslabor) / polar station: research discount per station, at most this many (own cap beside the test lab) */
+  polarDiscount: 0.03,
+  polarMax: 3,
+  /** Handelshafen: Zusatzsterne, wenn seine Stadt einen Marinestuetzpunkt hat / trade harbour: extra stars if its city has a naval base */
+  harbourNavalBonus: 1,
+  /** Huegelweingut: Zusatzsterne je aktiver eigener Botschaft, hoechstens so viele / hill vineyard: extra stars per active own embassy, at most this many */
+  vineyardPerEmbassy: 1,
+  vineyardEmbassyMax: 3,
+};
+export const RESOURCE_BUILDINGS: BuildingId[] = Object.values(RESOURCE.buildings);
 
 /** Basisgebaeude der Werke, die das Logistikzentrum zaehlt / base buildings counted by the logistics centre */
 export const LOGISTICS_SOURCES: BuildingId[] = ['lumberCamp', 'farm', 'mine'];
@@ -698,7 +804,7 @@ export interface FactionStats {
   discountUnit: UnitTypeId;
   discount: number;
   startTech: TechId | null;
-  /** weitere Starttechnologien (Sonderfraktionen ohne Forschung) / extra start techs (special factions without research) */
+  /** weitere Starttechnologien (Sonderfraktionen ohne Forschung, Dravon) / extra start techs (special factions without research, Dravon) */
   extraTechs?: TechId[];
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
@@ -708,9 +814,9 @@ export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon
 
 export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
-  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.2, startTech: 'motorization', home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
+  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
   alvenia: { perk: 'alliancePolicy', perk2: 'fieldHospitals', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
-  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
+  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', perk2: 'martyrdom', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
   nexus: { perk: 'hivemind', perk2: 'sensorNet', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
@@ -723,7 +829,7 @@ export const PERKS = {
   allianceEmbassyCostFactor: 0.5,
   allianceEmbassyIncomeFactor: 2,
   boomLevelReduction: 1,
-  researchLeadDiscount: 0.2,
+  researchLeadDiscount: 0.12,
 };
 
 /** Zweite Fraktionsmerkmale / second faction traits */
@@ -818,3 +924,14 @@ export const AI = {
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };
+
+/**
+ * Kampagne: Ueberzeugen. Diplomatische Fraktionen gewinnen neutrale Siedlungen neben einer eigenen Einheit ohne Kampf,
+ * gegen Sterne (Grundpreis plus Aufschlag je Stufe ueber 1). Nur in Kampagnenpartien.
+ * Campaign: persuasion. Diplomatic factions win neutral settlements next to an own unit without combat,
+ * for stars (base price plus a surcharge per level above 1). Campaign games only.
+ */
+/** KI im Kampagnen-Finale: Ziele rund um das Artefakt / AI in the campaign finale: goals around the artifact */
+export const CAMPAIGN_AI = { artifactValue: 100, artifactCap: 2, artifactHuntValue: 120, artifactHuntCap: 4, artifactDistW: 4 };
+
+export const PERSUADE = { factions: ['alvenia', 'meridon'] as FactionId[], cost: 20, perLevel: 5, range: 1 };

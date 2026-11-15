@@ -19,6 +19,7 @@ import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
+import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, withGlow, type GlowKind } from './atmosphere';
 import { WATER_BOX_TOP, buildWater } from './water';
 import { buildLandscape, cliffRock } from './landscape';
@@ -33,6 +34,14 @@ function placeholder(color: string, h = 0.3): THREE.BufferGeometry {
   if (!g) { g = paint(new THREE.CylinderGeometry(0.18, 0.22, h, 8).toNonIndexed(), color); g.translate(0, h / 2, 0); placeholderCache.set(key, g); }
   return g;
 }
+/**
+ * Kampagnen-Finale: Marker des Artefakts der Uralten (Ursprung unten mittig, ein Feld gross). Vorerst ein schlichter
+ * Obelisk; das eigentliche Modell wird hier eingesetzt.
+ * Campaign finale: marker of the artifact of the ancients (origin bottom centre, one tile). For now a plain obelisk;
+ * the real model gets plugged in here.
+ */
+// ARTIFACT_MODEL_HOOK: Sockel statisch, schwebender Teil dreht sich (siehe Board.tick) / plinth static, floating part spins (see Board.tick)
+function artifactMarker(): THREE.BufferGeometry { return artifactGeometry('static'); }
 function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null, fallback: string | null, ...args: T): THREE.BufferGeometry | null {
   try { return fn(...args); } catch { return fallback ? placeholder(fallback) : null; }
 }
@@ -103,6 +112,8 @@ const UNIT_ORDER = 60;
 export class Board {
   readonly group = new THREE.Group();
   private staticLayer = new THREE.Group();
+  /** schwebender Teil des Artefakts (Kampagnenfinale) / floating part of the artifact (campaign finale) */
+  private artifactOrbit: THREE.Object3D | null = null;
   private unitLayer = new THREE.Group();
   private highlightLayer = new THREE.Group();
   private labelLayer = new THREE.Group();
@@ -223,6 +234,7 @@ export class Board {
     this.weatherFx.set(weather(s), s.size);
     this.snowy = weather(s) === 'snow';
     this.clearGroup(this.staticLayer);
+    this.artifactOrbit = null;
     this.clearGroup(this.labelLayer);
     this.pickMeshes = [];
     const size = s.size;
@@ -265,6 +277,7 @@ export class Board {
     const borderSegs: { m: THREE.Matrix4; color: string }[] = [];
     const clouds: THREE.Matrix4[] = [];
     const off = (size - 1) / 2;
+    const artifact = s.campaign && !s.campaign.result ? s.campaign.artifact : undefined;
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -365,6 +378,14 @@ export class Board {
         if (t.feature === 'labRuin') addDeco(labRuinGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x + y * 3) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature === 'crashSite') addDeco(crashSiteGeometry((x + y) % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1, 1, 1)));
         else if (t.feature) addDeco(featureGeometry(t.feature), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+        // Artefakt: schwingt leicht mit (Sway-Gruppe) / artifact: sways gently (sway group)
+        if (artifact && artifact.x === x && artifact.y === y) {
+          addDeco(artifactMarker(), new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built');
+          const orbit = outlined(withGlow(artifactGeometry('orbit'), 'built'), OUTLINE.building, landMaterial());
+          orbit.position.set(x - off, top + ARTIFACT_ORBIT_Y, y - off);
+          this.artifactOrbit = orbit;
+          this.staticLayer.add(orbit);
+        }
         if (t.barrier) {
           const bf = s.factions[t.barrier.owner]?.id;
           addDeco(safe(barrierGeometry, semantic.metal, bf ? factionTokens[bf].secondary : semantic.metal), new THREE.Matrix4().makeTranslation(x - off, top, y - off));
@@ -920,7 +941,14 @@ export class Board {
   /** Animationen fortschreiben; true, wenn neu gezeichnet werden muss / advance animations; true if redraw needed */
   tick(now: number): boolean {
     const fx = this.combat.update();
-    const lived = this.life.update(now, this.animations);
+    let lived = this.life.update(now, this.animations);
+    // Artefakt: langsame Drehung und leichtes Schweben / artifact: slow spin and gentle bob
+    if (this.artifactOrbit && this.animations) {
+      const t = now / 1000;
+      this.artifactOrbit.rotation.y = t * 0.35;
+      this.artifactOrbit.position.y = (this.artifactOrbit.userData.baseY ??= this.artifactOrbit.position.y) + Math.sin(t * 1.3) * 0.03;
+      lived = true;
+    }
     if (!this.anims.length) { const d = this.dirty || fx || lived; this.dirty = false; return d; }
     for (const a of [...this.anims]) {
       // rAF-Zeit kann vor dem Start liegen: auf 0..1 begrenzen / rAF time can precede the start: clamp to 0..1

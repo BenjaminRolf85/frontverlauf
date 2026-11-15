@@ -5,12 +5,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCommand, attackTargets, continueEndless, convertTargets, createGame, defaultConfig, paidUnits, reachable, supportedUnits,
-  techVisible, trainCheck, unitUpkeep, victoryStatus, wonderCheck, type GameEvent, type GameState, type Unit,
+  techVisible, trainCheck, unitUpkeep, victoryStatus, korvatShareFor, wonderCheck, meridonNeedFor, type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import {
   AI, ALL_TECH_IDS, FACTION_IDS, TECHS, TECH_IDS, UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderKind,
 } from '../src/data/balance';
 import { planNextCommand } from '../src/ai/ai';
+import { migrateState } from '../src/save/save';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile, untilTurnOf } from './helpers';
 
 /** Spiel mit zwei Fraktionen, Hauptquartier bei (2,2) bzw. (8,8), Radius 2 / game with two factions, HQs at (2,2) and (8,8), radius 2 */
@@ -99,7 +100,7 @@ describe('Bauplaetze / sites', () => {
     expect(wonderCheck(s, 0, 'hackRelay', 3, 3)).toBe('alreadyBuilt');
   });
 
-  it('Fusionskraftwerk: 2x2 freies Land im eigenen Gebiet, Grundflaeche unpassierbar / fusion plant: 2x2 free land in own territory, footprint impassable', () => {
+  it('Fusionskraftwerk: 2x2 freies Land (auch Berge) im eigenen Gebiet, Grundflaeche unpassierbar / fusion plant: 2x2 free land (mountains too) in own territory, footprint impassable', () => {
     const s = game('velkar');
     giveTech(s, 0);
     // (4,4)+1 liegt ausserhalb von Radius 2 / (4,4)+1 is outside radius 2
@@ -108,7 +109,10 @@ describe('Bauplaetze / sites', () => {
     tile(s, 4, 1).building = 'farm';
     expect(wonderCheck(s, 0, 'fusionPlant', 3, 0)).toBe('invalidTile');
     tile(s, 4, 1).building = null;
+    // Berge sind erlaubt, Wasser nicht / mountains are allowed, water is not
     setTerrain(s, 4, 1, 'mountain');
+    expect(wonderCheck(s, 0, 'fusionPlant', 3, 0)).toBe('ok');
+    setTerrain(s, 4, 1, 'shallow');
     expect(wonderCheck(s, 0, 'fusionPlant', 3, 0)).toBe('invalidTile');
     setTerrain(s, 4, 1, 'forest');
     const blocker = addUnit(s, 'infantry', 0, 4, 1);
@@ -155,26 +159,28 @@ describe('Fortschritt und Sieg / progress and victory', () => {
     if (ev) expect(ev.some((e) => e.t === 'gameOver' && e.victory?.kind === 'faction')).toBe(true);
   };
 
-  it('Portal: 8 Runden Bau, 8 Runden Aufladen, dann Sieg der Zyrr / portal: 8 rounds build, 8 charge, then Zyrr win', () => {
+  it('Portal: 9 Runden Bau, 10 Runden Aufladen, dann Sieg der Zyrr / portal: 9 rounds build, 10 charge, then Zyrr win', () => {
+    expect(WONDERS.phases.portal).toEqual([9, 10]);
     const s = game('zyrr');
     giveTech(s, 0);
     const r = ok(s, { type: 'wonder', kind: 'portal', x: 3, y: 3 });
     expect(r.events.some((e) => e.t === 'wonder' && e.what === 'started')).toBe(true);
     const p = wonderOf(s, 0);
-    rounds(s, 0, 7);
-    expect(p.wonder).toEqual({ stage: 0, progress: 7 });
+    rounds(s, 0, 8);
+    expect(p.wonder).toEqual({ stage: 0, progress: 8 });
     rounds(s, 0, 1);
     expect(p.wonder).toEqual({ stage: 1, progress: 0 });
     expect(victoryStatus(s, 0).phase).toBe('charge');
-    rounds(s, 0, 7);
+    rounds(s, 0, 9);
     expect(s.over).toBe(false);
-    expect(victoryStatus(s, 0)).toMatchObject({ phase: 'charge', have: 7, need: 8, roundsLeft: 1 });
+    expect(victoryStatus(s, 0)).toMatchObject({ phase: 'charge', have: 9, need: 10, roundsLeft: 1 });
     endTurn(s);
     const last = applyCommand(s, { type: 'endTurn' });
     expectWin(s, 0, last.events);
   });
 
-  it('Hacker-Relais: 8 + 8 Runden / hacker relay: 8 + 8 rounds', () => {
+  it('Hacker-Relais: 8 + 9 Runden / hacker relay: 8 + 9 rounds', () => {
+    expect(WONDERS.phases.hackRelay).toEqual([8, 9]);
     const s = game('nexus');
     giveTech(s, 0);
     setTerrain(s, 3, 3, 'mountain');
@@ -182,19 +188,20 @@ describe('Fortschritt und Sieg / progress and victory', () => {
     rounds(s, 0, 8);
     expect(wonderOf(s, 0).wonder).toEqual({ stage: 1, progress: 0 });
     expect(victoryStatus(s, 0).phase).toBe('hack');
-    rounds(s, 0, 7);
+    rounds(s, 0, 8);
     expect(s.over).toBe(false);
     rounds(s, 0, 1);
     expectWin(s, 0);
   });
 
-  it('Fusionskraftwerk: 16 Runden / fusion plant: 16 rounds', () => {
+  it('Fusionskraftwerk: 14 Runden / fusion plant: 14 rounds', () => {
+    expect(WONDERS.phases.fusionPlant).toEqual([14]);
     const s = game('velkar');
     giveTech(s, 0);
     ok(s, { type: 'wonder', kind: 'fusionPlant', x: 3, y: 3 });
-    rounds(s, 0, 15);
+    rounds(s, 0, 13);
     expect(s.over).toBe(false);
-    expect(wonderOf(s, 0).wonder).toEqual({ stage: 0, progress: 15 });
+    expect(wonderOf(s, 0).wonder).toEqual({ stage: 0, progress: 13 });
     rounds(s, 0, 1);
     expectWin(s, 0);
   });
@@ -222,7 +229,8 @@ describe('Fortschritt und Sieg / progress and victory', () => {
     expectWin(s, 0);
   });
 
-  it('Erdkernbohrer: in der Stadt ausgebildet, 12 Runden Stillstand / earth-core drill: trained in a city, 12 rounds standing still', () => {
+  it('Erdkernbohrer: in der Stadt ausgebildet, 14 Runden Stillstand / earth-core drill: trained in a city, 14 rounds standing still', () => {
+    expect(WONDERS.drillRounds).toBe(14);
     const s = game('vesper');
     const hq = s.cities[0];
     expect(trainCheck(s, hq, 'coreDrill')).toBe('techMissing');
@@ -240,8 +248,8 @@ describe('Fortschritt und Sieg / progress and victory', () => {
     expect(d.stillRounds).toBe(0);
     rounds(s, 0, 1);
     expect(d.stillRounds).toBe(0);
-    rounds(s, 0, 11);
-    expect(d.stillRounds).toBe(11);
+    rounds(s, 0, 13);
+    expect(d.stillRounds).toBe(13);
     expect(s.over).toBe(false);
     rounds(s, 0, 1);
     expectWin(s, 0);
@@ -278,30 +286,40 @@ describe('Unterbrechung / interruption', () => {
     expect(attackAfter('vesper', 'coreDrill', 6).w.stillRounds).toBe(0);
   });
 
-  it('Relais und Waal werden nicht unterbrochen / relay and Waal are not interrupted', () => {
+  it('Relais verliert die laufende Phase, Waal wird nicht unterbrochen / relay loses the current phase, Waal is not interrupted', () => {
     const r = attackAfter('nexus', 'hackRelay', 5);
-    expect(r.w.wonder).toEqual({ stage: 0, progress: 5 });
+    expect(r.w.wonder).toEqual({ stage: 0, progress: 0 });
     expect(r.w.hp).toBeLessThan(r.w.maxHp);
+    expect(r.r.events.some((e) => e.t === 'wonder' && e.what === 'interrupted')).toBe(true);
+    // fertiger Bau bleibt, das Hacken beginnt von vorn / finished construction is kept, hacking starts over
+    expect(attackAfter('nexus', 'hackRelay', 11).w.wonder).toEqual({ stage: 1, progress: 0 });
     expect(attackAfter('dravon', 'waal', 3).w.wonder).toEqual({ stage: 0, progress: 3 });
   });
 });
 
 describe('Bedingungen ohne Bauwerk / conditions without a structure', () => {
-  it('Korvat: mehr als 50 % aller Staedte (Siedlungen zaehlen mit) / Korvat: more than 50 % of all cities (villages count)', () => {
+  it('Korvat: mehr als 40 % aller Staedte, bei wenigen Fraktionen mehr / Korvat: more than 40 % of all cities, more with few factions', () => {
+    expect(WONDERS.korvatShare).toBe(0.4);
     const s = game('korvat', 'dravon');
     giveTech(s, 0);
     addCity(s, 5, 0, 0);
-    addCity(s, 0, 9, null); // 4 Staedte, Korvat hat 2 = 50 % / 4 cities, Korvat owns 2 = 50 %
+    addCity(s, 0, 9, null);
+    addCity(s, 10, 3, null); // 5 Staedte, Korvat hat 2 / 5 cities, Korvat owns 2
+    // zwei Fraktionen: Anteil 1,6 / 2 = 80 %, also 5 von 5 / two factions: share 80 %, so 5 of 5
+    expect(korvatShareFor(s)).toBeCloseTo(0.8, 6);
     rounds(s, 0, 1);
     expect(s.over).toBe(false);
-    expect(victoryStatus(s, 0)).toMatchObject({ have: 2, need: 3 });
-    s.cities[3].owner = 0; // 3 von 4 / 3 of 4
+    expect(victoryStatus(s, 0)).toMatchObject({ have: 2, need: 5 });
+    s.cities[3].owner = 0; s.cities[4].owner = 0; s.cities[1].owner = 0;
     rounds(s, 0, 1);
     expect(s.winner).toBe(0);
     expect(s.victory).toEqual({ kind: 'faction', faction: 'korvat' });
+    // vier Fraktionen: 40 % / four factions: 40 %
+    const s4 = { ...s, factions: [...s.factions, s.factions[1], s.factions[1]] } as typeof s;
+    expect(korvatShareFor(s4)).toBe(0.4);
   });
 
-  it('Meridon: 1000 Sterne in der Kasse / Meridon: 1000 stars in the treasury', () => {
+  it('Meridon: ohne Rundenlimit 1000 Sterne in der Kasse / Meridon: 1000 stars in the treasury without a round limit', () => {
     const s = game('meridon', 'korvat', 0);
     giveTech(s, 0);
     s.factions[0].stars = 900;
@@ -313,7 +331,25 @@ describe('Bedingungen ohne Bauwerk / conditions without a structure', () => {
     expect(s.victory?.faction).toBe('meridon');
   });
 
-  it('Alvenia: Voelkerbund zaehlt 6 Runden, Krieg oder fehlende Botschaft setzt zurueck / League counts 6 rounds, war or missing embassy resets', () => {
+  it('Meridon: mit Rundenlimit Runden x 11 Sterne, begrenzt auf 300 bis 1000 / Meridon: with a round limit rounds x 11 stars, clamped to 300..1000', () => {
+    expect(meridonNeedFor(null)).toBe(WONDERS.meridonStars);
+    expect(meridonNeedFor(30)).toBe(330);
+    expect(meridonNeedFor(10)).toBe(WONDERS.meridonStarsMin);
+    expect(meridonNeedFor(200)).toBe(WONDERS.meridonStars);
+    const s = game('meridon', 'korvat', 0, { mode: 'points', roundLimit: 30 });
+    giveTech(s, 0);
+    expect(victoryStatus(s, 0)).toMatchObject({ need: 330 });
+    s.factions[0].stars = 300; // plus Einkommen unter 330 / plus income below 330
+    rounds(s, 0, 1);
+    expect(s.over).toBe(false);
+    s.factions[0].stars = 330;
+    rounds(s, 0, 1);
+    expect(s.winner).toBe(0);
+    expect(s.victory?.faction).toBe('meridon');
+  });
+
+  it('Alvenia: Voelkerbund zaehlt 5 Runden, Krieg oder fehlende Botschaft setzt zurueck / League counts 5 rounds, war or missing embassy resets', () => {
+    expect(WONDERS.alveniaRounds).toBe(5);
     const s = blankGame({ factions: ['alvenia', 'korvat', 'dravon'], stars: 50 });
     addCity(s, 2, 2, 0, { hq: true }); addCity(s, 8, 8, 1, { hq: true }); addCity(s, 2, 8, 2, { hq: true });
     giveTech(s, 0);
@@ -334,7 +370,7 @@ describe('Bedingungen ohne Bauwerk / conditions without a structure', () => {
     rounds(s, 0, 1);
     expect(s.factions[0].league).toBe(0);
     s.factions[0].embassies = [1, 2];
-    rounds(s, 0, 5);
+    rounds(s, 0, 4);
     expect(s.over).toBe(false);
     rounds(s, 0, 1);
     expect(s.winner).toBe(0);
@@ -384,14 +420,19 @@ describe('Regeln rund um Wunder / rules around wonders', () => {
     expect(techVisible(s, 0, 'dimensionalRift')).toBe(false);
   });
 
-  it('alte Spielstaende ohne Schalter: an; neue Partien: an / old saves without the switch: on; new games: on', () => {
+  it('alte Spielstaende ohne Schalter: aus; neue Partien: an / old saves without the switch: off; new games: on', () => {
     expect(defaultConfig().factionVictory).toBe(true);
-    const s = game('meridon');
-    delete s.config.factionVictory;
+    const fresh = game('meridon');
+    expect(fresh.config.factionVictory).toBe(true);
+    // Spielstand von vor den Fraktionssiegen: beim Laden aus / save from before faction victories: off when loaded
+    const old = game('meridon');
+    delete old.config.factionVictory;
+    const s = migrateState(JSON.parse(JSON.stringify(old)));
+    expect(s.config.factionVictory).toBe(false);
     giveTech(s, 0);
     s.factions[0].stars = 2000;
     rounds(s, 0, 1);
-    expect(s.victory?.kind).toBe('faction');
+    expect(s.victory?.kind).not.toBe('faction');
   });
 
   it('Endlos weiter nach Fraktionssieg schaltet Fraktionssiege ab / continuing endlessly after a faction victory turns them off', () => {
@@ -455,6 +496,53 @@ describe('KI und Wunder / AI and wonders', () => {
     expect(moved).toBe(1);
     expect(s.tiles[d.y * s.size + d.x].cityId).toBeNull();
     expect(d.stillRounds).toBeGreaterThanOrEqual(4);
+  });
+
+  /** KI-Zug von Fraktion f spielen, Befehle sammeln / play faction f's AI turn and collect its commands */
+  function aiTurn(s: GameState, f: number) {
+    const cmds = [];
+    for (let k = 0; k < 300 && s.current === f && !s.over; k++) {
+      const cmd = planNextCommand(s, f);
+      cmds.push(cmd);
+      applyCommand(s, cmd);
+      if (cmd.type === 'endTurn') break;
+    }
+    return cmds;
+  }
+
+  it('Bohrer erst ab zwei eigenen Staedten / drill only from two own cities', () => {
+    const s = game('vesper', 'korvat', 500);
+    s.factions[0].human = false;
+    giveTech(s, 0);
+    expect(aiTurn(s, 0).some((c) => c.type === 'train' && c.unitType === 'coreDrill')).toBe(false);
+    untilTurnOf(s, 0);
+    addCity(s, 2, 7, 0);
+    s.factions[0].stars = 500;
+    expect(aiTurn(s, 0).some((c) => c.type === 'train' && c.unitType === 'coreDrill')).toBe(true);
+  });
+
+  it('Voelkerbund: Rivalen brechen den Frieden erst spaet und nur mit Uebermacht / League: rivals break peace only late and only when much stronger', () => {
+    const setup = (league: number, rivalInf: number) => {
+      const s = blankGame({ factions: ['korvat', 'alvenia', 'dravon'], stars: 0, mode: 'points', roundLimit: 30 });
+      addCity(s, 2, 2, 0, { hq: true }); addCity(s, 8, 8, 1, { hq: true }); addCity(s, 2, 8, 2, { hq: true });
+      revealAll(s, 0);
+      s.factions[0].human = false;
+      s.factions[1].techs.push('leagueCharter');
+      for (const [a, b] of [[0, 1], [1, 2], [0, 2]]) { s.factions[a].relations[b] = 'peace'; s.factions[b].relations[a] = 'peace'; }
+      s.factions[1].embassies = [0, 2];
+      s.factions[1].league = league;
+      for (let i = 0; i < rivalInf; i++) addUnit(s, 'infantry', 0, 1 + i, 1);
+      addUnit(s, 'infantry', 1, 8, 7);
+      return s;
+    };
+    const breaks = (s: GameState) => aiTurn(s, 0).some((c) => c.type === 'diplomacy' && c.action === 'announceBreak' && c.target === 1);
+    expect(WONDERS.aiNearVictoryLeague).toBeGreaterThan(WONDERS.aiNearVictory);
+    // 3 von 5: noch kein Bruch / 3 of 5: no break yet
+    expect(breaks(setup(3, 4))).toBe(false);
+    // 4 von 5 und deutlich staerker: Bruch / 4 of 5 and clearly stronger: break
+    expect(breaks(setup(4, 4))).toBe(true);
+    // 4 von 5, aber nicht stark genug: kein Bruch / 4 of 5 but not strong enough: no break
+    expect(breaks(setup(4, 0))).toBe(false);
   });
 
   for (const ids of [['zyrr', 'nexus', 'velkar', 'dravon'], ['vesper', 'korvat', 'alvenia', 'meridon']] as FactionId[][]) {

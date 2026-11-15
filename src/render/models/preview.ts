@@ -2,14 +2,15 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|grand|cities|nature|counters|unique|leaders|all &view=iso|top|front|34 &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|resource|grand|cities|nature|counters|unique|leaders|wonders|artifact|all &view=iso|top|front|34 &f=<faction>
+ * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
@@ -18,6 +19,7 @@ import {
 } from './index';
 import { headgear } from './headgear';
 import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
+import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artifact';
 import { Builder } from './kit';
 import { look } from './look';
 
@@ -40,8 +42,14 @@ const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleshi
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
   'logisticsCenter', 'navalBase', 'road', 'bridge', 'researchCenter', 'outpost',
+  // Ressourcengebaeude der Fraktionen / faction resource buildings
+  ...RESOURCE_BUILDINGS,
 ];
-const WATER_BUILDINGS = new Set(['fishery', 'navalBase', 'bridge']);
+const WATER_BUILDINGS = new Set(['fishery', 'navalBase', 'bridge', 'tradeHarbour']);
+const MOUNTAIN_BUILDINGS = new Set(['mine', 'deepMine', 'depotNode']);
+/** Boden einer Gebaeudezelle / ground of a building cell */
+const buildingGround = (k: string, fallback: string) =>
+  WATER_BUILDINGS.has(k) ? waterGround : MOUNTAIN_BUILDINGS.has(k) ? semantic.terrainMountain : k === 'polarStation' ? semantic.snow : fallback;
 
 const plainGround = semantic.terrainPlain;
 const waterGround = semantic.terrainShallow;
@@ -62,9 +70,27 @@ function sheet(): Sheet {
         cols: withNeutral.map(fname),
         rows: BUILDINGS.map((k) => ({
           label: k,
-          cells: withNeutral.map((f) => ({ geo: buildingGeometry(k, f), ground: WATER_BUILDINGS.has(k) ? waterGround : k === 'mine' ? semantic.terrainMountain : plainGround })),
+          cells: withNeutral.map((f) => ({ geo: buildingGeometry(k, f), ground: buildingGround(k, plainGround) })),
         })),
       };
+    case 'resource': {
+      // Ressourcengebaeude: Spalte 1 = eigene Fraktion, dann Grundgebaeude zum Vergleich, dann alle Fraktionen
+      // resource buildings: column 1 = own faction, then the base building for comparison, then all factions
+      const owner = (k: BuildingId) => (Object.entries(RESOURCE.buildings).find(([, v]) => v === k)?.[0] ?? 'korvat') as FactionId;
+      const base: Partial<Record<BuildingId, BuildingId>> = {
+        tractorStation: 'farm', deepMine: 'mine', hillVineyard: 'ranch', tradeHarbour: 'fishery',
+        polarStation: 'testLab', wreckSmelter: 'xenoHarvester', pilgrimSite: 'shrine', depotNode: 'dataCenter',
+      };
+      return {
+        cols: ['own', 'base', ...factions.map(fname), 'neutral'],
+        rows: RESOURCE_BUILDINGS.map((k) => ({ label: k, cells: [
+          { geo: buildingGeometry(k, owner(k)), ground: buildingGround(k, factionTokens[owner(k)].terrain) },
+          { geo: buildingGeometry(base[k]!, owner(k)), ground: buildingGround(base[k]!, factionTokens[owner(k)].terrain) },
+          ...factions.map((f) => ({ geo: buildingGeometry(k, f), ground: buildingGround(k, plainGround) })),
+          { geo: buildingGeometry(k, null), ground: buildingGround(k, plainGround) },
+        ] })),
+      };
+    }
     case 'grand':
       return {
         cols: withNeutral.map(fname),
@@ -178,6 +204,36 @@ function sheet(): Sheet {
           label: t,
           cells: [0, 1, 2].map((st) => ({ geo: wonderGeometry(t, WONDER_FACTION[t], st), ground: factionTokens[WONDER_FACTION[t]].terrain, tiles: t === 'fusionPlant' ? 2 : 1 })),
         })),
+      };
+    }
+    case 'artifact': {
+      // Artefakt der Vorlaeufer: ganz, Sockel, schwebender Teil; darunter Massstab mit Brett-Skalierung (Einheiten x1.25)
+      // precursor artifact: whole, plinth, floating part; below a scale row at board scale (units x1.25)
+      const scaled = (g: THREE.BufferGeometry, s: number, name: string) => {
+        const c = g.clone();
+        c.scale(s, s, s);
+        c.name = name;
+        c.computeBoundingBox();
+        return c;
+      };
+      const lifted = artifactGeometry('orbit').clone();
+      lifted.translate(0, ARTIFACT_ORBIT_Y, 0);
+      lifted.name = 'artifact|orbitLifted';
+      lifted.computeBoundingBox();
+      return {
+        cols: ['all', 'static', 'orbit'],
+        rows: [
+          { label: 'artifact', cells: [
+            { geo: artifactGeometryAll(), ground: plainGround },
+            { geo: artifactGeometry('static'), ground: plainGround },
+            { geo: lifted, ground: null },
+          ] },
+          { label: 'scale', cells: [
+            { geo: scaled(unitGeometry('tank', 'korvat', null), 1.25, 'scale|tank'), ground: plainGround },
+            { geo: scaled(unitGeometry('infantry', 'alvenia', null), 1.25, 'scale|infantry'), ground: plainGround },
+            { geo: scaled(wonderGeometry('portal', 'zyrr', 2), 1.25, 'scale|portal'), ground: semantic.xenoGround },
+          ] },
+        ],
       };
     }
     case 'counters': {
@@ -315,7 +371,14 @@ async function buildScene() {
   const sh = sheet();
   const only = params.get('only');
   if (only) sh.rows = sh.rows.filter((r) => only.split(',').includes(r.label));
-  const pitch = cat === 'wonders' ? 2.4 : 1.2;
+  // ?col= nur diese Spalten (fuer Nahaufnahmen) / only these columns (for close-ups)
+  const colSel = params.get('col');
+  if (colSel) {
+    const keep = sh.cols.map((c, i) => (colSel.split(',').includes(c) ? i : -1)).filter((i) => i >= 0);
+    sh.cols = keep.map((i) => sh.cols[i]);
+    for (const r of sh.rows) r.cells = keep.map((i) => r.cells[i]).filter(Boolean);
+  }
+  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' ? 1.5 : 1.2;
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
@@ -428,6 +491,7 @@ function checkAll(): string[] {
   for (let v = 0; v < 6; v++) all.push([`cloud ${v}`, cloudGeometry(v)]);
   for (const t of WONDER_TYPES) for (const f of FACTION_IDS) for (let st = -1; st < 4; st++) all.push([`wonder ${t} ${f} ${st}`, wonderGeometry(t, f, st)]);
   for (const f of FACTION_IDS) for (const mood of LEADER_MOODS) all.push([`leader ${f} ${mood}`, leaderGeometry(f, mood)]);
+  all.push(['artifact static', artifactGeometry('static')], ['artifact orbit', artifactGeometry('orbit')], ['artifact all', artifactGeometryAll()]);
   for (const [name, g] of all) {
     if (!g) continue;
     if (g.index) errors.push(`${name}: indexed`);
@@ -436,8 +500,17 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
+    if (name === 'artifact all') {
+      // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2
+      g.computeBoundingBox();
+      const bb = g.boundingBox!;
+      const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
+      if (ext > 0.5) errors.push(`${name}: footprint ${ext.toFixed(3)}`);
+      if (bb.min.y < -0.01) errors.push(`${name}: below ground ${bb.min.y.toFixed(3)}`);
+      if (bb.max.y < 1.8 || bb.max.y > 2.2) errors.push(`${name}: height ${bb.max.y.toFixed(3)}`);
+    }
     if (name.startsWith('unit')) {
       // Grundflaeche innerhalb der Kachel, Ursprung y=0 / footprint inside the tile, origin y=0
       g.computeBoundingBox();

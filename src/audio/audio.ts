@@ -531,7 +531,8 @@ class AudioEngine {
       return;
     }
     if (walker) { this.servo(t, out, kind === 'robot' ? 1.4 : 1); if (kind === 'alien') this.hover(t + 0.25, out); return; }
-    if (unitClass(type) === 'vehicle') {
+    // Fahrzeuge und Wunder-Bauwerke: Maschinenklang / vehicles and wonder structures: machine sound
+    if (unitClass(type) === 'vehicle' || unitClass(type) === 'structure') {
       const heavy = u.hp >= 20;
       this.engine(t, heavy ? 38 : 62, heavy ? 1.1 : 0.8, heavy, out);
       if (kind === 'human' || kind === 'cult') this.radio(f, t + 0.55, 2);

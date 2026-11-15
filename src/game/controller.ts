@@ -165,7 +165,12 @@ export class Controller {
       }
     }
     // Kampagnenziele markieren / mark campaign targets
-    if (s.campaign && !s.campaign.result) for (const p of s.campaign.targets) list.push({ ...p, kind: 'hint' });
+    if (s.campaign && !s.campaign.result) {
+      for (const p of s.campaign.targets) list.push({ ...p, kind: 'hint' });
+      // Zieleinheiten (folgen der Einheit) und das Artefakt / target units (follow the unit) and the artifact
+      for (const id of s.campaign.units ?? []) { const u = s.units.find((x) => x.id === id); if (u) list.push({ x: u.x, y: u.y, kind: 'hint' }); }
+      if (s.campaign.artifact) list.push({ ...s.campaign.artifact, kind: 'hint' });
+    }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);
   }

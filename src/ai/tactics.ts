@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, cityById, combatPreview, convertTargets,
+  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
   type Command, type Reach, type Unit,
 } from '../core';
@@ -60,6 +60,14 @@ export function planCapture(ctx: Ctx, failed: Failed): Command | null {
     if (!captureKind(ctx.s, u)) continue;
     const c: Command = { type: 'capture', unit: u.id };
     if (ok(failed, c)) return c;
+  }
+  // Kampagne, Alvenia und Meridon: Siedlungen ueberzeugen statt erobern / campaign, Alvenia and Meridon: persuade settlements instead of capturing
+  for (const u of ctx.my) {
+    for (const city of persuadeTargets(ctx.s, u)) {
+      if (persuadeCheck(ctx.s, u, city) !== 'ok') continue;
+      const c: Command = { type: 'persuade', unit: u.id, city: city.id };
+      if (ok(failed, c)) return c;
+    }
   }
   return null;
 }

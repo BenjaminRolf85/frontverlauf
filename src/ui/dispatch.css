@@ -7,7 +7,9 @@
 .dispatch {
   --dispatch-x: -50%;
   --dispatch-tilt: var(--c-dispatch-tilt);
-  position: absolute; left: 50%; width: min(calc(100% - var(--p-space-4)), var(--c-dispatch-width));
+  /* Platz fuer die Kartensteuerung rechts lassen (beidseitig, da mittig) / leave room for the map controls on the right (both sides, as centred) */
+  --dispatch-side: calc(env(safe-area-inset-right) + var(--c-icon-button-size) + var(--p-space-4));
+  position: absolute; left: 50%; width: min(calc(100% - 2 * var(--dispatch-side)), var(--c-dispatch-width));
   top: calc(env(safe-area-inset-top) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--c-dispatch-offset-gap));
   transform: translateX(var(--dispatch-x)) rotate(var(--dispatch-tilt));
   display: flex; gap: var(--p-space-3); align-items: flex-start; pointer-events: auto; cursor: pointer;
@@ -80,7 +82,7 @@
 
 /* Schmale Geraete: volle Breite / narrow devices: full width */
 @media (max-width: 480px) /* --p-breakpoint-narrow */ {
-  .dispatch:not(.static) { --dispatch-x: 0%; left: var(--p-space-2); right: var(--p-space-2); width: auto; }
+  .dispatch:not(.static) { --dispatch-x: 0%; left: var(--p-space-2); right: var(--dispatch-side); width: auto; }
   .dispatch { gap: var(--p-space-2); }
   .dispatch .leader-portrait.dispatch-face, .dispatch > .faction-badge { width: var(--c-dispatch-portrait-sm); height: var(--c-dispatch-portrait-sm); }
   .dispatch-name { font-size: var(--p-font-size-md); }

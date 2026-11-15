@@ -7,10 +7,11 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
+  activeEmbassies, baseBuilding, countBuildings, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
-  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -143,7 +144,17 @@ function leagueSeeker(ctx: Ctx): boolean {
 export function nearVictory(ctx: Ctx, g: number): boolean {
   if (!factionVictoryOn(ctx.s) || ctx.prof.difficulty === 'easy') return false;
   const st = victoryStatus(ctx.s, g);
-  return st.tech && st.ratio >= 0.5;
+  // Voelkerbund: spaeter reagieren, damit Alvenia eine Chance hat / League: react later so Alvenia has a chance
+  return st.tech && st.ratio >= (st.goal === 'league' ? WONDERS.aiNearVictoryLeague : WONDERS.aiNearVictory);
+}
+
+/**
+ * Voelkerbund brechen heisst Krieg mit Alvenia: nur mit genug eigener Staerke (Alvenia schreckt mit Armee ab).
+ * Breaking the League means war with Alvenia: only with enough own strength (Alvenia deters with an army).
+ */
+function canBreakLeague(ctx: Ctx, g: number): boolean {
+  if (victoryStatus(ctx.s, g).goal !== 'league') return true;
+  return strength(ctx, ctx.f) >= strength(ctx, g) * WONDERS.aiLeagueBreakStrength;
 }
 
 function warCount(ctx: Ctx): number {
@@ -161,7 +172,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
     // Voelkerbund: Alvenia bietet jede Runde allen Kriegsgegnern Frieden an / League: Alvenia offers peace to every enemy each round
-    if (rel === 'war' && leagueSeeker(ctx) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
+    if (rel === 'war' && (leagueSeeker(ctx) || (prof.peacemaker && (s.round + f) % 2 === 0)) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
       const cmd: Command = { type: 'diplomacy', action: 'proposePeace', target: g };
       if (!failed.has(cmdKey(cmd))) return cmd;
     }
@@ -180,7 +191,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
       // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
       // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
-      const brk = leagueSeeker(ctx) ? false : nearVictory(ctx, g) || (ctx.conquest
+      const brk = leagueSeeker(ctx) || isCampaignBond(s, f, g) ? false : (nearVictory(ctx, g) && canBreakLeague(ctx, g)) || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {
@@ -216,7 +227,7 @@ function siteOk(s: GameState, f: number, b: BuildingId, x: number, y: number): b
 function popGain(s: GameState, f: number, b: BuildingId, x: number, y: number): number {
   const st = BUILDINGS[b];
   let p = st.pop;
-  if (st.adjacency) for (const n of neighbors(s.size, x, y)) if (s.tiles[idx(s.size, n.x, n.y)].building === st.adjacency.building) p += st.adjacency.pop;
+  if (st.adjacency) for (const n of neighbors(s.size, x, y)) { const nb = s.tiles[idx(s.size, n.x, n.y)].building; if (nb && baseBuilding(nb) === st.adjacency.building) p += st.adjacency.pop; }
   for (const n of neighbors(s.size, x, y)) {
     const nt = s.tiles[idx(s.size, n.x, n.y)];
     if (!nt.building) continue;
@@ -286,8 +297,53 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
   const uu = UNIQUE.units[ctx.fa.id], ub = UNIQUE.buildings[ctx.fa.id];
   if (uu && UNITS[uu].tech === t) mil += 12 * prof.militaryW;
   if (ub && BUILDINGS[ub].tech === t) mil += 8;
+  // Technik des Ressourcengebaeudes, je passendem Feld im eigenen Gebiet / tech of the resource building, per fitting own tile
+  const rb = RESOURCE.buildings[ctx.fa.id];
+  if (BUILDINGS[rb].tech === t) mil += 6 + Math.min(3, resourceSites(ctx, rb)) * 6;
   if (ctx.points && ctx.roundsLeft >= 6 && Object.values(RESEARCH_CENTER_TECH).includes(t)) mil += 10;
   return econ + mil;
+}
+
+/** Passende Felder fuer das Ressourcengebaeude im eigenen Gebiet (ohne Technik und Sterne) / fitting own tiles for the resource building (ignoring tech and stars) */
+function resourceSites(ctx: Ctx, b: BuildingId): number {
+  let n = 0;
+  for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (resourceSiteOk(ctx.s, b, p.x, p.y)) n++;
+  return n;
+}
+
+/**
+ * Wert eines Ressourcengebaeudes auf (x, y): Bevoelkerung (beim Ausbau nur die Differenz), Sterne ueber den Horizont,
+ * Forschungsrabatt, Veteranen-Rekruten, Rechenleistung.
+ * Worth of a resource building at (x, y): population (on an upgrade only the difference), stars over the horizon,
+ * research discount, veteran recruits, compute.
+ */
+function resourceValue(ctx: Ctx, c: City, b: BuildingId, x: number, y: number, popVal: number, horizon: number): number {
+  const { s, f, fa } = ctx;
+  const st = BUILDINGS[b];
+  const t = s.tiles[idx(s.size, x, y)];
+  const replaced = t.building && t.building === st.upgrades ? t.building : null;
+  let pop = st.pop - (replaced ? BUILDINGS[replaced].pop : 0);
+  if (st.adjacency) for (const n of neighbors(s.size, x, y)) { const nb = s.tiles[idx(s.size, n.x, n.y)].building; if (nb && baseBuilding(nb) === st.adjacency.building) pop += st.adjacency.pop; }
+  if (!replaced) {
+    for (const n of neighbors(s.size, x, y)) {
+      const nt = s.tiles[idx(s.size, n.x, n.y)];
+      const adj = nt.building ? BUILDINGS[nt.building].adjacency : undefined;
+      if (adj && adj.building === baseBuilding(b) && territoryOwner(s, nt) === f) pop += adj.pop;
+    }
+  }
+  let value = pop * popVal;
+  let stars = st.stars ?? 0;
+  if (b === 'tradeHarbour' && cityTiles(s, c).some((p) => s.tiles[idx(s.size, p.x, p.y)].building === 'navalBase')) stars += RESOURCE.harbourNavalBonus;
+  if (b === 'hillVineyard') stars += RESOURCE.vineyardPerEmbassy * Math.min(RESOURCE.vineyardEmbassyMax, activeEmbassies(s, f));
+  value += stars * Math.min(horizon, 15) * 0.45;
+  if (b === 'polarStation' && countBuildings(s, f, b) < RESOURCE.polarMax) {
+    value += TECH_IDS.filter((tt) => !fa.techs.includes(tt)).length * RESOURCE.polarDiscount * 45 * Math.min(1, horizon / 12);
+  }
+  // Pilgerstaette: Veteranen, wenn noch keine in Reichweite / pilgrimage site: veterans if none in reach yet
+  if (b === 'pilgrimSite' && !pilgrimVeteranAt(s, f, x, y)) value += 8 * ctx.prof.militaryW;
+  // Depotknoten: Rechenleistung fuer groessere Roboter / depot node: compute for bigger robots
+  if (b === 'depotNode') value += computeStats(s, f).compute < 4 ? 40 : 15;
+  return value;
 }
 
 function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconnected: number): number {
@@ -592,6 +648,23 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       }
     }
   }
+  // Ressourcengebaeude der Fraktion (auch als Ausbau) / the faction's resource building (also as an upgrade)
+  {
+    const rb = RESOURCE.buildings[fa.id];
+    const horizon = ctx.points ? ctx.roundsLeft : 20;
+    for (const c of ctx.myCities) {
+      for (const p of cityTiles(s, c)) {
+        if (!resourceSiteOk(s, rb, p.x, p.y)) continue;
+        const chk = buildCheck(s, f, rb, p.x, p.y);
+        if (!chk.ok && chk.error !== 'notEnoughStars') continue;
+        let value = resourceValue(ctx, c, rb, p.x, p.y, popVal, horizon);
+        if (value <= 0) continue;
+        if (prof.sloppy > 0) value *= 1 + (hashNoise(p.x, p.y, s.round, 11) - 0.5) * prof.sloppy;
+        buys.push({ cmd: { type: 'build', building: rb, x: p.x, y: p.y }, cost: chk.cost, value, save: true });
+      }
+    }
+  }
+
   // Strassen / roads
   if (hasTech(s, f, 'roadbuilding')) {
     for (const r of roadPlans(ctx)) {
@@ -726,7 +799,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   // Reichtum senkt die Schwelle / wealth lowers the threshold
   const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars));
   // Meridon mit Monopol und vollem Speicher: nur noch Dringendes kaufen / Meridon with the monopoly and a full treasury: only urgent buys
-  const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= WONDERS.meridonStars * 0.6;
+  const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= meridonNeed(s) * WONDERS.aiMeridonHoardShare;
   for (const b of buys) {
     if (failed.has(cmdKey(b.cmd))) continue;
     const ratio = b.value / Math.max(1, b.cost);
@@ -750,8 +823,10 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   if (!fa.techs.includes(tech)) {
     const parent = TECHS[tech].parent;
     if (s.round < WONDERS.aiResearchRound || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
-    // Korvat: nur, wenn die Stadtmehrheit in Reichweite ist / Korvat: only when the city majority is within reach
-    if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * 0.5) return;
+    // Korvat: nur, wenn das Staedteziel in Reichweite ist / Korvat: only when the city target is within reach
+    if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * WONDERS.aiKorvatResearchShare) return;
+    // Alvenia: kein Voelkerbund mit weniger als 3 Fraktionen / Alvenia: no league with fewer than 3 factions
+    if (fa.id === 'alvenia' && !leagueAvailable(s)) return;
     const cost = researchCost(s, f, tech);
     buys.push({ cmd: { type: 'research', tech }, cost, value: cost * 2.5, save: true, horizon: WONDERS.aiSaveRounds });
     return;
@@ -759,6 +834,8 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   const kind = wonderKindOf(s, f);
   if (!kind || wondersOf(s, f).length) return;
   if (kind === 'coreDrill') {
+    // erst mit Hinterland: in der einzigen Stadt wird der Bohrer sofort angegriffen / only with a hinterland: in the only city the drill is attacked at once
+    if (ctx.myCities.length < WONDERS.aiDrillMinCities) return;
     // ruhigste Stadt (weit weg von Gegnern) / quietest city (far from enemies)
     let best: City | null = null, bd = -1;
     for (const c of ctx.myCities) {
