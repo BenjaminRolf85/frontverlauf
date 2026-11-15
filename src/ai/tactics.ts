@@ -8,6 +8,7 @@ import {
   turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
+import { scientistAttackBonus } from './mothership';
 import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
@@ -49,6 +50,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   if (isWonder(d) && d.owner !== ctx.f) v += 45 + victoryStatus(s, d.owner).ratio * 60 + (WONDERS.interruptible[d.type as WonderUnitId] ? 25 : 0);
   // Kampagne: der markierte Endgegner ist das Missionsziel, jeder Treffer zaehlt / campaign: the marked boss is the objective, every hit counts
   if (isBoss(d) && s.campaign?.units?.includes(d.id) && (ctx.f === 0 || s.campaign.allies?.includes(ctx.f))) v += CAMPAIGN_AI.bossAttackBonus;
+  // Kampagne m2: die Zyrr wollen den Wissenschaftler / campaign m2: the Zyrr want the scientist
+  v += scientistAttackBonus(ctx, d);
   return v;
 }
 
