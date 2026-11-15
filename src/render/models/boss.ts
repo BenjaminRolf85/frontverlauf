@@ -103,7 +103,7 @@ function mother(b: Builder, f: FactionId) {
     b.tube([0, 0.74, 0], [0, 0.82, 0.01], 0.045, 12, skin, 0.04);
     for (let i = 0; i < 3; i++) b.add(geo.torus(0.046 - i * 0.002, 0.005, 3, 16), skinDark, { p: [0, 0.76 + i * 0.022, 0.006], r: [HALF_PI, 0, 0] });
     const H: V3 = [0, 0.9, 0.02];
-    b.add(geo.sphere(0.1, 22, 16), skin, { p: H, s: [0.88, 1.15, 0.92] });
+    b.add(geo.sphere(0.112, 22, 16), skin, { p: H, s: [0.88, 1.12, 0.92] });
     // langer Hinterkopf / elongated back of the head
     b.add(geo.sphere(0.09, 18, 12), skin, { p: [0, 0.95, -0.05], s: [0.85, 0.9, 1.2] });
     // Kinn und Wangen / chin and cheeks
@@ -114,7 +114,7 @@ function mother(b: Builder, f: FactionId) {
     // Brauenwulst / brow ridge
     b.add(geo.rtaper(0.07, 0.02, 0.05, 0.02, 0.018, 0.006), skinDark, { p: [-0.04, 0.935, 0.09], r: [0.2, -0.3, -0.25] });
     // rechte Seite: Cyborg-Platte mit rotem Auge / right side: cyborg plate with a red eye
-    b.add(geo.rtaper(0.07, 0.04, 0.06, 0.035, 0.1, 0.012), metal, { p: [0.055, 0.9, 0.078], r: [0, 0.45, 0] });
+    b.add(geo.rtaper(0.055, 0.035, 0.05, 0.03, 0.085, 0.01), metal, { p: [0.058, 0.905, 0.086], r: [0, 0.5, 0] });
     b.add(geo.torus(0.026, 0.006, 4, 18), mat.dark, { p: [0.052, 0.905, 0.104], r: [0, 0.45, 0] });
     b.add(geo.sphere(0.022, 14, 10), shade(mat.red, 1.25), { p: [0.052, 0.905, 0.104], s: [1, 1, 0.6], r: [0, 0.45, 0] });
     b.add(geo.sphere(0.008, 8, 6), mix(mat.red, mat.white, 0.7), { p: [0.05, 0.91, 0.116] });
