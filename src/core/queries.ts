@@ -9,7 +9,7 @@ import {
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
-import type { City, Faction, GameConfig, GameState, Pos, Tile, Unit } from './types';
+import type { City, Faction, GameConfig, GameState, Memorial, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
 export const hasTech = (s: GameState, f: number, t: TechId) => s.factions[f].techs.includes(t);
@@ -539,6 +539,8 @@ export interface CombatPreview {
   moveFire: boolean;
   /** Verteidigungsbonus des Ziels auf eigenem Gebiet (0 = keiner) / target's defence bonus on own territory (0 = none) */
   homeDefense: number;
+  /** Mahnmal unter dem Angreifer: Schadensfaktor (1 = keins, mehr = Kult, weniger = Furcht) / memorial under the attacker: damage factor (1 = none) */
+  memorial: number;
 }
 
 /**
@@ -572,6 +574,39 @@ export function homeDefenseAt(s: GameState, u: Unit, x = u.x, y = u.y): number {
   if (!b) return 0;
   const t = tileAt(s, x, y);
   return t && territoryOwner(s, t) === u.owner ? b : 0;
+}
+
+// ---------- Mahnmal des Kults / cult memorial ----------
+
+/** Ist eine Kult-Fraktion noch im Spiel? / is a cult faction still in the game? */
+export const cultInGame = (s: GameState): boolean => s.factions.some((f) => f.alive && f.id === CULT.faction);
+/**
+ * Hinterlaesst der Tod dieses Typs ein Mahnmal? Soldaten: Fusstruppen jeder Fraktion (unitClass 'foot'), keine Fahrzeuge,
+ * Flieger, Schiffe, Bauwerke oder Endgegner.
+ * Does the death of this type leave a memorial? Soldiers: foot troops of any faction (unitClass 'foot'), no vehicles,
+ * flyers, ships, structures or bosses.
+ */
+export const leavesMemorial = (type: UnitTypeId): boolean => unitClass(type) === 'foot' && !UNITS[type].abilities.includes('boss');
+/** Aktives Mahnmal auf (x, y), sonst null (abgelaufen oder kein Kult mehr im Spiel) / active memorial at (x, y), else null (expired or no cult left) */
+export function memorialAt(s: GameState, x: number, y: number): Memorial | null {
+  const m = tileAt(s, x, y)?.memorial;
+  return m && m.until >= s.round && cultInGame(s) ? m : null;
+}
+/**
+ * Wirkung eines Mahnmals auf einen Angreifer auf (x, y): 'zeal' fuer Einheiten des Kults, 'fear' fuer Einheiten menschlicher
+ * Rasse (Furcht), sonst null (Roboter, Ausserirdische, kein Mahnmal).
+ * Effect of a memorial on an attacker at (x, y): 'zeal' for cult units, 'fear' for units of human race, else null
+ * (robots, aliens, no memorial).
+ */
+export function memorialEffect(s: GameState, u: Unit, x = u.x, y = u.y): 'zeal' | 'fear' | null {
+  if (!memorialAt(s, x, y)) return null;
+  if (isCultFaction(s, u.owner)) return 'zeal';
+  return unitRace(s, u) === 'human' ? 'fear' : null;
+}
+/** Schadensfaktor des Mahnmals fuer einen Angreifer auf (x, y) (1 = keiner) / memorial damage factor for an attacker at (x, y) (1 = none) */
+export function memorialMult(s: GameState, u: Unit, x = u.x, y = u.y): number {
+  const e = memorialEffect(s, u, x, y);
+  return e === 'zeal' ? 1 + CULT.memorialAttack : e === 'fear' ? 1 - CULT.memorialFear : 1;
 }
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
@@ -783,7 +818,9 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
   // less damage after moving, before hit luck; return fire stays undiminished
   const moveFire = movedThisTurn(att);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att)) : 0;
+  // Mahnmal des Kults unter dem Angreifer (nur eigener Angriff, nicht der Gegenschlag) / cult memorial under the attacker (own attack only, not return fire)
+  const memorial = memorialMult(s, att);
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * memorial) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -804,7 +841,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, memorial };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -1928,7 +1965,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u)) : 0;
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;

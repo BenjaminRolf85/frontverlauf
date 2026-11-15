@@ -18,7 +18,7 @@ import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
 import { seizeCheck, seizePlans } from './temple';
 import {
-  recruitCheck, plunderValue, isCultFaction, cultUnits, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
+  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -235,6 +235,9 @@ function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], lea
       if (prev) { prev.skeletons = prevSkeletons + 1; prev.skeletonFaction = u.owner; }
       else t.remains = { kind, unit: u.type, faction: u.owner, round: s.round, skeletons: 1, skeletonFaction: u.owner };
     }
+    // Kult im Spiel: der gefallene Soldat wird zum Mahnmal, ein neuer Tod erneuert die Dauer (kein Stapeln)
+    // cult in the game: the fallen soldier becomes a memorial, a new death refreshes the duration (no stacking)
+    if (leavesMemorial(u.type) && cultInGame(s)) t.memorial = { until: s.round + CULT.memorialRounds, unit: u.type, faction: u.owner };
   }
   ev.push({ t: 'killed', unit: u.id, by, remains: kind, x: u.x, y: u.y });
   // Wunder zerstoert: Grundflaeche freigeben / wonder destroyed: release its footprint
@@ -686,7 +689,7 @@ function advance(s: GameState, ev: GameEvent[]) {
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
   if (wrapped) {
-    recordRound(s); s.round++; processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
+    recordRound(s); s.round++; expireMemorials(s); processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
     // Vulkane und Geschuetze koennen den Kult ausscheiden lassen / volcanoes and guns can eliminate the cult
     checkElimination(s, ev, true);
     if (s.over) return;
@@ -733,6 +736,11 @@ function salvage(s: GameState, u: Unit, ev: GameEvent[]) {
     if (p) unit = spawnUnit(s, CRASH.alienUnit, f, p.x, p.y, null).id;
   }
   ev.push({ t: 'salvage', x: u.x, y: u.y, faction: f, kind, tech, stars, unit });
+}
+
+/** Abgelaufene Mahnmale des Kults entfernen (Rundenbeginn) / remove expired cult memorials (start of a round) */
+function expireMemorials(s: GameState) {
+  for (const t of s.tiles) if (t.memorial && t.memorial.until < s.round) t.memorial = null;
 }
 
 /** Vulkanausbrueche zu Rundenbeginn / volcano eruptions at the start of a round */

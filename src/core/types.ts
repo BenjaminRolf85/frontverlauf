@@ -28,6 +28,8 @@ export interface Tile {
   researchBuilt: number | null;
   /** Wrack oder Skelett einer gefallenen Einheit / wreck or skeleton of a fallen unit */
   remains?: Remains | null;
+  /** Mahnmal des Kults: zur Schau gestellte Leiche eines Soldaten (CULT.memorialRounds) / cult memorial: a soldier's corpse on display */
+  memorial?: Memorial | null;
   /** Landschaftszone (optisch) / biome (visual) */
   biome?: BiomeId;
   /** Berghoehe 1-3 (optisch) / mountain height 1-3 (visual) */
@@ -72,6 +74,12 @@ export interface Tile {
 
 /** Ueberreste bleiben dauerhaft / remains are permanent. skeletons = Anzahl gefallener Fusstruppen / number of fallen foot soldiers */
 export interface Remains { kind: 'wreck' | 'skeleton'; unit: UnitTypeId; faction: number; round: number; skeletons?: number; skeletonFaction?: number }
+
+/**
+ * Mahnmal des Kults: wirkt bis einschliesslich Runde until; unit und faction = der Gefallene (nur Optik).
+ * Cult memorial: active until and including round until; unit and faction = the fallen (visual only).
+ */
+export interface Memorial { until: number; unit: UnitTypeId; faction: number }
 
 export interface City {
   id: number;

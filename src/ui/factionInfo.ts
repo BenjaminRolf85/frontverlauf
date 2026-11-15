@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { EMPLACEMENT, FACTIONS, HIT, HOME_DEFENSE, MOVE_FIRE, RESOURCE, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { CULT, EMPLACEMENT, FACTIONS, HIT, HOME_DEFENSE, MOVE_FIRE, RESOURCE, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -42,7 +42,14 @@ export function combatBonusTexts(f: FactionId): { name: string; desc: string; ic
   }
   const h = HOME_DEFENSE.bonus[f];
   if (h) out.push({ icon: 'shield', name: t(`homeDefense.bonus.${f}`), desc: t(`homeDefense.bonusDesc.${f}`, { pct: pct(h) }) });
+  // Kult: Mahnmal (zur Schau gestellte Gefallene) / cult: memorial (the fallen put on display)
+  if (f === CULT.faction) out.push({ icon: 'emblemDoom', name: t('memorial.name'), desc: memorialText() });
   return out;
+}
+
+/** Regeltext des Mahnmals mit Zahlen aus balance.ts (CULT) / rule text of the memorial with numbers from balance.ts (CULT) */
+export function memorialText(): string {
+  return t('memorial.desc', { rounds: CULT.memorialRounds, zeal: Math.round(CULT.memorialAttack * 100), fear: Math.round(CULT.memorialFear * 100) });
 }
 
 /**

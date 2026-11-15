@@ -10,7 +10,7 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow,
+  supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow, memorialAt, memorialEffect, memorialMult,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
@@ -167,10 +167,32 @@ export function stationaryOnly(type: UnitTypeId): boolean {
   return !st.ship && st.move > 0 && st.attack > 0 && st.range > 0 && !st.abilities.includes('dash') && !st.abilities.includes('wonder');
 }
 
+/**
+ * Hinweis zum Mahnmal des Kults unter u: "Mahnmal: +25 % Schaden" (Kult) oder "Furcht (Mahnmal): -25 % Schaden" (Menschen).
+ * Note on the cult memorial under u: "Memorial: +25 % damage" (cult) or "Fear (memorial): -25 % damage" (humans).
+ */
+function memorialHint(s: GameState, u: Unit, key: 'Hint' | 'Tag' = 'Hint'): string {
+  const e = memorialEffect(s, u);
+  if (!e) return '';
+  return t(`memorial.${e}${key}`, { pct: Math.round((e === 'zeal' ? CULT.memorialAttack : CULT.memorialFear) * 100) });
+}
+
 /** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
-function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number }, u: Unit, target: Unit | null): string {
+function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; memorial?: number }, u: Unit, target: Unit | null): string {
   return [hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
-    target && p.homeDefense ? homeDefenseHint(s, target) : ''].filter(Boolean).join(' · ');
+    target && p.homeDefense ? homeDefenseHint(s, target) : '', p.memorial && p.memorial !== 1 ? memorialHint(s, u) : ''].filter(Boolean).join(' · ');
+}
+
+/**
+ * Marke im Einheitenfeld: steht auf einem Mahnmal des Kults (Bonus fuer den Kult, Furcht fuer Menschen).
+ * Tag in the unit panel: stands on a cult memorial (bonus for the cult, fear for humans).
+ */
+function memorialTag(s: GameState, u: Unit): string {
+  const e = memorialEffect(s, u);
+  if (!e) return '';
+  const m = memorialAt(s, u.x, u.y)!;
+  const tip = t(`memorial.${e}Desc`, { pct: Math.round((e === 'zeal' ? CULT.memorialAttack : CULT.memorialFear) * 100), n: m.until - s.round + 1 });
+  return `<span class="stat tag ${e === 'fear' ? 'warn' : ''}" title="${esc(tip)}" aria-label="${esc(tip)}">${icon(e === 'fear' ? 'warning' : 'emblemDoom', 'icon-sm')}${esc(memorialHint(s, u, 'Tag'))}</span>`;
 }
 
 /**
@@ -206,7 +228,7 @@ function moveFireTag(s: GameState, u: Unit): string {
 
 /** Kampfmarken im Einheitenfeld (immer sichtbar, auch auf dem Handy) / combat tags in the unit panel (always visible, also on phones) */
 function combatTags(s: GameState, u: Unit): string {
-  const tags = moveFireTag(s, u) + stationaryTag(s, u) + homeDefenseTag(s, u);
+  const tags = moveFireTag(s, u) + stationaryTag(s, u) + homeDefenseTag(s, u) + memorialTag(s, u);
   return tags ? `<div class="row">${tags}</div>` : '';
 }
 
@@ -651,6 +673,12 @@ export class Hud {
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
       const bones = tile.remains ? tile.remains.skeletons ?? (tile.remains.kind === 'skeleton' ? 1 : 0) : 0;
       if (bones) tags.push(t('features.skeleton', { n: bones }));
+      // Mahnmal des Kults: Restdauer und Wirkung / cult memorial: remaining duration and effect
+      const memorial = memorialAt(s, x, y);
+      if (memorial) {
+        tags.push(t('memorial.tile', { unit: t(`units.${memorial.unit}`), n: memorial.until - s.round + 1,
+          zeal: Math.round(CULT.memorialAttack * 100), fear: Math.round(CULT.memorialFear * 100) }));
+      }
       if (tile.xeno) tags.push(`${t('xeno.ground')}: ${t('xeno.groundDesc')}`);
       if (tile.volcano) {
         const n = roundsToEruption(x, y, s.round + (s.current === s.factions.length - 1 ? 1 : 0));
@@ -726,7 +754,7 @@ export class Hud {
             const wait = (u.retreatReady ?? 0) - s.round;
             // Schuss vor dem Schritt: nach einer Bewegung ebenfalls verringert, ebenso gegen ein Bollwerk
             // shot before the step: also reduced after a move, likewise against a bulwark
-            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target) }, u, target);
+            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target), memorial: memorialMult(s, u) }, u, target);
             const retreatDesc = retreatNotes ? `${t('retreat.desc')} ${retreatNotes}.` : t('retreat.desc');
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',
