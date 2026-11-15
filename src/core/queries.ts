@@ -5,11 +5,11 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
-import type { City, Faction, GameState, Pos, Tile, Unit } from './types';
+import type { City, Faction, GameConfig, GameState, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
 export const hasTech = (s: GameState, f: number, t: TechId) => s.factions[f].techs.includes(t);
@@ -668,7 +668,9 @@ export function returnFire(s: GameState, att: Unit, def: Unit, defHp: number): n
   const attackForce = effectiveAttack(s, att) * (att.hp / att.maxHp);
   const defenseForce = defense * (defHp / def.maxHp) * coverBonus(s, att, def);
   const total = attackForce + defenseForce;
-  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type)) : 0;
+  // Endgegner schlagen gedaempft zurueck (SWARM_MOTHER.returnFactor) / bosses return fire dampened (SWARM_MOTHER.returnFactor)
+  const boss = UNITS[def.type].abilities.includes('boss') ? SWARM_MOTHER.returnFactor : 1;
+  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss) : 0;
 }
 
 /** Kampfvorschau; rocket = Mech-Raketen (Fernangriff fuer den Wind) / combat preview; rocket = mech rockets (ranged for the wind) */
@@ -843,12 +845,13 @@ export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
   if (fuel <= 0) return false;
   // Rueckflug mit dem vorhersagbaren Wetter der naechsten Runden (Regen bremst, Wind verbraucht mehr Sprit)
   // return flight with the predictable weather of the next rounds (rain slows, wind burns more fuel)
-  const wx = (r: number): WeatherId => (s.config.weather === false ? 'clear' : weatherFor(s.config.seed, r));
+  const wx = (r: number): WeatherId => weatherAt(s, r);
   let range = 0;
   for (let i = 1; i <= 12 && fuel > 0; i++) {
     const w = wx(s.round + i);
     let mv = UNITS[u.type].move;
     if (w === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) mv = Math.max(1, mv + WEATHER.rain.moveDelta);
+    if (w === 'dust' && WEATHER.dust.moveUnits.includes(u.type)) mv = Math.max(1, mv + WEATHER.dust.moveDelta);
     range += mv;
     for (let yy = Math.max(0, y - range); yy <= Math.min(s.size - 1, y + range); yy++) {
       for (let xx = Math.max(0, x - range); xx <= Math.min(s.size - 1, x + range); xx++) {
@@ -1097,7 +1100,9 @@ export function visionRadius(s: GameState, u: Unit): number {
 /** Sichtweite der Einheit, wenn sie auf (x, y) stuende / vision of the unit if it stood on (x, y) */
 export function visionRadiusAt(s: GameState, u: Unit, x: number, y: number): number {
   const t = tileAt(s, x, y)!;
-  const v = Math.max(UNITS[u.type].vision, t.terrain === 'mountain' ? VISION.mountain : VISION.unit);
+  let v = Math.max(UNITS[u.type].vision, t.terrain === 'mountain' ? VISION.mountain : VISION.unit);
+  // Sandsturm: Sicht verkuerzt / dust storm: vision shortened
+  if (weather(s) === 'dust') v = Math.max(1, v + WEATHER.dust.visionDelta);
   // NEXUS, Sensornetz / sensor net
   return perk2Of(s, u.owner) === 'sensorNet' ? v + PERKS2.sensorNetVision : v;
 }
@@ -1150,19 +1155,39 @@ export function barrierTargets(s: GameState, u: Unit): Pos[] {
 
 // ---------- Wetter / weather ----------
 
-/** Wetter einer Runde, deterministisch aus Seed und Runde / weather of a round, deterministic from seed and round */
-export function weatherFor(seed: number, round: number): WeatherId {
+/**
+ * Wetter einer Runde, deterministisch aus Seed und Runde; die Wuestenwelt (Thema 'desert') wuerfelt mit eigenen Gewichten.
+ * Weather of a round, deterministic from seed and round; the desert world (theme 'desert') rolls with its own weights.
+ */
+export function weatherFor(seed: number, round: number, theme?: GameConfig['theme']): WeatherId {
   if (round <= 1) return 'clear';
+  const weights = theme === 'desert' ? WEATHER.desertWeights : WEATHER.weights;
   const block = Math.floor((round - 1) / WEATHER.cycleRounds);
   let h = (seed ^ WEATHER.salt ^ Math.imul(block + 1, 0x9e3779b1)) | 0;
   h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
   h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
   const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   let acc = 0;
-  for (const [w, p] of Object.entries(WEATHER.weights) as [WeatherId, number][]) { acc += p; if (r < acc) return w; }
+  for (const [w, p] of Object.entries(weights) as [WeatherId, number][]) { acc += p; if (r < acc) return w; }
   return 'clear';
 }
-export const weather = (s: GameState): WeatherId => (s.config.weather === false ? 'clear' : weatherFor(s.config.seed, s.round));
+/** Wetter der Partie in einer Runde (Standard: aktuelle Runde) / weather of the game in a round (default: current round) */
+// Hoehle (m9): kein Wetter unter Tage / cavern (m9): no weather underground
+export const weatherAt = (s: GameState, round = s.round): WeatherId => (s.config.weather === false || s.config.theme === 'cavern' ? 'clear' : weatherFor(s.config.seed, round, s.config.theme));
+/** Hat die Partie Wetter (sonst kein Wetterchip, keine Vorhersage)? / does the game have weather (otherwise no weather chip, no forecast)? */
+export const hasWeather = (s: GameState) => s.config.weather !== false && s.config.theme !== 'cavern';
+
+/**
+ * Schuetzt das Feld vor Meteoren (Stadt oder Bunker)? / does the tile protect from meteors (city or bunker)?
+ */
+export function meteorCover(s: GameState, x: number, y: number): boolean {
+  const t = tileAt(s, x, y);
+  return !!t && (t.cityId !== null || t.feature === 'bunker');
+}
+/** Trifft ein Meteorschauer diese Einheit (ungepanzert, nicht der Endgegner, ohne Deckung)? / does a meteor shower hit this unit? */
+export const meteorExposed = (s: GameState, u: Unit, x = u.x, y = u.y) =>
+  unitClass(u.type) === 'foot' && !UNITS[u.type].abilities.includes('boss') && !meteorCover(s, x, y);
+export const weather = (s: GameState): WeatherId => weatherAt(s);
 
 /** Reichweite inkl. Wetter / range including weather */
 export function effectiveRange(s: GameState, u: Unit): number {
@@ -1170,6 +1195,8 @@ export function effectiveRange(s: GameState, u: Unit): number {
   if (u.type === 'waal' && !waalArmed(u)) return 0;
   const base = UNITS[u.type].range;
   if (base > 0 && weather(s) === 'rain' && WEATHER.rain.rangeUnits.includes(u.type)) return Math.max(1, base + WEATHER.rain.rangeDelta);
+  // Sandsturm: Fernkaempfer sehen ihr Ziel schlechter / dust storm: ranged units see their target worse
+  if (base >= WEATHER.dust.rangeFrom && weather(s) === 'dust') return Math.max(1, base + WEATHER.dust.rangeDelta);
   return base;
 }
 
@@ -1178,6 +1205,7 @@ export function effectiveMove(s: GameState, u: Unit): number {
   let m = UNITS[u.type].move;
   if (weather(s) === 'rain' && WEATHER.rain.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.rain.moveDelta);
   if (weather(s) === 'snow' && WEATHER.snow.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.snow.moveDelta);
+  if (weather(s) === 'dust' && WEATHER.dust.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.dust.moveDelta);
   // Meridon, Lotsenwesen: Landungsboote weiter / harbour pilots: landing boats further
   if (u.type === 'landingBoat' && perk2Of(s, u.owner) === 'harbourPilots') m += PERKS2.harbourPilotsMove;
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
@@ -1661,11 +1689,22 @@ export function turretShotDamage(s: GameState, hp: number, def: Unit): number {
 }
 
 /**
- * Ziel eines Geschuetzes: Einheiten jeder Fraktion in Reichweite, die dem Artefakt naechste zuerst (dann ID).
- * Target of a gun: units of any faction in range, the one closest to the artifact first (then id).
+ * Bewachter Punkt eines Geschuetzes: das Artefakt (m9) oder die naechste Ruinenstaette (m13), sonst die Kartenmitte.
+ * Guarded point of a gun: the artifact (m9) or the nearest ruin site (m13), else the map centre.
+ */
+export function turretGuard(s: GameState, p: Pos): Pos {
+  const pts = [...(s.campaign?.artifact ? [s.campaign.artifact] : []), ...(s.campaign?.sites ?? [])];
+  let best: Pos = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) }, bestD = Infinity;
+  for (const q of pts) { const d = dist(q, p); if (d < bestD) { bestD = d; best = q; } }
+  return best;
+}
+
+/**
+ * Ziel eines Geschuetzes: Einheiten jeder Fraktion in Reichweite, die dem bewachten Punkt naechste zuerst (dann ID).
+ * Target of a gun: units of any faction in range, the one closest to the guarded point first (then id).
  */
 export function turretTarget(s: GameState, p: Pos): Unit | null {
-  const art = s.campaign?.artifact ?? { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
+  const art = turretGuard(s, p);
   let best: Unit | null = null, bestKey = Infinity;
   for (const u of s.units) {
     if (dist(u, p) > VERDAN.range || isWonder(u) || submerged(s, u)) continue;

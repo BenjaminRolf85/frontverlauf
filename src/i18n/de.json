@@ -761,7 +761,8 @@
     "wonderInterrupted": "{wonder} ({name}) wurde unterbrochen!",
     "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
     "deserted": "Sold nicht bezahlt: {unit} desertiert",
-    "verdanActive": "Verteidigungslinie der Verdan aktiviert!"
+    "verdanActive": "Verteidigungslinie der Verdan aktiviert!",
+    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!"
   },
   "fx": {
     "hit": [
@@ -917,7 +918,7 @@
   "campaign": {
     "title": "Kampagne",
     "menu": "Kampagne",
-    "subtitle": "Elf Einsätze nach dem Sternfall",
+    "subtitle": "{n} Einsätze auf {worlds} Welten:",
     "totalStars": "{n} von {max} Sternen",
     "mission": "Einsatz {n}",
     "locked": "Gesperrt",
@@ -985,22 +986,27 @@
       "reach": "Dringe bis zum Hauptquartier von {name} vor, bis Runde {rounds}",
       "boss": "Besiege die {unit} bis Runde {rounds}",
       "outpost": "Erobere den Vorposten der Zyrr bis Runde {rounds}",
-      "bonusOutpost": "Erobere den Vorposten der Zyrr"
+      "bonusOutpost": "Erobere den Vorposten der Zyrr",
+      "rift": "Bring die {unit} an den Rand des Todes, bis Runde {rounds}",
+      "ruins": "Entziffere {n} Ruinenstätten der Vergessenen (eine Runde darauf stehen), bis Runde {rounds}",
+      "cave": "Besetze den Höhleneingang {n} Runden in Folge, bis Runde {rounds}",
+      "verdanOutpost": "Besetze den verlassenen Außenposten der Verdan bis Runde {rounds}",
+      "bonusVerdanOutpost": "Besetze den Außenposten der Verdan"
     },
     "missions": {
       "m1": {
         "title": "Funkenregen",
-        "tagline": "Sichere die Absturzzone mit drei Städten",
+        "tagline": "Sichere die Absturzzone mit vier Städten",
         "brief": [
           "Hier spricht {leader}. Der Himmel hat gebrannt, und jetzt regnet es Schrott. Wir sichern die Absturzzone, bevor es andere tun.",
-          "Überall Trümmer und rauchende Krater, Kommandant! Die Siedlungen ringsum haben Angst. Drei Städte unter der Flagge von {faction}, dann gehört die Zone uns.",
+          "Überall Trümmer und rauchende Krater, Kommandant! Die Siedlungen ringsum haben Angst. Vier Städte unter der Flagge von {faction}, dann gehört die Zone uns.",
           "Kkt. Primitive Wesen kriechen über unsere Absturzstelle. Schwarm, säubern!"
         ],
-        "won": "Drei Städte, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
+        "won": "Vier Städte, null Panik. Die Absturzzone gehört {faction}. Und die Zyrr gucken ganz schön violett.",
         "lost": "Die Zone ist verloren. Die Siedler packen ihre Koffer, die Zyrr ihre Sonden aus.",
         "variants": {
           "korvat": {
-            "won": "Drei Städte, ein Volk, ein Schritt! Der Volksbund singt heute Abend doppelt so laut."
+            "won": "Vier Städte, ein Volk, ein Schritt! Der Volksbund singt heute Abend doppelt so laut."
           }
         }
       },
@@ -1021,25 +1027,13 @@
           }
         }
       },
-      "m3": {
-        "title": "Das Portal",
-        "tagline": "Schlage die Garnison und halte das Dimensionsportal zwei Runden",
-        "brief": [
-          "Kommandant, das müssen Sie sehen! Die Zyrr haben aus Chitin und Licht ein Tor gebaut. Dahinter: ein violetter Himmel mit zwei Monden. Und aus dem Tor kommt Nachschub.",
-          "Kkt. Das Tor gehört dem Schwarm. Es führt nach Hause. Erdlinge, die hindurchschauen, sehen ihr Ende.",
-          "{leader} hier. Wir schlagen die Wache am Portal und halten es zwei Runden. Wer das Tor hat, bestimmt, wer hindurchgeht. Und das sind wir."
-        ],
-        "ally": "{allyLeader} an {leader}: {ally} riegelt die Flanke ab. Kein Grauer kommt um das Tor herum.",
-        "won": "Das Portal ist offen. Wir gehen durch.",
-        "lost": "Das Portal bleibt in der Hand der Zyrr. Und es spuckt weiter Graue aus."
-      },
       "m4": {
         "title": "Falsche Pilger",
         "tagline": "Erledige die Eiferer in deinem Land",
         "brief": [
           "Die Pilger, die wir aufgenommen haben, tragen plötzlich Knochenmasken! Sie stehen direkt vor unseren Toren.",
           "Die Glocke hat geschlagen. Von selbst! Brüder, Schwestern, bekehrt sie oder brennt sie nieder.",
-          "{leader} hier. Sechs Eiferer weniger, und die Ruhe kehrt zurück. Schnell, bevor sie anfangen zu predigen."
+          "{leader} hier. Acht Eiferer weniger, und die Ruhe kehrt zurück. Schnell, bevor sie anfangen zu predigen."
         ],
         "ally": "{allyLeader} hier. {ally} hat auch Pilger im Haus. Wir räumen gemeinsam auf, {leader}.",
         "won": "Die Masken liegen im Staub. Der Rest der Pilger will plötzlich nur noch Tee.",
@@ -1103,26 +1097,117 @@
       },
       "m8": {
         "title": "Stellung halten",
-        "tagline": "Überlebe, bis die Verstärkung kommt",
+        "tagline": "Halte das Hauptquartier und zerschlage den Ansturm",
         "brief": [
-          "{leader} an alle: NEXUS greift mit allem an, was rollt und fliegt. Hauptquartier halten, bis Verstärkung eintrifft!",
+          "{leader} an alle: NEXUS greift mit allem an, was rollt und fliegt. Hauptquartier halten und zehn Maschinen zu Schrott schießen, dann bricht der Ansturm zusammen!",
           "WIDERSTAND BERECHNET. ERGEBNIS: KURZ. BITTE BLEIBEN SIE AN IHREM PLATZ.",
           "Spinnen, Drohnen, Schienenkanonen, und am Ende kommt ein Titan. Der Bunker hält. Hoffentlich."
         ],
         "ally": "{allyLeader} hier. {ally} ist unterwegs, {leader}. Haltet durch, wir kommen.",
-        "won": "Die Verstärkung ist da! NEXUS rechnet noch, wir feiern schon.",
+        "won": "Zehn Maschinen Schrott, das Hauptquartier steht! NEXUS rechnet noch, wir feiern schon.",
         "lost": "Das Hauptquartier ist gefallen. Die Maschinen haben unser Funkgerät. Und unsere Kekse.",
         "variants": {
           "dravon": {
-            "won": "Die Verstärkung ist da. {leader} nickt einmal. Das ist bei Dravon ein Orden."
+            "won": "Der Ansturm ist gebrochen. {leader} nickt einmal. Das ist bei Dravon ein Orden."
+          }
+        }
+      },
+      "m3": {
+        "title": "Das Portal",
+        "tagline": "Schlage die Garnison und halte das Dimensionsportal zwei Runden",
+        "brief": [
+          "Kommandant, das müssen Sie sehen! Während wir mit Kult und NEXUS beschäftigt waren, haben die Zyrr aus Chitin und Licht ein Tor gebaut. Dahinter: ein violetter Himmel mit zwei Monden. Und aus dem Tor kommt Nachschub.",
+          "Kkt. Das Tor gehört dem Schwarm. Es führt nach Hause. Erdlinge, die hindurchschauen, sehen ihr Ende.",
+          "{leader} hier. Die Erde ist sicher, jetzt holen wir uns das Tor. Wir schlagen die Wache und halten das Portal zwei Runden. Wer das Tor hat, bestimmt, wer hindurchgeht. Und das sind wir."
+        ],
+        "ally": "{allyLeader} an {leader}: {ally} riegelt die Flanke ab. Kein Grauer kommt um das Tor herum.",
+        "won": "Das Portal ist offen. Die Erde hält, jetzt gehen wir hindurch.",
+        "lost": "Das Portal bleibt in der Hand der Zyrr. Und es spuckt weiter Graue aus."
+      },
+      "m10": {
+        "title": "Jenseits des Portals",
+        "tagline": "Landetrupp ohne Basis: Vorposten erobern, dann zum Nest der Schwarmmutter",
+        "brief": [
+          "Wir sind durch! Hier ist alles violett: Pflanzen so groß wie Häuser, Felsen, die in der Luft schweben, zwei Monde. Keine Basis, kein Nachschub. Nur wir und eine Handvoll Trupps.",
+          "Kkt?! Erdlinge auf der Heimatwelt? Mein Vorposten wird euch schlucken. Und mein Nest seht ihr nie.",
+          "{leader} hier. Ohne Stadt halten wir nicht lange. Erst den Vorposten der Zyrr nehmen, dort richten wir uns ein. Dann vorwärts, bis wir vor dem Nest von Xyl'Tharra stehen."
+        ],
+        "won": "Der Vorposten gehört uns, und vor uns ragt das Nest der Schwarmmutter auf. Dort drinnen wartet sie.",
+        "lost": "Der Landetrupp ist verloren. Die violette Welt schluckt ihn ohne einen Laut."
+      },
+      "m11": {
+        "title": "Die Schwarmmutter",
+        "tagline": "Stürme das Nest und bring Xyl'Tharra an den Rand des Todes",
+        "brief": [
+          "Das Nest pulsiert wie ein Herz, Kommandant. Mechs, Dreibeine, Graue ohne Ende. Und irgendwo da drin schläft etwas sehr Großes.",
+          "Kkt. Ihr habt meinen Vorposten. Ihr habt meinen Himmel gesehen. Kommt näher, kleine Wesen, und die Mutter erwacht.",
+          "{leader} hier. Sie heilt auf ihrem Boden, sie brütet, sie schreit. Also schlagen wir zusammen zu, alle auf einmal. Wenn die Schwarmmutter fällt, fällt der Schwarm."
+        ],
+        "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Verbündeter.",
+        "won": "Xyl'Tharra sinkt zusammen, da reißt über ihr der Raum auf: ein Riss, violett und schwarz, mit giftig grüngoldenem Rand. Er reißt durch beide Welten und saugt alles an: unsere Truppen, die Zyrr mit ihrer Mutter, und auf der Erde ganze Kolonnen von NEXUS und die Pilgerzüge des Kults. Dann Stille. Wir liegen im roten Sand, über uns ein staubiger Himmel mit zwei winzigen Monden.",
+        "lost": "Die Schwarmmutter lebt. Ihr Schrei hallt bis durch das Portal, und der Schwarm wird mehr."
+      },
+      "m12": {
+        "title": "Gestrandet",
+        "tagline": "Verstreut in der roten Wüste: finde den Außenposten der Verdan und gründe eine Basis",
+        "brief": [
+          "Kommandant, wir leben! Aber die Trupps liegen verstreut im roten Sand, weit auseinander. Kein Funkmast, keine Stadt. Nur Dünen, Tafelberge und Knochen von Tieren, so groß wie Häuser. Und ein Sandsturm zieht auf.",
+          "Kkt ... Mutter? Mutter schweigt. Der Riss hat uns gefressen und hier ausgespuckt. Egal. Der Schwarm baut ein neues Nest, und ihr seid das Futter.",
+          "KERN-0: STANDORT UNBEKANNT. SONNE ZU KLEIN. ZWEI MONDE. NEUBERECHNUNG ... ZIEL BLEIBT: DAS ARTEFAKT.",
+          "Seht ihr? Das ist die Letzte Stunde! Die Welt ist schon verbrannt, und wir sind ihre Asche. Brüder, Schwestern, nehmt euch, was noch steht.",
+          "{leader} hier. Die Späher haben eine Ruine mit rot-weißen Flügeln gesehen, einen Außenposten der Verdan, verlassen seit Generationen. Sammelt euch dort und besetzt ihn, das wird unsere Basis. Dann drei Städte, bevor uns die anderen den Sand streitig machen."
+        ],
+        "won": "Der Außenposten gehört uns. Über dem Tor hängt noch das Wappen der Verdan, rot und weiß, mit Flügeln. Was haben die hier gesucht?",
+        "lost": "Der Sand hat uns geschluckt. Irgendwann findet jemand unsere Helme zwischen den Riesenknochen.",
+        "variants": {
+          "korvat": {
+            "won": "Der Außenposten gehört dem Volk. Brodnik hat schon ausgerechnet, wie viele Äcker in diese Wüste passen."
+          }
+        }
+      },
+      "m13": {
+        "title": "Ruinen der Vergessenen",
+        "tagline": "Entziffere drei Ruinenstätten und finde heraus, wo das Artefakt liegt",
+        "brief": [
+          "Überall im Sand stehen Ruinen: geborstene Säulen, eingestürzte Kuppeln, halb versunkene Statuen mit Flügeln. Dieselben Runen wie in den alten Reichsdepots. Kommandant, das hier war Verdan.",
+          "Kkt. Steinhaufen toter Wesen. Der Schwarm riecht etwas darunter, etwas Altes. Wir graben zuerst.",
+          "KERN-0: VERDAN-SCHRIFT ERKANNT. DAS REICH WAR HIER. DAS REICH BIN ICH. DIE RUINEN GEHÖREN MIR.",
+          "Neben jeder Stätte schläft ein Wächter der Verdan, ein Geschütz wie aus den Legenden. Wer der Stätte auf drei Felder nahe kommt, weckt ihn. Dann schießt er auf alles, was der Stätte am nächsten steht. Steht eine Einheit eine ganze Runde auf einer Stätte, können wir die Runen lesen.",
+          "{leader} hier. Die Vergessenen, das sind die alten Verdan. Wir wollen wissen, wohin sie gegangen sind und warum. Drei Stätten entziffern, das Hauptquartier halten. Dann wissen wir, wo das Artefakt liegt."
+        ],
+        "ally": "{allyLeader} an {leader}: {ally} ist ebenfalls gestrandet. Wir halten euch die Wächter vom Leib, ihr lest die Runen.",
+        "won": "Die Runen sprechen: Die Verdan bauten eine Maschine gegen die Zeit, das Artefakt. Im Großen Stillstand zogen sie alle Kraft ihres Reichs ab, rissen ein Tor in diese Welt und versteckten es tief unter dem Sand. Die Daheimgebliebenen vergaßen sie. Die Spur führt zu einer Schlucht im Herzen der Wüste.",
+        "lost": "Die Ruinen schweigen. Andere lesen jetzt die Runen, und wir verstehen nur Sand.",
+        "variants": {
+          "velkar": {
+            "won": "Die Runen sind eine Formel: eine Maschine gegen die Zeit, versteckt im Großen Stillstand tief unter dem Sand. {leader} schreibt schon mit. Die Spur führt zu einer Schlucht im Herzen der Wüste."
+          }
+        }
+      },
+      "m14": {
+        "title": "Der Höhleneingang",
+        "tagline": "Halte den Schlund in der Schlucht drei Runden, alle wollen hinein",
+        "brief": [
+          "Da ist sie, die Schlucht aus den Runen! An ihrem Ende ein Schlund im Fels, so groß wie ein Dom, mit dem Flügelwappen darüber. Kalte Luft weht heraus. Und die anderen haben ihn auch gefunden.",
+          "Kkt. Das Loch führt nach unten, zu dem, was wir riechen. Der Schwarm steigt zuerst hinab.",
+          "KERN-0: ZUGANG ZUM ARTEFAKT LOKALISIERT. ALLE ANDEREN EINHEITEN: BITTE ZURÜCKTRETEN.",
+          "Ein Tor in die Tiefe! Die Glocke ruft von unten. Wer da hinabsteigt, steigt nicht wieder auf, außer uns.",
+          "{leader} hier. Wir besetzen den Höhleneingang drei Runden in Folge, dann steigen wir hinab. Und das Hauptquartier fällt nicht, egal wer von wo kommt."
+        ],
+        "ally": "{allyLeader} an {leader}: {ally} riegelt die Schlucht ab. Steigt ihr hinab, wir halten oben die Stellung.",
+        "won": "Der Höhleneingang gehört uns. Wir lassen die Seile hinab. Unten leuchtet etwas, tief, tief unter der roten Wüste.",
+        "lost": "Andere steigen in die Tiefe hinab. Aus dem Schlund hallt ihr Jubel, und dann ein Licht.",
+        "variants": {
+          "dravon": {
+            "won": "Der Höhleneingang ist gesichert. {leader} seilt sich als Erster ab. Unten leuchtet etwas, tief unter der roten Wüste."
           }
         }
       },
       "m9": {
         "title": "Das Artefakt",
-        "tagline": "Alle gegen alle in der Höhle der Uralten",
+        "tagline": "Alle gegen alle in der Höhle unter der roten Wüste",
         "brief": [
-          "Tief unter der Erde, in einer Höhle, die auf keiner Karte steht, ist etwas erwacht: ein Obelisk voller Runen, älter als Verdan, älter als alles. Er verspricht die Herrschaft über die Welt. Pilze und Getier ringsum leuchten, seit er da ist.",
+          "Hinter dem Höhleneingang führt ein Schacht tief unter die rote Wüste, in eine Höhle, die auf keiner Karte steht. Dort ruht es: der Obelisk der Vergessenen, voller Verdan-Runen und doch älter als alles. Er verspricht die Herrschaft über die Welten. Pilze und Getier ringsum leuchten, seit er da ist.",
           "Kkt. Das Artefakt gehört dem Schwarm. Wir haben es gerochen, bevor ihr das Feuer kanntet.",
           "KERN-0: ARTEFAKT ERKANNT. WAHRSCHEINLICHKEIT DER WELTHERRSCHAFT: HUNDERT PROZENT. ICH NEHME ES.",
           "Das ist die Letzte Stunde! Wer das Artefakt berührt, läutet das Ende ein. Und das sind wir.",
@@ -1132,32 +1217,9 @@
         "ally": "{allyLeader} an {leader}: {ally} deckt euch den Rücken. Das Artefakt gehört euch. Nur bitte nicht drücken, bevor wir da sind.",
         "won": "Das Artefakt gehört {faction}! Die Runen leuchten auf ...",
         "lost": "Jemand anderes hat das Artefakt berührt. Die Höhle bebt, die Pilze erlöschen. Das war es dann."
-      },
-      "m10": {
-        "title": "Jenseits des Portals",
-        "tagline": "Landetrupp ohne Basis: Vorposten erobern, dann zum Nest der Schwarmmutter",
-        "brief": [
-          "Wir sind durch! Hier ist alles violett: Pflanzen so groß wie Häuser, Felsen, die in der Luft schweben, zwei Monde. Keine Basis, kein Nachschub. Nur wir vier Trupps.",
-          "Kkt?! Erdlinge auf der Heimatwelt? Mein Vorposten wird euch schlucken. Und mein Nest seht ihr nie.",
-          "{leader} hier. Ohne Stadt halten wir nicht lange. Erst den Vorposten der Zyrr nehmen, dort richten wir uns ein. Dann vorwärts, bis wir vor dem Nest von Xyl'Tharra stehen."
-        ],
-        "won": "Der Vorposten gehört uns, und vor uns ragt das Nest der Schwarmmutter auf. Dort drinnen wartet sie.",
-        "lost": "Der Landetrupp ist verloren. Die violette Welt schluckt ihn ohne einen Laut."
-      },
-      "m11": {
-        "title": "Die Schwarmmutter",
-        "tagline": "Stürme das Nest und besiege Xyl'Tharra selbst",
-        "brief": [
-          "Das Nest pulsiert wie ein Herz, Kommandant. Mechs, Dreibeine, Graue ohne Ende. Und irgendwo da drin schläft etwas sehr Großes.",
-          "Kkt. Ihr habt meinen Vorposten. Ihr habt meinen Himmel gesehen. Kommt näher, kleine Wesen, und die Mutter erwacht.",
-          "{leader} hier. Sie heilt auf ihrem Boden, sie brütet, sie schreit. Also schlagen wir zusammen zu, alle auf einmal. Wenn die Schwarmmutter fällt, fällt der Schwarm."
-        ],
-        "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Verbündeter.",
-        "won": "Xyl'Tharra ist gefallen. Der Schwarm verstummt, das Portal flackert und erlischt hinter uns. Wir sind zu Hause.",
-        "lost": "Die Schwarmmutter lebt. Ihr Schrei hallt bis durch das Portal, und der Schwarm wird mehr."
       }
     },
-    "intro": "Der Himmel hat gebrannt: Das Mutterschiff der Zyrr liegt in der Wüste, die Zyrr bauen ein Tor in ihre Heimatwelt, die Glocke schlägt von selbst, und NEXUS ist erwacht. Die Kreidegrenzen sind Geschichte. Wähle eine Menschenfraktion und halte die Front.",
+    "intro": "Der Himmel hat gebrannt: Das Mutterschiff der Zyrr liegt in der Wüste, die Glocke schlägt von selbst, NEXUS ist erwacht, und die Zyrr bauen ein Tor in ihre Heimatwelt. Dahinter wartet eine dritte Welt, die alle vergessen haben. Wähle eine Menschenfraktion und halte die Front, auf drei Welten.",
     "prologue": "Prolog: Der Sternfall",
     "chooseFaction": "Wähle deine Fraktion",
     "chooseHint": "Jede Menschenfraktion hat ihren eigenen Feldzug mit eigenem Fortschritt. Du kannst jederzeit wechseln.",
@@ -1172,9 +1234,9 @@
     "epilogueTitle": "Epilog",
     "twistTitle": "Die Wahrheit über das Artefakt",
     "twist": [
-      "Die Runen glühen auf. {leader} legt die Hand auf das Artefakt. Das Licht verschluckt alles ...",
-      "... und die Glocke schlägt wieder. Irgendwo in der Wüste kracht ein Mutterschiff in den Sand, und in seinem Bauch flackert ein violettes Tor.",
-      "Der Sternfall. Als wäre nichts geschehen. Das Artefakt hat die Zeit zurückgedreht, Xyl'Tharra atmet wieder, und alles beginnt von vorn."
+      "Die Runen glühen auf, dieselben Runen wie auf den Ruinen der Verdan. {leader} legt die Hand auf das Artefakt. Das Licht verschluckt alles ...",
+      "... und die Glocke schlägt wieder. Irgendwo in der Wüste der Erde kracht ein Mutterschiff in den Sand, und in seinem Bauch flackert ein violettes Tor. Die rote Welt liegt leer und vergessen wie zuvor.",
+      "Der Sternfall. Als wäre nichts geschehen. Dafür haben die Verdan das Artefakt gebaut: Wer es berührt, dreht die Zeit zurück. Xyl'Tharra atmet wieder, und alles beginnt von vorn."
     ],
     "persuadeTip": "Tipp: Als {faction} kannst du neutrale Siedlungen überzeugen statt erobern. Eine Einheit daneben, ab {cost} Sterne, kein Schuss.",
     "waveOwn": "Verstärkung eingetroffen: {n} Einheiten!",
@@ -1196,27 +1258,31 @@
     },
     "acts": {
       "a1": {
-        "title": "Akt I: Sternfall",
-        "tagline": "Gegen die Zyrr, bis in ihre Heimatwelt",
-        "closing": "Akt I: Die Schwarmmutter ist gefallen, das Portal erloschen. Auf ihrer violetten Welt wächst nur noch Stille."
+        "title": "Welt I: Erde",
+        "tagline": "Sternfall, Glocke, Erwachen, Portal: die Fraktionen kämpfen um die Erde",
+        "closing": "Welt I: Die Erde hält. Der Kult schweigt, NEXUS ist zurückgedrängt, und das Portal der Zyrr steht offen. Wir sind hindurchgegangen."
       },
       "a2": {
-        "title": "Akt II: Die Glocke",
-        "tagline": "Gegen den Kult der Letzten Stunde",
-        "closing": "Akt II: Der Bohrer schweigt, die Pilger gehen heim. Nur die Glocke schlägt manchmal noch von selbst."
+        "title": "Welt II: Heimatwelt der Zyrr",
+        "tagline": "Violetter Himmel, zwei Monde, das Nest der Schwarmmutter",
+        "closing": "Welt II: Xyl'Tharra lag am Rand des Todes, da riss der Raum auf. Der Riss verschluckte alle, Freund und Feind, und spuckte sie in eine rote Wüste."
       },
       "a3": {
-        "title": "Akt III: Erwachen",
-        "tagline": "Gegen NEXUS, dann gegen alle",
-        "closing": "Akt III: NEXUS ist zurückgedrängt, das Artefakt in der Hand von {faction}. Die Front steht still. Für einen Atemzug."
+        "title": "Welt III: Welt der Vergessenen",
+        "tagline": "Rote Wüste, Ruinen der Verdan, alle gegen alle um das Artefakt",
+        "closing": "Welt III: Das Artefakt der Vergessenen ist in der Hand von {faction}. Die rote Wüste ist still. Für einen Atemzug."
       }
     },
-    "expanded": "Akt I ist gewachsen: Das Portal, die Heimatwelt der Zyrr und die Schwarmmutter warten. Die alte Abwehrschlacht steckt jetzt in Einsatz 2. Sterne und Freischaltungen bleiben.",
+    "expanded": "Die Kampagne ist gewachsen: Das Portal, die Heimatwelt der Zyrr und die Welt der Vergessenen warten. Die alte Abwehrschlacht steckt jetzt in Einsatz 2. Sterne und Freischaltungen bleiben.",
     "landing": "Landetrupp ohne Stadt: Erobere den Vorposten, sonst gibt es keinen Nachschub.",
     "bossEmerge": "{name} ist erschienen! Die Schwarmmutter verteidigt ihr Nest.",
     "bossLine": "Kkt. Ihr seid durch mein Tor gekrochen, {leader}. Jetzt seht ihr mich. Es wird das Letzte sein, was ihr seht.",
     "bossScream": "Psychischer Schrei! {n} Einheiten getroffen.",
-    "bossBrood": "Die Schwarmmutter brütet: {n} neue Graue!"
+    "bossBrood": "Die Schwarmmutter brütet: {n} neue Graue!",
+    "reordered": "Die Kampagne spielt jetzt auf drei Welten: erst die Erde, dann die Heimatwelt der Zyrr, zuletzt die rote Wüste der Vergessenen. Das Portal ist jetzt der letzte Einsatz auf der Erde, danach folgen drei neue Einsätze in der Wüste. Gewonnene Einsätze bleiben offen, Sterne bleiben, und es geht beim ersten offenen Einsatz weiter.",
+    "landingDesert": "Gestrandet ohne Stadt: Besetze den Außenposten der Verdan, sonst gibt es keinen Nachschub.",
+    "ruinDone": "Ruinenstätte entziffert: {have}/{need}",
+    "riftOpen": "Der Riss reißt auf!"
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -1922,7 +1988,11 @@
     "snowDesc": "Jeeps, Panzer, Artillerie, Flakpanzer und Minenleger 1 Feld weniger Bewegung; mit Trefferglück mehr Fehlschüsse (Außerirdische frieren besonders)",
     "windDesc": "Hubschrauber verbrauchen 2 Tankfüllungen pro Runde; mit Trefferglück treffen Fernkämpfer und Flieger öfter daneben",
     "forecast": "ab Runde {round}: {weather}",
-    "setupHint": "Wechselt alle 3 Runden. Regen, Schnee und Wind bremsen bestimmte Einheiten und erhöhen mit Trefferglück die Fehlschusschance (Wind nur für Fernkämpfer und Flieger, Roboter kaum)."
+    "setupHint": "Wechselt alle 3 Runden. Regen, Schnee und Wind bremsen bestimmte Einheiten und erhöhen mit Trefferglück die Fehlschusschance (Wind nur für Fernkämpfer und Flieger, Roboter kaum).",
+    "dust": "Sandsturm",
+    "dustDesc": "Sicht 1 Feld weniger, Einheiten ab Reichweite 2 haben 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung; mit Trefferglück deutlich mehr Fehlschüsse",
+    "meteor": "Meteorschauer",
+    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Städten und Bunkern, nie tödlich"
   },
   "barks": {
     "korvat": {
@@ -3209,7 +3279,7 @@
     "dormant": "schlafend",
     "active": "aktiv",
     "hp": "Panzerung {hp} / {max}",
-    "desc": "Uraltes Geschütz der Verdan-Verteidigungslinie, neutral und unpassierbar. Erwacht, sobald eine Einheit dem Artefakt auf {wake} Felder nahe kommt, und feuert dann jede Runde auf die dem Artefakt nächste Einheit in Reichweite {range}, egal welcher Fraktion. Zerstörbar, zählt aber nie als Abschuss.",
+    "desc": "Uraltes Geschütz der Verdan, neutral und unpassierbar. Erwacht, sobald eine Einheit dem bewachten Ort (Artefakt oder Ruinenstätte) auf {wake} Felder nahe kommt, und feuert dann jede Runde auf die diesem Ort nächste Einheit in Reichweite {range}, egal welcher Fraktion. Zerstörbar, zählt aber nie als Abschuss.",
     "ruin": "Trümmer eines Verdan-Geschützes",
     "attack": "Geschütz angreifen",
     "preview": "Schaden bis {dmg}, Gegenfeuer bis {ret}",

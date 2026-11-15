@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, CRASH, VOLCANO, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  COUNTER, CRASH, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
   MODES, PERKS2, RETREAT, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
@@ -11,10 +11,10 @@ import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
-import { evaluateCampaign, landingPartyHolds, setupMission, spawnBlocked } from './campaign';
+import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
 import { processRandomEvents } from './events';
 import {
-  recruitCheck, recruitHome, supplyLines, turretTargets, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
+  recruitCheck, recruitHome, supplyLines, turretGuard, turretTargets, meteorExposed, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -34,7 +34,7 @@ export function createGame(cfg: GameConfig): GameState {
   // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
   const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
-  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' ? 'cavern' : undefined);
+  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' || config.theme === 'desert' ? config.theme : undefined);
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
@@ -188,6 +188,14 @@ function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
     ev.push({ t: 'cityLevel', city: c.id, level: c.level });
     if (c.owner !== null) s.pendingRewards.push({ cityId: c.id, level: c.level });
   }
+}
+
+/**
+ * Riss (Kampagne m11): die Schwarmmutter stirbt nicht, sie bleibt mit 1 LP stehen; die Auswertung oeffnet dann den Riss.
+ * Rift (campaign m11): the Swarm Mother does not die, she stays on 1 HP; the evaluation then opens the rift.
+ */
+function spare(s: GameState, u: Unit | undefined) {
+  if (u && u.hp <= 0 && riftSpares(s, u)) u.hp = 1;
 }
 
 function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], leaveRemains = true) {
@@ -482,11 +490,14 @@ function startTurn(s: GameState, ev: GameEvent[]) {
 function bossTurn(s: GameState, u: Unit, ev: GameEvent[]) {
   const B = SWARM_MOTHER;
   const ready = u.boss ?? (u.boss = { scream: s.round, brood: s.round });
-  if (tileAt(s, u.x, u.y)!.xeno && u.hp < u.maxHp) {
+  // Heilung nur, wenn sie seit ihrem letzten Zug keinen Schaden genommen hat / heals only if she took no damage since her last turn
+  const unhurt = ready.hp === undefined || u.hp >= ready.hp;
+  if (tileAt(s, u.x, u.y)!.xeno && u.hp < u.maxHp && unhurt) {
     const amount = Math.min(B.xenoHeal, u.maxHp - u.hp);
     u.hp += amount;
     ev.push({ t: 'heal', unit: u.id, amount });
   }
+  ready.hp = u.hp;
   const foes = s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(o, u) <= B.screamRange && !isWonder(o) && !submerged(s, o))
     .sort((a, b) => a.id - b.id);
   if (foes.length && s.round >= ready.scream) {
@@ -580,6 +591,7 @@ function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
   u.moveDone = true;
   addMark(s, u.x, u.y, 'crater');
   ev.push({ t: 'mineHit', unit: u.id, x: u.x, y: u.y, dmg, owner });
+  spare(s, u);
   if (u.hp > 0) return false;
   killUnit(s, u, null, ev);
   return true;
@@ -620,7 +632,7 @@ function advance(s: GameState, ev: GameEvent[]) {
     if (s.factions[next].alive) break;
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
-  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processTurrets(s, ev); processRandomEvents(s, ev); }
+  if (wrapped) { recordRound(s); s.round++; processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev); }
   s.current = next;
   const limit = s.config.roundLimit;
   if (limit !== null && s.round > limit) {
@@ -690,18 +702,23 @@ function processVolcanoes(s: GameState, ev: GameEvent[]) {
 }
 
 /**
- * Verdan-Verteidigungslinie: erwacht, sobald eine Einheit dem Artefakt nahe kommt (nach jedem Kommando geprueft).
- * Verdan defence line: wakes up once a unit comes close to the artifact (checked after every command).
+ * Verdan-Verteidigungslinie: ein Geschuetz erwacht, sobald eine Einheit seinem bewachten Punkt (Artefakt oder
+ * Ruinenstaette, turretGuard) nahe kommt; alle Geschuetze desselben Punkts erwachen gemeinsam (nach jedem Kommando).
+ * Verdan defence line: a gun wakes up once a unit comes close to its guarded point (artifact or ruin site,
+ * turretGuard); all guns of the same point wake together (after every command).
  */
 function wakeTurrets(s: GameState, ev: GameEvent[]) {
-  const art = s.campaign?.artifact;
-  if (!art) return;
-  const guns = s.tiles.filter((t) => t.turret && t.turret.hp > 0 && !t.turret.active);
-  if (!guns.length) return;
-  const near = s.units.filter((u) => dist(u, art) <= VERDAN.wakeRange).sort((a, b) => a.id - b.id)[0];
-  if (!near) return;
-  for (const t of guns) t.turret!.active = true;
-  ev.push({ t: 'verdanActive', faction: near.owner });
+  if (!s.campaign?.artifact && !s.campaign?.sites?.length) return;
+  const woken = new Set<string>();
+  for (const p of turretList(s)) {
+    if (p.active) continue;
+    const g = turretGuard(s, p);
+    const near = s.units.filter((u) => dist(u, g) <= VERDAN.wakeRange).sort((a, b) => a.id - b.id)[0];
+    if (!near) continue;
+    tileAt(s, p.x, p.y)!.turret!.active = true;
+    const key = `${g.x},${g.y}`;
+    if (!woken.has(key)) { woken.add(key); ev.push({ t: 'verdanActive', faction: near.owner }); }
+  }
 }
 
 /**
@@ -721,9 +738,30 @@ function processTurrets(s: GameState, ev: GameEvent[]) {
     u.hp -= dmg;
     if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
     ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}) });
+    spare(s, u);
     if (u.hp <= 0) killUnit(s, u, null, ev);
     else if (dmg > 0) interruptWonder(s, u, ev);
   }
+}
+
+/**
+ * Meteorschauer (Wuestenwelt) zu Rundenbeginn: leichter Schaden an jeder ungepanzerten Einheit ohne Deckung, nie toedlich.
+ * Meteor shower (desert world) at the start of the round: light damage to every unarmoured unit without cover, never lethal.
+ */
+function processMeteors(s: GameState, ev: GameEvent[]) {
+  if (weather(s) !== 'meteor') return;
+  const M = WEATHER.meteor;
+  const hits: { unit: number; dmg: number; x: number; y: number }[] = [];
+  for (const u of [...s.units].sort((a, b) => a.id - b.id)) {
+    if (!meteorExposed(s, u)) continue;
+    const roll = nextRandom(s);
+    const dmg = Math.min(u.hp - M.minHp, M.damage + (roll < M.extraChance ? 1 : 0));
+    if (dmg <= 0) continue;
+    u.hp -= dmg;
+    addMark(s, u.x, u.y, 'scorch');
+    hits.push({ unit: u.id, dmg, x: u.x, y: u.y });
+  }
+  ev.push({ t: 'meteor', hits });
 }
 
 /** Angriff auf ein Verdan-Geschuetz / attack on a Verdan gun */
@@ -745,7 +783,9 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   t.turret.hp = Math.max(0, left);
   if (!wasAwake) {
-    for (const o of s.tiles) if (o.turret && o.turret.hp > 0) o.turret.active = true;
+    // Geschuetze desselben bewachten Punkts erwachen mit / guns of the same guarded point wake up as well
+    const g = turretGuard(s, { x, y });
+    for (const q of turretList(s)) { const gq = turretGuard(s, q); if (gq.x === g.x && gq.y === g.y) tileAt(s, q.x, q.y)!.turret!.active = true; }
     ev.push({ t: 'verdanActive', faction: u.owner });
   }
   const destroyed = t.turret.hp <= 0;
@@ -957,6 +997,8 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   }
   target.hp -= dealt;
   if (ret > 0) u.hp -= ret;
+  spare(s, target); spare(s, u);
+  for (const sp of splash) spare(s, unitById(s, sp.unit));
   // Angriffe mit Schaden unterbrechen Wunder (auch Flaechenschaden); ein Fehlschuss nicht
   // attacks that deal damage interrupt wonders (splash included); a miss does not
   if (dealt > 0 && target.hp > 0) interruptWonder(s, target, ev);
@@ -1051,6 +1093,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const to = retreatTile(s, u, target)!;
       const dmg = retreatDamage(s, u, target);
       target.hp -= dmg;
+      spare(s, target);
       addMark(s, target.x, target.y, 'scorch');
       ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
       if (dmg > 0 && target.hp > 0) interruptWonder(s, target, ev);

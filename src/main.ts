@@ -24,7 +24,7 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
-import { ObjectivePanel, bossToast, campaignResult, objectiveToast, waveToast } from './ui/campaign';
+import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -181,7 +181,7 @@ function boot() {
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {
           if (e.weather && e.weather !== lastWeather && s.factions[e.faction].human) {
-            if (lastWeather !== null || e.weather !== 'clear') toast(root, `${t(`weather.${e.weather}`)}: ${t(`weather.${e.weather}Desc`)}`, ({ clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' } as Record<string, string>)[e.weather]);
+            if (lastWeather !== null || e.weather !== 'clear') toast(root, `${t(`weather.${e.weather}`)}: ${t(`weather.${e.weather}Desc`)}`, ({ clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning' } as Record<string, string>)[e.weather]);
             lastWeather = e.weather;
           }
           break;
@@ -213,6 +213,13 @@ function boot() {
         }
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
         case 'wave': waveToast(root, s, e.faction, e.count); break;
+        case 'ruin': ruinToast(root, s); break;
+        // Meteorschauer: Bescheid, wenn eigene Einheiten getroffen sind / meteor shower: tell when own units are hit
+        case 'meteor': {
+          const own = e.hits.filter((h) => s.units.find((u) => u.id === h.unit)?.owner === viewer).length;
+          if (own) toast(root, t('events.meteor', { n: e.hits.length, own }), 'lightning');
+          break;
+        }
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;

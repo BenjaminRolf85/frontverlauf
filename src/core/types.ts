@@ -109,7 +109,7 @@ export interface Unit {
   /** Erdkernbohrer: Runden in Folge ohne Bewegung / earth-core drill: consecutive rounds without moving */
   stillRounds?: number;
   /** Endgegner: Runden, ab denen Schrei und Brut wieder bereit sind / boss: rounds from which scream and brood are ready again */
-  boss?: { scream: number; brood: number };
+  boss?: { scream: number; brood: number; hp?: number };
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -184,8 +184,13 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
-  /** Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung) / map theme (missing = surface); 'alien' = Zyrr homeworld (render only) */
-  theme?: 'cavern' | 'alien';
+  /**
+   * Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung); 'desert' = rote Wuestenwelt der Vergessenen
+   * (Darstellung, Kartenerzeugung ohne Meer und Sandsturm-Wetter).
+   * Map theme (missing = surface); 'alien' = Zyrr homeworld (render only); 'desert' = red desert world of the Forgotten
+   * (render, map generation without sea and dust-storm weather).
+   */
+  theme?: 'cavern' | 'alien' | 'desert';
 }
 
 /** Stand eines Missionsziels / state of a mission objective */
@@ -230,6 +235,19 @@ export interface CampaignState {
   landing?: boolean;
   /** Endgegner aufgetaucht (Runde) / boss emerged (round) */
   bossRound?: number;
+  /**
+   * Riss (m11): aufgerissen an dieser Stelle in dieser Runde; die Mission ist damit gewonnen.
+   * Rift (m11): torn open at this spot in this round; the mission is won with it.
+   */
+  rift?: Pos & { round: number };
+  /** Ruinenstaetten der Vergessenen (m13) / ruin sites of the Forgotten (m13) */
+  sites?: Pos[];
+  /** je Staette: vom Spieler entziffert / per site: deciphered by the player */
+  siteDone?: boolean[];
+  /** Hoehleneingang (m14) / cave entrance (m14) */
+  cave?: Pos;
+  /** Runden in Folge, die der Spieler den Hoehleneingang besetzt / consecutive rounds the player occupies the cave entrance */
+  caveHold?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -330,6 +348,12 @@ export type GameEvent =
    * Endgegner: aufgetaucht, Brut geschluepft (count), psychischer Schrei (hits) / boss: emerged, brood hatched (count), psychic scream (hits)
    */
   | { t: 'boss'; what: 'emerge' | 'brood' | 'scream'; unit: number; faction: number; x: number; y: number; count?: number; hits?: { unit: number; dmg: number }[] }
+  /** Kampagne m11: der Riss reisst auf (an der Schwarmmutter) / campaign m11: the rift tears open (at the Swarm Mother) */
+  | { t: 'rift'; unit: number; x: number; y: number }
+  /** Meteorschauer zu Rundenbeginn: getroffene Einheiten / meteor shower at the start of the round: units hit */
+  | { t: 'meteor'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
+  | { t: 'ruin'; index: number; x: number; y: number; faction: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';

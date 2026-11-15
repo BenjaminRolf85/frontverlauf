@@ -1,19 +1,19 @@
 /**
- * Kampagne in der Oberflaeche: Fraktionswahl, Einsatzliste nach Akten, Comic-Besprechung mit Portraets,
+ * Kampagne in der Oberflaeche: Fraktionswahl, Einsatzliste nach Welten (act = Welt), Comic-Besprechung mit Portraets,
  * Ziel-Panel im Spiel und Ergebnis mit Sternen, Epilog und Zeitschleife nach dem Finale.
- * Campaign UI: faction picker, mission list by acts, comic briefing with portraits, in-game objective panel
+ * Campaign UI: faction picker, mission list by worlds (act = world), comic briefing with portraits, in-game objective panel
  * and result screen with stars, epilogue and time loop after the finale.
  */
 import { audio } from '../audio/audio';
 import './campaign.css';
 import {
-  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, allyFor, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
+  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
   type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
 import { PERSUADE, UNITS, type FactionId } from '../data/balance';
 import { t, tList } from '../i18n/i18n';
 import {
-  chooseFaction, clearNotice, currentMissionId, isCompleted, isUnlocked, loadStore, loopDone, loopsDone, nextMissionId, recordRunResult,
+  chooseFaction, clearNotice, currentMission, isCompleted, missionUnlocked, loadStore, loopDone, loopsDone, nextMissionId, recordRunResult,
   runOf, saveStore, totalStars,
 } from '../save/progress';
 import { button, esc, factionBadge, factionChip, iconButton, openDialog, toast } from './components';
@@ -23,7 +23,8 @@ import { openPrologue } from './lore';
 import type { ScreenHost } from './screens';
 
 const STATUS_ICON: Record<ObjectiveStatus, string> = { pending: 'hourglass', done: 'check', failed: 'close' };
-const ACTS = [1, 2, 3] as const;
+/** Welten als Kapitel (act = Nummer der Welt) / worlds as chapters (act = number of the world) */
+const ACTS = WORLDS.map((_, i) => i + 1);
 
 // ---------- Texte mit Platzhaltern / texts with placeholders ----------
 
@@ -59,7 +60,9 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
   // Hoehle: Hauptschacht und Nachschublinien statt HQ und Staedten / cavern: main shaft and supply lines instead of HQ and cities
   if (m.theme === 'cavern' && o.k === 'holdHq') return t('campaign.obj.holdShaft', { rounds });
   if (m.theme === 'cavern' && o.k === 'noCityLost') return t('campaign.obj.noLineLost');
-  // Landetrupp: das Ziel ist der Vorposten der Zyrr / landing party: the target is the Zyrr outpost
+  // Landetrupp: das Ziel ist der Vorposten der Zyrr, in der Wueste der Aussenposten der Verdan
+  // landing party: the target is the Zyrr outpost, in the desert the Verdan outpost
+  if (m.landing && o.k === 'capture' && m.theme === 'desert') return bonus ? t('campaign.obj.bonusVerdanOutpost') : t('campaign.obj.verdanOutpost', { rounds });
   if (m.landing && o.k === 'capture') return bonus ? t('campaign.obj.bonusOutpost') : t('campaign.obj.outpost', { rounds });
   switch (o.k) {
     case 'capture': return bonus ? t('campaign.obj.bonusCapture') : t('campaign.obj.capture', { rounds });
@@ -71,6 +74,9 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
     case 'destroyUnit': return t(UNITS[o.type].abilities.includes('boss') ? 'campaign.obj.boss' : 'campaign.obj.destroyUnit', { unit: t(`units.${o.type}`), rounds });
     case 'artifact': return t('campaign.obj.artifact', { n: o.rounds, rounds });
     case 'portal': return t('campaign.obj.portal', { n: o.rounds, rounds });
+    case 'cave': return t('campaign.obj.cave', { n: o.rounds, rounds });
+    case 'ruins': return t('campaign.obj.ruins', { n: o.n, rounds });
+    case 'rift': return t('campaign.obj.rift', { unit: t('units.swarmMother'), rounds });
     case 'reach': {
       // Anfuehrer des Besitzers am Zielfeld, sonst des ersten Gegners / leader of the owner at the target, else of the first enemy
       const p = s?.campaign?.targets[o.target];
@@ -194,17 +200,17 @@ export function campaignScreen(host: ScreenHost, opts: { pick?: boolean } = {}):
         ${f ? `<span class="campaign-total">${icon('star', 'icon-sm')}${esc(t('campaign.totalStars', { n: totalStars(runOf(st, f)), max: MISSIONS.length * 3 }))}</span>` : ''}</div>
         ${iconButton('close', t('campaign.toMenu'), 'back')}</div>
       <div class="campaign-intro">
-        <p>${esc(t('campaign.intro'))}</p>
+        <p><strong>${esc(t('campaign.subtitle', { n: MISSIONS.length, worlds: WORLDS.length }))}</strong> ${esc(t('campaign.intro'))}</p>
         <button type="button" class="btn secondary lore-btn" data-action="prologue">${icon('book', 'icon-sm')}<span>${esc(t('campaign.prologue'))}</span></button>
       </div>
-      ${st.notice ? `<div class="campaign-notice" role="status"><p>${icon('info', 'icon-sm')}<span>${esc(st.notice === 'migrated' ? t('campaign.migrated', { faction: t(`factions.${f ?? 'korvat'}.short`) }) : t('campaign.expanded'))}</span></p>${button(t('campaign.noticeOk'), { action: 'notice-ok', variant: 'secondary' })}</div>` : ''}
+      ${st.notice ? `<div class="campaign-notice" role="status"><p>${icon('info', 'icon-sm')}<span>${esc(st.notice === 'migrated' ? t('campaign.migrated', { faction: t(`factions.${f ?? 'korvat'}.short`) }) : st.notice === 'reordered' ? t('campaign.reordered') : t('campaign.expanded'))}</span></p>${button(t('campaign.noticeOk'), { action: 'notice-ok', variant: 'secondary' })}</div>` : ''}
       ${loops ? `<p class="campaign-loops">${icon('rotateLeft', 'icon-sm')}<span>${esc(t('campaign.loops', { n: loops, max: CAMPAIGN_FACTIONS.length }))}</span></p>` : ''}`;
     if (!f || picking) { n.innerHTML = head + pickerHtml(f); return; }
     const p = runOf(st, f);
-    const cur = currentMissionId(p, MISSION_IDS);
+    const cur = currentMission(p);
     const card = (m: MissionDef) => {
       const i = MISSION_IDS.indexOf(m.id);
-      const open = isUnlocked(p, MISSION_IDS, m.id);
+      const open = missionUnlocked(p, m.id);
       const rec = p.missions[m.id];
       const x = ctxOf(m, f);
       return `<button type="button" class="mission-card ${m.id === cur ? 'current' : ''}" data-mission="${m.id}" aria-disabled="${!open}">
@@ -249,7 +255,7 @@ export function campaignScreen(host: ScreenHost, opts: { pick?: boolean } = {}):
     const id = card.dataset.mission!;
     const st = loadStore();
     if (!st.faction) return;
-    if (!isUnlocked(runOf(st, st.faction), MISSION_IDS, id)) {
+    if (!missionUnlocked(runOf(st, st.faction), id)) {
       host.game.play('error');
       // Hinweis direkt in der Karte (Hinweise liegen unter dem Bildschirm) / hint inside the card (toasts sit below the screen)
       const tag = card.querySelector<HTMLElement>('.tag:last-child');
@@ -316,7 +322,9 @@ export function campaignResult(host: ScreenHost) {
   if (!s || !c || !m) return;
   const f = s.factions[0].id;
   const won = c.result === 'won';
-  saveStore(recordRunResult(loadStore(), f, m.id, won, c.stars, s.round));
+  // Halten-Siege enden zu Beginn der Runde nach dem Limit: die Bestrunde ist hoechstens das Limit
+  // hold wins end at the start of the round after the limit: the best round is at most the limit
+  saveStore(recordRunResult(loadStore(), f, m.id, won, c.stars, Math.min(s.round, m.rounds)));
   const next = won ? nextMissionId(MISSION_IDS, m.id) : null;
   const finale = won && !next;
   const x = ctxOf(m, f);
@@ -392,7 +400,7 @@ export class ObjectivePanel {
     const m = c ? missionById(c.mission) : undefined;
     if (!s || !c || !m || !this.visible) { this.node.hidden = true; return; }
     this.node.hidden = false;
-    const key = JSON.stringify([c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
+    const key = JSON.stringify([c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.caveHold, c.siteDone, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
     if (key === this.lastState) return;
     this.lastState = key;
     const done = c.status.filter((x) => x === 'done').length;
@@ -408,7 +416,7 @@ export class ObjectivePanel {
     const warn = art && art.k === 'artifact' && h && h.faction !== null && h.faction !== 0 && !c.allies?.includes(h.faction)
       ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.artifactHeld', { name: t(`factions.${s.factions[h.faction].id}.short`), have: h.n, need: art.rounds }))}</div>`
       // Landetrupp ohne Stadt / landing party without a city
-      : c.landing ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.landing'))}</div>` : '';
+      : c.landing ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t(m.theme === 'desert' ? 'campaign.landingDesert' : 'campaign.landing'))}</div>` : '';
     this.node.classList.toggle('collapsed', this.collapsed);
     this.node.innerHTML = `<button type="button" class="obj-toggle" data-action="obj-toggle" aria-expanded="${!this.collapsed}" aria-label="${esc(t('campaign.toggle'))}">
         ${icon('capture', 'icon-sm')}<span class="title">${esc(this.collapsed ? t('campaign.short') : missionTitle(m.id))}</span>
@@ -441,6 +449,14 @@ export function bossToast(root: HTMLElement, s: GameState, e: Extract<GameEvent,
     say(f, t('campaign.bossLine', { leader: t(`factions.${s.factions[0].id}.leader`) }));
   } else if (e.what === 'scream') toast(root, t('campaign.bossScream', { n: e.hits?.length ?? 0 }), 'warning');
   else if (e.what === 'brood' && s.factions[0].explored[e.y * s.size + e.x]) toast(root, t('campaign.bossBrood', { n: e.count ?? 0 }), 'warning');
+}
+
+/** Hinweis, wenn eine Ruinenstaette entziffert ist / toast when a ruin site is deciphered */
+export function ruinToast(root: HTMLElement, s: GameState) {
+  const m = s.campaign ? missionById(s.campaign.mission) : undefined;
+  const o = m?.objectives.find((x) => x.k === 'ruins');
+  if (!o || o.k !== 'ruins') return;
+  toast(root, t('campaign.ruinDone', { have: Math.min(o.n, (s.campaign!.siteDone ?? []).filter(Boolean).length), need: o.n }), 'columns');
 }
 
 /** Hinweis, wenn eine Welle eintrifft / toast when a wave arrives */

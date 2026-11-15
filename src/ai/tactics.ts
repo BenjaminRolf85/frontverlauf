@@ -5,9 +5,9 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, meteorExposed, type Command, type Reach, type Unit, type Pos,
 } from '../core';
-import { BARRIER, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
+import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -44,6 +44,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   for (const c of ctx.myCities) if (dist(c, d) === 1) { v += 6; break; }
   // Feindliches Wunder: jeder Treffer zaehlt (Unterbrechung oder Zerstoerung) / hostile wonder: every hit counts (interruption or destruction)
   if (isWonder(d) && d.owner !== ctx.f) v += 45 + victoryStatus(s, d.owner).ratio * 60 + (WONDERS.interruptible[d.type as WonderUnitId] ? 25 : 0);
+  // Kampagne: der markierte Endgegner ist das Missionsziel, jeder Treffer zaehlt / campaign: the marked boss is the objective, every hit counts
+  if (isBoss(d) && s.campaign?.units?.includes(d.id) && (ctx.f === 0 || s.campaign.allies?.includes(ctx.f))) v += CAMPAIGN_AI.bossAttackBonus;
   return v;
 }
 
@@ -287,6 +289,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     if (g.kind === 'village') v += 30;
     else if (g.kind === 'city') v += 20 + 25 * prof.aggression;
     else if (g.kind === 'defend') v += 22;
+    // Kampagne: Halte- und Zielfelder (Portal, Artefakt, Hoehle, Ruinen) wirklich betreten / campaign: really step onto hold and target tiles
+    else if (g.kind === 'bunker' && s.campaign) v += CAMPAIGN_AI.holdBonus;
   }
   const type = layer === 1 ? u.type : (u.carried ?? u.type);
   // Belagerungsring: bei Sturm direkt neben die Zielstadt / siege ring: next to the target city when assaulting
@@ -319,6 +323,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
+  // Meteorschauer zu Beginn der naechsten Runde: verletzte Fusstruppen in Staedte und Bunker / meteor shower at the start of the next round: hurt foot troops into cities and bunkers
+  if (weatherAt(s, s.round + 1) === 'meteor' && meteorExposed(s, u, x, y)) v -= AI.meteorExposed + (1 - u.hp / u.maxHp) * AI.meteorHurt;
   // wache Verdan-Geschuetze feuern zu Rundenbeginn; nur Kampfeinheiten nahe genug zum Angreifen lohnt es
   // awake Verdan guns fire at the start of the round; only worth it for fighters close enough to strike
   const guns = knownGuns(ctx).length ? gunDanger(ctx, x, y) : 0;

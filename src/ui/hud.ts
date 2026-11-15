@@ -7,7 +7,7 @@ import {
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
-  barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
+  barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherAt, hasWeather, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview,
@@ -29,7 +29,7 @@ import { victoryGoalText, wonderPanel } from './victory';
 const HINT_PRESS_MS = 450;
 
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
-const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
+const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning' };
 export const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
   spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
@@ -358,9 +358,10 @@ export class Hud {
 
   private weatherChip(s: GameState): string {
     const w = weather(s);
-    if (s.config.weather === false) return '';
+    // ohne Wetter (aus oder in der Hoehle) weder Chip noch Vorhersage / without weather (off or in the cavern) neither chip nor forecast
+    if (!hasWeather(s)) return '';
     const nextRound = (Math.floor((s.round - 1) / WEATHER.cycleRounds) + 1) * WEATHER.cycleRounds + 1;
-    const next = weatherFor(s.config.seed, nextRound);
+    const next = weatherAt(s, nextRound);
     const title = `${t(`weather.${w}`)}: ${t(`weather.${w}Desc`)} | ${t('weather.forecast', { round: nextRound, weather: t(`weather.${next}`) })}`;
     return `<span class="res weather" title="${esc(title)}" aria-label="${esc(title)}">${icon(WEATHER_ICON[w])}<span class="sub">${esc(t(`weather.${w}`))}</span></span>`;
   }

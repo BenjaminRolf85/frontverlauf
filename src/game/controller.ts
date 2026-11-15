@@ -323,7 +323,9 @@ export class Controller {
     const limit = s.config.roundLimit;
     const late = limit ? s.round >= limit * 0.6 : s.round >= 30;
     audio.setLeading(late && scores.length > 1 && scores[0].i === v && scores[0].p >= scores[1].p * 1.25);
-    audio.setAmbience(weather(s));
+    // Sandsturm klingt wie heulender Wind / a dust storm sounds like howling wind
+    const w = weather(s);
+    audio.setAmbience(w === 'dust' ? 'wind' : w === 'meteor' ? 'clear' : w);
   }
 
   setTab(tab: Tab) {
