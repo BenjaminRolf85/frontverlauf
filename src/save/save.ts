@@ -16,6 +16,8 @@ export interface Settings {
   tutorialDone: boolean;
   /** Prolog schon gesehen / prologue already seen */
   prologueSeen?: boolean;
+  /** Intro vor dem ersten Kampagnenstart schon gezeigt / intro already shown before the first campaign start */
+  introSeen?: boolean;
   barks: boolean;
   /** Funksprueche der Anfuehrer / leader dispatches */
   dispatches: boolean;

@@ -1,0 +1,34 @@
+/*
+ * Intro: Vollbild-Dialog mit Canvas, Bedienleiste oben rechts, Fortschrittsbalken unten. Nur Design-Tokens.
+ * Intro: full-screen dialog with a canvas, control bar top right, progress bar at the bottom. Design tokens only.
+ */
+.overlay.intro-overlay { padding: 0; background: var(--c-intro-bg); place-items: stretch; }
+.dialog.intro-dialog {
+  position: relative; width: 100%; height: 100%; max-width: none; max-height: none; padding: 0; margin: 0;
+  border: 0; border-radius: 0; box-shadow: none; background: var(--c-intro-bg); overflow: hidden; touch-action: none;
+}
+.intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
+.intro-bar {
+  position: absolute; display: flex; gap: var(--p-space-2); align-items: center; justify-content: flex-end; flex-wrap: wrap;
+  top: calc(env(safe-area-inset-top) + var(--c-intro-control-gap)); right: calc(env(safe-area-inset-right) + var(--c-intro-control-gap));
+  max-width: calc(100% - var(--c-intro-control-gap) * 2);
+}
+.intro-count {
+  color: var(--c-intro-paper); background: var(--c-intro-ink); font-family: var(--p-font-display);
+  padding: var(--p-space-1) var(--p-space-2); border-radius: var(--p-radius-sm); white-space: nowrap;
+}
+.intro-hint {
+  position: absolute; left: 50%; transform: translateX(-50%); margin: 0; text-align: center; pointer-events: none;
+  top: calc(env(safe-area-inset-top) + var(--p-size-touch-lg) + var(--c-intro-control-gap) * 2);
+  max-width: calc(100% - var(--p-space-6)); padding: var(--p-space-2) var(--p-space-3);
+  background: var(--c-intro-ink); color: var(--c-intro-paper);
+  border: var(--p-border-width-thin) solid var(--c-intro-hazard); border-radius: var(--p-radius-md);
+}
+.intro-progress { position: absolute; left: 0; right: 0; bottom: 0; height: var(--c-intro-progress-height); background: var(--c-intro-ink-soft); pointer-events: none; }
+.intro-progress > i { display: block; height: 100%; background: var(--c-intro-hazard); transform-origin: left center; transform: scaleX(0); }
+.intro-loading {
+  position: absolute; inset: 0; margin: 0; display: grid; place-items: center; text-align: center; padding: var(--p-space-4);
+  color: var(--c-intro-paper); font-family: var(--p-font-display); font-size: var(--p-font-size-xl);
+}
+/* Diashow: Bedienleiste mittig oben / slideshow: control bar centred at the top */
+.intro-slides .intro-bar { left: var(--c-intro-control-gap); justify-content: center; }
