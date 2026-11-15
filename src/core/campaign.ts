@@ -24,12 +24,13 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
 import { findShipSpot, placeShip, scientistOf, shipDist } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
+import { chooseTempleSite, placeTemple, runPursuit, templeDist, templeRing, updatePlans } from './temple';
 import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, Unit } from './types';
 import { WORLDS, worldOf } from './worlds';
 
@@ -105,7 +106,14 @@ export type ObjectiveDef =
   | { k: 'work'; rounds: number }
   /** Halten: der Wissenschaftler darf nicht fallen / hold: the scientist must not fall */
   | { k: 'scientist' }
+  /**
+   * Kriegsplaene aus dem Fanatiker-Tempel bergen und zum eigenen Hauptquartier bringen (temple.ts).
+   * Seize the war plans from the Fanatic temple and bring them to the own HQ (temple.ts).
+   */
+  | { k: 'plans' }
   // nur Bonus / bonus only
+  /** Der Traeger verliert die Kriegsplaene nie / the carrier never loses the war plans */
+  | { k: 'plansKept' }
   | { k: 'fast'; rounds: number }
   | { k: 'keepHq' }
   | { k: 'noCityLost' }
@@ -176,6 +184,13 @@ export interface SetupKit {
   mothership(home: Pos, enemy: Pos): Pos | null;
   /** Wissenschaftler des Spielers nahe einem Punkt (m2) / the player's scientist near a point (m2) */
   scientist(near: Pos): Unit | null;
+  /**
+   * Fanatiker-Tempel (2x2) mit den Kriegsplaenen, Platz aus TEMPLE_PLANS relativ zu from (Hauptquartier des Spielers)
+   * und dem Hauptquartier von owner; null, wenn kein Platz passt.
+   * Fanatic temple (2x2) with the war plans, site from TEMPLE_PLANS relative to from (the player's HQ) and the HQ of
+   * owner; null if no site fits.
+   */
+  temple(from: Pos, owner: number): Pos | null;
 }
 
 /**
@@ -333,27 +348,20 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
   },
   // Kapitel Die Glocke (gegen den Kult) / chapter The Bell (vs the cult)
   {
+    // Die Kriegsplaene: Plaene aus dem Fanatiker-Tempel (2x2) bergen und zum Hauptquartier bringen; der Kult jagt den Traeger
+    // The War Plans: seize the plans from the Fanatic temple (2x2) and bring them to the HQ; the cult hunts the carrier
     id: 'm4', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'easy' }],
-    seed: 4404, size: 14, mapType: 'continent', hazards: 'none', weather: true, events: true, startStars: 30, rounds: 14,
-    objectives: [{ k: 'kills', n: 8 }], bonus: [{ k: 'noCityLost' }, { k: 'fast', rounds: 10 }],
+    seed: 4404, size: 16, mapType: 'continent', hazards: 'none', weather: true, events: true, startStars: 30, rounds: TEMPLE_PLANS.m4Rounds,
+    objectives: [{ k: 'plans' }, { k: 'holdHq' }], bonus: [{ k: 'fast', rounds: TEMPLE_PLANS.m4FastRound }, { k: 'plansKept' }],
     briefing: ['scout', 'enemy', 'hq'],
-    waves: [
-      { round: 4, owner: 1, units: ['zealot', 'zealot'], at: 0, stars: 10 },
-      { round: 7, owner: 1, units: ['zealot', 'torchbearer'], at: 1, stars: 10 },
-    ],
     setup(k) {
-      const a = k.hq(0), b = k.hq(1);
-      const v = k.grantNear(0, a) ?? a;
-      k.spawn('mg', 0, a); k.spawn('infantry', 0, v);
-      // weitere Pilgerzuege vor beiden Staedten / more pilgrim trains in front of both cities
-      const p0 = ringNear(k, a, k.toward(a, b, 3), 2, 4);
-      k.point(p0);
-      k.point(k.landNear(k.toward(v, b, 3), (q) => dist(q, v) >= 2 && dist(q, v) <= 4 && dist(q, p0) >= 2));
-      // Pilger werden zu Eiferern, mitten im eigenen Land / pilgrims turn into zealots right inside the own land
-      for (const c of v === a ? [a] : [a, v]) {
-        const p = k.toward(c, b, 2);
-        k.spawn('zealot', 1, p, { min: 1 }); k.spawn('zealot', 1, p, { min: 1 });
-        revealArea(k.s, 0, p.x, p.y, 2);
+      const a = k.hq(0);
+      const t = k.temple(a, 1);
+      k.spawn('jeep', 0, a); k.spawn('mg', 0, a); k.spawn('infantry', 0, a);
+      // Tempelwache auf der Seite zum Spieler hin / temple guard on the side facing the player
+      if (t) {
+        const front = templeRing(k.s)[0] ?? t;
+        for (const g of TEMPLE_PLANS.guards) k.spawn(g, 1, front);
       }
     },
   },
@@ -685,10 +693,12 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
 
 const PLAYER = 0;
 
-/** Darf hier nichts entstehen (das Artefakt, das Mutterschiff)? / may nothing appear here (the artifact, the mothership)? */
+/** Darf hier nichts entstehen (das Artefakt, das Mutterschiff, der Tempel)? / may nothing appear here (the artifact, the mothership, the temple)? */
 export function spawnBlocked(s: GameState, q: Pos): boolean {
   const art = s.campaign?.artifact;
   if (s.campaign?.ship && shipDist(s.campaign.ship, q) === 0) return true;
+  // Fanatiker-Tempel (m4) / Fanatic temple (m4)
+  if (s.campaign?.temple && templeDist(s.campaign.temple, q) === 0) return true;
   return !!art && art.x === q.x && art.y === q.y;
 }
 
@@ -731,7 +741,7 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
     },
     landNear: (p, extra) => nearestTile(s, p, (q) => {
       const t = tileAt(s, q.x, q.y)!;
-      return isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !cityAt(s, q.x, q.y) && (!extra || extra(q));
+      return isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.temple && !cityAt(s, q.x, q.y) && (!extra || extra(q));
     }) ?? p,
     spawn: (type, owner, near, opts = {}) => spawnNear(s, type, owner, near, opts.carried ?? null, opts.min ?? 0),
     grantNear: (owner, near, minDist = 0) => {
@@ -770,13 +780,19 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
       if (u) c.scientist = u.id;
       return u;
     },
+    temple: (from, owner) => {
+      const e = hqOf(s, owner);
+      const a = chooseTempleSite(s, from, e ? { x: e.x, y: e.y } : null);
+      if (a) placeTemple(s, c, a, owner);
+      return a;
+    },
   };
 }
 
 /** Freies, flaches Land ohne Stadt, Merkmal, Geschuetz und Einheit / free flat land without city, feature, gun and unit */
 function openLand(s: GameState, q: Pos): boolean {
   const t = tileAt(s, q.x, q.y);
-  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
+  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !t.temple && !unitAt(s, q.x, q.y);
 }
 
 /**
@@ -863,6 +879,7 @@ function placeTowers(s: GameState, count: number) {
       if (s.campaign?.portal && dist(s.campaign.portal, q) < 2) continue;
       // Mutterschiff (m2): Arbeitsplaetze und Anmarsch bleiben frei / mothership (m2): work spots and the approach stay free
       if (s.campaign?.ship && shipDist(s.campaign.ship, q) < 3) continue;
+      if (s.campaign?.temple && templeDist(s.campaign.temple, q) < TEMPLE_PLANS.cityGap + 1) continue;
       const d = Math.min(...hqs.map((h) => dist(h, q)), ...placed.map((p) => dist(p, q) * 1.5));
       if (d > bestD) { bestD = d; best = q; }
     }
@@ -1173,6 +1190,8 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
       const u = scientistOf(s);
       return u && u.hp >= u.maxHp * M2.hpShare ? 'pending' : 'failed';
     }
+    case 'plans': return c.plans?.at === 'delivered' ? 'done' : 'pending';
+    case 'plansKept': return (c.plans?.drops ?? 0) > 0 ? 'failed' : 'pending';
   }
 }
 
@@ -1224,8 +1243,11 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   // At the start of the player's turn: waves, count artifact, portal, cave, transmitter towers and ruins. After the round limit nothing counts
   // any more: the mission then ends at the limit, a hold win never lands one round late.
   const expired = s.round > m.rounds;
+  // Kriegsplaene (m4): Tod des Traegers, Abliefern, Rueckholung / war plans (m4): death of the carrier, delivery, recovery
+  updatePlans(s, c, ev);
   if (turnChange && s.current === PLAYER && !s.over && !expired) {
     runWaves(s, c, m, ev);
+    runPursuit(s, c, ev, (type, owner, near) => spawnNear(s, type, owner, near, null, 0));
     countArtifact(s, c);
     countPortal(s, c);
     countCave(s, c);
@@ -1273,7 +1295,7 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
     defs.forEach((o, i) => {
       if (list[i] !== 'pending') return;
       // Sieg: offene Hauptziele gelten als erfuellt (auch beim Sieg, weil kein Gegner mehr lebt) / win: open primary objectives count as met (also when no enemy is left)
-      const done = result === 'won' && (!bonus || isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || o.k === 'scientistHp' || (o.k === 'fast' && s.round <= o.rounds));
+      const done = result === 'won' && (!bonus || isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || o.k === 'scientistHp' || o.k === 'plansKept' || (o.k === 'fast' && s.round <= o.rounds));
       list[i] = done ? 'done' : 'failed';
       ev.push({ t: 'objective', index: i, bonus, status: list[i] });
     });
@@ -1293,6 +1315,16 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
     s.winner = winner;
     ev.push({ t: 'gameOver', winner });
   } else s.winner = winner;
+}
+
+/**
+ * Spielstand einer Kriegsplaene-Mission ohne Tempel (alte m4-Fassung "Falsche Pilger"): nicht mehr spielbar.
+ * Save of a war-plans mission without a temple (old m4 version "False Pilgrims"): no longer playable.
+ */
+export function staleTempleSave(s: GameState): boolean {
+  const c = s.campaign;
+  const m = c ? missionById(c.mission) : undefined;
+  return !!c && !!m && m.objectives.some((o) => o.k === 'plans') && (!c.temple || !c.plans);
 }
 
 /** Runden bis zum Missionsende / rounds until the end of the mission */

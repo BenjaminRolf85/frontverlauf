@@ -26,8 +26,8 @@ export function placeUnit(s: GameState, type: UnitTypeId, owner: number, x: numb
 /** Feld fuer eine Einheit dieses Typs geeignet und frei? / tile suitable and free for a unit of this type? */
 export function freeFor(s: GameState, type: UnitTypeId, p: Pos): boolean {
   const t = tileAt(s, p.x, p.y);
-  // Mutterschiff (m2) wie Wunder-Grundflaechen unpassierbar / mothership (m2) impassable like wonder footprints
-  if (!t || unitAt(s, p.x, p.y) || t.wonderOf || t.turret || t.feature === 'mothership') return false;
+  // Mutterschiff (m2) und Fanatiker-Tempel (m4) wie Wunder-Grundflaechen unpassierbar / mothership (m2) and Fanatic temple (m4) impassable like wonder footprints
+  if (!t || unitAt(s, p.x, p.y) || t.wonderOf || t.turret || t.feature === 'mothership' || t.temple) return false;
   if (UNITS[type].ship) return isWater(t) && t.cityId === null;
   if (!isLand(t)) return false;
   if (t.terrain === 'mountain' || t.volcano) return false;

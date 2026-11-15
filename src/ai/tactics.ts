@@ -9,6 +9,7 @@ import {
 } from '../core';
 import { emplacementOption } from './emplacements';
 import { scientistAttackBonus, workSpotPenalty } from './mothership';
+import { carrierAttackBonus, planSeize } from './temple';
 import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
@@ -52,6 +53,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   if (isBoss(d) && s.campaign?.units?.includes(d.id) && (ctx.f === 0 || s.campaign.allies?.includes(ctx.f))) v += CAMPAIGN_AI.bossAttackBonus;
   // Kampagne m2: die Zyrr wollen den Wissenschaftler / campaign m2: the Zyrr want the scientist
   v += scientistAttackBonus(ctx, d);
+  // Kampagne m4: der Traeger der Kriegsplaene ist das Ziel des Kults / campaign m4: the carrier of the war plans is the cult's target
+  v += carrierAttackBonus(ctx, d) * (p.killChance + 0.4);
   return v;
 }
 
@@ -68,6 +71,9 @@ function bestAttackFrom(ctx: Ctx, u: Unit, x: number, y: number): number {
 }
 
 export function planCapture(ctx: Ctx, failed: Failed): Command | null {
+  // Kampagne m4: Kriegsplaene bergen oder aufheben / campaign m4: seize or pick up the war plans
+  const seize = planSeize(ctx, (c) => ok(failed, c));
+  if (seize) return seize;
   for (const u of ctx.my) {
     if (!captureKind(ctx.s, u)) continue;
     const c: Command = { type: 'capture', unit: u.id };

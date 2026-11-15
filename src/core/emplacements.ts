@@ -46,7 +46,7 @@ export type EmplacementCheck = 'ok' | Extract<ErrorCode,
  */
 function siteFree(s: GameState, t: Tile, f: number): boolean {
   return EMPLACEMENT.terrain.includes(t.terrain) && t.cityId === null && !t.building && !t.resource && !t.feature && !t.outpost &&
-    !t.grandProject && !t.barrier && t.mine?.owner !== f && !t.turret && !t.wonderOf && !t.volcano && !burning(s, t);
+    !t.grandProject && !t.barrier && t.mine?.owner !== f && !t.turret && !t.wonderOf && !t.temple && !t.volcano && !burning(s, t);
 }
 
 /** Kann u eine Stellung auf (x, y) bauen? / can u build an emplacement on (x, y)? */

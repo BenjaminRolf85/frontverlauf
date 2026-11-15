@@ -27,6 +27,7 @@ import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
 import { shipWorkToast } from './ui/mothership';
 import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
+import { plansToast } from './ui/temple';
 import { showRandomEvent } from './ui/events';
 
 function boot() {
@@ -232,6 +233,8 @@ function boot() {
         case 'wave': waveToast(root, s, e.faction, e.count); break;
         case 'ruin': ruinToast(root, s); break;
         case 'shipWork': shipWorkToast(root, e); break;
+        // Kriegsplaene (m4) / war plans (m4)
+        case 'plans': plansToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Meteorschauer und Saeureregen: Bescheid, wenn eigene Einheiten getroffen sind / meteors and acid rain: tell when own units are hit
         case 'weatherHit': {
           const own = e.hits.filter((h) => s.units.find((u) => u.id === h.unit)?.owner === viewer).length;

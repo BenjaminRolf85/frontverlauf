@@ -10,6 +10,7 @@ import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, 
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
+import { carrierGoal, plansGoals } from './temple';
 
 export type GoalKind =
   | 'village' | 'city' | 'bunker' | 'explore' | 'defend' | 'hunt' | 'stage' | 'refuel' | 'retreat' | 'home'
@@ -145,7 +146,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     }
     if (water && !bridge && wader) lok = true;
     // Vulkangipfel und Lava meiden / avoid volcano peaks and lava
-    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret || t.feature === 'mothership') lok = false;
+    if (t.volcano || (t.lava !== undefined && t.lava >= s.round) || t.wonderOf || t.turret || t.feature === 'mothership' || t.temple) lok = false;
     landOk[k] = lok ? 1 : 0;
     realLand[k] = !water && lok ? 1 : 0;
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
@@ -448,6 +449,8 @@ function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goa
     else if (side) out.push({ kind: t.owner === null ? 'village' : 'city', x: t.x, y: t.y, value: A.towerValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.owner === null ? undefined : t.id });
     else if (ours && isHostile(s, f, t.owner!)) out.push({ kind: 'city', x: t.x, y: t.y, value: A.towerEnemyValue, cap: A.towerCap + 1, distW: A.siteDistW, src: tileSrc(t.x, t.y), water: false, targetId: t.id });
   }
+  // Kriegsplaene (m4): Tempel, Traeger, Eskorte, fallen gelassene Plaene; beide Seiten (temple.ts) / war plans (m4): temple, carrier, escort, dropped plans; both sides (temple.ts)
+  if (wants('plans')) out.push(...plansGoals(ctx));
   if (!side) return out;
   if (c.portal && wants('portal')) hold(c.portal, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
   // Erreichen-Ziele: zum Zielfeld vorruecken, sobald kein Landetrupp mehr ohne Stadt ist / reach objectives: advance to the target tile once no landing party is left without a city
@@ -584,6 +587,9 @@ function assignGoals(ctx: Ctx) {
   // Festungsbau: Bauer ziehen zur bedrohtesten Stadt ohne Stellung / fortification: builders head to the most threatened city without an emplacement
   const builder = new Map<number, Goal>();
   for (const u of ctx.my) { const g = emplacementGoal(ctx, u); if (g) builder.set(u.id, g); }
+  // Traeger der Kriegsplaene (m4): immer heim zum Hauptquartier / carrier of the war plans (m4): always home to the HQ
+  const carrier = carrierGoal(ctx);
+  if (carrier) builder.set(carrier.unit.id, carrier.goal);
   const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u);
   for (const u of ctx.my) {
     if (special(u)) continue;

@@ -353,15 +353,8 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(ok.campaign!.result).toBe('won');
   });
 
-  it('m4: Abschuesse; alle Gegner ausgeschieden = Sieg (der Kult mit seiner letzten Einheit) / kills; all enemies eliminated = win (the cult with its last unit)', () => {
-    const s = game('m4');
-    s.factions[0].kills = 7;
-    poke(s);
-    expect(s.campaign!.result).toBeNull();
-    s.factions[0].kills = 8;
-    poke(s);
-    expect(s.campaign!.result).toBe('won');
-
+  // m4 (Kriegsplaene) hat eigene Tests in campaign-temple.test.ts / m4 (war plans) has its own tests in campaign-temple.test.ts
+  it('m4: alle Gegner ausgeschieden = Sieg (der Kult mit seiner letzten Einheit) / all enemies eliminated = win (the cult with its last unit)', () => {
     const e = game('m4');
     expect(ownCities(e, 1).length).toBe(1);
     const hq = ownCities(e, 1)[0];
@@ -379,7 +372,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     expect(e.campaign!.result).toBe('won');
     expect(r.events.filter((x) => x.t === 'gameOver').length).toBe(1);
     // Sieg ohne Gegner: offene Hauptziele gelten als erfuellt, nie als verfehlt / win without enemies: open primary objectives count as met, never failed
-    expect(e.campaign!.status).toEqual(['done']);
+    expect(e.campaign!.status).toEqual(['done', 'done']);
   });
 
   it('m5/m7: Eroberung der Zielstaedte / capturing the target cities', () => {

@@ -680,7 +680,10 @@
     "mine": "Mine legen",
     "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine.",
     "persuade": "Überzeugen",
-    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne)."
+    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne).",
+    "seizePlans": "Kriegspläne bergen",
+    "pickPlans": "Kriegspläne aufheben",
+    "seizePlansDesc": "Nimmt die Kriegspläne an sich und beendet den Zug der Einheit. Bring sie in oder neben dein Hauptquartier."
   },
   "errors": {
     "gameOver": "Die Partie ist vorbei.",
@@ -738,7 +741,8 @@
     "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
     "orbitalCooldown": "Der Orbitallaser lädt noch.",
     "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
-    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay."
+    "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
+    "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen"
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1023,7 +1027,13 @@
       "work": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten, bis Runde {rounds}",
       "workPanel": "Lass den Wissenschaftler {n} Runden am Mutterschiff arbeiten ({have}/{n})",
       "scientist": "Der Wissenschaftler darf nicht fallen",
-      "scientistHp": "Der Wissenschaftler fällt nie unter {share} % seiner LP"
+      "scientistHp": "Der Wissenschaftler fällt nie unter {share} % seiner LP",
+      "plans": "Berge die Kriegspläne aus dem Fanatiker-Tempel und bringe sie zu deinem Hauptquartier, bis Runde {rounds}",
+      "plansKept": "Der Träger verliert die Kriegspläne nie",
+      "plansTemple": "Kriegspläne: im Tempel",
+      "plansCarried": "Kriegspläne: getragen von {unit}",
+      "plansDropped": "Kriegspläne: liegen am Boden",
+      "plansDelivered": "Kriegspläne: abgeliefert"
     },
     "missions": {
       "m1": {
@@ -1072,19 +1082,19 @@
         "lost": "Das Portal bleibt in der Hand der Zyrr. Und es spuckt weiter Graue aus."
       },
       "m4": {
-        "title": "Falsche Pilger",
-        "tagline": "Erledige die Eiferer in deinem Land",
+        "title": "Die Kriegspläne",
+        "tagline": "Hol die Kriegspläne aus dem Fanatiker-Tempel und bring sie heim",
         "brief": [
-          "Die Pilger, die wir aufgenommen haben, tragen plötzlich Knochenmasken! Sie stehen direkt vor unseren Toren.",
-          "Die Glocke hat geschlagen. Von selbst! Brüder, Schwestern, bekehrt sie oder brennt sie nieder.",
-          "{leader} hier. Acht Eiferer weniger, und die Ruhe kehrt zurück. Schnell, bevor sie anfangen zu predigen."
+          "Kommandant, wir haben ihn gefunden: einen Tempel der Fanatiker, vier Felder groß, mit Glockenturm und Feuerschalen. Darin liegen ihre Kriegspläne. Unser Jeep ist schnell genug, um sie herauszuholen.",
+          "{enemyLeader} spricht: Die Glocke hat von selbst geschlagen. Unsere Pläne ruhen im Tempel. Wer sie berührt, den jagen alle Glocken des Landes, bis ans Ende der Welt.",
+          "{leader} hier. Eine Einheit neben den Tempel, Pläne an uns nehmen, zurück zum Hauptquartier. Deckt den Träger! Fällt er, liegen die Pläne im Dreck, und wir holen sie uns wieder. Achtzehn Runden."
         ],
-        "ally": "{allyLeader} hier. {ally} hat auch Pilger im Haus. Wir räumen gemeinsam auf, {leader}.",
-        "won": "Die Masken liegen im Staub. Der Rest der Pilger will plötzlich nur noch Tee.",
-        "lost": "Die Eiferer predigen auf unseren Marktplätzen. Der Bäcker trägt schon eine Kutte.",
+        "ally": "{allyLeader} hier. {ally} gibt deinem Träger Geleit, {leader}. Wer ihn jagt, bekommt es mit uns zu tun.",
+        "won": "Die Pläne liegen auf dem Kartentisch: eine Pilgerstadt voller Eiferer, eine riesige Glocke und ein Bohrer bis zum Erdkern. Jetzt wissen wir, wofür die Glocke läutet.",
+        "lost": "Die Kriegspläne sind wieder im Tempel. Die Glocke läutet, und wir wissen immer noch nicht, wofür.",
         "variants": {
           "alvenia": {
-            "won": "Die Masken liegen im Staub. Unsere Sanitäter verbinden jetzt auch die Eiferer. So ist das bei uns."
+            "won": "Die Pläne sind bei uns. Unsere Diplomaten lesen sie mit sehr ernsten Gesichtern: eine Pilgerstadt, eine Glocke, ein Bohrer bis zum Erdkern."
           }
         }
       },
@@ -1092,7 +1102,7 @@
         "title": "Die Pilgerstadt",
         "tagline": "Erobere die Hauptstadt des Kults",
         "brief": [
-          "{leader} an alle: Der Kult sammelt sich in seiner Pilgerstadt. Nehmt sie ein, dann verstummt die Glocke vielleicht.",
+          "{leader} an alle: Die Kriegspläne sind eindeutig. Der Kult sammelt sich in seiner Pilgerstadt. Nehmt sie ein, dann verstummt die Glocke vielleicht.",
           "{enemyLeader} spricht: Kommt nur. Unsere Stadt ist auf Glauben gebaut. Und auf sehr dicken Mauern.",
           "Fackelträger auf den Mauern, Eiferer in den Gassen. Die Seen bremsen uns, Kommandant. Nehmt die Ufer."
         ],
@@ -1109,7 +1119,7 @@
         "title": "Der Erdkernbohrer",
         "tagline": "Zerstöre den Bohrer, bevor er durchbricht",
         "brief": [
-          "Der Boden zittert, Kommandant! Der Kult hat einen riesigen Bohrer aufgestellt. Er will bis zum Erdkern!",
+          "Der Boden zittert, Kommandant! Der Bohrer aus den Kriegsplänen steht wirklich da. Der Kult will bis zum Erdkern!",
           "Die Letzte Stunde braucht ein Loch, durch das sie kommen kann. Wir bohren es ihr.",
           "{leader} hier. Panzer und Artillerie vor! Der Bohrer muss weg, bevor er durchbricht. Vierzehn Runden, keine mehr."
         ],
@@ -1317,7 +1327,14 @@
     "riftOpen": "Der Riss reißt auf!",
     "landingBurrow": "Landetrupp ohne Basis: Erobere die Höhle der Zyrr, sonst gibt es keinen Nachschub.",
     "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht.",
-    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn."
+    "towerHoldTip": "Und noch etwas, Kommandant: Die Sendetürme bilden Truppen aus, wachsen aber nicht. Gezählt wird zu Beginn deines Zuges. Fällt ein Turm, beginnt die Zählung von vorn.",
+    "plansSeized": "Kriegspläne geborgen! Bring den Träger zum Hauptquartier.",
+    "plansPicked": "Kriegspläne wieder aufgehoben!",
+    "plansDropped": "Der Träger ist gefallen. Die Kriegspläne liegen am Boden!",
+    "plansReturned": "Die Fanatiker haben die Kriegspläne zurück in den Tempel gebracht.",
+    "plansDelivered": "Kriegspläne abgeliefert!",
+    "plansLine": "Diebe im Tempel! Brüder, Schwestern, holt mir die Pläne zurück, und den Dieb dazu!",
+    "plansTip": "Tipp: Nur Landeinheiten direkt neben dem Tempel können die Pläne bergen. Schick einen schnellen Jeep mit Begleitschutz. Sobald die Pläne fort sind, schickt der Kult alle {n} Runden Verfolger."
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -3599,5 +3616,16 @@
     "tileDesc": "Ein abgestürztes Mutterschiff der Zyrr auf vier Feldern: nicht begehbar, nicht einnehmbar, nicht angreifbar. Der Wissenschaftler arbeitet auf einem der Nachbarfelder ({have}/{need} Runden).",
     "toast": "Der Wissenschaftler hat am Mutterschiff gearbeitet: {have}/{need} Runden.",
     "toastDone": "Geschafft! Der Wissenschaftler hat das Mutterschiff entschlüsselt."
+  },
+  "temple": {
+    "name": "Fanatiker-Tempel",
+    "sub": "Wahrzeichen, 2x2 Felder",
+    "desc": "Unpassierbar, nicht einnehmbar, nicht angreifbar. Eine eigene Landeinheit direkt daneben kann die Kriegspläne bergen.",
+    "plansInside": "Die Kriegspläne liegen im Tempel.",
+    "plansGone": "Die Kriegspläne sind fort.",
+    "carrier": "Trägt die Kriegspläne",
+    "carrierDesc": "Kann nicht bekehrt werden. In oder neben dem Hauptquartier sind die Pläne abgeliefert. Fällt der Träger, fallen die Pläne auf sein Feld.",
+    "dropped": "Kriegspläne liegen hier",
+    "droppedDesc": "Eine eigene Einheit auf oder neben dem Feld hebt sie auf. Betritt ein Fanatiker das Feld, bringt er sie zurück in den Tempel."
   }
 }

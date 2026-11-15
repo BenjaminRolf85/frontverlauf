@@ -253,6 +253,13 @@
   --p-color-orbital-uplink: #6dffb4;
   --p-color-orbital-aim: #ff3355;
   --p-color-orbital-scorch: #241a16;
+  --p-color-temple-stone700: #2c2629;
+  --p-color-temple-stone500: #4a3f40;
+  --p-color-temple-stone300: #6e5f5a;
+  --p-color-temple-fire: #ff8f2b;
+  --p-color-temple-fire-core: #ffe27a;
+  --p-color-plans-parchment: #e9d3a4;
+  --p-color-plans-case: #5a2c18;
   --p-font-display: 'Black Ops One', 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-comic: 'Bangers', 'Impact', 'Arial Black', sans-serif;
   --p-font-body: 'Comic Neue', 'Trebuchet MS', 'Segoe UI', sans-serif;
@@ -591,6 +598,13 @@
   --s-orbital-aim: #ff3355;
   --s-orbital-own: #f08a24;
   --s-orbital-scorch: #241a16;
+  --s-temple-stone-dark: #2c2629;
+  --s-temple-stone: #4a3f40;
+  --s-temple-stone-light: #6e5f5a;
+  --s-temple-fire: #ff8f2b;
+  --s-temple-fire-core: #ffe27a;
+  --s-plans-parchment: #e9d3a4;
+  --s-plans-case: #5a2c18;
   --faction-korvat-primary: #c8372d;
   --faction-korvat-secondary: #6b7a3a;
   --faction-korvat-terrain: #a6c95a;
