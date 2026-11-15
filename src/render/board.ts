@@ -171,7 +171,7 @@ export class Board {
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
-  readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : cloudGeometry(v)));
+  readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : this.theme === 'alien' ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
   /** Darstellungsqualitaet (View.setQuality): 'low' = weniger Hoehlen-Deko / render quality: 'low' = less cavern decoration */
   quality: 'low' | 'high' = 'high';
   /** Felswaende, Gewoelbe und Tropfsteine der Hoehle / rock walls, vault and stalactites of the cavern */
