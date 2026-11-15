@@ -9,7 +9,7 @@ import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
-  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
+  unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
@@ -44,6 +44,8 @@ export const UNIT_ICON: Record<string, string> = {
   android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
   antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
   steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'barrier', privateer: 'sail', protoWalker: 'walker',
+  // Velkar-Bauarten / Velkar designs
+  teslaTank: 'tesla', octocopter: 'fuel', railSniper: 'range',
   // Wunder der Siegbedingungen / victory wonders
   portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
@@ -150,9 +152,36 @@ function homeDefenseHint(s: GameState, target: Unit, key: 'hint' | 'tag' = 'hint
   return b > 0 ? t(`homeDefense.${key}`, { pct: Math.round(b * 100), name: t(`homeDefense.bonus.${s.factions[target.owner].id}`) }) : '';
 }
 
+/**
+ * Eigene Trefferchancen des Einheitentyps (HIT.unit), z. B. "Tesla: hoher Schaden, 38 % Fehlschuss"; leer ohne Trefferglueck.
+ * Own hit odds of the unit type (HIT.unit), e.g. "Tesla: high damage, 38% miss"; empty without hit luck.
+ */
+function hitProfileHint(s: GameState, u: Unit): string {
+  if (!hitChanceOn(s) || !unitHitProfile(u.type)) return '';
+  return t(`hit.unit.${u.type}`, { miss: Math.round(hitOdds(s, u).miss * 100) });
+}
+
+/** Feuert nur aus dem Stand (kein Sturm): nach einer Bewegung kein Angriff / fires only from a standstill (no dash): no attack after moving */
+export function stationaryOnly(type: UnitTypeId): boolean {
+  const st = UNITS[type];
+  return !st.ship && st.move > 0 && st.attack > 0 && st.range > 0 && !st.abilities.includes('dash') && !st.abilities.includes('wonder');
+}
+
 /** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
 function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number }, u: Unit, target: Unit | null): string {
-  return [p.moveFire ? moveFireHint(s, u) : '', target && p.homeDefense ? homeDefenseHint(s, target) : ''].filter(Boolean).join(' · ');
+  return [hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
+    target && p.homeDefense ? homeDefenseHint(s, target) : ''].filter(Boolean).join(' · ');
+}
+
+/**
+ * Marke im Einheitenfeld: feuert nur aus dem Stand; nach einer Bewegung in diesem Zug als Warnung.
+ * Tag in the unit panel: fires only from a standstill; as a warning after moving this turn.
+ */
+function stationaryTag(s: GameState, u: Unit): string {
+  if (!stationaryOnly(u.type)) return '';
+  const moved = u.owner === s.current && movedThisTurn(u) && !u.attacked;
+  const tip = t('stationary.tagDesc');
+  return `<span class="stat tag ${moved ? 'warn' : ''}" title="${esc(tip)}" aria-label="${esc(tip)}">${icon(moved ? 'warning' : 'range', 'icon-sm')}${esc(t(moved ? 'stationary.moved' : 'stationary.tag'))}</span>`;
 }
 
 /**
@@ -177,7 +206,7 @@ function moveFireTag(s: GameState, u: Unit): string {
 
 /** Kampfmarken im Einheitenfeld (immer sichtbar, auch auf dem Handy) / combat tags in the unit panel (always visible, also on phones) */
 function combatTags(s: GameState, u: Unit): string {
-  const tags = moveFireTag(s, u) + homeDefenseTag(s, u);
+  const tags = moveFireTag(s, u) + stationaryTag(s, u) + homeDefenseTag(s, u);
   return tags ? `<div class="row">${tags}</div>` : '';
 }
 
@@ -193,6 +222,12 @@ function accuracyStat(s: GameState, u: Unit): string {
   if (!hitChanceOn(s)) return '';
   const o = hitOdds(s, u);
   const tip = HIT_KINDS.map((k) => `${t(`hit.${k}`)} ${Math.round(o[k] * 100)} %`).join(' · ');
+  // eigene Trefferchancen (Tesla-Panzer, Railgun-Schuetze) statt der Rasse / own hit odds (Tesla tank, railgun marksman) instead of the race
+  const own = unitHitProfile(u.type);
+  if (own) {
+    const desc = t(`hit.unitDesc.${u.type}`, { miss: Math.round(own.miss * 100), crit: Math.round(own.crit * 100), atk: num(UNITS[u.type].attack), base: num(UNITS.tank.attack) });
+    return `<span class="stat tag" title="${esc(`${desc} ${tip}`)}">${icon('dice', 'icon-sm')}${esc(hitProfileHint(s, u))}</span>`;
+  }
   const race = unitRace(s, u);
   const note = race === 'cult' && cultFrenzy(u, race) ? ` · ${t('hit.frenzy')}` : race === 'robot' && u.hp < u.maxHp ? ` · ${t('hit.worn')}` : '';
   const ready = canOrderlyRetreat(u) && (u.retreatReady ?? 0) > s.round ? ` · ${t('retreat.cooldown', { n: (u.retreatReady ?? 0) - s.round })}` : '';
