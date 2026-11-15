@@ -186,7 +186,7 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
   it('besondere Einrichtung: Mutterschiff, Bohrer, Depots, Bunker, Artefakt / special setup: mothership, drill, depots, bunker, artifact', () => {
     // Einzelheiten zum Mutterschiff in campaign-mothership.test.ts / mothership details in campaign-mothership.test.ts
     const m2 = game('m2');
-    const site = m2.campaign!.targets[0];
+    const site = m2.campaign!.ship!;
     expect(m2.tiles[site.y * m2.size + site.x].feature).toBe('mothership');
     const m6 = game('m6', 'velkar');
     expect(m6.units.find((u) => u.id === m6.campaign!.units![0])!.owner).toBe(1);

@@ -28,7 +28,7 @@ import {
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
-import { findShipSpot, placeShip, scientistOf, shipDist, shipTiles } from './mothership';
+import { findShipSpot, placeShip, scientistOf, shipDist } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, Unit } from './types';
 import { WORLDS, worldOf } from './worlds';
@@ -170,8 +170,8 @@ export interface SetupKit {
    */
   towers(): City[];
   /**
-   * Mutterschiff (m2, 2x2 Felder) zwischen home und enemy setzen, als Zielfelder markiert; liefert die linke obere Ecke.
-   * Put the mothership (m2, 2x2 tiles) between home and enemy, marked as target tiles; returns the top-left corner.
+   * Mutterschiff (m2, 2x2 Felder) zwischen home und enemy setzen (das Modell selbst ist die Markierung); liefert die linke obere Ecke.
+   * Put the mothership (m2, 2x2 tiles) between home and enemy (the model itself is the marker); returns the top-left corner.
    */
   mothership(home: Pos, enemy: Pos): Pos | null;
   /** Wissenschaftler des Spielers nahe einem Punkt (m2) / the player's scientist near a point (m2) */
@@ -763,7 +763,6 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
       placeShip(s, p);
       c.ship = { x: p.x, y: p.y };
       c.work = 0;
-      for (const q of shipTiles(p)) c.targets.push(q);
       return p;
     },
     scientist: (near) => {
