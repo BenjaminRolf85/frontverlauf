@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
@@ -11,8 +11,10 @@ import {
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow,
+  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
+import { emplacementCount, emplacementDesc, emplacementName, emplacementStats } from './emplacement';
 import type { Controller } from '../game/controller';
 import { has as hasText, num, t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
@@ -563,6 +565,18 @@ export class Hud {
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
         if (this.cityNote) body += `<p class="muted">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
       }
+    } else if (explored && turretAt(s, x, y)?.owner !== undefined) {
+      // Geschuetzstellung: Besitzer, Panzerung, Reichweite, feuert jede Runde / gun emplacement: owner, armour, range, fires every round
+      const gun = turretAt(s, x, y)!;
+      const of = gun.owner!;
+      head = `${factionBadge(s.factions[of].id, 'range')}<div class="grow"><h3 class="display">${esc(t('emplacement.name'))}</h3>
+        <div class="muted unit-sub">${esc(t(`factions.${s.factions[of].id}.short`))} · ${esc(t('emplacement.every'))}</div></div>`;
+      body += `<div class="row">${icon('shield', 'icon-sm')}<span>${esc(t('verdan.hp', { hp: gun.hp, max: EMPLACEMENT.hp }))}</span><div class="grow">${progress(gun.hp, EMPLACEMENT.hp, 'hp', t('verdan.hp', { hp: gun.hp, max: EMPLACEMENT.hp }))}</div></div>
+        <div class="stats"><span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${EMPLACEMENT.range}</span>
+        <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(EMPLACEMENT.attack)}</span>
+        <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(EMPLACEMENT.defense)}</span>
+        ${of === viewer ? `<span class="stat">${icon('build', 'icon-sm')}${esc(emplacementCount(s, of))}</span>` : ''}</div>
+        <p class="muted sheet-more">${esc(emplacementDesc(s, of))}</p>`;
     } else if (explored && turretAt(s, x, y)) {
       const gun = turretAt(s, x, y)!;
       head = `<span class="unit-badge">${icon('range')}</span><div class="grow"><h3 class="display">${esc(t('verdan.name'))}</h3>
@@ -583,7 +597,7 @@ export class Hud {
       if (tile.outpost) tags.push(`${t('features.outpost')} (${t(`factions.${s.factions[tile.outpost.owner].id}.short`)})`);
       if (tile.grandProject) tags.push(t(`grand.${tile.grandProject}`));
       if (tile.wonderOf) { const w = unitById(s, tile.wonderOf); if (w) tags.push(t('victory.footprint', { name: t(`units.${w.type}`) })); }
-      if (tile.turretRuin) tags.push(t('verdan.ruin'));
+      if (tile.turretRuin) tags.push(tile.turretRuinOwner !== undefined ? t('emplacement.ruin') : t('verdan.ruin'));
       if (tile.barrier) tags.push(`${t('features.barrier')} (${t(`factions.${s.factions[tile.barrier.owner].id}.short`)})`);
       if (tile.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) tags.push(`${t('features.mine')} (${t(`factions.${s.factions[tile.mine.owner].id}.short`)}): ${t('features.mineDesc', { foot: COUNTER.mine.damageFoot, vehicle: COUNTER.mine.damageVehicle })}`);
       if (tile.remains?.kind === 'wreck') tags.push(`${t('features.wreck')} (${t(`units.${tile.remains.unit}`)}): ${t('features.wreckCover')}`);
@@ -623,10 +637,13 @@ export class Hud {
       const gun = turretAt(s, gunAt.x, gunAt.y)!;
       const pre = turretPreview(s, u, gunAt);
       const kill = pre.toTurret >= gun.hp;
-      const sub = kill ? t('verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      // Geschuetzstellung: eigener Name und Text / gun emplacement: own name and text
+      const owned = gun.owner !== undefined;
+      const sub = kill ? t(owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      const about = owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
       if (pre.moveFire) this.combatNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t('verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range })}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
@@ -761,6 +778,19 @@ export class Hud {
       const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : this.err(base);
       this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
         run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
+    }
+    // Festungsbau (Dravon): Geschuetzstellung auf ein Nachbarfeld, mit Limit und Grund / fortification (Dravon): gun emplacement on an adjacent tile, with limit and reason
+    if (isEmplacementBuilder(s, u)) {
+      const ok = emplacementTargets(s, u).length > 0;
+      const block = emplacementBlock(s, u);
+      const count = emplacementCount(s, u.owner);
+      const reason = ok ? `${t('emplacement.hint')} ${count}.`
+        : block === 'emplacementLimit' ? t('emplacement.limitReason', { n: emplacementsOf(s, u.owner).length, max: emplacementLimit(s, u.owner) })
+        : block === 'emplacementSpacing' ? t('emplacement.spacingReason', { n: EMPLACEMENT.minSpacing })
+        : block === 'notInTerritory' ? t('emplacement.territoryReason') : this.err(block === 'occupied' ? 'invalidTile' : block);
+      this.actions.push({ id: 'emplacement', icon: 'range', label: g.emplacementMode ? t('actions.cancel') : t('emplacement.build'), sub: g.emplacementMode ? undefined : count,
+        cost: g.emplacementMode ? undefined : EMPLACEMENT.cost, variant: 'primary', enabled: ok || g.emplacementMode, reason, desc: `${reason} ${emplacementDesc(s, u.owner)}`,
+        run: () => { if (g.emplacementMode) { g.emplacementMode = false; g.updateHighlights(); this.render(); } else { g.startEmplacement(); g.ui.toast(t('emplacement.hint'), 'range'); } } });
     }
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);

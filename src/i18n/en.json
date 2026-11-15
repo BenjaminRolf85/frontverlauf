@@ -107,11 +107,13 @@
       "leader": "Sarek Voss",
       "leaderTitle": "Commander of the Protectorate",
       "quote": "Discipline is the only truth.",
-      "lore": "Dravon was once a pact of mercenary companies guarding the desert ore mines. Today it is a state made of barracks. Nobody has ever seen Commander Voss without his balaclava; people say he has no face, only orders. His troops become veterans faster than any other army.",
-      "style": "drill, camo green, black balaclavas",
-      "aiStyle": "Attacks early and often, relying on jeeps and MG squads.",
+      "lore": "Dravon was once a pact of mercenary companies guarding the desert ore mines. Today it is a state made of barracks. Nobody has ever seen Commander Voss without his balaclava; people say he has no face, only orders. His troops become veterans faster than any other army. Along its borders Dravon digs concrete bunkers into the slopes, each with sandbags, a gun and a flag.",
+      "style": "drill, camo green, black balaclavas, concrete bunkers",
+      "aiStyle": "Attacks early and often, relying on jeeps and MG squads, and builds gun emplacements at threatened border cities.",
       "perk2": "Battle-hardened",
-      "perk2Desc": "Veterans attack with +0.5 attack."
+      "perk2Desc": "Veterans attack with +0.5 attack.",
+      "feature": "Fortress building",
+      "featureDesc": "Pioneer squads and mine layers build gun emplacements in own territory for {cost} stars, one per city. They fire every round at enemies in range {range}."
     },
     "alvenia": {
       "name": "Republic of Alvenia",
@@ -717,6 +719,8 @@
     "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
     "cityLevel": "The city needs a higher level.",
     "mineLimit": "At most {n} mines per faction.",
+    "emplacementSpacing": "Too close to another own gun emplacement.",
+    "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "cannotRetreat": "Only human ground troops can retreat in order.",
     "retreatCooldown": "The retreat is not ready yet.",
     "noRetreatTile": "No free tile to retreat to.",
@@ -2566,6 +2570,7 @@
   "traits": {
     "perk": "Bonus",
     "perk2": "Second bonus",
+    "feature": "Faction feature",
     "unit": "Signature unit",
     "discount": "Discount",
     "discountValue": "{unit} −{pct}%",
@@ -3311,6 +3316,10 @@
       "title": "Outposts",
       "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
     },
+    "emplacements": {
+      "title": "Gun emplacements (Dravon)",
+      "text": "Fortress building: with {tech}, Dravon pioneer squads and mine layers build a gun emplacement for {cost} stars on a free adjacent tile in own territory (passable land without a city, building, resource, feature or unit). At most {per} per own city, at least {spacing} tiles apart. The emplacement is a structure, not a unit: armour {hp}, attack {atk}, defence {def}, impassable, no upkeep and no score. At the start of every round it fires once at a visible unit in range {range} that is at war with Dravon (never at peace, never at allies), always with full damage and hit luck. Enemies attack it like a Verdan gun; once destroyed, rubble remains and no kill is counted. If the territory is lost or Dravon is eliminated, it is razed."
+    },
     "diplomacy": {
       "title": "Diplomacy",
       "text": "Factions you have not met stay hidden. After the first contact you are at war. You can offer peace, the other side accepts or declines. Breaking a peace is announced one round in advance. With {tech} and a discovered headquarters you open embassies (the first costs {cost} stars, each further one {step} more); each gives both sides {income} stars per round."
@@ -3364,6 +3373,25 @@
     "previewKill": "Destroys the gun",
     "destroyed": "Verdan gun destroyed!",
     "fx": "Verdan"
+  },
+  "emplacement": {
+    "name": "Gun emplacement",
+    "nameOf": "{name} gun emplacement",
+    "every": "fires every round",
+    "stats": "Armour {hp} / {max} · Range {range} · Attack {atk} · Defence {def}",
+    "desc": "Fixed structure of {name}, not a unit and impassable. At the start of every round it fires once at a visible unit in range {range} that is at war with {name}; never at peace and never at allies. It can be attacked and destroyed, but never counts as a kill. If the territory is lost, it is razed.",
+    "build": "Build gun emplacement",
+    "count": "{n}/{max} emplacements",
+    "hint": "Pick a free adjacent tile in your own territory.",
+    "limitReason": "Limit reached: {n}/{max} emplacements. More cities allow more emplacements.",
+    "spacingReason": "Too close to an own emplacement: at least {n} tiles apart.",
+    "territoryReason": "Only on a free adjacent tile in your own territory.",
+    "attack": "Attack emplacement",
+    "previewKill": "Destroys the emplacement",
+    "destroyed": "{name} gun emplacement destroyed!",
+    "fires": "{name} gun emplacement fires! {dmg} damage to your unit.",
+    "lost": "Gun emplacement razed: the territory is lost.",
+    "ruin": "Rubble of a gun emplacement"
   },
   "overworld": {
     "title": "Overworld",

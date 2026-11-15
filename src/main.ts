@@ -238,6 +238,10 @@ function boot() {
         }
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
+        // Geschuetzstellung feuert auf eigene Einheiten / gun emplacement fires at own units
+        case 'turretFire': if (e.owner !== undefined && e.victim === viewer) toast(root, t('emplacement.fires', { name: fname(e.owner), dmg: e.dmg }), 'range'); break;
+        // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
+        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') toast(root, t('emplacement.lost'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
         case 'orbitalStrike':

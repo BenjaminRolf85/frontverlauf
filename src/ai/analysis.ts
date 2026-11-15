@@ -8,6 +8,7 @@ import {
   isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
+import { emplacementGoal } from './emplacements';
 
 export type GoalKind =
   | 'village' | 'city' | 'bunker' | 'explore' | 'defend' | 'hunt' | 'stage' | 'refuel' | 'retreat' | 'home'
@@ -577,7 +578,10 @@ function assignGoals(ctx: Ctx) {
   const pairs: { u: Unit; g: number; sc: number }[] = [];
   // Wunder planen eigens (planWonderUnits), Endgegner bewachen ihr Hauptquartier (bossGoal)
   // wonders are planned separately (planWonderUnits), bosses guard their HQ (bossGoal)
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u);
+  // Festungsbau: Bauer ziehen zur bedrohtesten Stadt ohne Stellung / fortification: builders head to the most threatened city without an emplacement
+  const builder = new Map<number, Goal>();
+  for (const u of ctx.my) { const g = emplacementGoal(ctx, u); if (g) builder.set(u.id, g); }
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -613,6 +617,7 @@ function assignGoals(ctx: Ctx) {
   for (const u of ctx.my) {
     if (ctx.goals.has(u.id) || isWonder(u)) continue;
     if (isBoss(u)) { ctx.goals.set(u.id, bossGoal(ctx, u)); continue; }
+    if (builder.has(u.id)) { ctx.goals.set(u.id, builder.get(u.id)!); continue; }
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }
     if (has(u, 'mines')) { ctx.goals.set(u.id, minerGoal(ctx)); continue; }

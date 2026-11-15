@@ -850,6 +850,46 @@ export const VERDAN = {
   race: 'robot' as HitRace,
 };
 
+/**
+ * Festungsbau (Dravon): Pioniere und Minenleger bauen Geschuetzstellungen auf ein freies Nachbarfeld im eigenen Gebiet.
+ * Eine Stellung ist ein Bauwerk auf dem Feld (Tile.turret mit owner), keine Einheit: unpassierbar, feuert zu Rundenbeginn
+ * wie die Verdan-Geschuetze, aber nur auf Einheiten im Krieg mit ihrem Besitzer. Etwas schwaecher als ein Verdan-Geschuetz.
+ * Fortification (Dravon): pioneers and mine layers build gun emplacements on a free adjacent tile in own territory.
+ * An emplacement is a structure on the tile (Tile.turret with owner), not a unit: impassable, fires at the start of the
+ * round like the Verdan guns, but only at units at war with its owner. Somewhat weaker than a Verdan gun.
+ */
+export const EMPLACEMENT = {
+  /** Fraktionen mit Festungsbau / factions with fortification */
+  factions: ['dravon'] as FactionId[],
+  /** bauende Einheiten / building units */
+  builders: ['pioneer', 'mineLayer'] as UnitTypeId[],
+  cost: 25,
+  hp: 20,
+  attack: 3,
+  defense: 2.5,
+  /** Schussweite / firing range */
+  range: 2,
+  /** Treffsicherheit: menschliche Geschuetzmannschaft / accuracy: human gun crew */
+  race: 'human' as HitRace,
+  /** baubares Gelaende (passierbares Land) / buildable terrain (passable land) */
+  terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+  /** hoechstens so viele Stellungen je eigener Stadt / at most this many emplacements per own city */
+  perCity: 1,
+  /** Mindestabstand zwischen eigenen Stellungen (Felder) / minimum distance between own emplacements (tiles) */
+  minSpacing: 3,
+  /**
+   * KI: Sternereserve fuer Bauten ohne Bedrohung, Bedrohungsradius um das Baufeld, Hoechstabstand zur eigenen Stadt,
+   * Mindestwert eines Bauplatzes, Wunschanteil Pioniere solange Plaetze frei sind, Zuschlag fuer die Technik Befestigung
+   * (erst ab Runde techRound und techCities Staedten; Faktor in der Eroberung 0, weil der Forschungsschub dort die Endspiele
+   * messbar verschleppte), Mindestanteil der Wunscharmee, Preis einer feindlichen Stellung fuer Angreifer.
+   * AI: star reserve for builds without a threat, threat radius around the site, maximum distance to the own city,
+   * minimum value of a site, desired pioneer share while slots are free, bonus for the Fortification tech (only from round
+   * techRound and techCities cities; factor 0 in conquest because the research push measurably dragged out the endgames),
+   * minimum share of the desired army, prize of a hostile emplacement for attackers.
+   */
+  ai: { reserve: 30, armyShare: 0.8, threatRange: 5, cityRange: 3, minValue: 9, pioneerShare: 0.35, techBonus: 60, techConquest: 0, techRound: 8, techCities: 2, prize: 30 },
+};
+
 export const ECON = {
   /** (Stufe x Staedte + 4) x 5 */
   researchCost: (tier: number, cities: number) => (tier * cities + 4) * 5,
