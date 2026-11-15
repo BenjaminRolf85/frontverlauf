@@ -8,6 +8,7 @@ import {
   orbitalPreview, orbitalWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
+import { plansHints } from '../core/temple';
 import { planNextCommand } from '../ai/ai';
 import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
@@ -247,6 +248,8 @@ export class Controller {
       // Zieleinheiten (folgen der Einheit) und das Artefakt / target units (follow the unit) and the artifact
       for (const id of s.campaign.units ?? []) { const u = s.units.find((x) => x.id === id); if (u) list.push({ x: u.x, y: u.y, kind: 'hint' }); }
       if (s.campaign.artifact) list.push({ ...s.campaign.artifact, kind: 'hint' });
+      // Kriegsplaene (m4): Tempel, fallen gelassene Plaene oder Hauptquartier / war plans (m4): temple, dropped plans or HQ
+      for (const p of plansHints(s)) list.push({ ...p, kind: 'hint' });
     }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     this.view.board.setHighlights(s, list);

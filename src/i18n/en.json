@@ -677,7 +677,10 @@
     "mine": "Lay mine",
     "mineHint": "Tap a free adjacent tile for the mine.",
     "persuade": "Persuade",
-    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only)."
+    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only).",
+    "seizePlans": "Seize the war plans",
+    "pickPlans": "Pick up the war plans",
+    "seizePlansDesc": "Takes the war plans and ends the unit's turn. Bring them into or next to your HQ."
   },
   "errors": {
     "gameOver": "The game is over.",
@@ -735,7 +738,8 @@
     "noRelay": "No orbital laser without a satellite relay.",
     "orbitalCooldown": "The orbital laser is still charging.",
     "notVisible": "The target tile is not revealed.",
-    "relayLimit": "Velkar already owns a satellite relay."
+    "relayLimit": "Velkar already owns a satellite relay.",
+    "cannotCarry": "This unit cannot carry the war plans"
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1016,7 +1020,13 @@
       "burrow": "Capture the Zyrr burrow by round {rounds}",
       "bonusBurrow": "Capture the Zyrr burrow",
       "towers": "Capture the transmitter towers and hold all of them at once for {n} rounds in a row, by round {rounds}",
-      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})"
+      "towersPanel": "Capture the transmitter towers and hold them for {n} rounds ({held}/{total} held, round {have}/{n})",
+      "plans": "Seize the war plans from the Fanatic temple and bring them to your HQ by round {rounds}",
+      "plansKept": "The carrier never loses the war plans",
+      "plansTemple": "War plans: in the temple",
+      "plansCarried": "War plans: carried by {unit}",
+      "plansDropped": "War plans: lying on the ground",
+      "plansDelivered": "War plans: delivered"
     },
     "missions": {
       "m1": {
@@ -1065,19 +1075,19 @@
         "lost": "The portal stays in Zyrr hands. And it keeps spitting out greys."
       },
       "m4": {
-        "title": "False Pilgrims",
-        "tagline": "Deal with the zealots in your land",
+        "title": "The War Plans",
+        "tagline": "Take the war plans from the Fanatic temple and bring them home",
         "brief": [
-          "The pilgrims we took in are suddenly wearing bone masks! They are right in front of our gates.",
-          "The bell has tolled. By itself! Brothers, sisters, convert them or burn them down.",
-          "{leader} here. Eight zealots fewer and peace returns. Quickly, before they start preaching."
+          "Commander, we found it: a Fanatic temple, four tiles wide, with a bell tower and fire braziers. Their war plans lie inside. Our jeep is fast enough to get them out.",
+          "{enemyLeader} speaks: the bell tolled by itself. Our plans rest in the temple. Whoever touches them will be hunted by every bell in the land, to the end of the world.",
+          "{leader} here. One unit next to the temple, take the plans, back to the HQ. Cover the carrier! If he falls, the plans lie in the dirt and we take them back. Eighteen rounds."
         ],
-        "ally": "{allyLeader} here. {ally} has pilgrims in the house too. We clean up together, {leader}.",
-        "won": "The masks lie in the dust. The rest of the pilgrims suddenly just want tea.",
-        "lost": "The zealots preach in our market squares. The baker is already wearing a robe.",
+        "ally": "{allyLeader} here. {ally} escorts your carrier, {leader}. Whoever hunts him deals with us.",
+        "won": "The plans lie on the map table: a pilgrim city full of zealots, a giant bell and a drill down to the earth's core. Now we know what the bell tolls for.",
+        "lost": "The war plans are back in the temple. The bell tolls, and we still do not know what for.",
         "variants": {
           "alvenia": {
-            "won": "The masks lie in the dust. Our medics are bandaging the zealots too. That is how we do things."
+            "won": "The plans are ours. Our diplomats read them with very serious faces: a pilgrim city, a bell, a drill down to the earth's core."
           }
         }
       },
@@ -1085,7 +1095,7 @@
         "title": "The Pilgrim City",
         "tagline": "Capture the cult's capital",
         "brief": [
-          "{leader} to all units: the cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
+          "{leader} to all units: the war plans are clear. The cult gathers in its pilgrim city. Take it, and maybe the bell falls silent.",
           "{enemyLeader} speaks: come then. Our city is built on faith. And on very thick walls.",
           "Torchbearers on the walls, zealots in the alleys. The lakes slow us down, commander. Take the shores."
         ],
@@ -1102,7 +1112,7 @@
         "title": "The Earth-Core Drill",
         "tagline": "Destroy the drill before it breaks through",
         "brief": [
-          "The ground is shaking, commander! The cult has set up a giant drill. It wants to reach the earth's core!",
+          "The ground is shaking, commander! The drill from the war plans is really there. The cult wants to reach the earth's core!",
           "The Final Hour needs a hole to come through. We are drilling it.",
           "{leader} here. Tanks and artillery forward! The drill must go before it breaks through. Fourteen rounds, no more."
         ],
@@ -1310,7 +1320,14 @@
     "riftOpen": "The rift tears open!",
     "landingBurrow": "Landing party without a base: capture the Zyrr burrow, or there will be no reinforcements.",
     "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow.",
-    "towerHoldTip": "One more thing, commander: the transmitter towers train troops but do not grow. The count happens at the start of your turn. If a tower falls, the count starts over."
+    "towerHoldTip": "One more thing, commander: the transmitter towers train troops but do not grow. The count happens at the start of your turn. If a tower falls, the count starts over.",
+    "plansSeized": "War plans seized! Bring the carrier to the HQ.",
+    "plansPicked": "War plans picked up again!",
+    "plansDropped": "The carrier has fallen. The war plans lie on the ground!",
+    "plansReturned": "The Fanatics took the war plans back to the temple.",
+    "plansDelivered": "War plans delivered!",
+    "plansLine": "Thieves in the temple! Brothers, sisters, bring me back the plans, and the thief with them!",
+    "plansTip": "Tip: only land units right next to the temple can seize the plans. Send a fast jeep with an escort. Once the plans are gone, the cult sends pursuers every {n} rounds."
   },
   "randomEvents": {
     "title": "Events",
@@ -3572,5 +3589,16 @@
     "unlockHint": "Satellite relay from the research {tech}.",
     "own1": "Warning: 1 own unit in the target",
     "hits1": "1 hit, {kills} destroyed"
+  },
+  "temple": {
+    "name": "Fanatic temple",
+    "sub": "Landmark, 2x2 tiles",
+    "desc": "Impassable, not capturable, not attackable. An own land unit right next to it can seize the war plans.",
+    "plansInside": "The war plans lie inside the temple.",
+    "plansGone": "The war plans are gone.",
+    "carrier": "Carries the war plans",
+    "carrierDesc": "Cannot be converted. Into or next to the HQ the plans are delivered. If the carrier falls, the plans drop onto its tile.",
+    "dropped": "War plans lie here",
+    "droppedDesc": "An own unit on or next to the tile picks them up. If a Fanatic steps onto the tile, he takes them back to the temple."
   }
 }
