@@ -195,10 +195,10 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
   it('Velkar, polar station: tundra only, research 3 % cheaper per station, at most 3, on top of the test lab', () => {
     const { s, b } = setup('velkar');
     expect(b).toBe('polarStation');
-    // sieben Staedte: Grundpreis Stufe 3 = (3 x 7 + 4) x 5 = 125, Forschungsvorsprung -20 % = 100
-    // seven cities: base price tier 3 = (3 x 7 + 4) x 5 = 125, research lead -20 % = 100
+    // sieben Staedte: Grundpreis Stufe 3 = (3 x 7 + 4) x 5 = 125, Forschungsvorsprung -12 % = 110
+    // seven cities: base price tier 3 = (3 x 7 + 4) x 5 = 125, research lead -12 % = 110
     for (const x of [0, 2, 4, 6, 8, 10]) addCity(s, x, 10, 0);
-    expect(researchCost(s, 0, 'logistics')).toBe(100);
+    expect(researchCost(s, 0, 'logistics')).toBe(110);
     expect(buildCheck(s, 0, b, 5, 4)).toMatchObject({ ok: false, error: 'invalidTile' });
     const spots: [number, number][] = [[5, 4], [3, 4], [4, 5], [4, 3]];
     for (const [x, y] of spots) tile(s, x, y).biome = 'tundra';
@@ -207,15 +207,15 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     setTerrain(s, 3, 3, 'mountain', { biome: 'tundra' });
     expect(buildCheck(s, 0, b, 3, 3)).toMatchObject({ ok: true });
     ok(s, { type: 'build', building: b, x: 5, y: 4 });
-    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(100 * (1 - RESOURCE.polarDiscount)));
+    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(110 * (1 - RESOURCE.polarDiscount)));
     for (const [x, y] of spots.slice(1)) ok(s, { type: 'build', building: b, x, y });
     expect(countBuildings(s, 0, b)).toBe(4);
     // vier Stationen wirken wie drei / four stations work like three
-    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(100 * (1 - RESOURCE.polarDiscount * RESOURCE.polarMax) - 1e-9));
+    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(110 * (1 - RESOURCE.polarDiscount * RESOURCE.polarMax) - 1e-9));
     // zusaetzlich zum Versuchslabor (eigene Grenze) / on top of the test lab (own cap)
     setTerrain(s, 6, 6, 'plain', { biome: 'grassland' });
     ok(s, { type: 'build', building: 'testLab', x: 6, y: 6 });
-    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(100 * (1 - RESOURCE.polarDiscount * RESOURCE.polarMax) * (1 - UNIQUE.testLabDiscount) - 1e-9));
+    expect(researchCost(s, 0, 'logistics')).toBe(Math.ceil(110 * (1 - RESOURCE.polarDiscount * RESOURCE.polarMax) * (1 - UNIQUE.testLabDiscount) - 1e-9));
   });
 
   it('Zyrr, wreck smelter: on a wreck or a salvaged crash site, consumes it, no xeno ground needed, +3 stars', () => {

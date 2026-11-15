@@ -531,7 +531,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
   });
   const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b))}</span></li>`);
   const vf = TECHS[tech].faction;
-  const extra = t(`techExtra.${tech}`, vf ? victoryParams(vf) : {});
+  const extra = t(`techExtra.${tech}`, vf ? victoryParams(vf, s) : {});
   const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon(vf ? 'crown' : 'lightning', 'icon-sm')}${vf ? `<strong>${esc(t('traits.victory'))}</strong><span class="muted">${esc(extra)}</span>` : `<strong>${esc(extra)}</strong>`}</li>`];
   // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
   for (const up of CITY_UPGRADE_IDS) {

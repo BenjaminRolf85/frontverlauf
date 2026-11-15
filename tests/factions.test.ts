@@ -23,10 +23,10 @@ describe('Fraktionen / factions', () => {
     expect(FACTIONS.velkar.startTech).toBe('mountainTraining');
   });
 
-  describe('20 % unit discounts / Einheitenrabatte', () => {
+  describe('20 % unit discounts (Dravon 30 %) / Einheitenrabatte (Dravon 30 %)', () => {
     const cases: [FactionId, UnitTypeId, number, number, string | null][] = [
       ['korvat', 'infantry', 8, 10, null],
-      ['dravon', 'jeep', 12, 15, 'motorization'],
+      ['dravon', 'jeep', 11, 15, 'motorization'], // 15*0.7=10.5 -> 11
       ['alvenia', 'medic', 20, 25, 'cybernetics'],
       ['meridon', 'spy', 32, 40, 'intelligence'],
       ['velkar', 'pioneer', 12, 15, 'fortification'],
@@ -104,12 +104,12 @@ describe('Fraktionen / factions', () => {
     expect(m.hq.level).toBe(2);
   });
 
-  it('Velkar (research lead): all technologies cost 20 % less', () => {
+  it('Velkar (research lead): all technologies cost 12 % less', () => {
     const v = game('velkar').s;
     const k = game('korvat').s;
     expect(researchCost(k, 0, 'motorization')).toBe(25);
-    expect(researchCost(v, 0, 'motorization')).toBe(20);
+    expect(researchCost(v, 0, 'motorization')).toBe(22); // 25*0.88
     expect(researchCost(k, 0, 'logistics')).toBe(35);
-    expect(researchCost(v, 0, 'logistics')).toBe(28);
+    expect(researchCost(v, 0, 'logistics')).toBe(31); // 35*0.88=30.8
   });
 });

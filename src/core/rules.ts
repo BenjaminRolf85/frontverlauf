@@ -20,7 +20,7 @@ import {
   hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
-  isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet,
+  isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
   isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -223,8 +223,8 @@ function clearWonderMarks(s: GameState) {
 }
 
 /**
- * Angriff auf ein Wunder: Portal, Kraftwerk und Bohrer verlieren den Fortschritt der laufenden Phase (fertige Phasen bleiben).
- * Attack on a wonder: portal, power plant and drill lose the progress of the current phase (finished phases are kept).
+ * Angriff auf ein Wunder: unterbrechbare Wunder (WONDERS.interruptible: Portal, Relais, Kraftwerk, Bohrer) verlieren den Fortschritt der laufenden Phase (fertige Phasen bleiben).
+ * Attack on a wonder: interruptible wonders (WONDERS.interruptible: portal, relay, power plant, drill) lose the progress of the current phase (finished phases are kept).
  */
 function interruptWonder(s: GameState, u: Unit, ev: GameEvent[]) {
   if (!isWonder(u) || !WONDERS.interruptible[u.type as WonderUnitId] || !unitById(s, u.id)) return;
@@ -277,7 +277,7 @@ function processFactionVictory(s: GameState, f: number, stillDrills: Set<number>
   }
   if (!fa.techs.includes(VICTORY_TECH[fa.id])) return;
   if (fa.id === 'korvat' && ownCities(s, f).length >= korvatNeed(s)) { declareWinner(s, f, 'faction', ev); return; }
-  if (fa.id === 'meridon' && fa.stars >= WONDERS.meridonStars) { declareWinner(s, f, 'faction', ev); return; }
+  if (fa.id === 'meridon' && fa.stars >= meridonNeed(s)) { declareWinner(s, f, 'faction', ev); return; }
   if (fa.id === 'alvenia') {
     // Voelkerbund: Frieden und Botschaft bei allen bekannten lebenden Fraktionen, sonst zurueck auf 0
     // League of Nations: peace and an embassy with every known living faction, otherwise back to 0

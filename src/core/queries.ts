@@ -1410,9 +1410,11 @@ export type WonderCheck = 'ok' | 'invalid' | 'wrongFaction' | 'techMissing' | 'a
 
 /**
  * Kann Fraktion f das Wunder auf (x, y) bauen? Portal und Waal: freies Land im eigenen Gebiet; Relais: Berg im eigenen Gebiet
- * oder mit eigenem Aussenposten; Kraftwerk: 2x2 freies Land im eigenen Gebiet (Anker + rechts, unten, diagonal).
+ * oder mit eigenem Aussenposten; Kraftwerk: 2x2 freies Land (auch Berge) im eigenen Gebiet (Anker + rechts, unten, diagonal).
+ * Gelaende je Wunder: WONDERS.terrain.
  * Can faction f build the wonder at (x, y)? Portal and Waal: free land in own territory; relay: mountain in own territory
- * or with an own outpost; power plant: 2x2 free land in own territory (anchor + right, down, diagonal).
+ * or with an own outpost; power plant: 2x2 free land (mountains too) in own territory (anchor + right, down, diagonal).
+ * Terrain per wonder: WONDERS.terrain.
  */
 export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number, y: number): WonderCheck {
   if (!factionVictoryOn(s) || !(WONDERS.phases as Record<string, number[]>)[kind]) return 'invalid';
@@ -1422,7 +1424,7 @@ export function wonderCheck(s: GameState, f: number, kind: WonderKind, x: number
   for (const p of wonderFootprint(kind, x, y)) {
     if (!inBounds(s.size, p.x, p.y)) return 'invalidTile';
     const t = tileAt(s, p.x, p.y)!;
-    const terrainOk = kind === 'hackRelay' ? t.terrain === 'mountain' : t.terrain === 'plain' || t.terrain === 'forest';
+    const terrainOk = WONDERS.terrain[kind].includes(t.terrain);
     if (!terrainOk || t.cityId !== null || t.building || t.feature || t.grandProject || t.wonderOf || t.volcano || burning(s, t)) return 'invalidTile';
     // Relais darf auf einem eigenen Aussenposten stehen, die anderen nie auf Aussenposten / the relay may stand on an own outpost, others never on outposts
     if (t.outpost && !(kind === 'hackRelay' && t.outpost.owner === f)) return 'invalidTile';
@@ -1474,8 +1476,19 @@ export interface VictoryStatus {
   unavailable?: boolean;
 }
 
-/** Benoetigte Staedte fuer Korvat: mehr als die Haelfte aller Staedte / cities Korvat needs: more than half of all cities */
-export const korvatNeed = (s: GameState) => Math.floor(s.cities.length * WONDERS.korvatShare) + 1;
+/** Benoetigte Staedte fuer Korvat: mehr als WONDERS.korvatShare aller Staedte / cities Korvat needs: more than WONDERS.korvatShare of all cities */
+export const korvatShareFor = (s: GameState) => Math.max(WONDERS.korvatShare, WONDERS.korvatSharePerFaction / Math.max(1, s.factions.length));
+export const korvatNeed = (s: GameState) => Math.floor(s.cities.length * korvatShareFor(s)) + 1;
+
+/**
+ * Sterneziel fuer Meridon: ohne Rundenlimit WONDERS.meridonStars, sonst Runden x meridonStarsPerRound (begrenzt).
+ * Star target for Meridon: WONDERS.meridonStars without a round limit, otherwise rounds x meridonStarsPerRound (clamped).
+ */
+export function meridonNeedFor(roundLimit: number | null): number {
+  if (roundLimit === null) return WONDERS.meridonStars;
+  return Math.min(WONDERS.meridonStars, Math.max(WONDERS.meridonStarsMin, Math.round(roundLimit * WONDERS.meridonStarsPerRound)));
+}
+export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit);
 
 /** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */
 export const knows = (s: GameState, a: number, b: number) => s.factions[a].contacts.includes(b) || s.factions[b].contacts.includes(a);
@@ -1508,7 +1521,7 @@ export function victoryStatus(s: GameState, f: number): VictoryStatus {
       return { ...base, phase: 'cities', have, need, ratio: Math.min(1, have / need), roundsLeft: null };
     }
     case 'stars': {
-      const need = WONDERS.meridonStars;
+      const need = meridonNeed(s);
       return { ...base, phase: 'stars', have: fa.stars, need, ratio: Math.min(1, fa.stars / need), roundsLeft: null };
     }
     case 'league': {

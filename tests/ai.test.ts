@@ -50,7 +50,9 @@ describe('KI / AI', () => {
     const s = createGame(config({ seed: 1, size: 14, mode: 'points', mapType: 'continents' }));
     const st = run(s, 99);
     expect(s.over).toBe(true);
-    expect(s.round).toBe(31);
+    // ein Fraktionssieg darf die Partie vor Runde 31 beenden / a faction victory may end the game before round 31
+    if (s.victory?.kind === 'faction') expect(s.round).toBeLessThanOrEqual(31);
+    else expect(s.round).toBe(31);
     expect(s.winner).not.toBeNull();
     expect(st.fails).toBe(0);
     expect(aiDebug.errors).toBe(errors);

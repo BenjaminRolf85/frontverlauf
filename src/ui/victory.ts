@@ -2,24 +2,29 @@
  * Fraktions-Siegbedingungen in der Oberflaeche: Texte, Wunder-Infofeld, Siegverfolgung, Spielende-Grund.
  * Faction victory conditions in the UI: texts, wonder info panel, victory tracker, game-over reason.
  */
-import { UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
+import { MODES, UNITS, VICTORY_TECH, WONDERS, type FactionId, type WonderUnitId } from '../data/balance';
 import {
-  factionVictoryOn, isWonder, score, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
+  factionVictoryOn, isWonder, korvatShareFor, meridonNeed, meridonNeedFor, score, victoryStatus, waalArmed, wonderPhases, type GameState, type Unit, type VictoryStatus, type Victory,
 } from '../core';
-import { t } from '../i18n/i18n';
+import { has, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog, progress } from './components';
 import { icon } from './icons';
 
 const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
 
-/** Platzhalter fuer die Siegtexte einer Fraktion (alle Zahlen aus balance.ts) / placeholders for a faction's victory texts (all numbers from balance.ts) */
-export function victoryParams(f: FactionId): Record<string, number> {
+/**
+ * Platzhalter fuer die Siegtexte einer Fraktion (alle Zahlen aus balance.ts). Ohne Spielstand (Auswahl, Fraktionsinfo):
+ * Meridon zeigt das Ziel im Punktespiel (n) und ohne Rundenlimit (m).
+ * Placeholders for a faction's victory texts (all numbers from balance.ts). Without a game state (setup, faction info):
+ * Meridon shows the target in a points game (n) and without a round limit (m).
+ */
+export function victoryParams(f: FactionId, s?: GameState): Record<string, number> {
   const P = WONDERS.phases;
   switch (f) {
-    case 'korvat': return { pct: Math.round(WONDERS.korvatShare * 100) };
+    case 'korvat': return { pct: Math.round((s ? korvatShareFor(s) : WONDERS.korvatShare) * 100) };
     case 'dravon': return { arm: P.waal[0], total: sum(P.waal), range: UNITS.waal.range };
     case 'alvenia': return { n: WONDERS.alveniaRounds, min: WONDERS.alveniaMinFactions };
-    case 'meridon': return { n: WONDERS.meridonStars };
+    case 'meridon': return { n: s ? meridonNeed(s) : meridonNeedFor(MODES.pointsRounds), m: WONDERS.meridonStars };
     case 'velkar': return { n: sum(P.fusionPlant) };
     case 'zyrr': return { build: P.portal[0], charge: P.portal[1] };
     case 'vesper': return { n: WONDERS.drillRounds };
@@ -27,10 +32,12 @@ export function victoryParams(f: FactionId): Record<string, number> {
   }
 }
 
+/** Textschluessel: ohne Spielstand die allgemeine Fassung, falls vorhanden / text key: without a game state the general version, if any */
+const goalKey = (group: string, f: FactionId, s?: GameState) => (!s && has(`victory.${group}.${f}Any`) ? `victory.${group}.${f}Any` : `victory.${group}.${f}`);
 /** Langtext der Siegbedingung / long text of the victory condition */
-export const victoryGoalText = (f: FactionId) => t(`victory.goal.${f}`, victoryParams(f));
+export const victoryGoalText = (f: FactionId, s?: GameState) => t(goalKey('goal', f, s), victoryParams(f, s));
 /** Kurzname der Siegbedingung / short name of the victory condition */
-export const victoryShortText = (f: FactionId) => t(`victory.short.${f}`, victoryParams(f));
+export const victoryShortText = (f: FactionId, s?: GameState) => t(goalKey('short', f, s), victoryParams(f, s));
 
 /** Phase als Text, z. B. "Aufladen 5/8" / phase as text, e.g. "Charging 5/8" */
 export function phaseText(st: VictoryStatus): string {
@@ -80,7 +87,7 @@ function trackerRow(s: GameState, viewer: number, g: number): string {
   const known = viewer < 0 || g === viewer || s.factions[viewer].contacts.includes(g);
   const head = `${factionChip(fa.id, name)}<div class="grow col"><strong>${esc(name)}${g === viewer ? ` (${esc(t('victory.you'))})` : ''}</strong>`;
   if (!known) return `<div class="score-row">${head}<span class="muted">${esc(t('victory.unknown'))}</span></div></div>`;
-  const goal = `<span class="muted">${esc(victoryShortText(fa.id))}</span>`;
+  const goal = `<span class="muted">${esc(victoryShortText(fa.id, s))}</span>`;
   if (!fa.alive) return `<div class="score-row">${head}${goal}</div><span class="tag">${esc(t('victory.eliminated'))}</span></div>`;
   const st = victoryStatus(s, g);
   // Voelkerbund mit weniger als 3 Fraktionen: nicht moeglich, nur Hinweis / League with fewer than 3 factions: impossible, note only

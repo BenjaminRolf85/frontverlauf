@@ -15,16 +15,16 @@ describe('Erstkontakt / first contact', () => {
     expect(ECON.firstContactPer1000).toBe(15);
     expect(ECON.firstContactMax).toBe(60);
     const s = cg();
-    // Fraktion 1: Stadt 50 + 4 Felder*20 + Motorisierung 100 = 230 / faction 1 score
-    expect(score(s, 1)).toBe(230);
+    // Fraktion 1 (Dravon): Stadt 50 + 4 Felder*20 + Motorisierung 100 + Gebirgsausbildung 100 = 330 / faction 1 (Dravon) score
+    expect(score(s, 1)).toBe(330);
     expect(contactStars(s, 1)).toBe(15);
     const add = (techs: TechId[]) => s.factions[1].techs.push(...techs);
-    add(['roadbuilding', 'logistics', 'aerodynamics', 'armyAviation']); // +1000 -> 1230
-    expect(score(s, 1)).toBe(1230);
+    add(['roadbuilding', 'logistics', 'aerodynamics', 'armyAviation']); // +1000 -> 1330
+    expect(score(s, 1)).toBe(1330);
     expect(contactStars(s, 1)).toBe(30);
-    add(['supply', 'agritech', 'foodIndustry', 'fortification', 'intelligence']); // +1100 -> 2330
+    add(['supply', 'agritech', 'foodIndustry', 'fortification', 'intelligence']); // +1100 -> 2430
     expect(contactStars(s, 1)).toBe(45);
-    add(['mountainTraining', 'mining', 'armsIndustry']); // +600 -> 2930
+    add(['mining', 'armsIndustry']); // +500 -> 2930
     expect(contactStars(s, 1)).toBe(45);
     add(['highAltitude']); // 3130
     expect(contactStars(s, 1)).toBe(60);
