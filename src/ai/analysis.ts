@@ -581,7 +581,8 @@ function bossGoal(ctx: Ctx, u: Unit): Goal {
 
 function frontGoal(ctx: Ctx): Goal {
   const { size } = ctx;
-  const hq = ctx.myCities.find((c) => c.isHQ) ?? ctx.myCities[0];
+  // eigenes Hauptquartier, kein erobertes fremdes / own HQ, not a captured foreign one
+  const hq = hqOf(ctx.s, ctx.f) ?? ctx.myCities[0];
   let best: { x: number; y: number } | null = null;
   let bd = Infinity;
   if (hq) {
