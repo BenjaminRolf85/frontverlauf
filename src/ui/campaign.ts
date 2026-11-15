@@ -20,6 +20,7 @@ import { button, esc, factionBadge, factionChip, iconButton, openDialog, toast }
 import { icon } from './icons';
 import { leaderPortrait } from './leaders';
 import { openPrologue } from './lore';
+import { attachOverworld } from './overworld';
 import type { ScreenHost } from './screens';
 
 const STATUS_ICON: Record<ObjectiveStatus, string> = { pending: 'hourglass', done: 'check', failed: 'close' };
@@ -227,6 +228,8 @@ export function campaignScreen(host: ScreenHost, opts: { pick?: boolean } = {}):
         ${MISSIONS.filter((m) => m.act === a).map(card).join('')}`).join('')}</div>`;
   };
   render();
+  // Oberwelt vor der Einsatzliste (haengt sich nach jedem Neuzeichnen selbst wieder ein) / overworld before the mission list
+  attachOverworld(host, n);
   n.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const act = target.closest<HTMLElement>('[data-action]')?.dataset.action;
