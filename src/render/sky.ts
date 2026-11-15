@@ -83,6 +83,31 @@ const ALIEN_PRESETS: Record<DayPhase, Preset> = {
   },
 };
 
+/**
+ * Welt der Vergessenen (Thema 'desert'): staubiger Lachs- bis Ockerhimmel, kleine blasse Sonne, warmer Staubdunst;
+ * die Abenddaemmerung ist wie auf dem Mars kuehl blau, die Nacht rostbraun.
+ * World of the Forgotten (theme 'desert'): dusty salmon to ochre sky, a small pale sun, warm dust haze;
+ * dusk is cool blue like on Mars, the night is rust brown.
+ */
+const DESERT_PRESETS: Record<DayPhase, Preset> = {
+  day: {
+    sky: semantic.desertSkyLow, ground: semantic.desertSandDark, hemi: 1.55, sun: semantic.desertSun, sunI: 2.15, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0, glow: 0.35, window: 0, haze: semantic.desertHaze, hazeAmt: 0.36, light: [1, 0.9, 0.82], bloom: 0.6,
+  },
+  dusk: {
+    sky: semantic.desertSkyMid, ground: semantic.desertRockDark, hemi: 1.45, sun: semantic.desertSunset, sunI: 1.8, sunDir: [-10, 4.6, -3.5],
+    night: 0.45, glow: 0.6, window: 0.8, haze: semantic.desertHaze, hazeAmt: 0.42, light: [0.86, 0.76, 0.78], bloom: 0.8,
+  },
+  night: {
+    sky: semantic.desertSkyHigh, ground: semantic.desertSkyTop, hemi: 1.45, sun: semantic.desertMoon, sunI: 1.15, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.desertHazeNight, hazeAmt: 0.44, light: [0.56, 0.44, 0.5], bloom: 1,
+  },
+  dawn: {
+    sky: semantic.desertSkyMid, ground: semantic.desertSandDark, hemi: 1.5, sun: semantic.desertSun, sunI: 1.9, sunDir: [8, 5, 8],
+    night: 0.25, glow: 0.45, window: 0.45, haze: semantic.desertHaze, hazeAmt: 0.38, light: [0.98, 0.84, 0.76], bloom: 0.7,
+  },
+};
+
 /** Zahlenform eines Zustands zum Mischen / numeric form of a state for blending */
 interface State {
   sky: THREE.Color; ground: THREE.Color; hemi: number; sun: THREE.Color; sunI: number; sunDir: THREE.Vector3;
@@ -109,8 +134,8 @@ export class Sky {
   private blending = false;
   /** Bewoelkung durch Wetter 0..1 / overcast from weather 0..1 */
   private overcast = 0;
-  /** Kartenthema der Partie (nur 'alien' hat eigene Lichtstimmungen) / map theme of the game (only 'alien' has own light moods) */
-  private world: 'cavern' | 'alien' | null = null;
+  /** Kartenthema der Partie ('alien' und 'desert' haben eigene Lichtstimmungen) / map theme of the game ('alien' and 'desert' have own light moods) */
+  private world: 'cavern' | 'alien' | 'desert' | null = null;
   bloom = PRESETS.day.bloom;
 
   constructor(private hemi: THREE.HemisphereLight, private sun: THREE.DirectionalLight) {
@@ -119,20 +144,20 @@ export class Sky {
 
   /**
    * Neue Tageszeit setzen; animate = sanft ueberblenden; world = Kartenthema ('cavern' = Hoehlenlicht ohne Tageszeit,
-   * 'alien' = Lichtstimmungen der Zyrr-Heimatwelt).
+   * 'alien' = Lichtstimmungen der Zyrr-Heimatwelt, 'desert' = Wuestenwelt der Vergessenen).
    * Set a new time of day; animate = blend smoothly; world = map theme ('cavern' = cavern light without time of day,
-   * 'alien' = light moods of the Zyrr homeworld).
+   * 'alien' = light moods of the Zyrr homeworld, 'desert' = desert world of the Forgotten).
    */
-  set(phase: DayPhase, overcast: number, animate: boolean, world: 'cavern' | 'alien' | null = null) {
+  set(phase: DayPhase, overcast: number, animate: boolean, world: 'cavern' | 'alien' | 'desert' | null = null) {
     if (world === 'cavern') overcast = 0;
     if (phase === this.phase && overcast === this.overcast && world === this.world) return;
-    // Wechsel zwischen Oberflaeche und Hoehle nie ueberblenden / never blend between surface and cavern
-    if ((world === 'cavern') !== (this.world === 'cavern')) animate = false;
+    // Wechsel des Kartenthemas (Oberflaeche, Hoehle, Alienwelt) nie ueberblenden / never blend when the map theme changes (surface, cavern, alien world)
+    if (world !== this.world) animate = false;
     this.phase = phase;
     this.overcast = overcast;
     this.world = world;
     this.from = clone(this.cur);
-    this.to = toState(world === 'cavern' ? CAVE : (world === 'alien' ? ALIEN_PRESETS : PRESETS)[phase]);
+    this.to = toState(world === 'cavern' ? CAVE : (world === 'alien' ? ALIEN_PRESETS : world === 'desert' ? DESERT_PRESETS : PRESETS)[phase]);
     this.to.sunI *= 1 - overcast * 0.35;
     this.to.hemi *= 1 - overcast * 0.05;
     this.to.hazeAmt += overcast * 0.08;

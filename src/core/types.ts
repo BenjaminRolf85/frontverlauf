@@ -81,6 +81,11 @@ export interface City {
   noIncomeNext: boolean;
   /** gekaufte Ausbauten (hoechstens 3) / bought upgrades (at most 3) */
   upgrades?: CityUpgradeId[];
+  /**
+   * Sendeturm der Kampagne: bildet aus wie eine Nachschublinie, waechst nicht, keine Ausbauten (TOWER).
+   * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
+   */
+  tower?: boolean;
   nameIndex: number;
 }
 
@@ -109,7 +114,7 @@ export interface Unit {
   /** Erdkernbohrer: Runden in Folge ohne Bewegung / earth-core drill: consecutive rounds without moving */
   stillRounds?: number;
   /** Endgegner: Runden, ab denen Schrei und Brut wieder bereit sind / boss: rounds from which scream and brood are ready again */
-  boss?: { scream: number; brood: number };
+  boss?: { scream: number; brood: number; hp?: number };
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */
@@ -184,8 +189,15 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
-  /** Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung) / map theme (missing = surface); 'alien' = Zyrr homeworld (render only) */
-  theme?: 'cavern' | 'alien';
+  /** Anteil neutraler Siedlungen (fehlt = 1, freie Partien); Kampagne siehe CAMPAIGN_SETTLEMENTS / share of neutral settlements (missing = 1, free games); campaign see CAMPAIGN_SETTLEMENTS */
+  settlements?: number;
+  /**
+   * Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung); 'desert' = rote Wuestenwelt der Vergessenen
+   * (Darstellung, Kartenerzeugung ohne Meer und Sandsturm-Wetter).
+   * Map theme (missing = surface); 'alien' = Zyrr homeworld (render only); 'desert' = red desert world of the Forgotten
+   * (render, map generation without sea and dust-storm weather).
+   */
+  theme?: 'cavern' | 'alien' | 'desert';
 }
 
 /** Stand eines Missionsziels / state of a mission objective */
@@ -230,6 +242,19 @@ export interface CampaignState {
   landing?: boolean;
   /** Endgegner aufgetaucht (Runde) / boss emerged (round) */
   bossRound?: number;
+  /**
+   * Riss (m11): aufgerissen an dieser Stelle in dieser Runde; die Mission ist damit gewonnen.
+   * Rift (m11): torn open at this spot in this round; the mission is won with it.
+   */
+  rift?: Pos & { round: number };
+  /** Ruinenstaetten der Vergessenen (m13) / ruin sites of the Forgotten (m13) */
+  sites?: Pos[];
+  /** je Staette: vom Spieler entziffert / per site: deciphered by the player */
+  siteDone?: boolean[];
+  /** Hoehleneingang (m14) / cave entrance (m14) */
+  cave?: Pos;
+  /** Runden in Folge, die der Spieler den Hoehleneingang besetzt / consecutive rounds the player occupies the cave entrance */
+  caveHold?: number;
 }
 
 /** Zufallsereignis-Art / random event kind */
@@ -330,6 +355,12 @@ export type GameEvent =
    * Endgegner: aufgetaucht, Brut geschluepft (count), psychischer Schrei (hits) / boss: emerged, brood hatched (count), psychic scream (hits)
    */
   | { t: 'boss'; what: 'emerge' | 'brood' | 'scream'; unit: number; faction: number; x: number; y: number; count?: number; hits?: { unit: number; dmg: number }[] }
+  /** Kampagne m11: der Riss reisst auf (an der Schwarmmutter) / campaign m11: the rift tears open (at the Swarm Mother) */
+  | { t: 'rift'; unit: number; x: number; y: number }
+  /** Schadenswetter zu Rundenbeginn (Meteorschauer, Saeureregen): getroffene Einheiten / damaging weather at round start (meteors, acid rain): units hit */
+  | { t: 'weatherHit'; kind: 'meteor' | 'acid'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /** Kampagne m13: Ruinenstaette entziffert (index in CampaignState.sites) / campaign m13: ruin site deciphered */
+  | { t: 'ruin'; index: number; x: number; y: number; faction: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 export type DiplomacyAction = 'proposePeace' | 'acceptPeace' | 'declinePeace' | 'announceBreak' | 'embassy';
@@ -372,7 +403,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory';
+  | 'enemyTerritory' | 'cannotBuild' | 'quake';
 
 export interface CommandResult {
   ok: boolean;

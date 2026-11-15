@@ -248,7 +248,7 @@ export function craterDebris(variant: number): THREE.BufferGeometry {
 // ---------- Skelette / skeletons ----------
 
 /** Wappen der Verdan: rote Scheibe mit weissen Fluegeln (Blick +z) / Verdan emblem: red disc with white wings (facing +z) */
-function verdanEmblem(b: Builder, s: number) {
+export function verdanEmblem(b: Builder, s: number) {
   b.add(geo.cyl(0.05 * s, 0.05 * s, 0.012, 10), S.verdanRed, { r: [Math.PI / 2, 0, 0] });
   for (const side of [-1, 1]) {
     for (let k = 0; k < 3; k++) {

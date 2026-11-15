@@ -245,16 +245,17 @@ export class View {
 
   private backdrop = '';
   /**
-   * Himmel hinter dem Brett (CSS am #app, siehe styles.css): Alienwelt mit Tageszeit, sonst nichts.
-   * Sky behind the board (CSS on #app, see styles.css): alien world with the time of day, otherwise nothing.
+   * Himmel hinter dem Brett (CSS am #app, siehe styles.css): Alienwelt und Wuestenwelt mit Tageszeit, sonst nichts.
+   * Sky behind the board (CSS on #app, see styles.css): alien world and desert world with the time of day, otherwise nothing.
    */
-  private syncBackdrop(world: 'alien' | null) {
+  private syncBackdrop(world: 'alien' | 'desert' | null) {
     const key = `${world}-${this.sky.phase}`;
     if (key === this.backdrop) return;
     this.backdrop = key;
     const app = this.canvas.parentElement;
     if (!app) return;
     app.classList.toggle('world-alien', world === 'alien');
+    app.classList.toggle('world-desert', world === 'desert');
     if (world) app.dataset.phase = this.sky.phase; else delete app.dataset.phase;
   }
 
@@ -272,8 +273,10 @@ export class View {
     const wk = this.board.weatherFx.kind;
     const theme = this.board.theme;
     const cave = theme === 'cavern';
-    const world = theme === 'alien' ? 'alien' : null;
-    this.sky.set(phaseOf(this.board.round), wk === 'rain' ? 1 : wk === 'snow' ? 0.5 : 0, this.board.animations && this.skyReady, theme ?? null);
+    const world = theme === 'alien' || theme === 'desert' ? theme : null;
+    // Wetter dunkelt ab: Regen und Saeure stark, Sandsturm mittel, Schnee leicht / weather darkens: rain and acid strongly, dust storm medium, snow lightly
+    const overcast = wk === 'rain' || wk === 'acid' ? 1 : wk === 'dust' ? 0.7 : wk === 'snow' || wk === 'meteor' ? 0.5 : 0;
+    this.sky.set(phaseOf(this.board.round), overcast, this.board.animations && this.skyReady, theme ?? null);
     this.syncBackdrop(world);
     // Hoehle: dunkler Hintergrund statt durchsichtigem Himmel (nicht in XR) / cavern: dark background instead of the clear sky (not in XR)
     const bg = cave && !inXr ? caveBackground() : null;
@@ -293,6 +296,7 @@ export class View {
       this.board.ambient.update(sec);
       if (this.board.caveLife.active) this.board.caveLife.update(sec);
       this.board.alienFx.update(sec);
+      this.board.desertFx.update(sec);
       this.board.pulseMarkers(sec);
       this.needs = true;
     }
@@ -306,6 +310,10 @@ export class View {
     if (this.shakeAmp > 0) this.applyShake();
     if (skyChanged && !this.board.animations) this.board.town.update(this.animTime);
     const fogMoving = this.board.fogFx.update(now);
+    // Riss: schaut zur Kamera, wirbelt nur mit Animationen / rift: faces the camera, swirls only with animations
+    if (this.board.rift.active) {
+      if (this.board.animations) { this.board.rift.update(now, this.camera); this.needs = true; } else this.board.rift.face(this.camera);
+    }
     const boardChanged = this.board.tick(now);
     // Schattenkarte nach Neuaufbau oder Lichtwechsel / shadow map after a rebuild or a light change
     if (this.renderer.shadowMap.enabled && (this.shadowVersion !== this.board.staticVersion || skyChanged)) {

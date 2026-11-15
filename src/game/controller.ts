@@ -14,6 +14,7 @@ import { audio, type Sfx } from '../audio/audio';
 import type { HighlightKind } from '../render/board';
 import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
+import { RIFT_OPEN_MS } from '../render/rift';
 import { saveGame } from '../save/save';
 
 export type Tab = 'unit' | 'city' | 'tile';
@@ -60,6 +61,9 @@ export class Controller {
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
+  /** Spielende schon gemeldet (einmal je Partie, auch wenn es im KI-Zug faellt) / game end already reported (once per game, even during an AI turn) */
+  private gameOverShown = false;
+
   constructor(readonly view: View) {}
 
   get current() { return this.state ? this.state.factions[this.state.current] : null; }
@@ -72,6 +76,7 @@ export class Controller {
 
   load(s: GameState) {
     this.state = s;
+    this.gameOverShown = false;
     this.view.board.finishAnimations();
     const humans = s.factions.filter((f) => f.human);
     this.viewer = s.factions[s.current].human ? s.current : humans.length ? humans[0].index : -1;
@@ -323,7 +328,9 @@ export class Controller {
     const limit = s.config.roundLimit;
     const late = limit ? s.round >= limit * 0.6 : s.round >= 30;
     audio.setLeading(late && scores.length > 1 && scores[0].i === v && scores[0].p >= scores[1].p * 1.25);
-    audio.setAmbience(weather(s));
+    // Sandsturm klingt wie heulender Wind / a dust storm sounds like howling wind
+    const w = weather(s);
+    audio.setAmbience(w === 'dust' ? 'wind' : w === 'acid' ? 'rain' : w === 'meteor' || w === 'quake' ? 'clear' : w);
   }
 
   setTab(tab: Tab) {
@@ -510,7 +517,36 @@ export class Controller {
             } else if (e.what === 'brood') { this.play('levelUp'); this.ui.fx('levelUp', e.x, e.y); }
             break;
           }
-          case 'turn': break;
+          // Riss (Ende m11): reisst sichtbar auf, mit langem Beben; erst danach kommt das Ergebnis
+          // rift (end of m11): tears open visibly with a long quake; only then the result follows
+          case 'rift': {
+            const c = board.tileCenter(s, e.x, e.y);
+            board.rift.show(c, animate);
+            this.play('capture');
+            if (animate) {
+              this.view.shake(SHAKE.eruption * 1.6, RIFT_OPEN_MS);
+              await new Promise((r) => setTimeout(r, RIFT_OPEN_MS));
+            }
+            this.view.invalidate();
+            break;
+          }
+          // Meteorschauer und Saeureregen: Einschlag oder Zischen auf jeder getroffenen, sichtbaren Einheit
+          // meteor shower and acid rain: impact or hiss on every hit, visible unit
+          case 'weatherHit': {
+            let shown = 0;
+            for (const h of e.hits) {
+              if (!visible(h.x, h.y)) continue;
+              this.ui.fx(e.kind === 'meteor' ? 'boom' : 'hit', h.x, h.y);
+              this.ui.fx('num', h.x, h.y, `-${h.dmg}`);
+              if (animate && shown++ < 12) board.weatherFx.impact(board.tileCenter(s, h.x, h.y), e.kind);
+            }
+            if (shown) { this.play('hit'); if (animate && e.kind === 'meteor') this.view.shake(SHAKE.barrier * 1.5); }
+            break;
+          }
+          // Erdbeben zu Rundenbeginn: die Hoehle bebt (nur mit Animationen) / earthquake at the start of the round: the cavern shakes (animations only)
+          case 'turn':
+            if (e.weather === 'quake' && e.faction === 0 && animate) this.view.shake(SHAKE.eruption, SHAKE.eruptionMs * 2);
+            break;
           default: break;
         }
         this.ui.event(e, s);
@@ -526,14 +562,23 @@ export class Controller {
     if (this.pendingTurret && !s.tiles[this.pendingTurret.y * s.size + this.pendingTurret.x].turret) this.pendingTurret = null;
     this.updateHighlights();
     this.ui.update();
-    if (s.over) {
-      this.autosave();
-      const me = this.viewer >= 0 ? this.viewer : s.winner ?? 0;
-      audio.gameOver(s.winner === me, fid(me));
-      this.ui.gameOver();
-    }
+    if (s.over) this.finishGame();
     else if (!opts.ai) this.ui.rewards();
     return res;
+  }
+
+  /**
+   * Spielende genau einmal melden: Speichern, Klang, Ergebnisdialog (zaehlt das Kampagnenergebnis).
+   * Report the game end exactly once: save, sound, result dialog (records the campaign result).
+   */
+  private finishGame() {
+    const s = this.state;
+    if (!s?.over || this.gameOverShown) return;
+    this.gameOverShown = true;
+    this.autosave();
+    const me = this.viewer >= 0 ? this.viewer : s.winner ?? 0;
+    audio.gameOver(s.winner === me, s.factions[me]?.id);
+    this.ui.gameOver();
   }
 
   autosave() {
@@ -627,7 +672,7 @@ export class Controller {
     this.refresh();
     this.autosave();
     this.ui.update();
-    if (s.over) { this.ui.gameOver(); return; }
+    if (s.over) { this.finishGame(); return; }
     await this.beginHumanTurn();
   }
 

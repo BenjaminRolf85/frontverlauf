@@ -24,6 +24,19 @@ export function setLanguage(l: Lang) {
   listeners.forEach((fn) => fn());
 }
 export const getLanguage = () => lang;
+/** Gebietsschema der Spielsprache (Datum, Zahlen) / locale of the game language (dates, numbers) */
+export const locale = () => (lang === 'de' ? 'de-DE' : 'en-GB');
+
+const numFormats = new Map<Lang, Intl.NumberFormat>();
+/**
+ * Zahl in der Spielsprache: Dezimalkomma im Deutschen ("3,5"), Punkt im Englischen; ohne Tausendertrennung.
+ * Number in the game language: decimal comma in German ("3,5"), point in English; no thousands grouping.
+ */
+export function num(n: number): string {
+  let f = numFormats.get(lang);
+  if (!f) { f = new Intl.NumberFormat(locale(), { maximumFractionDigits: 2, useGrouping: false }); numFormats.set(lang, f); }
+  return f.format(n);
+}
 export function onLanguageChange(fn: () => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);

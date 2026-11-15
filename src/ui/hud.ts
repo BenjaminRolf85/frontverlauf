@@ -3,18 +3,18 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, WEATHER, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, SUPPLY_LINE, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, JUNGLE, VOLCANO, CULT_UNITS, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, rosterUnits,
-  barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
+  barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview,
+  supplyLines, turretAt, turretTargets, turretPreview, missionById,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
-import { has as hasText, t } from '../i18n/i18n';
+import { has as hasText, num, t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
 import { Portrait } from './portrait';
 import { leaderPortrait } from './leaders';
@@ -29,7 +29,7 @@ import { victoryGoalText, wonderPanel } from './victory';
 const HINT_PRESS_MS = 450;
 
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star' };
-const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind' };
+const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning', acid: 'rain', quake: 'warning', calm: 'sun' };
 export const UNIT_ICON: Record<string, string> = {
   infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
   spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
@@ -114,7 +114,7 @@ function attackPreview(s: GameState, p: CombatPreview): { short: string; full: s
 function unitStatsLine(type: UnitTypeId): string {
   const st = UNITS[type];
   const abil = st.abilities.filter((a) => a !== 'carry').map((a) => t(`abilities.${a}`));
-  return [`${t('stats.attack')} ${st.attack}`, `${t('stats.defense')} ${st.defense}`, `${t('stats.move')} ${st.move}`, `${t('stats.range')} ${st.range || t('stats.noRange')}`, ...abil].join(' · ');
+  return [`${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`, `${t('stats.range')} ${st.range ? num(st.range) : t('stats.noRange')}`, ...abil].join(' · ');
 }
 
 /** Treffsicherheit einer Einheit als Kurztext und Tooltip / accuracy of a unit as short text and tooltip */
@@ -292,7 +292,8 @@ export class Hud {
     const f = s.factions[viewerIdx];
     const inc = income(s, viewerIdx);
     const up = upkeep(s, viewerIdx);
-    const limit = s.config.roundLimit;
+    // Kampagne: Rundenzahl des Einsatzes / campaign: the mission's round count
+    const limit = s.config.roundLimit ?? (s.campaign ? missionById(s.campaign.mission)?.rounds ?? null : null);
     // Netto-Einkommen: auf dem Handy kompakt neben den Sternen / net income: compact next to the stars on phones
     const net = inc - up;
     const netTxt = `${net >= 0 ? '+' : ''}${net}`;
@@ -357,10 +358,13 @@ export class Hud {
   }
 
   private weatherChip(s: GameState): string {
-    const w = weather(s);
-    if (s.config.weather === false) return '';
-    const nextRound = (Math.floor((s.round - 1) / WEATHER.cycleRounds) + 1) * WEATHER.cycleRounds + 1;
-    const next = weatherFor(s.config.seed, nextRound);
+    // ohne Wetter weder Chip noch Vorhersage; in der Hoehle nur 'ruhig' oder 'Erdbeben' / without weather neither chip nor forecast; in the cavern only 'calm' or 'earthquake'
+    if (!hasWeather(s)) return '';
+    const cave = s.config.theme === 'cavern';
+    const key = (x: string) => (cave && x === 'clear' ? 'calm' : x);
+    const w = key(weather(s));
+    const nextRound = nextWeatherRound(s);
+    const next = key(weatherAt(s, nextRound));
     const title = `${t(`weather.${w}`)}: ${t(`weather.${w}Desc`)} | ${t('weather.forecast', { round: nextRound, weather: t(`weather.${next}`) })}`;
     return `<span class="res weather" title="${esc(title)}" aria-label="${esc(title)}">${icon(WEATHER_ICON[w])}<span class="sub">${esc(t(`weather.${w}`))}</span></span>`;
   }
@@ -390,10 +394,10 @@ export class Hud {
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
         <div class="sheet-more"><div class="stats">
-          <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${st.attack}</span>
-          <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${st.defense}</span>
-          <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${st.move}</span>
-          <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range || esc(t('stats.noRange'))}</span>
+          <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
+          <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
+          <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${num(st.move)}</span>
+          <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
@@ -408,7 +412,18 @@ export class Hud {
     } else if ((tab === 'city' || (tab === 'unit' && !vUnit)) && city) {
       const name = cityName(s, city.id);
       if (city.owner === null) {
-        head = `<span class="unit-badge">${icon('capture')}</span><div class="grow"><h3 class="display">${esc(name)}</h3><div class="muted">${esc(t(supplyLines(s) ? 'cavern.neutralLine' : 'features.village'))}</div></div>`;
+        head = `<span class="unit-badge">${icon('capture')}</span><div class="grow"><h3 class="display">${esc(name)}</h3><div class="muted">${esc(t(city.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village'))}</div></div>`;
+        if (city.tower) body += `<p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: TOWER.unitLimit }))}</p>`;
+      } else if (city.tower) {
+        // Sendeturm: bildet aus, waechst nicht, festes Einkommen / transmitter tower: trains, does not grow, fixed income
+        const fid = s.factions[city.owner].id;
+        head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
+          <div class="muted unit-sub">${esc(t('tower.name'))} · ${esc(t(`factions.${fid}.short`))}</div></div>`;
+        body += `<div class="row"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
+          <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>
+          <p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: unitLimit(s, city) }))}</p>`;
+        this.cityNote = '';
+        if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
       } else if (supplyLines(s)) {
         // Nachschublinie: kein Wachstum, keine Ausbauten, festes Einkommen / supply line: no growth, no upgrades, fixed income
         const fid = s.factions[city.owner].id;
@@ -425,7 +440,7 @@ export class Hud {
         const need = levelUpCost(s, city);
         // Stufe in der Unterzeile, damit der Name nicht abgeschnitten wird / level in the subline so the name is not cut off
         head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
-          <div class="muted unit-sub">${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
+          <div class="muted unit-sub">${isDesert(s) ? `${esc(t('desert.outpost'))} · ` : isAlienWorld(s) ? `${esc(t(fid === 'zyrr' ? 'burrow.zyrr' : 'burrow.own'))} · ` : ''}${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
         body += `<div class="row">${icon('people', 'icon-sm')}<span>${esc(t('hud.population', { pop: city.pop, need }))}</span><div class="grow">${progress(city.pop, need, '', t('hud.population', { pop: city.pop, need }))}</div></div>
           <div class="sheet-more"><div class="stats"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>
@@ -608,7 +623,7 @@ export class Hud {
       const targets = barrierTargets(s, u);
       const ok = targets.length > 0;
       const base = barrierCheck(s, u, u.x, u.y + (u.y + 1 < s.size ? 1 : -1));
-      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'cannotCapture' ? 'unitExhausted' : base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
+      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
       this.actions.push({ id: 'barrier', icon: 'shield', label: g.barrierMode ? t('actions.cancel') : t('actions.barrier'), cost: g.barrierMode ? undefined : barrierCost(s, u.owner), enabled: ok || g.barrierMode, reason,
         run: () => { if (g.barrierMode) { g.barrierMode = false; g.updateHighlights(); this.render(); } else { g.startBarrier(); g.ui.toast(t('actions.barrierHint'), 'shield'); } } });
     }
@@ -617,7 +632,7 @@ export class Hud {
       const targets = mineTargets(s, u);
       const ok = targets.length > 0;
       const base = neighbors(s.size, u.x, u.y).map((q) => mineCheck(s, u, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'invalidTile';
-      const reason = ok ? t('actions.mineHint') : base === 'cannotCapture' ? t('errors.unitExhausted') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
+      const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
       this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
         run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
     }
@@ -735,7 +750,7 @@ export class Hud {
         const tech = lockedBuildingTech(s, f, b, x, y);
         if (tech) locked.push({
           id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: false,
-          reason: `${t('hud.needsTech', { tech: t(`techs.${tech}`) })} · ${t(`buildingDesc.${b}`)}`,
+          reason: `${t('hud.needsTech', { tech: t(`techs.${tech}`) })} · ${buildingDescText(b)}`,
           run: () => {},
         });
         continue;

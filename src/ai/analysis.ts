@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -26,6 +26,8 @@ export interface Goal {
   src: string;
   water: boolean;
   targetId?: number;
+  /** Kampagnen-Haltefeld: Artillerie haelt nicht / campaign hold tile: artillery does not hold */
+  hold?: boolean;
 }
 
 export interface Ctx {
@@ -397,6 +399,45 @@ function isCombat(u: Unit): boolean {
   return UNITS[t].attack > 0 && UNITS[t].range > 0 || (u.carried !== null && UNITS[u.carried].attack > 0);
 }
 
+/**
+ * Kampagnenziele fuer die KI: Spieler-Seite (Spieler als KI und Verbuendete) besetzt Portal, Hoehleneingang und
+ * Ruinenstaetten, rueckt zum Erreichen-Ziel vor und jagt den Endgegner; die Gegner streiten um Hoehleneingang und Ruinen.
+ * Campaign objectives for the AI: the player side (player as AI and allies) occupies portal, cave entrance and ruin
+ * sites, advances to the reach target and hunts the boss; the enemies contest the cave entrance and the ruins.
+ */
+function campaignGoals(ctx: Ctx, tileSrc: (x: number, y: number) => string): Goal[] {
+  const { s, f } = ctx;
+  const c = s.campaign;
+  if (!c || c.result) return [];
+  const out: Goal[] = [];
+  const A = CAMPAIGN_AI;
+  const side = f === 0 || !!c.allies?.includes(f);
+  /** Feld besetzen oder den feindlichen Besetzer vertreiben / occupy a tile or drive off the hostile occupant */
+  const hold = (p: Pos, value: number, cap: number, hunt: number, huntCap: number) => {
+    const occ = unitAt(s, p.x, p.y);
+    if (occ && occ.owner !== f && isHostile(s, f, occ.owner)) out.push({ kind: 'hunt', x: p.x, y: p.y, value: hunt, cap: huntCap, distW: A.siteDistW, src: tileSrc(p.x, p.y), water: false, targetId: occ.id });
+    else if (!occ || occ.owner === f) out.push({ kind: 'bunker', x: p.x, y: p.y, value, cap, distW: A.siteDistW, src: tileSrc(p.x, p.y), water: false, hold: true });
+  };
+  // nur Felder, die ein Ziel der Mission sind (das Portal in m11 ist Kulisse) / only tiles that are a mission objective (the portal in m11 is scenery)
+  const objs = missionById(c.mission)?.objectives ?? [];
+  const wants = (k: string) => objs.some((o) => o.k === k);
+  if (c.cave && wants('cave')) hold(c.cave, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
+  if (wants('ruins')) (c.sites ?? []).forEach((p, i) => { if (!(side && c.siteDone?.[i])) hold(p, A.siteValue, A.siteCap, A.siteValue, A.siteCap + 1); });
+  if (!side) return out;
+  if (c.portal && wants('portal')) hold(c.portal, A.caveValue, A.caveCap, A.caveHuntValue, A.caveHuntCap);
+  // Erreichen-Ziele: zum Zielfeld vorruecken, sobald kein Landetrupp mehr ohne Stadt ist / reach objectives: advance to the target tile once no landing party is left without a city
+  for (const o of objs) {
+    const p = o.k === 'reach' ? c.targets[o.target] : undefined;
+    if (p && !c.landing) out.push({ kind: 'bunker', x: p.x, y: p.y, value: A.reachValue, cap: A.reachCap, distW: A.siteDistW, src: tileSrc(p.x, p.y), water: false });
+  }
+  // Endgegner jagen / hunt the boss
+  for (const id of c.units ?? []) {
+    const b = s.units.find((u) => u.id === id);
+    if (b && isBoss(b) && isHostile(s, f, b.owner)) out.push({ kind: 'hunt', x: b.x, y: b.y, value: A.bossHuntValue, cap: A.bossHuntCap, distW: A.siteDistW, src: tileSrc(b.x, b.y), water: false, targetId: b.id });
+  }
+  return out;
+}
+
 function buildGoals(ctx: Ctx): Goal[] {
   const { s, f, prof, size } = ctx;
   const goals: Goal[] = [];
@@ -437,6 +478,7 @@ function buildGoals(ctx: Ctx): Goal[] {
       goals.push({ kind: 'bunker', x: art.x, y: art.y, value: CAMPAIGN_AI.artifactValue, cap: CAMPAIGN_AI.artifactCap, distW: CAMPAIGN_AI.artifactDistW, src: tileSrc(art.x, art.y), water: false });
     }
   }
+  goals.push(...campaignGoals(ctx, tileSrc));
   for (const c of ctx.myCities) {
     const near = ctx.enemies.filter((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
     if (!near.length) continue;
@@ -487,7 +529,7 @@ function eligible(u: Unit, g: Goal): boolean {
   const fly = has(u, 'fly');
   switch (g.kind) {
     case 'village': case 'city': return canCaptureType(u);
-    case 'bunker': return g.water ? (fly || isShip(u)) : u.type !== 'spy';
+    case 'bunker': return g.water ? (fly || isShip(u)) : u.type !== 'spy' && !(g.hold && (u.type === 'artillery' || fly));
     case 'defend': case 'hunt': return isCombat(u) && u.type !== 'medic';
     case 'explore': return u.type !== 'artillery' && u.type !== 'medic' && u.type !== 'spy';
     default: return true;
@@ -581,7 +623,8 @@ function bossGoal(ctx: Ctx, u: Unit): Goal {
 
 function frontGoal(ctx: Ctx): Goal {
   const { size } = ctx;
-  const hq = ctx.myCities.find((c) => c.isHQ) ?? ctx.myCities[0];
+  // eigenes Hauptquartier, kein erobertes fremdes / own HQ, not a captured foreign one
+  const hq = hqOf(ctx.s, ctx.f) ?? ctx.myCities[0];
   let best: { x: number; y: number } | null = null;
   let bd = Infinity;
   if (hq) {

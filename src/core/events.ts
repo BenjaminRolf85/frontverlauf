@@ -8,7 +8,7 @@
  */
 import { ROSTERS, TECHS, TECH_IDS, UNITS, type TechId } from '../data/balance';
 import { dist, neighbors, tileAt } from './grid';
-import { baseBuilding, has, hqOf, isHostile, ownCities, score } from './queries';
+import { baseBuilding, has, hqOf, isBoss, isHostile, ownCities, score } from './queries';
 import { freeFor, placeUnit } from './spawn';
 import type { GameEvent, GameState, RandomEventKind, Unit } from './types';
 
@@ -153,8 +153,8 @@ function defector({ s, ev }: Ctx): boolean {
   if (f === undefined) return false;
   const home = hqOf(s, f) ?? ownCities(s, f)[0];
   if (!home) return false;
-  // Wunder laufen nie ueber / wonders never defect
-  const cands = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && !UNITS[u.type].ship && u.fuel === null && u.carried === null && !has(u, 'wonder') &&
+  // Wunder und Endgegner laufen nie ueber / wonders and bosses never defect
+  const cands = s.units.filter((u) => u.owner !== f && isHostile(s, f, u.owner) && !UNITS[u.type].ship && u.fuel === null && u.carried === null && !has(u, 'wonder') && !isBoss(u) &&
     tileAt(s, u.x, u.y)!.cityId === null);
   if (!cands.length) return false;
   const u = cands.sort((a, b) => dist(a, home) - dist(b, home) || a.id - b.id)[0] as Unit;

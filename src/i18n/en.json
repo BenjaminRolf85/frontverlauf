@@ -598,6 +598,7 @@
     "tankDesc": "a tank appears in the city"
   },
   "hud": {
+    "mapLabel": "Game map",
     "points": "Points",
     "stars": "Stars",
     "perRound": "+{n} per round",
@@ -644,6 +645,7 @@
     "moreActions": "More actions"
   },
   "actions": {
+    "confirmTitle": "Are you sure?",
     "move": "Move",
     "attack": "Attack",
     "heal": "Heal",
@@ -722,7 +724,9 @@
     "noWreck": "No wreck on or next to the tile.",
     "noXenoGround": "Aliens only heal on terraformed xeno ground.",
     "noRockets": "No rockets left. Reload in an own city with a depot.",
-    "enemyTerritory": "Not inside another faction's territory."
+    "enemyTerritory": "Not inside another faction's territory.",
+    "cannotBuild": "This unit cannot build that.",
+    "quake": "Earthquake: vehicles and mechs cannot move this round."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -761,7 +765,9 @@
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
-    "verdanActive": "Verdan defence line activated!"
+    "verdanActive": "Verdan defence line activated!",
+    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into outposts and bunkers!",
+    "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
   },
   "fx": {
     "hit": [
@@ -779,6 +785,7 @@
     "boom": "KABOOM!"
   },
   "diplomacy": {
+    "breakConfirm": "Really terminate peace with {name}? After one round you are at war again.",
     "title": "Diplomacy",
     "war": "War",
     "peace": "Peace",
@@ -787,7 +794,7 @@
     "accept": "Accept",
     "decline": "Decline",
     "announceBreak": "Terminate peace",
-    "embassy": "Open embassy ({cost})",
+    "embassy": "Open embassy",
     "embassyOpen": "Embassy active",
     "offerPending": "Offer pending",
     "offerReceived": "offers you peace",
@@ -917,7 +924,7 @@
   "campaign": {
     "title": "Campaign",
     "menu": "Campaign",
-    "subtitle": "Eleven operations after the Starfall",
+    "subtitle": "{n} operations on {worlds} worlds:",
     "totalStars": "{n} of {max} stars",
     "mission": "Operation {n}",
     "locked": "Locked",
@@ -966,7 +973,7 @@
       "holdTile": "Keep the marked tile free of enemies until round {rounds}",
       "capture": "Capture the marked city by round {rounds}",
       "salvage": "Salvage the marked crash site before the enemy, by round {rounds}",
-      "cities": "Own {n} cities by round {rounds}",
+      "cities": "Own {n} cities or transmitter towers by round {rounds}",
       "points": "Reach {n} points by round {rounds}",
       "kills": "Destroy {n} enemy units by round {rounds}",
       "eliminate": "Knock out {name} by round {rounds}",
@@ -974,7 +981,7 @@
       "keepHq": "Never lose your headquarters",
       "noCityLost": "Lose no city",
       "bonusCapture": "Capture the marked city",
-      "bonusCities": "Own {n} cities",
+      "bonusCities": "Own {n} cities or transmitter towers",
       "bonusKills": "Destroy {n} enemy units",
       "bonusPoints": "Reach {n} points",
       "destroyUnit": "Destroy the {unit} by round {rounds}",
@@ -985,22 +992,35 @@
       "reach": "Push through to the headquarters of {name}, by round {rounds}",
       "boss": "Defeat the {unit} by round {rounds}",
       "outpost": "Capture the Zyrr outpost by round {rounds}",
-      "bonusOutpost": "Capture the Zyrr outpost"
+      "bonusOutpost": "Capture the Zyrr outpost",
+      "rift": "Bring the {unit} to the brink of death, by round {rounds}",
+      "ruins": "Decipher {n} ruin sites of the Forgotten (stand on one for a round), by round {rounds}",
+      "cave": "Occupy the cave entrance for {n} rounds in a row, by round {rounds}",
+      "verdanOutpost": "Take the abandoned Verdan outpost by round {rounds}",
+      "bonusVerdanOutpost": "Take the Verdan outpost",
+      "outposts": "Own {n} Verdan outposts or transmitter towers by round {rounds}",
+      "bonusOutposts": "Own {n} Verdan outposts or transmitter towers",
+      "captureOutpost": "Take the marked Verdan outpost by round {rounds}",
+      "bonusCaptureOutpost": "Take the marked Verdan outpost",
+      "noOutpostLost": "Lose no Verdan outpost",
+      "holdOutposts": "Lose no Verdan outpost until round {rounds}",
+      "burrow": "Capture the Zyrr burrow by round {rounds}",
+      "bonusBurrow": "Capture the Zyrr burrow"
     },
     "missions": {
       "m1": {
         "title": "Shower of Sparks",
-        "tagline": "Secure the crash zone with three cities",
+        "tagline": "Secure the crash zone with four cities",
         "brief": [
           "{leader} speaking. The sky burned, and now it is raining scrap. We secure the crash zone before anyone else does.",
-          "Debris and smoking craters everywhere, commander! The settlements around here are scared. Three cities under the flag of {faction}, then the zone is ours.",
+          "Debris and smoking craters everywhere, commander! The settlements around here are scared. Four cities under the flag of {faction}, then the zone is ours.",
           "Kkt. Primitive creatures are crawling over our crash site. Swarm, clean up!"
         ],
-        "won": "Three cities, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
+        "won": "Four cities, zero panic. The crash zone belongs to {faction}. And the Zyrr look quite violet.",
         "lost": "The zone is lost. The settlers pack their suitcases, the Zyrr unpack their probes.",
         "variants": {
           "korvat": {
-            "won": "Three cities, one people, one step! The League sings twice as loud tonight."
+            "won": "Four cities, one people, one step! The League sings twice as loud tonight."
           }
         }
       },
@@ -1025,12 +1045,12 @@
         "title": "The Portal",
         "tagline": "Beat the garrison and hold the dimensional portal for two rounds",
         "brief": [
-          "Commander, you have to see this! The Zyrr have built a gate out of chitin and light. Behind it: a violet sky with two moons. And reinforcements are coming out of it.",
+          "Commander, you have to see this! While we were busy with the cult and NEXUS, the Zyrr built a gate out of chitin and light. Behind it: a violet sky with two moons. And reinforcements are coming out of it.",
           "Kkt. The gate belongs to the swarm. It leads home. Earthlings who look through it see their end.",
-          "{leader} here. We beat the guard at the portal and hold it for two rounds. Whoever holds the gate decides who goes through. And that is us."
+          "{leader} here. Earth is safe, now we take the gate. We beat the guard and hold the portal for two rounds. Whoever holds the gate decides who goes through. And that is us."
         ],
         "ally": "{allyLeader} to {leader}: {ally} seals the flank. No grey gets around the gate.",
-        "won": "The portal is open. We are going through.",
+        "won": "The portal is open. Earth holds, now we go through.",
         "lost": "The portal stays in Zyrr hands. And it keeps spitting out greys."
       },
       "m4": {
@@ -1039,7 +1059,7 @@
         "brief": [
           "The pilgrims we took in are suddenly wearing bone masks! They are right in front of our gates.",
           "The bell has tolled. By itself! Brothers, sisters, convert them or burn them down.",
-          "{leader} here. Six zealots fewer and peace returns. Quickly, before they start preaching."
+          "{leader} here. Eight zealots fewer and peace returns. Quickly, before they start preaching."
         ],
         "ally": "{allyLeader} here. {ally} has pilgrims in the house too. We clean up together, {leader}.",
         "won": "The masks lie in the dust. The rest of the pilgrims suddenly just want tea.",
@@ -1103,26 +1123,26 @@
       },
       "m8": {
         "title": "Hold Your Ground",
-        "tagline": "Survive until reinforcements arrive",
+        "tagline": "Hold the headquarters and smash the onslaught",
         "brief": [
-          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters until reinforcements arrive!",
+          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters and shoot ten machines to scrap, then the onslaught collapses!",
           "RESISTANCE CALCULATED. RESULT: BRIEF. PLEASE REMAIN IN YOUR SEATS.",
           "Spiders, drones, railguns, and at the end comes a titan. The bunker holds. Hopefully."
         ],
         "ally": "{allyLeader} here. {ally} is on the way, {leader}. Hold on, we are coming.",
-        "won": "The reinforcements are here! NEXUS is still calculating, we are already celebrating.",
+        "won": "Ten machines scrapped, the headquarters stands! NEXUS is still calculating, we are already celebrating.",
         "lost": "The headquarters has fallen. The machines have our radio. And our biscuits.",
         "variants": {
           "dravon": {
-            "won": "The reinforcements are here. {leader} nods once. In Dravon, that counts as a medal."
+            "won": "The onslaught is broken. {leader} nods once. In Dravon, that counts as a medal."
           }
         }
       },
       "m9": {
         "title": "The Artifact",
-        "tagline": "Everyone against everyone in the cavern of the ancients",
+        "tagline": "Everyone against everyone in the cavern below the red desert",
         "brief": [
-          "Deep underground, in a cavern that is on no map, something has woken up: an obelisk full of runes, older than Verdan, older than anything. It promises rule over the world. Ever since it arrived, the mushrooms and critters around it glow.",
+          "Beyond the cave entrance a shaft leads deep below the red desert, into a cavern that is on no map. There it rests: the obelisk of the Forgotten, full of Verdan runes and yet older than anything. It promises rule over the worlds. Ever since it arrived, the mushrooms and critters around it glow.",
           "Kkt. The artifact belongs to the swarm. We smelled it before you knew fire.",
           "KERN-0: ARTIFACT DETECTED. PROBABILITY OF WORLD DOMINATION: ONE HUNDRED PERCENT. I WILL TAKE IT.",
           "This is the Final Hour! Whoever touches the artifact rings in the end. And that is us.",
@@ -1135,29 +1155,85 @@
       },
       "m10": {
         "title": "Beyond the Portal",
-        "tagline": "Landing party without a base: take the outpost, then march on the Swarm Mother's nest",
+        "tagline": "Landing party without a base: take the Zyrr burrow, then march on the Swarm Mother's nest",
         "brief": [
-          "We are through! Everything here is violet: plants as big as houses, rocks floating in the air, two moons. No base, no supplies. Just our four squads.",
-          "Kkt?! Earthlings on the homeworld? My outpost will swallow you. And my nest you will never see.",
-          "{leader} here. Without a city we will not last long. First we take the Zyrr outpost and dig in there. Then forward, until we stand before the nest of Xyl'Tharra."
+          "We are through! Everything here is violet: plants as big as houses, rocks floating in the air, two moons. No base, no supplies. Just us and a handful of squads.",
+          "Kkt?! Earthlings on the homeworld? My burrow will swallow you. And my nest you will never see.",
+          "{leader} here. Without a base we will not last long. First we take the Zyrr burrow and dig in there. Then forward, until we stand before the nest of Xyl'Tharra."
         ],
-        "won": "The outpost is ours, and ahead of us looms the Swarm Mother's nest. In there, she is waiting.",
+        "won": "The burrow is ours, and ahead of us looms the Swarm Mother's nest. In there, she is waiting.",
         "lost": "The landing party is lost. The violet world swallows it without a sound."
       },
       "m11": {
         "title": "The Swarm Mother",
-        "tagline": "Storm the nest and defeat Xyl'Tharra herself",
+        "tagline": "Storm the nest and bring Xyl'Tharra to the brink of death",
         "brief": [
           "The nest pulses like a heart, commander. Mechs, tripods, greys without end. And somewhere in there something very big is sleeping.",
-          "Kkt. You have my outpost. You have seen my sky. Come closer, little beings, and the mother awakens.",
+          "Kkt. You have my burrow. You have seen my sky. Come closer, little beings, and the mother awakens.",
           "{leader} here. She heals on her ground, she broods, she screams. So we strike together, all at once. When the Swarm Mother falls, the swarm falls."
         ],
         "ally": "{allyLeader} to {leader}: {ally} followed you through the portal. On this world every human is an ally.",
-        "won": "Xyl'Tharra has fallen. The swarm goes silent, the portal flickers and dies behind us. We are home.",
+        "won": "Xyl'Tharra collapses, and above her space tears open: a rift, violet and black, with a sickly green-gold edge. It tears through both worlds and sucks everything in: our troops, the Zyrr with their mother, and back on Earth whole NEXUS columns and the cult's pilgrim trains. Then silence. We lie in red sand, above us a dusty sky with two tiny moons.",
         "lost": "The Swarm Mother lives. Her scream echoes through the portal, and the swarm grows."
+      },
+      "m12": {
+        "title": "Stranded",
+        "tagline": "Scattered across the red desert: find a Verdan outpost and found a base",
+        "brief": [
+          "Commander, we are alive! But the squads lie scattered in the red sand, far apart. No radio mast, no city. Only dunes, mesas and the bones of animals as big as houses. And a dust storm is coming.",
+          "Kkt ... Mother? Mother is silent. The rift ate us and spat us out here. No matter. The swarm builds a new nest, and you are the food.",
+          "KERN-0: LOCATION UNKNOWN. SUN TOO SMALL. TWO MOONS. RECALCULATING ... OBJECTIVE UNCHANGED: THE ARTIFACT.",
+          "You see? This is the Final Hour! The world has already burned, and we are its ashes. Brothers, sisters, take whatever still stands.",
+          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then two more outposts, before the others contest the sand."
+        ],
+        "won": "The outpost is ours. Above the gate the Verdan emblem still hangs, red and white, with wings. What were they looking for here?",
+        "lost": "The sand has swallowed us. One day someone will find our helmets among the giant bones.",
+        "variants": {
+          "korvat": {
+            "won": "The outpost belongs to the people. Brodnik has already worked out how many fields fit into this desert."
+          }
+        }
+      },
+      "m13": {
+        "title": "Ruins of the Forgotten",
+        "tagline": "Decipher three ruin sites and find out where the artifact lies",
+        "brief": [
+          "Ruins stand everywhere in the sand: broken pillars, collapsed domes, half-buried statues with wings. The same runes as in the old empire depots. Commander, this was Verdan.",
+          "Kkt. Stone heaps of dead beings. The swarm smells something beneath, something old. We dig first.",
+          "KERN-0: VERDAN SCRIPT DETECTED. THE EMPIRE WAS HERE. THE EMPIRE IS ME. THE RUINS BELONG TO ME.",
+          "A Verdan guardian sleeps next to every site, a gun straight out of the legends. Whoever comes within three tiles of the site wakes it. Then it fires at whatever stands closest to the site. Keep a unit on a site for a whole round, then we can read the runes.",
+          "{leader} here. The Forgotten, those are the old Verdan. We want to know where they went and why. Decipher three sites, hold the headquarters. Then we will know where the artifact lies."
+        ],
+        "ally": "{allyLeader} to {leader}: {ally} is stranded too. We keep the guardians off your back, you read the runes.",
+        "won": "The runes speak: the Verdan built a machine against time, the artifact. In the Great Standstill they drained all the power of their empire, tore a gate into this world and hid it deep beneath the sand. Those who stayed behind forgot them. The trail leads to a canyon in the heart of the desert.",
+        "lost": "The ruins are silent. Others read the runes now, and all we understand is sand.",
+        "variants": {
+          "velkar": {
+            "won": "The runes are a formula: a machine against time, hidden in the Great Standstill deep beneath the sand. {leader} is already taking notes. The trail leads to a canyon in the heart of the desert."
+          }
+        }
+      },
+      "m14": {
+        "title": "The Cave Entrance",
+        "tagline": "Hold the mouth in the canyon for three rounds, everyone wants in",
+        "brief": [
+          "There it is, the canyon from the runes! At its end a mouth in the rock, as big as a cathedral, with the winged emblem above it. Cold air blows out of it. And the others have found it too.",
+          "Kkt. The hole leads down, to what we smell. The swarm descends first.",
+          "KERN-0: ACCESS TO THE ARTIFACT LOCATED. ALL OTHER UNITS: PLEASE STAND BACK.",
+          "A gate into the depths! The bell calls from below. Whoever climbs down there does not climb back up, except us.",
+          "{leader} here. We occupy the cave entrance for three rounds in a row, then we descend. And the headquarters does not fall, no matter who comes from where."
+        ],
+        "ally": "{allyLeader} to {leader}: {ally} seals off the canyon. You descend, we hold the position up here.",
+        "won": "The cave entrance is ours. We lower the ropes. Something glows down there, deep, deep beneath the red desert.",
+        "lost": "Others descend into the depths. Their cheers echo from the mouth, and then a light.",
+        "variants": {
+          "dravon": {
+            "won": "The cave entrance is secured. {leader} is the first to rope down. Something glows below, deep beneath the red desert."
+          }
+        }
       }
     },
-    "intro": "The sky burned: the Zyrr mothership lies in the desert, the Zyrr are building a gate to their homeworld, the bell tolls by itself, and NEXUS has awakened. The chalk borders are history. Choose a human faction and hold the front.",
+    "intro": "The sky burned: the Zyrr mothership lies in the desert, the bell tolls by itself, NEXUS has awakened, and the Zyrr are building a gate to their homeworld. Beyond it waits a third world that everyone has forgotten. Choose a human faction and hold the front, on three worlds.",
     "prologue": "Prologue: The Starfall",
     "chooseFaction": "Choose your faction",
     "chooseHint": "Every human faction has its own run with its own progress. You can switch at any time.",
@@ -1172,9 +1248,9 @@
     "epilogueTitle": "Epilogue",
     "twistTitle": "The truth about the artifact",
     "twist": [
-      "The runes flare up. {leader} lays a hand on the artifact. The light swallows everything ...",
-      "... and the bell strikes again. Somewhere in the desert a mothership crashes into the sand, and in its belly a violet gate flickers.",
-      "The Starfall. As if nothing had happened. The artifact has turned back time, Xyl'Tharra breathes again, and everything begins anew."
+      "The runes flare up, the same runes as on the Verdan ruins. {leader} lays a hand on the artifact. The light swallows everything ...",
+      "... and the bell strikes again. Somewhere in Earth's desert a mothership crashes into the sand, and in its belly a violet gate flickers. The red world lies empty and forgotten as before.",
+      "The Starfall. As if nothing had happened. That is what the Verdan built the artifact for: whoever touches it turns back time. Xyl'Tharra breathes again, and everything begins anew."
     ],
     "persuadeTip": "Tip: as {faction} you can persuade neutral settlements instead of conquering them. One unit next to it, from {cost} stars, no shot fired.",
     "waveOwn": "Reinforcements arrived: {n} units!",
@@ -1196,27 +1272,33 @@
     },
     "acts": {
       "a1": {
-        "title": "Act I: Starfall",
-        "tagline": "Against the Zyrr, all the way to their homeworld",
-        "closing": "Act I: The Swarm Mother has fallen, the portal is dark. On her violet world only silence grows now."
+        "title": "World I: Earth",
+        "tagline": "Starfall, Bell, Awakening, Portal: the factions fight for Earth",
+        "closing": "World I: Earth holds. The cult is silent, NEXUS is pushed back, and the Zyrr portal stands open. We went through."
       },
       "a2": {
-        "title": "Act II: The Bell",
-        "tagline": "Against the Cult of the Final Hour",
-        "closing": "Act II: The drill is silent, the pilgrims go home. Only the bell still tolls by itself now and then."
+        "title": "World II: Zyrr Homeworld",
+        "tagline": "Violet sky, two moons, the nest of the Swarm Mother",
+        "closing": "World II: Xyl'Tharra lay at death's door when space tore open. The rift swallowed everyone, friend and foe, and spat them out into a red desert."
       },
       "a3": {
-        "title": "Act III: Awakening",
-        "tagline": "Against NEXUS, then against everyone",
-        "closing": "Act III: NEXUS is pushed back, the artifact is in the hands of {faction}. The front stands still. For one breath."
+        "title": "World III: World of the Forgotten",
+        "tagline": "Red desert, Verdan ruins, everyone against everyone for the artifact",
+        "closing": "World III: The artifact of the Forgotten is in the hands of {faction}. The red desert is silent. For one breath."
       }
     },
-    "expanded": "Act I has grown: the portal, the Zyrr homeworld and the Swarm Mother are waiting. The old defensive battle now lives in operation 2. Stars and unlocks are kept.",
+    "expanded": "The campaign has grown: the portal, the Zyrr homeworld and the world of the Forgotten are waiting. The old defensive battle now lives in operation 2. Stars and unlocks are kept.",
     "landing": "Landing party without a city: capture the outpost, or there will be no reinforcements.",
     "bossEmerge": "{name} has appeared! The Swarm Mother defends her nest.",
     "bossLine": "Kkt. You crawled through my gate, {leader}. Now you see me. It will be the last thing you see.",
     "bossScream": "Psychic scream! {n} units hit.",
-    "bossBrood": "The Swarm Mother broods: {n} new greys!"
+    "bossBrood": "The Swarm Mother broods: {n} new greys!",
+    "reordered": "The campaign now spans three worlds: first Earth, then the Zyrr homeworld, finally the red desert of the Forgotten. The portal is now the last operation on Earth, followed by three new operations in the desert. Won operations stay open, stars are kept, and you continue with the first open operation.",
+    "landingDesert": "Stranded without a city: take the Verdan outpost, or there will be no reinforcements.",
+    "ruinDone": "Ruin site deciphered: {have}/{need}",
+    "riftOpen": "The rift tears open!",
+    "landingBurrow": "Landing party without a base: capture the Zyrr burrow, or there will be no reinforcements.",
+    "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow."
   },
   "randomEvents": {
     "title": "Events",
@@ -1922,7 +2004,17 @@
     "snowDesc": "Jeeps, tanks, artillery, flak tanks and mine layers move 1 tile less; with hit luck, more misses (aliens freeze most)",
     "windDesc": "Helicopters burn 2 fuel per round; with hit luck, ranged units and flyers miss more often",
     "forecast": "from round {round}: {weather}",
-    "setupHint": "Changes every 3 rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely)."
+    "setupHint": "Changes every 3 rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely).",
+    "dust": "Dust storm",
+    "dustDesc": "Vision 1 tile less, units with range 2 or more lose 1 range, helicopters move 1 tile less; with hit luck, clearly more misses",
+    "meteor": "Meteor shower",
+    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside outposts and bunkers, never lethal",
+    "acid": "Acid rain",
+    "acidDesc": "At the start of each round 1 to 2 damage to every unit that is not Zyrr, outside cities and bunkers, never lethal; with hit luck more misses and grazes, as in rain",
+    "quake": "Earthquake",
+    "quakeDesc": "Vehicles, mechs, walkers and machines cannot move this round; foot troops move, attacks and Verdan guns carry on",
+    "calm": "Calm",
+    "calmDesc": "The cavern is calm, no effects"
   },
   "barks": {
     "korvat": {
@@ -2379,6 +2471,7 @@
     "lockedHintLevel": "More upgrades at a higher city level ({n})."
   },
   "saves": {
+    "deleteConfirm": "Really delete the save in slot {n}? This cannot be undone.",
     "title": "Saved games",
     "empty": "Empty slot",
     "saveHere": "Save here",
@@ -3209,12 +3302,93 @@
     "dormant": "dormant",
     "active": "active",
     "hp": "Armour {hp} / {max}",
-    "desc": "Ancient gun of the Verdan defence line, neutral and impassable. Wakes up once a unit comes within {wake} tiles of the artifact, then fires every round at the unit in range {range} closest to the artifact, whatever its faction. Destroyable, but never counts as a kill.",
+    "desc": "Ancient Verdan gun, neutral and impassable. Wakes up once a unit comes within {wake} tiles of the guarded place (artifact or ruin site), then fires every round at the unit in range {range} closest to that place, whatever its faction. Destroyable, but never counts as a kill.",
     "ruin": "Rubble of a Verdan gun",
     "attack": "Attack gun",
     "preview": "Damage up to {dmg}, return fire up to {ret}",
     "previewKill": "Destroys the gun",
     "destroyed": "Verdan gun destroyed!",
     "fx": "Verdan"
+  },
+  "overworld": {
+    "title": "Overworld",
+    "viewMap": "Overworld",
+    "viewList": "List",
+    "view": "View",
+    "stage": "Overworld with three disc worlds. Arrow keys switch the world, plus and minus zoom.",
+    "prev": "Previous world",
+    "next": "Next world",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "overview": "All worlds",
+    "progress": "{n} / {max} missions",
+    "coming": "Coming soon",
+    "comingHint": "This mission is still being prepared.",
+    "markers": "Missions on {world}",
+    "marker": "Mission {n}: {title}",
+    "stars": "{n} of 3 stars",
+    "state": {
+      "won": "Won",
+      "available": "Ready",
+      "locked": "Locked",
+      "coming": "Coming soon"
+    },
+    "finale": "Finale",
+    "current": "Next mission",
+    "worlds": "Worlds",
+    "hintDrag": "Drag to turn the world, scroll to zoom, click a flag to open the mission.",
+    "hintSwipe": "Swipe sideways to switch worlds, tap a flag to open the mission.",
+    "noWebgl": "The 3D overworld does not run on this device; the missions are in the list."
+  },
+  "worlds": {
+    "earth": {
+      "name": "Earth",
+      "desc": "A disc of meadows, forests and mountains whose rivers plunge over the rim into the void. Here the factions fight for every hill since the Zyrr fell from the sky."
+    },
+    "alien": {
+      "name": "Zyrr Homeworld",
+      "desc": "Violet ground, crystal spires, giant plants and rocks floating above the rim. Beyond the portal lies the Swarm Mother's nest."
+    },
+    "forgotten": {
+      "name": "World of the Forgotten",
+      "desc": "Red desert, mesas and the ruins of the ancient Verdan with their red and white winged emblem. The rift dragged everyone here; deep in the cave below, the artifact waits."
+    }
+  },
+  "desert": {
+    "outpost": "Verdan outpost",
+    "neutralOutpost": "Abandoned outpost"
+  },
+  "cityNamesVerdan": [
+    "Aurex",
+    "Castra Rubra",
+    "Vigilia",
+    "Alaris",
+    "Ferrofield",
+    "Redwing",
+    "Whitewatch",
+    "Ostrel Post",
+    "Sandspur",
+    "Seraph Dome",
+    "Aquila Relay",
+    "Vigil Nine",
+    "Ascalon",
+    "Pennat",
+    "Rubicor",
+    "Velum Station",
+    "Feather Seven",
+    "Halcyra",
+    "Orion Mast",
+    "Cinnabar"
+  ],
+  "burrow": {
+    "neutral": "Burrow",
+    "zyrr": "Zyrr burrow",
+    "own": "Burrow"
+  },
+  "tower": {
+    "name": "Transmitter tower",
+    "neutral": "Transmitter tower (free)",
+    "desc": "Trains troops, does not grow and cannot be upgraded: fixed income ({n} stars per round), up to {max} units. Reinforcements arrive here.",
+    "captured": "{name} has taken a transmitter tower: reinforcements now arrive there."
   }
 }

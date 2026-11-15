@@ -30,6 +30,7 @@ export class Bloom {
   private composer: EffectComposer;
   private pass: UnrealBloomPass;
   private renderPass: RenderPass;
+  private output: OutputPass;
   private mipScale = 2;
 
   constructor(private renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera) {
@@ -51,7 +52,8 @@ export class Bloom {
     bm.blendSrcAlpha = THREE.ZeroFactor; bm.blendDstAlpha = THREE.OneFactor;
     this.composer.addPass(this.renderPass);
     this.composer.addPass(this.pass);
-    this.composer.addPass(new OutputPass());
+    this.output = new OutputPass();
+    this.composer.addPass(this.output);
     this.resize();
   }
 
@@ -72,8 +74,11 @@ export class Bloom {
     this.composer.render();
   }
 
+  /** Alle Durchgaenge freigeben (sonst bleiben Shader-Programme bei jedem Qualitaetswechsel liegen) / dispose every pass (otherwise shader programs pile up with each quality toggle) */
   dispose() {
     this.composer.dispose();
+    this.renderPass.dispose();
     this.pass.dispose();
+    this.output.dispose();
   }
 }

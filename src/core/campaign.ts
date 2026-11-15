@@ -4,6 +4,11 @@
  * Campaign: missions as data (map, enemies, allies, setup, objectives, waves) and the deterministic evaluation of
  * the objectives after every command and every turn change.
  *
+ * Die Kampagne spielt auf drei Scheibenwelten (WORLDS in worlds.ts): Erde, Heimatwelt der Zyrr und die rote Wueste der
+ * Vergessenen. MISSIONS steht in dieser Spielreihenfolge; act ist die Nummer der Welt (1 bis 3).
+ * The campaign is played on three disc worlds (WORLDS in worlds.ts): Earth, the Zyrr homeworld and the red desert of
+ * the Forgotten. MISSIONS is in this play order; act is the number of the world (1 to 3).
+ *
  * Der Spieler waehlt eine menschliche Fraktion und ist immer Fraktion 0; die Gegner sind nur Sonderfraktionen
  * (Zyrr, Kult, NEXUS). Manche Missionen bringen eine verbuendete Menschen-Fraktion (KI, im Frieden mit dem Spieler,
  * geteilte Karte); sie steht immer hinter den Gegnern. Die Einrichtung setzt nur allgemeine Menschen-Einheiten
@@ -19,20 +24,21 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  FACTION_IDS, ROSTERS, SWARM_MOTHER, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, TOWER, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, Unit } from './types';
+import { WORLDS, worldOf } from './worlds';
 
 /**
  * Stand der Missionsdaten; aeltere Kampagnen-Spielstaende werden beim Laden zu freien Partien.
- * 3 = Akt I mit fuenf Einsaetzen (Portal, Alienwelt, Schwarmmutter).
+ * 3 = Akt I mit fuenf Einsaetzen (Portal, Alienwelt, Schwarmmutter); 4 = drei Welten, Riss und Wueste der Vergessenen.
  * Revision of the mission data; older campaign saves become free games on load.
- * 3 = act I with five missions (portal, alien world, Swarm Mother).
+ * 3 = act I with five missions (portal, alien world, Swarm Mother); 4 = three worlds, rift and desert of the Forgotten.
  */
-export const CAMPAIGN_REV = 3;
+export const CAMPAIGN_REV = 4;
 /** Spielbare Fraktionen der Kampagne: die Menschen / playable campaign factions: the humans */
 export const CAMPAIGN_FACTIONS: FactionId[] = FACTION_IDS.filter((f) => !ROSTERS[f]);
 /** Gegner der Kampagne: die Sonderfraktionen / campaign enemies: the special factions */
@@ -69,6 +75,21 @@ export type ObjectiveDef =
   | { k: 'portal'; rounds: number }
   /** eine eigene Einheit bis auf range Felder an das Zielfeld bringen / bring an own unit within range tiles of the target tile */
   | { k: 'reach'; target: number; range: number }
+  /**
+   * Endgegner bis auf SWARM_MOTHER.riftHp LP bringen (Index in CampaignState.units); dann reisst der Riss auf.
+   * Bring the boss down to SWARM_MOTHER.riftHp HP (index into CampaignState.units); then the rift tears open.
+   */
+  | { k: 'rift'; unit: number }
+  /**
+   * So viele Ruinenstaetten entziffern: eine eigene Einheit steht zu Beginn des Spielerzugs darauf (CampaignState.sites).
+   * Decipher this many ruin sites: an own unit stands on one at the start of the player's turn (CampaignState.sites).
+   */
+  | { k: 'ruins'; n: number }
+  /**
+   * Hoehleneingang so viele Runden in Folge mit einer eigenen Einheit besetzen (gezaehlt zu Beginn des Spielerzugs).
+   * Occupy the cave entrance with an own unit for this many consecutive rounds (counted at the start of the player's turn).
+   */
+  | { k: 'cave'; rounds: number }
   // nur Bonus / bonus only
   | { k: 'fast'; rounds: number }
   | { k: 'keepHq' }
@@ -114,6 +135,16 @@ export interface SetupKit {
   portal(p: Pos): void;
   /** Stadtausbau setzen / add a city upgrade */
   upgrade(c: City, id: CityUpgradeId): void;
+  /**
+   * Ruinenstaette der Vergessenen nahe einem Punkt anlegen, mit einer schlafenden Verdan-Wache daneben.
+   * Lay out a ruin site of the Forgotten near a point, with a dormant Verdan sentinel next to it.
+   */
+  ruin(near: Pos): Pos | null;
+  /**
+   * Hoehleneingang nahe der Kartenmitte: Felswand auf der von from abgewandten Seite, alle kennen ihn (Zielfeld).
+   * Cave entrance near the map centre: rock wall on the side away from from, everyone knows it (target tile).
+   */
+  caveMouth(from: Pos): Pos;
 }
 
 /**
@@ -126,8 +157,8 @@ export interface WaveDef { round: number; owner: number; units: UnitTypeId[]; at
 
 export interface MissionDef {
   id: string;
-  /** Akt 1-3 / act 1-3 */
-  act: 1 | 2 | 3;
+  /** Nummer der Welt (ab 1), aus WORLDS abgeleitet / number of the world (from 1), derived from WORLDS */
+  act: number;
   /** Schwierigkeit (Anzeige) / difficulty (display) */
   level: Difficulty;
   enemies: { id: FactionId; difficulty: Difficulty }[];
@@ -151,8 +182,11 @@ export interface MissionDef {
   artifact?: boolean;
   /** Ueberzeugen lohnt sich hier (Hinweis in der Besprechung fuer Alvenia und Meridon) / persuasion matters here (briefing tip for Alvenia and Meridon) */
   persuade?: boolean;
-  /** Kartenthema: 'alien' = Heimatwelt der Zyrr, ganz Xeno-Boden / map theme: 'alien' = Zyrr homeworld, all xeno ground */
-  theme?: 'cavern' | 'alien';
+  /**
+   * Kartenthema: 'alien' = Heimatwelt der Zyrr, ganz Xeno-Boden; 'desert' = rote Wueste der Vergessenen; 'cavern' = Hoehle.
+   * Map theme: 'alien' = Zyrr homeworld, all xeno ground; 'desert' = red desert of the Forgotten; 'cavern' = cave.
+   */
+  theme?: 'cavern' | 'alien' | 'desert';
   /** Landetrupp: der Spieler beginnt ohne Stadt (siehe CampaignState.landing) / landing party: the player starts without a city */
   landing?: boolean;
   /**
@@ -164,6 +198,15 @@ export interface MissionDef {
   boss?: { unit: UnitTypeId; owner: number; at: number };
   /** Verdan-Verteidigungslinie um das Artefakt / Verdan defence line around the artifact */
   turrets?: boolean;
+  /** Siedlungsfaktor (fehlt = CAMPAIGN_SETTLEMENTS des Themas) / settlement factor (missing = CAMPAIGN_SETTLEMENTS of the theme) */
+  settlements?: number;
+  /** Anzahl Sendetuerme (fehlt = aus der Kartengroesse, TOWER; in der Hoehle keine) / number of transmitter towers (missing = from the map size, TOWER; none in the cavern) */
+  towers?: number;
+  /**
+   * Riss: der Endgegner stirbt nicht, bei SWARM_MOTHER.riftHp LP reisst der Riss auf (Ziel 'rift').
+   * Rift: the boss does not die, at SWARM_MOTHER.riftHp HP the rift tears open (objective 'rift').
+   */
+  rift?: boolean;
   setup?(k: SetupKit): void;
 }
 
@@ -171,15 +214,17 @@ export interface MissionDef {
 
 /**
  * Verbuendete Menschen-Fraktion je Spielerfraktion und Mission (fest, nie die eigene). Die diplomatischen Fraktionen
- * bekommen oefter Hilfe: Alvenia in 6, Meridon in 5, die anderen in 2 Missionen. Auf der Alienwelt helfen sich nur
- * die beiden Diplomaten gegenseitig (m11); der Landetrupp (m10) ist allein.
+ * bekommen oefter Hilfe: Alvenia in 7, Meridon in 6, die anderen in 2 Missionen. Auf der Alienwelt helfen sich nur
+ * die beiden Diplomaten gegenseitig (m11); die Landetrupps (m10, m12) sind allein; in der Wueste stehen ihnen andere
+ * gestrandete Menschen bei (m13, m14).
  * Allied human faction per player faction and mission (fixed, never the own one). The diplomatic factions
- * get help more often: Alvenia in 6, Meridon in 5, the others in 2 missions. On the alien world only the two
- * diplomats help each other (m11); the landing party (m10) is alone.
+ * get help more often: Alvenia in 7, Meridon in 6, the others in 2 missions. On the alien world only the two
+ * diplomats help each other (m11); the landing parties (m10, m12) are alone; in the desert other stranded humans
+ * stand by them (m13, m14).
  */
 export const CAMPAIGN_ALLIES: Partial<Record<FactionId, Record<string, FactionId>>> = {
-  alvenia: { m2: 'meridon', m4: 'korvat', m6: 'velkar', m8: 'dravon', m9: 'meridon', m11: 'meridon' },
-  meridon: { m3: 'alvenia', m5: 'dravon', m7: 'velkar', m9: 'alvenia', m11: 'alvenia' },
+  alvenia: { m2: 'meridon', m4: 'korvat', m6: 'velkar', m8: 'dravon', m11: 'meridon', m14: 'korvat', m9: 'meridon' },
+  meridon: { m5: 'dravon', m7: 'velkar', m3: 'alvenia', m11: 'alvenia', m13: 'velkar', m9: 'alvenia' },
   korvat: { m6: 'alvenia', m9: 'dravon' },
   dravon: { m8: 'velkar', m9: 'meridon' },
   velkar: { m3: 'dravon', m9: 'alvenia' },
@@ -194,26 +239,34 @@ function ringNear(k: SetupKit, a: Pos, p: Pos, lo: number, hi: number): Pos {
   return k.landNear(p, (q) => dist(q, a) >= lo && dist(q, a) <= hi);
 }
 
-export const MISSIONS: MissionDef[] = [
-  // ---------- Akt I: Sternfall (gegen die Zyrr) / Act I: Starfall (vs the Zyrr) ----------
-  // Reihenfolge: m1, m2 (mit der alten m3 zusammengelegt), m3 (Portal), m10 (Alienwelt), m11 (Schwarmmutter)
-  // order: m1, m2 (merged with the old m3), m3 (portal), m10 (alien world), m11 (Swarm Mother)
+/** Missionsdaten; Reihenfolge und Welt kommen allein aus WORLDS / mission data; order and world come from WORLDS alone */
+const DEFS: Omit<MissionDef, 'act'>[] = [
+  // ---------- Welt I: Erde, die Fraktionen kaempfen (Sternfall, Glocke, Erwachen, Portal) ----------
+  // ---------- World I: Earth, where the factions fight (Starfall, Bell, Awakening, Portal) ----------
   {
-    id: 'm1', act: 1, level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
+    id: 'm1', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
     seed: 1101, size: 11, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 30, rounds: 14,
-    objectives: [{ k: 'cities', n: 3 }], bonus: [{ k: 'fast', rounds: 9 }, { k: 'keepHq' }],
+    objectives: [{ k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 9 }, { k: 'keepHq' }],
     briefing: ['hq', 'scout', 'enemy'], persuade: true,
-    setup(k) { k.spawn('infantry', 0, k.hq(0)); k.spawn('jeep', 0, k.hq(0)); },
+    waves: [{ round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 }],
+    setup(k) {
+      const a = k.hq(0), b = k.hq(1);
+      k.spawn('infantry', 0, a); k.spawn('jeep', 0, a);
+      // Sonden der Zyrr schwaermen frueh aus / Zyrr probes swarm out early
+      k.spawn('grey', 1, b, { min: 1 });
+      k.point(ringNear(k, a, k.toward(a, b, 4), 3, 5));
+    },
   },
   {
     // Wettlauf zum Wrack, dazu die Landekapseln der alten m3 / race to the wreck, plus the landing pods of the old m3
-    id: 'm2', act: 1, level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
+    id: 'm2', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
     seed: 2202, size: 14, mapType: 'continent', hazards: 'none', weather: true, events: false, startStars: 30, rounds: 12,
     objectives: [{ k: 'salvage', target: 0 }, { k: 'holdCities' }], bonus: [{ k: 'fast', rounds: 7 }, { k: 'kills', n: 4 }],
     briefing: ['scout', 'hq', 'enemy'], persuade: true,
     waves: [
-      { round: 3, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 },
-      { round: 6, owner: 1, units: ['grey', 'skimmer'], at: 1, stars: 15 },
+      { round: 2, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 },
+      { round: 4, owner: 1, units: ['grey', 'skimmer'], at: 1, stars: 15 },
+      { round: 7, owner: 1, units: ['grey', 'grey', 'skimmer'], at: 0, stars: 15 },
     ],
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
@@ -230,17 +283,115 @@ export const MISSIONS: MissionDef[] = [
       k.point(ringNear(k, v, k.toward(v, b, 3), 3, 4));
     },
   },
+  // Kapitel Die Glocke (gegen den Kult) / chapter The Bell (vs the cult)
   {
-    // Das Portal: Garnison schlagen, Portal halten; Nachschub der Zyrr kommt durch das Portal
-    // the portal: beat the garrison, hold the portal; Zyrr reinforcements come through the portal
-    id: 'm3', act: 1, level: 'normal', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
-    seed: 3313, size: 14, mapType: 'lakes', hazards: 'none', weather: true, events: false, startStars: 35, rounds: 14,
-    objectives: [{ k: 'portal', rounds: 2 }], bonus: [{ k: 'kills', n: 6 }, { k: 'noCityLost' }],
+    id: 'm4', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'easy' }],
+    seed: 4404, size: 14, mapType: 'continent', hazards: 'none', weather: true, events: true, startStars: 30, rounds: 14,
+    objectives: [{ k: 'kills', n: 8 }], bonus: [{ k: 'noCityLost' }, { k: 'fast', rounds: 10 }],
+    briefing: ['scout', 'enemy', 'hq'],
+    waves: [
+      { round: 4, owner: 1, units: ['zealot', 'zealot'], at: 0, stars: 10 },
+      { round: 7, owner: 1, units: ['zealot', 'torchbearer'], at: 1, stars: 10 },
+    ],
+    setup(k) {
+      const a = k.hq(0), b = k.hq(1);
+      const v = k.grantNear(0, a) ?? a;
+      k.spawn('mg', 0, a); k.spawn('infantry', 0, v);
+      // weitere Pilgerzuege vor beiden Staedten / more pilgrim trains in front of both cities
+      const p0 = ringNear(k, a, k.toward(a, b, 3), 2, 4);
+      k.point(p0);
+      k.point(k.landNear(k.toward(v, b, 3), (q) => dist(q, v) >= 2 && dist(q, v) <= 4 && dist(q, p0) >= 2));
+      // Pilger werden zu Eiferern, mitten im eigenen Land / pilgrims turn into zealots right inside the own land
+      for (const c of v === a ? [a] : [a, v]) {
+        const p = k.toward(c, b, 2);
+        k.spawn('zealot', 1, p, { min: 1 }); k.spawn('zealot', 1, p, { min: 1 });
+        revealArea(k.s, 0, p.x, p.y, 2);
+      }
+    },
+  },
+  {
+    id: 'm5', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'normal' }],
+    seed: 5505, size: 14, mapType: 'lakes', hazards: 'normal', weather: true, events: true, startStars: 35, rounds: 20,
+    objectives: [{ k: 'capture', target: 0 }], bonus: [{ k: 'fast', rounds: 15 }, { k: 'keepHq' }],
+    briefing: ['hq', 'enemy', 'scout'],
+    setup(k) {
+      const a = k.hq(0), b = k.hq(1);
+      k.target(b);
+      k.grantNear(1, b);
+      k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
+      k.spawn('zealot', 1, b, { min: 1 }); k.spawn('torchbearer', 1, b, { min: 1 });
+      revealArea(k.s, 0, b.x, b.y, 1);
+    },
+  },
+  {
+    id: 'm6', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'normal' }],
+    seed: 6606, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 35, rounds: 14,
+    objectives: [{ k: 'destroyUnit', unit: 0, type: 'coreDrill' }], bonus: [{ k: 'kills', n: 5 }, { k: 'noCityLost' }],
+    briefing: ['scout', 'enemy', 'hq'],
+    setup(k) {
+      const a = k.hq(0), b = k.hq(1);
+      // der Bohrer steht zwischen den Fronten, bewacht von Eiferern / the drill stands between the fronts, guarded by zealots
+      const p = k.landNear(k.mid(a, b), (q) => dist(q, b) >= 2);
+      const drill = k.spawn('coreDrill', 1, p);
+      if (drill) { k.mark(drill); revealArea(k.s, 0, drill.x, drill.y, 2); }
+      k.spawn('zealot', 1, p, { min: 1 }); k.spawn('faustZealot', 1, p, { min: 1 });
+      k.spawn('tank', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a);
+    },
+  },
+  // Kapitel Erwachen (gegen NEXUS) / chapter Awakening (vs NEXUS)
+  {
+    id: 'm7', level: 'normal', enemies: [{ id: 'nexus', difficulty: 'normal' }],
+    seed: 7707, size: 16, mapType: 'lakes', hazards: 'none', weather: true, events: true, startStars: 35, rounds: 18,
+    objectives: [{ k: 'capture', target: 0 }, { k: 'capture', target: 1 }], bonus: [{ k: 'kills', n: 6 }, { k: 'fast', rounds: 13 }],
+    briefing: ['scout', 'enemy', 'hq'],
+    setup(k) {
+      const a = k.hq(0);
+      // alte Reichsdepots, von NEXUS besetzt / old empire depots held by NEXUS
+      for (let i = 0; i < 2; i++) {
+        const c = k.grantNear(1, a, 3);
+        if (!c) continue;
+        k.target(c);
+        k.upgrade(c, 'depot');
+        k.spawn('android', 1, c);
+        revealArea(k.s, 0, c.x, c.y, 1);
+      }
+      k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a);
+    },
+  },
+  {
+    id: 'm8', level: 'hard', enemies: [{ id: 'nexus', difficulty: 'hard' }],
+    seed: 8808, size: 14, mapType: 'continents', hazards: 'normal', weather: true, events: false, startStars: 35, rounds: 12,
+    objectives: [{ k: 'holdHq' }, { k: 'kills', n: 5 }], bonus: [{ k: 'noCityLost' }, { k: 'kills', n: 9 }],
+    briefing: ['hq', 'enemy', 'scout'],
+    waves: [
+      { round: 3, owner: 1, units: ['android', 'spider'], at: 0, stars: 10 },
+      { round: 5, owner: 1, units: ['android', 'quadDrone'], at: 1, stars: 15 },
+      { round: 7, owner: 0, units: ['tank', 'infantry'], at: 2, stars: 30 },
+      { round: 8, owner: 1, units: ['spider', 'railgun', 'android'], at: 0, stars: 20 },
+      { round: 10, owner: 1, units: ['titan', 'android'], at: 1, stars: 25 },
+    ],
+    setup(k) {
+      const a = k.hq(0), b = k.hq(1);
+      k.upgrade(a, 'bunker');
+      k.spawn('mg', 0, a); k.spawn('mg', 0, a); k.spawn('infantry', 0, a);
+      // zwei getrennte Angriffsrichtungen (nie dasselbe Feld) / two separate attack directions (never the same tile)
+      const p0 = ringNear(k, a, k.toward(a, b, 4), 3, 5);
+      k.point(p0);
+      k.point(k.landNear({ x: k.s.size - 1 - a.x, y: a.y }, (q) => dist(q, a) >= 3 && dist(q, a) <= 5 && dist(q, p0) >= 3));
+      k.point(k.landNear(a, (q) => dist(q, a) >= 1));
+    },
+  },
+  // Kapitel Das Portal: Ende der Erde, das Tor in die Heimatwelt der Zyrr / chapter The Portal: end of Earth, the gate to the Zyrr homeworld
+  {
+    // Garnison schlagen, Portal halten; Nachschub der Zyrr kommt durch das Portal / beat the garrison, hold the portal; Zyrr reinforcements come through the portal
+    id: 'm3', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'hard' }],
+    seed: 3313, size: 14, mapType: 'lakes', hazards: 'none', weather: true, events: false, startStars: 40, rounds: 14,
+    objectives: [{ k: 'portal', rounds: 2 }], bonus: [{ k: 'kills', n: 7 }, { k: 'noCityLost' }],
     briefing: ['scout', 'enemy', 'hq'],
     waves: [
       { round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 },
       { round: 7, owner: 1, units: ['grey', 'skimmer'], at: 0, stars: 15 },
-      { round: 10, owner: 1, units: ['grey', 'grey', 'mech'], at: 0, stars: 20 },
+      { round: 10, owner: 1, units: ['grey', 'tripod', 'mech'], at: 0, stars: 20 },
     ],
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
@@ -249,22 +400,25 @@ export const MISSIONS: MissionDef[] = [
       Object.assign(tileAt(k.s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null });
       k.portal(p);
       k.target(p);
-      k.point(p);
+      // Nachschub tritt neben dem Portal aus, auf der Seite der Zyrr: der Halter wird nicht ueberrannt
+      // reinforcements step out next to the portal, on the Zyrr side: the holder is not overrun
+      k.point(ringNear(k, p, k.toward(p, b, 2), 2, 3));
       // Garnison: ein Mech auf dem Portal, Graue daneben / garrison: a mech on the portal, greys next to it
       k.spawn('mech', 1, p);
       k.spawn('grey', 1, p, { min: 1 }); k.spawn('grey', 1, p, { min: 1 });
       const v = k.grantNear(0, a) ?? a;
-      k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a);
+      k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a); k.spawn('tank', 0, a);
       if (v !== a) k.spawn('infantry', 0, v);
       // alle kennen das Portal, der Spieler sieht auch die Wache / everyone knows the portal, the player also sees the guard
       for (const f of k.s.factions) revealArea(k.s, f.index, p.x, p.y, f.index === 0 ? 2 : 1);
     },
   },
+  // ---------- Welt II: Heimatwelt der Zyrr / World II: Zyrr homeworld ----------
   {
     // Jenseits des Portals: Landetrupp ohne Stadt auf der Heimatwelt der Zyrr / beyond the portal: landing party without a city on the Zyrr homeworld
-    id: 'm10', act: 1, level: 'normal', enemies: [{ id: 'zyrr', difficulty: 'normal' }],
-    seed: 10010, size: 16, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 40, rounds: 18,
-    objectives: [{ k: 'capture', target: 0 }, { k: 'reach', target: 1, range: 1 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
+    id: 'm10', level: 'normal', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
+    seed: 10010, size: 16, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 45, rounds: 20,
+    objectives: [{ k: 'capture', target: 0 }, { k: 'reach', target: 1, range: 2 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', 'hq'], theme: 'alien', landing: true,
     waves: [
       { round: 5, owner: 1, units: ['grey', 'grey'], at: 0, stars: 10 },
@@ -287,12 +441,13 @@ export const MISSIONS: MissionDef[] = [
       const away = { x: clamp(2 * out.x - b.x), y: clamp(2 * out.y - b.y) };
       const gate = ringNear(k, out, k.toward(out, away, 3), 3, 4);
       k.portal(gate);
+      // vier Trupps: alle im Freibetrag des Solds, ohne Einkommen desertiert sonst einer / four squads: all within the upkeep allowance, without income one would desert otherwise
       for (const t of ['infantry', 'mg', 'jeep', 'artillery'] as UnitTypeId[]) k.spawn(t, 0, gate, { min: 1 });
       revealArea(s, 0, gate.x, gate.y, 2);
       revealArea(s, 0, out.x, out.y, 1);
       revealArea(s, 0, b.x, b.y, 1);
-      // Besatzung des Vorpostens und die Schwarmstadt / outpost garrison and the hive city
-      k.spawn('grey', 1, out); k.spawn('grey', 1, out, { min: 1 });
+      // die Hoehle ist verlassen, die Zyrr kommen mit der ersten Welle zurueck; die Schwarmstadt ist besetzt
+      // the burrow is deserted, the Zyrr return with the first wave; the hive city is garrisoned
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
       k.upgrade(b, 'bunker');
       k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
@@ -302,118 +457,113 @@ export const MISSIONS: MissionDef[] = [
     },
   },
   {
-    // Die Schwarmmutter: Hauptquartier der Zyrr; Xyl'Tharra taucht spaeter selbst auf / the Swarm Mother: Zyrr HQ; Xyl'Tharra emerges later herself
-    id: 'm11', act: 1, level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'hard' }],
-    seed: 11011, size: 14, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 45, rounds: 16,
-    objectives: [{ k: 'destroyUnit', unit: 0, type: 'swarmMother' }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 8 }, { k: 'fast', rounds: 12 }],
-    briefing: ['scout', 'enemy', 'hq'], theme: 'alien', boss: { unit: 'swarmMother', owner: 1, at: 0 },
+    // Die Schwarmmutter: Hauptquartier der Zyrr; Xyl'Tharra taucht spaeter selbst auf; kurz vor ihrem Tod reisst der Riss auf
+    // the Swarm Mother: Zyrr HQ; Xyl'Tharra emerges later herself; just before her death the rift tears open
+    id: 'm11', level: 'hard', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
+    seed: 11011, size: 14, mapType: 'continent', hazards: 'none', weather: false, events: false, startStars: 50, rounds: 16,
+    objectives: [{ k: 'rift', unit: 0 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 8 }, { k: 'fast', rounds: 12 }],
+    briefing: ['scout', 'enemy', 'hq'], theme: 'alien', boss: { unit: 'swarmMother', owner: 1, at: 0 }, rift: true,
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
       k.target(b);
       // das Portal, durch das der Spieler kam, steht neben seiner Basis / the portal the player came through stands next to the base
       k.portal(ringNear(k, a, k.toward(a, { x: k.s.size - 1 - b.x, y: k.s.size - 1 - b.y }, 2), 1, 2));
       k.upgrade(a, 'bunker');
-      k.spawn('tank', 0, a); k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      k.spawn('tank', 0, a); k.spawn('tank', 0, a); k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
       k.upgrade(b, 'bunker');
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
-      k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
+      k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
       k.spawn('skimmer', 1, k.toward(b, a, 3));
       revealArea(k.s, 0, b.x, b.y, 1);
     },
   },
-  // ---------- Akt II: Die Glocke (gegen den Kult) / Act II: The Bell (vs the cult) ----------
+  // ---------- Welt III: Welt der Vergessenen, rote Wueste (alle gegen alle) / World III: world of the Forgotten, red desert (everyone vs everyone) ----------
   {
-    id: 'm4', act: 2, level: 'normal', enemies: [{ id: 'vesper', difficulty: 'normal' }],
-    seed: 4404, size: 14, mapType: 'continent', hazards: 'none', weather: true, events: true, startStars: 30, rounds: 14,
-    objectives: [{ k: 'kills', n: 6 }], bonus: [{ k: 'noCityLost' }, { k: 'fast', rounds: 10 }],
-    briefing: ['scout', 'enemy', 'hq'],
+    // Gestrandet: verstreute Landetrupps ohne Stadt; ein verlassener Verdan-Aussenposten wird die Basis
+    // Stranded: scattered landing parties without a city; an abandoned Verdan outpost becomes the base
+    id: 'm12', level: 'hard',
+    enemies: [{ id: 'zyrr', difficulty: 'normal' }, { id: 'nexus', difficulty: 'normal' }, { id: 'vesper', difficulty: 'normal' }],
+    seed: 12012, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 40, rounds: 18,
+    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 10 }, { k: 'kills', n: 6 }],
+    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'], theme: 'desert', landing: true,
     setup(k) {
-      const a = k.hq(0), b = k.hq(1);
-      const v = k.grantNear(0, a) ?? a;
-      k.spawn('mg', 0, a); k.spawn('infantry', 0, v);
-      // Pilger werden zu Eiferern, mitten im eigenen Land / pilgrims turn into zealots right inside the own land
-      for (const c of v === a ? [a] : [a, v]) {
-        const p = k.toward(c, b, 2);
-        k.spawn('zealot', 1, p, { min: 1 }); k.spawn('zealot', 1, p, { min: 1 });
-        revealArea(k.s, 0, p.x, p.y, 2);
-      }
+      const s = k.s;
+      const out = k.hq(0);
+      s.units = s.units.filter((u) => u.owner !== 0);
+      // das alte Hauptquartier wird ein verlassener Aussenposten der Verdan (neutral); erobert wird er das Hauptquartier
+      // the old HQ becomes an abandoned Verdan outpost (neutral); once taken it becomes the HQ
+      out.owner = null;
+      for (const t of s.tiles) if (t.territory === out.id) t.territory = null;
+      s.factions[0].explored.fill(0);
+      k.target(out);
+      revealArea(s, 0, out.x, out.y, 0);
+      // drei verstreute Landeplaetze rund um den Aussenposten, weg von der Kartenmitte
+      // three scattered landing spots around the outpost, away from the map centre
+      const c = (s.size - 1) / 2;
+      const base = Math.atan2(out.y - c, out.x - c);
+      const drops: UnitTypeId[][] = [['infantry', 'artillery'], ['mg'], ['jeep']];
+      drops.forEach((units, i) => {
+        const a = base + (i - 1) * (Math.PI * 0.62);
+        const want = { x: Math.round(out.x + Math.cos(a) * 4), y: Math.round(out.y + Math.sin(a) * 4) };
+        const p = ringNear(k, out, { x: Math.max(0, Math.min(s.size - 1, want.x)), y: Math.max(0, Math.min(s.size - 1, want.y)) }, 3, 5);
+        for (const t of units) k.spawn(t, 0, p);
+        revealArea(s, 0, p.x, p.y, 2);
+      });
+      // die anderen sind ebenso gestrandet: je ein Trupp an ihrer Zuflucht / the others are stranded too: one squad each at their refuge
+      for (let f = 1; f <= 3; f++) for (const t of [['grey', 'skimmer'], ['android', 'spider'], ['zealot', 'torchbearer']][f - 1] as UnitTypeId[]) k.spawn(t, f, k.hq(f), { min: 1 });
     },
   },
   {
-    id: 'm5', act: 2, level: 'normal', enemies: [{ id: 'vesper', difficulty: 'normal' }],
-    seed: 5505, size: 14, mapType: 'lakes', hazards: 'normal', weather: true, events: true, startStars: 35, rounds: 20,
-    objectives: [{ k: 'capture', target: 0 }], bonus: [{ k: 'fast', rounds: 15 }, { k: 'keepHq' }],
-    briefing: ['hq', 'enemy', 'scout'],
+    // Ruinen der Vergessenen: drei von vier Ruinenstaetten entziffern, schlafende Verdan-Wachen daneben
+    // Ruins of the Forgotten: decipher three of four ruin sites, dormant Verdan sentinels next to them
+    id: 'm13', level: 'hard',
+    enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'normal' }, { id: 'vesper', difficulty: 'normal' }],
+    seed: 13013, size: 18, mapType: 'lakes', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 20,
+    objectives: [{ k: 'ruins', n: 3 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 8 }, { k: 'noCityLost' }],
+    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, 'scout', 'hq'], theme: 'desert',
     setup(k) {
-      const a = k.hq(0), b = k.hq(1);
-      k.target(b);
-      k.grantNear(1, b);
-      k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
-      k.spawn('zealot', 1, b, { min: 1 }); k.spawn('torchbearer', 1, b, { min: 1 });
-      revealArea(k.s, 0, b.x, b.y, 1);
-    },
-  },
-  {
-    id: 'm6', act: 2, level: 'hard', enemies: [{ id: 'vesper', difficulty: 'normal' }],
-    seed: 6606, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 35, rounds: 14,
-    objectives: [{ k: 'destroyUnit', unit: 0, type: 'coreDrill' }], bonus: [{ k: 'kills', n: 5 }, { k: 'noCityLost' }],
-    briefing: ['scout', 'enemy', 'hq'],
-    setup(k) {
-      const a = k.hq(0), b = k.hq(1);
-      // der Bohrer steht zwischen den Fronten, bewacht von Eiferern / the drill stands between the fronts, guarded by zealots
-      const p = k.landNear(k.mid(a, b), (q) => dist(q, b) >= 2);
-      const drill = k.spawn('coreDrill', 1, p);
-      if (drill) { k.mark(drill); revealArea(k.s, 0, drill.x, drill.y, 2); }
-      k.spawn('zealot', 1, p, { min: 1 }); k.spawn('faustZealot', 1, p, { min: 1 });
-      k.spawn('tank', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a);
-    },
-  },
-  // ---------- Akt III: Erwachen (gegen NEXUS, dann alle) / Act III: Awakening (vs NEXUS, then everyone) ----------
-  {
-    id: 'm7', act: 3, level: 'hard', enemies: [{ id: 'nexus', difficulty: 'normal' }],
-    seed: 7707, size: 16, mapType: 'lakes', hazards: 'none', weather: true, events: true, startStars: 35, rounds: 18,
-    objectives: [{ k: 'capture', target: 0 }, { k: 'capture', target: 1 }], bonus: [{ k: 'kills', n: 6 }, { k: 'fast', rounds: 13 }],
-    briefing: ['scout', 'enemy', 'hq'],
-    setup(k) {
+      const s = k.s;
       const a = k.hq(0);
-      // alte Reichsdepots, von NEXUS besetzt / old empire depots held by NEXUS
-      for (let i = 0; i < 2; i++) {
-        const c = k.grantNear(1, a, 3);
-        if (!c) continue;
-        k.target(c);
-        k.upgrade(c, 'depot');
-        k.spawn('android', 1, c);
-        revealArea(k.s, 0, c.x, c.y, 1);
-      }
-      k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a);
+      k.grantNear(0, a);
+      k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      // Staetten: Kartenmitte und auf halbem Weg zu den drei anderen / sites: map centre and halfway to the three others
+      const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
+      const wants = [mid, ...[1, 2, 3].map((f) => k.mid(a, k.hq(f)))].slice(0, RUINS.sites);
+      for (const w of wants) k.ruin(w);
     },
   },
   {
-    id: 'm8', act: 3, level: 'hard', enemies: [{ id: 'nexus', difficulty: 'hard' }],
-    seed: 8808, size: 14, mapType: 'continents', hazards: 'normal', weather: true, events: false, startStars: 35, rounds: 12,
-    objectives: [{ k: 'holdHq' }, { k: 'survive' }], bonus: [{ k: 'noCityLost' }, { k: 'kills', n: 8 }],
-    briefing: ['hq', 'enemy', 'scout'],
+    // Der Hoehleneingang: den Schlund in der Schlucht drei Runden halten, alle wollen hinein
+    // The cave entrance: hold the mouth in the canyon for three rounds, everyone wants in
+    id: 'm14', level: 'hard',
+    enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'normal' }],
+    seed: 14014, size: 18, mapType: 'continents', hazards: 'normal', weather: true, events: true, startStars: 45, rounds: 20,
+    objectives: [{ k: 'cave', rounds: 3 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 8 }, { k: 'fast', rounds: 15 }],
+    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'], theme: 'desert',
     waves: [
-      { round: 3, owner: 1, units: ['android', 'spider'], at: 0, stars: 10 },
-      { round: 5, owner: 1, units: ['android', 'quadDrone'], at: 1, stars: 15 },
-      { round: 7, owner: 0, units: ['tank', 'infantry'], at: 2, stars: 30 },
-      { round: 8, owner: 1, units: ['spider', 'railgun', 'android'], at: 0, stars: 20 },
-      { round: 10, owner: 1, units: ['titan', 'android'], at: 1, stars: 25 },
+      { round: 6, owner: 1, units: ['grey', 'skimmer'], at: 0, stars: 15 },
+      { round: 7, owner: 2, units: ['android', 'spider'], at: 1, stars: 15 },
+      { round: 8, owner: 3, units: ['zealot', 'torchbearer'], at: 2, stars: 10 },
+      { round: 9, owner: 0, units: ['tank', 'mg'], at: 3, stars: 30 },
     ],
     setup(k) {
-      const a = k.hq(0), b = k.hq(1);
+      const a = k.hq(0);
       k.upgrade(a, 'bunker');
-      k.spawn('mg', 0, a); k.spawn('mg', 0, a); k.spawn('infantry', 0, a);
-      k.point(ringNear(k, a, k.toward(a, b, 4), 3, 5));
-      k.point(ringNear(k, a, { x: k.s.size - 1 - a.x, y: a.y }, 3, 5));
+      k.grantNear(0, a);
+      k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      const mouth = k.caveMouth(a);
+      // alle kennen den Schlund; Ankunftspunkte zwischen ihm und den Basen / everyone knows the mouth; arrival points between it and the bases
+      for (let f = 1; f <= 3; f++) k.point(ringNear(k, mouth, k.toward(mouth, k.hq(f), 5), 4, 6));
       k.point(k.landNear(a, (q) => dist(q, a) >= 1));
     },
   },
   {
-    // Finale: alle gegen alle um das Artefakt der Uralten / finale: everyone against everyone for the artifact of the ancients
-    id: 'm9', act: 3, level: 'extreme',
+    // Finale: alle gegen alle um das Artefakt der Vergessenen, tief unter dem Hoehleneingang
+    // finale: everyone against everyone for the artifact of the Forgotten, deep below the cave entrance
+    id: 'm9', level: 'extreme',
     enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'normal' }],
-    // groesste Karte, in einer Hoehle unter der Erde; mehr Runden fuer die weiten Wege / largest map, in a cave underground; more rounds for the long roads
+    // groesste Karte, in einer Hoehle unter der Wueste; mehr Runden fuer die weiten Wege / largest map, in a cave below the desert; more rounds for the long roads
+    // unter Tage kein normales Wetter, nur Erdbeben (weatherFor) / underground no normal weather, only earthquakes (weatherFor)
     seed: 9916, size: 26, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 30,
     objectives: [{ k: 'artifact', rounds: 3 }, { k: 'holdHq' }], bonus: [{ k: 'kills', n: 10 }, { k: 'noCityLost' }],
     briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'scout', 'hq'],
@@ -438,6 +588,23 @@ export const MISSIONS: MissionDef[] = [
   },
 ];
 
+/**
+ * Alle Missionen in Spielreihenfolge der Welten (WORLDS); act = Nummer der Welt (ab 1). Eine neue Mission braucht nur
+ * ihre Daten in DEFS, ihre ID an der richtigen Stelle in WORLDS und ihre Texte.
+ * All missions in the play order of the worlds (WORLDS); act = number of the world (from 1). A new mission only needs
+ * its data in DEFS, its id at the right spot in WORLDS and its texts.
+ */
+export const MISSIONS: MissionDef[] = WORLDS.flatMap((w, wi) => w.missions.flatMap((id) => {
+  const d = DEFS.find((x) => x.id === id);
+  return d ? [{ ...d, act: wi + 1 }] : [];
+}));
+/** Missionsdaten ohne Platz in WORLDS (sollte leer sein) / mission data without a place in WORLDS (should be empty) */
+export const UNPLACED_MISSIONS = DEFS.filter((d) => !WORLDS.some((w) => w.missions.includes(d.id))).map((d) => d.id);
+/** Nummer der Welt (ab 1) einer Mission / number of the world (from 1) of a mission */
+export const worldNumber = (id: string) => WORLDS.findIndex((w) => w.id === worldOf(id)) + 1;
+/** Laufende Nummer eines Einsatzes in der Spielreihenfolge (ab 1, 0 = unbekannt) / running number of a mission in play order (from 1, 0 = unknown) */
+export const missionNumber = (id: string, order: readonly string[] = MISSION_IDS) => order.indexOf(id) + 1;
+
 export const MISSION_IDS = MISSIONS.map((m) => m.id);
 export const missionById = (id: string) => MISSIONS.find((m) => m.id === id);
 /** Letzte Mission (Finale) / last mission (finale) */
@@ -460,6 +627,7 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
     // Fraktionssiege bleiben in Kampagnen aus / faction victories stay off in campaigns
     factionVictory: false,
     campaign: { mission: m.id },
+    settlements: m.settlements ?? CAMPAIGN_SETTLEMENTS[m.theme ?? 'surface'],
     ...(m.theme ? { theme: m.theme } : {}),
   };
 }
@@ -507,7 +675,7 @@ function kit(s: GameState, c: CampaignState): SetupKit {
     }) ?? p,
     spawn: (type, owner, near, opts = {}) => spawnNear(s, type, owner, near, opts.carried ?? null, opts.min ?? 0),
     grantNear: (owner, near, minDist = 0) => {
-      const city = s.cities.filter((x) => x.owner === null && dist(x, near) >= minDist).sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
+      const city = s.cities.filter((x) => x.owner === null && !x.tower && dist(x, near) >= minDist).sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
       if (!city) return null;
       grantCity(s, city, owner);
       return city;
@@ -517,7 +685,117 @@ function kit(s: GameState, c: CampaignState): SetupKit {
     point: (p) => { (c.spawns ??= []).push({ x: p.x, y: p.y }); return c.spawns.length - 1; },
     portal: (p) => { c.portal = { x: p.x, y: p.y }; c.portalHold = 0; },
     upgrade: (city, id) => { if (!(city.upgrades ?? []).includes(id)) city.upgrades = [...(city.upgrades ?? []), id]; },
+    ruin: (near) => placeRuin(s, c, near),
+    caveMouth: (from) => {
+      const p = placeCaveMouth(s, from);
+      c.cave = p; c.caveHold = 0;
+      c.targets.push({ x: p.x, y: p.y });
+      for (const f of s.factions) revealArea(s, f.index, p.x, p.y, 1);
+      return p;
+    },
   };
+}
+
+/** Freies, flaches Land ohne Stadt, Merkmal, Geschuetz und Einheit / free flat land without city, feature, gun and unit */
+function openLand(s: GameState, q: Pos): boolean {
+  const t = tileAt(s, q.x, q.y);
+  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
+}
+
+/**
+ * Ruinenstaette (m13) nahe near: Abstand zu Staedten und anderen Staetten (RUINS), Feld wird geraeumte Ebene; daneben
+ * im Abstand RUINS.sentinelDistance eine schlafende Verdan-Wache (Geschuetz), die diese Staette bewacht.
+ * Ruin site (m13) near near: distance to cities and other sites (RUINS), the tile becomes cleared plain; next to it at
+ * distance RUINS.sentinelDistance a dormant Verdan sentinel (gun) guarding this site.
+ */
+function placeRuin(s: GameState, c: CampaignState, near: Pos): Pos | null {
+  const sites = (c.sites ??= []);
+  // nie naeher an der Wache einer anderen Staette als deren eigene Staette / never closer to another site's sentinel than its own site
+  const guns = s.tiles.flatMap((t, k) => (t.turret ? [{ x: k % s.size, y: Math.floor(k / s.size) }] : []));
+  const p = nearestTile(s, near, (q) => openLand(s, q) && s.cities.every((x) => dist(x, q) >= RUINS.cityDistance) && sites.every((o) => dist(o, q) >= RUINS.spacing) &&
+    guns.every((g) => dist(g, q) > RUINS.sentinelDistance));
+  if (!p) return null;
+  Object.assign(tileAt(s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null, road: false, mine: null, barrier: null, remains: null });
+  sites.push({ x: p.x, y: p.y });
+  (c.siteDone ??= []).push(false);
+  // als Zielfeld markiert (Ring auf der Karte) / marked as a target tile (ring on the map)
+  c.targets.push({ x: p.x, y: p.y });
+  // Wache zur Kartenmitte hin, nie neben einer Stadt oder einem anderen Geschuetz / sentinel towards the map centre, never next to a city or another gun
+  const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
+  const want = { x: p.x + Math.sign(mid.x - p.x) * RUINS.sentinelDistance, y: p.y + Math.sign(mid.y - p.y) * RUINS.sentinelDistance };
+  const g = nearestTile(s, want, (q) => dist(q, p) === RUINS.sentinelDistance && openLand(s, q) && sites.every((o) => o === sites[sites.length - 1] || dist(o, q) > RUINS.sentinelDistance) &&
+    !neighbors(s.size, q.x, q.y).some((n) => { const o = tileAt(s, n.x, n.y)!; return o.cityId !== null || !!o.turret; }), RUINS.sentinelDistance * 2);
+  if (g) Object.assign(tileAt(s, g.x, g.y)!, { turret: { hp: VERDAN.hp, active: false }, resource: null, building: null, road: false, mine: null, barrier: null });
+  for (const f of s.factions) revealArea(s, f.index, p.x, p.y, 0);
+  return p;
+}
+
+/**
+ * Hoehleneingang (m14): freies Land nahe der Kartenmitte, mindestens 4 Felder von jedem Hauptquartier und nicht neben
+ * einer Stadt; die drei Felder im Nordwesten werden zur Felswand (hoher Berg), sofern frei. So schaut der Schlund in
+ * der Standardansicht zur Kamera; from bleibt fuer spaetere Einsaetze erhalten.
+ * Cave entrance (m14): free land near the map centre, at least 4 tiles from every HQ and not next to a city; the
+ * three tiles to the north-west become the rock wall (high mountain) where free. So the maw faces the camera in the
+ * default view; from is kept for later missions.
+ */
+function placeCaveMouth(s: GameState, from: Pos): Pos {
+  void from;
+  const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
+  const edge = (q: Pos) => q.x <= 1 || q.y <= 1 || q.x >= s.size - 2 || q.y >= s.size - 2;
+  const back = [[-1, -1], [-1, 0], [0, -1]];
+  // die Felswand braucht freie Felder (keine Stadt, kein Merkmal, keine Einheit) / the rock wall needs free tiles (no city, feature or unit)
+  const wallFree = (q: Pos) => back.every(([dx, dy]) => { const t = tileAt(s, q.x + dx, q.y + dy); return !!t && t.cityId === null && !t.feature && !t.turret && !unitAt(s, q.x + dx, q.y + dy); });
+  const p = nearestTile(s, mid, (q) => openLand(s, q) && !edge(q) && wallFree(q) && s.cities.filter((x) => x.isHQ).every((x) => dist(x, q) >= 4) &&
+    !neighbors(s.size, q.x, q.y).some((n) => tileAt(s, n.x, n.y)!.cityId !== null)) ?? mid;
+  Object.assign(tileAt(s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null, road: false, mine: null, barrier: null, feature: null });
+  for (const [dx, dy] of back) {
+    const t = tileAt(s, p.x + dx, p.y + dy);
+    if (!t || t.cityId !== null || t.feature || t.turret || unitAt(s, p.x + dx, p.y + dy)) continue;
+    Object.assign(t, { terrain: 'mountain', peak: 3, building: null, road: false, river: false, mine: null, barrier: null, volcano: false });
+    if (t.resource && t.resource !== 'ore') t.resource = null;
+  }
+  return p;
+}
+
+/** Anzahl Sendetuerme einer Mission / number of transmitter towers of a mission */
+export function towerCount(m: MissionDef): number {
+  if (m.towers !== undefined) return m.towers;
+  if (m.theme === 'cavern') return 0;
+  return Math.max(TOWER.min, Math.min(TOWER.max, Math.round((m.size * m.size) / TOWER.perTiles)));
+}
+
+/**
+ * Sendetuerme verteilen: freies, flaches Land fern von Hauptquartieren, Staedten und einander; jeweils das Feld mit dem
+ * groessten Mindestabstand zu Hauptquartieren und schon gesetzten Tuermen (bei Gleichstand der kleinste Index).
+ * Rein deterministisch aus dem Spielstand.
+ * Place transmitter towers: free flat land far from HQs, cities and each other; each time the tile with the largest
+ * minimum distance to HQs and already placed towers (ties: lowest index). Purely deterministic from the state.
+ */
+function placeTowers(s: GameState, count: number) {
+  const hqs = s.cities.filter((x) => x.isHQ);
+  const placed: Pos[] = [];
+  for (let i = 0; i < count; i++) {
+    let best: Pos | null = null, bestD = -1;
+    for (let y = 1; y < s.size - 1; y++) for (let x = 1; x < s.size - 1; x++) {
+      const q = { x, y };
+      const t = tileAt(s, x, y)!;
+      if (!openLand(s, q) || t.terrain !== 'plain' || t.turret) continue;
+      if (hqs.some((h) => dist(h, q) < TOWER.hqDistance) || s.cities.some((c) => dist(c, q) < TOWER.cityDistance)) continue;
+      if (placed.some((p) => dist(p, q) < TOWER.spacing)) continue;
+      if (s.campaign?.sites?.some((p) => dist(p, q) < 2) || (s.campaign?.cave && dist(s.campaign.cave, q) < 2)) continue;
+      if (s.campaign?.portal && dist(s.campaign.portal, q) < 2) continue;
+      const d = Math.min(...hqs.map((h) => dist(h, q)), ...placed.map((p) => dist(p, q) * 1.5));
+      if (d > bestD) { bestD = d; best = q; }
+    }
+    if (!best) break;
+    placed.push(best);
+    const c: City = {
+      id: s.nextId++, x: best.x, y: best.y, owner: null, level: 1, pop: 0, radius: CITY.baseRadius, isHQ: false, hqOf: null, factory: false,
+      bunkerRing: false, govQuarter: false, connected: false, noIncomeNext: false, nameIndex: s.cities.length, tower: true,
+    };
+    s.cities.push(c);
+    Object.assign(tileAt(s, best.x, best.y)!, { cityId: c.id, resource: null, feature: null, road: false, building: null });
+  }
 }
 
 /** Artefakt: freies Landfeld nahe der Kartenmitte / artifact: free land tile near the map centre */
@@ -579,6 +857,8 @@ export function setupMission(s: GameState) {
   if (m.turrets && c.artifact) placeTurrets(s, c.artifact);
   const k = kit(s, c);
   m.setup?.(k);
+  // Sendetuerme nach der Einrichtung, damit sie nie Einrichtungsziele verdraengen / transmitter towers after the setup so they never displace setup targets
+  placeTowers(s, towerCount(m));
   for (const [a, b] of m.allied ?? []) {
     if (!s.factions[a] || !s.factions[b]) continue;
     s.factions[a].relations[b] = 'peace';
@@ -644,11 +924,47 @@ function runWaves(s: GameState, c: CampaignState, m: MissionDef, ev: GameEvent[]
   c.waves = done;
 }
 
+/**
+ * Gehoert die Einheit oder Stadt dem Spieler oder seinem Kampagnen-Verbuendeten? Ziele zaehlen fuer beide, damit ein
+ * Verbuendeter, der zuerst zugreift, den Einsatz nicht blockiert.
+ * Does the unit or city belong to the player or the campaign ally? Objectives count for both, so an ally that grabs
+ * first does not block the mission.
+ */
+const friendly = (s: GameState, owner: number | null | undefined) => owner === PLAYER || (owner !== null && owner !== undefined && isCampaignAlly(s, owner));
+
 /** Besetzt der Spieler das Portal? Zaehlt die Runden in Folge (zu Beginn des Spielerzugs) / does the player occupy the portal? counts consecutive rounds */
 function countPortal(s: GameState, c: CampaignState) {
   const p = c.portal;
   if (!p) return;
-  c.portalHold = unitAt(s, p.x, p.y)?.owner === PLAYER ? (c.portalHold ?? 0) + 1 : 0;
+  c.portalHold = friendly(s, unitAt(s, p.x, p.y)?.owner) ? (c.portalHold ?? 0) + 1 : 0;
+}
+
+/** Hoehleneingang besetzt? Runden in Folge (zu Beginn des Spielerzugs) / cave entrance occupied? consecutive rounds (start of the player's turn) */
+function countCave(s: GameState, c: CampaignState) {
+  const p = c.cave;
+  if (!p) return;
+  c.caveHold = friendly(s, unitAt(s, p.x, p.y)?.owner) ? (c.caveHold ?? 0) + 1 : 0;
+}
+
+/** Ruinenstaetten entziffern (zu Beginn des Spielerzugs) / decipher ruin sites (at the start of the player's turn) */
+function countRuins(s: GameState, c: CampaignState, ev: GameEvent[]) {
+  (c.sites ?? []).forEach((p, i) => {
+    if (c.siteDone?.[i]) return;
+    const u = unitAt(s, p.x, p.y);
+    if (!u || !friendly(s, u.owner)) return;
+    (c.siteDone ??= [])[i] = true;
+    ev.push({ t: 'ruin', index: i, x: p.x, y: p.y, faction: u.owner });
+  });
+}
+
+/**
+ * Riss (m11): verschont den Endgegner vor dem Tod; true, wenn u der markierte Endgegner einer Riss-Mission ist.
+ * Rift (m11): spares the boss from death; true if u is the marked boss of a rift mission.
+ */
+export function riftSpares(s: GameState, u: Unit): boolean {
+  const c = s.campaign;
+  if (!c || c.result || !c.units?.length) return false;
+  return !!missionById(c.mission)?.rift && c.units[0] === u.id;
 }
 
 /**
@@ -710,12 +1026,12 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
     }
     case 'capture': {
       const p = tgt(o.target);
-      return p && cityAt(s, p.x, p.y)?.owner === PLAYER ? 'done' : 'pending';
+      return p && friendly(s, cityAt(s, p.x, p.y)?.owner) ? 'done' : 'pending';
     }
     case 'salvage': {
       const p = tgt(o.target);
       if (!p) return 'pending';
-      for (const e of ev) if (e.t === 'salvage' && e.x === p.x && e.y === p.y) return e.faction === PLAYER ? 'done' : 'failed';
+      for (const e of ev) if (e.t === 'salvage' && e.x === p.x && e.y === p.y) return friendly(s, e.faction) ? 'done' : 'failed';
       return tileAt(s, p.x, p.y)!.looted ? 'failed' : 'pending';
     }
     case 'cities': return ownCities(s, PLAYER).length >= o.n ? 'done' : 'pending';
@@ -733,9 +1049,16 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
       return isHostile(s, PLAYER, h.faction) ? 'failed' : 'pending';
     }
     case 'portal': return (c.portalHold ?? 0) >= o.rounds ? 'done' : 'pending';
+    case 'cave': return (c.caveHold ?? 0) >= o.rounds ? 'done' : 'pending';
+    case 'ruins': return (c.siteDone ?? []).filter(Boolean).length >= o.n ? 'done' : 'pending';
+    case 'rift': {
+      const id = c.units?.[o.unit];
+      const u = id !== undefined ? s.units.find((x) => x.id === id) : undefined;
+      return u && u.hp <= SWARM_MOTHER.riftHp ? 'done' : 'pending';
+    }
     case 'reach': {
       const p = tgt(o.target);
-      return p && s.units.some((u) => u.owner === PLAYER && dist(u, p) <= o.range) ? 'done' : 'pending';
+      return p && s.units.some((u) => friendly(s, u.owner) && dist(u, p) <= o.range) ? 'done' : 'pending';
     }
     case 'fast': return s.round > o.rounds ? 'failed' : 'pending';
   }
@@ -754,6 +1077,14 @@ export function objectiveProgress(s: GameState, o: ObjectiveDef, rounds: number)
       return { have: h && h.faction === PLAYER ? Math.min(h.n, o.rounds) : 0, need: o.rounds };
     }
     case 'portal': return { have: Math.min(s.campaign?.portalHold ?? 0, o.rounds), need: o.rounds };
+    case 'cave': return { have: Math.min(s.campaign?.caveHold ?? 0, o.rounds), need: o.rounds };
+    case 'ruins': return { have: Math.min((s.campaign?.siteDone ?? []).filter(Boolean).length, o.n), need: o.n };
+    case 'rift': {
+      const id = s.campaign?.units?.[o.unit];
+      const u = s.units.find((x) => x.id === id);
+      const need = u ? u.maxHp - SWARM_MOTHER.riftHp : 0;
+      return u ? { have: Math.min(need, u.maxHp - u.hp), need } : null;
+    }
     case 'destroyUnit': {
       const id = s.campaign?.units?.[o.unit];
       const u = s.units.find((x) => x.id === id);
@@ -774,11 +1105,17 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   if (!c || c.result) return;
   const m = missionById(c.mission);
   if (!m) return;
-  // Zu Beginn des Spielerzugs: Wellen, Artefakt zaehlen, Karte teilen / at the start of the player's turn: waves, artifact count, shared map
-  if (turnChange && s.current === PLAYER && !s.over) {
+  // Zu Beginn des Spielerzugs: Wellen, Artefakt, Portal, Hoehle und Ruinen zaehlen. Nach dem Rundenlimit zaehlt nichts mehr:
+  // die Mission endet dann am Limit, ein Halten-Sieg faellt nie eine Runde zu spaet.
+  // At the start of the player's turn: waves, count artifact, portal, cave and ruins. After the round limit nothing counts
+  // any more: the mission then ends at the limit, a hold win never lands one round late.
+  const expired = s.round > m.rounds;
+  if (turnChange && s.current === PLAYER && !s.over && !expired) {
     runWaves(s, c, m, ev);
     countArtifact(s, c);
     countPortal(s, c);
+    countCave(s, c);
+    countRuins(s, c, ev);
   }
   bossEmerge(s, c, m, ev, turnChange);
   // Landetrupp: mit der ersten eigenen Stadt gelten die normalen Regeln / landing party: the first own city brings back the normal rules
@@ -792,6 +1129,16 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   };
   update(c.status, m.objectives, false);
   update(c.bonus, m.bonus, true);
+  // Riss: die Schwarmmutter am Rand des Todes reisst den Raum auf / rift: the Swarm Mother at death's door tears space open
+  const ri = m.objectives.findIndex((o) => o.k === 'rift');
+  const ro = m.objectives[ri];
+  if (ro && ro.k === 'rift' && c.status[ri] === 'done' && !c.rift) {
+    const boss = s.units.find((u) => u.id === c.units?.[ro.unit]);
+    if (boss) {
+      c.rift = { x: boss.x, y: boss.y, round: s.round };
+      ev.push({ t: 'rift', unit: boss.id, x: boss.x, y: boss.y });
+    }
+  }
 
   const player = s.factions[PLAYER];
   // Verbuendete zaehlen nicht als Gegner / allies do not count as enemies
@@ -810,7 +1157,8 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   const close = (list: ObjectiveStatus[], defs: ObjectiveDef[], bonus: boolean) => {
     defs.forEach((o, i) => {
       if (list[i] !== 'pending') return;
-      const done = result === 'won' && (isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || (o.k === 'fast' && s.round <= o.rounds));
+      // Sieg: offene Hauptziele gelten als erfuellt (auch beim Sieg, weil kein Gegner mehr lebt) / win: open primary objectives count as met (also when no enemy is left)
+      const done = result === 'won' && (!bonus || isHoldObjective(o) || o.k === 'keepHq' || o.k === 'noCityLost' || (o.k === 'fast' && s.round <= o.rounds));
       list[i] = done ? 'done' : 'failed';
       ev.push({ t: 'objective', index: i, bonus, status: list[i] });
     });

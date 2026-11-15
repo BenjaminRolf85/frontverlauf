@@ -6,14 +6,14 @@ import {
   BARRIER, CITY_UPGRADES, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, INCOME, MODES, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
   VICTORY_TECH,
 } from '../data/balance';
-import { t } from '../i18n/i18n';
+import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
 import { victoryShortText } from './victory';
 
 const pct = (f: number) => Math.round(f * 100);
 /** Faktor als Text mit Komma im Deutschen / factor as text, comma in German */
-const fac = (f: number) => (t('rules.decimal') === ',' ? String(f).replace('.', ',') : String(f));
+const fac = num;
 
 interface Section { id: string; icon: string; params?: Record<string, string | number>; extra?: () => string }
 

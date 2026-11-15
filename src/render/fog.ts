@@ -26,9 +26,14 @@ export class FogFx {
   constructor(private geometry: (variant: number) => THREE.BufferGeometry) {}
 
   private ensure() {
-    if (this.meshes.length) return;
+    // Thema gewechselt (andere Wolkengeometrie): Instanzen neu anlegen / theme changed (other cloud geometry): recreate the instances
+    const geos = [0, 1, 2].map((v) => this.geometry(v));
+    if (this.meshes.length && this.meshes.every((p, v) => p.mesh.geometry === geos[v])) return;
+    for (const p of this.meshes) for (const m of [p.mesh, p.line]) { this.group.remove(m); m.dispose(); }
+    this.meshes = [];
+    this.puffs = [[], [], []];
     for (let v = 0; v < 3; v++) {
-      const pair = outlinedInstanced(withGlow(this.geometry(v), 'none'), CAP, OUTLINE.cloud, cloudMaterial(), cloudOutline(OUTLINE.cloud));
+      const pair = outlinedInstanced(withGlow(geos[v], 'none'), CAP, OUTLINE.cloud, cloudMaterial(), cloudOutline(OUTLINE.cloud));
       for (const m of [pair.mesh, pair.line]) { m.raycast = () => {}; m.frustumCulled = false; m.count = 0; this.group.add(m); }
       this.meshes.push(pair);
     }

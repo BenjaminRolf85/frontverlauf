@@ -246,8 +246,10 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
  * Swarm Mother (boss of act I): all abilities trigger at the start of her own turn, deterministic, without a roll.
  */
 export const SWARM_MOTHER = {
-  /** Heilung je eigenem Zug auf Xeno-Boden / healing per own turn on xeno ground */
+  /** Heilung je eigenem Zug auf Xeno-Boden, nur ohne Schaden seit dem letzten Zug / healing per own turn on xeno ground, only without damage since her last turn */
   xenoHeal: 4,
+  /** Gegenschlag gedaempft (Anteil) / return fire dampened (share) */
+  returnFactor: 0.55,
   /** Brut: alle so viele Runden so viele Graue auf Nachbarfeldern / brood: every this many rounds this many greys on adjacent tiles */
   broodEvery: 3,
   broodCount: 2,
@@ -260,9 +262,14 @@ export const SWARM_MOTHER = {
   screamEvery: 2,
   /** Auftauchen: eine Spielereinheit so nah am Hauptquartier oder ab dieser Runde / emergence: a player unit this close to the HQ or from this round */
   emergeRange: 3,
-  emergeRound: 9,
+  emergeRound: 7,
   /** KI: sie verlaesst ihr Hauptquartier hoechstens so weit / AI: she leaves her HQ at most this far */
   aiLeash: 3,
+  /**
+   * Riss (Kampagne m11): bei so wenigen LP stirbt sie nicht, ein Riss reisst auf und der Einsatz ist gewonnen.
+   * Rift (campaign m11): at this few HP she does not die, a rift tears open and the mission is won.
+   */
+  riftHp: 25,
 };
 
 /** Einheiten der Zyrr / Zyrr roster */
@@ -425,6 +432,13 @@ export const HIT = {
     snow: { miss: 0.04, partial: 0.08, full: -0.08, crit: -0.04 },
     // Wind trifft nur Fernkaempfer und Flieger / wind only affects ranged units and fliers
     wind: { miss: 0.08, graze: 0.04, full: -0.12 },
+    // Sandsturm (Welt der Vergessenen): Staub in Optik und Gelenken / dust storm (world of the Forgotten): dust in sights and joints
+    dust: { miss: 0.08, graze: 0.06, full: -0.14 },
+    // Meteorschauer: Blitze am Himmel lenken ab / meteor shower: flashes in the sky distract
+    meteor: { miss: 0.03, full: -0.03 },
+    // Saeureregen trifft wie Regen / acid rain hits like rain
+    acid: { miss: 0.05, graze: 0.05, full: -0.1 },
+    quake: {},
   } as Record<WeatherId, Partial<Record<HitKind, number>>>,
   /** Wie stark das Wetter je Rasse wirkt / how strongly weather affects each race */
   weatherFactor: { human: 1, alien: 1, robot: 0.4, cult: 1 } as Record<HitRace, number>,
@@ -532,16 +546,53 @@ export const TRACKS = {
 };
 
 /** Wetter: gilt fuer die ganze Karte, wechselt alle `cycleRounds` Runden / weather: map-wide, changes every `cycleRounds` rounds */
-export type WeatherId = 'clear' | 'rain' | 'snow' | 'wind';
+export type WeatherId = 'clear' | 'rain' | 'snow' | 'wind' | 'dust' | 'meteor' | 'acid' | 'quake';
 export const WEATHER = {
   cycleRounds: 3,
-  weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18 } as Record<WeatherId, number>,
+  weights: { clear: 0.45, rain: 0.22, snow: 0.15, wind: 0.18, dust: 0, meteor: 0, acid: 0, quake: 0 } as Record<WeatherId, number>,
+  /**
+   * Heimatwelt der Zyrr (Thema 'alien'): Saeureregen statt Schnee, sonst wie die Erde.
+   * Zyrr homeworld (theme 'alien'): acid rain instead of snow, otherwise like Earth.
+   */
+  alienWeights: { clear: 0.45, rain: 0.22, snow: 0, wind: 0.18, dust: 0, meteor: 0, acid: 0.15, quake: 0 } as Record<WeatherId, number>,
+  /**
+   * Wuestenwelt (Kartenthema 'desert'): kein Regen, kein Schnee, kein Wind; nur klar, Sandsturm und Meteorschauer.
+   * Desert world (map theme 'desert'): no rain, no snow, no wind; only clear, dust storm and meteor shower.
+   */
+  desertWeights: { clear: 0.5, rain: 0, snow: 0, wind: 0, dust: 0.3, meteor: 0.2, acid: 0, quake: 0 } as Record<WeatherId, number>,
   salt: 0x51ed270b,
   rain: { rangeUnits: ['artillery'] as UnitTypeId[], rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1 },
   /** Schnee: alle Fahrzeuge (VEHICLE_UNITS) 1 Feld weniger, mindestens 1 / snow: all vehicles (VEHICLE_UNITS) 1 tile less, at least 1 */
   snow: { moveUnits: VEHICLE_UNITS, moveDelta: -1 },
   /** Wind: Hubschrauber verbrauchen 2 Tankfuellungen pro Runde / wind: helicopters burn 2 fuel per round */
   wind: { fuelBurn: 2 },
+  /**
+   * Sandsturm: Einheiten ab Reichweite rangeFrom 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung.
+   * Dust storm: units with range rangeFrom or more lose 1 range, helicopters lose 1 move.
+   */
+  dust: { rangeFrom: 2, rangeDelta: -1, moveUnits: ['heli'] as UnitTypeId[], moveDelta: -1, visionDelta: -1 },
+  /**
+   * Meteorschauer: zu Beginn jeder Runde trifft er jede ungepanzerte Einheit (Klasse 'foot', jede Fraktion) ausserhalb
+   * von Staedten und Bunkern mit damage LP, mit extraChance einen mehr (Zufallsstrom des Spiels); nie unter minHp, nie
+   * den Endgegner.
+   * Meteor shower: at the start of every round it hits every unarmoured unit (class 'foot', any faction) outside cities
+   * and bunkers for damage HP, with extraChance one more (the game's random stream); never below minHp, never the boss.
+   */
+  meteor: { damage: 1, extraChance: 0.5, minHp: 1 },
+  /**
+   * Saeureregen (Heimatwelt der Zyrr): wie der Meteorschauer, trifft aber jede Einheit, die nicht zu den Zyrr gehoert
+   * (Bauart, nicht Besitzer); Zyrr und die Schwarmmutter sind immun.
+   * Acid rain (Zyrr homeworld): like the meteor shower, but it hits every unit that is not a Zyrr unit (by type, not
+   * owner); the Zyrr and the Swarm Mother are immune.
+   */
+  acid: { damage: 1, extraChance: 0.4, minHp: 1 },
+  /**
+   * Erdbeben (Hoehle): je Runde mit chance (aus Seed und Runde, eine Runde vorhersehbar); dann bewegen sich nur Fusstruppen
+   * (Klasse 'foot'), Angriffe und Verdan-Geschuetze bleiben.
+   * Earthquake (cavern): each round with chance (from seed and round, foreseeable one round ahead); then only foot troops
+   * (class 'foot') move, attacks and Verdan guns stay.
+   */
+  quake: { chance: 0.22, salt: 0x2b7e1516 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
@@ -980,7 +1031,40 @@ export const MAPGEN = {
   /** Hoehle: eigener Zufallsstrom und Felsanteil am Kartenrand / cavern: own random stream and rock share at the map edge */
   cavernSeedSalt: 0x6c1a7e3,
   cavernEdgeRock: 0.55,
+  /**
+   * Wuestenwelt: eigener Zufallsstrom; das Meer ist ausgetrocknet (Salzpfannen), nur wenige rostrote Tuempel bleiben,
+   * ein Teil des Walds wird zu Ebene (Dornengestruepp bleibt Wald).
+   * Desert world: own random stream; the sea has dried up (salt flats), only a few rust-red pools remain,
+   * part of the forest becomes plain (thorn scrub stays forest).
+   */
+  desertSeedSalt: 0x3d5e7a9,
+  desertPool: 0.1,
+  desertForestKeep: 0.5,
 };
+
+/**
+ * Siedlungsfaktor der Kampagne je Kartenthema (Anteil neutraler Siedlungen gegenueber freien Partien); eine Mission kann
+ * ihn mit MissionDef.settlements ueberschreiben. Die Hoehle bleibt bei ihren Nachschublinien.
+ * Campaign settlement factor per map theme (share of neutral settlements compared to free games); a mission can override
+ * it with MissionDef.settlements. The cavern keeps its supply lines.
+ */
+export const CAMPAIGN_SETTLEMENTS = { surface: 0.5, alien: 0.5, desert: 0.3, cavern: 1 };
+
+/**
+ * Sendetuerme der Kampagne (nicht in der Hoehle): neutrale Orte wie Nachschublinien, einnehmbar, bilden aus, wachsen
+ * nicht, keine Ausbauten. Anzahl je Karte: Felder / perTiles, begrenzt auf min..max; MissionDef.towers ueberschreibt.
+ * Abstand zu Hauptquartieren hqDistance, zu Staedten cityDistance, untereinander spacing.
+ * Campaign transmitter towers (not in the cavern): neutral places like supply lines, capturable, they train, do not
+ * grow, no upgrades. Count per map: tiles / perTiles, clamped to min..max; MissionDef.towers overrides.
+ * Distance to HQs hqDistance, to cities cityDistance, to each other spacing.
+ */
+export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, cityDistance: 2, spacing: 4 };
+
+/**
+ * Aussenposten der Vergessenen (Wuestenwelt): weniger Orte, dafuer mehr Einkommen je Aussenposten.
+ * Outposts of the Forgotten (desert world): fewer places, therefore more income per outpost.
+ */
+export const DESERT_OUTPOST = { incomeBonus: 2 };
 
 export const SANDBOX = {
   startStarsOptions: [10, 25, 50, 100, 200],
@@ -991,6 +1075,12 @@ export const AI = {
   intelRound: 30,
   maxMillis: 2000,
   maxCommandsPerTurn: 400,
+  /**
+   * Meteorschauer in der naechsten Runde: Strafe fuer ungepanzerte Einheiten ohne Deckung, plus Zuschlag je fehlendem LP-Anteil.
+   * Meteor shower next round: penalty for unarmoured units without cover, plus a surcharge per missing HP share.
+   */
+  meteorExposed: 6,
+  meteorHurt: 18,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };
@@ -1002,6 +1092,34 @@ export const PLAYER_LIMITS = { min: 2, max: 5 };
  * for stars (base price plus a surcharge per level above 1). Campaign games only.
  */
 /** KI im Kampagnen-Finale: Ziele rund um das Artefakt / AI in the campaign finale: goals around the artifact */
-export const CAMPAIGN_AI = { artifactValue: 100, artifactCap: 2, artifactHuntValue: 120, artifactHuntCap: 4, artifactDistW: 4 };
+export const CAMPAIGN_AI = {
+  artifactValue: 100, artifactCap: 2, artifactHuntValue: 120, artifactHuntCap: 4, artifactDistW: 4,
+  /** Ruinenstaetten (m13) und Hoehleneingang (m14): besetzen oder Besetzer vertreiben / ruin sites (m13) and cave entrance (m14): occupy or drive off */
+  siteValue: 70, siteCap: 1, caveValue: 130, caveCap: 3, caveHuntValue: 135, caveHuntCap: 4, siteDistW: 5,
+  /** Spieler-Seite: Endgegner jagen / player side: hunt the boss */
+  bossHuntValue: 105, bossHuntCap: 5, reachValue: 90, reachCap: 3,
+  /** Zugwert fuer das Betreten eines Halte- oder Zielfelds / move value for stepping onto a hold or target tile */
+  holdBonus: 45,
+  /** Angriffswert gegen den markierten Endgegner (Spieler-Seite) / attack value against the marked boss (player side) */
+  bossAttackBonus: 40,
+};
+
+/**
+ * Ruinen der Vergessenen (Kampagne m13): Staetten auf der Karte, je eine schlafende Verdan-Wache daneben.
+ * Eine Staette gilt als entziffert, wenn zu Beginn des Spielerzugs eine eigene Einheit darauf steht.
+ * Ruins of the Forgotten (campaign m13): sites on the map, each with a dormant Verdan sentinel next to it.
+ * A site counts as deciphered when an own unit stands on it at the start of the player's turn.
+ */
+export const RUINS = {
+  sites: 4,
+  /** Mindestabstand der Staetten zu Staedten und untereinander / minimum distance of the sites to cities and to each other */
+  cityDistance: 2,
+  spacing: 4,
+  /**
+   * Abstand der Wache zur Staette: ausserhalb ihrer Schussweite (VERDAN.range), sie bewacht den Zugang, nicht die Staette selbst.
+   * Distance of the sentinel to the site: beyond its firing range (VERDAN.range), it guards the approach, not the site itself.
+   */
+  sentinelDistance: 3,
+};
 
 export const PERSUADE = { factions: ['alvenia', 'meridon'] as FactionId[], cost: 20, perLevel: 5, range: 1 };

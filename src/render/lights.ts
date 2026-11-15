@@ -122,16 +122,23 @@ export class TownFx {
   private beaconMat = new THREE.MeshBasicMaterial({ color: glowColor(hex(semantic.beacon), 3) });
   private haloMat = new THREE.SpriteMaterial({ map: radialTexture(), color: hex(semantic.beacon), ...ADD_RGB, blendSrc: THREE.SrcAlphaFactor, depthWrite: false, transparent: false });
   private pools: { mesh: THREE.InstancedMesh; mix: { value: number }; base: number }[] = [];
+  // Geometrien einmal bauen und wiederverwenden (sonst waechst der GPU-Speicher mit jedem Neuaufbau)
+  // geometries built once and reused (otherwise GPU memory grows with every rebuild)
+  private plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+  private beaconGeo = new THREE.SphereGeometry(0.026, 8, 6);
+  private puffGeo = new THREE.IcosahedronGeometry(0.05, 0);
 
   build(inp: TownInput) {
     for (const c of [...this.group.children]) {
       this.group.remove(c);
       if ((c as THREE.InstancedMesh).isInstancedMesh) (c as THREE.InstancedMesh).dispose();
     }
+    // je Leuchtfeuer geklontes Halo-Material freigeben / dispose the halo material cloned per beacon
+    for (const b of this.beacons) b.halo.material.dispose();
     this.beacons = [];
     this.emitters = [];
     this.pools = [];
-    const plane = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    const plane = this.plane;
     // Stadtlicht: warm, bei NEXUS cyan, bei Zyrr violett / city light: warm, cyan for NEXUS, violet for Zyrr
     const warm = new THREE.Color(hex(semantic.cityWindow));
     const tint = (f: FactionId | null) => f === 'nexus' ? new THREE.Color(hex(factionTokens.nexus.marker)) : f === 'zyrr' ? new THREE.Color(hex(semantic.xenoGlow)) : warm;
@@ -158,7 +165,7 @@ export class TownFx {
     for (const c of inp.cities) {
       if (c.hq) {
         const h = 0.5 + Math.min(c.level, 6) * 0.03 + 0.06;
-        const core = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), this.beaconMat);
+        const core = new THREE.Mesh(this.beaconGeo, this.beaconMat);
         core.position.set(c.x - 0.335, c.y + h, c.z + 0.325);
         const halo = new THREE.Sprite(this.haloMat.clone());
         halo.position.copy(core.position);
@@ -176,8 +183,7 @@ export class TownFx {
       });
     }
     if (this.emitters.length) {
-      const geo = new THREE.IcosahedronGeometry(0.05, 0);
-      this.smoke = outlinedInstanced(geo, this.emitters.length * PUFFS, 0.012, this.smokeMat);
+      this.smoke = outlinedInstanced(this.puffGeo, this.emitters.length * PUFFS, 0.012, this.smokeMat);
       for (const m of [this.smoke.mesh, this.smoke.line]) { m.raycast = () => {}; m.frustumCulled = false; this.group.add(m); }
     } else this.smoke = null;
     this.update(0);
