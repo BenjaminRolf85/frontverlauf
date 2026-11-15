@@ -35,19 +35,21 @@ export function emplacementGeometry(f: FactionId): THREE.BufferGeometry {
     // flache Erdaufschuettung / low earth berm
     b.add(geo.cyl(0.42, 0.46, 0.04, 12), shade(mat.sand, 0.72), { p: [0, 0.02, 0] });
     sandbagRing(b, 0.38, 16, 0.42);
-    // Betonbunker: abgeschraegter Koerper, Dachplatte / concrete bunker: chamfered body, roof slab
-    b.add(geo.ctaper(0.46, 0.4, 0.36, 0.3, 0.17, 0.035), mat.concrete, { p: [0, 0.125, -0.02] });
-    b.add(geo.cbox(0.4, 0.04, 0.34, 0.015), mat.concreteLight, { p: [0, 0.23, -0.02] });
+    // Betonbunker: abgeschraegter Koerper in tarnfarbenem Beton, Dachplatte / concrete bunker: chamfered body in camo-tinted concrete, roof slab
+    const concrete = mix(mat.concreteDark, L.primaryDark, 0.25), slab = mix(mat.concrete, L.primary, 0.2);
+    b.add(geo.ctaper(0.46, 0.4, 0.36, 0.3, 0.17, 0.035), concrete, { p: [0, 0.125, -0.02] });
+    b.add(geo.cbox(0.4, 0.04, 0.34, 0.015), slab, { p: [0, 0.23, -0.02] });
     // Schalungsfugen und Abplatzer / formwork joints and chips
     for (let i = 0; i < 4; i++) b.add(geo.dodeca(0.014 + R() * 0.01), mat.concreteDark, { p: [(R() - 0.5) * 0.36, 0.18 + R() * 0.03, 0.17 + R() * 0.004], r: [R(), R(), R()] });
     // Tarnflecken auf dem Dach in Fraktionsfarbe / camo patches on the roof in faction colour
-    b.add(geo.cyl(0.08, 0.09, 0.012, 7), mix(L.primaryDark, mat.concreteDark, 0.3), { p: [-0.1, 0.255, -0.08] });
-    b.add(geo.cyl(0.06, 0.065, 0.012, 6), mix(L.primary, mat.concrete, 0.35), { p: [0.11, 0.255, -0.12] });
+    b.add(geo.cyl(0.1, 0.11, 0.014, 7), L.primaryDark, { p: [-0.08, 0.256, -0.07], s: [1, 1, 0.8] });
+    b.add(geo.cyl(0.07, 0.075, 0.014, 6), L.primary, { p: [0.1, 0.256, -0.13] });
     // Schiessscharte vorn mit dunkler Oeffnung / embrasure at the front with a dark opening
     b.box(0.26, 0.07, 0.03, mat.concreteDark, [0, 0.15, 0.165]);
     b.box(0.2, 0.04, 0.02, mat.ink, [0, 0.15, 0.178]);
-    // Warnstreifen in Fraktionsfarbe am Dachrand / faction colour band on the roof edge
-    b.box(0.41, 0.016, 0.35, L.primary, [0, 0.232, -0.02]);
+    // Streifen in Fraktionsfarbe ueber der Scharte und am Dachrand / faction colour band above the embrasure and on the roof edge
+    b.box(0.42, 0.018, 0.36, L.primary, [0, 0.222, -0.02]);
+    b.box(0.3, 0.022, 0.012, L.secondary, [0, 0.198, 0.152]);
     // Geschuetz: Blende, langes Rohr mit Muendungsbremse / gun: mantlet, long barrel with muzzle brake
     b.group({ p: [0, 0.15, 0.17] }, () => {
       b.add(geo.cbox(0.11, 0.075, 0.05, 0.012), L.hullDark, { p: [0, -0.037, 0] });
@@ -63,8 +65,8 @@ export function emplacementGeometry(f: FactionId): THREE.BufferGeometry {
     // Munitionskisten hinten / ammo crates at the back
     b.block(0.2, 0.04, -0.26, 0.08, 0.05, 0.06, mat.wood, 0.3);
     b.block(0.13, 0.04, -0.29, 0.06, 0.04, 0.05, mat.woodLight, -0.2);
-    // kleine Fraktionsflagge mit Emblem / small faction flag with emblem
-    flagPole(b, f, -0.22, 0.24, -0.04, 0.3, 0.75);
+    // kleine Fraktionsflagge mit Emblem auf dem Dach / small faction flag with emblem on the roof
+    flagPole(b, f, -0.15, 0.25, -0.13, 0.34, 1.05);
     // Emblem auf der Front unter der Scharte / emblem on the front below the embrasure
     addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [0.15, 0.08, 0.2] });
     return b.build();
