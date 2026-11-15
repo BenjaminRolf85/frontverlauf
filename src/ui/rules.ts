@@ -12,6 +12,7 @@ import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
 import { techT } from './terms';
 import { victoryShortText } from './victory';
+import { emplacementRuleParams } from './emplacement';
 
 const pct = (f: number) => Math.round(f * 100);
 /** Faktor als Text mit Komma im Deutschen / factor as text, comma in German */
@@ -30,6 +31,8 @@ function sections(): Section[] {
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot') } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
+    // Festungsbau der Dravon / Dravon fortress building
+    { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];

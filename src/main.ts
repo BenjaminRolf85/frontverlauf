@@ -228,6 +228,8 @@ function boot() {
         }
         // Verdan-Verteidigungslinie erwacht (fuer alle sichtbar) / Verdan defence line wakes up (visible to everyone)
         case 'verdanActive': toast(root, t('events.verdanActive'), 'warning'); break;
+        // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
+        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') toast(root, t('emplacement.lost'), 'warning'); break;
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
       }
       dispatches.onEvent(e, s);
