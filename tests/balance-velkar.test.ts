@@ -41,6 +41,9 @@ describe.skipIf(!on)('Balance Velkar', () => {
         factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' })),
       }));
       const v = ids.indexOf('velkar');
+      // BALANCE_TECHS=1: Velkar startet mit Tarnung und Heeresflieger, damit Scharfschuetze/Railgun und Hubschrauber/Oktokopter vorkommen
+      // BALANCE_TECHS=1: Velkar starts with camouflage and army aviation so sniper/railgun and helicopter/octocopter occur
+      if (env.BALANCE_TECHS === '1') s.factions[v].techs.push('camouflage', 'armyAviation');
       const seen = new Map<number, UnitTypeId>();
       while (!s.over && s.round <= 60) {
         const f = s.current;
