@@ -1,0 +1,133 @@
+/*
+ * Oberwelt im Kampagnenbildschirm (3D-Buehne, Weltenwahl, Einsatzknoepfe). Nur Design-Tokens.
+ * Overworld in the campaign screen (3D stage, world picker, mission buttons). Design tokens only.
+ */
+/* In der Oberwelt-Ansicht ersetzt die Buehne die lange Liste / in the overworld view the stage replaces the long list */
+.campaign-screen.ow-map .mission-list { display: none; }
+.overworld { width: min(100%, var(--c-overworld-max-width)); display: flex; flex-direction: column; gap: var(--p-space-3); }
+.overworld.list .ow-stage, .overworld.list .ow-tabs, .overworld.list .ow-missions { display: none; }
+
+.ow-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-2) var(--p-space-3); padding: var(--p-space-3);
+  background: var(--s-surface-raised); color: var(--s-text); border: var(--p-border-width-thick) solid var(--s-outline);
+  border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow-pressed); transform: rotate(var(--c-overworld-tilt));
+}
+.ow-title { flex: 1 1 var(--c-layout-menu-width); min-width: 0; }
+.ow-title h3 { display: flex; align-items: center; gap: var(--p-space-2); margin: 0; font-size: var(--p-font-size-xl); }
+.ow-desc { margin: var(--p-space-1) 0 0; line-height: 1.3; }
+.ow-progress { font-family: var(--p-font-display); letter-spacing: var(--p-letter-spacing-display); font-size: var(--p-font-size-sm); }
+
+.ow-stage {
+  position: relative; overflow: hidden; touch-action: pan-y;
+  height: clamp(var(--c-overworld-stage-min-height), var(--c-overworld-stage-height), var(--c-overworld-stage-max-height));
+  background: var(--c-overworld-bg); border: var(--p-border-width-heavy) solid var(--s-outline); border-radius: var(--p-radius-lg);
+  box-shadow: var(--p-shadow-pop) var(--s-outline);
+}
+.ow-stage:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); outline-offset: var(--p-space-half); }
+.ow-canvas-slot, .ow-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ow-canvas { display: block; touch-action: pan-y; cursor: grab; }
+.ow-labels { position: absolute; inset: 0; pointer-events: none; }
+.ow-label {
+  position: absolute; left: 0; top: 0; display: inline-flex; align-items: center; gap: var(--p-space-1); padding: 0 var(--p-space-2);
+  font-family: var(--p-font-display); letter-spacing: var(--p-letter-spacing-display); font-size: var(--p-font-size-sm); white-space: nowrap;
+  color: var(--c-overworld-ink); background: var(--c-overworld-bg-high); border: var(--p-border-width-thin) solid var(--s-outline);
+  border-radius: var(--p-radius-pill); box-shadow: var(--p-shadow-pop-sm) var(--s-outline);
+}
+.ow-label { flex-direction: column; gap: 0; border-radius: var(--p-radius-md); padding: var(--p-space-half) var(--p-space-2); line-height: 1.1; }
+.ow-label strong { font-weight: var(--p-font-weight-regular); text-transform: uppercase; }
+.ow-label span { font-size: var(--p-font-size-xs); color: var(--c-overworld-marker-open); }
+.ow-label.on { background: var(--s-accent); color: var(--s-text); }
+.ow-label.on span { color: var(--s-text); }
+
+/* naechster Einsatz als Karte / next mission as a card */
+.ow-next:empty { display: none; }
+.ow-next-card {
+  width: min(100%, var(--c-layout-bubble-width)); margin: 0 auto; display: flex; align-items: center; gap: var(--p-space-3);
+  padding: var(--p-space-2) var(--p-space-3); text-align: left; font: inherit; color: var(--s-text); cursor: pointer;
+  background: var(--s-surface-raised); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md);
+  box-shadow: var(--c-button-shadow); min-height: var(--p-size-touch-lg); transform: rotate(var(--c-campaign-tilt-alt));
+}
+.ow-next-card:active { transform: translate(var(--p-space-1), var(--p-space-1)); box-shadow: var(--c-button-shadow-pressed); }
+.ow-next-card .col { display: flex; flex-direction: column; gap: var(--p-space-half); min-width: 0; }
+.ow-next-card strong { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); font-size: var(--p-font-size-lg); }
+.ow-next-card .ow-no { width: var(--p-size-touch); height: var(--p-size-touch); font-size: var(--p-font-size-lg); }
+.overworld.list .ow-next { display: none; }
+.ow-tip {
+  position: absolute; left: 0; top: 0; pointer-events: none; margin: var(--p-space-3) 0 0 var(--p-space-3);
+  max-width: var(--c-overworld-tip-max-width); display: flex; flex-direction: column; gap: var(--p-space-half); padding: var(--p-space-1) var(--p-space-2);
+  background: var(--s-surface-raised); color: var(--s-text); border: var(--p-border-width-thick) solid var(--s-outline);
+  border-radius: var(--p-radius-md); box-shadow: var(--p-shadow-pop-sm) var(--s-outline); font-size: var(--p-font-size-sm);
+}
+.ow-tip strong { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); }
+.ow-nav {
+  position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); display: flex; justify-content: space-between;
+  padding: 0 var(--p-space-2); pointer-events: none;
+}
+.ow-nav .icon-btn { pointer-events: auto; }
+.ow-nav .icon-btn:first-child .icon { transform: scaleX(-1); }
+.ow-nav .icon-btn:disabled { visibility: hidden; }
+.ow-zoom { position: absolute; right: var(--p-space-2); bottom: var(--p-space-2); display: flex; gap: var(--p-space-2); }
+.ow-hint {
+  position: absolute; left: var(--p-space-3); bottom: var(--p-space-2); max-width: 60%; margin: 0; pointer-events: none;
+  color: var(--c-overworld-ink); font-size: var(--p-font-size-xs); text-shadow: var(--p-shadow-pop-sm) var(--s-outline);
+}
+
+.ow-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--p-space-2); }
+.ow-tab {
+  display: inline-flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-size-touch); padding: 0 var(--p-space-3);
+  font-family: var(--p-font-display); letter-spacing: var(--p-letter-spacing-display); font-size: var(--p-font-size-sm); color: var(--s-text);
+  background: var(--s-surface); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-pill);
+  box-shadow: var(--c-button-shadow-pressed); cursor: pointer;
+}
+.ow-tab-name { display: inline-flex; align-items: center; gap: var(--p-space-1); }
+.ow-tab.on { background: var(--s-accent); }
+.ow-dot { display: none; }
+
+.ow-markers {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: var(--p-space-2);
+  grid-template-columns: repeat(auto-fill, minmax(var(--c-overworld-tip-max-width), 1fr));
+}
+.ow-marker {
+  width: 100%; min-height: var(--p-size-touch); display: flex; align-items: center; gap: var(--p-space-2); padding: var(--p-space-1) var(--p-space-2);
+  font: inherit; text-align: left; color: var(--s-text); background: var(--s-surface-raised); cursor: pointer;
+  border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow-pressed);
+}
+.ow-marker:hover { background: var(--s-surface); }
+.ow-marker:active { transform: translate(var(--p-space-half), var(--p-space-half)); box-shadow: none; }
+.ow-marker.current { box-shadow: var(--c-button-shadow), inset 0 0 0 var(--p-border-width-thick) var(--s-accent); }
+.ow-marker[aria-disabled="true"] { background: var(--s-surface-sunken); color: var(--s-text-muted); }
+.ow-no {
+  flex: none; display: grid; place-items: center; width: var(--c-layout-badge-icon); height: var(--c-layout-badge-icon);
+  border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-pill);
+  font-family: var(--p-font-display); background: var(--c-overworld-marker-open); color: var(--s-text);
+}
+.ow-marker.won .ow-no { background: var(--c-overworld-marker-won); color: var(--s-text-inverse); }
+.ow-marker.locked .ow-no { background: var(--c-overworld-marker-locked); color: var(--s-text-inverse); }
+.ow-marker.coming .ow-no { background: var(--c-overworld-marker-coming); }
+.ow-marker.finale .ow-no { box-shadow: 0 0 0 var(--p-border-width-thick) var(--s-artifact-glow); }
+.ow-name { flex: 1; min-width: 0; font-family: var(--p-font-display); letter-spacing: var(--p-letter-spacing-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ow-marker .tag { flex: none; max-width: 50%; white-space: normal; }
+.ow-nogl {
+  display: flex; align-items: center; justify-content: center; gap: var(--p-space-2); margin: 0; padding: var(--p-space-3);
+  border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md); font-family: var(--p-font-display);
+  letter-spacing: var(--p-letter-spacing-display);
+}
+.ow-nogl { color: var(--s-text); background: var(--s-surface-raised); font-family: var(--p-font-body); }
+
+/* Handy: eine Welt je Bildschirm, Punkte statt Namen, kein Zoom / phones: one world per screen, dots instead of names, no zoom */
+@media (max-width: 560px) /* --p-breakpoint-sm */ {
+  .ow-stage { height: clamp(var(--c-overworld-stage-min-height), var(--c-overworld-stage-height-mobile), var(--c-overworld-stage-max-height)); }
+  .ow-zoom { display: none; }
+  .ow-hint { max-width: none; right: var(--p-space-3); text-align: center; }
+  .ow-tabs { gap: var(--c-overworld-dot-gap); }
+  .ow-tab { min-width: var(--p-size-touch); padding: 0; justify-content: center; background: transparent; border-color: transparent; box-shadow: none; }
+  .ow-tab.on { background: transparent; }
+  .ow-tab-name { display: none; }
+  .ow-dot {
+    display: block; width: var(--c-overworld-dot); height: var(--c-overworld-dot); border-radius: var(--p-radius-pill);
+    background: var(--s-text-inverse); border: var(--p-border-width-thin) solid var(--s-outline);
+  }
+  .ow-tab.on .ow-dot { width: var(--c-overworld-dot-active); background: var(--s-accent); }
+  .ow-markers { grid-template-columns: 1fr; }
+  .ow-title h3 { font-size: var(--p-font-size-lg); }
+}

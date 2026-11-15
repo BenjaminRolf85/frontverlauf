@@ -3221,5 +3221,49 @@
     "previewKill": "Zerstört das Geschütz",
     "destroyed": "Verdan-Geschütz zerstört!",
     "fx": "Verdan"
+  },
+  "overworld": {
+    "title": "Oberwelt",
+    "viewMap": "Oberwelt",
+    "viewList": "Liste",
+    "view": "Ansicht",
+    "stage": "Oberwelt mit drei Scheibenwelten. Pfeiltasten wechseln die Welt, Plus und Minus zoomen.",
+    "prev": "Vorherige Welt",
+    "next": "Nächste Welt",
+    "zoomIn": "Näher heran",
+    "zoomOut": "Weiter weg",
+    "overview": "Alle Welten",
+    "progress": "{n} / {max} Einsätze",
+    "coming": "Kommt bald",
+    "comingHint": "Dieser Einsatz ist noch in Vorbereitung.",
+    "markers": "Einsätze auf {world}",
+    "marker": "Einsatz {n}: {title}",
+    "stars": "{n} von 3 Sternen",
+    "state": {
+      "won": "Gewonnen",
+      "available": "Bereit",
+      "locked": "Gesperrt",
+      "coming": "Kommt bald"
+    },
+    "finale": "Finale",
+    "current": "Nächster Einsatz",
+    "worlds": "Welten",
+    "hintDrag": "Ziehen dreht die Welt, das Mausrad zoomt, ein Klick auf eine Fahne öffnet den Einsatz.",
+    "hintSwipe": "Zur Seite wischen wechselt die Welt, Tippen auf eine Fahne öffnet den Einsatz.",
+    "noWebgl": "Die 3D-Oberwelt läuft auf diesem Gerät nicht; die Einsätze stehen in der Liste."
+  },
+  "worlds": {
+    "earth": {
+      "name": "Die Erde",
+      "desc": "Eine Scheibe aus Wiesen, Wäldern und Bergen, deren Flüsse über den Rand ins Leere stürzen. Hier ringen die Fraktionen um jeden Hügel, seit die Zyrr vom Himmel fielen."
+    },
+    "alien": {
+      "name": "Heimatwelt der Zyrr",
+      "desc": "Violetter Boden, Kristalltürme, Riesenpflanzen und Felsen, die über dem Rand schweben. Hinter dem Portal liegt das Nest der Schwarmmutter."
+    },
+    "forgotten": {
+      "name": "Welt der Vergessenen",
+      "desc": "Rote Wüste, Tafelberge und die Ruinen der uralten Verdan mit ihrem rot-weißen Flügelwappen. Der Riss hat alle hierher gerissen; tief in der Höhle darunter wartet das Artefakt."
+    }
   }
 }
