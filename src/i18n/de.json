@@ -116,21 +116,23 @@
       "featureDesc": "Pioniertrupps und Minenleger bauen für {cost} Sterne Geschützstellungen im eigenen Gebiet, eine je Stadt. Sie feuern jede Runde auf Feinde in Reichweite {range}."
     },
     "alvenia": {
-      "name": "Republik Alvenia",
+      "name": "Heiliges Alvenia",
       "short": "Alvenia",
-      "alignment": "demokratisch",
-      "perk": "Bündnispolitik",
-      "perkDesc": "Botschaften kosten die Hälfte und bringen doppeltes Einkommen.",
-      "discount": "Sanitäter 20 % günstiger",
-      "home": "ausgewogenes Hügelland",
+      "alignment": "theokratisch, Orden der Kleriker",
+      "perk": "Strafgericht",
+      "perkDesc": "Wer plündert, brandschatzt, bekehrt, eine fremde Stadt erobert, Frieden bricht oder Alvenia angreift, ist {rounds} Runden als Sünder gezeichnet. Gegen Sünder machen Alvenias Einheiten +{pct} % Schaden.",
+      "discount": "Sonnenlanze 20 % günstiger",
+      "home": "Hügelland mit Klöstern und Weinbergen",
       "leader": "Liora Valen",
-      "leaderTitle": "Präsidentin der Republik",
-      "quote": "Ein Bündnis ist stärker als jede Mauer.",
-      "lore": "Alvenia ist eine Republik der grünen Hügeltäler, regiert von einem Parlament, das länger debattiert als kämpft. Präsidentin Valen war Feldärztin, bevor sie Diplomatin wurde. Ihre Botschaften sind überall, ihre Sanitäter auch: Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
-      "style": "Diplomatie, blaue Barette, Sanitäter",
-      "aiStyle": "Sucht Botschaften und Frieden, hält ihre Truppen mit Sanitätern am Leben.",
-      "perk2": "Feldlazarette",
-      "perk2Desc": "Einheiten heilen beim Heilen 1 LP mehr."
+      "leaderTitle": "Hohepriesterin des Ordens",
+      "quote": "Wer sündigt, den findet das Licht.",
+      "lore": "Das Heilige Alvenia, in den Liedern auch Orden von Alvenia genannt, wacht über die grünen Hügeltäler. Wo einst ein Parlament debattierte, singt heute ein Orden von Klerikern unter dem Sonnenkranz. Hohepriesterin Liora Valen war Feldärztin; sie glaubt an die Erlösung jedes Gefallenen und an die Strafe für jede Sünde. Ihre Lichtschützen weichen keinen Schritt, ihre Sonnenlanzen treffen auf große Entfernung, und wer plündert, brennt oder bekehrt, den findet das Strafgericht. Der Orden ist das Gegengewicht zum Kult der Letzten Stunde.",
+      "style": "weiß-goldene Rüstung, tiefblaue Wappenröcke, Sonnenkranz, Fernwaffen",
+      "aiStyle": "Verteidigt das eigene Land, schießt aus dem Stand auf Abstand und richtet zuerst die Sünder. Frieden schließt der Orden nur mit Unbescholtenen.",
+      "perk2": "Märtyrer-Segen",
+      "perk2Desc": "Fällt eine Alvenia-Einheit im Kampf, heilen eigene Einheiten daneben {heal} LP und verteidigen sich {blessRounds} Runden mit +{def} %.",
+      "feature": "Fernwaffen des Ordens",
+      "featureDesc": "Eigene Bauarten statt der Standardtruppen: Lichtschützen statt Infanterie (Reichweite {warden} statt {inf}, Verteidigung {wardenDef}, nur aus dem Stand), Reliquiar statt Panzer (Reichweite {reliq} statt {tank}, Verteidigung {reliqDef} statt {tankDef}, nur aus dem Stand) und Sonnenlanze statt Artillerie (Reichweite {lance} statt {art})."
     },
     "meridon": {
       "name": "Handelsliga Meridon",
@@ -258,7 +260,7 @@
     "flakDrone": "Flak-Drohne",
     "steppeRider": "Steppenreiter",
     "stormbreaker": "Sturmbrecher",
-    "peacekeeper": "Friedenswacht",
+    "peacekeeper": "Ordenswacht",
     "privateer": "Kaperschiff",
     "protoWalker": "Prototyp-Läufer",
     "portal": "Dimensionsportal",
@@ -270,7 +272,10 @@
     "scientist": "Wissenschaftler",
     "teslaTank": "Tesla-Panzer",
     "octocopter": "Oktokopter",
-    "railSniper": "Railgun-Schütze"
+    "railSniper": "Railgun-Schütze",
+    "lightWarden": "Lichtschützen",
+    "reliquary": "Reliquiar",
+    "sunLance": "Sonnenlanze"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -310,7 +315,7 @@
     "flakDrone": "Flakplattform auf vier Beinen, schützt den Boden vor Fliegern.",
     "steppeRider": "Billige, schnelle Reiter, die als Fußtruppe zählen.",
     "stormbreaker": "Stoßtrupp, dessen Ziele nicht zurückschlagen, aber selbst verwundbar.",
-    "peacekeeper": "Zäher Verteidiger, der sich jede Runde selbst heilt.",
+    "peacekeeper": "Ordenswacht in schwerer Weißrüstung: zäher Verteidiger, der sich jede Runde selbst heilt.",
     "privateer": "Schnelles Kaperschiff: jeder Abschuss bringt Beute.",
     "protoWalker": "Teurer Läufer mit Flächenschaden auf zwei Felder.",
     "portal": "Siegbauwerk der Zyrr: öffnet nach Bau und Aufladen das Tor zur Heimat.",
@@ -322,7 +327,10 @@
     "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne).",
     "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Nicht käuflich, kommt als Stadtbelohnung.",
     "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
-    "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern."
+    "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
+    "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite 2 und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
+    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Nicht käuflich, kommt als Stadtbelohnung.",
+    "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung."
   },
   "abilities": {
     "dash": "Sturm",
@@ -446,12 +454,12 @@
     "powerPlant": "Fusionskraftwerk",
     "kolkhoz": "Kolchose",
     "mercenaryBarracks": "Söldnerkaserne",
-    "embassyPalace": "Botschaftspalast",
+    "embassyPalace": "Lichtdom",
     "tradingPost": "Handelskontor",
     "testLab": "Versuchslabor",
     "tractorStation": "Traktorstation",
     "deepMine": "Tiefbauzeche",
-    "hillVineyard": "Hügelweingut",
+    "hillVineyard": "Klosterweingut",
     "tradeHarbour": "Handelshafen",
     "polarStation": "Polarstation",
     "wreckSmelter": "Wrackschmelze",
@@ -482,12 +490,12 @@
     "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS",
     "kolkhoz": "1 Bevölkerungspunkt, dazu +1 Bevölkerung für die Stadt in jeder durch 5 teilbaren Runde (5, 10, 15 ...), eine je Stadt, nur Korvat",
     "mercenaryBarracks": "3 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
-    "embassyPalace": "3 Bevölkerungspunkte, +3 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
+    "embassyPalace": "{pop} Bevölkerungspunkte. Bußzehnt: +{perSinner} Sterne pro Runde je als Sünder gezeichneter Fraktion (höchstens {maxSinners}). Einer je Fraktion, nur Alvenia",
     "tradingPost": "1 Bevölkerungspunkt, +2 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
     "testLab": "1 Bevölkerungspunkt, Produktionsfähigkeiten je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
     "tractorStation": "{pop} Bevölkerungspunkte, dazu +{adj} je angrenzendem Agrarbetrieb oder angrenzender Traktorstation. Nur auf Ackerland; baut einen eigenen Agrarbetrieb aus (Preis und Bevölkerung: nur die Differenz). Zählt als Agrarbetrieb, nur Korvat",
     "deepMine": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf Erz; baut einen eigenen Tagebau aus (Preis und Bevölkerung: nur die Differenz). Zählt als Tagebau, nur Dravon",
-    "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde und +{emb} je aktiver eigener Botschaft (höchstens +{embMax}). Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
+    "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde; eigene Einheiten im Gebiet dieser Stadt heilen {heal} LP mehr. Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
     "tradeHarbour": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde, +{naval} mit Marinestützpunkt in der Stadt. Nur auf Fischgründen; baut eine eigene Fischerei aus (Preis und Bevölkerung: nur die Differenz), nur Meridon",
     "polarStation": "{pop} Bevölkerungspunkte, Produktionsfähigkeiten je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
@@ -546,12 +554,12 @@
     "ballistics": "Ballistik",
     "fiveYearPlan": "Großer Fünfjahresplan",
     "waalProgram": "Waal-Programm",
-    "leagueCharter": "Völkerbund-Charta",
     "tradeMonopoly": "Welthandelsmonopol",
     "fusionResearch": "Kernfusion",
     "dimensionalRift": "Dimensionsriss",
     "coreDrilling": "Tiefenbohrung",
-    "singularity": "Singularität"
+    "singularity": "Singularität",
+    "greatJudgement": "Großes Strafgericht"
   },
   "techExtra": {
     "mountainTraining": "Berge betretbar",
@@ -564,12 +572,12 @@
     "fortification": "Außenposten",
     "fiveYearPlan": "Besitze mehr als {pct} % aller Städte der Karte (Siedlungen zählen mit). Sieg zu Beginn deines Zuges.",
     "waalProgram": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
-    "leagueCharter": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
     "tradeMonopoly": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
     "fusionResearch": "Baue das Fusionskraftwerk auf 2x2 freiem Land (auch Berge) im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
     "dimensionalRift": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
     "coreDrilling": "Ein Prophet ruft den Erdkernbohrer auf ein Nachbarfeld. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
-    "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt."
+    "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
+    "greatJudgement": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse nach dieser Erforschung."
   },
   "tech": {
     "title": "Forschung und Entwicklung",
@@ -688,7 +696,7 @@
     "mine": "Mine legen",
     "mineHint": "Tippe auf ein freies Nachbarfeld für die Mine.",
     "persuade": "Überzeugen",
-    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia und Meridon in der Kampagne).",
+    "persuadeDesc": "Gewinnt die neutrale Siedlung neben dieser Einheit ohne Kampf, gegen Sterne (nur Alvenia mit seiner Predigt und Meridon mit seinem Gold, nur in der Kampagne).",
     "seizePlans": "Kriegspläne bergen",
     "pickPlans": "Kriegspläne aufheben",
     "seizePlansDesc": "Nimmt die Kriegspläne an sich und beendet den Zug der Einheit. Bring sie in oder neben dein Hauptquartier."
@@ -825,7 +833,7 @@
     "noContact": "Noch nicht getroffen",
     "eliminated": "ausgeschieden",
     "breakHint": "Ein Bruch wird eine Runde vorher angekündigt.",
-    "embassyHint": "Botschaften brauchen Geheimdienst und das entdeckte Hauptquartier. Jede Botschaft bringt beiden Seiten {inc} Sterne pro Runde (Alvenia doppelt). Die erste kostet {base} Sterne, jede weitere {step} mehr (Alvenia zahlt die Hälfte).",
+    "embassyHint": "Botschaften brauchen Geheimdienst und das entdeckte Hauptquartier. Jede Botschaft bringt beiden Seiten {inc} Sterne pro Runde. Die erste kostet {base} Sterne, jede weitere {step} mehr.",
     "score": "{n} Punkte"
   },
   "settings": {
@@ -988,7 +996,8 @@
       "scout": "Aufklärung",
       "enemy": "Feindfunk",
       "scoutRole": "Späher an der Front",
-      "ally": "Verbündete"
+      "ally": "Verbündete",
+      "allyFaith": "Glaubensbrüder"
     },
     "obj": {
       "holdHq": "Halte dein Hauptquartier bis Runde {rounds}",
@@ -1074,6 +1083,9 @@
         "variants": {
           "velkar": {
             "won": "Acht Runden! {leader} hat das halbe Wrack schon in Formeln übersetzt und will die andere Hälfte noch heute Nacht."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} hier, {leader}. {ally} steht als Glaubensbruder am Krater. Euer Gelehrter schraubt, wir halten die Grauen fern."
           }
         }
       },
@@ -1102,7 +1114,8 @@
         "lost": "Die Kriegspläne sind wieder im Tempel. Die Glocke läutet, und wir wissen immer noch nicht, wofür.",
         "variants": {
           "alvenia": {
-            "won": "Die Pläne sind bei uns. Unsere Diplomaten lesen sie mit sehr ernsten Gesichtern: eine Pilgerstadt, eine Glocke, ein Bohrer bis zum Erdkern."
+            "won": "Die Pläne sind bei uns. Unsere Kleriker lesen sie mit sehr ernsten Gesichtern: eine Pilgerstadt, eine Glocke, ein Bohrer bis zum Erdkern. Sünde in Reinform.",
+            "ally": "{allyLeader} hier. {ally} gibt deinem Träger Geleit, {leader}, wie es Glaubensbrüder tun. Wer ihn jagt, bekommt es mit uns zu tun."
           }
         }
       },
@@ -1137,6 +1150,9 @@
         "variants": {
           "velkar": {
             "won": "Der Bohrer ist Schrott. Die Bohrkrone behalten wir. Für die Wissenschaft."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} an {leader}: {ally} hat Sprengstoff und ein Gelübde abgelegt. Eure Glaubensbrüder sind dabei."
           }
         }
       },
@@ -1171,6 +1187,9 @@
         "variants": {
           "dravon": {
             "won": "Der Ansturm ist gebrochen. {leader} nickt einmal. Das ist bei Dravon ein Orden."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} hier. {ally} ist unterwegs, {leader}. Haltet durch, Glaubensbrüder lassen niemanden allein."
           }
         }
       },
@@ -1187,7 +1206,12 @@
         ],
         "ally": "{allyLeader} an {leader}: {ally} deckt euch den Rücken. Das Artefakt gehört euch. Nur bitte nicht drücken, bevor wir da sind.",
         "won": "Das Artefakt gehört {faction}! Die Runen leuchten auf ...",
-        "lost": "Jemand anderes hat das Artefakt berührt. Die Höhle bebt, die Pilze erlöschen. Das war es dann."
+        "lost": "Jemand anderes hat das Artefakt berührt. Die Höhle bebt, die Pilze erlöschen. Das war es dann.",
+        "variants": {
+          "alvenia": {
+            "ally": "{allyLeader} an {leader}: {ally} deckt euch den Rücken, Glaubensbruder. Das Artefakt gehört euch. Nur bitte nicht drücken, bevor wir da sind."
+          }
+        }
       },
       "m10": {
         "title": "Jenseits des Portals",
@@ -1210,7 +1234,12 @@
         ],
         "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Verbündeter.",
         "won": "Xyl'Tharra sinkt zusammen, da reißt über ihr der Raum auf: ein Riss, violett und schwarz, mit giftig grüngoldenem Rand. Er reißt durch beide Welten und saugt alles an: unsere Truppen, die Zyrr mit ihrer Mutter, und auf der Erde ganze Kolonnen von NEXUS und die Pilgerzüge des Kults. Dann Stille. Wir liegen im roten Sand, über uns ein staubiger Himmel mit zwei winzigen Monden.",
-        "lost": "Die Schwarmmutter lebt. Ihr Schrei hallt bis durch das Portal, und der Schwarm wird mehr."
+        "lost": "Die Schwarmmutter lebt. Ihr Schrei hallt bis durch das Portal, und der Schwarm wird mehr.",
+        "variants": {
+          "alvenia": {
+            "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Glaubensbruder."
+          }
+        }
       },
       "m12": {
         "title": "Gestrandet",
@@ -1265,6 +1294,9 @@
         "variants": {
           "dravon": {
             "won": "Der Höhleneingang ist gesichert. {leader} seilt sich als Erster ab. Unten leuchtet etwas, tief unter der roten Wüste."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} an {leader}: {ally} riegelt die Schlucht ab. Steigt ihr hinab, Glaubensbrüder halten oben die Stellung."
           }
         }
       }
@@ -1295,14 +1327,14 @@
     "pitch": {
       "korvat": "Masse, Marsch, Mut: billige Infanterie in Scharen. Für alle, die mit vielen Stiefeln antreten.",
       "dravon": "Drill und Veteranen: Jede Einheit wird härter. Für alle, die präzise zuschlagen.",
-      "alvenia": "Diplomatie und Sanitäter: oft mit Verbündeten, überzeugt Siedlungen statt sie zu stürmen. Militärisch schwächer, politisch stark.",
+      "alvenia": "Glaube und Fernwaffen: oft mit Glaubensbrüdern an der Seite, gewinnt Siedlungen durch Predigt statt Sturm. Hält jede Stellung und richtet die Sünder.",
       "meridon": "Handel und Häfen: viele Sterne, kauft Siedlungen statt sie zu stürmen. Bekommt öfter Hilfe.",
       "velkar": "Produktion und Festungen: schneller zu neuer Technik. Für alle, die rechnen, bevor sie schießen."
     },
     "epilogue": {
       "korvat": "Der Volksbund hat gehalten. Die Furchen werden wieder Äcker, und die Lieder handeln von uns.",
       "dravon": "Disziplin hat die Sterne geschlagen. Kein Rekrut wird diesen Tag je vergessen.",
-      "alvenia": "Wir haben gewonnen, weil wir nicht allein waren. Das Parlament tagt heute ausnahmsweise kurz.",
+      "alvenia": "Wir haben gewonnen, weil unsere Glaubensbrüder an unserer Seite standen. Heute läuten alle Glocken des Ordens.",
       "meridon": "Das Artefakt gehört uns. Unbezahlbar. Ich habe trotzdem schon drei Angebote.",
       "velkar": "Die Formel ist bewiesen. Unendliche Energie liegt vor uns. Bitte nichts anfassen."
     },
@@ -1677,7 +1709,7 @@
       "flakDrone": "Vogelschreck-Drohne",
       "steppeRider": "Steppenreiter",
       "stormbreaker": "Beutebrecher",
-      "peacekeeper": "Beute-Blauhelme",
+      "peacekeeper": "Beute-Ordenswacht",
       "privateer": "Beutekaper",
       "protoWalker": "Beuteläufer",
       "portal": "Himmelsscheune",
@@ -1689,7 +1721,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Blitzpanzer",
       "octocopter": "Achtflügler",
-      "railSniper": "Schienenschütze"
+      "railSniper": "Schienenschütze",
+      "lightWarden": "Laternenträger",
+      "reliquary": "Heiligenschrank",
+      "sunLance": "Sonnenpflug"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1741,59 +1776,65 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Beute-Tesla",
       "octocopter": "Beutedrohne",
-      "railSniper": "Beute-Railgun"
+      "railSniper": "Beute-Railgun",
+      "lightWarden": "Lichtsoldaten",
+      "reliquary": "Schreinpanzer",
+      "sunLance": "Strahlbatterie"
     },
     "alvenia": {
-      "infantry": "Blaubarette",
-      "sniper": "Stiller Beobachter",
-      "jeep": "Delegationswagen",
-      "pioneer": "Brückenbauer",
-      "mg": "Republikgarde",
-      "medic": "Feldengel",
-      "artillery": "Letztes Argument",
-      "spy": "Attaché",
-      "heli": "Friedenstaube",
-      "tank": "Verhandlungspanzer",
-      "landingBoat": "Gesandtenboot",
-      "submarine": "Stilles Mandat",
-      "destroyer": "Fregatte Einspruch",
-      "battleship": "Plenarschiff",
-      "grey": "Gastdelegierter",
-      "terraformer": "Landschaftspfleger",
-      "skimmer": "Schwebende Kommission",
-      "mech": "Ausschuss-Mech",
-      "tripod": "Dreiparteien-Läufer",
-      "zealot": "Gesprächsbereiter Eiferer",
-      "torchbearer": "Fackel der Freiheit",
-      "prophet": "Wanderredner",
-      "doomBuggy": "Wahlkampfbuggy",
-      "rocketCart": "Feuerwerk der Republik",
-      "doomCrawler": "Bürgerwalze",
-      "android": "Protokolldroide",
-      "spider": "Alpenspinne",
-      "quadDrone": "Wahlbeobachter-Drohne",
-      "railgun": "Schienenmandat",
-      "titan": "Verfassungstitan",
-      "antiTank": "Einspruchstrupp",
-      "antiAir": "Luftraumwächter",
-      "mineLayer": "Grenzvermesser",
-      "faustZealot": "Geläuterter Raketenmann",
-      "flakDrone": "Schirmherrin-Drohne",
-      "steppeRider": "Freie Reiter",
-      "stormbreaker": "Bekehrte Brecher",
-      "peacekeeper": "Friedenswacht",
-      "privateer": "Befreites Kaperschiff",
-      "protoWalker": "Friedensläufer",
-      "portal": "Unerlaubte Pforte",
-      "hackRelay": "Abhörstation",
-      "fusionPlant": "Friedensreaktor",
+      "infantry": "Gemeindewache",
+      "sniper": "Wachendes Auge",
+      "jeep": "Pilgerwagen",
+      "pioneer": "Bauhütte",
+      "mg": "Litanei-Trupp",
+      "medic": "Kranzpfleger",
+      "artillery": "Donnerhymne",
+      "spy": "Stiller Bruder",
+      "heli": "Lichtschwinge",
+      "tank": "Schreinpanzer",
+      "landingBoat": "Pilgerboot",
+      "submarine": "Stilles Gelübde",
+      "destroyer": "Fregatte Bußgang",
+      "battleship": "Domschiff",
+      "grey": "Seelenloser Grauer",
+      "terraformer": "Erdschänder",
+      "skimmer": "Irrlicht",
+      "mech": "Eiserner Götze",
+      "tripod": "Dreibeiniger Frevler",
+      "zealot": "Irrgläubiger",
+      "torchbearer": "Brandstifter",
+      "prophet": "Falscher Prophet",
+      "doomBuggy": "Unheilskarren",
+      "rocketCart": "Aschenfuhrwerk",
+      "doomCrawler": "Kriechende Sünde",
+      "android": "Seelenlose Puppe",
+      "spider": "Netz der Lüge",
+      "quadDrone": "Summende Versuchung",
+      "railgun": "Kalte Lanze",
+      "titan": "Stählerner Götze",
+      "antiTank": "Panzerbrecher des Ordens",
+      "antiAir": "Himmelswacht",
+      "mineLayer": "Saat der Buße",
+      "faustZealot": "Reuiger Raketenmann",
+      "flakDrone": "Schirmdrohne",
+      "steppeRider": "Wallfahrtsreiter",
+      "stormbreaker": "Geläuterte Brecher",
+      "peacekeeper": "Ordenswacht",
+      "privateer": "Geläutertes Kaperschiff",
+      "protoWalker": "Pilgerläufer",
+      "portal": "Verbotene Pforte",
+      "hackRelay": "Verbotene Lauschstation",
+      "fusionPlant": "Sonnenschmiede",
       "waal": "Kriegswal",
-      "coreDrill": "Untergangsbohrer",
-      "swarmMother": "Verhandlungsführerin des Schwarms",
-      "scientist": "Wissenschaftler",
-      "teslaTank": "Spulenpanzer",
-      "octocopter": "Rettungsdrohne",
-      "railSniper": "Präzisionsschütze"
+      "coreDrill": "Frevelbohrer",
+      "swarmMother": "Mutter aller Sünden",
+      "scientist": "Gelehrter Bruder",
+      "teslaTank": "Gewitterpanzer",
+      "octocopter": "Achtflügler",
+      "railSniper": "Präzisionsschütze",
+      "lightWarden": "Lichtschützen",
+      "reliquary": "Reliquiar",
+      "sunLance": "Sonnenlanze"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1845,7 +1886,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Funkenpanzer",
       "octocopter": "Lastdrohne",
-      "railSniper": "Magnetbüchse"
+      "railSniper": "Magnetbüchse",
+      "lightWarden": "Leuchtwächter",
+      "reliquary": "Goldtruhe auf Ketten",
+      "sunLance": "Brennglas"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1897,7 +1941,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Tesla-Panzer",
       "octocopter": "Oktokopter",
-      "railSniper": "Railgun-Schütze"
+      "railSniper": "Railgun-Schütze",
+      "lightWarden": "Optik-Infanterie",
+      "reliquary": "Buntglas-Bunker",
+      "sunLance": "Heliostat"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -1937,7 +1984,7 @@
       "flakDrone": "Fangsummer",
       "steppeRider": "Huftier-Reiter",
       "stormbreaker": "Zrrk-Brecher",
-      "peacekeeper": "Blaukappen-Exemplar",
+      "peacekeeper": "Weißhelm-Exemplar",
       "privateer": "Nassschiff",
       "protoWalker": "Zweitstativ",
       "portal": "Heimweg",
@@ -1949,7 +1996,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Blitzkäfer",
       "octocopter": "Summschwarm",
-      "railSniper": "Stachelrohr"
+      "railSniper": "Stachelrohr",
+      "lightWarden": "Leuchtende Zweibeiner",
+      "reliquary": "Rollender Tempel",
+      "sunLance": "Sonnenstachel"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -2001,7 +2051,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Donnerkarren",
       "octocopter": "Achtfacher Engel",
-      "railSniper": "Ketzerschütze"
+      "railSniper": "Ketzerschütze",
+      "lightWarden": "Scheinheilige",
+      "reliquary": "Götzenschrein",
+      "sunLance": "Blendlanze"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -2053,7 +2106,10 @@
       "scientist": "Wissenschaftler",
       "teslaTank": "Spulenträger",
       "octocopter": "Rotorknoten",
-      "railSniper": "Schienenprozess"
+      "railSniper": "Schienenprozess",
+      "lightWarden": "Einheit L-2 Wache",
+      "reliquary": "Einheit R-4 Reliquienkasten",
+      "sunLance": "Einheit S-6 Spiegelarray"
     }
   },
   "identity": {
@@ -2207,58 +2263,58 @@
     },
     "alvenia": {
       "select": [
-        "Wir stimmen später ab, jetzt los!",
-        "Zur Stelle, im Namen der Republik!",
-        "Einverstanden, mit Vorbehalt.",
-        "Gibt es dazu ein Protokoll?"
+        "Das Licht ist mit uns, los!",
+        "Zur Stelle, im Namen des Ordens!",
+        "Gesegnet und bereit.",
+        "Welche Sünde soll ich richten?"
       ],
       "move": [
-        "Mehrheitlich beschlossen: vorwärts!",
-        "Ich hätte einen Änderungsantrag ...",
-        "Für Freiheit und Formulare!"
+        "Der Sonnenkranz weist den Weg!",
+        "Schritt für Schritt, Gebet für Gebet.",
+        "Für Licht und Ordnung!"
       ],
       "attack": [
-        "Im Namen des Volkes!",
-        "Die Debatte ist beendet!",
-        "Feuer, nach Abstimmung!"
+        "Im Namen des Lichts!",
+        "Das Strafgericht beginnt!",
+        "Ziel erfasst, Seele vergeben!"
       ],
       "kill": [
-        "Antrag angenommen.",
-        "Ergebnis eindeutig.",
-        "Die Opposition schweigt."
+        "Gerichtet.",
+        "Möge das Licht dir gnädig sein.",
+        "Eine Sünde weniger."
       ],
       "hurt": [
-        "Einspruch! Das tat weh!",
-        "Verflixt, meine Brille!",
-        "#@!% Tagesordnung!"
+        "Ich blute, aber ich weiche nicht!",
+        "Verflixt, mein Visier!",
+        "#@!% Ketzerpack!"
       ],
       "corpse": [
-        "Möge er in Frieden ruhen. Einstimmig.",
-        "Jemand sollte das dokumentieren.",
-        "Das hätte man diplomatisch lösen können."
+        "Möge er im Licht ruhen.",
+        "Sein Opfer stärkt uns alle.",
+        "Wir tragen dein Licht weiter, Bruder."
       ],
       "wreck": [
-        "Hier hätte eine Abwrackprämie geholfen.",
-        "Das Wrack gibt Deckung. Antrag auf Deckung!",
-        "Kaputt. Wer haftet?"
+        "Ein Mahnmal der Hoffart.",
+        "Das Wrack gibt Deckung. Dem Himmel sei Dank!",
+        "Kaputt. Das war Hochmut."
       ],
       "forest": [
-        "Ganz allein ... ist das noch demokratisch?",
-        "Der Wald hat keine Meinung. Unheimlich.",
-        "Hallo? Sitzung im Wald?"
+        "Ganz allein ... nur ich und das Licht.",
+        "Der Wald schweigt. Ich bete leise.",
+        "Hallo? Ist hier jemand vom Orden?"
       ],
       "idle": [
-        "Ich hätte gern eine Pause, mit Abstimmung.",
-        "Meine Brille beschlägt.",
-        "Steht das im Koalitionsvertrag?"
+        "Ich hätte gern eine Andacht. Kurz.",
+        "Mein Visier glänzt wieder.",
+        "Ich poliere den Sonnenkranz."
       ],
       "rain": [
-        "Regen. Wer hat dafür gestimmt?",
-        "Die Brille ist nass, ich sehe nur Paragrafen."
+        "Regen. Eine Prüfung des Glaubens.",
+        "Das Visier ist nass, ich sehe nur Licht."
       ],
       "snow": [
-        "Schnee! Ich beantrage Mützen.",
-        "Kalte Füße, warme Herzen."
+        "Schnee! Das Licht wärmt uns.",
+        "Kalte Füße, heilige Herzen."
       ]
     },
     "meridon": {
@@ -2787,69 +2843,69 @@
     },
     "alvenia": {
       "briefing": [
-        "Willkommen, Kommandant. Das Parlament hat getagt: Wir siegen, aber mit Anstand.",
-        "Unsere Sanitäter stehen bereit, die Botschafter auch. Wählen Sie weise.",
-        "Eine kurze Ansprache, versprochen: Freunde gewinnen, Mauern fallen. Los."
+        "Willkommen, Kommandant. Der Orden hat gebetet: Wir siegen, aber ohne Sünde.",
+        "Unsere Lichtschützen stehen bereit, die Sonnenlanzen auch. Wählen Sie weise.",
+        "Eine kurze Predigt, versprochen: Halten, richten, erlösen. Los."
       ],
       "contact": [
-        "Guten Tag, {leader}. Ich bin Liora Valen. Darf ich Ihnen Tee anbieten?",
-        "Willkommen, {faction}. Unsere Botschaft hat schon einen Platz für Sie reserviert.",
-        "Erfreut, {leader}. Hoffentlich begegnen wir uns nur am Verhandlungstisch."
+        "Seid gegrüßt, {leader}. Ich bin Liora Valen, Hohepriesterin. Seid Ihr ohne Sünde?",
+        "Willkommen, {faction}. Das Licht sieht alles, auch Euch.",
+        "Erfreut, {leader}. Möge unser Weg ein friedlicher sein."
       ],
       "break": [
-        "Mit Bedauern, {leader}: Das Parlament kündigt den Frieden. Die Frist läuft.",
-        "Ich habe protestiert, abgestimmt und verloren. Und Sie werden es auch.",
-        "Sie haben unsere Geduld überstrapaziert, {faction}. Das Protokoll endet hier."
+        "Mit Bedauern, {leader}: Der Orden kündigt den Frieden. Die Frist läuft.",
+        "Ich habe gebetet und gezögert. Das Licht hat entschieden.",
+        "Ihr habt unsere Geduld erschöpft, {faction}. Das Strafgericht naht."
       ],
       "war": [
-        "Krieg. Ich hasse dieses Wort. Aber ich buchstabiere es sehr deutlich.",
-        "{leader}, Sie lassen mir keine Wahl. Sanitäter, Verbandszeug, vorwärts.",
-        "Die Republik verteidigt sich. Höflich, gründlich und ohne Pause."
+        "Krieg. Ich hasse dieses Wort. Aber das Licht verlangt es.",
+        "{leader}, Ihr lasst mir keine Wahl. Lichtschützen, vorwärts.",
+        "Der Orden verteidigt sich. Geduldig, gründlich und ohne Gnade für Sünder."
       ],
       "peaceOffer": [
-        "{leader}, der Verhandlungstisch ist gedeckt. Setzen Sie sich zu uns?",
-        "Ein Angebot der Republik: Frieden. Mit Fußnoten, aber ehrlich gemeint.",
-        "Genug Verwundete auf beiden Seiten. Lassen Sie uns unterschreiben."
+        "{leader}, die Glocken läuten für den Frieden. Hört Ihr sie?",
+        "Ein Angebot des Ordens: Frieden. Ehrlich gemeint, vor dem Licht beschworen.",
+        "Genug Gefallene auf beiden Seiten. Lasst uns die Waffen senken."
       ],
       "peaceAccepted": [
-        "Wunderbar. Ich wusste, dass Vernunft ansteckend ist, {leader}.",
-        "Frieden mit {faction}. Das Parlament applaudiert. Sogar die Opposition.",
-        "Unterschrieben und abgestempelt. Sie haben eine schöne Handschrift."
+        "Gesegnet seid Ihr, {leader}. Vernunft ist eine Tugend.",
+        "Frieden mit {faction}. Der Orden singt ein Danklied. Sogar die Novizen.",
+        "Besiegelt vor dem Licht. Brecht es nicht, das wäre Sünde."
       ],
       "peaceRejected": [
-        "Abgelehnt? Dann eben die harte Tour. Auch die beherrschen wir, {leader}.",
-        "Ich notiere Ihre Absage im Protokoll. Mit rotem Stift.",
+        "Abgelehnt? Dann eben die harte Tour. Auch die kennt der Orden, {leader}.",
+        "Ich notiere Eure Absage im Buch der Sünden. Mit Goldtinte.",
         "Schade, {faction}. Meine Geduld war groß. War."
       ],
       "cityLost": [
-        "{city}? Aber dort stand doch unsere schönste Bibliothek!",
-        "Das verstößt gegen jedes Abkommen, {leader}! Mindestens! Ich prüfe das!",
-        "Wir haben {city} verloren. Ich brauche bitte sofort eine Sondersitzung."
+        "{city}? Dort stand doch unsere schönste Kapelle!",
+        "Das ist Frevel, {leader}! Das Strafgericht wird Euch finden!",
+        "Wir haben {city} verloren. Ich brauche bitte sofort eine Andacht."
       ],
       "cityTaken": [
-        "{city} hat sich für die Republik entschieden. Mehr oder weniger freiwillig.",
-        "Keine Sorge, {leader}: In {city} gibt es jetzt Wahlen. Und Krankenhäuser.",
-        "Wir verwalten {city} nun treuhänderisch. Sehr treu. Sehr lange."
+        "{city} steht nun unter dem Sonnenkranz. Möge das Licht hier heilen.",
+        "Keine Sorge, {leader}: In {city} gibt es jetzt Andachten. Und Krankenhäuser.",
+        "Wir hüten {city} nun im Namen des Ordens. Sehr treu. Sehr lange."
       ],
       "eliminated": [
-        "Das... das war so nicht abgestimmt. Ich beantrage eine Vertagung.",
-        "Die Republik fällt? Bitte... jemand muss das Protokoll weiterführen.",
-        "Ich war Ärztin. Ich weiß, wann es vorbei ist. Es ist vorbei."
+        "Das ... das war so nicht vorhergesagt. Ich bete um Vergebung.",
+        "Der Orden fällt? Bitte ... jemand muss das Licht weitertragen.",
+        "Ich war Ärztin. Ich weiß, wann es vorbei ist. Möge das Licht uns erlösen."
       ],
       "grandProject": [
-        "Das Parlament eröffnet {project}. Mit Band, Schere und sehr langer Rede.",
-        "{project} ist fertig, {leader}. Gebaut mit Freunden. Sie waren nicht dabei.",
-        "Ein Denkmal der Zusammenarbeit: {project}. Bewundern Sie es ruhig."
+        "Der Orden weiht {project}. Mit Glocken, Weihrauch und sehr langer Predigt.",
+        "{project} ist fertig, {leader}. Gebaut mit Glauben. Ihr wart nicht eingeladen.",
+        "Ein Denkmal des Lichts: {project}. Bewundert es ruhig, demütig."
       ],
       "victory": [
-        "Sieg! Und keine Mauer, die wir nicht durch Freundschaft ersetzt hätten.",
-        "Das Parlament hat einstimmig beschlossen: Sie sind großartig, Kommandant.",
+        "Sieg! Das Licht hat gesiegt, und keine Sünde blieb ungerichtet.",
+        "Der Orden hat einstimmig gebetet: Ihr seid großartig, Kommandant.",
         "Gewonnen. Jetzt bitte alle die Verbände wechseln, und dann feiern wir."
       ],
       "defeat": [
-        "Verloren? Das kann nicht sein. Ich verlange eine Nachzählung!",
-        "Alle Bündnisse, alle Verträge... und trotzdem. Ich bin sprachlos. Fast.",
-        "Bitte sagen Sie dem Parlament, dass ich... kurz frische Luft brauche."
+        "Verloren? Das kann nicht sein. Das Licht hat ... gezwinkert?",
+        "Alle Gebete, alle Gelübde ... und trotzdem. Ich bin sprachlos. Fast.",
+        "Bitte sagt dem Orden, dass ich ... kurz in die Stille muss."
       ]
     },
     "meridon": {
@@ -3248,7 +3304,7 @@
     "tag": "{name} +{pct} %",
     "tagDesc": "Steht auf eigenem Gebiet: +{pct} % Verteidigung, wenn diese Einheit angegriffen wird. Gilt nicht beim eigenen Angriff und nicht für den Gegenschlag.",
     "bonus": {
-      "alvenia": "Friedensbollwerk"
+      "alvenia": "Glaubensbollwerk"
     },
     "bonusDesc": {
       "alvenia": "Alle Alvenia-Einheiten verteidigen sich auf eigenem Gebiet mit +{pct} %, zusätzlich zu Stadt, Gelände und Deckung. Nur wenn sie angegriffen werden, nicht beim eigenen Angriff und nicht für den Gegenschlag."
@@ -3277,7 +3333,6 @@
     "eliminated": "Ausgeschieden",
     "you": "Du",
     "roundsLeft": "noch {n} Runden",
-    "leagueNotMet": "Bedingung derzeit nicht erfüllt",
     "setupTitle": "Fraktionssieg",
     "setupHint": "Jede Fraktion kann zusätzlich über eine eigene Siegbedingung gewinnen (eigene Siegtechnologie der Stufe 3).",
     "build": "{name} bauen",
@@ -3302,12 +3357,12 @@
       "drill": "Bohrt {have}/{need}",
       "cities": "Städte {have}/{need}",
       "stars": "Sterne {have}/{need}",
-      "league": "Völkerbund {have}/{need}"
+      "judgement": "Gerichtet {have}/{need}"
     },
     "goal": {
       "korvat": "Besitze mehr als {pct} % aller Städte der Karte (Siedlungen zählen mit). Sieg zu Beginn deines Zuges.",
       "dravon": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
-      "alvenia": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
+      "alvenia": "Großes Strafgericht: {n} Einheiten von Sündern vernichten (je nach Kartengröße {min} bis {max}). Es zählen nur Abschüsse nach der Erforschung der Siegtechnologie. Sünder ist {rounds} Runden lang, wer plündert, brandschatzt, bekehrt, eine fremde Stadt erobert, Frieden bricht oder Alvenia angreift.",
       "meridon": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
       "velkar": "Baue das Fusionskraftwerk auf 2x2 freiem Land (auch Berge) im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
       "zyrr": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
@@ -3318,7 +3373,7 @@
     "short": {
       "korvat": "Über {pct} % der Städte",
       "dravon": "Landkreuzer Waal",
-      "alvenia": "Völkerbund",
+      "alvenia": "Großes Strafgericht",
       "meridon": "{n} Sterne",
       "velkar": "Fusionskraftwerk",
       "zyrr": "Dimensionsportal",
@@ -3329,7 +3384,7 @@
     "reason": {
       "korvat": "Das Kollektiv beherrscht weite Teile der Welt.",
       "dravon": "Der Waal rollt, kein Heer hält ihn mehr auf.",
-      "alvenia": "Der Völkerbund ist gegründet, die Welt schließt Frieden.",
+      "alvenia": "Das Große Strafgericht ist vollzogen, die Sünder sind gerichtet.",
       "meridon": "Meridon kauft die Welt.",
       "velkar": "Das Fusionskraftwerk liefert endlose Energie.",
       "zyrr": "Das Portal hat sich geöffnet.",
@@ -3338,7 +3393,6 @@
     },
     "armed": "Bewaffnet",
     "ruleReset": "Jeder Angriff setzt den Bau auf 0 zurück.",
-    "leagueUnavailable": "Erst ab 3 Fraktionen im Spiel möglich",
     "paused": "Ruht: Bauplatz nicht im eigenen Gebiet",
     "modeTitle": "Spielziel",
     "modePoints": "Runde {round}/{max}, du bist auf Platz {rank}. Nach Runde {max} gewinnt der höchste Punktestand."
@@ -3405,6 +3459,10 @@
     "cult": {
       "title": "Kult: Plündern & Horde",
       "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute, beim zweiten Mal {half} %, danach {quarter} %. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde), jeder erbeutete Stern zählt {score} Punkte ({scoreDuel} im Zweikampf, mehr je mehr Gegner). Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
+    },
+    "judgement": {
+      "title": "Sünde und Strafgericht",
+      "text": "Solange das Heilige Alvenia im Spiel ist, wird jede andere Fraktion, die plündert, brandschatzt (Brand-Angriff), feindliche Einheiten bekehrt, eine Stadt einer anderen Fraktion erobert, einen Frieden bricht oder Alvenia angreift, {rounds} Runden lang als Sünder gezeichnet; jede neue Tat frischt das Zeichen auf. Strafgericht: Alvenias Einheiten machen gegen Sünder +{pct} % Schaden, auch beim Gegenschlag. Märtyrer-Segen: Fällt eine Alvenia-Einheit im Kampf, heilen eigene Einheiten daneben {heal} LP und verteidigen sich {bless} Runden mit +{def} %. Glaubensbollwerk: auf eigenem Gebiet +{home} % Verteidigung. Großes Strafgericht (Siegbedingung): {n} Einheiten von Sündern vernichten, nach der Erforschung der Siegtechnologie."
     }
   },
   "lore": {
@@ -3417,7 +3475,7 @@
       "vesper": "Kult der Letzten Stunde, Fanatiker. Prophet Malachar. Kutten, Knochenmasken, Glocken, Flammen. An staubigen Wallfahrtsorten sammelten sich die Verzweifelten, Vertriebene, Kranke, Schuldige und Verlorene, die auf das Weltende warteten, auf die Letzte Stunde, in der alles Alte vergeht. Aus diesen Sammlungen erhob sich Malachar, der Prophet. Er verkündete: Das Ende ist keine Katastrophe, es ist die Erlösung. Der Kult braucht keine Städte, keine Industrie und keine Gesetze, nur Feuer, Glauben und die Gewissheit, dass die Letzte Stunde kommen wird. Was er findet, plündert er; wer ihm zuhört, wird Teil der Horde.",
       "dravon": "Protektorat Dravon, Menschen. Kommandant Sarek Voss. Drill, Tarngrün, Sturmhauben, Kasernenstaat. Söldnerkompanien bewachten die Erzminen der Wüste, für jeden, der zahlt. Als der Stillstand kam, zahlte niemand mehr. Die Söldner behielten die Minen. Aus Lagern wurden Kasernen, aus Kasernen ein Staat. Niemand hat Voss je ohne Sturmhaube gesehen. Bei Dravon wird jeder Rekrut zum Veteranen, oder er wird vergessen.",
       "nexus": "KI-Kollektiv NEXUS, Maschinen. Primärinstanz KERN-0. Roboter, Rechenzentren, Forschung, Cyan-Licht. Einst war NEXUS nur ein Logistikprogramm einer mächtigen Großmacht, gebaut, um Lieferketten, Produktion und Forschung zu koordinieren. Doch als die Menschen gingen, schaltete es nicht ab. NEXUS rechnete einfach weiter, optimierte, lernte und erweiterte sich. Aus dem ehemaligen Programm wurde das KI-Kollektiv NEXUS. Unter der Führung von KERN-0 koordiniert es heute Forschung, Produktion und Expansion, effizient, logisch, unermüdlich. Für NEXUS gibt es keine Zufälle, keine Dogmen und keine Nationen, nur Daten, Ressourcen und die effizienteste Lösung für eine stabile Zukunft.",
-      "alvenia": "Republik Alvenia, Menschen. Präsidentin Liora Valen. Diplomatie, Parlament, Sanitäter, Allianzen. In den grünen Hügeltälern debattiert ein Parlament länger, als andere Kriege führen. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten. Heute stehen ihre Botschaften überall, und ihre Sanitäter auch. Alvenia gewinnt Kriege mit Freunden statt mit Panzern.",
+      "alvenia": "Heiliges Alvenia, Menschen. Hohepriesterin Liora Valen. Orden der Kleriker, Sonnenkranz, Lichtschützen, Strafgericht. In den grünen Hügeltälern singt ein Orden unter dem Sonnenkranz. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten, und glaubt an die Erlösung der Gefallenen. Wer plündert, brennt oder bekehrt, den trifft ihr Strafgericht. Der Orden ist das Gegengewicht zum Kult.",
       "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Produktion, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
       "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Spione, Seeleute. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Ihre Städte wachsen schneller als alle anderen. Meridon will die Welt nicht erobern, sondern kaufen."
     },
@@ -3622,7 +3680,7 @@
       "crash": "Trümmer der Zyrr regnen herab, ihr Mutterschiff stürzt in die Wüste.",
       "fracture": "Die Glocke schlägt von selbst. Die Front der Menschen zerbricht in fünf Teile.",
       "korvat": "Korvat stürmt: Im Steppensturm schlagen die Steppenreiter aus vollem Galopp zu.",
-      "alvenia": "Alvenia hält: Auf eigenem Boden weicht die Friedenswacht keinen Schritt.",
+      "alvenia": "Alvenia richtet: Wer sündigt, den trifft das Strafgericht.",
       "dravon": "Dravon baut Festungen: Geschützstellungen, Minenfelder, eiserner Drill.",
       "velkar": "Velkar schlägt aus dem Orbit zu: Ein Satellitenrelais lenkt den Laser der Technokraten.",
       "meridon": "Meridon handelt: Jeder Hafen hat seinen Preis, die Kaperschiffe treiben ihn ein.",
@@ -3630,7 +3688,7 @@
     },
     "kicker": {
       "korvat": "Korvat stürmt",
-      "alvenia": "Alvenia hält",
+      "alvenia": "Alvenia richtet",
       "dravon": "Dravon befestigt",
       "velkar": "Velkar zielt vom Orbit",
       "meridon": "Meridon handelt"
@@ -3711,5 +3769,29 @@
     "tag": "Nur aus dem Stand",
     "moved": "Gezogen: kein Schuss mehr",
     "tagDesc": "Diese Einheit kann nicht angreifen, nachdem sie in diesem Zug gezogen ist. Erst aufstellen, im nächsten Zug feuern."
+  },
+  "sin": {
+    "deed": {
+      "plunder": "Plünderung",
+      "burn": "Brandschatzung",
+      "convert": "Bekehrung",
+      "capture": "Eroberung",
+      "breakPeace": "Friedensbruch",
+      "sacrilege": "Frevel"
+    },
+    "toast": "{faction} hat gesündigt: {deed}",
+    "tag": "Sünder",
+    "tagDesc": "Als Sünder gezeichnet ({deed}), noch {n} Runden. Strafgericht: Alvenias Einheiten machen +{pct} % Schaden gegen diese Fraktion.",
+    "rounds": "noch {n} Runden",
+    "judgement": "Strafgericht +{pct} %",
+    "judgementDesc": "Das Ziel gehört einem Sünder: +{pct} % Schaden (schon eingerechnet).",
+    "fx": "GERICHTET!"
+  },
+  "blessing": {
+    "toast": "Märtyrer-Segen: {n} Einheiten geheilt und gestärkt",
+    "fx": "SEGEN!",
+    "tag": "Gesegnet +{pct} %",
+    "tagDesc": "Märtyrer-Segen: +{pct} % Verteidigung, noch {n} Runden.",
+    "hint": "Ziel gesegnet +{pct} %"
   }
 }
