@@ -156,12 +156,12 @@ function buildRaw(id: FactionId): Look {
         emblem: se,
       };
     case 'alvenia':
-      // Blau/Weiss, offene Helme / blue/white, open helmets
+      // Heiliges Alvenia: Weissruestung, koenigsblaue Wappenroecke, Goldborten (alveniaFaith.ts) / Holy Alvenia: white armour, royal blue tabards, gold trim (alveniaFaith.ts)
       return {
         ...base,
-        helmet: pr, jacket: pr, pants: shade(pr, 0.58), gear: se,
-        hull: pr, hullDark: shade(pr, 0.65), trim: se,
-        wall: se, wallDark: mix(se, pr, 0.25), roof: pr, roofDark: shade(pr, 0.7),
+        helmet: col(semantic.faithPlate), jacket: col(semantic.faithCloth), pants: col(semantic.faithClothDeep), gear: shade(semantic.faithGold, 0.7),
+        hull: col(semantic.faithPlate), hullDark: shade(semantic.faithPlate, 0.72), trim: col(semantic.faithGold),
+        wall: se, wallDark: mix(se, pr, 0.25), roof: col(semantic.faithCloth), roofDark: col(semantic.faithClothDeep),
         emblem: se,
       };
     case 'meridon':

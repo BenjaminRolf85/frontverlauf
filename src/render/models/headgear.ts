@@ -6,8 +6,8 @@
  *   / round mass-produced steel helmet with wide flared rim, red band, rivets, chinstrap, cog badge
  * - Dravon: schwarze Sturmhaube mit Augenausschnitt, Strickrillen und kleinem goldenen Faust-Abzeichen
  *   / black balaclava with eye opening, knit ribs and a small gold fist badge
- * - Alvenia: offener Helm mit Schirm, Schutzbrille mit Riemen, Seitenschienen, Stern-im-Ring-Abzeichen
- *   / open helmet with peak, strapped goggles, side rails, star-in-ring badge
+ * - Alvenia: weisser Paladinhelm mit Wangenschutz, Goldkamm und Stirnstern, tuerkise Seitenleuchten, schwebender Sonnenkranz
+ *   / white paladin helmet with cheek guards, gold crest and brow star, teal side lights, floating sun halo
  * - Meridon: schraeges Barett mit Kompassrosen-Abzeichen, Headset mit Mikrofon, Sonnenbrille
  *   / tilted beret with compass-rose badge, headset with mic boom, sunglasses
  * - Velkar: frostweisser Visierhelm mit tuerkiser Leuchtlinse, Kamm, Antenne, Sensorleuchte, Sechseck-Abzeichen ("Labor im Feld")
@@ -20,6 +20,7 @@ import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { mat, type Look } from './look';
 import { TECH } from './velkarTech';
+import { FAITH, faithStar, haloRing } from './alveniaFaith';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -286,34 +287,25 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       break;
     }
     case 'alvenia': {
+      // Heiliges Alvenia: weisser Paladinhelm, offenes Gesicht / Holy Alvenia: white paladin helmet, open face
       face(b, d, 'none', seed);
       const C: V3 = [0, 0.074, -0.004];
-      b.add(geo.hemi(0.086, ws, hs), hc, { p: C, s: [1, 0.95, 1.04] });
-      ring(b, 0.0875, 0.016, ws, L.secondary, [0, 0.078, -0.004], [1, 1, 1.04], 0.089);
-      // Schirm vorn / front peak
-      b.add(geo.cyl(0.07, 0.07, 0.008, ws), hc, { p: [0, 0.072, 0.052], s: [1, 1, 0.5], r: [0.14, 0, 0] });
-      // Brillenriemen + Brille / goggle strap + goggles
-      ring(b, 0.082, 0.012, ws, mat.dark, [0, 0.1, -0.004], [1, 1, 1.04]);
-      for (const x of [-0.027, 0.027]) {
-        if (d >= 1) b.add(geo.cyl(0.022, 0.022, 0.018, 12, true), L.secondary, { p: [x, 0.108, 0.07], r: [HALF_PI - 0.45, 0, 0] });
-        b.cyl(0.017, 0.017, 0.014, d >= 1 ? 12 : 8, mat.glass, [x, 0.108, 0.07], [HALF_PI - 0.45, 0, 0]);
-      }
-      b.box(0.014, 0.008, 0.008, mat.dark, [0, 0.108, 0.075]);
+      b.add(geo.hemi(0.088, ws, hs), FAITH.plate, { p: C, s: [1, 1.02, 1.06] });
+      ring(b, 0.0895, 0.014, ws, FAITH.gold, [0, 0.078, -0.004], [1, 1, 1.06], 0.091);
+      // Goldkamm von vorn nach hinten / gold crest from front to back
+      b.add(geo.cbox(0.014, 0.03, 0.15, 0.006), FAITH.gold, { p: [0, 0.155, -0.006] });
+      // Stirnstern / brow star
+      faithStar(b, [0, 0.112, 0.088], 0.024, [-0.25, 0, 0]);
       if (d >= 1) {
-        // Seitenschienen mit Lampe / side rails with lamp
+        // Wangenschutz mit Goldkante und tuerkiser Leuchte / cheek guards with gold edge and teal light
         for (const s of [-1, 1]) {
-          b.box(0.008, 0.014, 0.064, mat.dark, [s * 0.085, 0.086, -0.008]);
-          if (d === 2) for (const z of [-0.03, 0.014]) b.box(0.006, 0.006, 0.006, mat.metalLight, [s * 0.09, 0.086, z]);
+          b.add(geo.cbox(0.012, 0.07, 0.06, 0.004), FAITH.plate, { p: [s * 0.078, 0.05, 0.02] });
+          b.box(0.014, 0.008, 0.062, FAITH.gold, [s * 0.078, 0.016, 0.02]);
+          b.add(geo.ico(0.008, 0), FAITH.tech, { p: [s * 0.088, 0.088, 0.0] });
         }
-        b.add(geo.cyl(0.008, 0.009, 0.026, 8), mat.dark, { p: [0.092, 0.086, 0.032], r: [HALF_PI, 0, 0] });
-        b.cyl(0.007, 0.007, 0.003, 8, mat.yellow, [0.092, 0.086, 0.046], [HALF_PI, 0, 0]);
-        // Stern-im-Ring-Abzeichen / star-in-ring badge
-        addEmblem(b, 'alvenia', 0.018, 0.004, L.secondary, { p: [-0.084, 0.092, -0.022], r: [0, -HALF_PI, 0.12] });
       }
-      if (d === 2) {
-        for (const s of [-1, 1]) b.box(0.006, 0.06, 0.008, mat.dark, [s * 0.055, 0.04, 0.022], [0.15, 0, 0]);
-        b.box(0.106, 0.008, 0.01, mat.dark, [0, 0.004, 0.03]);
-      }
+      // duenner goldener Sonnenkranz ueber dem Helm / thin golden sun halo above the helmet
+      haloRing(b, [0, 0.21, -0.02], 0.07, d >= 1 ? 0.0045 : 0.006, d === 2 ? 20 : 12, -0.12);
       break;
     }
     case 'meridon': {

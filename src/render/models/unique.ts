@@ -22,6 +22,7 @@ import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat } from './look';
 import { hull, lifeRings, mast, superBlock } from './ships';
 import { rifle, soldier, standPose } from './soldiers';
+import { cathedral, orderGuard } from './alveniaFaith';
 
 const V = (a: V3) => new THREE.Vector3(a[0], a[1], a[2]);
 
@@ -179,6 +180,9 @@ export function stormbreaker(f: FactionId, lite = false): Builder {
 // ---------- Alvenia: Friedenswacht / peacekeepers ----------
 
 export function peacekeeper(f: FactionId, lite = false): Builder {
+  // Heiliges Alvenia: Ordenswacht (alveniaFaith.ts); andere Besitzer behalten den alten Kontrollposten
+  // Holy Alvenia: Order Guard (alveniaFaith.ts); other owners keep the old checkpoint
+  if (f === 'alvenia') return orderGuard(f, lite);
   const b = new Builder();
   const L = look(f);
   const d = lite ? 1 : 2;
@@ -418,7 +422,9 @@ export function mercenaryBarracks(b: Builder, f: FactionId | null) {
 
 /** Alvenia: Botschaftspalast mit Flaggen der Nationen / embassy palace with the flags of the nations */
 export function embassyPalace(b: Builder, f: FactionId | null) {
-  const L = look(f ?? 'alvenia');
+  // Heiliges Alvenia: Lichtdom (ID embassyPalace) / Holy Alvenia: Cathedral of Light (ID embassyPalace)
+  if (f === null || f === 'alvenia') { cathedral(b, f); return; }
+  const L = look(f);
   // Sockel und Freitreppe / plinth and grand stairs
   b.block(0, 0, -0.05, 0.66, 0.03, 0.44, mat.concreteLight);
   for (let i = 0; i < 3; i++) b.block(0, 0.0 + i * 0.012, 0.19 - i * 0.02, 0.2, 0.012, 0.04, mat.paper);

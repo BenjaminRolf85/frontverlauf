@@ -24,7 +24,9 @@ export type Weapon =
   | 'rifle' | 'sniper' | 'mg' | 'cannon' | 'artillery' | 'rocket' | 'heliRockets' | 'naval' | 'bigNaval' | 'torpedo'
   | 'laser' | 'plasma' | 'deathRay' | 'flame' | 'railgun' | 'energy' | 'buzz'
   // Velkar: Tesla-Entladung, Spulengewehr, Oktokopter-Raketen / Velkar: Tesla discharge, coil rifle, octocopter rockets
-  | 'tesla' | 'coil' | 'droneRockets' | 'none';
+  | 'tesla' | 'coil' | 'droneRockets'
+  // Heiliges Alvenia: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Holy Alvenia: light rifle, light gun, sun beam
+  | 'radiant' | 'radiantGun' | 'sunBeam' | 'none';
 
 export const WEAPON: Record<UnitTypeId, Weapon> = {
   infantry: 'rifle', sniper: 'sniper', jeep: 'mg', pioneer: 'rifle', mg: 'mg', medic: 'none', artillery: 'artillery',
@@ -45,7 +47,7 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   // Velkar-Bauarten / Velkar designs
   teslaTank: 'tesla', octocopter: 'droneRockets', railSniper: 'coil',
   // Alvenia-Bauarten: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Alvenia designs: light rifle, light gun, sun beam
-  lightWarden: 'sniper', reliquary: 'railgun', sunLance: 'laser',
+  lightWarden: 'radiant', reliquary: 'radiantGun', sunLance: 'sunBeam',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
@@ -389,6 +391,23 @@ export class AudioEngine {
         this.tone(420, t, 0.28, 'sine', 0.16, out, 6, 0.25);
         this.noise(t + 0.28, 0.05, 0.9, 7500, out, { type: 'highpass' });
         this.tone(2600, t + 0.28, 0.35, 'triangle', 0.16, out, 0.6, 0.002);
+        break;
+      // Heiliges Alvenia: heller Glockenklang mit Knall, Chor-Akkord mit Donner, anschwellender Sonnenakkord
+      // Holy Alvenia: bright bell tone with a crack, choir chord with thunder, swelling sun chord
+      case 'radiant':
+        this.noise(t, 0.04, 0.8, 6500, out, { type: 'highpass', q: 0.5 });
+        this.gunshot(t, 0.7, 3200, out);
+        for (const [i, fr] of [1320, 1760].entries()) this.tone(fr, t + 0.01 + i * 0.02, 0.45, 'triangle', 0.14, out, 0.4, 0.002);
+        break;
+      case 'radiantGun':
+        for (const fr of [392, 494, 587]) this.tone(fr, t, 0.55, 'triangle', 0.12, out, 0.5, 0.05);
+        this.boom(t + 0.18, 0.7, 85, out);
+        this.tone(1568, t + 0.18, 0.4, 'sine', 0.12, out, 0.4, 0.002);
+        break;
+      case 'sunBeam':
+        for (const fr of [523, 659, 784, 1047]) this.tone(fr, t, 0.9, 'sine', 0.1, out, 0.6, 0.25);
+        this.noise(t + 0.25, 0.6, 0.3, 4000, out, { type: 'bandpass', q: 0.8, freqEnd: 9000, attack: 0.2 });
+        this.boom(t + 0.85, 0.5, 70, out);
         break;
       case 'droneRockets':
         this.droneHum(t, 0.8, out);

@@ -18,6 +18,7 @@ import { addEmblem } from './emblems';
 import { Builder, geo, mix, rng, shade, type ColorLike } from './kit';
 import { look, mat } from './look';
 import { crystal, tendril, zyrrSpire } from './xeno';
+import { monasteryVineyard } from './alveniaFaith';
 
 /** Stapel Goldmuenzen / stack of gold coins */
 function coins(b: Builder, x: number, y: number, z: number, n: number) {
@@ -167,7 +168,9 @@ export function deepMine(b: Builder, f: FactionId | null) {
 // ---------- Alvenia: Huegelweingut / hill vineyard ----------
 
 export function hillVineyard(b: Builder, f: FactionId | null) {
-  const L = look(f ?? 'alvenia');
+  // Heiliges Alvenia: Klosterweingut (ID hillVineyard) / Holy Alvenia: monastery vineyard (ID hillVineyard)
+  if (f === null || f === 'alvenia') { monasteryVineyard(b); return; }
+  const L = look(f);
   const grape = mix(mat.blue, mat.red, 0.45);
   // zwei Hangterrassen / two slope terraces
   b.add(geo.cbox(0.7, 0.03, 0.34, 0.03), shade(mat.grass, 0.95), { p: [0, 0.015, 0.16] });

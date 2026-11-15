@@ -33,7 +33,9 @@ export function impactShake(w: Weapon): number {
   switch (w) {
     case 'artillery': case 'bigNaval': return 0.75;
     case 'cannon': case 'rocket': return 0.55;
-    case 'naval': case 'heliRockets': case 'droneRockets': case 'plasma': case 'torpedo': case 'railgun': case 'deathRay': case 'coil': return 0.28;
+    case 'naval': case 'heliRockets': case 'droneRockets': case 'plasma': case 'torpedo': case 'railgun': case 'deathRay': case 'coil': case 'radiantGun': return 0.28;
+    // Sonnenlanze: schwerer Lichteinschlag / Sun Lance: heavy light impact
+    case 'sunBeam': return 0.5;
     // Tesla-Blitz: kurzer, kraeftiger Schlag / Tesla bolt: short, strong jolt
     case 'tesla': return 0.4;
     default: return 0;
@@ -534,6 +536,21 @@ function shoot(fx: CombatFx, w: Weapon, from: THREE.Vector3, to: THREE.Vector3, 
       for (let z = 0; z < 3; z++) bigZap(fx, from, to, z === 1 ? semantic.velkarTechArc : semantic.velkarTechGlow, delay + z * 55, 0.16, z === 0 ? 2 : 1);
       return 40;
     }
+    // Heiliges Alvenia: goldene Lichtstrahlen mit Tuschekontur und Ringen / Holy Alvenia: golden light beams with an ink outline and rings
+    case 'radiant': case 'radiantGun': case 'sunBeam': {
+      const big = w === 'sunBeam' ? 1.8 : w === 'radiantGun' ? 1.4 : 1;
+      const dur = w === 'sunBeam' ? 520 : w === 'radiantGun' ? 380 : 260;
+      const reach = w === 'sunBeam' ? 0.25 : 0.1;
+      flash(fx, from, 0.3 * big, semantic.faithHalo, delay, 140);
+      fx.emit('glow', delay, dur * 0.8, semantic.faithHalo, (k, q) => { q.obj.position.copy(from); const sc = 0.2 * big + Math.sin(k * 30) * 0.03; q.obj.scale.set(sc, sc, 1); q.mat.opacity = fade(k, 0.5); });
+      beam(fx, from, to, semantic.ink, delay, dur, (k) => ({ w: 0.05 * big * (1 - k * 0.5), o: fade(k, 0.3) * 0.7, reach: Math.min(1, k / reach) }));
+      beam(fx, from, to, semantic.faithHalo, delay, dur, (k) => ({ w: 0.036 * big * (1 - k * 0.5), o: fade(k, 0.3), reach: Math.min(1, k / reach) })).obj.renderOrder = FX_ORDER + 1;
+      beam(fx, from, to, semantic.faithBeam, delay, dur * 0.6, (k) => ({ w: 0.014 * big, o: fade(k, 0.4), reach: Math.min(1, k / reach) })).obj.renderOrder = FX_ORDER + 2;
+      const dir = to.clone().sub(from);
+      const n = w === 'radiant' ? 2 : 4;
+      for (let i = 1; i <= n; i++) ring(fx, from.clone().lerp(to, i / (n + 2)), 0.02 * big, 0.09 * big, semantic.faithGold, delay + i * 14, dur * 0.8, dir);
+      return w === 'sunBeam' ? 130 : 40;
+    }
     case 'coil': {
       // Spulengewehr: gerader, heller tuerkiser Strahl mit Projektilspur und Ringen / coil rifle: straight bright teal beam with slug trail and rings
       const tc = semantic.velkarTechGlow;
@@ -670,6 +687,15 @@ function impact(fx: CombatFx, w: Weapon, at: THREE.Vector3, floor: number, surfa
       if (surface !== 'water') puff(fx, ground, new THREE.Vector3(0, 0.35, 0), 0.1, 0.26, semantic.fxSmokeDark, delay + 40, 400, { to: semantic.fxSmoke });
       break;
     }
+    // Heiliges Alvenia: goldener Lichteinschlag mit Funkenstern und Ring / Holy Alvenia: golden light impact with a spark star and ring
+    case 'radiant': case 'radiantGun': case 'sunBeam': {
+      const big = w === 'sunBeam' ? 1.8 : w === 'radiantGun' ? 1.3 : 0.9;
+      flash(fx, at, 0.45 * big, semantic.faithBeam, delay, 160);
+      sparks(fx, at, Math.round(5 * big), semantic.faithHalo, delay, 1.4);
+      ring(fx, ground, 0.06, 0.35 * big, semantic.faithHalo, delay, 300);
+      if (surface !== 'water') puff(fx, ground, new THREE.Vector3(0, 0.35, 0), 0.1, 0.24 * big, semantic.fxSmoke, delay + 40, 400, { to: semantic.fxSmoke });
+      break;
+    }
     case 'laser': case 'energy': case 'deathRay': case 'railgun':
       flash(fx, at, w === 'railgun' ? 0.5 : 0.3, col, delay, 130);
       sparks(fx, at, w === 'railgun' ? 7 : 5, col, delay, 1.3);
@@ -716,6 +742,8 @@ const MUZZLE: Partial<Record<UnitTypeId, [number, number]>> = {
   privateer: [0.1, 0.4], protoWalker: [0.58, 0.28], steppeRider: [0.5, 0.3],
   // Velkar: Spitze der Tesla-Spulen, Kapsel des Oktokopters, Schienenmuendung / Velkar: Tesla coil tops, octocopter pod, rail muzzle
   teslaTank: [0.52, 0.0], octocopter: [0.24, 0.12], railSniper: [0.3, 0.5],
+  // Alvenia: Lichtgewehr, Kristall des Lichtgeschuetzes, Spitze der Sonnenlanze / Alvenia: light rifle, crystal of the light gun, tip of the Sun Lance
+  lightWarden: [0.28, 0.5], reliquary: [0.24, 0.5], sunLance: [0.5, 0.42],
 };
 /** Trefferhoehe / hit height */
 const HIT_H: Partial<Record<UnitTypeId, number>> = { heli: 0.36, octocopter: 0.34, teslaTank: 0.3, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34, protoWalker: 0.4, steppeRider: 0.3 };

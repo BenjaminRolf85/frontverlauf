@@ -45,6 +45,7 @@ import { swarmMother } from './boss';
 import { mothership, mothershipSmoke } from './mothership';
 import { scientist } from './scientist';
 import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from './velkarTech';
+import { lightWarden, reliquary, sunLance } from './alveniaFaith';
 import { withGlow } from '../atmosphere';
 export { techParts, type TechPart } from './velkarTech';
 
@@ -79,6 +80,10 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'teslaTank': return teslaTank(faction).build();
       case 'octocopter': return octocopter(faction).build();
       case 'railSniper': return railSniper(faction).build();
+      // Alvenia-Bauarten / Alvenia designs
+      case 'lightWarden': return lightWarden(faction).build();
+      case 'reliquary': return reliquary(faction).build();
+      case 'sunLance': return sunLance(faction).build();
       case 'landingBoat': return landingBoat(faction, c ? carriedGeometry(c, faction) : null).build();
       case 'submarine': return submarine(faction).build();
       case 'destroyer': return destroyer(faction).build();
@@ -128,7 +133,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
  * units with the glowing unit material. Other factions stay unchanged.
  */
 function techGlow(faction: FactionId, g: THREE.BufferGeometry): THREE.BufferGeometry {
-  if (faction !== 'velkar') return g;
+  // Heiliges Alvenia: Sonnenkranz, tuerkise Leuchten, Buntglas / Holy Alvenia: sun halo, teal lights, stained glass
+  if (faction !== 'velkar' && faction !== 'alvenia') return g;
   withGlow(g, 'nature');
   g.userData.unitGlow = true;
   return g;
@@ -141,6 +147,7 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   heli: 1.08, terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.1, doomCrawler: 1.15, tank: 1.05,
   steppeRider: 1.1, stormbreaker: 1.2, peacekeeper: 1.1, protoWalker: 1.1,
   teslaTank: 1.05, octocopter: 1.1, railSniper: 1.2,
+  lightWarden: 1.2, reliquary: 1.05, sunLance: 1.1,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
@@ -235,6 +242,9 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'teslaTank': return teslaTank(faction, true).build();
       case 'octocopter': return octocopter(faction, true).build();
       case 'railSniper': return railSniper(faction, true).build();
+      case 'lightWarden': return lightWarden(faction, true).build();
+      case 'reliquary': return reliquary(faction, true).build();
+      case 'sunLance': return sunLance(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });
