@@ -26,6 +26,16 @@ Dann im Browser http://localhost:5173 öffnen.
 | `npm run tokens` | `src/design/tokens.css` aus `src/design/tokens.ts` erzeugen |
 | `npm run check` | Typprüfung und Regelprüfung (keine Emojis, keine festen Farben, alle Texte in DE und EN) |
 
+## Intro-Video exportieren
+
+Das Intro „Die Menschheit im Sternfall“ läuft im Spiel (Hauptmenü „Intro ansehen“). Als MP4 (DE und EN, 1920×1080 und 1080×1920) rechnet es ein Werkzeug, das nicht zum Spiel gehört. Es braucht Playwright mit Chromium (lokal oder global installiert) und `ffmpeg`:
+
+```bash
+node scripts/intro-export.mjs --out /pfad/zum/ordner
+```
+
+Das Skript startet selbst einen Vite-Entwicklungsserver (oder nutzt einen laufenden mit `--url http://localhost:5209/`), rechnet die Klangspur offline als WAV, schreibt jedes Bild bei 30 fps und erzeugt `frontverlauf_intro_{de,en}_{16x9,9x16}.mp4`. `--contact` erzeugt nur Kontaktbögen (ein Bild je Sekunde), `--frames 4.6,20` einzelne Bilder, `--langs`, `--formats` und `--jobs` schränken ein. Einzelbild im Browser: `http://localhost:5173/?intro-export=1&lang=de&w=1920&h=1080&t=12.5`.
+
 ## Auf der Meta Quest 3 spielen
 
 1. Rechner und Quest ins selbe WLAN bringen.
@@ -49,6 +59,7 @@ Am Desktop lässt sich XR mit einem WebXR-Emulator testen, zum Beispiel mit der 
 | `src/i18n` | Sprachdateien `de.json` und `en.json` |
 | `src/xr` | VR- und AR-Modus |
 | `src/audio`, `src/save` | Klang (WebAudio), Speichern im `localStorage` sowie Export und Import als Datei |
+| `src/intro` | Intro „Die Menschheit im Sternfall“: deterministische Zeitleiste, Canvas-Renderer, Klangspur, Spieler (per dynamischem Import) |
 | `blender/` | Blender-Skript für die Grundformen und den glTF-Export |
 
 Weitere Dateien: `PLAN.md` (Umsetzungsplan), `ANNAHMEN.md` (Annahmen), `ASSETS.md` (Herkunft und Lizenzen), `BALANCING.md`.
@@ -80,6 +91,16 @@ Then open http://localhost:5173.
 | `npm run preview` | Serve the production build locally |
 | `npm run tokens` | Generate `src/design/tokens.css` from `src/design/tokens.ts` |
 | `npm run check` | Type check and rule check (no emojis, no hard-coded colours, all texts in DE and EN) |
+
+### Exporting the intro video
+
+The intro "Humanity in the Starfall" plays in the game (main menu "Watch intro"). A tool that is not part of the game renders it as MP4 (DE and EN, 1920×1080 and 1080×1920). It needs Playwright with Chromium (installed locally or globally) and `ffmpeg`:
+
+```bash
+node scripts/intro-export.mjs --out /path/to/folder
+```
+
+The script starts its own Vite dev server (or uses a running one with `--url http://localhost:5209/`), renders the soundtrack offline as WAV, writes every frame at 30 fps and produces `frontverlauf_intro_{de,en}_{16x9,9x16}.mp4`. `--contact` only makes contact sheets (one frame per second), `--frames 4.6,20` single frames, `--langs`, `--formats` and `--jobs` narrow it down. Single frame in the browser: `http://localhost:5173/?intro-export=1&lang=de&w=1920&h=1080&t=12.5`.
 
 ### Playing on Meta Quest 3
 

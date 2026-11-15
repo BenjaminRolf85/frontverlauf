@@ -725,8 +725,6 @@
     "cultRecruit": "Der Kult bildet nicht in Städten aus. Seine Truppen rekrutieren im Feld.",
     "cityLevel": "Die Stadt braucht eine höhere Stufe.",
     "mineLimit": "Höchstens {n} Minen je Fraktion.",
-    "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
-    "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "cannotRetreat": "Nur menschliche Bodentruppen können sich geordnet zurückziehen.",
     "retreatCooldown": "Der Rückzug ist noch nicht wieder bereit.",
     "noRetreatTile": "Kein freies Feld für den Rückzug.",
@@ -737,6 +735,8 @@
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
     "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
+    "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
+    "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit.",
     "noRelay": "Ohne Satelliten-Relay kein Orbitallaser.",
     "orbitalCooldown": "Der Orbitallaser lädt noch.",
@@ -2602,7 +2602,6 @@
   "traits": {
     "perk": "Bonus",
     "perk2": "Zweiter Bonus",
-    "feature": "Fraktionsmerkmal",
     "unit": "Spezialeinheit",
     "discount": "Rabatt",
     "discountValue": "{unit} −{pct} %",
@@ -2612,7 +2611,8 @@
     "details": "Details",
     "detailsFor": "Details zu {name}",
     "victory": "Siegbedingung",
-    "combat": "Kampfbonus"
+    "combat": "Kampfbonus",
+    "feature": "Fraktionsmerkmal"
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -3348,10 +3348,6 @@
       "title": "Außenposten",
       "text": "Mit {tech} bauen Fußtruppen für {cost} Sterne einen Außenposten auf ihrem Feld. Fußtruppen darauf verteidigen ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
     },
-    "emplacements": {
-      "title": "Geschützstellungen (Dravon)",
-      "text": "Festungsbau: Mit {tech} bauen Pioniertrupps und Minenleger der Dravon für {cost} Sterne eine Geschützstellung auf ein freies Nachbarfeld im eigenen Gebiet (passierbares Land ohne Stadt, Gebäude, Ressource, Besonderheit oder Einheit). Höchstens {per} je eigener Stadt, mindestens {spacing} Felder Abstand. Die Stellung ist ein Bauwerk, keine Einheit: Panzerung {hp}, Angriff {atk}, Verteidigung {def}, unpassierbar, ohne Sold und ohne Punkte. Zu Beginn jeder Runde feuert sie einmal auf eine sichtbare Einheit in Reichweite {range}, die mit Dravon im Krieg ist (nie im Frieden, nie auf Verbündete), immer mit vollem Schaden und Trefferglück. Gegner greifen sie wie ein Verdan-Geschütz an; zerstört bleiben Trümmer, ein Abschuss zählt nicht. Geht das Gebiet verloren oder scheidet Dravon aus, wird sie geschleift."
-    },
     "diplomacy": {
       "title": "Diplomatie",
       "text": "Fraktionen, die du noch nicht getroffen hast, bleiben verborgen. Nach dem ersten Kontakt herrscht Krieg. Du kannst Frieden anbieten, die andere Seite nimmt an oder lehnt ab. Ein Friedensbruch wird eine Runde vorher angekündigt. Mit {tech} und entdecktem Hauptquartier eröffnest du Botschaften (die erste kostet {cost} Sterne, jede weitere {step} mehr); jede bringt beiden Seiten {income} Sterne pro Runde."
@@ -3360,11 +3356,15 @@
       "title": "Fraktionssiege",
       "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegtechnologie (Stufe 3), in der Forschung gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
     },
+    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich.",
+    "emplacements": {
+      "title": "Geschützstellungen (Dravon)",
+      "text": "Festungsbau: Mit {tech} bauen Pioniertrupps und Minenleger der Dravon für {cost} Sterne eine Geschützstellung auf ein freies Nachbarfeld im eigenen Gebiet (passierbares Land ohne Stadt, Gebäude, Ressource, Besonderheit oder Einheit). Höchstens {per} je eigener Stadt, mindestens {spacing} Felder Abstand. Die Stellung ist ein Bauwerk, keine Einheit: Panzerung {hp}, Angriff {atk}, Verteidigung {def}, unpassierbar, ohne Sold und ohne Punkte. Zu Beginn jeder Runde feuert sie einmal auf eine sichtbare Einheit in Reichweite {range}, die mit Dravon im Krieg ist (nie im Frieden, nie auf Verbündete), immer mit vollem Schaden und Trefferglück. Gegner greifen sie wie ein Verdan-Geschütz an; zerstört bleiben Trümmer, ein Abschuss zählt nicht. Geht das Gebiet verloren oder scheidet Dravon aus, wird sie geschleift."
+    },
     "cult": {
       "title": "Kult: Plündern & Horde",
       "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde), jeder erbeutete Stern zählt {score} Punkte. Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
-    },
-    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich."
+    }
   },
   "lore": {
     "button": "Geschichte als Comic",
@@ -3405,25 +3405,6 @@
     "previewKill": "Zerstört das Geschütz",
     "destroyed": "Verdan-Geschütz zerstört!",
     "fx": "Verdan"
-  },
-  "emplacement": {
-    "name": "Geschützstellung",
-    "nameOf": "{name}-Geschützstellung",
-    "every": "feuert jede Runde",
-    "stats": "Panzerung {hp} / {max} · Reichweite {range} · Angriff {atk} · Verteidigung {def}",
-    "desc": "Festes Bauwerk von {name}, keine Einheit und unpassierbar. Feuert zu Beginn jeder Runde einmal auf eine sichtbare Einheit in Reichweite {range}, die mit {name} im Krieg ist; nie im Frieden und nie auf Verbündete. Kann angegriffen und zerstört werden, zählt aber nie als Abschuss. Geht das Gebiet verloren, wird sie geschleift.",
-    "build": "Geschützstellung bauen",
-    "count": "{n}/{max} Stellungen",
-    "hint": "Wähle ein freies Nachbarfeld im eigenen Gebiet.",
-    "limitReason": "Limit erreicht: {n}/{max} Stellungen. Mehr Städte erlauben mehr Stellungen.",
-    "spacingReason": "Zu nah an einer eigenen Stellung: mindestens {n} Felder Abstand.",
-    "territoryReason": "Nur auf ein freies Nachbarfeld im eigenen Gebiet.",
-    "attack": "Stellung angreifen",
-    "previewKill": "Zerstört die Stellung",
-    "destroyed": "{name}-Geschützstellung zerstört!",
-    "fires": "{name}-Geschützstellung feuert! {dmg} Schaden an deiner Einheit.",
-    "lost": "Geschützstellung geschleift: Das Gebiet ist verloren.",
-    "ruin": "Trümmer einer Geschützstellung"
   },
   "overworld": {
     "title": "Oberwelt",
@@ -3580,6 +3561,63 @@
     "orbital": {
       "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
     }
+  },
+  "intro": {
+    "menu": "Intro ansehen",
+    "title": "Intro: Die Menschheit im Sternfall",
+    "skip": "Überspringen",
+    "skipHint": "Nochmal tippen oder gedrückt halten zum Überspringen",
+    "loading": "Intro wird geladen …",
+    "back": "Zurück",
+    "next": "Weiter",
+    "slide": "Bild {n} von {total}",
+    "replay": "Nochmal ansehen",
+    "boom": "KAWUMM!",
+    "quote": "„{q}“",
+    "tagline": "Halte die Front",
+    "sub": {
+      "standstill": "Nach dem Großen Stillstand hielten Grenzen aus Kreide, zwei Generationen lang.",
+      "skyBurned": "Bis der Himmel brannte.",
+      "crash": "Trümmer der Zyrr regnen herab, ihr Mutterschiff stürzt in die Wüste.",
+      "fracture": "Die Glocke schlägt von selbst. Die Front der Menschen zerbricht in fünf Teile.",
+      "korvat": "Korvat stürmt: Im Steppensturm schlagen die Steppenreiter aus vollem Galopp zu.",
+      "alvenia": "Alvenia hält: Auf eigenem Boden weicht die Friedenswacht keinen Schritt.",
+      "dravon": "Dravon baut Festungen: Geschützstellungen, Minenfelder, eiserner Drill.",
+      "velkar": "Velkar schlägt aus dem Orbit zu: Ein Satellitenrelais lenkt den Laser der Technokraten.",
+      "meridon": "Meridon handelt: Jeder Hafen hat seinen Preis, die Kaperschiffe treiben ihn ein.",
+      "banners": "Fünf Banner, ein Kontinent. Und die Front wandert wieder."
+    },
+    "kicker": {
+      "korvat": "Korvat stürmt",
+      "alvenia": "Alvenia hält",
+      "dravon": "Dravon befestigt",
+      "velkar": "Velkar zielt vom Orbit",
+      "meridon": "Meridon handelt"
+    },
+    "tag": {
+      "dravon": "Geschütze und Minen",
+      "velkar": "Orbitallaser",
+      "meridon": "Kaperbriefe"
+    }
+  },
+  "emplacement": {
+    "name": "Geschützstellung",
+    "nameOf": "{name}-Geschützstellung",
+    "every": "feuert jede Runde",
+    "stats": "Panzerung {hp} / {max} · Reichweite {range} · Angriff {atk} · Verteidigung {def}",
+    "desc": "Festes Bauwerk von {name}, keine Einheit und unpassierbar. Feuert zu Beginn jeder Runde einmal auf eine sichtbare Einheit in Reichweite {range}, die mit {name} im Krieg ist; nie im Frieden und nie auf Verbündete. Kann angegriffen und zerstört werden, zählt aber nie als Abschuss. Geht das Gebiet verloren, wird sie geschleift.",
+    "build": "Geschützstellung bauen",
+    "count": "{n}/{max} Stellungen",
+    "hint": "Wähle ein freies Nachbarfeld im eigenen Gebiet.",
+    "limitReason": "Limit erreicht: {n}/{max} Stellungen. Mehr Städte erlauben mehr Stellungen.",
+    "spacingReason": "Zu nah an einer eigenen Stellung: mindestens {n} Felder Abstand.",
+    "territoryReason": "Nur auf ein freies Nachbarfeld im eigenen Gebiet.",
+    "attack": "Stellung angreifen",
+    "previewKill": "Zerstört die Stellung",
+    "destroyed": "{name}-Geschützstellung zerstört!",
+    "fires": "{name}-Geschützstellung feuert! {dmg} Schaden an deiner Einheit.",
+    "lost": "Geschützstellung geschleift: Das Gebiet ist verloren.",
+    "ruin": "Trümmer einer Geschützstellung"
   },
   "orbital": {
     "name": "Orbitallaser",

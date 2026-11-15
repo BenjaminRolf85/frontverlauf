@@ -24,6 +24,8 @@ export class View {
   private angleTo = this.angle;
   private angleStart = 0;
   zoom = 1;
+  /** Szene anhalten (z. B. waehrend des Intros) / pause the scene (e.g. during the intro) */
+  paused = false;
   private needs = true;
   private lastNow = 0;
   onFrame: ((now: number, frame?: XRFrame) => void) | null = null;
@@ -62,6 +64,7 @@ export class View {
     this.resize();
     // Eine Ausnahme darf die Render-Schleife nie beenden / an exception must never end the render loop
     this.renderer.setAnimationLoop((now, frame) => {
+      if (this.paused && !this.renderer.xr.isPresenting) return;
       try { this.loop(now, frame); } catch (e) { console.error(e); this.board.finishAnimations(); }
     });
   }

@@ -737,6 +737,23 @@ export const components = {
     markerWon: semantic.overworldMarkerWon, markerOpen: semantic.overworldMarkerOpen,
     markerLocked: semantic.overworldMarkerLocked, markerComing: semantic.overworldMarkerComing,
   },
+  /**
+   * Intro "Die Menschheit im Sternfall" (src/intro): das Canvas liest die Farben direkt, die Bedienelemente ueber CSS.
+   * Intro "Humanity in the Starfall" (src/intro): the canvas reads the colours directly, the controls via CSS.
+   */
+  intro: {
+    bg: c.ink900, ink: semantic.outline, inkSoft: c.ink800, inkMuted: c.ink700, paper: c.paper50, chalk: c.paper100,
+    hazard: semantic.hazard, accent: semantic.accent, stamp: semantic.stamp, white: c.white,
+    skyTop: c.space950, skyHigh: c.sky900, skyMid: c.nebula600, skyBurn: c.red700, fire: c.fire400, fireHot: c.lava300,
+    lava: c.lava500, ember: c.red500, flash: c.flash100, smoke: c.smoke700, smokeLight: c.smoke400, dune: c.char800,
+    alien: c.zyrrViolet, alienDark: c.xeno600, alienGlow: c.zyrrAcid,
+    laser: c.velkarGreen, laserCore: c.flash100, ice: c.velkarIce, shield: c.blue400, shieldCore: c.alveniaWhite,
+    sea: c.water500, seaDeep: c.water700, seaLight: c.water300, foam: c.white, gold: c.yellow400, goldDark: c.dravonGold,
+    dust: c.dust300, mine: c.red500, tracer: c.flash100, sail: c.paper100, wood: c.timber600,
+    subtitleBg: c.ink900, subtitleInk: c.paper50,
+    /** Bedienelemente / controls */
+    progressHeight: '6px', holdMs: '650ms', hintMs: '2500ms', controlGap: primitives.space[3],
+  },
 } as const;
 
 // ---------- Ausgabe / output ----------
