@@ -57,6 +57,9 @@ export function isValidState(s: unknown): s is GameState {
 export function migrateState(s: GameState): GameState {
   if (s.config.hitChance === undefined) s.config.hitChance = false;
   if (s.config.factionVictory === undefined) s.config.factionVictory = false;
+  // Feuern nach Bewegung liest u.moved: fehlt das Feld, gilt die Einheit als in diesem Zug nicht gezogen
+  // firing after moving reads u.moved: if the field is missing, the unit counts as not moved this turn
+  for (const u of s.units) if (typeof u.moved !== 'boolean') u.moved = false;
   // Kampagnen-Spielstaende der alten Missionsfassung laufen als freie Eroberungspartie weiter (die Missionen gibt es so nicht mehr)
   // campaign saves of the old mission data continue as a free conquest game (those missions no longer exist)
   if (s.campaign && s.campaign.rev !== CAMPAIGN_REV) {

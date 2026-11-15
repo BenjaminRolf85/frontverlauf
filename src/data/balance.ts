@@ -481,6 +481,26 @@ export const RETREAT = {
   cooldown: 2,
 };
 
+/**
+ * Feuern nach Bewegung: Wer in diesem Zug gezogen ist (Befehl Bewegen) und danach angreift, macht nur diesen Anteil des
+ * Schadens, vor dem Trefferglueck. Gilt fuer jeden eigenen Angriff (Nahkampf, Fernkampf, Raketen, Geschuetze, Flaechenschaden),
+ * nicht fuer den Gegenschlag des Verteidigers.
+ * Firing after moving: a unit that moved this turn (move command) and attacks afterwards deals only this share of the
+ * damage, before hit luck. Applies to every own attack (melee, ranged, rockets, guns, splash), not to the defender's return fire.
+ */
+export const MOVE_FIRE = {
+  damage: 0.5,
+  /**
+   * Fraktionsbonus nach Besitzer: all = Faktor fuer alle Einheiten, units = eigener Faktor je Einheitentyp.
+   * Korvat "Steppensturm": alle 75 %, Steppenreiter 100 %. Ein bekehrter Steppenreiter verliert ihn (Besitzer zaehlt).
+   * Faction bonus by owner: all = factor for all units, units = own factor per unit type.
+   * Korvat "Steppe Storm": all 75 %, Steppe Riders 100 %. A converted Steppe Rider loses it (the owner counts).
+   */
+  bonus: {
+    korvat: { all: 0.75, units: { steppeRider: 1 } },
+  } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
+};
+
 export const DEFENSE_BONUS = {
   open: 1.0,
   terrainWithTech: 1.5,
