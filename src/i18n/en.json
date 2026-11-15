@@ -2506,7 +2506,9 @@
     "lootEmpty": "Already plundered, loot again from round {n}",
     "plundered": "{city} plundered: +{n} stars!",
     "plunderedEmpty": "{city} taken, but already plundered empty.",
-    "plunderedBy": "{name} plunders {city}!"
+    "plunderedBy": "{name} plunders {city}!",
+    "plunder": "Plunder",
+    "noUpkeep": "No upkeep (horde)"
   },
   "nexus": {
     "compute": "Compute",

@@ -2506,7 +2506,9 @@
     "lootEmpty": "Schon geplündert, wieder Beute ab Runde {n}",
     "plundered": "{city} geplündert: +{n} Sterne!",
     "plunderedEmpty": "{city} eingenommen, aber schon leer geplündert.",
-    "plunderedBy": "{name} plündert {city}!"
+    "plunderedBy": "{name} plündert {city}!",
+    "plunder": "Plündern",
+    "noUpkeep": "Kein Sold (Horde)"
   },
   "nexus": {
     "compute": "Rechenleistung",

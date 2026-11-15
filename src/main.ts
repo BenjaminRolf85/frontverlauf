@@ -171,7 +171,17 @@ function boot() {
       const fname = (i: number) => t(`factions.${s.factions[i].id}.short`);
       switch (e.t) {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
-        case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
+        case 'capture': {
+          if (e.faction !== viewer && e.from !== viewer) break;
+          const city = cityName(s, e.city);
+          // Kult: Pluenderung, Beute fuer den Kult, Warnung fuer das Opfer / cult: plunder, loot for the cult, warning for the victim
+          if (e.plunder !== undefined) {
+            toast(root, e.faction !== viewer ? t('cult.plunderedBy', { city, name: fname(e.faction) }) : e.plunder ? t('cult.plundered', { city, n: e.plunder }) : t('cult.plunderedEmpty', { city }), 'star');
+            break;
+          }
+          toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city }), 'capture');
+          break;
+        }
         case 'research': if (e.faction === viewer) toast(root, t('events.research', { tech: t(`techs.${e.tech}`) }), 'research'); break;
         case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
         case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;
@@ -205,14 +215,6 @@ function boot() {
         case 'grandProject': if (e.faction === viewer) toast(root, t('events.grandBuilt', { name: t(`grand.${e.id}`) }), 'grand'); break;
         case 'connected': { const c = s.cities.find((x) => x.id === e.city); if (c && c.owner === viewer) toast(root, t('events.connected', { city: cityName(s, e.city) }), 'move'); break; }
         case 'eliminated': toast(root, t('events.eliminated', { name: fname(e.faction) }), 'warning'); break;
-        // Kult: Pluenderung, Beute fuer den Kult, Warnung fuer das Opfer / cult: plunder, loot for the cult, warning for the victim
-        case 'capture': {
-          if (e.plunder === undefined || (e.faction !== viewer && e.from !== viewer)) break;
-          const city = cityName(s, e.city);
-          const text = e.faction !== viewer ? t('cult.plunderedBy', { city, name: fname(e.faction) }) : e.plunder ? t('cult.plundered', { city, n: e.plunder }) : t('cult.plunderedEmpty', { city });
-          toast(root, text, 'star');
-          break;
-        }
         case 'convert': toast(root, t('events.convert'), 'heal'); break;
         case 'randomEvent': showRandomEvent(root, e, s, viewer); break;
         // Wunder: fuer Besitzer, Kontakte und alle, die das Feld kennen / wonders: for the owner, contacts and anyone who knows the tile
