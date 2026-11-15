@@ -516,7 +516,7 @@ export class Hud {
       const chk = trainCheck(s, c, drill);
       this.actions.push({
         id: 'train-coreDrill', icon: UNIT_ICON.coreDrill, label: t('units.coreDrill'), sub: unitNickname(s.factions[c.owner!].id, drill), cost: unitCost(s, c.owner!, drill)!,
-        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id) : t(`errors.${chk}`),
+        variant: 'primary', enabled: chk === 'ok', reason: chk === 'ok' ? victoryGoalText(s.factions[c.owner!].id, s) : t(`errors.${chk}`),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: drill }),
       });
     }
@@ -551,7 +551,7 @@ export class Hud {
     this.actions.push({
       id: `wonder-${kind}`, icon: UNIT_ICON[kind] ?? 'grand', label: t('victory.build', { name: t(`units.${kind}`) }), sub: unitNickname(s.factions[f].id, kind),
       cost: WONDERS.cost[kind], variant: 'primary', enabled: chk === 'ok',
-      reason: chk === 'ok' ? victoryGoalText(s.factions[f].id) : t(`errors.${chk}`),
+      reason: chk === 'ok' ? victoryGoalText(s.factions[f].id, s) : t(`errors.${chk}`),
       run: () => void g.exec({ type: 'wonder', kind: kind as WonderKind, x, y }),
     });
   }

@@ -24,12 +24,12 @@ describe('Forschungskosten / research cost', () => {
     expect(researchCost(withCities(3), 0, 'logistics')).toBeGreaterThan(researchCost(withCities(2), 0, 'logistics'));
   });
 
-  it('Velkar: 20 % discount, rounded up', () => {
+  it('Velkar: 12 % discount, rounded up', () => {
     const s = withCities(1, 'velkar');
-    expect(researchCost(s, 0, 'motorization')).toBe(20); // 25*0.8
-    expect(researchCost(s, 0, 'roadbuilding')).toBe(24); // 30*0.8
-    expect(researchCost(withCities(2, 'velkar'), 0, 'roadbuilding')).toBe(32); // 40*0.8
-    expect(researchCost(withCities(3, 'velkar'), 0, 'motorization')).toBe(28); // 35*0.8
+    expect(researchCost(s, 0, 'motorization')).toBe(22); // 25*0.88
+    expect(researchCost(s, 0, 'roadbuilding')).toBe(27); // 30*0.88=26.4
+    expect(researchCost(withCities(2, 'velkar'), 0, 'roadbuilding')).toBe(36); // 40*0.88=35.2
+    expect(researchCost(withCities(3, 'velkar'), 0, 'motorization')).toBe(31); // 35*0.88=30.8
   });
 
   it('cybernetics: 33 % discount on all further techs, rounded up', () => {
@@ -42,21 +42,21 @@ describe('Forschungskosten / research cost', () => {
   it('discounts are multiplied and then rounded up to whole stars', () => {
     const s = withCities(1, 'velkar');
     s.factions[0].techs.push('cybernetics');
-    expect(researchCost(s, 0, 'motorization')).toBe(14); // 25*0.8*0.67=13.4
-    expect(researchCost(s, 0, 'roadbuilding')).toBe(17); // 30*0.8*0.67=16.08
+    expect(researchCost(s, 0, 'motorization')).toBe(15); // 25*0.88*0.67=14.74
+    expect(researchCost(s, 0, 'roadbuilding')).toBe(18); // 30*0.88*0.67=17.69
     const s2 = withCities(2, 'velkar');
     s2.factions[0].techs.push('cybernetics');
-    expect(researchCost(s2, 0, 'logistics')).toBe(27); // 50*0.8*0.67=26.8
-    // nicht: einzeln gerundet / not: rounded separately (ceil(ceil(25*0.8)*0.67)=14, ceil(ceil(30*0.8)*0.67)=17)
+    expect(researchCost(s2, 0, 'logistics')).toBe(30); // 50*0.88*0.67=29.48
+    // nicht: einzeln gerundet / not: rounded separately (ceil(ceil(50*0.88)*0.67)=ceil(29.48)=30, ceil(ceil(65*0.88)*0.67)=39)
     const s3 = withCities(3, 'velkar');
     s3.factions[0].techs.push('cybernetics');
-    // 65*0.8*0.67 = 34.84 -> 35 ; einzeln: ceil(52*0.67)=35 ; Vergleich mit Rohwert
-    expect(researchCost(s3, 0, 'logistics')).toBe(Math.ceil(65 * 0.8 * 0.67 - 1e-9));
+    // 65*0.88*0.67 = 38.32 -> 39 ; Vergleich mit Rohwert / compare with the raw value
+    expect(researchCost(s3, 0, 'logistics')).toBe(Math.ceil(65 * 0.88 * 0.67 - 1e-9));
     for (const cities of [1, 2, 3, 4]) {
       const v = withCities(cities, 'velkar');
       v.factions[0].techs.push('cybernetics');
       for (const tech of TECH_IDS) {
-        const raw = (TECHS[tech].tier * cities + 4) * 5 * 0.8 * (1 - 0.33);
+        const raw = (TECHS[tech].tier * cities + 4) * 5 * 0.88 * (1 - 0.33);
         expect(researchCost(v, 0, tech)).toBe(Math.ceil(raw - 1e-9));
         expect(Number.isInteger(researchCost(v, 0, tech))).toBe(true);
       }

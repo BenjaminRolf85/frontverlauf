@@ -101,7 +101,7 @@
       "alignment": "diktatorisch",
       "perk": "Drill",
       "perkDesc": "Veteranenstatus schon nach 2 statt 3 vernichteten Gegnern.",
-      "discount": "Jeep 20 % günstiger",
+      "discount": "Jeep 30 % günstiger",
       "home": "Industrieland mit viel Erz",
       "leader": "Sarek Voss",
       "leaderTitle": "Kommandant des Protektorats",
@@ -151,7 +151,7 @@
       "short": "Velkar",
       "alignment": "defensiv und forschungsstark",
       "perk": "Forschungsvorsprung",
-      "perkDesc": "Alle Technologien kosten 20 % weniger.",
+      "perkDesc": "Alle Technologien kosten 12 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald",
       "leader": "Aurel Kesh",
@@ -455,9 +455,9 @@
     "dataCenter": "2 Bevölkerungspunkte, +1 Rechenleistung mit Kraftwerk, nur NEXUS",
     "powerPlant": "1 Bevölkerungspunkt, versorgt ein Rechenzentrum, nur NEXUS",
     "kolkhoz": "1 Bevölkerungspunkt, dazu +1 Bevölkerung für die Stadt in jeder durch 5 teilbaren Runde (5, 10, 15 ...), eine je Stadt, nur Korvat",
-    "mercenaryBarracks": "2 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
-    "embassyPalace": "3 Bevölkerungspunkte, +4 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
-    "tradingPost": "1 Bevölkerungspunkt, +3 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
+    "mercenaryBarracks": "3 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
+    "embassyPalace": "3 Bevölkerungspunkte, +3 Sterne pro Runde je Friedensvertrag, einer je Fraktion, nur Alvenia",
+    "tradingPost": "1 Bevölkerungspunkt, +2 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
     "testLab": "1 Bevölkerungspunkt, Forschung je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar"
   },
   "grand": {
@@ -529,10 +529,10 @@
     "waalProgram": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
     "leagueCharter": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
     "tradeMonopoly": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
-    "fusionResearch": "Baue das Fusionskraftwerk auf 2x2 freiem Land im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
+    "fusionResearch": "Baue das Fusionskraftwerk auf 2x2 freiem Land (auch Berge) im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
     "dimensionalRift": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
     "coreDrilling": "Bilde den Erdkernbohrer in einer Stadt aus. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
-    "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Angriffe unterbrechen nicht, aber es kann zerstört werden."
+    "singularity": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt."
   },
   "tech": {
     "title": "Forschung und Entwicklung",
@@ -2847,7 +2847,7 @@
   },
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
-    "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: 50 % mehr Heilung als normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
+    "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: doppelt so viel Heilung wie normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."
   },
   "rockets": {
     "action": "Raketen {n}/{max}",
@@ -2900,23 +2900,25 @@
       "dravon": "Baue den Landkreuzer Waal auf freiem Land im eigenen Gebiet. Nach {arm} Runden schießt er (Reichweite {range}), nach {total} Runden ist er fertig und du gewinnst. Angriffe unterbrechen nicht, aber im Bau hat er wenig LP.",
       "alvenia": "Völkerbund: Frieden und eine Botschaft bei jeder bekannten lebenden Fraktion (mindestens {min}) für {n} Runden in Folge. Jeder Krieg und jede fehlende Botschaft setzt den Zähler zurück.",
       "meridon": "Habe {n} Sterne in der Kasse. Sieg zu Beginn deines Zuges.",
-      "velkar": "Baue das Fusionskraftwerk auf 2x2 freiem Land im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
+      "meridonAny": "Habe im Punktespiel {n} Sterne in der Kasse ({m} in Spielen ohne Rundenlimit). Sieg zu Beginn deines Zuges.",
+      "velkar": "Baue das Fusionskraftwerk auf 2x2 freiem Land (auch Berge) im eigenen Gebiet. Nach {n} Runden liefert es endlose Energie und du gewinnst. Jeder Angriff setzt den Fortschritt auf 0.",
       "zyrr": "Baue das Dimensionsportal im eigenen Gebiet: {build} Runden Bau, dann {charge} Runden Aufladen. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt.",
       "vesper": "Bilde den Erdkernbohrer in einer Stadt aus. Steht er {n} Runden in Folge still, erreicht er den Erdkern und die Welt endet. Bewegung und Angriffe setzen den Zähler zurück.",
-      "nexus": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Angriffe unterbrechen nicht, aber es kann zerstört werden."
+      "nexus": "Baue das Hacker-Relais auf einem Berg im eigenen Gebiet oder mit eigenem Außenposten: {build} Runden Bau, dann {hack} Runden Hacken. Ein Angriff setzt die laufende Phase auf 0, ein fertiger Bau bleibt."
     },
     "short": {
-      "korvat": "Mehrheit der Städte",
+      "korvat": "Über {pct} % der Städte",
       "dravon": "Landkreuzer Waal",
       "alvenia": "Völkerbund",
       "meridon": "{n} Sterne",
+      "meridonAny": "{n} oder {m} Sterne",
       "velkar": "Fusionskraftwerk",
       "zyrr": "Dimensionsportal",
       "vesper": "Erdkernbohrer",
       "nexus": "Hacker-Relais"
     },
     "reason": {
-      "korvat": "Das Kollektiv beherrscht die Mehrheit der Welt.",
+      "korvat": "Das Kollektiv beherrscht weite Teile der Welt.",
       "dravon": "Der Waal rollt, kein Heer hält ihn mehr auf.",
       "alvenia": "Der Völkerbund ist gegründet, die Welt schließt Frieden.",
       "meridon": "Meridon kauft die Welt.",

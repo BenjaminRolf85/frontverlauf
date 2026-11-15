@@ -7,7 +7,7 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, ownCities,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
 } from '../core';
 import {
   UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -143,7 +143,17 @@ function leagueSeeker(ctx: Ctx): boolean {
 export function nearVictory(ctx: Ctx, g: number): boolean {
   if (!factionVictoryOn(ctx.s) || ctx.prof.difficulty === 'easy') return false;
   const st = victoryStatus(ctx.s, g);
-  return st.tech && st.ratio >= 0.5;
+  // Voelkerbund: spaeter reagieren, damit Alvenia eine Chance hat / League: react later so Alvenia has a chance
+  return st.tech && st.ratio >= (st.goal === 'league' ? WONDERS.aiNearVictoryLeague : WONDERS.aiNearVictory);
+}
+
+/**
+ * Voelkerbund brechen heisst Krieg mit Alvenia: nur mit genug eigener Staerke (Alvenia schreckt mit Armee ab).
+ * Breaking the League means war with Alvenia: only with enough own strength (Alvenia deters with an army).
+ */
+function canBreakLeague(ctx: Ctx, g: number): boolean {
+  if (victoryStatus(ctx.s, g).goal !== 'league') return true;
+  return strength(ctx, ctx.f) >= strength(ctx, g) * WONDERS.aiLeagueBreakStrength;
 }
 
 function warCount(ctx: Ctx): number {
@@ -161,7 +171,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
     // Voelkerbund: Alvenia bietet jede Runde allen Kriegsgegnern Frieden an / League: Alvenia offers peace to every enemy each round
-    if (rel === 'war' && leagueSeeker(ctx) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
+    if (rel === 'war' && (leagueSeeker(ctx) || (prof.peacemaker && (s.round + f) % 2 === 0)) && !ga.peaceOffers.includes(f) && !fa.peaceOffers.includes(g)) {
       const cmd: Command = { type: 'diplomacy', action: 'proposePeace', target: g };
       if (!failed.has(cmdKey(cmd))) return cmd;
     }
@@ -180,7 +190,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
       const noWar = !fa.contacts.some((o) => s.factions[o].alive && fa.relations[o] === 'war');
       // Frieden brechen, wenn der Partner kurz vor dem Fraktionssieg steht; Alvenia mit Charta bricht nie
       // break peace when the partner is close to its faction victory; Alvenia with the charter never breaks
-      const brk = leagueSeeker(ctx) ? false : nearVictory(ctx, g) || (ctx.conquest
+      const brk = leagueSeeker(ctx) ? false : (nearVictory(ctx, g) && canBreakLeague(ctx, g)) || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {
@@ -726,7 +736,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   // Reichtum senkt die Schwelle / wealth lowers the threshold
   const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars));
   // Meridon mit Monopol und vollem Speicher: nur noch Dringendes kaufen / Meridon with the monopoly and a full treasury: only urgent buys
-  const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= WONDERS.meridonStars * 0.6;
+  const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= meridonNeed(s) * WONDERS.aiMeridonHoardShare;
   for (const b of buys) {
     if (failed.has(cmdKey(b.cmd))) continue;
     const ratio = b.value / Math.max(1, b.cost);
@@ -750,8 +760,8 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   if (!fa.techs.includes(tech)) {
     const parent = TECHS[tech].parent;
     if (s.round < WONDERS.aiResearchRound || (parent && !fa.techs.includes(parent)) || researchAllowed(s, f, tech) !== 'ok') return;
-    // Korvat: nur, wenn die Stadtmehrheit in Reichweite ist / Korvat: only when the city majority is within reach
-    if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * 0.5) return;
+    // Korvat: nur, wenn das Staedteziel in Reichweite ist / Korvat: only when the city target is within reach
+    if (fa.id === 'korvat' && ownCities(s, f).length < korvatNeed(s) * WONDERS.aiKorvatResearchShare) return;
     // Alvenia: kein Voelkerbund mit weniger als 3 Fraktionen / Alvenia: no league with fewer than 3 factions
     if (fa.id === 'alvenia' && !leagueAvailable(s)) return;
     const cost = researchCost(s, f, tech);
@@ -761,6 +771,8 @@ function victoryBuys(ctx: Ctx, buys: Buy[]) {
   const kind = wonderKindOf(s, f);
   if (!kind || wondersOf(s, f).length) return;
   if (kind === 'coreDrill') {
+    // erst mit Hinterland: in der einzigen Stadt wird der Bohrer sofort angegriffen / only with a hinterland: in the only city the drill is attacked at once
+    if (ctx.myCities.length < WONDERS.aiDrillMinCities) return;
     // ruhigste Stadt (weit weg von Gegnern) / quietest city (far from enemies)
     let best: City | null = null, bd = -1;
     for (const c of ctx.myCities) {

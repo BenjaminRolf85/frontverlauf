@@ -38,9 +38,11 @@ export interface Profile {
   late: number;
   /** Zusatzwert fuer unbewachte feindliche Staedte (Ueberfaelle, Flanken) / extra value for undefended enemy cities (raids, flanks) */
   raid: number;
+  /** bietet allen Kriegsgegnern regelmaessig Frieden an (Punktemodus) / regularly offers peace to every enemy (points mode) */
+  peacemaker: boolean;
 }
 
-const BASE: Record<Difficulty, Omit<Profile, 'pref' | 'embassyW' | 'late' | 'raid'>> = {
+const BASE: Record<Difficulty, Omit<Profile, 'pref' | 'embassyW' | 'late' | 'raid' | 'peacemaker'>> = {
   easy: {
     difficulty: 'easy', armyPerCity: 1.2, aggression: 0.6, attackMin: -6, caution: 0.35, lazy: 3, saving: false,
     retreatHp: 0, researchW: 1, buildW: 0.8, militaryW: 0.8, explorers: 1, sloppy: 0.35, outposts: false, specials: false,
@@ -62,13 +64,16 @@ const BASE: Record<Difficulty, Omit<Profile, 'pref' | 'embassyW' | 'late' | 'rai
 /** Profil fuer Fraktion f im Zustand s / profile for faction f in state s */
 export function profileFor(s: GameState, f: number): Profile {
   const fa = s.factions[f];
-  const p: Profile = { ...BASE[fa.difficulty] ?? BASE.normal, pref: {}, embassyW: 1, late: 0, raid: 0 };
+  const p: Profile = { ...BASE[fa.difficulty] ?? BASE.normal, pref: {}, embassyW: 1, late: 0, raid: 0, peacemaker: false };
   const id: FactionId = fa.id;
   // Fraktions-Perks / faction perks
   switch (id) {
     case 'korvat': p.armyPerCity += 0.6; p.pref = { infantry: 1.5, steppeRider: 1.3 }; break; // Massenmobilisierung / mass mobilisation
-    case 'dravon': p.aggression += 0.3; p.militaryW += 0.15; p.pref = { jeep: 1.6, mg: 1.2, stormbreaker: 1.3 }; break; // Drill
-    case 'alvenia': p.embassyW = 2; p.pref = { medic: 1.6, peacekeeper: 1.3 }; break; // Buendnispolitik / alliance policy
+    // Drill: angriffslustig; mehr Ruestung nur bei der Eroberung, im Punktespiel zaehlt die Wirtschaft
+    // drill: aggressive; extra armament only in conquest, in points games the economy counts
+    case 'dravon': p.aggression += 0.3; p.militaryW += s.config.mode === 'conquest' ? 0.15 : 0; p.pref = { jeep: 1.6, mg: 1.2, stormbreaker: 1.3 }; break;
+    // Buendnispolitik: sucht Frieden, um Botschaften und den Botschaftspalast zu nutzen / alliance policy: seeks peace to use embassies and the embassy palace
+    case 'alvenia': p.embassyW = 2; p.peacemaker = s.config.mode !== 'conquest'; p.pref = { medic: 1.6, peacekeeper: 1.3 }; break;
     case 'meridon': p.buildW += 0.25; p.pref = { spy: 1.5 }; break; // Wachstum, Kueste / boom, coast
     case 'velkar': p.researchW += 0.1; p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung / research lead
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte

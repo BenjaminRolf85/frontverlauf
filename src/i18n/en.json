@@ -101,7 +101,7 @@
       "alignment": "dictatorial",
       "perk": "Drill",
       "perkDesc": "Veteran status after 2 instead of 3 destroyed enemies.",
-      "discount": "Jeep 20 % cheaper",
+      "discount": "Jeep 30 % cheaper",
       "home": "industrial land rich in ore",
       "leader": "Sarek Voss",
       "leaderTitle": "Commander of the Protectorate",
@@ -151,7 +151,7 @@
       "short": "Velkar",
       "alignment": "defensive and research-driven",
       "perk": "Research lead",
-      "perkDesc": "All technologies cost 20 % less.",
+      "perkDesc": "All technologies cost 12 % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
@@ -455,9 +455,9 @@
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
     "powerPlant": "1 population, powers one data center, NEXUS only",
     "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
-    "mercenaryBarracks": "2 population, units trained in this city start as veterans, one per city, Dravon only",
-    "embassyPalace": "3 population, +4 stars per round per peace treaty, one per faction, Alvenia only",
-    "tradingPost": "1 population, +3 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
+    "embassyPalace": "3 population, +3 stars per round per peace treaty, one per faction, Alvenia only",
+    "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
     "testLab": "1 population, research 5 % cheaper per lab (at most 3 labs), one per city, Velkar only"
   },
   "grand": {
@@ -529,10 +529,10 @@
     "waalProgram": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
     "leagueCharter": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
     "tradeMonopoly": "Have {n} stars in the treasury. Victory at the start of your turn.",
-    "fusionResearch": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+    "fusionResearch": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
     "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
     "coreDrilling": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
-    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
+    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept."
   },
   "tech": {
     "title": "Research and development",
@@ -2847,7 +2847,7 @@
   },
   "repair": {
     "action": "Emergency repair from wreck +{n}",
-    "desc": "Salvages a wreck on or next to the tile: 50 % more healing than normal, the unit does not fight this round. The wreck is used up."
+    "desc": "Salvages a wreck on or next to the tile: double the normal healing, the unit does not fight this round. The wreck is used up."
   },
   "rockets": {
     "action": "Rockets {n}/{max}",
@@ -2900,23 +2900,25 @@
       "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
       "alvenia": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
-      "velkar": "Build the fusion power plant on 2x2 free land in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
+      "meridonAny": "Have {n} stars in the treasury in points games ({m} in games without a round limit). Victory at the start of your turn.",
+      "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
       "vesper": "Train the earth-core drill in a city. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
-      "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. Attacks do not interrupt it, but it can be destroyed."
+      "nexus": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept."
     },
     "short": {
-      "korvat": "Majority of cities",
+      "korvat": "Over {pct} % of the cities",
       "dravon": "Land cruiser Waal",
       "alvenia": "League of Nations",
       "meridon": "{n} stars",
+      "meridonAny": "{n} or {m} stars",
       "velkar": "Fusion power plant",
       "zyrr": "Dimensional portal",
       "vesper": "Earth-core drill",
       "nexus": "Hacker relay"
     },
     "reason": {
-      "korvat": "The Collective rules the majority of the world.",
+      "korvat": "The Collective rules large parts of the world.",
       "dravon": "The Waal rolls out, no army can stop it now.",
       "alvenia": "The League of Nations is founded, the world makes peace.",
       "meridon": "Meridon buys the world.",

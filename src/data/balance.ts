@@ -112,27 +112,50 @@ export const WONDERS = {
    * Phasen in Runden: Portal Bau + Aufladen, Relais Bau + Hacken, Kraftwerk ein Bau, Waal Bau bis bewaffnet + Fertigstellung.
    * Phases in rounds: portal build + charge, relay build + hack, power plant one build, Waal build until armed + completion.
    */
-  phases: { portal: [8, 8], hackRelay: [8, 8], fusionPlant: [16], waal: [8, 8] } as Record<WonderKind, number[]>,
+  phases: { portal: [9, 10], hackRelay: [8, 9], fusionPlant: [14], waal: [8, 8] } as Record<WonderKind, number[]>,
+  /**
+   * Gelaende des Bauplatzes (Kraftwerk: alle vier Felder) / terrain of the site (power plant: all four tiles)
+   */
+  terrain: { portal: ['plain', 'forest'], hackRelay: ['mountain'], fusionPlant: ['plain', 'forest', 'mountain'], waal: ['plain', 'forest'] } as Record<WonderKind, TerrainId[]>,
   /** Angriffe setzen die laufende Phase auf 0 / attacks reset the current phase to 0 */
-  interruptible: { portal: true, hackRelay: false, fusionPlant: true, waal: false, coreDrill: true } as Record<WonderUnitId, boolean>,
+  interruptible: { portal: true, hackRelay: true, fusionPlant: true, waal: false, coreDrill: true } as Record<WonderUnitId, boolean>,
   /** Waal: LP im Bau, nach der ersten Phase (bewaffnet); fertig = volle LP / Waal: HP while building, after the first phase (armed); done = full HP */
   waalBuildHp: 15,
   waalArmedHp: 30,
   /** Erdkernbohrer: Runden Stillstand bis zum Weltende, hoechstens so viele gleichzeitig / earth-core drill: rounds standing still, at most this many at once */
-  drillRounds: 12,
+  drillRounds: 14,
   drillMax: 1,
   /** Korvat: Anteil aller Staedte (inkl. Siedlungen), der ueberschritten werden muss / Korvat: share of all cities (incl. villages) that must be exceeded */
-  korvatShare: 0.5,
-  /** Meridon: Sterne in der Kasse / Meridon: stars in the treasury */
+  korvatShare: 0.4,
+  /**
+   * Meridon: Sterne in der Kasse ohne Rundenlimit; mit Rundenlimit Runden x meridonStarsPerRound, begrenzt auf meridonStarsMin..meridonStars.
+   * Meridon: stars in the treasury without a round limit; with a round limit rounds x meridonStarsPerRound, clamped to meridonStarsMin..meridonStars.
+   */
   meridonStars: 1000,
+  meridonStarsPerRound: 11,
+  meridonStarsMin: 300,
   /** Alvenia, Voelkerbund: Runden in Folge, Mindestzahl bekannter lebender Fraktionen / League of Nations: consecutive rounds, minimum known living factions */
-  alveniaRounds: 6,
+  alveniaRounds: 5,
   alveniaMinFactions: 2,
   /** KI: Siegtechnologie ab dieser Runde erforschen; Wert eines feindlichen Wunders / AI: research the victory tech from this round; worth of a hostile wonder */
   aiResearchRound: 10,
   aiWorth: 150,
   /** KI spart fuer Siegtechnologie und Wunder bis zu so viele Runden Einkommen an / AI saves up to this many rounds of income for the victory tech and wonder */
   aiSaveRounds: 6,
+  /**
+   * KI: Gegner gilt ab diesem Gesamtfortschritt als kurz vor dem Sieg (kein Frieden, Frieden brechen); Voelkerbund eigener Wert.
+   * AI: a rival counts as close to victory from this overall progress (no peace, break peace); the League has its own value.
+   */
+  aiNearVictory: 0.5,
+  aiNearVictoryLeague: 0.8,
+  /** KI bricht den Voelkerbund nur mit mindestens diesem Anteil an Alvenias Staerke / AI breaks the League only with at least this share of Alvenia's strength */
+  aiLeagueBreakStrength: 1.5,
+  /** KI: Bohrer erst ab so vielen eigenen Staedten / AI: drill only from this many own cities */
+  aiDrillMinCities: 2,
+  /** KI Korvat: Fuenfjahresplan erst ab diesem Anteil der benoetigten Staedte / AI Korvat: Five-Year Plan only from this share of the needed cities */
+  aiKorvatResearchShare: 0.35,
+  /** KI Meridon: ab diesem Anteil des Sterneziels nur noch Dringendes kaufen / AI Meridon: only urgent buys from this share of the star target */
+  aiMeridonHoardShare: 0.4,
 };
 /** Siegtechnologie je Fraktion / victory tech per faction */
 export const VICTORY_TECH: Record<FactionId, VictoryTechId> = {
@@ -245,9 +268,9 @@ export const UNIQUE = {
   kolkhozInterval: 5,
   kolkhozPop: 1,
   /** Botschaftspalast: Sterne je Friedensvertrag und Runde / embassy palace: stars per peace treaty and round */
-  palacePerPeace: 4,
+  palacePerPeace: 3,
   /** Handelskontor: Sterne je verbundener Hafenstadt und Runde / trading post: stars per connected harbour city and round */
-  tradingPostPerHarbour: 3,
+  tradingPostPerHarbour: 2,
   /** Versuchslabor: Forschungsrabatt je Labor, hoechstens so viele Labore / test lab: research discount per lab, at most this many labs */
   testLabDiscount: 0.05,
   testLabMax: 3,
@@ -309,13 +332,13 @@ export const NEXUS = { faction: 'nexus' as FactionId };
 export const XENO = {
   faction: 'zyrr' as FactionId,
   /** Preis je Feld im eigenen Gebiet / price per tile in own territory */
-  terraformCost: 5,
+  terraformCost: 7,
   /** Verteidigungsbonus fuer Alien-Einheiten auf Xeno-Boden / defence bonus for alien units on xeno ground */
   groundDefense: 1.5,
   /** zusaetzliche Heilung auf Xeno-Boden / extra healing on xeno ground */
   groundHeal: 2,
   /** Punkte je terraformtem Feld / points per terraformed tile */
-  tilePoints: 10,
+  tilePoints: 6,
   startUnit: 'grey' as UnitTypeId,
   /** Ersatz fuer menschliche Belohnungen / replacement for human rewards */
   rewardTank: 'mech' as UnitTypeId,
@@ -399,7 +422,7 @@ export const RANGED_COVER = {
 /** Notreparatur der Roboter aus Wracks / emergency repair of robots from wrecks */
 export const REPAIR = {
   /** Faktor auf die normale Heilung / factor on normal healing */
-  factor: 1.5,
+  factor: 2,
 };
 
 /** Geordneter Rueckzug (menschliche Truppen) / orderly retreat (human troops) */
@@ -623,7 +646,7 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   xenoHarvester: { cost: 15, pop: 2, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'] },
   // Einzigartige Gebaeude (siehe UNIQUE) / unique buildings (see UNIQUE)
   kolkhoz: { cost: 35, pop: 1, tech: 'livestock', terrain: ['plain'], onePerCity: true },
-  mercenaryBarracks: { cost: 35, pop: 2, tech: 'motorization', terrain: ['plain', 'forest'], onePerCity: true },
+  mercenaryBarracks: { cost: 35, pop: 3, tech: 'motorization', terrain: ['plain', 'forest'], onePerCity: true },
   embassyPalace: { cost: 30, pop: 3, tech: 'supply', terrain: ['plain', 'forest'], onePerFaction: true },
   tradingPost: { cost: 30, pop: 1, tech: 'coastalEconomy', terrain: ['plain'], onePerFaction: true },
   testLab: { cost: 30, pop: 1, tech: 'highAltitude', terrain: ['plain', 'forest', 'mountain'], onePerCity: true },
@@ -722,7 +745,7 @@ export interface FactionStats {
   discountUnit: UnitTypeId;
   discount: number;
   startTech: TechId | null;
-  /** weitere Starttechnologien (Sonderfraktionen ohne Forschung) / extra start techs (special factions without research) */
+  /** weitere Starttechnologien (Sonderfraktionen ohne Forschung, Dravon) / extra start techs (special factions without research, Dravon) */
   extraTechs?: TechId[];
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
@@ -732,9 +755,9 @@ export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon
 
 export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
-  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.2, startTech: 'motorization', home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
+  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
   alvenia: { perk: 'alliancePolicy', perk2: 'fieldHospitals', discountUnit: 'medic', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
-  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.4, supplies: 0.1 } } },
+  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', perk2: 'martyrdom', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
   nexus: { perk: 'hivemind', perk2: 'sensorNet', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
@@ -747,7 +770,7 @@ export const PERKS = {
   allianceEmbassyCostFactor: 0.5,
   allianceEmbassyIncomeFactor: 2,
   boomLevelReduction: 1,
-  researchLeadDiscount: 0.2,
+  researchLeadDiscount: 0.12,
 };
 
 /** Zweite Fraktionsmerkmale / second faction traits */

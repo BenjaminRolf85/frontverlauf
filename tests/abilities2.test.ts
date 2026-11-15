@@ -87,14 +87,14 @@ describe('Geordneter Rueckzug / orderly retreat', () => {
 });
 
 describe('Notreparatur aus Wracks / emergency repair from wrecks', () => {
-  it('robots next to a wreck heal 50 % more, use up the wreck and end their turn', () => {
+  it('robots next to a wreck heal double, use up the wreck and end their turn', () => {
     const s = game(['nexus', 'korvat']);
     const r = addUnit(s, 'android', 0, 5, 5);
     r.hp = 3;
     tile(s, 6, 5).remains = { kind: 'wreck', unit: 'tank', faction: 1, round: 1 };
     const normal = healAmount(s, r);
     ok(s, { type: 'repair', unit: r.id });
-    expect(unit(s, r.id)!.hp).toBe(3 + Math.round(normal * 1.5));
+    expect(unit(s, r.id)!.hp).toBe(3 + Math.round(normal * 2));
     expect(unit(s, r.id)!.exhausted).toBe(true);
     expect(tile(s, 6, 5).remains).toBeNull();
     fails(s, { type: 'attack', unit: r.id, target: r.id });
