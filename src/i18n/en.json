@@ -664,6 +664,7 @@
     "free": "free",
     "unitActions": "Unit",
     "cityActions": "City",
+    "shaftActions": "Shaft",
     "tileActions": "Tile",
     "none": "No action possible",
     "stars": "{n} stars",
@@ -982,7 +983,9 @@
       "noLineLost": "Lose no supply line",
       "portal": "Occupy the portal for {n} rounds in a row, by round {rounds}",
       "reach": "Push through to the headquarters of {name}, by round {rounds}",
-      "boss": "Defeat the {unit} by round {rounds}"
+      "boss": "Defeat the {unit} by round {rounds}",
+      "outpost": "Capture the Zyrr outpost by round {rounds}",
+      "bonusOutpost": "Capture the Zyrr outpost"
     },
     "missions": {
       "m1": {

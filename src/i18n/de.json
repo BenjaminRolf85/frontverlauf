@@ -664,6 +664,7 @@
     "free": "kostenlos",
     "unitActions": "Einheit",
     "cityActions": "Stadt",
+    "shaftActions": "Schacht",
     "tileActions": "Feld",
     "none": "Keine Aktion möglich",
     "stars": "{n} Sterne",
@@ -982,7 +983,9 @@
       "noLineLost": "Verliere keine Nachschublinie",
       "portal": "Besetze das Portal {n} Runden in Folge, bis Runde {rounds}",
       "reach": "Dringe bis zum Hauptquartier von {name} vor, bis Runde {rounds}",
-      "boss": "Besiege die {unit} bis Runde {rounds}"
+      "boss": "Besiege die {unit} bis Runde {rounds}",
+      "outpost": "Erobere den Vorposten der Zyrr bis Runde {rounds}",
+      "bonusOutpost": "Erobere den Vorposten der Zyrr"
     },
     "missions": {
       "m1": {
