@@ -444,8 +444,11 @@ function checkElimination(s: GameState, ev: GameEvent[], cultOnly = false) {
       }
       clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
-      // Kult: verlassene Staedte werden neutral / cult: abandoned cities turn neutral
-      for (const c of ownCities(s, f.index)) { c.owner = null; c.connected = false; }
+      // Kult: verlassene Staedte werden neutrale Siedlungen ohne Gebiet / cult: abandoned cities turn into neutral settlements without territory
+      for (const c of ownCities(s, f.index)) {
+        c.owner = null; c.connected = false;
+        for (const t of s.tiles) if (t.territory === c.id) t.territory = null;
+      }
       ev.push({ t: 'eliminated', faction: f.index });
     }
   }

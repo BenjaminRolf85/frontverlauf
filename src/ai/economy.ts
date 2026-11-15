@@ -3,7 +3,7 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, cultCap, cultUnits, rosterUnits,
+  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
@@ -598,8 +598,10 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (type !== cheap) mk(cheap, 0.8);
   }
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
-  if (isCultFaction(s, f)) {
-    const free = cultCap(s, f) - cultUnits(s, f).length;
+  // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
+  const horde = isCultFaction(s, f) ? hordeCount(s, f) : null;
+  if (horde) {
+    const free = horde.cap - horde.units;
     for (const u of free > 0 ? ctx.my : []) {
       const types = recruitTypes(u).filter((t) => !UNITS[t].abilities.includes('wonder'));
       if (!types.length || u.exhausted || u.fresh || u.attacked || recruitWait(s, u) > 0) continue;
@@ -609,8 +611,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       const want = chooseRosterUnit(ctx, urgent, types);
       [want, cheap].forEach((t, i) => {
         if (!t || (i === 1 && t === want)) return;
-        const spot = recruitSpot(s, u, t);
-        const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y) === 'notEnoughStars');
+        const spot = recruitSpot(s, u, t, horde);
+        const p = spot ?? neighbors(s.size, u.x, u.y).find((q) => recruitCheck(s, f, u.id, t, q.x, q.y, horde) === 'notEnoughStars');
         if (!p) return;
         const cost = unitCost(s, f, t)!;
         // wie Ausbildung: Bedarf aus der Wunschgroesse der Horde / like training: demand from the desired horde size
@@ -733,7 +735,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
           if (!chk.ok && chk.error !== 'notEnoughStars') continue;
           let value = BUILDINGS[b].pop * popVal;
           // Schrein: Plaetze, wertvoll, wenn das Limit bald voll ist / shrine: slots, valuable once the cap is nearly full
-          if (b === 'shrine') value = CULT.shrineSlots * (cultCap(s, f) - cultUnits(s, f).length <= 1 ? 22 : 6) * prof.militaryW;
+          if (b === 'shrine' && horde) value = CULT.shrineSlots * (horde.cap - horde.units <= 1 ? 22 : 6) * prof.militaryW;
           // Rechenleistung ausgleichen / balance compute
           if (b === 'dataCenter') value += cs.dataCenters <= cs.powerPlants ? 30 : 0;
           if (b === 'powerPlant') value += cs.powerPlants < cs.dataCenters ? 40 : 0;

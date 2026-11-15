@@ -310,7 +310,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     },
   },
   {
-    id: 'm5', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'normal' }],
+    id: 'm5', level: 'normal', enemies: [{ id: 'vesper', difficulty: 'easy' }],
     seed: 5505, size: 14, mapType: 'lakes', hazards: 'normal', weather: true, events: true, startStars: 35, rounds: 20,
     objectives: [{ k: 'capture', target: 0 }], bonus: [{ k: 'fast', rounds: 15 }, { k: 'keepHq' }],
     briefing: ['hq', 'enemy', 'scout'],
@@ -319,7 +319,8 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.target(b);
       k.grantNear(1, b);
       k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
-      k.spawn('zealot', 1, b, { min: 1 }); k.spawn('torchbearer', 1, b, { min: 1 });
+      // die Starthorde des Kults bewacht die Pilgerstadt, ein Flammenjuenger dazu / the cult's starting horde guards the pilgrim city, plus a torchbearer
+      k.spawn('torchbearer', 1, b, { min: 1 });
       revealArea(k.s, 0, b.x, b.y, 1);
     },
   },

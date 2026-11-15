@@ -1446,7 +1446,11 @@ export const recruitWait = (s: GameState, u: Unit) => Math.max(0, (u.recruitRead
  * Can the recruiter call up this unit at (x, y)? Same tile rules as for placing (freeFor, spawnBlocked):
  * no water, no volcano, no lava, not the artifact, mountains only with mountain training, no foreign city.
  */
-export function recruitCheck(s: GameState, f: number, unitId: number, type: UnitTypeId, x: number, y: number): RecruitCheck {
+/** Horde und Limit, einmal berechnet fuer viele Pruefungen / horde and cap, computed once for many checks */
+export interface HordeCount { units: number; cap: number }
+export const hordeCount = (s: GameState, f: number): HordeCount => ({ units: cultUnits(s, f).length, cap: cultCap(s, f) });
+
+export function recruitCheck(s: GameState, f: number, unitId: number, type: UnitTypeId, x: number, y: number, horde?: HordeCount): RecruitCheck {
   if (!isCultFaction(s, f)) return 'invalid';
   const u = s.units.find((o) => o.id === unitId);
   if (!u || u.owner !== f || !recruitTypes(u).length) return 'notPreacher';
@@ -1470,13 +1474,17 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
   if (wonder) {
     if (s.units.filter((o) => o.owner === f && o.type === type).length >= WONDERS.drillMax) return 'alreadyBuilt';
-  } else if (cultUnits(s, f).length >= cultCap(s, f)) return 'unitLimit';
+  } else {
+    const h = horde ?? hordeCount(s, f);
+    if (h.units >= h.cap) return 'unitLimit';
+  }
   if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
   return 'ok';
 }
 /** Freies Nachbarfeld fuer eine Rekrutierung / free adjacent tile for a recruit */
-export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null {
-  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y) === 'ok');
+export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId, horde?: HordeCount): Pos | null {
+  const h = horde ?? hordeCount(s, u.owner);
+  const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y, h) === 'ok');
   // zuerst neben einer Pilgerstaette (Veteranen) / next to a pilgrimage site first (veterans)
   return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots[0] ?? null;
 }
@@ -1485,9 +1493,10 @@ export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId): Pos | null
  * Reason why the recruiter cannot call up this unit (tile errors only if no tile is free): 'ok' if a tile fits.
  */
 export function recruitReason(s: GameState, u: Unit, type: UnitTypeId): RecruitCheck | 'noSpace' {
-  if (recruitSpot(s, u, type)) return 'ok';
+  const h = hordeCount(s, u.owner);
+  if (recruitSpot(s, u, type, h)) return 'ok';
   const tileErr: RecruitCheck[] = ['occupied', 'invalidTile', 'outOfRange'];
-  return neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y)).find((r) => !tileErr.includes(r)) ?? 'noSpace';
+  return neighbors(s.size, u.x, u.y).map((q) => recruitCheck(s, u.owner, u.id, type, q.x, q.y, h)).find((r) => !tileErr.includes(r)) ?? 'noSpace';
 }
 
 // ---------- Konter-Einheiten / counter units ----------

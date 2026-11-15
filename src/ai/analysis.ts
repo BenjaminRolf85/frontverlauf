@@ -5,7 +5,7 @@
 import {
   counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, isCultFaction, cultCap, cultUnits, plunderValue, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, isCultFaction, hordeCount, plunderValue, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 
@@ -169,14 +169,15 @@ export function buildCtx(s: GameState, f: number): Ctx {
   if (neutralCities.length) desired += 1;
   // Kult: Masse, groessere Horde als andere, hoechstens bis zum Limit / cult: mass, a bigger horde than others, at most up to the cap
   const cult = isCultFaction(s, f);
-  if (cult) desired = Math.min(cultCap(s, f), Math.ceil(desired * AI.cultArmyFactor) + AI.cultArmyExtra);
+  const horde = cult ? hordeCount(s, f) : null;
+  if (horde) desired = Math.min(horde.cap, Math.ceil(desired * AI.cultArmyFactor) + AI.cultArmyExtra);
   ctx.desiredArmy = desired;
   // Volle Armee oder voller Sternespeicher: Stillstand aufbrechen und angreifen
   // full army or a big star bank: break the standstill and attack
   let capacity = 0;
   for (const c of myCities) capacity += unitLimit(s, c);
-  if (cult) capacity = cultCap(s, f);
-  const saturation = capacity > 0 ? (cult ? cultUnits(s, f).length : my.length) / capacity : 0;
+  if (horde) capacity = horde.cap;
+  const saturation = capacity > 0 ? (horde ? horde.units : my.length) / capacity : 0;
   // Armee kann nicht weiter wachsen (Sold frisst das Einkommen) oder genug Truppen fuer einen Vorstoss
   // army cannot grow further (upkeep eats the income) or enough troops for a push
   const stalled = netIncome(s, f) < 4 && my.length >= 6;
