@@ -5,7 +5,7 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
 import { scientistAttackBonus, workSpotPenalty } from './mothership';
@@ -353,6 +353,9 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
   // Glaubensbollwerk (Alvenia): bedroht lieber auf eigenem Gebiet stehen / Bulwark of Faith (Alvenia): when threatened, prefer own territory
   if (dmg > 0) v += homeDefenseAt(s, u, x, y) * AI.homeGround;
+  // Mahnmal des Kults: der Kult kaempft gern von dort, menschliche Angreifer meiden es (Furcht), nur mit Gegnern in Reichweite
+  // cult memorial: the cult likes to fight from there, human attackers avoid it (fear), only with enemies in reach
+  if (UNITS[type].attack > 0 && ctx.enemies.some((e) => dist(e, { x, y }) <= UNITS[type].range + 1)) v += (memorialMult(s, u, x, y) - 1) * AI.memorialGround;
   // Meteorschauer oder Saeureregen zu Beginn der naechsten Runde: verletzte Einheiten in Staedte und Bunker
   // meteor shower or acid rain at the start of the next round: hurt units into cities and bunkers
   if (weatherHurts(s, weatherAt(s, s.round + 1), u, x, y)) v -= AI.meteorExposed + (1 - u.hp / u.maxHp) * AI.meteorHurt;

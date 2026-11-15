@@ -3310,6 +3310,17 @@
       "alvenia": "Alle Alvenia-Einheiten verteidigen sich auf eigenem Gebiet mit +{pct} %, zusätzlich zu Stadt, Gelände und Deckung. Nur wenn sie angegriffen werden, nicht beim eigenen Angriff und nicht für den Gegenschlag."
     }
   },
+  "memorial": {
+    "name": "Mahnmal",
+    "desc": "Stirbt ein Soldat (Fußtruppe jeder Fraktion, auch des Kults) an Land außerhalb einer Stadt, stellt der Kult seine Leiche zur Schau: Das Feld wird für diese und {rounds} weitere Runden zum Mahnmal, ein neuer Tod dort erneuert die Dauer. Wer vom Mahnmal aus angreift: Fanatiker des Kults richten +{zeal} % Schaden an, menschliche Angreifer -{fear} % (Furcht). Roboter und Außerirdische kennen keine Furcht. Gilt nur für den eigenen Angriff, nicht für den Gegenschlag.",
+    "tile": "Mahnmal des Kults ({unit}), noch {n} Runden: Fanatiker greifen von hier mit +{zeal} % an, menschliche Angreifer mit -{fear} % (Furcht)",
+    "zealHint": "Mahnmal: +{pct} % Schaden",
+    "fearHint": "Furcht (Mahnmal): -{pct} % Schaden",
+    "zealTag": "Mahnmal +{pct} %",
+    "fearTag": "Furcht -{pct} %",
+    "zealDesc": "Steht auf einem Mahnmal des Kults: +{pct} % Schaden beim eigenen Angriff, noch {n} Runden. Gilt nicht für den Gegenschlag.",
+    "fearDesc": "Steht auf einem Mahnmal des Kults: Furcht, -{pct} % Schaden beim eigenen Angriff, noch {n} Runden. Gilt nicht für den Gegenschlag."
+  },
   "repair": {
     "action": "Notreparatur aus Wrack +{n}",
     "desc": "Schlachtet ein Wrack auf oder neben dem Feld aus: doppelt so viel Heilung wie normal, die Einheit kämpft diese Runde nicht. Das Wrack ist danach verbraucht."

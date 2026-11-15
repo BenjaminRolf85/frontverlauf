@@ -491,6 +491,19 @@ export const CULT = {
   startUnits: ['zealot', 'zealot', 'zealot'] as UnitTypeId[],
   /** Gebaeude, die der Kult bauen darf / buildings the cult may build */
   buildings: ['shrine', 'pilgrimSite', 'road', 'bridge'] as BuildingId[],
+  /**
+   * Mahnmal: stirbt ein Soldat (Fusstruppe jeder Fraktion, auch des Kults) an Land ausserhalb von Staedten, stellt der Kult
+   * seine Leiche zur Schau, solange er im Spiel ist. Das Mahnmal haelt die Todesrunde plus memorialRounds Runden; ein neuer
+   * Tod auf dem Feld erneuert die Dauer (kein Stapeln). Wer vom Mahnmal-Feld aus angreift: Kult-Einheiten +memorialAttack
+   * Schaden, Einheiten menschlicher Rasse -memorialFear (Furcht); Roboter und Ausserirdische bleiben unberuehrt.
+   * Memorial: when a soldier (foot troop of any faction, the cult's own included) dies on land outside cities, the cult
+   * puts the corpse on display, as long as it is in the game. The memorial lasts the round of death plus memorialRounds
+   * rounds; a new death on the tile refreshes the duration (no stacking). Attacking from the memorial tile: cult units
+   * +memorialAttack damage, units of human race -memorialFear (fear); robots and aliens are unaffected.
+   */
+  memorialRounds: 6,
+  memorialAttack: 0.2,
+  memorialFear: 0.2,
 };
 
 /** NEXUS: Rechenleistung aus Rechenzentren mit Energie / NEXUS: compute from powered data centers */
@@ -1436,6 +1449,13 @@ export const AI = {
    */
   sinnerTarget: 6,
   keepDistance: 8,
+  /**
+   * Mahnmal des Kults: Zuschlag je Schadensanteil fuer ein Feld, von dem aus die Einheit angreifen kann (Kult sucht es,
+   * menschliche Fraktionen meiden es); der Angriffswert selbst sieht den Faktor schon ueber combatPreview.
+   * Cult memorial: bonus per damage share for a tile the unit can attack from (the cult seeks it, human factions avoid
+   * it); the attack value itself already sees the factor via combatPreview.
+   */
+  memorialGround: 16,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };

@@ -9,7 +9,7 @@ import {
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
-import type { City, Faction, GameConfig, GameState, Pos, Tile, Unit } from './types';
+import type { City, Faction, GameConfig, GameState, Memorial, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
 export const hasTech = (s: GameState, f: number, t: TechId) => s.factions[f].techs.includes(t);
@@ -539,6 +539,8 @@ export interface CombatPreview {
   judgement: number;
   /** Maertyrer-Segen des Ziels: Verteidigungsbonus (0 = keiner) / Martyr's Blessing of the target: defence bonus (0 = none) */
   blessing: number;
+  /** Mahnmal unter dem Angreifer: Schadensfaktor (1 = keins, mehr = Kult, weniger = Furcht) / memorial under the attacker: damage factor (1 = none) */
+  memorial: number;
 }
 
 /**
@@ -620,6 +622,39 @@ export function judgementNeed(s: GameState): number {
   const base = WONDERS.judgementKills[s.config.size] ?? WONDERS.judgementKills[14];
   const rivals = Math.max(0, s.factions.length - 1);
   return Math.round(base * (WONDERS.judgementByRivals[rivals] ?? 1));
+}
+
+// ---------- Mahnmal des Kults / cult memorial ----------
+
+/** Ist eine Kult-Fraktion noch im Spiel? / is a cult faction still in the game? */
+export const cultInGame = (s: GameState): boolean => s.factions.some((f) => f.alive && f.id === CULT.faction);
+/**
+ * Hinterlaesst der Tod dieses Typs ein Mahnmal? Soldaten: Fusstruppen jeder Fraktion (unitClass 'foot'), keine Fahrzeuge,
+ * Flieger, Schiffe, Bauwerke oder Endgegner.
+ * Does the death of this type leave a memorial? Soldiers: foot troops of any faction (unitClass 'foot'), no vehicles,
+ * flyers, ships, structures or bosses.
+ */
+export const leavesMemorial = (type: UnitTypeId): boolean => unitClass(type) === 'foot' && !UNITS[type].abilities.includes('boss');
+/** Aktives Mahnmal auf (x, y), sonst null (abgelaufen oder kein Kult mehr im Spiel) / active memorial at (x, y), else null (expired or no cult left) */
+export function memorialAt(s: GameState, x: number, y: number): Memorial | null {
+  const m = tileAt(s, x, y)?.memorial;
+  return m && m.until >= s.round && cultInGame(s) ? m : null;
+}
+/**
+ * Wirkung eines Mahnmals auf einen Angreifer auf (x, y): 'zeal' fuer Einheiten des Kults, 'fear' fuer Einheiten menschlicher
+ * Rasse (Furcht), sonst null (Roboter, Ausserirdische, kein Mahnmal).
+ * Effect of a memorial on an attacker at (x, y): 'zeal' for cult units, 'fear' for units of human race, else null
+ * (robots, aliens, no memorial).
+ */
+export function memorialEffect(s: GameState, u: Unit, x = u.x, y = u.y): 'zeal' | 'fear' | null {
+  if (!memorialAt(s, x, y)) return null;
+  if (isCultFaction(s, u.owner)) return 'zeal';
+  return unitRace(s, u) === 'human' ? 'fear' : null;
+}
+/** Schadensfaktor des Mahnmals fuer einen Angreifer auf (x, y) (1 = keiner) / memorial damage factor for an attacker at (x, y) (1 = none) */
+export function memorialMult(s: GameState, u: Unit, x = u.x, y = u.y): number {
+  const e = memorialEffect(s, u, x, y);
+  return e === 'zeal' ? 1 + CULT.memorialAttack : e === 'fear' ? 1 - CULT.memorialFear : 1;
 }
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
@@ -834,8 +869,10 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // less damage after moving, before hit luck; return fire stays undiminished
   const moveFire = movedThisTurn(att);
   // Strafgericht (Alvenia gegen Suender): eigener Faktor auf den Schaden, vor dem Trefferglueck / judgement (Alvenia against sinners): own factor on the damage, before hit luck
+  // Mahnmal des Kults unter dem Angreifer (nur eigener Angriff, nicht der Gegenschlag) / cult memorial under the attacker (own attack only, not return fire)
+  const memorial = memorialMult(s, att);
   const judgement = judgementAt(s, att, def);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement)) : 0;
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -856,7 +893,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def) };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -1970,7 +2007,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u)) : 0;
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock')) return 0;

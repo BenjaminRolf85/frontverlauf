@@ -3310,6 +3310,17 @@
       "alvenia": "All Alvenia units defend with +{pct} % on their own territory, on top of city, terrain and cover. Only when they are attacked, not when they attack and not for return fire."
     }
   },
+  "memorial": {
+    "name": "Memorial",
+    "desc": "When a soldier (foot troop of any faction, the cult's own included) dies on land outside a city, the cult puts the corpse on display: the tile becomes a memorial for this and {rounds} more rounds, a new death there refreshes the duration. Attacking from the memorial: cult fanatics deal +{zeal} % damage, human attackers -{fear} % (fear). Robots and aliens know no fear. Applies to the own attack only, not to return fire.",
+    "tile": "Cult memorial ({unit}), {n} more rounds: fanatics attack from here with +{zeal} %, human attackers with -{fear} % (fear)",
+    "zealHint": "Memorial: +{pct} % damage",
+    "fearHint": "Fear (memorial): -{pct} % damage",
+    "zealTag": "Memorial +{pct} %",
+    "fearTag": "Fear -{pct} %",
+    "zealDesc": "Stands on a cult memorial: +{pct} % damage on its own attack, {n} more rounds. Does not apply to return fire.",
+    "fearDesc": "Stands on a cult memorial: fear, -{pct} % damage on its own attack, {n} more rounds. Does not apply to return fire."
+  },
   "repair": {
     "action": "Emergency repair from wreck +{n}",
     "desc": "Salvages a wreck on or next to the tile: double the normal healing, the unit does not fight this round. The wreck is used up."
