@@ -498,8 +498,6 @@ export class Controller {
           // Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit
           case 'turretFire': {
             const tb = before.get(e.target);
-            // Geschuetzstellung feuert auf eigene Einheiten: Bescheid geben / gun emplacement fires at own units: tell the player
-            if (e.owner !== undefined && tb && tb.owner === this.viewer) this.ui.toast(t('emplacement.fires', { name: t(`factions.${fid(e.owner)}.short`), dmg: e.dmg }), 'range');
             const seen = visible(e.x, e.y) || (tb && visible(tb.x, tb.y));
             if (!seen || !tb) break;
             const impact = () => { audio.impact(tb.type, killedIds.has(e.target), fid(tb.owner)); this.ui.fx('hit', tb.x, tb.y); this.ui.fx('num', tb.x, tb.y, hitText(e.hit, e.dmg)); };

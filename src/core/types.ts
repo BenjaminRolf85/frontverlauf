@@ -354,7 +354,8 @@ export type GameEvent =
   /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
   | { t: 'verdanActive'; faction: number }
   /** Verdan-Geschuetz feuert auf eine Einheit / Verdan gun fires at a unit */
-  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind; owner?: number }
+  /** owner/victim nur bei Geschuetzstellungen: Besitzer und Fraktion des Ziels / owner/victim only for emplacements: owner and the target's faction */
+  | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind; owner?: number; victim?: number }
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
   | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number }
   /** Geschuetzstellung gebaut / gun emplacement built */

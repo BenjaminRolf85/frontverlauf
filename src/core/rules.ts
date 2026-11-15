@@ -760,7 +760,7 @@ function processTurrets(s: GameState, ev: GameEvent[]) {
     const dmg = hitDamage(base, hit);
     u.hp -= dmg;
     if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
-    ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}), ...(p.owner !== undefined ? { owner: p.owner } : {}) });
+    ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}), ...(p.owner !== undefined ? { owner: p.owner, victim: u.owner } : {}) });
     spare(s, u);
     if (u.hp <= 0) killUnit(s, u, null, ev);
     else if (dmg > 0) interruptWonder(s, u, ev);
