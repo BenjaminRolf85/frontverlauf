@@ -63,6 +63,16 @@ Gemeinsame Angaben für alle Modellfamilien / common data for all model families
 Vorschau aller Modelle / preview of all models: `npx vite`, dann / then
 `http://localhost:5173/preview/models.html` (`preview/models.html`, `src/render/models/preview.ts`).
 
+## Intro "Die Menschheit im Sternfall" / intro "Humanity in the Starfall"
+
+| Bestandteil / part | Datei / file | Quelle, Lizenz / source, licence |
+|---|---|---|
+| Motion Graphics (Mutterschiff, Trümmer, Reiter, Schild, Geschütz, Minen, Satellit, Laser, Schiff, Münzen, Banner, Logo-Karte) / motion graphics (mothership, debris, riders, shield, gun, mines, satellite, laser, ship, coins, banners, logo card) | `src/intro/render.ts` | eigene Erstellung per Code (Canvas 2D), CC0; Farben nur aus Design-Tokens (`components.intro`, `factionTokens`) / own creation in code (canvas 2D), CC0; colours only from design tokens |
+| Comic-Seiten und Anführer-Porträts / comic pages and leader portraits | `public/lore/*.webp`, `public/leaders/img/*_neutral.webp` | vorhandene Bilder des Projekts, unverändert, nur als Ausschnitte gezeigt / existing project images, unchanged, only shown as crops |
+| Fraktionsembleme / faction emblems | `src/ui/icons.ts` | eigener Symbolsatz / own icon set |
+| Klangspur (prozedurale Fraktionsmusik, Effekte) / soundtrack (procedural faction music, effects) | `src/intro/score.ts`, `src/audio/audio.ts` | prozedural per WebAudio, eigene Schöpfung, CC0 / procedural via WebAudio, own creation, CC0 |
+| Videos (MP4, nicht im Repository) / videos (MP4, not in the repository) | `scripts/intro-export.mjs` | aus den obigen Teilen gerechnet, gleiche Lizenzen / rendered from the parts above, same licences |
+
 ## Schriften / fonts
 
 | Name | Quelle / source | Urheber / author | Lizenz / licence | Änderungen / changes |
