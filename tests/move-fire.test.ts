@@ -12,7 +12,7 @@ import { planNextCommand } from '../src/ai/ai';
 import { buildCtx } from '../src/ai/analysis';
 import { attackValue } from '../src/ai/tactics';
 import { migrateState, isValidState } from '../src/save/save';
-import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
+import { addCity, addUnit, blankGame, fails, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
 
 function game(factions: FactionId[] = ['alvenia', 'dravon'], hitChance = false): GameState {
   const s = blankGame({ factions, size: 11, hitChance });
