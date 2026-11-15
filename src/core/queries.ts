@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, type WonderKind, type WonderUnitId, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -24,6 +24,10 @@ export const ownCities = (s: GameState, f: number) => s.cities.filter((c) => c.o
 export const ownUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f);
 export const hqOf = (s: GameState, f: number) => s.cities.find((c) => c.isHQ && c.hqOf === f && c.owner === f);
 
+/** Heimatwelt der Zyrr: Staedte sind Hoehlen (Bauten), Regeln wie Staedte / Zyrr homeworld: cities are burrows (buildings), rules as for cities */
+export const isAlienWorld = (s: GameState) => s.config.theme === 'alien';
+/** Wuestenwelt der Vergessenen: Staedte sind Aussenposten der Verdan / desert world of the Forgotten: cities are Verdan outposts */
+export const isDesert = (s: GameState) => s.config.theme === 'desert';
 /** Hoehlen-Karte (Kampagnenfinale)? / cavern map (campaign finale)? */
 export const isCavern = (s: GameState) => s.config.theme === 'cavern';
 /**
@@ -90,6 +94,8 @@ export function unitLimit(s: GameState, c: City): number {
     ? PERKS.massMobilizationExtraUnits : 0;
   // Nachschublinie: feste Zahl statt Stufe / supply line: fixed number instead of the level
   if (supplyLines(s)) return (mainShaft(c) ? SUPPLY_LINE.mainShaftUnitLimit : SUPPLY_LINE.unitLimit) + extra;
+  // Sendeturm: feste kleine Zahl / transmitter tower: small fixed number
+  if (c.tower) return TOWER.unitLimit + extra;
   return c.level + CITY.unitLimitExtra + extra;
 }
 // Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
@@ -188,6 +194,10 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.isHQ && c.hqOf === c.owner) inc += INCOME.hq;
   // Nachschublinie: festes Einkommen statt Stufe und HQ-Bonus / supply line: fixed income instead of level and HQ bonus
   if (supplyLines(s)) inc = mainShaft(c) ? SUPPLY_LINE.mainShaftIncome : SUPPLY_LINE.income;
+  // Wueste: wenige Aussenposten, jeder bringt mehr / desert: few outposts, each brings more
+  if (isDesert(s)) inc += DESERT_OUTPOST.incomeBonus;
+  // Sendeturm: festes kleines Einkommen / transmitter tower: small fixed income
+  if (c.tower) inc = TOWER.income;
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
@@ -1266,8 +1276,8 @@ export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgra
   if (c.owner !== f) return 'notYourCity';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
-  // Nachschublinien lassen sich nicht ausbauen / supply lines cannot be upgraded
-  if (supplyLines(s)) return 'noSlot';
+  // Nachschublinien und Sendetuerme lassen sich nicht ausbauen / supply lines and transmitter towers cannot be upgraded
+  if (supplyLines(s) || c.tower) return 'noSlot';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
   const need = cityUpgradeRequirement(s, f, up);
   if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';

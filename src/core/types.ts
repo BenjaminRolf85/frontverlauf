@@ -81,6 +81,11 @@ export interface City {
   noIncomeNext: boolean;
   /** gekaufte Ausbauten (hoechstens 3) / bought upgrades (at most 3) */
   upgrades?: CityUpgradeId[];
+  /**
+   * Sendeturm der Kampagne: bildet aus wie eine Nachschublinie, waechst nicht, keine Ausbauten (TOWER).
+   * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
+   */
+  tower?: boolean;
   nameIndex: number;
 }
 
@@ -184,6 +189,8 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
+  /** Anteil neutraler Siedlungen (fehlt = 1, freie Partien); Kampagne siehe CAMPAIGN_SETTLEMENTS / share of neutral settlements (missing = 1, free games); campaign see CAMPAIGN_SETTLEMENTS */
+  settlements?: number;
   /**
    * Kartenthema (fehlt = Oberflaeche); 'alien' = Heimatwelt der Zyrr (nur Darstellung); 'desert' = rote Wuestenwelt der Vergessenen
    * (Darstellung, Kartenerzeugung ohne Meer und Sandsturm-Wetter).

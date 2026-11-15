@@ -24,7 +24,7 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, ROSTERS, RUINS, SWARM_MOTHER, TOWER, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, hqOf, isHostile, ownCities, score, unitAt } from './queries';
@@ -198,6 +198,10 @@ export interface MissionDef {
   boss?: { unit: UnitTypeId; owner: number; at: number };
   /** Verdan-Verteidigungslinie um das Artefakt / Verdan defence line around the artifact */
   turrets?: boolean;
+  /** Siedlungsfaktor (fehlt = CAMPAIGN_SETTLEMENTS des Themas) / settlement factor (missing = CAMPAIGN_SETTLEMENTS of the theme) */
+  settlements?: number;
+  /** Anzahl Sendetuerme (fehlt = aus der Kartengroesse, TOWER; in der Hoehle keine) / number of transmitter towers (missing = from the map size, TOWER; none in the cavern) */
+  towers?: number;
   /**
    * Riss: der Endgegner stirbt nicht, bei SWARM_MOTHER.riftHp LP reisst der Riss auf (Ziel 'rift').
    * Rift: the boss does not die, at SWARM_MOTHER.riftHp HP the rift tears open (objective 'rift').
@@ -479,7 +483,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     id: 'm12', level: 'hard',
     enemies: [{ id: 'zyrr', difficulty: 'normal' }, { id: 'nexus', difficulty: 'normal' }, { id: 'vesper', difficulty: 'normal' }],
     seed: 12012, size: 16, mapType: 'continent', hazards: 'normal', weather: true, events: false, startStars: 40, rounds: 18,
-    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 4 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
+    objectives: [{ k: 'capture', target: 0 }, { k: 'cities', n: 3 }], bonus: [{ k: 'fast', rounds: 13 }, { k: 'kills', n: 6 }],
     briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, { speaker: 'enemy', enemy: 2 }, 'hq'], theme: 'desert', landing: true,
     setup(k) {
       const s = k.s;
@@ -558,7 +562,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     // Finale: alle gegen alle um das Artefakt der Vergessenen, tief unter dem Hoehleneingang
     // finale: everyone against everyone for the artifact of the Forgotten, deep below the cave entrance
     id: 'm9', level: 'extreme',
-    enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'hard' }],
+    enemies: [{ id: 'zyrr', difficulty: 'hard' }, { id: 'nexus', difficulty: 'hard' }, { id: 'vesper', difficulty: 'normal' }],
     // groesste Karte, in einer Hoehle unter der Wueste; mehr Runden fuer die weiten Wege / largest map, in a cave below the desert; more rounds for the long roads
     // unter Tage kein normales Wetter, nur Erdbeben (weatherFor) / underground no normal weather, only earthquakes (weatherFor)
     seed: 9916, size: 26, mapType: 'continent', hazards: 'normal', weather: true, events: true, startStars: 40, rounds: 30,
@@ -624,6 +628,7 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
     // Fraktionssiege bleiben in Kampagnen aus / faction victories stay off in campaigns
     factionVictory: false,
     campaign: { mission: m.id },
+    settlements: m.settlements ?? CAMPAIGN_SETTLEMENTS[m.theme ?? 'surface'],
     ...(m.theme ? { theme: m.theme } : {}),
   };
 }
@@ -671,7 +676,7 @@ function kit(s: GameState, c: CampaignState): SetupKit {
     }) ?? p,
     spawn: (type, owner, near, opts = {}) => spawnNear(s, type, owner, near, opts.carried ?? null, opts.min ?? 0),
     grantNear: (owner, near, minDist = 0) => {
-      const city = s.cities.filter((x) => x.owner === null && dist(x, near) >= minDist).sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
+      const city = s.cities.filter((x) => x.owner === null && !x.tower && dist(x, near) >= minDist).sort((a, b) => dist(a, near) - dist(b, near) || a.id - b.id)[0];
       if (!city) return null;
       grantCity(s, city, owner);
       return city;
@@ -711,6 +716,8 @@ function placeRuin(s: GameState, c: CampaignState, near: Pos): Pos | null {
   Object.assign(tileAt(s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null, road: false, mine: null, barrier: null, remains: null });
   sites.push({ x: p.x, y: p.y });
   (c.siteDone ??= []).push(false);
+  // als Zielfeld markiert (Ring auf der Karte) / marked as a target tile (ring on the map)
+  c.targets.push({ x: p.x, y: p.y });
   // Wache zur Kartenmitte hin, nie neben einer Stadt oder einem anderen Geschuetz / sentinel towards the map centre, never next to a city or another gun
   const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
   const want = { x: p.x + Math.sign(mid.x - p.x) * RUINS.sentinelDistance, y: p.y + Math.sign(mid.y - p.y) * RUINS.sentinelDistance };
@@ -723,19 +730,22 @@ function placeRuin(s: GameState, c: CampaignState, near: Pos): Pos | null {
 
 /**
  * Hoehleneingang (m14): freies Land nahe der Kartenmitte, mindestens 4 Felder von jedem Hauptquartier und nicht neben
- * einer Stadt; die drei Felder auf der von from abgewandten Seite werden zur Felswand (hoher Berg), sofern frei.
+ * einer Stadt; die drei Felder im Nordwesten werden zur Felswand (hoher Berg), sofern frei. So schaut der Schlund in
+ * der Standardansicht zur Kamera; from bleibt fuer spaetere Einsaetze erhalten.
  * Cave entrance (m14): free land near the map centre, at least 4 tiles from every HQ and not next to a city; the
- * three tiles on the side away from from become the rock wall (high mountain) where free.
+ * three tiles to the north-west become the rock wall (high mountain) where free. So the maw faces the camera in the
+ * default view; from is kept for later missions.
  */
 function placeCaveMouth(s: GameState, from: Pos): Pos {
+  void from;
   const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
   const edge = (q: Pos) => q.x <= 1 || q.y <= 1 || q.x >= s.size - 2 || q.y >= s.size - 2;
-  const p = nearestTile(s, mid, (q) => openLand(s, q) && !edge(q) && s.cities.filter((x) => x.isHQ).every((x) => dist(x, q) >= 4) &&
+  const back = [[-1, -1], [-1, 0], [0, -1]];
+  // die Felswand braucht freie Felder (keine Stadt, kein Merkmal, keine Einheit) / the rock wall needs free tiles (no city, feature or unit)
+  const wallFree = (q: Pos) => back.every(([dx, dy]) => { const t = tileAt(s, q.x + dx, q.y + dy); return !!t && t.cityId === null && !t.feature && !t.turret && !unitAt(s, q.x + dx, q.y + dy); });
+  const p = nearestTile(s, mid, (q) => openLand(s, q) && !edge(q) && wallFree(q) && s.cities.filter((x) => x.isHQ).every((x) => dist(x, q) >= 4) &&
     !neighbors(s.size, q.x, q.y).some((n) => tileAt(s, n.x, n.y)!.cityId !== null)) ?? mid;
   Object.assign(tileAt(s, p.x, p.y)!, { terrain: 'plain', resource: null, building: null, road: false, mine: null, barrier: null, feature: null });
-  const bx = Math.sign(p.x - from.x), by = Math.sign(p.y - from.y);
-  const back = bx === 0 && by === 0 ? [] : bx !== 0 && by !== 0
-    ? [[bx, by], [bx, 0], [0, by]] : bx !== 0 ? [[bx, -1], [bx, 0], [bx, 1]] : [[-1, by], [0, by], [1, by]];
   for (const [dx, dy] of back) {
     const t = tileAt(s, p.x + dx, p.y + dy);
     if (!t || t.cityId !== null || t.feature || t.turret || unitAt(s, p.x + dx, p.y + dy)) continue;
@@ -743,6 +753,47 @@ function placeCaveMouth(s: GameState, from: Pos): Pos {
     if (t.resource && t.resource !== 'ore') t.resource = null;
   }
   return p;
+}
+
+/** Anzahl Sendetuerme einer Mission / number of transmitter towers of a mission */
+export function towerCount(m: MissionDef): number {
+  if (m.towers !== undefined) return m.towers;
+  if (m.theme === 'cavern') return 0;
+  return Math.max(TOWER.min, Math.min(TOWER.max, Math.round((m.size * m.size) / TOWER.perTiles)));
+}
+
+/**
+ * Sendetuerme verteilen: freies, flaches Land fern von Hauptquartieren, Staedten und einander; jeweils das Feld mit dem
+ * groessten Mindestabstand zu Hauptquartieren und schon gesetzten Tuermen (bei Gleichstand der kleinste Index).
+ * Rein deterministisch aus dem Spielstand.
+ * Place transmitter towers: free flat land far from HQs, cities and each other; each time the tile with the largest
+ * minimum distance to HQs and already placed towers (ties: lowest index). Purely deterministic from the state.
+ */
+function placeTowers(s: GameState, count: number) {
+  const hqs = s.cities.filter((x) => x.isHQ);
+  const placed: Pos[] = [];
+  for (let i = 0; i < count; i++) {
+    let best: Pos | null = null, bestD = -1;
+    for (let y = 1; y < s.size - 1; y++) for (let x = 1; x < s.size - 1; x++) {
+      const q = { x, y };
+      const t = tileAt(s, x, y)!;
+      if (!openLand(s, q) || t.terrain !== 'plain' || t.turret) continue;
+      if (hqs.some((h) => dist(h, q) < TOWER.hqDistance) || s.cities.some((c) => dist(c, q) < TOWER.cityDistance)) continue;
+      if (placed.some((p) => dist(p, q) < TOWER.spacing)) continue;
+      if (s.campaign?.sites?.some((p) => dist(p, q) < 2) || (s.campaign?.cave && dist(s.campaign.cave, q) < 2)) continue;
+      if (s.campaign?.portal && dist(s.campaign.portal, q) < 2) continue;
+      const d = Math.min(...hqs.map((h) => dist(h, q)), ...placed.map((p) => dist(p, q) * 1.5));
+      if (d > bestD) { bestD = d; best = q; }
+    }
+    if (!best) break;
+    placed.push(best);
+    const c: City = {
+      id: s.nextId++, x: best.x, y: best.y, owner: null, level: 1, pop: 0, radius: CITY.baseRadius, isHQ: false, hqOf: null, factory: false,
+      bunkerRing: false, govQuarter: false, connected: false, noIncomeNext: false, nameIndex: s.cities.length, tower: true,
+    };
+    s.cities.push(c);
+    Object.assign(tileAt(s, best.x, best.y)!, { cityId: c.id, resource: null, feature: null, road: false, building: null });
+  }
 }
 
 /** Artefakt: freies Landfeld nahe der Kartenmitte / artifact: free land tile near the map centre */
@@ -804,6 +855,8 @@ export function setupMission(s: GameState) {
   if (m.turrets && c.artifact) placeTurrets(s, c.artifact);
   const k = kit(s, c);
   m.setup?.(k);
+  // Sendetuerme nach der Einrichtung, damit sie nie Einrichtungsziele verdraengen / transmitter towers after the setup so they never displace setup targets
+  placeTowers(s, towerCount(m));
   for (const [a, b] of m.allied ?? []) {
     if (!s.factions[a] || !s.factions[b]) continue;
     s.factions[a].relations[b] = 'peace';

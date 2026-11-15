@@ -1042,6 +1042,30 @@ export const MAPGEN = {
   desertForestKeep: 0.5,
 };
 
+/**
+ * Siedlungsfaktor der Kampagne je Kartenthema (Anteil neutraler Siedlungen gegenueber freien Partien); eine Mission kann
+ * ihn mit MissionDef.settlements ueberschreiben. Die Hoehle bleibt bei ihren Nachschublinien.
+ * Campaign settlement factor per map theme (share of neutral settlements compared to free games); a mission can override
+ * it with MissionDef.settlements. The cavern keeps its supply lines.
+ */
+export const CAMPAIGN_SETTLEMENTS = { surface: 0.5, alien: 0.5, desert: 0.3, cavern: 1 };
+
+/**
+ * Sendetuerme der Kampagne (nicht in der Hoehle): neutrale Orte wie Nachschublinien, einnehmbar, bilden aus, wachsen
+ * nicht, keine Ausbauten. Anzahl je Karte: Felder / perTiles, begrenzt auf min..max; MissionDef.towers ueberschreibt.
+ * Abstand zu Hauptquartieren hqDistance, zu Staedten cityDistance, untereinander spacing.
+ * Campaign transmitter towers (not in the cavern): neutral places like supply lines, capturable, they train, do not
+ * grow, no upgrades. Count per map: tiles / perTiles, clamped to min..max; MissionDef.towers overrides.
+ * Distance to HQs hqDistance, to cities cityDistance, to each other spacing.
+ */
+export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, cityDistance: 2, spacing: 4 };
+
+/**
+ * Aussenposten der Vergessenen (Wuestenwelt): weniger Orte, dafuer mehr Einkommen je Aussenposten.
+ * Outposts of the Forgotten (desert world): fewer places, therefore more income per outpost.
+ */
+export const DESERT_OUTPOST = { incomeBonus: 2 };
+
 export const SANDBOX = {
   startStarsOptions: [10, 25, 50, 100, 200],
 };

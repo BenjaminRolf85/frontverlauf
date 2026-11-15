@@ -10,13 +10,41 @@
  * Kachel 1x1, Ursprung unten mittig / tile 1x1, origin bottom centre.
  */
 import type * as THREE from 'three';
-import { semantic } from '../../design/tokens';
-import { Builder, geo, memo, mix, rng, shade, type V3 } from './kit';
+import type { FactionId } from '../../data/balance';
+import { factionTokens, semantic } from '../../design/tokens';
+import { mat } from './look';
+import { Builder, col, geo, memo, mix, rng, shade, type V3 } from './kit';
 import { verdanEmblem } from './cavern';
 
 const S = semantic;
 const TAU = Math.PI * 2;
 const wrap = (v: number, n: number) => ((Math.floor(v) % n) + n) % n;
+
+// ---------- Nichts Gruenes / nothing green ----------
+
+/**
+ * Kopie einer Geometrie ohne Gruen: gruenstichige Vertexfarben (Moos, Baeume, Kisten) werden zu trockenem Dornbraun
+ * bis Sand, die Helligkeit bleibt; Leuchtfarben bleiben unberuehrt (gecacht unter key).
+ * Copy of a geometry without green: green-tinted vertex colours (moss, trees, crates) become dry thorn brown to sand,
+ * brightness is kept; glow colours stay untouched (cached under key).
+ */
+export function sandify(src: THREE.BufferGeometry, key: string): THREE.BufferGeometry {
+  return memo(`desert|sandify|${key}`, () => {
+    const g = src.clone();
+    const c = g.getAttribute('color');
+    const dark = col(S.desertThornDark), light = col(S.desertSandLight), tmp = col(S.white);
+    for (let i = 0; i < c.count; i++) {
+      const r = c.getX(i), gg = c.getY(i), b = c.getZ(i);
+      if (gg <= r * 1.04 || gg <= b * 1.04 || gg > 0.97) continue;
+      const l = Math.min(1, (0.2126 * r + 0.7152 * gg + 0.0722 * b) * 1.4);
+      tmp.copy(dark).lerp(light, l);
+      c.setXYZ(i, tmp.r, tmp.g, tmp.b);
+    }
+    g.deleteAttribute('glow');
+    delete g.userData.glowTag;
+    return g;
+  });
+}
 
 // ---------- Tafelberge, Felsnadeln, Boegen / mesas, spires, arches ----------
 
@@ -264,7 +292,7 @@ export function ruinSiteGeometry(done: boolean): THREE.BufferGeometry {
         const a = (i / 6) * TAU + 0.3;
         pillar(b, Math.cos(a) * 0.34, Math.sin(a) * 0.34, i % 3 === 1 ? 0.18 : 0.34 + R() * 0.1, R, i === 4);
       }
-      wingedStatue(b, 0, 0, 1.25, 0, done ? S.artifactGlow : null);
+      wingedStatue(b, 0, 0, 1.7, 0, done ? S.artifactGlow : null);
       // Obelisk-Splitter mit Runen / obelisk shard with runes
       b.add(geo.cone(0.05, 0.22, 4), S.artifactObsidian, { p: [0.17, 0.11, 0.17], r: [0.1, 0.5, -0.2] });
       b.add(geo.box(0.012, 0.1, 0.01), rune, { p: [0.165, 0.1, 0.205], r: [0.1, 0.5, -0.2] });
@@ -378,6 +406,64 @@ export function dustDevilGeometry(): THREE.BufferGeometry {
       const y = i * 0.12, r = 0.05 + i * 0.035;
       b.add(geo.torus(r, 0.02 + i * 0.005, 3, 10), i % 2 ? S.desertDust : S.desertSandLight, { p: [Math.sin(i * 1.3) * 0.03, y + 0.04, Math.cos(i * 1.3) * 0.03], r: [Math.PI / 2 + Math.sin(i) * 0.15, 0, 0] });
     }
+    return b.build();
+  });
+}
+
+// ---------- Aussenposten der Verdan / Verdan outposts ----------
+
+/**
+ * Aussenposten der Vergessenen statt Stadt (Wuestenwelt): Sandsteinsockel, Kuppelbunker mit Metallband und Sehschlitz,
+ * ab Stufe 2 ein Relaismast mit Schuessel, ab Stufe 3 ein zweiter Bunker und eine Mauer; rot-weisses Fluegelwappen.
+ * Besetzt: Banner und Band in der Farbe der Fraktion; Hauptquartier: hoeherer Mast und grosses Banner. Fenster leuchten nachts.
+ * Outpost of the Forgotten instead of a city (desert world): sandstone plinth, domed bunker with a metal band and a
+ * vision slit, from level 2 a relay mast with a dish, from level 3 a second bunker and a wall; red and white winged
+ * emblem. Occupied: banner and band in the faction colour; HQ: taller mast and a big banner. Windows glow at night.
+ */
+export function verdanOutpostGeometry(faction: FactionId | null, level: number, hq: boolean): THREE.BufferGeometry {
+  const lv = Math.max(1, Math.min(3, level));
+  return memo(`desert|outpost|${faction}|${lv}|${+hq}`, () => {
+    const R = rng(8100 + lv * 7 + (hq ? 3 : 0));
+    const b = new Builder();
+    const stone = mix(S.verdanStone, S.desertSandLight, 0.35), dark = mix(S.verdanStoneDark, S.desertRockDark, 0.3);
+    const own = faction ? factionTokens[faction].primary : null;
+    const window = mat.window;
+    // Sockel mit Stufen / plinth with steps
+    b.add(geo.cbox(0.78, 0.06, 0.78, 0.14), dark, { p: [0, 0.03, 0] });
+    b.add(geo.cbox(0.62, 0.05, 0.62, 0.1), stone, { p: [0, 0.085, 0] });
+    /** Kuppelbunker / domed bunker */
+    const dome = (x: number, z: number, r: number) => {
+      b.add(geo.cyl(r, r * 1.05, 0.08, 10), stone, { p: [x, 0.15, z] });
+      b.add(geo.cyl(r * 1.02, r * 1.02, 0.025, 10), own ?? S.verdanMetal, { p: [x, 0.2, z] });
+      b.add(geo.hemi(r * 0.98, 12, 4), shade(stone, 1.05), { p: [x, 0.21, z], s: [1, 0.8, 1] });
+      // Sehschlitz und Fenster / vision slit and windows
+      b.add(geo.box(r * 1.1, 0.025, 0.02), S.ink, { p: [x, 0.25, z + r * 0.72] });
+      for (const a of [-0.6, 0.6]) b.add(geo.box(0.04, 0.035, 0.012), window, { p: [x + Math.sin(a) * r * 0.98, 0.16, z + Math.cos(a) * r * 0.98], r: [0, a, 0] });
+      // Wappen ueber dem Eingang / emblem above the entrance
+      b.group({ p: [x, 0.3, z + r * 0.62], r: [-0.5, 0, 0] }, () => verdanEmblem(b, r * 3.4));
+    };
+    dome(lv >= 3 ? -0.08 : 0, lv >= 3 ? 0.06 : 0.02, hq ? 0.22 : 0.18);
+    if (lv >= 2) {
+      // Relaismast mit Schuessel / relay mast with a dish
+      const mh = hq ? 0.75 : 0.55;
+      b.add(geo.cyl(0.012, 0.02, mh, 5), S.verdanMetal, { p: [0.22, 0.11 + mh / 2, -0.2] });
+      for (let i = 1; i < 4; i++) b.add(geo.box(0.06, 0.008, 0.008), S.verdanMetal, { p: [0.22, 0.11 + (mh * i) / 4, -0.2], r: [0, i * 0.8, 0] });
+      b.add(geo.hemi(0.07, 8, 3), S.verdanWhite, { p: [0.22, 0.11 + mh * 0.75, -0.15], r: [-1.2, 0, 0] });
+      b.add(geo.sphere(0.018, 6, 4), S.verdanRed, { p: [0.22, 0.13 + mh, -0.2] });
+    }
+    if (lv >= 3) {
+      dome(0.22, 0.2, 0.12);
+      // Mauer aus Sandsteinbloecken / wall of sandstone blocks
+      for (let i = 0; i < 5; i++) b.add(geo.cbox(0.12, 0.08 + R() * 0.04, 0.06, 0.015), i % 2 ? stone : dark, { p: [-0.28 + i * 0.13, 0.15, -0.3], r: [0, (R() - 0.5) * 0.2, 0] });
+    }
+    // Banner der Besatzer (oder zerfetzter Verdan-Wimpel) / banner of the occupiers (or a tattered Verdan pennant)
+    const pole = hq ? 0.62 : 0.42;
+    b.add(geo.cyl(0.008, 0.01, pole, 5), S.verdanMetal, { p: [-0.27, 0.11 + pole / 2, 0.24] });
+    if (own) b.add(geo.box(0.16, hq ? 0.12 : 0.09, 0.008), own, { p: [-0.19, 0.11 + pole - 0.07, 0.24] });
+    else b.add(geo.box(0.1, 0.05, 0.008), S.verdanRed, { p: [-0.23, 0.11 + pole - 0.06, 0.24], r: [0, 0, -0.25] });
+    // Sandwehen und Truemmer / sand drifts and rubble
+    b.add(geo.sphere(1, 8, 4), S.desertSandLight, { p: [0.3, 0.06, 0.3], s: [0.16, 0.05, 0.1] });
+    b.add(geo.dodeca(0.04), dark, { p: [-0.32, 0.07, -0.12], r: [R(), R(), R()] });
     return b.build();
   });
 }

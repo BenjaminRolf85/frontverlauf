@@ -7,7 +7,7 @@
 import { audio } from '../audio/audio';
 import './campaign.css';
 import {
-  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
+  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, towerCount, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
   type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
 import { PERSUADE, UNITS, type FactionId } from '../data/balance';
@@ -60,9 +60,17 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
   // Hoehle: Hauptschacht und Nachschublinien statt HQ und Staedten / cavern: main shaft and supply lines instead of HQ and cities
   if (m.theme === 'cavern' && o.k === 'holdHq') return t('campaign.obj.holdShaft', { rounds });
   if (m.theme === 'cavern' && o.k === 'noCityLost') return t('campaign.obj.noLineLost');
+  // Wueste: Aussenposten statt Staedte / desert: outposts instead of cities
+  if (m.theme === 'desert' && !(m.landing && o.k === 'capture')) {
+    if (o.k === 'cities') return bonus ? t('campaign.obj.bonusOutposts', { n: o.n }) : t('campaign.obj.outposts', { n: o.n, rounds });
+    if (o.k === 'capture') return bonus ? t('campaign.obj.bonusCaptureOutpost') : t('campaign.obj.captureOutpost', { rounds });
+    if (o.k === 'noCityLost') return t('campaign.obj.noOutpostLost');
+    if (o.k === 'holdCities') return t('campaign.obj.holdOutposts', { rounds });
+  }
   // Landetrupp: das Ziel ist der Vorposten der Zyrr, in der Wueste der Aussenposten der Verdan
   // landing party: the target is the Zyrr outpost, in the desert the Verdan outpost
   if (m.landing && o.k === 'capture' && m.theme === 'desert') return bonus ? t('campaign.obj.bonusVerdanOutpost') : t('campaign.obj.verdanOutpost', { rounds });
+  if (m.landing && o.k === 'capture' && m.theme === 'alien') return bonus ? t('campaign.obj.bonusBurrow') : t('campaign.obj.burrow', { rounds });
   if (m.landing && o.k === 'capture') return bonus ? t('campaign.obj.bonusOutpost') : t('campaign.obj.outpost', { rounds });
   switch (o.k) {
     case 'capture': return bonus ? t('campaign.obj.bonusCapture') : t('campaign.obj.capture', { rounds });
@@ -130,6 +138,8 @@ export function briefingPanels(x: MissionCtx): Panel[] {
     return { speaker: p.speaker, enemy: p.enemy, text: fill(texts[i] ?? '', textVars(x, p.enemy)) };
   });
   if (x.ally) panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'ally', text: missionLine(x, 'ally') });
+  // erster Einsatz einer Welt mit Sendetuermen: Hinweis des Spaehers / first mission of a world with transmitter towers: scout tip
+  if (towerCount(x.m) > 0 && WORLDS.some((w) => w.missions[0] === x.m.id)) panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'scout', text: t('campaign.towerTip') });
   if (x.m.persuade && PERSUADE.factions.includes(x.f)) {
     // vor der Schlusszeile des eigenen Anfuehrers / before the own leader's closing line
     panels.splice(Math.max(0, panels.length - 1), 0, { speaker: 'scout', text: t('campaign.persuadeTip', { ...textVars(x), cost: PERSUADE.cost }) });
@@ -416,7 +426,7 @@ export class ObjectivePanel {
     const warn = art && art.k === 'artifact' && h && h.faction !== null && h.faction !== 0 && !c.allies?.includes(h.faction)
       ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t('campaign.artifactHeld', { name: t(`factions.${s.factions[h.faction].id}.short`), have: h.n, need: art.rounds }))}</div>`
       // Landetrupp ohne Stadt / landing party without a city
-      : c.landing ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t(m.theme === 'desert' ? 'campaign.landingDesert' : 'campaign.landing'))}</div>` : '';
+      : c.landing ? `<div class="obj-warn">${icon('warning', 'icon-sm')}${esc(t(m.theme === 'desert' ? 'campaign.landingDesert' : m.theme === 'alien' ? 'campaign.landingBurrow' : 'campaign.landing'))}</div>` : '';
     this.node.classList.toggle('collapsed', this.collapsed);
     this.node.innerHTML = `<button type="button" class="obj-toggle" data-action="obj-toggle" aria-expanded="${!this.collapsed}" aria-label="${esc(t('campaign.toggle'))}">
         ${icon('capture', 'icon-sm')}<span class="title">${esc(this.collapsed ? t('campaign.short') : missionTitle(m.id))}</span>

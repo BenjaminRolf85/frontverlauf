@@ -763,7 +763,7 @@
     "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
     "deserted": "Sold nicht bezahlt: {unit} desertiert",
     "verdanActive": "Verteidigungslinie der Verdan aktiviert!",
-    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!",
+    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Außenposten und Bunker!",
     "acid": "Säureregen! {n} Einheiten verätzt, davon {own} eigene. In Städte und Bunker!"
   },
   "fx": {
@@ -969,7 +969,7 @@
       "holdTile": "Halte das markierte Feld frei von Feinden bis Runde {rounds}",
       "capture": "Erobere die markierte Stadt bis Runde {rounds}",
       "salvage": "Berge die markierte Absturzstelle vor dem Feind, bis Runde {rounds}",
-      "cities": "Besitze {n} Städte bis Runde {rounds}",
+      "cities": "Besitze {n} Städte oder Sendetürme bis Runde {rounds}",
       "points": "Erreiche {n} Punkte bis Runde {rounds}",
       "kills": "Vernichte {n} feindliche Einheiten bis Runde {rounds}",
       "eliminate": "Schalte {name} aus bis Runde {rounds}",
@@ -977,7 +977,7 @@
       "keepHq": "Verliere nie dein Hauptquartier",
       "noCityLost": "Verliere keine Stadt",
       "bonusCapture": "Erobere die markierte Stadt",
-      "bonusCities": "Besitze {n} Städte",
+      "bonusCities": "Besitze {n} Städte oder Sendetürme",
       "bonusKills": "Vernichte {n} feindliche Einheiten",
       "bonusPoints": "Erreiche {n} Punkte",
       "destroyUnit": "Zerstöre den {unit} bis Runde {rounds}",
@@ -993,7 +993,15 @@
       "ruins": "Entziffere {n} Ruinenstätten der Vergessenen (eine Runde darauf stehen), bis Runde {rounds}",
       "cave": "Besetze den Höhleneingang {n} Runden in Folge, bis Runde {rounds}",
       "verdanOutpost": "Besetze den verlassenen Außenposten der Verdan bis Runde {rounds}",
-      "bonusVerdanOutpost": "Besetze den Außenposten der Verdan"
+      "bonusVerdanOutpost": "Besetze den Außenposten der Verdan",
+      "outposts": "Besitze {n} Verdan-Außenposten oder Sendetürme bis Runde {rounds}",
+      "bonusOutposts": "Besitze {n} Verdan-Außenposten oder Sendetürme",
+      "captureOutpost": "Besetze den markierten Verdan-Außenposten bis Runde {rounds}",
+      "bonusCaptureOutpost": "Besetze den markierten Verdan-Außenposten",
+      "noOutpostLost": "Verliere keinen Verdan-Außenposten",
+      "holdOutposts": "Verliere keinen Verdan-Außenposten bis Runde {rounds}",
+      "burrow": "Erobere die Höhle der Zyrr bis Runde {rounds}",
+      "bonusBurrow": "Erobere die Höhle der Zyrr"
     },
     "missions": {
       "m1": {
@@ -1128,13 +1136,13 @@
       },
       "m10": {
         "title": "Jenseits des Portals",
-        "tagline": "Landetrupp ohne Basis: Vorposten erobern, dann zum Nest der Schwarmmutter",
+        "tagline": "Landetrupp ohne Basis: Höhle der Zyrr erobern, dann zum Nest der Schwarmmutter",
         "brief": [
           "Wir sind durch! Hier ist alles violett: Pflanzen so groß wie Häuser, Felsen, die in der Luft schweben, zwei Monde. Keine Basis, kein Nachschub. Nur wir und eine Handvoll Trupps.",
-          "Kkt?! Erdlinge auf der Heimatwelt? Mein Vorposten wird euch schlucken. Und mein Nest seht ihr nie.",
-          "{leader} hier. Ohne Stadt halten wir nicht lange. Erst den Vorposten der Zyrr nehmen, dort richten wir uns ein. Dann vorwärts, bis wir vor dem Nest von Xyl'Tharra stehen."
+          "Kkt?! Erdlinge auf der Heimatwelt? Meine Höhle wird euch schlucken. Und mein Nest seht ihr nie.",
+          "{leader} hier. Ohne Basis halten wir nicht lange. Erst die Höhle der Zyrr nehmen, dort graben wir uns ein. Dann vorwärts, bis wir vor dem Nest von Xyl'Tharra stehen."
         ],
-        "won": "Der Vorposten gehört uns, und vor uns ragt das Nest der Schwarmmutter auf. Dort drinnen wartet sie.",
+        "won": "Die Höhle gehört uns, und vor uns ragt das Nest der Schwarmmutter auf. Dort drinnen wartet sie.",
         "lost": "Der Landetrupp ist verloren. Die violette Welt schluckt ihn ohne einen Laut."
       },
       "m11": {
@@ -1142,7 +1150,7 @@
         "tagline": "Stürme das Nest und bring Xyl'Tharra an den Rand des Todes",
         "brief": [
           "Das Nest pulsiert wie ein Herz, Kommandant. Mechs, Dreibeine, Graue ohne Ende. Und irgendwo da drin schläft etwas sehr Großes.",
-          "Kkt. Ihr habt meinen Vorposten. Ihr habt meinen Himmel gesehen. Kommt näher, kleine Wesen, und die Mutter erwacht.",
+          "Kkt. Ihr habt meine Höhle. Ihr habt meinen Himmel gesehen. Kommt näher, kleine Wesen, und die Mutter erwacht.",
           "{leader} hier. Sie heilt auf ihrem Boden, sie brütet, sie schreit. Also schlagen wir zusammen zu, alle auf einmal. Wenn die Schwarmmutter fällt, fällt der Schwarm."
         ],
         "ally": "{allyLeader} an {leader}: {ally} ist dir durch das Portal gefolgt. Auf dieser Welt ist jeder Mensch ein Verbündeter.",
@@ -1151,13 +1159,13 @@
       },
       "m12": {
         "title": "Gestrandet",
-        "tagline": "Verstreut in der roten Wüste: finde den Außenposten der Verdan und gründe eine Basis",
+        "tagline": "Verstreut in der roten Wüste: finde einen Außenposten der Verdan und gründe eine Basis",
         "brief": [
           "Kommandant, wir leben! Aber die Trupps liegen verstreut im roten Sand, weit auseinander. Kein Funkmast, keine Stadt. Nur Dünen, Tafelberge und Knochen von Tieren, so groß wie Häuser. Und ein Sandsturm zieht auf.",
           "Kkt ... Mutter? Mutter schweigt. Der Riss hat uns gefressen und hier ausgespuckt. Egal. Der Schwarm baut ein neues Nest, und ihr seid das Futter.",
           "KERN-0: STANDORT UNBEKANNT. SONNE ZU KLEIN. ZWEI MONDE. NEUBERECHNUNG ... ZIEL BLEIBT: DAS ARTEFAKT.",
           "Seht ihr? Das ist die Letzte Stunde! Die Welt ist schon verbrannt, und wir sind ihre Asche. Brüder, Schwestern, nehmt euch, was noch steht.",
-          "{leader} hier. Die Späher haben eine Ruine mit rot-weißen Flügeln gesehen, einen Außenposten der Verdan, verlassen seit Generationen. Sammelt euch dort und besetzt ihn, das wird unsere Basis. Dann drei Städte, bevor uns die anderen den Sand streitig machen."
+          "{leader} hier. Die Späher haben eine Ruine mit rot-weißen Flügeln gesehen, einen Außenposten der Verdan, verlassen seit Generationen. Sammelt euch dort und besetzt ihn, das wird unsere Basis. Dann noch zwei Außenposten, bevor uns die anderen den Sand streitig machen."
         ],
         "won": "Der Außenposten gehört uns. Über dem Tor hängt noch das Wappen der Verdan, rot und weiß, mit Flügeln. Was haben die hier gesucht?",
         "lost": "Der Sand hat uns geschluckt. Irgendwann findet jemand unsere Helme zwischen den Riesenknochen.",
@@ -1284,7 +1292,9 @@
     "reordered": "Die Kampagne spielt jetzt auf drei Welten: erst die Erde, dann die Heimatwelt der Zyrr, zuletzt die rote Wüste der Vergessenen. Das Portal ist jetzt der letzte Einsatz auf der Erde, danach folgen drei neue Einsätze in der Wüste. Gewonnene Einsätze bleiben offen, Sterne bleiben, und es geht beim ersten offenen Einsatz weiter.",
     "landingDesert": "Gestrandet ohne Stadt: Besetze den Außenposten der Verdan, sonst gibt es keinen Nachschub.",
     "ruinDone": "Ruinenstätte entziffert: {have}/{need}",
-    "riftOpen": "Der Riss reißt auf!"
+    "riftOpen": "Der Riss reißt auf!",
+    "landingBurrow": "Landetrupp ohne Basis: Erobere die Höhle der Zyrr, sonst gibt es keinen Nachschub.",
+    "towerTip": "Und noch etwas, Kommandant: Auf der Karte stehen Sendetürme. Erobert sie, dort kommt Nachschub an. Sie bilden Truppen aus, wachsen aber nicht."
   },
   "randomEvents": {
     "title": "Ereignisse",
@@ -1994,7 +2004,7 @@
     "dust": "Sandsturm",
     "dustDesc": "Sicht 1 Feld weniger, Einheiten ab Reichweite 2 haben 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung; mit Trefferglück deutlich mehr Fehlschüsse",
     "meteor": "Meteorschauer",
-    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Städten und Bunkern, nie tödlich",
+    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Außenposten und Bunkern, nie tödlich",
     "acid": "Säureregen",
     "acidDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder Einheit, die nicht zu den Zyrr gehört, außerhalb von Städten und Bunkern, nie tödlich; mit Trefferglück mehr Fehl- und Streifschüsse wie bei Regen",
     "quake": "Erdbeben",
@@ -3294,5 +3304,42 @@
     "previewKill": "Zerstört das Geschütz",
     "destroyed": "Verdan-Geschütz zerstört!",
     "fx": "Verdan"
+  },
+  "desert": {
+    "outpost": "Verdan-Außenposten",
+    "neutralOutpost": "Verlassener Außenposten"
+  },
+  "cityNamesVerdan": [
+    "Aurex",
+    "Castra Rubra",
+    "Vigilia",
+    "Alaris",
+    "Ferrogrund",
+    "Rotschwinge",
+    "Weißwacht",
+    "Posten Ostrel",
+    "Sandsporn",
+    "Kuppel Seraph",
+    "Relais Aquila",
+    "Vigil-Neun",
+    "Ascalon",
+    "Pennat",
+    "Rubicor",
+    "Station Velum",
+    "Feder-Sieben",
+    "Halcyra",
+    "Mast Orion",
+    "Zinnober"
+  ],
+  "burrow": {
+    "neutral": "Höhle",
+    "zyrr": "Zyrr-Höhle",
+    "own": "Höhle"
+  },
+  "tower": {
+    "name": "Sendeturm",
+    "neutral": "Sendeturm (frei)",
+    "desc": "Bildet Truppen aus, wächst nicht und lässt sich nicht ausbauen: festes Einkommen ({n} Sterne je Runde), bis zu {max} Einheiten. Hier kommt Nachschub an.",
+    "captured": "{name} hat einen Sendeturm eingenommen: Dort kommt jetzt Nachschub an."
   }
 }

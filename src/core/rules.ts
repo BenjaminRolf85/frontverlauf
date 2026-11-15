@@ -34,7 +34,7 @@ export function createGame(cfg: GameConfig): GameState {
   // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
   const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
-  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' || config.theme === 'desert' ? config.theme : undefined);
+  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' || config.theme === 'desert' ? config.theme : undefined, config.settlements ?? 1);
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
@@ -179,8 +179,8 @@ function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: 
 }
 
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
-  // Nachschublinien wachsen nicht / supply lines do not grow
-  if (supplyLines(s)) return;
+  // Nachschublinien und Sendetuerme wachsen nicht / supply lines and transmitter towers do not grow
+  if (supplyLines(s) || c.tower) return;
   c.pop += amount;
   while (c.pop >= levelUpCost(s, c)) {
     c.pop -= levelUpCost(s, c);

@@ -13,7 +13,7 @@ import { glowColor } from './post';
 
 /** Dauer des Aufreissens in ms / duration of the tearing in ms */
 export const RIFT_OPEN_MS = 2600;
-const PARTS = 140, DEBRIS = 22;
+const PARTS = 110, DEBRIS = 22;
 
 const VERT = /* glsl */ `
   varying vec2 vUv;
@@ -32,12 +32,14 @@ const FRAG = /* glsl */ `
     float fray = sin(a * 11.0 + uTime * 1.7) * 0.06 + sin(a * 23.0 - uTime * 3.1) * 0.03;
     float edge = 0.92 * uOpen + fray * uOpen;
     if (r > edge + 0.08) discard;
-    vec3 c = mix(uVoid, uViolet, smoothstep(0.1, 0.8, r) * swirl);
-    c = mix(c, uBright, smoothstep(0.55, 0.85, r) * swirl * 0.7);
-    float rim = smoothstep(edge - 0.16, edge - 0.02, r);
+    // Spiralarme in Violett bis Hellviolett, schwarzer Kern / spiral arms violet to bright violet, black core
+    float arms = smoothstep(0.35, 0.75, swirl) * smoothstep(0.05, 0.45, r);
+    vec3 c = mix(uVoid, uViolet, arms);
+    c = mix(c, uBright, arms * smoothstep(0.3, 0.8, r) * 0.85);
+    float rim = smoothstep(edge - 0.09, edge - 0.01, r);
     c = mix(c, mix(uSick, uGold, swirl), rim);
     float alpha = 1.0 - smoothstep(edge, edge + 0.08, r);
-    gl_FragColor = vec4(c * (1.0 + rim * 1.8), alpha);
+    gl_FragColor = vec4(c * (1.0 + arms * 0.6 + rim * 1.2), alpha);
   }`;
 
 export class RiftFx {
@@ -87,7 +89,10 @@ export class RiftFx {
     this.disc = disc;
     this.group.add(disc);
     // Funken in Rissfarben fuer den Bloom / sparks in rift colours for the bloom
-    const pm = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshBasicMaterial({ color: glowColor(hex(semantic.riftSick), 2), transparent: true, depthWrite: false }), PARTS);
+    const pm = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.03, 0), new THREE.MeshBasicMaterial({ color: hex(semantic.white), transparent: true, depthWrite: false }), PARTS);
+    // jeder dritte Funke gruengold / every third spark green-gold
+    const sick = glowColor(hex(semantic.riftSick), 1.6), violet = glowColor(hex(semantic.riftVioletBright), 1.8);
+    for (let i = 0; i < PARTS; i++) pm.setColorAt(i, i % 3 ? violet : sick);
     const dm = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(0.07, 0), new THREE.MeshBasicMaterial({ color: hex(semantic.riftViolet) }), DEBRIS);
     for (const m of [pm, dm]) { m.frustumCulled = false; m.raycast = () => {}; m.renderOrder = 71; this.group.add(m); }
     this.parts = pm; this.debris = dm;

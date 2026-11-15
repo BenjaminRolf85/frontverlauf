@@ -46,7 +46,7 @@ function chooseStarts(rng: { rng: number }, size: number, count: number): Pos[] 
   return result;
 }
 
-export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern' | 'desert'): GeneratedMap {
+export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern' | 'desert', settlements = 1): GeneratedMap {
   const rng = { rng: seed | 0 };
   const params = MAP_TYPES[mapType];
   const n = size * size;
@@ -200,7 +200,8 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     }
     if (pick) villages.push(pick);
   }
-  const target = Math.round(n * MAPGEN.villagesPerTile);
+  // Kampagne: weniger Siedlungen je nach Welt (settlements < 1); freie Partien unveraendert / campaign: fewer settlements per world (settlements < 1); free games unchanged
+  const target = Math.round(n * MAPGEN.villagesPerTile * settlements);
   const all: Pos[] = [];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) all.push({ x, y });
   shuffle(rng, all);
@@ -274,9 +275,10 @@ function drainSea(seed: number, size: number, tiles: Tile[]): Set<number> {
       // Tuempel nur abseits von Staedten (keine Haefen in der Wueste) / pools only away from cities (no harbours in the desert)
       const nearCity = area(size, x, y, 1).some((p) => tiles[idx(size, p.x, p.y)].cityId !== null);
       if (t.terrain === 'shallow' && roll < MAPGEN.desertPool && !nearCity) { if (t.resource === 'fish') t.resource = null; continue; }
+      // nur der tiefe Teil wird Salzpfanne, der flache Saum Duene / only the deep part becomes salt flat, the shallow fringe dune
+      if (t.terrain === 'ocean') seabed.add(k);
       t.terrain = 'plain';
       if (t.resource === 'fish') t.resource = null;
-      seabed.add(k);
     } else if (t.terrain === 'forest' && roll > MAPGEN.desertForestKeep && t.cityId === null) t.terrain = 'plain';
   }
   return seabed;

@@ -17,6 +17,7 @@ import { glowColor } from './post';
 const TOP = 2.4;
 /** Dauer eines Einschlags (Meteor, Saeure) und der gluehenden Bebenrisse in s / duration of an impact and the glowing quake cracks in s */
 const IMPACT_S = 0.9, CRACK_S = 2.4;
+const UP = new THREE.Vector3(0, 1, 0);
 
 export class WeatherFx {
   readonly group = new THREE.Group();
@@ -25,6 +26,7 @@ export class WeatherFx {
   private size = 0;
   private parts: { p: THREE.Vector3; v: THREE.Vector3; phase: number }[] = [];
   private tmp = new THREE.Object3D();
+  private dir = new THREE.Vector3();
   animate = true;
   /** Hoehlenpartikel: Tropfen und Staub / cavern particles: drips and dust */
   private cave: { mesh: THREE.InstancedMesh; drip: boolean; parts: { p: THREE.Vector3; v: THREE.Vector3; phase: number }[] }[] = [];
@@ -57,7 +59,7 @@ export class WeatherFx {
     else if (kind === 'acid') { geo = new THREE.BoxGeometry(0.014, 0.2, 0.014); color = glowColor(hex(semantic.acidRain), 1.3); opacity = 0.8; count = Math.min(480, size * size * 1.3); }
     else if (kind === 'snow') { geo = new THREE.IcosahedronGeometry(0.045, 0); color = hex(semantic.white); opacity = 1; count = Math.min(560, size * size * 1.5); }
     else if (kind === 'dust') { geo = new THREE.BoxGeometry(0.7, 0.05, 0.12); color = hex(semantic.desertDust); opacity = 0.55; count = Math.min(380, size * size * 1.1); }
-    else if (kind === 'meteor') { geo = new THREE.BoxGeometry(0.03, 0.5, 0.03); color = glowColor(hex(semantic.riftGold), 2.2); opacity = 0.95; count = Math.min(40, size * 2); }
+    else if (kind === 'meteor') { geo = new THREE.ConeGeometry(0.045, 1.1, 5); geo.rotateX(Math.PI); geo.translate(0, -0.55, 0); color = glowColor(hex(semantic.riftGold), 2.2); opacity = 0.9; count = Math.min(40, size * 2); }
     else if (kind === 'quake') { geo = new THREE.DodecahedronGeometry(0.03, 0); color = hex(semantic.caveDust); opacity = 0.9; count = Math.min(260, size * size * 0.6); }
     else { geo = new THREE.BoxGeometry(0.9, 0.02, 0.045); color = hex(semantic.white); opacity = 0.9; count = Math.min(160, size * size * 0.45); }
     const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
@@ -213,7 +215,8 @@ export class WeatherFx {
       this.tmp.position.copy(q.p);
       this.tmp.scale.setScalar(1);
       if (this.kind === 'rain' || this.kind === 'acid') this.tmp.rotation.set(0.08, 0, -0.08);
-      else if (this.kind === 'meteor') this.tmp.rotation.set(0.2, 0, -0.35);
+      // dicker Kopf voran, duenner Schweif hinterher / thick head first, thin trail behind
+      else if (this.kind === 'meteor') this.tmp.quaternion.setFromUnitVectors(UP, this.dir.copy(q.v).normalize());
       else if (this.kind === 'quake') { this.tmp.rotation.set(q.phase, q.p.y * 3, 0); this.tmp.scale.setScalar(0.5 + (i % 5) * 0.35); }
       else if (this.kind === 'dust') { this.tmp.rotation.set(0, 0.35, 0); this.tmp.scale.set(0.7 + 0.6 * Math.abs(Math.sin(q.phase + q.p.x)), 1, 1); }
       else if (this.kind === 'wind') { this.tmp.rotation.set(0, 0.2, 0); this.tmp.scale.setScalar(0.6 + 0.4 * Math.abs(Math.sin(q.phase + q.p.x))); }

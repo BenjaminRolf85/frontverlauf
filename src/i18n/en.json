@@ -763,7 +763,7 @@
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
     "verdanActive": "Verdan defence line activated!",
-    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!",
+    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into outposts and bunkers!",
     "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
   },
   "fx": {
@@ -969,7 +969,7 @@
       "holdTile": "Keep the marked tile free of enemies until round {rounds}",
       "capture": "Capture the marked city by round {rounds}",
       "salvage": "Salvage the marked crash site before the enemy, by round {rounds}",
-      "cities": "Own {n} cities by round {rounds}",
+      "cities": "Own {n} cities or transmitter towers by round {rounds}",
       "points": "Reach {n} points by round {rounds}",
       "kills": "Destroy {n} enemy units by round {rounds}",
       "eliminate": "Knock out {name} by round {rounds}",
@@ -977,7 +977,7 @@
       "keepHq": "Never lose your headquarters",
       "noCityLost": "Lose no city",
       "bonusCapture": "Capture the marked city",
-      "bonusCities": "Own {n} cities",
+      "bonusCities": "Own {n} cities or transmitter towers",
       "bonusKills": "Destroy {n} enemy units",
       "bonusPoints": "Reach {n} points",
       "destroyUnit": "Destroy the {unit} by round {rounds}",
@@ -993,7 +993,15 @@
       "ruins": "Decipher {n} ruin sites of the Forgotten (stand on one for a round), by round {rounds}",
       "cave": "Occupy the cave entrance for {n} rounds in a row, by round {rounds}",
       "verdanOutpost": "Take the abandoned Verdan outpost by round {rounds}",
-      "bonusVerdanOutpost": "Take the Verdan outpost"
+      "bonusVerdanOutpost": "Take the Verdan outpost",
+      "outposts": "Own {n} Verdan outposts or transmitter towers by round {rounds}",
+      "bonusOutposts": "Own {n} Verdan outposts or transmitter towers",
+      "captureOutpost": "Take the marked Verdan outpost by round {rounds}",
+      "bonusCaptureOutpost": "Take the marked Verdan outpost",
+      "noOutpostLost": "Lose no Verdan outpost",
+      "holdOutposts": "Lose no Verdan outpost until round {rounds}",
+      "burrow": "Capture the Zyrr burrow by round {rounds}",
+      "bonusBurrow": "Capture the Zyrr burrow"
     },
     "missions": {
       "m1": {
@@ -1128,13 +1136,13 @@
       },
       "m10": {
         "title": "Beyond the Portal",
-        "tagline": "Landing party without a base: take the outpost, then march on the Swarm Mother's nest",
+        "tagline": "Landing party without a base: take the Zyrr burrow, then march on the Swarm Mother's nest",
         "brief": [
           "We are through! Everything here is violet: plants as big as houses, rocks floating in the air, two moons. No base, no supplies. Just us and a handful of squads.",
-          "Kkt?! Earthlings on the homeworld? My outpost will swallow you. And my nest you will never see.",
-          "{leader} here. Without a city we will not last long. First we take the Zyrr outpost and dig in there. Then forward, until we stand before the nest of Xyl'Tharra."
+          "Kkt?! Earthlings on the homeworld? My burrow will swallow you. And my nest you will never see.",
+          "{leader} here. Without a base we will not last long. First we take the Zyrr burrow and dig in there. Then forward, until we stand before the nest of Xyl'Tharra."
         ],
-        "won": "The outpost is ours, and ahead of us looms the Swarm Mother's nest. In there, she is waiting.",
+        "won": "The burrow is ours, and ahead of us looms the Swarm Mother's nest. In there, she is waiting.",
         "lost": "The landing party is lost. The violet world swallows it without a sound."
       },
       "m11": {
@@ -1142,7 +1150,7 @@
         "tagline": "Storm the nest and bring Xyl'Tharra to the brink of death",
         "brief": [
           "The nest pulses like a heart, commander. Mechs, tripods, greys without end. And somewhere in there something very big is sleeping.",
-          "Kkt. You have my outpost. You have seen my sky. Come closer, little beings, and the mother awakens.",
+          "Kkt. You have my burrow. You have seen my sky. Come closer, little beings, and the mother awakens.",
           "{leader} here. She heals on her ground, she broods, she screams. So we strike together, all at once. When the Swarm Mother falls, the swarm falls."
         ],
         "ally": "{allyLeader} to {leader}: {ally} followed you through the portal. On this world every human is an ally.",
@@ -1151,13 +1159,13 @@
       },
       "m12": {
         "title": "Stranded",
-        "tagline": "Scattered across the red desert: find the Verdan outpost and found a base",
+        "tagline": "Scattered across the red desert: find a Verdan outpost and found a base",
         "brief": [
           "Commander, we are alive! But the squads lie scattered in the red sand, far apart. No radio mast, no city. Only dunes, mesas and the bones of animals as big as houses. And a dust storm is coming.",
           "Kkt ... Mother? Mother is silent. The rift ate us and spat us out here. No matter. The swarm builds a new nest, and you are the food.",
           "KERN-0: LOCATION UNKNOWN. SUN TOO SMALL. TWO MOONS. RECALCULATING ... OBJECTIVE UNCHANGED: THE ARTIFACT.",
           "You see? This is the Final Hour! The world has already burned, and we are its ashes. Brothers, sisters, take whatever still stands.",
-          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then three cities, before the others contest the sand."
+          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then two more outposts, before the others contest the sand."
         ],
         "won": "The outpost is ours. Above the gate the Verdan emblem still hangs, red and white, with wings. What were they looking for here?",
         "lost": "The sand has swallowed us. One day someone will find our helmets among the giant bones.",
@@ -1284,7 +1292,9 @@
     "reordered": "The campaign now spans three worlds: first Earth, then the Zyrr homeworld, finally the red desert of the Forgotten. The portal is now the last operation on Earth, followed by three new operations in the desert. Won operations stay open, stars are kept, and you continue with the first open operation.",
     "landingDesert": "Stranded without a city: take the Verdan outpost, or there will be no reinforcements.",
     "ruinDone": "Ruin site deciphered: {have}/{need}",
-    "riftOpen": "The rift tears open!"
+    "riftOpen": "The rift tears open!",
+    "landingBurrow": "Landing party without a base: capture the Zyrr burrow, or there will be no reinforcements.",
+    "towerTip": "One more thing, commander: there are transmitter towers on the map. Capture them, reinforcements arrive there. They train troops but do not grow."
   },
   "randomEvents": {
     "title": "Events",
@@ -1994,7 +2004,7 @@
     "dust": "Dust storm",
     "dustDesc": "Vision 1 tile less, units with range 2 or more lose 1 range, helicopters move 1 tile less; with hit luck, clearly more misses",
     "meteor": "Meteor shower",
-    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside cities and bunkers, never lethal",
+    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside outposts and bunkers, never lethal",
     "acid": "Acid rain",
     "acidDesc": "At the start of each round 1 to 2 damage to every unit that is not Zyrr, outside cities and bunkers, never lethal; with hit luck more misses and grazes, as in rain",
     "quake": "Earthquake",
@@ -3294,5 +3304,42 @@
     "previewKill": "Destroys the gun",
     "destroyed": "Verdan gun destroyed!",
     "fx": "Verdan"
+  },
+  "desert": {
+    "outpost": "Verdan outpost",
+    "neutralOutpost": "Abandoned outpost"
+  },
+  "cityNamesVerdan": [
+    "Aurex",
+    "Castra Rubra",
+    "Vigilia",
+    "Alaris",
+    "Ferrofield",
+    "Redwing",
+    "Whitewatch",
+    "Ostrel Post",
+    "Sandspur",
+    "Seraph Dome",
+    "Aquila Relay",
+    "Vigil Nine",
+    "Ascalon",
+    "Pennat",
+    "Rubicor",
+    "Velum Station",
+    "Feather Seven",
+    "Halcyra",
+    "Orion Mast",
+    "Cinnabar"
+  ],
+  "burrow": {
+    "neutral": "Burrow",
+    "zyrr": "Zyrr burrow",
+    "own": "Burrow"
+  },
+  "tower": {
+    "name": "Transmitter tower",
+    "neutral": "Transmitter tower (free)",
+    "desc": "Trains troops, does not grow and cannot be upgraded: fixed income ({n} stars per round), up to {max} units. Reinforcements arrive here.",
+    "captured": "{name} has taken a transmitter tower: reinforcements now arrive there."
   }
 }

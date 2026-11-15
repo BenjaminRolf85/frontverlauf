@@ -9,7 +9,7 @@ import {
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, turretAt, type GameConfig, type GameState,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, setLanguage, t } from '../i18n/i18n';
@@ -679,7 +679,7 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
       <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
   }
   if (c) {
-    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(supplyLines(s) ? 'cavern.neutralLine' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : t('hud.level', { n: c.level }))}`}</p>`;
+    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(c.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(c.tower ? t('tower.name') : supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : `${isDesert(s) ? `${t('desert.outpost')} · ` : isAlienWorld(s) ? `${t(s.factions[c.owner].id === 'zyrr' ? 'burrow.zyrr' : 'burrow.own')} · ` : ''}${t('hud.level', { n: c.level })}`)}`}</p>`;
   }
   const gun = turretAt(s, x, y);
   if (gun && (viewer < 0 || isExplored(s, viewer, x, y))) {

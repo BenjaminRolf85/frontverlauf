@@ -169,7 +169,7 @@ function boot() {
       const fname = (i: number) => t(`factions.${s.factions[i].id}.short`);
       switch (e.t) {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
-        case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t('events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
+        case 'capture': if (e.faction === viewer || e.from === viewer) toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city: cityName(s, e.city) }), 'capture'); break;
         case 'research': if (e.faction === viewer) toast(root, t('events.research', { tech: t(`techs.${e.tech}`) }), 'research'); break;
         case 'veteran': { const u = s.units.find((x) => x.id === e.unit); if (u && u.owner === viewer) toast(root, t('events.veteran', { unit: unitName(u), hp: VETERAN.bonusHp }), 'medal'); break; }
         case 'bunker': if (e.faction === viewer) toast(root, t(`events.bunker${e.reward[0].toUpperCase()}${e.reward.slice(1)}`, { n: BUNKER.stars, pop: BUNKER.population }), 'star'); break;

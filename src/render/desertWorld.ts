@@ -1,22 +1,20 @@
 /**
- * Welt der Vergessenen (Kartenthema 'desert', nur Darstellung): ferne Tafelberge hinter den Kartenraendern, treibender
- * Staub, wandernde Staubteufel, Sandhuepfer am Boden und kreisende Aasflieger. Alles instanziert, feste Obergrenzen,
+ * Welt der Vergessenen (Kartenthema 'desert', nur Darstellung): treibender Staub, wandernde Staubteufel, Sandhuepfer
+ * am Boden und kreisende Aasflieger. Alles instanziert, feste Obergrenzen,
  * bei niedriger Qualitaet weniger; ohne Animationen steht alles still.
- * World of the Forgotten (map theme 'desert', render only): distant mesas beyond the map edges, drifting dust, wandering
- * dust devils, sand skitterers on the ground and circling carrion fliers. Everything instanced, fixed caps, fewer on low
+ * World of the Forgotten (map theme 'desert', render only): drifting dust, wandering dust devils, sand skitterers on the
+ * ground and circling carrion fliers. Everything instanced, fixed caps, fewer on low
  * quality; without animations everything stands still.
  */
 import * as THREE from 'three';
 import { hex, semantic } from '../design/tokens';
 import type { GameState, Tile } from '../core';
-import { withGlow } from './atmosphere';
 import { OUTLINE } from './config';
 import { outlinedInstanced, toonMaterial } from './toon';
-import { landMaterial } from './atmosphere';
-import { carrionFlierGeometry, dustDevilGeometry, mesaGeometry, skittererGeometry } from './models/desert';
+import { carrionFlierGeometry, dustDevilGeometry, skittererGeometry } from './models/desert';
 
 /** Obergrenzen (hoch / niedrig) / caps (high / low) */
-export const DESERT_CAPS = { mesas: 30, dust: [260, 90], devils: [4, 2], skitterers: [14, 6], fliers: [6, 3] };
+export const DESERT_CAPS = { dust: [260, 90], devils: [4, 2], skitterers: [14, 6], fliers: [6, 3] };
 
 const hash = (a: number, b: number) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); };
 
@@ -58,27 +56,6 @@ export class DesertWorldFx {
     const { s, explored, top, occupied, low } = inp;
     const size = (this.size = s.size), off = (size - 1) / 2;
     const q = low ? 1 : 0;
-    // --- ferne Tafelberge rund um die Scheibe / distant mesas around the disc ---
-    const mesas: THREE.Matrix4[][] = [[], [], [], []];
-    const n = Math.min(DESERT_CAPS.mesas, Math.round(size * 1.7) >> q);
-    for (let i = 0; i < n; i++) {
-      const side = i % 4, k = Math.floor(i / 4), per = Math.ceil(n / 4);
-      const along = -off - 1 + ((k + 0.5 + (hash(i, 3) - 0.5) * 0.5) / per) * (size + 2);
-      const out = off + 1.3 + hash(i, 7) * 1.8;
-      const [x, z] = side === 0 ? [along, -out] : side === 1 ? [out, along] : side === 2 ? [-along, out] : [-out, -along];
-      const sc = 1.1 + hash(i, 11) * 1.3;
-      mesas[i % 4].push(new THREE.Matrix4().compose(new THREE.Vector3(x, -0.25, z),
-        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), hash(i, 13) * 6.28), new THREE.Vector3(sc, sc * (0.7 + hash(i, 17) * 0.6), sc)));
-    }
-    mesas.forEach((list, v) => {
-      if (!list.length) return;
-      const { mesh, line } = outlinedInstanced(withGlow(mesaGeometry(v), 'nature'), list.length, OUTLINE.building, landMaterial());
-      list.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
-      mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
-      for (const o of [mesh, line]) { o.frustumCulled = false; o.raycast = () => {}; }
-      mesh.receiveShadow = true;
-      this.group.add(mesh, line);
-    });
     // --- Tiere und Staubteufel auf festen Plaetzen / critters and dust devils on fixed spots ---
     for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
       const k = y * size + x;
