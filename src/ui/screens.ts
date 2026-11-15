@@ -18,6 +18,7 @@ import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDi
 import { emplacementDesc, emplacementName, emplacementStats } from './emplacement';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
 import { buildingDescText, cityName, unitDisplayName, unitName } from './hud';
+import { sinTag } from './sin';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
@@ -620,6 +621,9 @@ export function diplomacyDialog(host: ScreenHost) {
         const tags = [`<span class="tag ${rel === 'peace' ? 'ok' : rel === 'breaking' ? 'warn' : ''}">${esc(t(`diplomacy.${rel}`))}</span>`];
         if (me.embassies.includes(o.index)) tags.push(`<span class="tag ok">${esc(t('diplomacy.embassyOpen'))}</span>`);
         if (o.peaceOffers.includes(f)) tags.push(`<span class="tag">${esc(t('diplomacy.offerPending'))}</span>`);
+        // Heiliges Alvenia: Suendenzeichen mit Tat und Restrunden / Holy Alvenia: sinner mark with deed and rounds left
+        const sin = sinTag(s, o.index);
+        if (sin) tags.push(sin);
         const btns: string[] = [];
         if (canAct) {
           if (me.peaceOffers.includes(o.index)) {

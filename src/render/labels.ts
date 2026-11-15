@@ -34,11 +34,12 @@ export function clearLabelCache() {
   cache.clear();
 }
 
-export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number }
+/** sin = Fraktion als Suender gezeichnet, blessed = Maertyrer-Segen (Heiliges Alvenia) / sin = faction marked as a sinner, blessed = Martyr's Blessing (Holy Alvenia) */
+export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number; sin?: boolean; blessed?: boolean }
 
 /** LP-Plakette / HP badge */
 export function hpBadge(b: BadgeInfo): THREE.Sprite {
-  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}`;
+  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}-${!!b.sin}-${!!b.blessed}`;
   const W = 128, H = b.fuel !== null ? 84 : 64;
   const m = material(key, W, H, (ctx) => {
     const ink = semantic.ink;
@@ -48,6 +49,11 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
     ctx.fillStyle = b.color;
     roundRect(ctx, 2, 2, W - 10, 52, 16); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
+    // Maertyrer-Segen: goldener Rand / Martyr's Blessing: golden rim
+    if (b.blessed) {
+      roundRect(ctx, 5, 5, W - 16, 46, 14); ctx.lineWidth = 7; ctx.strokeStyle = semantic.faithHalo; ctx.stroke();
+      roundRect(ctx, 2, 2, W - 10, 52, 16); ctx.lineWidth = 3; ctx.strokeStyle = ink; ctx.stroke();
+    }
     ctx.fillStyle = b.ink;
     ctx.font = `44px ${primitives.font.display}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -62,6 +68,15 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
         ctx.lineTo(26 + Math.cos(a) * r, 29 + Math.sin(a) * r);
       }
       ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    // Suendenzeichen: roter Kreis mit gesprungenem Sonnenkranz rechts / sinner mark: red disc with a cracked sun halo on the right
+    if (b.sin) {
+      const cx = W - 26, cy = 29;
+      ctx.fillStyle = semantic.sinMark; ctx.strokeStyle = ink; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = semantic.textInverse; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 8, -Math.PI * 0.35, Math.PI * 1.35); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx, cy - 13); ctx.lineTo(cx - 3, cy - 4); ctx.lineTo(cx + 2, cy); ctx.lineTo(cx - 1, cy + 5); ctx.stroke();
     }
     if (b.fuel !== null) {
       const pw = 22, gap = 6, total = b.maxFuel * pw + (b.maxFuel - 1) * gap, x0 = (W - total) / 2;

@@ -10,7 +10,7 @@ import {
 import { emplacementOption } from './emplacements';
 import { scientistAttackBonus, workSpotPenalty } from './mothership';
 import { carrierAttackBonus, planSeize } from './temple';
-import { AI, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type WonderUnitId } from '../data/balance';
+import { AI, ALVENIA_UNITS, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type AlveniaUnitId, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -55,6 +55,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   v += scientistAttackBonus(ctx, d);
   // Kampagne m4: der Traeger der Kriegsplaene ist das Ziel des Kults / campaign m4: the carrier of the war plans is the cult's target
   v += carrierAttackBonus(ctx, d) * (p.killChance + 0.4);
+  // Heiliges Alvenia: Suender zuerst richten / Holy Alvenia: judge sinners first
+  if (p.judgement > 0) v += AI.sinnerTarget * (0.5 + p.killChance);
   return v;
 }
 
@@ -329,7 +331,7 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   if (fly && ctx.enemies.some((e) => has(e, 'flak') && dist(e, { x, y }) <= COUNTER.flak.range)) v -= 12;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
-    const capturer = !fly && type !== 'spy' && type !== 'artillery' && type !== 'medic' && layer === 0;
+    const capturer = !fly && type !== 'spy' && type !== 'artillery' && type !== 'sunLance' && type !== 'medic' && layer === 0;
     if (c.owner === f) {
       // blockiert Ausbildung; eine frische Einheit verteidigt die Stadt ebenso / blocks training; a fresh unit defends as well
       // Stadtfeld fuer Ausbildung freimachen, besonders mit vollem Sternekonto / clear the city tile for training, especially with stars to spend
@@ -344,12 +346,12 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   if (dmg > 0) {
     const w = worth(u);
     let pen = dmg >= u.hp ? (w + 12) * 1.4 : (dmg / u.hp) * w * 1.1;
-    if (type === 'artillery') pen *= 1.8;
+    if (type === 'artillery' || type === 'sunLance') pen *= 1.8;
     if (type === 'medic' || type === 'spy') pen *= 1.3;
     v -= pen * prof.caution * cautionFor(ctx, g, u);
   }
   v += (defBonusAt(ctx, u, x, y, asShip) - 1) * 3;
-  // Friedensbollwerk (Alvenia): bedroht lieber auf eigenem Gebiet stehen / Peace Bulwark (Alvenia): when threatened, prefer own territory
+  // Glaubensbollwerk (Alvenia): bedroht lieber auf eigenem Gebiet stehen / Bulwark of Faith (Alvenia): when threatened, prefer own territory
   if (dmg > 0) v += homeDefenseAt(s, u, x, y) * AI.homeGround;
   // Mahnmal des Kults: der Kult kaempft gern von dort, menschliche Angreifer meiden es (Furcht), nur mit Gegnern in Reichweite
   // cult memorial: the cult likes to fight from there, human attackers avoid it (fear), only with enemies in reach
@@ -381,10 +383,14 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   // Fernkampf: in Reichweite fuer die naechste Runde / ranged: in range for next round
   // Railgun-Schuetze: kein Sturm, also stellt er sich hier fuer den naechsten Zug auf und schiesst nie nach einer Bewegung (canAttackAfter)
   // railgun marksman: no dash, so it sets up here for the next turn and never fires after moving (canAttackAfter)
-  if (type === 'artillery' || type === 'sniper' || type === 'railSniper' || type === 'battleship' || type === 'protoWalker') {
+  if (type === 'artillery' || type === 'sniper' || type === 'railSniper' || type === 'battleship' || type === 'protoWalker' || ALVENIA_UNITS.includes(type as AlveniaUnitId)) {
     const range = UNITS[type].range;
     if (ctx.enemies.some((e) => dist(e, { x, y }) <= range)) v += dmg > 0 ? 3 : 10;
     if (ctx.hostileCities.some((c) => dist(c, { x, y }) <= range)) v += 4;
+  }
+  // Alvenia-Fernkaempfer ohne Sturm: Abstand halten, nicht neben Gegnern enden / Alvenia ranged units without dash: keep distance, do not end next to enemies
+  if (ALVENIA_UNITS.includes(type as AlveniaUnitId) && UNITS[type].range >= 2 && layer === 0 && !onGoal) {
+    if (ctx.enemies.some((e) => dist(e, { x, y }) === 1 && UNITS[e.type].attack > 0)) v -= AI.keepDistance;
   }
   // Sanitaeter: Bekehrung und Heilung in Reichweite / medic: conversion and healing in reach
   if (type === 'medic') {

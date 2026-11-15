@@ -28,14 +28,15 @@ function setup(ground: Ground, o: { defender?: FactionId; hitChance?: boolean } 
 const raw = (bonus: number) =>
   Math.round((UNITS.tank.attack / (UNITS.tank.attack + UNITS.infantry.defense * (1 + bonus))) * UNITS.tank.attack * COMBAT.damageFactor * counterFactor('tank', 'infantry'));
 
-describe('Friedensbollwerk / Peace Bulwark', () => {
+describe('Glaubensbollwerk / Bulwark of Faith', () => {
   it('wirkt auf eigenem Gebiet / active on own territory', () => {
     const { s, a, d } = setup('own');
-    expect(HOME_DEFENSE.bonus.alvenia).toBe(0.25);
-    expect(homeDefenseAt(s, d)).toBe(0.25);
+    const hb = HOME_DEFENSE.bonus.alvenia!;
+    expect(hb).toBeGreaterThan(0.25);
+    expect(homeDefenseAt(s, d)).toBe(hb);
     const pre = combatPreview(s, a, d);
-    expect(pre.homeDefense).toBe(0.25);
-    expect(pre.toDefender).toBe(raw(0.25));
+    expect(pre.homeDefense).toBe(hb);
+    expect(pre.toDefender).toBe(raw(hb));
     expect(pre.toDefender).toBeLessThan(combatPreview(setup('neutral').s, a, d).toDefender);
   });
 

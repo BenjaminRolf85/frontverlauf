@@ -62,6 +62,14 @@ export function migrateState(s: GameState): GameState {
   // Feuern nach Bewegung liest u.moved: fehlt das Feld, gilt die Einheit als in diesem Zug nicht gezogen
   // firing after moving reads u.moved: if the field is missing, the unit counts as not moved this turn
   for (const u of s.units) if (typeof u.moved !== 'boolean') u.moved = false;
+  // Heiliges Alvenia: Voelkerbund-Charta wird zum Grossen Strafgericht, der Voelkerbund-Zaehler entfaellt;
+  // Suendenzeichen (sin), Strafgericht-Zaehler (judged) und Segen (blessed) fehlen in alten Spielstaenden und gelten als nie gesetzt
+  // Holy Alvenia: the League Charter becomes the Great Judgement, the League counter is dropped;
+  // sinner marks (sin), the judgement counter (judged) and blessings (blessed) are missing in old saves and count as never set
+  for (const fa of s.factions as (GameState['factions'][number] & { league?: number })[]) {
+    fa.techs = fa.techs.map((t) => ((t as string) === 'leagueCharter' ? 'greatJudgement' : t));
+    delete fa.league;
+  }
   // Kampagnen-Spielstaende der alten Missionsfassung laufen als freie Eroberungspartie weiter (die Missionen gibt es so nicht mehr)
   // campaign saves of the old mission data continue as a free conquest game (those missions no longer exist)
   // dazu laufende m2-Partien der alten Bergung (vor dem Mutterschiff) und m4 vor den Kriegsplaenen (ohne Tempel)

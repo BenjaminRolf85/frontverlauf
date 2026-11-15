@@ -175,11 +175,12 @@ describe('Liste der Velkar / Velkar roster', () => {
     for (const f of FACTION_IDS.filter((id) => !ROSTERS[id] && id !== 'velkar')) {
       const i = s.factions.findIndex((x) => x.id === f);
       const l = rosterUnits(s, i);
-      for (const t of ['tank', 'heli', 'sniper'] as const) expect(l, f).toContain(t);
+      // Alvenia hat eigene Bauarten fuer Panzer (Reliquiar), nicht fuer Hubschrauber und Scharfschuetze / Alvenia has its own tank design (Reliquary), not for helicopter and sniper
+      for (const t of ['tank', 'heli', 'sniper'] as const) if (!(f === 'alvenia' && t === 'tank')) expect(l, f).toContain(t);
       for (const t of ['teslaTank', 'octocopter', 'railSniper'] as const) expect(l, f).not.toContain(t);
       expect(techUnlocks('armyAviation', f).units).toEqual(['heli']);
     }
-    expect(Object.keys(VARIANTS)).toEqual(['velkar']);
+    expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia']);
     expect(LAND_UNITS).toContain('sniper');
   });
 

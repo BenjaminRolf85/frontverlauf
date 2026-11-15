@@ -15,9 +15,9 @@ export interface IntroTexts {
   factions: Record<HumanFaction, FactionTexts>;
 }
 
-/** Kampfstil: Korvat und Alvenia benutzen die Namen ihrer Spielboni / combat style: Korvat and Alvenia use the names of their game bonuses */
+/** Kampfstil: Korvat und Alvenia benutzen die Namen ihrer Spielboni (Alvenia: Strafgericht) / combat style: Korvat and Alvenia use the names of their game bonuses (Alvenia: Judgement) */
 const tagOf = (f: HumanFaction) =>
-  f === 'korvat' ? t('moveFire.bonus.korvat') : f === 'alvenia' ? t('homeDefense.bonus.alvenia') : t(`intro.tag.${f}`);
+  f === 'korvat' ? t('moveFire.bonus.korvat') : f === 'alvenia' ? t('factions.alvenia.perk') : t(`intro.tag.${f}`);
 
 export function introTexts(): IntroTexts {
   const factions = {} as Record<HumanFaction, FactionTexts>;

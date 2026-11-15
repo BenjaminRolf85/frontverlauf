@@ -2,7 +2,7 @@
  * Fraktionsembleme als flache Formen (frei erfunden, ohne reale Vorbilder).
  * Faction emblems as flat shapes (invented, no real-world models).
  * Korvat: Zahnrad / gear; Dravon: abstrakte Blockfaust / abstract blocky fist;
- * Alvenia: Stern im Ring / star in a ring; Meridon: Kompassrose / compass rose; Velkar: Sechseck / hexagon.
+ * Alvenia: vierzackiger Stern im Sonnenkranz / four-pointed star in the sun halo; Meridon: Kompassrose / compass rose; Velkar: Sechseck / hexagon.
  * Groesse: Radius 1, zentriert in XY / size: radius 1, centred in XY.
  */
 import * as THREE from 'three';
@@ -65,9 +65,10 @@ export function emblemShapes(f: FactionId): THREE.Shape[] {
       return out;
     }
     case 'alvenia': {
-      const ring = poly(circlePts(1, 12));
-      ring.holes.push(hole(circlePts(0.8, 12)));
-      return [ring, poly(starPts(5, 0.72, 0.3))];
+      // Heiliges Alvenia: duenner Sonnenkranz mit vierzackigem Stern / Holy Alvenia: thin sun halo with a four-pointed star
+      const ring = poly(circlePts(1, 16));
+      ring.holes.push(hole(circlePts(0.86, 16)));
+      return [ring, poly(starPts(4, 0.78, 0.2))];
     }
     case 'meridon': {
       // Kompassrose: 4 lange, 4 kurze Spitzen / compass rose: 4 long, 4 short points

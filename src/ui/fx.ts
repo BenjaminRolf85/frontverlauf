@@ -16,7 +16,7 @@ export class Fx {
     root.appendChild(this.layer);
   }
 
-  show(s: GameState, kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom', x: number, y: number, text?: string) {
+  show(s: GameState, kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom' | 'bless', x: number, y: number, text?: string) {
     if (!this.enabled || this.view.renderer.xr.isPresenting) return;
     const p = this.view.board.tileCenter(s, x, y).add(new THREE.Vector3(0, 0.5, 0));
     p.applyMatrix4(this.view.board.group.matrixWorld);
@@ -29,6 +29,18 @@ export class Fx {
       case 'kill': word = t('fx.kill'); cls += ' danger'; break;
       case 'capture': word = t('fx.capture'); break;
       case 'levelUp': word = t('fx.levelUp'); cls += ' good'; break;
+      // Maertyrer-Segen: goldener Lichtkranz hinter dem Wort / Martyr's Blessing: golden halo of light behind the word
+      case 'bless': {
+        const glow = document.createElement('div');
+        glow.className = 'fx-burst bless';
+        glow.style.left = `${scr.x}px`;
+        glow.style.top = `${scr.y - 10}px`;
+        this.layer.appendChild(glow);
+        setTimeout(() => glow.remove(), 900);
+        word = text ?? t('blessing.fx');
+        cls += ' bless';
+        break;
+      }
       case 'splat': case 'boom': {
         // Comic-Stern hinter dem Wort / comic burst behind the word
         const burst = document.createElement('div');

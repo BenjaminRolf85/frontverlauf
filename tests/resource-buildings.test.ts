@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 import de from '../src/i18n/de.json';
 import en from '../src/i18n/en.json';
 import {
-  FACTION_BUILDINGS, buildCheck, buildingWorksFor, cityIncome, computeStats, countBuildings, income, logisticsIncome, recruitSpot, researchCost,
+  FACTION_BUILDINGS, buildCheck, buildingWorksFor, cityIncome, computeStats, countBuildings, healAmount, income, logisticsIncome, recruitSpot, researchCost,
   techUnlocks, trainCheck, type GameState,
 } from '../src/core';
 import {
-  BUILDINGS, CITY, FACTION_IDS, INCOME, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNITS, VETERAN, type BuildingId, type FactionId, type TechId,
+  BUILDINGS, CITY, FACTION_IDS, HEALING, INCOME, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNITS, VETERAN, type BuildingId, type FactionId, type TechId,
 } from '../src/data/balance';
 import { addCity, addUnit, blankGame, fails, ok, setTerrain, tile, unit } from './helpers';
 
@@ -146,7 +146,7 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     expect(logisticsIncome(s, 4, 5)).toBe(INCOME.logisticsPerAdjacent * 2);
   });
 
-  it('Alvenia, hill vineyard: plains in the hills, one per city, +2 stars and +1 per active embassy (at most +3)', () => {
+  it('Alvenia, monastery vineyard (ID hillVineyard): plains in the hills, one per city, +2 stars, +1 healing in its city territory', () => {
     const { s, c, b } = setup('alvenia');
     expect(b).toBe('hillVineyard');
     expect(buildCheck(s, 0, b, 5, 4)).toMatchObject({ ok: false, error: 'invalidTile' });
@@ -158,20 +158,14 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     ok(s, { type: 'build', building: b, x: 5, y: 4 });
     expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.hillVineyard.stars);
     expect(buildCheck(s, 0, b, 3, 4)).toMatchObject({ ok: false, error: 'onePerCity' });
-    // Botschaft beim Gegner (mit Hauptquartier) / embassy at the opponent (with HQ)
+    // Botschaften bringen nichts mehr / embassies no longer add anything
     s.factions[0].embassies = [1];
-    expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.hillVineyard.stars! + RESOURCE.vineyardPerEmbassy);
-    // Deckel / cap
-    const big = blankGame({ factions: ['alvenia', 'dravon', 'korvat', 'meridon', 'velkar'], stars: 100 });
-    const bc = addCity(big, 2, 2, 0, { hq: true, level: 9 });
-    for (let i = 1; i < 5; i++) addCity(big, 2 + i * 2, 9, i, { hq: true });
-    big.factions[0].techs.push('agritech');
-    tile(big, 3, 2).biome = 'hills';
-    ok(big, { type: 'build', building: b, x: 3, y: 2 });
-    big.factions[0].embassies = [1, 2, 3, 4];
-    const base = cityIncome(big, bc);
-    big.factions[0].embassies = [];
-    expect(base - cityIncome(big, bc)).toBe(RESOURCE.vineyardPerEmbassy * RESOURCE.vineyardEmbassyMax);
+    expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.hillVineyard.stars);
+    // Heilung im Stadtgebiet / healing in the city territory
+    const u = addUnit(s, 'infantry', 0, c.x, c.y + 1, { hp: 3 });
+    const far = addUnit(s, 'infantry', 0, 0, 0, { hp: 3 });
+    expect(healAmount(s, u) - HEALING.ownTerritory).toBe(RESOURCE.vineyardHeal);
+    expect(healAmount(s, far)).toBe(HEALING.elsewhere);
   });
 
   it('Meridon, trade harbour: fish only, upgrades a fishery, +2 stars and +1 with a naval base in the city', () => {

@@ -11,6 +11,7 @@ import {
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow, memorialAt, memorialEffect, memorialMult,
+  blessingOf, blessingRoundsLeft, judgementAt,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
@@ -27,6 +28,7 @@ import {
 import { icon } from './icons';
 import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
+import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
@@ -43,9 +45,11 @@ export const UNIT_ICON: Record<string, string> = {
   zealot: 'boot', torchbearer: 'lightning', prophet: 'heal', doomBuggy: 'move', rocketCart: 'range', doomCrawler: 'shield',
   android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
   antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
-  steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'barrier', privateer: 'sail', protoWalker: 'walker',
+  steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'shield', privateer: 'sail', protoWalker: 'walker',
   // Velkar-Bauarten / Velkar designs
   teslaTank: 'tesla', octocopter: 'fuel', railSniper: 'range',
+  // Alvenia-Bauarten / Alvenia designs
+  lightWarden: 'range', reliquary: 'emblemHalo', sunLance: 'sun',
   // Wunder der Siegbedingungen / victory wonders
   portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
@@ -77,7 +81,8 @@ export function buildingDescText(b: BuildingId): string {
   return t(`buildingDesc.${b}`, {
     pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0, slots: CULT.shrineSlots,
     pct: Math.round(RESOURCE.polarDiscount * 100), max: RESOURCE.polarMax,
-    emb: RESOURCE.vineyardPerEmbassy, embMax: RESOURCE.vineyardEmbassyMax, naval: RESOURCE.harbourNavalBonus,
+    heal: RESOURCE.vineyardHeal, naval: RESOURCE.harbourNavalBonus,
+    perSinner: UNIQUE.cathedralPerSinner, maxSinners: UNIQUE.cathedralMaxSinners,
   });
 }
 
@@ -178,9 +183,21 @@ function memorialHint(s: GameState, u: Unit, key: 'Hint' | 'Tag' = 'Hint'): stri
 }
 
 /** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
-function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; memorial?: number }, u: Unit, target: Unit | null): string {
+function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; judgement?: number; blessing?: number; memorial?: number }, u: Unit, target: Unit | null): string {
   return [hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
-    target && p.homeDefense ? homeDefenseHint(s, target) : '', p.memorial && p.memorial !== 1 ? memorialHint(s, u) : ''].filter(Boolean).join(' · ');
+    // Strafgericht gegen Suender, Segen des Ziels / judgement against sinners, blessing of the target
+    p.judgement ? t('sin.judgement', { pct: Math.round(p.judgement * 100) }) : '',
+    target && p.homeDefense ? homeDefenseHint(s, target) : '',
+    p.blessing ? t('blessing.hint', { pct: Math.round(p.blessing * 100) }) : '',
+    p.memorial && p.memorial !== 1 ? memorialHint(s, u) : ''].filter(Boolean).join(' · ');
+}
+
+/** Marke: Maertyrer-Segen aktiv / tag: Martyr's Blessing active */
+function blessingTag(s: GameState, u: Unit): string {
+  const b = blessingOf(s, u);
+  if (b <= 0) return '';
+  const tip = t('blessing.tagDesc', { pct: Math.round(b * 100), n: blessingRoundsLeft(s, u) });
+  return `<span class="stat tag bless" title="${esc(tip)}" aria-label="${esc(tip)}">${icon('bless', 'icon-sm')}${esc(t('blessing.tag', { pct: Math.round(b * 100) }))}</span>`;
 }
 
 /**
@@ -228,7 +245,7 @@ function moveFireTag(s: GameState, u: Unit): string {
 
 /** Kampfmarken im Einheitenfeld (immer sichtbar, auch auf dem Handy) / combat tags in the unit panel (always visible, also on phones) */
 function combatTags(s: GameState, u: Unit): string {
-  const tags = moveFireTag(s, u) + stationaryTag(s, u) + homeDefenseTag(s, u) + memorialTag(s, u);
+  const tags = moveFireTag(s, u) + stationaryTag(s, u) + homeDefenseTag(s, u) + blessingTag(s, u) + memorialTag(s, u) + sinTag(s, u.owner);
   return tags ? `<div class="row">${tags}</div>` : '';
 }
 
@@ -754,7 +771,7 @@ export class Hud {
             const wait = (u.retreatReady ?? 0) - s.round;
             // Schuss vor dem Schritt: nach einer Bewegung ebenfalls verringert, ebenso gegen ein Bollwerk
             // shot before the step: also reduced after a move, likewise against a bulwark
-            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target), memorial: memorialMult(s, u) }, u, target);
+            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target), judgement: judgementAt(s, u, target), blessing: blessingOf(s, target), memorial: memorialMult(s, u) }, u, target);
             const retreatDesc = retreatNotes ? `${t('retreat.desc')} ${retreatNotes}.` : t('retreat.desc');
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',

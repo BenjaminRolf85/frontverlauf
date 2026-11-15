@@ -74,7 +74,7 @@ describe('Welt der Vergessenen: Einrichtung / world of the Forgotten: setup', ()
     const out = cityAt(s, s.campaign!.targets[0].x, s.campaign!.targets[0].y)!;
     s.units = s.units.filter((u) => !(u.x === out.x && u.y === out.y));
     out.owner = null;
-    const inf = s.units.find((u) => u.owner === 0 && u.type === 'infantry')!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
     placeAt(s, inf, out);
     expect(applyCommand(s, { type: 'capture', unit: inf.id }).ok).toBe(true);
     expect(hqOf(s, 0)?.id).toBe(out.id);

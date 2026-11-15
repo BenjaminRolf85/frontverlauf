@@ -52,7 +52,9 @@ const KEYS = {
     // Feuerschalen des Fanatiker-Tempels (m4) / braziers of the Fanatic temple (m4)
     keyColor(semantic.templeFire), keyColor(semantic.templeFireCore),
     // Velkar "Labor im Feld": tuerkise Lichter und Lichtboegen der Einheiten / Velkar "lab in the field": teal lights and arcs of the units
-    keyColor(semantic.velkarTechGlow), keyColor(semantic.velkarTechArc)],
+    keyColor(semantic.velkarTechGlow), keyColor(semantic.velkarTechArc),
+    // Heiliges Alvenia "Orden im Feld": Sonnenkranz, tuerkise Leuchten, Buntglas, Lichtstrahl / Holy Alvenia "Order in the field": sun halo, teal lights, stained glass, light beam
+    keyColor(semantic.faithHalo), keyColor(semantic.faithTech), keyColor(semantic.faithGlassBlue), keyColor(semantic.faithGlassGold), keyColor(semantic.faithBeam)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };

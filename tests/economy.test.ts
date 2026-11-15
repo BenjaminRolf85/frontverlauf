@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, hqOf, income, ownUnits, cityIncome, logisticsIncome } from '../src/core';
-import { CULT, FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS } from '../src/data/balance';
+import { CULT, FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS, VARIANTS } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, ok, setTerrain, untilTurnOf } from './helpers';
 
 describe('Start', () => {
@@ -20,7 +20,8 @@ describe('Start', () => {
       // Kult: Starthorde neben dem Hauptquartier / cult: starting horde next to the HQ
       const horde = f.id === CULT.faction ? CULT.startUnits : [];
       expect(units).toHaveLength(1 + horde.length);
-      expect(units[0].type).toBe(ROSTERS[f.id]?.start ?? 'infantry');
+      // eigene Bauart (Alvenia: Lichtschuetzen) / own design (Alvenia: Light Wardens)
+      expect(units[0].type).toBe(ROSTERS[f.id]?.start ?? VARIANTS[f.id]?.infantry ?? 'infantry');
       expect(units.slice(1).map((u) => u.type)).toEqual(horde);
       for (const u of units.slice(1)) expect(Math.max(Math.abs(u.x - hq.x), Math.abs(u.y - hq.y))).toBe(1);
       expect(units[0].x).toBe(hq.x);

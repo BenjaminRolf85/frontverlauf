@@ -189,21 +189,25 @@ describe('Einzigartige Gebaeude / unique buildings', () => {
     expect(s.units.find((x) => x.homeCity === other.id)!.veteran).toBe(false);
   });
 
-  it('embassy palace: +4 stars per round per peace treaty, one per faction', () => {
-    const s = blankGame({ factions: ['alvenia', 'dravon', 'korvat'], stars: 200 });
+  it('Cathedral of Light (ID embassyPalace): offerings plus penance tithe per sinner with a deed, at most 3, one per faction', () => {
+    const s = blankGame({ factions: ['alvenia', 'dravon', 'korvat', 'meridon', 'velkar'], stars: 200 });
     addCity(s, 2, 2, 0, { hq: true, level: 3 });
     addCity(s, 6, 2, 0, { level: 2 });
-    addCity(s, 9, 9, 1, { hq: true });
-    addCity(s, 9, 1, 2, { hq: true });
-    s.factions[0].techs.push('intelligence');
+    for (let g = 1; g < 5; g++) addCity(s, 1 + g * 2, 9, g, { hq: true });
     const base = income(s, 0);
     ok(s, { type: 'build', building: 'embassyPalace', x: 3, y: 2 });
-    expect(income(s, 0)).toBe(base);
+    expect(income(s, 0)).toBe(base + UNIQUE.cathedralBase);
     fails(s, { type: 'build', building: 'embassyPalace', x: 6, y: 3 }, 'alreadyBuilt');
-    for (const g of [1, 2]) { s.factions[0].relations[g] = 'peace'; s.factions[g].relations[0] = 'peace'; }
-    expect(income(s, 0)).toBe(base + 2 * UNIQUE.palacePerPeace);
-    s.factions[0].relations[2] = 'breaking';
-    expect(income(s, 0)).toBe(base + UNIQUE.palacePerPeace);
+    const b0 = base + UNIQUE.cathedralBase;
+    s.factions[1].sin = { deed: 'capture', until: s.round };
+    s.factions[2].sin = { deed: 'convert', until: s.round + 2 };
+    expect(income(s, 0)).toBe(b0 + 2 * UNIQUE.cathedralPerSinner);
+    // abgelaufenes Zeichen zaehlt nicht / an expired mark does not count
+    s.factions[3].sin = { deed: 'burn', until: s.round - 1 };
+    expect(income(s, 0)).toBe(b0 + 2 * UNIQUE.cathedralPerSinner);
+    s.factions[3].sin = { deed: 'burn', until: s.round };
+    s.factions[4].sin = { deed: 'burn', until: s.round };
+    expect(income(s, 0)).toBe(b0 + UNIQUE.cathedralMaxSinners * UNIQUE.cathedralPerSinner);
   });
 
   it('trading post: +3 stars per round per connected harbour city', () => {
@@ -284,12 +288,12 @@ describe('Zweite Fraktionsmerkmale / second faction traits', () => {
     expect(effectiveAttack(k.s, b)).toBe(UNITS.infantry.attack);
   });
 
-  it('Alvenia (field hospitals): +1 healing', () => {
+  it('Alvenia: no extra healing any more (field hospitals replaced by the Martyr\'s Blessing)', () => {
     const { s } = duel('alvenia');
     const u = addUnit(s, 'infantry', 0, 5, 5, { hp: 3 });
     const o = duel('dravon');
     const v = addUnit(o.s, 'infantry', 0, 5, 5, { hp: 3 });
-    expect(healAmount(s, u)).toBe(healAmount(o.s, v) + PERKS2.fieldHospitalsHeal);
+    expect(healAmount(s, u)).toBe(healAmount(o.s, v));
   });
 
   it('Meridon (harbour pilots): landing boats move 1 tile further', () => {

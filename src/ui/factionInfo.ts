@@ -2,9 +2,9 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { CULT, EMPLACEMENT, FACTIONS, HIT, HOME_DEFENSE, MOVE_FIRE, RESOURCE, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { CULT, EMPLACEMENT, FACTIONS, HIT, HOME_DEFENSE, MARTYR, MOVE_FIRE, RESOURCE, SIN, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
-import { has, t } from '../i18n/i18n';
+import { has, num, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
 import { loreButton } from './lore';
@@ -57,6 +57,11 @@ export function memorialText(): string {
  * Numbers for the faction feature from balance.ts: Dravon fortress building, Velkar "lab in the field" (own designs).
  */
 export function featureParams(f: FactionId): Record<string, string | number> {
+  // Heiliges Alvenia "Fernwaffen des Ordens" / Holy Alvenia "Arms of the Order"
+  if (f === 'alvenia') {
+    return { warden: UNITS.lightWarden.range, inf: UNITS.infantry.range, wardenDef: num(UNITS.lightWarden.defense), reliq: UNITS.reliquary.range, tank: UNITS.tank.range,
+      reliqDef: num(UNITS.reliquary.defense), tankDef: num(UNITS.tank.defense), lance: UNITS.sunLance.range, art: UNITS.artillery.range };
+  }
   if (f === 'velkar') {
     return { tesla: UNITS.teslaTank.attack, tank: UNITS.tank.attack, miss: Math.round((HIT.unit.teslaTank?.miss ?? 0) * 100),
       rail: UNITS.railSniper.range, sniper: UNITS.sniper.range };
@@ -64,14 +69,22 @@ export function featureParams(f: FactionId): Record<string, string | number> {
   return { cost: EMPLACEMENT.cost, range: EMPLACEMENT.range };
 }
 
+/**
+ * Zahlen fuer die Merkmalstexte aus balance.ts (Alvenia: Strafgericht und Maertyrer-Segen).
+ * Numbers for the trait texts from balance.ts (Alvenia: Judgement and Martyr's Blessing).
+ */
+export function perkParams(): Record<string, number> {
+  return { pct: Math.round(SIN.judgement * 100), rounds: SIN.rounds, heal: MARTYR.heal, def: Math.round(MARTYR.defense * 100), blessRounds: MARTYR.rounds };
+}
+
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
   const out: FactionTrait[] = [];
-  const k = (s: string) => t(`factions.${f}.${s}`);
+  const k = (s: string) => t(`factions.${f}.${s}`, perkParams());
   out.push({ kind: 'perk', icon: 'star', label: t('traits.perk'), value: k('perk'), desc: k('perkDesc') });
   if (has(`factions.${f}.perk2`)) out.push({ kind: 'perk2', icon: 'star', label: t('traits.perk2'), value: k('perk2'), desc: has(`factions.${f}.perk2Desc`) ? k('perk2Desc') : '' });
   // Fraktionsmerkmal (Dravon: Festungsbau), Zahlen aus balance.ts / faction feature (Dravon: fortress building), numbers from balance.ts
-  if (has(`factions.${f}.feature`)) out.push({ kind: 'feature', icon: f === 'velkar' ? 'tesla' : 'range', label: t('traits.feature'), value: k('feature'), desc: t(`factions.${f}.featureDesc`, featureParams(f)) });
+  if (has(`factions.${f}.feature`)) out.push({ kind: 'feature', icon: f === 'velkar' ? 'tesla' : f === 'alvenia' ? 'emblemHalo' : 'range', label: t('traits.feature'), value: k('feature'), desc: t(`factions.${f}.featureDesc`, featureParams(f)) });
   const unit = SIGNATURE_UNIT[f];
   if (unit) out.push({ kind: 'unit', icon: UNIT_ICON[unit] ?? 'helmet', label: t('traits.unit'), value: t(`units.${unit}`), desc: has(`unitDesc.${unit}`) ? t(`unitDesc.${unit}`) : '' });
   const fs = FACTIONS[f];
@@ -84,7 +97,7 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme
   const rb = RESOURCE.buildings[f];
   out.push({ kind: 'resource', icon: BUILD_ICON[rb] ?? 'build', label: t('traits.resource'), value: t(`buildings.${rb}`), desc: buildingDescText(rb) });
-  // Kampfboni (Korvat: Steppensturm, Alvenia: Friedensbollwerk) / combat bonuses (Korvat: Steppe Storm, Alvenia: Peace Bulwark)
+  // Kampfboni (Korvat: Steppensturm, Alvenia: Glaubensbollwerk) / combat bonuses (Korvat: Steppe Storm, Alvenia: Bulwark of Faith)
   for (const cb of combatBonusTexts(f)) out.push({ kind: 'combat', icon: cb.icon, label: t('traits.combat'), value: cb.name, desc: cb.desc });
   // Treffsicherheit der Rasse / race accuracy
   const race = factionRace(f);

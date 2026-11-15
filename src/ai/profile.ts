@@ -72,8 +72,9 @@ export function profileFor(s: GameState, f: number): Profile {
     // Drill: angriffslustig; mehr Ruestung nur bei der Eroberung, im Punktespiel zaehlt die Wirtschaft
     // drill: aggressive; extra armament only in conquest, in points games the economy counts
     case 'dravon': p.aggression += 0.3; p.militaryW += s.config.mode === 'conquest' ? 0.15 : 0; p.pref = { jeep: 1.6, mg: 1.2, stormbreaker: 1.3 }; break;
-    // Buendnispolitik: sucht Frieden, um Botschaften und den Botschaftspalast zu nutzen / alliance policy: seeks peace to use embassies and the embassy palace
-    case 'alvenia': p.embassyW = 2; p.peacemaker = s.config.mode !== 'conquest'; p.pref = { medic: 1.6, peacekeeper: 1.3 }; break;
+    // Heiliges Alvenia: defensiv, haelt das eigene Gebiet, Frieden nur mit Nicht-Suendern, setzt auf Reichweite
+    // Holy Alvenia: defensive, holds its territory, peace only with non-sinners, relies on range
+    case 'alvenia': p.peacemaker = s.config.mode !== 'conquest'; p.pref = { lightWarden: 1.2, sunLance: 1.4, peacekeeper: 1.3 }; break;
     case 'meridon': p.buildW += 0.25; p.pref = { spy: 1.5 }; break; // Wachstum, Kueste / boom, coast
     case 'velkar': p.researchW += 0.1; p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung / research lead
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte

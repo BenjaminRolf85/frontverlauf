@@ -16,7 +16,7 @@ describe('Regeln / rules', () => {
       const html = rulesHtml();
       expect(html).not.toMatch(/\{\w+\}/);
       expect(html).not.toContain('rules.');
-      expect((html.match(/<details/g) ?? []).length).toBe(12);
+      expect((html.match(/<details/g) ?? []).length).toBe(13);
     });
     it(`${lang}: numbers come from balance.ts`, () => {
       setLanguage(lang);

@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, type GameState, type Unit } from '../core';
+import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -1072,10 +1072,12 @@ export class Board {
       // keine Aktion mehr moeglich (nur im Zug eines Menschen) / no action left (only during a human turn)
       const done = u.owner === s.current && s.factions[s.current].human &&
         (u.exhausted || u.fresh || u.attacked || (u.moved && attackTargets(s, u).length === 0));
-      const badgeKey = `${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}`;
+      // Heiliges Alvenia: Suendenzeichen und Segen auf der Plakette / Holy Alvenia: sinner mark and blessing on the badge
+      const sin = isSinner(s, u.owner) && judgeAlive(s), blessed = blessingOf(s, u) > 0;
+      const badgeKey = `${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}-${sin}-${blessed}`;
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
-        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank });
+        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed });
         // Endgegner: Balken ueber der Krone / boss: badge above the crown
         v.badge.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
         v.group.add(v.badge);

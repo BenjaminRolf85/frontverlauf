@@ -4,8 +4,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  cityTiles, combatPreview, counterFactor, createGame, defaultConfig, defenseBonus, dist, erupts, hitOdds, income, leagueAvailable,
-  leagueMet, outpostCheck, rangedCover, repairCheck, researchCost, unitClass, unitUpkeep, upkeep, victoryStatus, weatherFor,
+  cityTiles, combatPreview, counterFactor, createGame, defaultConfig, defenseBonus, dist, erupts, hitOdds, income,
+  outpostCheck, rangedCover, repairCheck, researchCost, unitClass, unitUpkeep, upkeep, victoryStatus, weatherFor,
   type GameEvent, type GameState,
 } from '../src/core';
 import { BARRIER, COUNTER, JUNGLE, REMAINS, UNITS, WEATHER, type FactionId } from '../src/data/balance';
@@ -329,44 +329,6 @@ describe('10. Trefferrasse und Heilung / hit race and healing', () => {
     s.current = 1;
     expect(hitOdds(s, m, true).miss).toBeGreaterThan(hitOdds(s, m).miss);
     expect(combatPreview(s, m, e, true).odds).toEqual(hitOdds(s, m, true));
-  });
-});
-
-describe('11. Voelkerbund (Alvenia) / League of Nations (Alvenia)', () => {
-  it('counts every living faction, not only the ones Alvenia has met', () => {
-    const s = blankGame({ factions: ['alvenia', 'korvat', 'dravon', 'meridon', 'velkar'] });
-    addCity(s, 0, 0, 0, { hq: true }); addCity(s, 10, 0, 1, { hq: true }); addCity(s, 0, 10, 2, { hq: true });
-    addCity(s, 10, 10, 3, { hq: true }); addCity(s, 5, 5, 4, { hq: true });
-    const a = s.factions[0]; a.contacts = [1, 2];
-    for (const g of [1, 2]) { a.relations[g] = 'peace'; s.factions[g].relations[0] = 'peace'; }
-    a.embassies = [1, 2];
-    for (const g of [3, 4]) s.factions[g].contacts = [0];
-    expect(leagueMet(s, 0)).toBe(false);
-    for (const g of [3, 4]) { a.relations[g] = 'peace'; s.factions[g].relations[0] = 'peace'; }
-    a.embassies = [1, 2, 3, 4];
-    expect(leagueMet(s, 0)).toBe(true);
-  });
-
-  it('a living faction without an HQ only needs peace', () => {
-    const s = blankGame({ factions: ['alvenia', 'korvat', 'dravon'] });
-    addCity(s, 1, 1, 0, { hq: true }); const kh = addCity(s, 8, 1, 1, { hq: true }); addCity(s, 8, 4, 1); addCity(s, 1, 8, 2, { hq: true });
-    for (const g of [1, 2]) { s.factions[0].relations[g] = 'peace'; s.factions[g].relations[0] = 'peace'; }
-    kh.owner = 2;
-    s.factions[0].embassies = [2];
-    expect(s.factions[1].alive).toBe(true);
-    expect(leagueMet(s, 0)).toBe(true);
-  });
-
-  it('is not available with fewer than 3 factions', () => {
-    const s = blankGame({ factions: ['alvenia', 'korvat'] });
-    addCity(s, 1, 1, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
-    s.factions[0].relations[1] = 'peace'; s.factions[1].relations[0] = 'peace'; s.factions[0].embassies = [1];
-    expect(leagueAvailable(s)).toBe(false);
-    expect(leagueMet(s, 0)).toBe(false);
-    expect(victoryStatus(s, 0).unavailable).toBe(true);
-    const s3 = blankGame({ factions: ['alvenia', 'korvat', 'dravon'] });
-    expect(leagueAvailable(s3)).toBe(true);
-    expect(victoryStatus(s3, 0).unavailable).toBeFalsy();
   });
 });
 

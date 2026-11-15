@@ -240,6 +240,9 @@ h1, h2, h3, .display {
 .slot.filled { background: var(--s-accent); border: var(--p-border-width-thin) solid var(--s-outline); }
 .slot.empty { border: var(--p-border-width-thin) dashed var(--s-outline); color: var(--s-text-muted); }
 .tag.ok { background: var(--c-tech-node-researched); }
+/* Heiliges Alvenia: Suendenzeichen und Segen / Holy Alvenia: sinner mark and blessing */
+.tag.sin { background: var(--s-sin-mark); color: var(--s-text-inverse); }
+.tag.bless { background: var(--s-faith-halo); }
 
 /* ---------- Fortschrittsbalken / progress bar ---------- */
 .progress {
@@ -336,6 +339,10 @@ h1, h2, h3, .display {
 .fx-burst.boom polygon { fill: var(--s-fire); }
 @keyframes fx-burst { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(-20deg); opacity: 1; } 70% { transform: translate(-50%, -50%) scale(1.1) rotate(4deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.15) rotate(6deg); opacity: 0; } }
 .fx-word.good { color: var(--c-tech-node-researched); }
+/* Maertyrer-Segen: goldener Lichtkranz und Wort / Martyr's Blessing: golden halo of light and word */
+.fx-word.bless { color: var(--s-faith-halo); }
+.fx-burst.bless { border-radius: 50%; border: var(--p-border-width-thick) solid var(--s-faith-halo);
+  background: radial-gradient(circle, var(--s-faith-beam) 0%, var(--s-faith-halo) 35%, transparent 70%); opacity: 0.9; }
 .fx-num {
   position: absolute; transform: translate(-50%, -50%); font-family: var(--p-font-comic); font-size: var(--p-font-size-xl);
   color: var(--s-text-inverse); -webkit-text-stroke: var(--p-border-width-thin) var(--s-outline); paint-order: stroke fill;

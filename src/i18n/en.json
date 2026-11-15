@@ -116,21 +116,23 @@
       "featureDesc": "Pioneer squads and mine layers build gun emplacements in own territory for {cost} stars, one per city. They fire every round at enemies in range {range}."
     },
     "alvenia": {
-      "name": "Republic of Alvenia",
+      "name": "Holy Alvenia",
       "short": "Alvenia",
-      "alignment": "democratic",
-      "perk": "Alliance policy",
-      "perkDesc": "Embassies cost half and yield double income.",
-      "discount": "Medic 20 % cheaper",
-      "home": "balanced hill country",
+      "alignment": "theocratic, an order of clerics",
+      "perk": "Judgement",
+      "perkDesc": "Whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; aliens and robots are permanent sinners as godless creatures. Alvenia's units deal +{pct} % damage to sinners.",
+      "discount": "Sun Lance 20 % cheaper",
+      "home": "hill country with monasteries and vineyards",
       "leader": "Liora Valen",
-      "leaderTitle": "President of the Republic",
-      "quote": "An alliance is stronger than any wall.",
-      "lore": "Alvenia is a republic of green hill valleys, governed by a parliament that debates longer than it fights. President Valen was a field medic before she became a diplomat. Her embassies are everywhere, and so are her medics: Alvenia wins wars with friends instead of tanks.",
-      "style": "diplomacy, blue berets, medics",
-      "aiStyle": "Seeks embassies and peace, keeps its troops alive with medics.",
-      "perk2": "Field hospitals",
-      "perk2Desc": "Units heal 1 more HP when healing."
+      "leaderTitle": "High Priestess of the Order",
+      "quote": "Whoever sins, the light will find.",
+      "lore": "Holy Alvenia, called the Order of Alvenia in the songs, watches over the green hill valleys. Where a parliament once debated, an order of clerics now sings beneath the sun halo. High Priestess Liora Valen was a field medic; she believes in the redemption of every fallen soul and in the punishment of every sin. Her Light Wardens yield no step, her Sun Lances strike from afar, and whoever plunders, burns or converts will meet the Judgement. Aliens and machines are godless creatures in the eyes of the Order. The Order is the counterweight to the Cult of the Final Hour.",
+      "style": "white and gold armour, deep blue tabards, sun halo, long-range weapons",
+      "aiStyle": "Defends its own land, fires from a standstill at a distance and judges sinners first. The Order makes peace only with the blameless.",
+      "perk2": "Martyr's Blessing",
+      "perk2Desc": "When an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {blessRounds} rounds.",
+      "feature": "Arms of the Order",
+      "featureDesc": "Own designs instead of the standard troops: Light Wardens instead of infantry (range {warden} instead of {inf}, defence {wardenDef}, stationary only), Reliquary instead of the tank (range {reliq} instead of {tank}, defence {reliqDef} instead of {tankDef}, stationary only) and Sun Lance instead of artillery (range {lance} instead of {art})."
     },
     "meridon": {
       "name": "Meridon Trade League",
@@ -258,7 +260,7 @@
     "flakDrone": "Flak drone",
     "steppeRider": "Steppe Riders",
     "stormbreaker": "Stormbreakers",
-    "peacekeeper": "Peacekeepers",
+    "peacekeeper": "Order Guard",
     "privateer": "Privateer",
     "protoWalker": "Prototype Walker",
     "portal": "Dimensional Portal",
@@ -270,7 +272,10 @@
     "scientist": "Scientist",
     "teslaTank": "Tesla tank",
     "octocopter": "Octocopter",
-    "railSniper": "Railgun marksman"
+    "railSniper": "Railgun marksman",
+    "lightWarden": "Light Wardens",
+    "reliquary": "Reliquary",
+    "sunLance": "Sun Lance"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -310,7 +315,7 @@
     "flakDrone": "Flak platform on four legs that guards the ground against flyers.",
     "steppeRider": "Cheap, fast riders that count as foot troops.",
     "stormbreaker": "Shock troops whose targets cannot strike back, but vulnerable themselves.",
-    "peacekeeper": "Sturdy defender that patches itself up every turn.",
+    "peacekeeper": "Order Guard in heavy white armour: a sturdy defender that patches itself up every turn.",
     "privateer": "Fast raider ship: every kill pays prize money.",
     "protoWalker": "Expensive walker with splash damage at range two.",
     "portal": "Zyrr victory wonder: opens the gate home after building and charging.",
@@ -322,7 +327,10 @@
     "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign).",
     "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Not for sale, comes as a city reward.",
     "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
-    "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire."
+    "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire.",
+    "lightWarden": "Order marksmen with radiant scopes and long rifles: range 2 and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
+    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: range 2, very high defence, fires only from a standstill. Not for sale, comes as a city reward.",
+    "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence."
   },
   "abilities": {
     "dash": "Assault",
@@ -446,12 +454,12 @@
     "powerPlant": "Fusion plant",
     "kolkhoz": "Kolkhoz",
     "mercenaryBarracks": "Mercenary barracks",
-    "embassyPalace": "Embassy palace",
+    "embassyPalace": "Cathedral of Light",
     "tradingPost": "Trading post",
     "testLab": "Test lab",
     "tractorStation": "Tractor station",
     "deepMine": "Deep mine",
-    "hillVineyard": "Hill vineyard",
+    "hillVineyard": "Monastery Vineyard",
     "tradeHarbour": "Trade harbour",
     "polarStation": "Polar station",
     "wreckSmelter": "Wreck smelter",
@@ -482,12 +490,12 @@
     "powerPlant": "1 population, powers one data center, NEXUS only",
     "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
-    "embassyPalace": "3 population, +3 stars per round per peace treaty, one per faction, Alvenia only",
+    "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction with a sinful deed (at most {maxSinners}). One per faction, Alvenia only",
     "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
     "testLab": "1 population, production capabilities 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
     "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
     "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
-    "hillVineyard": "{pop} population, +{stars} stars per round and +{emb} per active own embassy (at most +{embMax}). Only on plains in the hills biome without a resource, one per city, Alvenia only",
+    "hillVineyard": "{pop} population, +{stars} stars per round; own units in this city's territory heal {heal} HP more. Only on plains in the hills biome without a resource, one per city, Alvenia only",
     "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
     "polarStation": "{pop} population, production capabilities {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
@@ -546,12 +554,12 @@
     "ballistics": "Ballistics",
     "fiveYearPlan": "Great Five-Year Plan",
     "waalProgram": "Waal Programme",
-    "leagueCharter": "League Charter",
     "tradeMonopoly": "World Trade Monopoly",
     "fusionResearch": "Nuclear Fusion",
     "dimensionalRift": "Dimensional Rift",
     "coreDrilling": "Deep Drilling",
-    "singularity": "Singularity"
+    "singularity": "Singularity",
+    "greatJudgement": "Great Judgement"
   },
   "techExtra": {
     "mountainTraining": "Mountains passable",
@@ -564,12 +572,12 @@
     "fortification": "Outposts",
     "fiveYearPlan": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
     "waalProgram": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
-    "leagueCharter": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
     "tradeMonopoly": "Have {n} stars in the treasury. Victory at the start of your turn.",
     "fusionResearch": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
     "dimensionalRift": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
     "coreDrilling": "A prophet calls up the earth-core drill onto an adjacent tile. If it stands still for {n} rounds in a row, it reaches the earth's core and the world ends. Moving and attacks reset the counter.",
-    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept."
+    "singularity": "Build the hacker relay on a mountain in your territory or with an own outpost: {build} rounds of construction, then {hack} rounds of hacking. An attack resets the current phase to 0; finished construction is kept.",
+    "greatJudgement": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills from the unlock onwards count."
   },
   "tech": {
     "title": "Research and development",
@@ -688,7 +696,7 @@
     "mine": "Lay mine",
     "mineHint": "Tap a free adjacent tile for the mine.",
     "persuade": "Persuade",
-    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (Alvenia and Meridon in the campaign only).",
+    "persuadeDesc": "Wins the neutral settlement next to this unit without combat, for stars (only Alvenia with its sermon and Meridon with its gold, campaign only).",
     "seizePlans": "Seize the war plans",
     "pickPlans": "Pick up the war plans",
     "seizePlansDesc": "Takes the war plans and ends the unit's turn. Bring them into or next to your HQ."
@@ -825,7 +833,7 @@
     "noContact": "Not met yet",
     "eliminated": "eliminated",
     "breakHint": "Breaking peace is announced one round ahead.",
-    "embassyHint": "Embassies need Intelligence and the discovered HQ. Each embassy gives both sides {inc} stars per round (Alvenia double). The first costs {base} stars, each further one {step} more (Alvenia pays half).",
+    "embassyHint": "Embassies need Intelligence and the discovered HQ. Each embassy gives both sides {inc} stars per round. The first costs {base} stars, each further one {step} more.",
     "score": "{n} points"
   },
   "settings": {
@@ -988,7 +996,8 @@
       "scout": "Recon",
       "enemy": "Enemy radio",
       "scoutRole": "Scout at the front",
-      "ally": "Ally"
+      "ally": "Ally",
+      "allyFaith": "Brothers in faith"
     },
     "obj": {
       "holdHq": "Hold your headquarters until round {rounds}",
@@ -1074,6 +1083,9 @@
         "variants": {
           "velkar": {
             "won": "Eight rounds! {leader} has already turned half the wreck into formulas and wants the other half tonight."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} here, {leader}. {ally} stands at the crater as your brother in faith. Your scholar tinkers, we keep the Greys away."
           }
         }
       },
@@ -1102,7 +1114,8 @@
         "lost": "The war plans are back in the temple. The bell tolls, and we still do not know what for.",
         "variants": {
           "alvenia": {
-            "won": "The plans are ours. Our diplomats read them with very serious faces: a pilgrim city, a bell, a drill down to the earth's core."
+            "won": "The plans are ours. Our clerics read them with very serious faces: a pilgrim city, a bell, a drill down to the earth's core. Sin in its purest form.",
+            "ally": "{allyLeader} here. {ally} escorts your carrier, {leader}, as brothers in faith do. Whoever hunts him deals with us."
           }
         }
       },
@@ -1137,6 +1150,9 @@
         "variants": {
           "velkar": {
             "won": "The drill is scrap. We are keeping the drill bit. For science."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} to {leader}: {ally} has explosives and has taken a vow. Your brothers in faith are with you."
           }
         }
       },
@@ -1171,6 +1187,9 @@
         "variants": {
           "dravon": {
             "won": "The onslaught is broken. {leader} nods once. In Dravon, that counts as a medal."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} here. {ally} is on the way, {leader}. Hold on, brothers in faith leave no one behind."
           }
         }
       },
@@ -1187,7 +1206,12 @@
         ],
         "ally": "{allyLeader} to {leader}: {ally} has your back. The artifact is yours. Just please do not press anything before we get there.",
         "won": "The artifact belongs to {faction}! The runes light up ...",
-        "lost": "Someone else touched the artifact. The cavern shakes, the mushrooms go dark. That is it, then."
+        "lost": "Someone else touched the artifact. The cavern shakes, the mushrooms go dark. That is it, then.",
+        "variants": {
+          "alvenia": {
+            "ally": "{allyLeader} to {leader}: {ally} has your back, brother in faith. The artifact is yours. Just please do not press anything before we arrive."
+          }
+        }
       },
       "m10": {
         "title": "Beyond the Portal",
@@ -1210,7 +1234,12 @@
         ],
         "ally": "{allyLeader} to {leader}: {ally} followed you through the portal. On this world every human is an ally.",
         "won": "Xyl'Tharra collapses, and above her space tears open: a rift, violet and black, with a sickly green-gold edge. It tears through both worlds and sucks everything in: our troops, the Zyrr with their mother, and back on Earth whole NEXUS columns and the cult's pilgrim trains. Then silence. We lie in red sand, above us a dusty sky with two tiny moons.",
-        "lost": "The Swarm Mother lives. Her scream echoes through the portal, and the swarm grows."
+        "lost": "The Swarm Mother lives. Her scream echoes through the portal, and the swarm grows.",
+        "variants": {
+          "alvenia": {
+            "ally": "{allyLeader} to {leader}: {ally} followed you through the portal. On this world every human is a brother in faith."
+          }
+        }
       },
       "m12": {
         "title": "Stranded",
@@ -1265,6 +1294,9 @@
         "variants": {
           "dravon": {
             "won": "The cave entrance is secured. {leader} is the first to rope down. Something glows below, deep beneath the red desert."
+          },
+          "alvenia": {
+            "ally": "{allyLeader} to {leader}: {ally} seals off the gorge. You climb down, your brothers in faith hold the line above."
           }
         }
       }
@@ -1295,14 +1327,14 @@
     "pitch": {
       "korvat": "Mass, march, mettle: cheap infantry in droves. For everyone who brings a lot of boots.",
       "dravon": "Drill and veterans: every unit gets tougher. For everyone who strikes with precision.",
-      "alvenia": "Diplomacy and medics: often with allies, persuades settlements instead of storming them. Weaker in arms, strong in politics.",
+      "alvenia": "Faith and long-range arms: often with brothers in faith at its side, wins settlements by sermon instead of storm. Holds every position and judges the sinners.",
       "meridon": "Trade and harbours: plenty of stars, buys settlements instead of storming them. Gets help more often.",
       "velkar": "Production and fortresses: faster to new technology. For everyone who calculates before shooting."
     },
     "epilogue": {
       "korvat": "The League has held. The furrows become fields again, and the songs are about us.",
       "dravon": "Discipline has beaten the stars. No recruit will ever forget this day.",
-      "alvenia": "We won because we were not alone. Parliament is keeping it short today, for once.",
+      "alvenia": "We won because our brothers in faith stood at our side. Today every bell of the Order rings.",
       "meridon": "The artifact is ours. Priceless. I already have three offers anyway.",
       "velkar": "The formula is proven. Endless energy lies ahead. Please do not touch anything."
     },
@@ -1499,7 +1531,7 @@
       "Serenotta",
       "Altabriga",
       "Pratolune",
-      "Castelvoto",
+      "Castelluce",
       "Sanclaro",
       "Miralpina",
       "Ventadoro",
@@ -1677,7 +1709,7 @@
       "flakDrone": "Bird-Scare Drone",
       "steppeRider": "Steppe Riders",
       "stormbreaker": "Captured Breakers",
-      "peacekeeper": "Captured Blue Helmets",
+      "peacekeeper": "Captured Order Guard",
       "privateer": "Captured Raider",
       "protoWalker": "Captured Walker",
       "portal": "Sky Barn",
@@ -1689,7 +1721,10 @@
       "scientist": "Scientist",
       "teslaTank": "Lightning Tank",
       "octocopter": "Eight-Wing",
-      "railSniper": "Rail Rifleman"
+      "railSniper": "Rail Rifleman",
+      "lightWarden": "Lantern Bearers",
+      "reliquary": "Saint's Cupboard",
+      "sunLance": "Sun Plough"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1741,59 +1776,65 @@
       "scientist": "Scientist",
       "teslaTank": "Looted Tesla",
       "octocopter": "Looted Drone",
-      "railSniper": "Looted Railgun"
+      "railSniper": "Looted Railgun",
+      "lightWarden": "Light Troopers",
+      "reliquary": "Shrine Tank",
+      "sunLance": "Beam Battery"
     },
     "alvenia": {
-      "infantry": "Blue Berets",
-      "sniper": "Silent Observer",
-      "jeep": "Delegation Car",
-      "pioneer": "Bridge Builders",
-      "mg": "Republic Guard",
-      "medic": "Field Angels",
-      "artillery": "Last Argument",
-      "spy": "Attaché",
-      "heli": "Peace Dove",
-      "tank": "Negotiation Tank",
-      "landingBoat": "Envoy Boat",
-      "submarine": "Silent Mandate",
-      "destroyer": "Frigate Objection",
-      "battleship": "Plenary Ship",
-      "grey": "Guest Delegate",
-      "terraformer": "Landscape Steward",
-      "skimmer": "Floating Commission",
-      "mech": "Committee Mech",
-      "tripod": "Three-Party Walker",
-      "zealot": "Open-Minded Zealot",
-      "torchbearer": "Torch of Freedom",
-      "prophet": "Itinerant Orator",
-      "doomBuggy": "Campaign Buggy",
-      "rocketCart": "Republic Fireworks",
-      "doomCrawler": "Citizens' Roller",
-      "android": "Protocol Droid",
-      "spider": "Alpine Spider",
-      "quadDrone": "Poll Watcher Drone",
-      "railgun": "Rail Mandate",
-      "titan": "Constitutional Titan",
-      "antiTank": "Objection Squad",
-      "antiAir": "Airspace Warden",
-      "mineLayer": "Border Surveyors",
-      "faustZealot": "Reformed Rocketeer",
-      "flakDrone": "Patron Drone",
-      "steppeRider": "Free Riders",
-      "stormbreaker": "Converted Breakers",
-      "peacekeeper": "Peacekeepers",
-      "privateer": "Liberated Privateer",
-      "protoWalker": "Peace Walker",
-      "portal": "Unauthorised Gateway",
-      "hackRelay": "Listening Post",
-      "fusionPlant": "Peace Reactor",
+      "infantry": "Parish Guard",
+      "sniper": "Watchful Eye",
+      "jeep": "Pilgrim Car",
+      "pioneer": "Masons' Lodge",
+      "mg": "Litany Squad",
+      "medic": "Halo Healers",
+      "artillery": "Thunder Hymn",
+      "spy": "Silent Brother",
+      "heli": "Radiant Wing",
+      "tank": "Shrine Tank",
+      "landingBoat": "Pilgrim Boat",
+      "submarine": "Silent Vow",
+      "destroyer": "Frigate Penance",
+      "battleship": "Cathedral Ship",
+      "grey": "Soulless Grey",
+      "terraformer": "Earth Defiler",
+      "skimmer": "Will-o'-Wisp",
+      "mech": "Iron Idol",
+      "tripod": "Three-Legged Heretic",
+      "zealot": "False Believer",
+      "torchbearer": "Arsonist",
+      "prophet": "False Prophet",
+      "doomBuggy": "Doom Cart",
+      "rocketCart": "Ash Wagon",
+      "doomCrawler": "Crawling Sin",
+      "android": "Soulless Puppet",
+      "spider": "Web of Lies",
+      "quadDrone": "Buzzing Temptation",
+      "railgun": "Cold Lance",
+      "titan": "Steel Idol",
+      "antiTank": "Order Tankbreakers",
+      "antiAir": "Sky Vigil",
+      "mineLayer": "Seeds of Penance",
+      "faustZealot": "Repentant Rocketeer",
+      "flakDrone": "Aegis Drone",
+      "steppeRider": "Pilgrim Riders",
+      "stormbreaker": "Redeemed Breakers",
+      "peacekeeper": "Order Guard",
+      "privateer": "Redeemed Privateer",
+      "protoWalker": "Pilgrim Walker",
+      "portal": "Forbidden Gate",
+      "hackRelay": "Forbidden Listening Post",
+      "fusionPlant": "Sun Forge",
       "waal": "War Whale",
-      "coreDrill": "Doom Drill",
-      "swarmMother": "Chief Negotiator of the Swarm",
-      "scientist": "Scientist",
-      "teslaTank": "Coil Tank",
-      "octocopter": "Rescue Drone",
-      "railSniper": "Precision Marksman"
+      "coreDrill": "Sacrilege Drill",
+      "swarmMother": "Mother of All Sins",
+      "scientist": "Learned Brother",
+      "teslaTank": "Storm Tank",
+      "octocopter": "Eight-Wing",
+      "railSniper": "Precision Marksman",
+      "lightWarden": "Light Wardens",
+      "reliquary": "Reliquary",
+      "sunLance": "Sun Lance"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1845,7 +1886,10 @@
       "scientist": "Scientist",
       "teslaTank": "Spark Tank",
       "octocopter": "Cargo Drone",
-      "railSniper": "Magnet Gun"
+      "railSniper": "Magnet Gun",
+      "lightWarden": "Lamp Wardens",
+      "reliquary": "Gold Chest on Tracks",
+      "sunLance": "Burning Glass"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1897,7 +1941,10 @@
       "scientist": "Scientist",
       "teslaTank": "Tesla tank",
       "octocopter": "Octocopter",
-      "railSniper": "Railgun marksman"
+      "railSniper": "Railgun marksman",
+      "lightWarden": "Optics Infantry",
+      "reliquary": "Stained-Glass Bunker",
+      "sunLance": "Heliostat"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -1937,7 +1984,7 @@
       "flakDrone": "Catch Buzzer",
       "steppeRider": "Hoofbeast Riders",
       "stormbreaker": "Zrrk Breakers",
-      "peacekeeper": "Blue Cap Specimen",
+      "peacekeeper": "White Helmet Specimen",
       "privateer": "Wet Ship",
       "protoWalker": "Second Tripod",
       "portal": "Way Home",
@@ -1949,7 +1996,10 @@
       "scientist": "Scientist",
       "teslaTank": "Lightning Beetle",
       "octocopter": "Buzzing Swarm",
-      "railSniper": "Spike Tube"
+      "railSniper": "Spike Tube",
+      "lightWarden": "Glowing Bipeds",
+      "reliquary": "Rolling Temple",
+      "sunLance": "Sun Stinger"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -2001,7 +2051,10 @@
       "scientist": "Scientist",
       "teslaTank": "Thunder Cart",
       "octocopter": "Eightfold Angel",
-      "railSniper": "Heretic Marksman"
+      "railSniper": "Heretic Marksman",
+      "lightWarden": "Hypocrites",
+      "reliquary": "Idol Shrine",
+      "sunLance": "Blinding Lance"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -2053,7 +2106,10 @@
       "scientist": "Scientist",
       "teslaTank": "Coil Carrier",
       "octocopter": "Rotor Node",
-      "railSniper": "Rail Process"
+      "railSniper": "Rail Process",
+      "lightWarden": "Unit L-2 Warden",
+      "reliquary": "Unit R-4 Relic Case",
+      "sunLance": "Unit S-6 Mirror Array"
     }
   },
   "identity": {
@@ -2207,58 +2263,58 @@
     },
     "alvenia": {
       "select": [
-        "We vote later, go now!",
-        "Present, for the Republic!",
-        "Agreed, with reservations.",
-        "Is there a protocol for this?"
+        "The light is with us, go!",
+        "Present, for the Order!",
+        "Blessed and ready.",
+        "Which sin shall I judge?"
       ],
       "move": [
-        "Majority decision: forward!",
-        "I would like to propose an amendment ...",
-        "For freedom and paperwork!"
+        "The sun halo shows the way!",
+        "Step by step, prayer by prayer.",
+        "For light and order!"
       ],
       "attack": [
-        "In the name of the people!",
-        "The debate is over!",
-        "Fire, after the vote!"
+        "In the name of the light!",
+        "The Judgement begins!",
+        "Target sighted, soul forgiven!"
       ],
       "kill": [
-        "Motion carried.",
-        "Clear result.",
-        "The opposition is silent."
+        "Judged.",
+        "May the light be merciful to you.",
+        "One sin less."
       ],
       "hurt": [
-        "Objection! That hurt!",
-        "Blast, my goggles!",
-        "#@!% agenda!"
+        "I bleed, but I do not yield!",
+        "Blast, my visor!",
+        "#@!% heretic rabble!"
       ],
       "corpse": [
-        "May he rest in peace. Unanimously.",
-        "Someone should document this.",
-        "This could have been solved diplomatically."
+        "May he rest in the light.",
+        "His sacrifice strengthens us all.",
+        "We carry your light onward, brother."
       ],
       "wreck": [
-        "A scrappage bonus would have helped.",
-        "The wreck gives cover. Motion for cover!",
-        "Broken. Who is liable?"
+        "A monument to pride.",
+        "The wreck gives cover. Thank the heavens!",
+        "Broken. That was hubris."
       ],
       "forest": [
-        "All alone ... is this still democratic?",
-        "The forest has no opinion. Creepy.",
-        "Hello? Committee meeting in the woods?"
+        "All alone ... just me and the light.",
+        "The forest is silent. I pray quietly.",
+        "Hello? Anyone from the Order here?"
       ],
       "idle": [
-        "I would like a break, by vote.",
-        "My goggles are fogging up.",
-        "Is that in the coalition agreement?"
+        "I would like a short prayer.",
+        "My visor shines again.",
+        "I am polishing the sun halo."
       ],
       "rain": [
-        "Rain. Who voted for this?",
-        "Wet goggles, all I see is clauses."
+        "Rain. A test of faith.",
+        "Wet visor, all I see is light."
       ],
       "snow": [
-        "Snow! I move for woolly hats.",
-        "Cold feet, warm hearts."
+        "Snow! The light keeps us warm.",
+        "Cold feet, holy hearts."
       ]
     },
     "meridon": {
@@ -2787,69 +2843,69 @@
     },
     "alvenia": {
       "briefing": [
-        "Welcome, Commander. Parliament has met: we win, but with decency.",
-        "Our medics are ready, our ambassadors too. Choose wisely.",
-        "A short speech, I promise: friends win, walls fall. Go."
+        "Welcome, Commander. The Order has prayed: we win, but without sin.",
+        "Our Light Wardens stand ready, our Sun Lances too. Choose wisely.",
+        "A short sermon, I promise: hold, judge, redeem. Go."
       ],
       "contact": [
-        "Good day, {leader}. I am Liora Valen. May I offer you some tea?",
-        "Welcome, {faction}. Our embassy has already reserved a seat for you.",
-        "Delighted, {leader}. I hope we only ever meet at the negotiating table."
+        "Greetings, {leader}. I am Liora Valen, High Priestess. Are you without sin?",
+        "Welcome, {faction}. The light sees everything, you too.",
+        "Delighted, {leader}. May our path be a peaceful one."
       ],
       "break": [
-        "With regret, {leader}: Parliament revokes the peace. The clock is running.",
-        "I protested, voted and lost. And so will you.",
-        "You have overstretched our patience, {faction}. The protocol ends here."
+        "With regret, {leader}: the Order revokes the peace. The clock is running.",
+        "I prayed and hesitated. The light has decided.",
+        "You have exhausted our patience, {faction}. The Judgement approaches."
       ],
       "war": [
-        "War. I hate that word. But I spell it out very clearly.",
-        "{leader}, you leave me no choice. Medics, bandages, forward.",
-        "The Republic defends itself. Politely, thoroughly and without pause."
+        "War. I hate that word. But the light demands it.",
+        "{leader}, you leave me no choice. Light Wardens, forward.",
+        "The Order defends itself. Patiently, thoroughly and without mercy for sinners."
       ],
       "peaceOffer": [
-        "{leader}, the negotiating table is set. Will you join us?",
-        "An offer from the Republic: peace. With footnotes, but sincere.",
-        "Enough wounded on both sides. Let us sign."
+        "{leader}, the bells ring for peace. Do you hear them?",
+        "An offer from the Order: peace. Sincerely meant, sworn before the light.",
+        "Enough fallen on both sides. Let us lower our weapons."
       ],
       "peaceAccepted": [
-        "Wonderful. I knew reason was contagious, {leader}.",
-        "Peace with {faction}. Parliament applauds. Even the opposition.",
-        "Signed and stamped. You have lovely handwriting."
+        "Blessed be you, {leader}. Reason is a virtue.",
+        "Peace with {faction}. The Order sings a hymn of thanks. Even the novices.",
+        "Sealed before the light. Do not break it, that would be a sin."
       ],
       "peaceRejected": [
-        "Refused? Then the hard way. We know that one too, {leader}.",
-        "I am entering your refusal into the minutes. In red ink.",
+        "Refused? Then the hard way. The Order knows that one too, {leader}.",
+        "I am entering your refusal into the book of sins. In golden ink.",
         "A pity, {faction}. My patience was great. Was."
       ],
       "cityLost": [
-        "{city}? But that was home to our finest library!",
-        "That breaks every accord, {leader}! At the very least! I will check!",
-        "We have lost {city}. I need an emergency session, please, right now."
+        "{city}? But that was home to our finest chapel!",
+        "That is sacrilege, {leader}! The Judgement will find you!",
+        "We have lost {city}. I need a prayer, please, right now."
       ],
       "cityTaken": [
-        "{city} has chosen the Republic. More or less voluntarily.",
-        "Do not worry, {leader}: {city} now has elections. And hospitals.",
-        "We now hold {city} in trust. Very trustfully. For a very long time."
+        "{city} now stands beneath the sun halo. May the light heal here.",
+        "Do not worry, {leader}: {city} now has prayers. And hospitals.",
+        "We now keep {city} in the name of the Order. Very faithfully. For a very long time."
       ],
       "eliminated": [
-        "This... this was not what we voted for. I move to adjourn.",
-        "The Republic falls? Please... someone must keep the minutes.",
-        "I was a doctor. I know when it is over. It is over."
+        "This ... this was not foretold. I pray for forgiveness.",
+        "The Order falls? Please ... someone must carry the light onward.",
+        "I was a doctor. I know when it is over. May the light redeem us."
       ],
       "grandProject": [
-        "Parliament opens {project}. With ribbon, scissors and a very long speech.",
-        "{project} is complete, {leader}. Built with friends. You were not invited.",
-        "A monument to cooperation: {project}. Feel free to admire it."
+        "The Order consecrates {project}. With bells, incense and a very long sermon.",
+        "{project} is complete, {leader}. Built with faith. You were not invited.",
+        "A monument to the light: {project}. Feel free to admire it, humbly."
       ],
       "victory": [
-        "Victory! And not one wall we did not replace with friendship.",
-        "Parliament has decided unanimously: you are splendid, Commander.",
+        "Victory! The light has won, and no sin went unjudged.",
+        "The Order has prayed as one: you are splendid, Commander.",
         "We won. Now everyone change your bandages, and then we celebrate."
       ],
       "defeat": [
-        "Lost? That cannot be. I demand a recount!",
-        "All the alliances, all the treaties... and still. I am speechless. Almost.",
-        "Please tell Parliament that I... need some fresh air."
+        "Lost? That cannot be. Did the light ... blink?",
+        "All the prayers, all the vows ... and still. I am speechless. Almost.",
+        "Please tell the Order that I ... need a moment of silence."
       ]
     },
     "meridon": {
@@ -3248,7 +3304,7 @@
     "tag": "{name} +{pct} %",
     "tagDesc": "Stands on own territory: +{pct} % defence when this unit is attacked. Does not apply when it attacks, nor to return fire.",
     "bonus": {
-      "alvenia": "Peace Bulwark"
+      "alvenia": "Bulwark of Faith"
     },
     "bonusDesc": {
       "alvenia": "All Alvenia units defend with +{pct} % on their own territory, on top of city, terrain and cover. Only when they are attacked, not when they attack and not for return fire."
@@ -3288,7 +3344,6 @@
     "eliminated": "Eliminated",
     "you": "You",
     "roundsLeft": "{n} rounds left",
-    "leagueNotMet": "Condition not met right now",
     "setupTitle": "Faction victory",
     "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory tech).",
     "build": "Build {name}",
@@ -3313,12 +3368,12 @@
       "drill": "Drilling {have}/{need}",
       "cities": "Cities {have}/{need}",
       "stars": "Stars {have}/{need}",
-      "league": "League {have}/{need}"
+      "judgement": "Judged {have}/{need}"
     },
     "goal": {
       "korvat": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
       "dravon": "Build the land cruiser Waal on free land in your territory. After {arm} rounds it fires (range {range}), after {total} rounds it is finished and you win. Attacks do not interrupt it, but it has few HP while building.",
-      "alvenia": "League of Nations: peace and an embassy with every known living faction (at least {min}) for {n} rounds in a row. Any war or missing embassy resets the counter.",
+      "alvenia": "Great Judgement: destroy {n} units of sinners ({min} to {max} by map size). Only kills after the Great Judgement is unlocked count. A sinner, for {rounds} rounds, is whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia; aliens and robots are permanent sinners.",
       "meridon": "Have {n} stars in the treasury. Victory at the start of your turn.",
       "velkar": "Build the fusion power plant on 2x2 free land (mountains allowed) in your territory. After {n} rounds it delivers endless energy and you win. Every attack resets the progress to 0.",
       "zyrr": "Build the dimensional portal in your territory: {build} rounds of construction, then {charge} rounds of charging. An attack resets the current phase to 0; finished construction is kept.",
@@ -3329,7 +3384,7 @@
     "short": {
       "korvat": "Over {pct} % of the cities",
       "dravon": "Land cruiser Waal",
-      "alvenia": "League of Nations",
+      "alvenia": "Great Judgement",
       "meridon": "{n} stars",
       "velkar": "Fusion power plant",
       "zyrr": "Dimensional portal",
@@ -3340,7 +3395,7 @@
     "reason": {
       "korvat": "The Collective rules large parts of the world.",
       "dravon": "The Waal rolls out, no army can stop it now.",
-      "alvenia": "The League of Nations is founded, the world makes peace.",
+      "alvenia": "The Great Judgement is done, the sinners are judged.",
       "meridon": "Meridon buys the world.",
       "velkar": "The fusion power plant delivers endless energy.",
       "zyrr": "The portal has opened.",
@@ -3349,7 +3404,6 @@
     },
     "armed": "Armed",
     "ruleReset": "Every attack resets the construction to 0.",
-    "leagueUnavailable": "Only possible with at least 3 factions in the game",
     "paused": "Paused: site not in own territory",
     "modeTitle": "Objective",
     "modePoints": "Round {round}/{max}, you are in place {rank}. After round {max} the highest score wins."
@@ -3416,6 +3470,10 @@
     "cult": {
       "title": "Cult: plunder & horde",
       "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half}% the second time, {quarter}% after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
+    },
+    "judgement": {
+      "title": "Sin and Judgement",
+      "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Aliens and robots (Zyrr, NEXUS) are permanent sinners without a deed as godless creatures; the Cathedral of Light's penance tithe counts only sinners with a deed. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners (14 × 14 map, more or fewer by size) once the Great Judgement is unlocked."
     }
   },
   "lore": {
@@ -3428,7 +3486,7 @@
       "vesper": "Cult of the Final Hour, fanatics. Prophet Malachar. Robes, bone masks, bells, flames. At dusty pilgrimage sites the desperate gathered, the exiled, the sick, the guilty and the lost, waiting for the end of the world, for the Final Hour in which everything old passes away. From these gatherings rose Malachar, the prophet. He proclaimed: the end is no catastrophe, it is salvation. The cult needs no cities, no industry and no laws, only fire, faith and the certainty that the Final Hour will come. What it finds, it plunders; whoever listens joins the horde.",
       "dravon": "Protectorate of Dravon, humans. Commander Sarek Voss. Drill, camouflage green, balaclavas, barracks state. Mercenary companies guarded the ore mines of the desert, for anyone who paid. When the Standstill came, nobody paid anymore. The mercenaries kept the mines. Camps became barracks, barracks became a state. Nobody has ever seen Voss without his balaclava. In Dravon every recruit becomes a veteran, or is forgotten.",
       "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
-      "alvenia": "Republic of Alvenia, humans. President Liora Valen. Diplomacy, parliament, medics, alliances. In the green hill valleys a parliament debates longer than others wage wars. Valen was a field doctor. She has seen what front lines do. Today her embassies stand everywhere, and so do her medics. Alvenia wins wars with friends instead of tanks.",
+      "alvenia": "Holy Alvenia, humans. High Priestess Liora Valen. An order of clerics, the sun halo, Light Wardens, Judgement. In the green hill valleys an order sings beneath the sun halo. Valen was a field doctor. She has seen what front lines do and believes in the redemption of the fallen. Whoever plunders, burns or converts will meet her Judgement. The Order is the counterweight to the cult.",
       "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Production, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
       "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
     },
@@ -3633,7 +3691,7 @@
       "crash": "Zyrr debris rains down, and their mothership crashes into the desert.",
       "fracture": "The bell tolls by itself. The human front breaks into five pieces.",
       "korvat": "Korvat storms: in the Steppe Storm, the steppe riders strike at full gallop.",
-      "alvenia": "Alvenia holds: on home ground, the peacekeepers do not yield a single step.",
+      "alvenia": "Alvenia judges: whoever sins will meet the Judgement.",
       "dravon": "Dravon builds fortresses: gun emplacements, minefields, iron drill.",
       "velkar": "Velkar strikes from orbit: a satellite relay guides the technocrats' laser.",
       "meridon": "Meridon trades: every harbour has its price, and the privateers collect it.",
@@ -3641,7 +3699,7 @@
     },
     "kicker": {
       "korvat": "Korvat storms",
-      "alvenia": "Alvenia holds",
+      "alvenia": "Alvenia judges",
       "dravon": "Dravon fortifies",
       "velkar": "Velkar aims from orbit",
       "meridon": "Meridon trades"
@@ -3722,5 +3780,32 @@
     "tag": "Stationary only",
     "moved": "Moved: cannot fire",
     "tagDesc": "This unit cannot attack after it has moved this turn. Set it up first, fire next turn."
+  },
+  "sin": {
+    "deed": {
+      "plunder": "plunder",
+      "burn": "burning",
+      "convert": "conversion",
+      "capture": "conquest",
+      "breakPeace": "breach of peace",
+      "sacrilege": "sacrilege",
+      "godless": "Godless"
+    },
+    "toast": "{faction} has sinned: {deed}",
+    "tag": "Sinner",
+    "tagDesc": "Marked as a sinner ({deed}), {n} more rounds. Judgement: Alvenia's units deal +{pct} % damage to this faction.",
+    "rounds": "{n} more rounds",
+    "judgement": "Judgement +{pct} %",
+    "judgementDesc": "The target belongs to a sinner: +{pct} % damage (already included).",
+    "fx": "JUDGED!",
+    "permanent": "permanent",
+    "tagDescGodless": "Godless creatures: aliens and robots are permanent sinners in Alvenia's eyes. Judgement: Alvenia's units deal +{pct} % damage to this faction."
+  },
+  "blessing": {
+    "toast": "Martyr's Blessing: {n} units healed and strengthened",
+    "fx": "BLESSED!",
+    "tag": "Blessed +{pct} %",
+    "tagDesc": "Martyr's Blessing: +{pct} % defence, {n} more rounds.",
+    "hint": "Target blessed +{pct} %"
   }
 }

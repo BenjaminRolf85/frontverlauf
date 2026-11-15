@@ -3,8 +3,8 @@
  * Rules / help: short collapsible sections. All numbers come from balance.ts so the page stays correct.
  */
 import {
-  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, INCOME, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, START, UPKEEP,
-  VICTORY_TECH,
+  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
+  VICTORY_TECH, WONDERS,
 } from '../data/balance';
 import { UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { num, t } from '../i18n/i18n';
@@ -39,6 +39,8 @@ function sections(): Section[] {
     { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) },
       // Mahnmal: zur Schau gestellte Gefallene / memorial: the fallen put on display
       extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p>` },
+    // Heiliges Alvenia: Suende, Strafgericht, Segen / Holy Alvenia: sin, judgement, blessing
+    { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
 }

@@ -106,6 +106,12 @@ const P: Record<string, string> = {
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',
   emblemStarRing: '<circle cx="12" cy="12" r="9.5"/><path d="M12 5.5l1.9 4 4.4.5-3.3 3 .9 4.4L12 15.2l-3.9 2.2.9-4.4-3.3-3 4.4-.5z" fill="currentColor"/>',
+  /** Heiliges Alvenia: Sonnenkranz (Ring), vierzackiger Stern, Lorbeer / Holy Alvenia: sun halo (ring), four-pointed star, laurel */
+  emblemHalo: '<circle cx="12" cy="11" r="8.5"/><path d="M12 4.6l1.5 4.9 4.9 1.5-4.9 1.5L12 17.4l-1.5-4.9L5.6 11l4.9-1.5z" fill="currentColor"/><path d="M5 17.5c1.6 2.4 4 3.6 7 3.6s5.4-1.2 7-3.6M6.6 19.2l-.4-1.6M9 20.6l-.2-1.7M17.4 19.2l.4-1.6M15 20.6l.2-1.7"/>',
+  /** Suendenzeichen: gesprungener Sonnenkranz / sinner mark: cracked sun halo */
+  sin: '<path d="M8.4 4.3A8.5 8.5 0 1 0 15.6 4.3"/><path d="M12 2.5l-1.6 4.2 3 2.3-1.8 4.5"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/>',
+  /** Segen: schwebender Sonnenkranz ueber Strahlen / blessing: floating sun halo above rays */
+  bless: '<ellipse cx="12" cy="5" rx="6.5" ry="2.2"/><path d="M12 9.5l1.3 4.2 4.2 1.3-4.2 1.3L12 20.5l-1.3-4.2-4.2-1.3 4.2-1.3z" fill="currentColor"/>',
   emblemCompass: '<circle cx="12" cy="12" r="9.5"/><path d="M12 2.5l2 7.5 7.5 2-7.5 2-2 7.5-2-7.5-7.5-2 7.5-2z" fill="currentColor"/>',
   emblemDoom: '<path d="M4 15a8 8 0 0 1 16 0"/><path d="M12 3v3M5.2 6.6l2 2M18.8 6.6l-2 2M2.5 11h2.5M19 11h2.5"/><path d="M2.5 18.5h19"/><path d="M10.5 15l1.5-3 1.5 3"/>',
   emblemNode: '<path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="6.8" r="1.2" fill="currentColor"/><circle cx="7.5" cy="14.6" r="1.2" fill="currentColor"/><circle cx="16.5" cy="14.6" r="1.2" fill="currentColor"/><path d="M12 8v2M8.5 14l2-1M15.5 14l-2-1"/>',
@@ -116,7 +122,7 @@ const P: Record<string, string> = {
 export type IconName = keyof typeof P;
 
 export const FACTION_EMBLEM: Record<string, IconName> = {
-  korvat: 'emblemGear', dravon: 'emblemFist', alvenia: 'emblemStarRing', meridon: 'emblemCompass', velkar: 'emblemHex', zyrr: 'emblemSaucer', vesper: 'emblemDoom', nexus: 'emblemNode',
+  korvat: 'emblemGear', dravon: 'emblemFist', alvenia: 'emblemHalo', meridon: 'emblemCompass', velkar: 'emblemHex', zyrr: 'emblemSaucer', vesper: 'emblemDoom', nexus: 'emblemNode',
 };
 
 /** SVG-Markup fuer ein Symbol / SVG markup for an icon */
