@@ -13,7 +13,7 @@ import { icon } from './icons';
 import { techT } from './terms';
 import { victoryShortText } from './victory';
 import { emplacementRuleParams } from './emplacement';
-import { combatBonusTexts } from './factionInfo';
+import { combatBonusTexts, memorialText } from './factionInfo';
 
 const pct = (f: number) => Math.round(f * 100);
 /** Faktor als Text mit Komma im Deutschen / factor as text, comma in German */
@@ -36,7 +36,9 @@ function sections(): Section[] {
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
-    { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) } },
+    { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) },
+      // Mahnmal: zur Schau gestellte Gefallene / memorial: the fallen put on display
+      extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p>` },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
 }

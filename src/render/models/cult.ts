@@ -339,3 +339,64 @@ export function doomCrawler(f: FactionId, lite = false): Builder {
   return b;
 }
 
+
+// ---------- Mahnmal / memorial ----------
+
+/**
+ * Mahnmal des Kults: grober Pfahl mit Querbalken, daran der Gefallene in den Farben seiner Fraktion (Knochenschaedel,
+ * Helm, Stricke), oben ein zerfetztes blutrotes Banner mit der untergehenden Sonne des Kults, am Fuss Steine, Knochen
+ * und eine Glutlaterne. Klein und duenn, damit es neben einer Einheit in der Feldecke steht.
+ * Cult memorial: rough stake with a crossbar, the fallen tied to it in the colours of their faction (bone skull, helmet,
+ * ropes), on top a tattered blood-red banner with the cult's setting sun, at the foot stones, bones and an ember
+ * lantern. Small and slim so it stands in the tile corner next to a unit.
+ */
+export function memorial(fallen: FactionId, lite = false): Builder {
+  const b = new Builder();
+  const C = look('vesper');
+  const F = look(fallen);
+  const rope = mat.dark;
+  // Erdhuegel mit Steinen / mound with stones
+  b.add(geo.hemi(0.085, lite ? 6 : 9, 3), shade(mat.rockDark, 0.8), { s: [1, 0.32, 1] });
+  const R = rng(17);
+  for (let i = 0; i < (lite ? 3 : 6); i++) {
+    const a = (i / 6) * Math.PI * 2 + R() * 0.5, d = 0.075 + R() * 0.02;
+    b.add(geo.dodeca(0.014 + R() * 0.008), i % 2 ? mat.rock : mat.rockDark, { p: [Math.cos(a) * d, 0.008, Math.sin(a) * d], r: [R(), R(), R()] });
+  }
+  // Pfahl und Querbalken / stake and crossbar
+  b.tube([0, 0, 0], [0.008, 0.58, 0], 0.012, 6, mat.wood, 0.015);
+  b.tube([-0.105, 0.43, 0.016], [0.105, 0.44, 0.016], 0.009, 5, mat.wood);
+  b.add(geo.cone(0.012, 0.03, 5), mat.wood, { p: [0.008, 0.595, 0] });
+  // Gefallener: Rumpf, Arme am Balken, haengende Beine / the fallen: torso, arms on the bar, dangling legs
+  const z = 0.04;
+  b.add(geo.box(0.068, 0.11, 0.038), F.jacket, { p: [0.002, 0.33, z], r: [0.08, 0, 0.04] });
+  b.add(geo.box(0.072, 0.014, 0.042), F.gear, { p: [0.002, 0.285, z] });
+  b.add(geo.torus(0.04, 0.005, 3, 10), rope, { p: [0.002, 0.31, z - 0.01], r: [HALF_PI, 0, 0], s: [1, 0.55, 1] });
+  b.mirrorX(() => {
+    b.tube([0.034, 0.375, z], [0.095, 0.428, z - 0.012], 0.0105, 5, F.jacket);
+    b.add(geo.ico(0.011, 0), mat.bone, { p: [0.1, 0.43, z - 0.012] });
+    b.add(geo.torus(0.012, 0.0035, 3, 8), rope, { p: [0.088, 0.432, z - 0.014], r: [0, HALF_PI, 0] });
+    b.tube([0.018, 0.278, z], [0.014, 0.175, z + 0.012], 0.012, 5, F.pants);
+    b.box(0.022, 0.018, 0.036, mat.dark, [0.014, 0.165, z + 0.02]);
+  });
+  // gesenkter Schaedel mit Helm / bowed skull with helmet
+  b.group({ p: [0.004, 0.405, z + 0.012], r: [0.55, 0, 0.18] }, () => {
+    b.add(geo.sphere(0.028, lite ? 6 : 8, lite ? 5 : 6), mat.bone, { s: [1, 1.05, 1] });
+    b.box(0.011, 0.01, 0.006, mat.ink, [-0.01, 0.002, 0.026]);
+    b.box(0.011, 0.01, 0.006, mat.ink, [0.01, 0.002, 0.026]);
+    b.box(0.022, 0.006, 0.006, mat.ink, [0, -0.016, 0.024]);
+    b.add(geo.hemi(0.033, lite ? 6 : 9, 3), F.helmet, { p: [0, 0.008, -0.004], r: [-0.25, 0, 0] });
+  });
+  // zerfetztes Banner mit Kult-Sonne / tattered banner with the cult sun
+  b.add(geo.profileXY([[0, 0], [0.15, 0.004], [0.142, -0.05], [0.152, -0.1], [0.12, -0.085], [0.1, -0.118], [0.07, -0.095], [0.04, -0.124], [0.016, -0.1], [0, -0.11]], 0.006),
+    C.primary, { p: [0.014, 0.575, 0], r: [0, 0, -0.04] });
+  addEmblem(b, 'vesper', 0.036, 0.004, C.secondary, { p: [0.076, 0.52, 0.006] });
+  addEmblem(b, 'vesper', 0.036, 0.004, C.secondary, { p: [0.076, 0.52, -0.006], r: [0, Math.PI, 0] });
+  b.add(geo.ico(0.016, 0), mat.bone, { p: [0.008, 0.6, 0] });
+  if (!lite) {
+    // Knochen und Glutlaterne am Fuss / bones and ember lantern at the foot
+    bone(b, [-0.07, 0.01, 0.06], [-0.02, 0.012, 0.085]);
+    bone(b, [0.05, 0.01, -0.07], [0.085, 0.012, -0.035]);
+    lantern(b, [0.07, 0.012, 0.055], 1.1);
+  }
+  return b;
+}

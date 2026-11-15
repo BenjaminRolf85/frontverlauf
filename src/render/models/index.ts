@@ -37,7 +37,7 @@ import { artillery, heli, jeep } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
 import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terrain';
-import { doomBuggy, doomCrawler, prophet, rocketCart, torchbearer, zealot } from './cult';
+import { doomBuggy, doomCrawler, memorial, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
@@ -258,6 +258,11 @@ export function buildingGeometry(kind: BuildingId | 'outpost' | GrandProjectId, 
 /** Verdeckte Mine, nur fuer den Besitzer sichtbar / hidden mine, visible to its owner only */
 export function mineGeometry(faction: FactionId | null): THREE.BufferGeometry {
   return memo(`mine|${faction ?? 'neutral'}`, () => mineModel(faction).build());
+}
+
+/** Mahnmal des Kults; fallen = Fraktion des Gefallenen / cult memorial; fallen = faction of the fallen */
+export function memorialGeometry(fallen: FactionId): THREE.BufferGeometry {
+  return memo(`memorial|${fallen}`, () => memorial(fallen).build());
 }
 
 export function featureGeometry(kind: 'bunker' | 'radar'): THREE.BufferGeometry {

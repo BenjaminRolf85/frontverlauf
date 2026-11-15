@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL } from '../data/balance';
-import { attackTargets, levelUpCost, burning, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, type GameState, type Unit } from '../core';
+import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -767,6 +767,13 @@ export class Board {
             addDeco(safe(skeletonGeometry, semantic.bone, sf, (v + i) % 3), new THREE.Matrix4().compose(
               new THREE.Vector3(x - off + spots[i][0] + (hasStruct ? 0.2 : 0), top, y - off + spots[i][1] + (hasStruct ? 0.2 : 0)), new THREE.Quaternion(), new THREE.Vector3(k, k, k)));
           }
+        }
+        // Mahnmal des Kults in der seitlichen Feldecke, neben der Einheit sichtbar / cult memorial in the side corner of the tile, visible next to the unit
+        const mem = memorialAt(s, x, y);
+        if (mem) {
+          const mf = s.factions[mem.faction]?.id ?? 'korvat';
+          addDeco(safe(models.memorialGeometry, semantic.bone, mf), new THREE.Matrix4().compose(
+            new THREE.Vector3(x - off + 0.33, top, y - off - 0.33), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -0.6), new THREE.Vector3(1.3, 1.3, 1.3)));
         }
         // Strassen / roads
         const roadLike = (xx: number, yy: number) => {
