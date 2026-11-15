@@ -39,7 +39,9 @@ const keyColor = (h: string) => new THREE.Color(hex(h));
 const p = primitives.color;
 /** Schluesselfarben: Vertexfarben, die leuchten / key colours: vertex colours that glow */
 const KEYS = {
-  self: [keyColor(semantic.xenoGlow), keyColor(semantic.xenoAcid), keyColor(factionTokens.nexus.marker), keyColor(semantic.artifactGlow), keyColor(semantic.artifactGold), keyColor(semantic.artifactCore)],
+  self: [keyColor(semantic.xenoGlow), keyColor(semantic.xenoAcid), keyColor(factionTokens.nexus.marker), keyColor(semantic.artifactGlow), keyColor(semantic.artifactGold), keyColor(semantic.artifactCore),
+    // Hoehle: Pilze, Kristalle, Laternen, Verdan-Auge (kommen an der Oberflaeche nicht vor) / cavern: mushrooms, crystals, lanterns, Verdan eye (absent on the surface)
+    keyColor(semantic.caveGlowTeal), keyColor(semantic.caveGlowMagenta), keyColor(semantic.caveGlowLime), keyColor(semantic.caveLantern), keyColor(semantic.caveCrystal), keyColor(semantic.verdanEye)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
 };
