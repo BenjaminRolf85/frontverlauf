@@ -709,7 +709,7 @@
     "fresh": "Neue Einheiten handeln erst im nächsten Zug.",
     "webgl": "Dein Browser unterstützt kein WebGL. Das Spiel kann nicht starten.",
     "generic": "Etwas ist schiefgelaufen.",
-    "noResearch": "Die Zyrr forschen nicht.",
+    "noResearch": "Deine Fraktion forscht nicht.",
     "notTerraformed": "Erst das Stadtfeld terraformen.",
     "wrongFaction": "Nur die Zyrr können das.",
     "notPreacher": "Nur Eiferer und Propheten können rekrutieren.",
@@ -3407,7 +3407,7 @@
       "costFormula": "Produktionskosten: (Stufe x Städte + 4) x 5",
       "needParent": "Erst {tech} freischalten.",
       "notYourTurn": "Freischalten geht nur im eigenen Zug.",
-      "confirm": "In Produktion nehmen",
+      "confirm": "Freischalten",
       "done": "Bereits freigeschaltet.",
       "legendVictory": "Siegfähigkeit (gestrichelt)",
       "victoryGroup": "Siegfähigkeit"

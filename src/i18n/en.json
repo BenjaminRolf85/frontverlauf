@@ -709,7 +709,7 @@
     "fresh": "New units act from your next turn.",
     "webgl": "Your browser does not support WebGL. The game cannot start.",
     "generic": "Something went wrong.",
-    "noResearch": "The Zyrr do not research.",
+    "noResearch": "Your faction does not research.",
     "notTerraformed": "Terraform the city tile first.",
     "wrongFaction": "Only the Zyrr can do that.",
     "notPreacher": "Only zealots and prophets can recruit.",
@@ -3407,7 +3407,7 @@
       "costFormula": "Production cost: (tier x cities + 4) x 5",
       "needParent": "Unlock {tech} first.",
       "notYourTurn": "You can only unlock on your own turn.",
-      "confirm": "Start production",
+      "confirm": "Unlock",
       "done": "Already unlocked.",
       "legendVictory": "Victory capability (dashed)",
       "victoryGroup": "Victory capability"
