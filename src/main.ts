@@ -134,6 +134,7 @@ function boot() {
       get ar() { return xr.supported.ar; },
       enter: (mode) => void xr.start(mode),
     },
+    pauseScene(on) { view.paused = on; },
     showMenu() {
       tutorial?.finish(); tutorial = null;
       barks.clear();
@@ -284,4 +285,8 @@ function boot() {
   (window as unknown as { __game: Controller }).__game = game;
 }
 
-boot();
+// Nur Entwicklung: Exportseite des Intro-Videos (scripts/intro-export.mjs), sonst das Spiel
+// development only: export page of the intro video (scripts/intro-export.mjs), otherwise the game
+if (import.meta.env.DEV && new URLSearchParams(location.search).has('intro-export')) {
+  void import('./intro/export').then((m) => m.bootExport(new URLSearchParams(location.search)));
+} else boot();
