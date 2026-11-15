@@ -97,6 +97,7 @@ export function buildScore(): ScoreEvent[] {
   // Fuenf Banner: Fanfare / five banners: fanfare
   cue(48, 'crash'); cue(48, 'fanfare');
   theme('alvenia', 2, 48, 52);
+  pad(48, 110, 4, 0.1); pad(50, 146.8, 2, 0.08);
   cue(51, 'roll');
 
   // Logo: Schlag, Fanfare, Schlussakkord / logo: slam, fanfare, final chord

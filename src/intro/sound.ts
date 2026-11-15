@@ -12,27 +12,39 @@ const SEED = 1847;
 /** Vorlauf beim Planen in Sekunden / scheduling look-ahead in seconds */
 const LOOKAHEAD = 0.8;
 
+/**
+ * Ausgang der Klangspur: Vorverstaerkung und Begrenzer gegen Uebersteuern, dann Ausblendung.
+ * Soundtrack output: pre-gain and limiter against clipping, then the fade.
+ */
+function output(ctx: BaseAudioContext): GainNode & { fade: GainNode } {
+  const pre = ctx.createGain(); pre.gain.value = 2.2;
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -9; lim.knee.value = 4; lim.ratio.value = 16; lim.attack.value = 0.002; lim.release.value = 0.2;
+  const fade = ctx.createGain();
+  pre.connect(lim); lim.connect(fade); fade.connect(ctx.destination);
+  return Object.assign(pre, { fade });
+}
+
 /** Ausklang am Ende / fade at the end */
-function endFade(out: GainNode, t0: number) {
-  out.gain.setValueAtTime(1, t0 + DURATION - 1.4);
-  out.gain.linearRampToValueAtTime(0, t0 + DURATION);
+function endFade(fade: GainNode, t0: number) {
+  fade.gain.setValueAtTime(1, t0 + DURATION - 1.4);
+  fade.gain.linearRampToValueAtTime(0, t0 + DURATION);
 }
 
 export class LiveScore {
   private eng = new AudioEngine();
-  private out: GainNode;
+  private out: GainNode & { fade: GainNode };
   private events: ScoreEvent[];
   private next = 0;
   /** Kontextzeit von t = 0 / context time of t = 0 */
   readonly t0: number;
 
   constructor(private ctx: BaseAudioContext, opts: { music: boolean; effects: boolean }, start = 0) {
-    this.out = ctx.createGain();
-    this.out.connect(ctx.destination);
-    this.eng.attach(ctx, this.out, { rnd: rng(SEED) });
+    this.out = output(ctx);
+    this.eng.attach(ctx, this.out, { rnd: rng(SEED), music: 0.42 });
     this.events = buildScore().filter((e) => (e.bus === 'music' ? opts.music : opts.effects));
     this.t0 = ctx.currentTime + 0.12 - start;
-    endFade(this.out, this.t0);
+    endFade(this.out.fade, this.t0);
     // Ereignisse vor dem Start ueberspringen / skip events before the start
     while (this.next < this.events.length && this.events[this.next].at < start - 0.02) this.next++;
   }
@@ -47,23 +59,22 @@ export class LiveScore {
 
   /** Sanft ausblenden und trennen / fade out gently and disconnect */
   stop() {
-    const now = this.ctx.currentTime;
-    this.out.gain.cancelScheduledValues(now);
-    this.out.gain.setValueAtTime(this.out.gain.value, now);
-    this.out.gain.linearRampToValueAtTime(0, now + 0.25);
+    const now = this.ctx.currentTime, g = this.out.fade.gain;
+    g.cancelScheduledValues(now);
+    g.setValueAtTime(g.value, now);
+    g.linearRampToValueAtTime(0, now + 0.25);
     this.next = this.events.length;
-    window.setTimeout(() => this.out.disconnect(), 400);
+    window.setTimeout(() => this.out.fade.disconnect(), 400);
   }
 }
 
 /** Ganze Klangspur offline rechnen / render the whole soundtrack offline */
 export async function renderSoundtrack(sampleRate = 48000): Promise<AudioBuffer> {
   const ctx = new OfflineAudioContext(2, Math.ceil(DURATION * sampleRate), sampleRate);
-  const out = ctx.createGain();
-  out.connect(ctx.destination);
-  endFade(out, 0);
+  const out = output(ctx);
+  endFade(out.fade, 0);
   const eng = new AudioEngine();
-  eng.attach(ctx, out, { rnd: rng(SEED) });
+  eng.attach(ctx, out, { rnd: rng(SEED), music: 0.42 });
   for (const e of buildScore()) e.play(eng, e.at);
   return ctx.startRendering();
 }

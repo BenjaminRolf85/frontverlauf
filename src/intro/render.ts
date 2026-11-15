@@ -290,8 +290,8 @@ function drawStandstill(r: R, l: number) {
   const w = W * (r.portrait ? 0.92 : 0.9);
   const h1 = r.portrait ? H * 0.3 : clamp(w / aspectOf(r, CROPS.wrecks), H * 0.34, H * 0.42);
   const h2 = r.portrait ? H * 0.3 : clamp(w / aspectOf(r, CROPS.map), H * 0.36, H * 0.46);
-  const p1: Panel = { x: (W - w) / 2, y: r.portrait ? H * 0.12 : H * 0.12, w, h: h1, rot: -0.015 };
-  const p2: Panel = { x: (W - w) / 2 + w * 0.02, y: r.portrait ? H * 0.45 : H * 0.4, w: w * 0.96, h: h2, rot: 0.018 };
+  const p1: Panel = { x: (W - w) / 2, y: r.portrait ? H * 0.12 : H * 0.17, w, h: h1, rot: -0.015 };
+  const p2: Panel = { x: (W - w) / 2 + w * 0.02, y: r.portrait ? H * 0.45 : H * 0.42, w: w * 0.96, h: h2, rot: 0.018 };
   const a1 = easeOutCubic(seg(l, 0, 0.7));
   const dim = seg(l, 3, 3.4);
   panel(r, CROPS.wrecks, p1, { zoom: lerp(1.15, 1.02, seg(l, 0, 6)), px: lerp(0.5, -0.5, seg(l, 0, 6)), dx: (1 - a1) * W * 0.6, alpha: a1 });
@@ -597,12 +597,12 @@ function drawFracture(r: R, l: number) {
     ctx.restore();
     if (vis > 0) { ctx.lineWidth = 7 * u / sc; ctx.strokeStyle = C.ink; ctx.strokeRect(-hw, -hh, vis, band); }
     const ep = easeOutBack(seg(l, 2.3 + i * 0.08, 2.7 + i * 0.08));
-    if (ep > 0) badge(r, f, r.portrait ? -hw * 0.45 : 0, 0, (band * 0.62) * ep / Math.max(1, sc * 0.6));
+    if (ep > 0) badge(r, f, r.portrait ? -hw * 0.5 : 0, 0, (band * 0.62) * ep / Math.max(1, sc * 0.6));
     const np = seg(l, 2.6 + i * 0.08, 2.9 + i * 0.08);
     if (np > 0) {
       ctx.save(); ctx.globalAlpha = np;
       const name = r.T.factions[f].short.toUpperCase();
-      if (r.portrait) inkText(r, name, -hw * 0.1, band * 0.17 / 1, Math.min(fitSize(r, name, 'comic', band * 0.42, hw * 1.1), band * 0.42), 'comic', factionTokens[f].ink, { stroke: 2, align: 'left' });
+      if (r.portrait) { const ink = factionTokens[f].ink; inkText(r, name, hw * 0.02, band * 0.17, Math.min(fitSize(r, name, 'comic', band * 0.42, hw * 0.9), band * 0.42), 'comic', ink, { stroke: 2, align: 'left', strokeColor: ink === C.white ? C.ink : C.paper }); }
       else inkText(r, name, 0, hh + 54 * u, 46 * u, 'comic', C.paper, { stroke: 4, shadow: 4, align: 'center' });
       ctx.restore();
     }
@@ -633,7 +633,7 @@ function factionStage(r: R, f: HumanFaction): Stage {
   const A = CROPS[`${f}A` as keyof typeof CROPS], B = CROPS[`${f}B` as keyof typeof CROPS];
   if (r.portrait) {
     const w = W * 0.92, x = W * 0.04;
-    const h1 = clamp(w / aspectOf(r, A), H * 0.17, H * 0.215), h2 = clamp(w / aspectOf(r, B), H * 0.17, H * 0.215);
+    const h1 = clamp(w / aspectOf(r, A), H * 0.2, H * 0.24), h2 = clamp(w / aspectOf(r, B), H * 0.2, H * 0.24);
     const top = H * 0.035, gap = H * 0.024;
     if (FLIP.includes(f)) return { x: 0, y: 0, w: W, h: top + h1 + h2 + gap, p1: { x, y: top + h2 + gap, w, h: h1, rot: -0.012 }, p2: { x, y: top, w, h: h2, rot: 0.012 } };
     return { x: 0, y: 0, w: W, h: top + h1 + gap + h2, p1: { x, y: top, w, h: h1, rot: -0.012 }, p2: { x, y: top + h1 + gap, w, h: h2, rot: 0.012 } };
@@ -691,6 +691,13 @@ function drawFaction(r: R, f: HumanFaction, l: number) {
   let nameSize = Math.min(fitSize(r, tx.name, 'display', maxName, nw), maxName);
   if (nameSize < maxName * 0.8) {
     nameLines = wrap(r, tx.name, 'display', maxName, nw);
+    // hoechstens zwei Zeilen, ausgewogen geteilt / at most two lines, split evenly
+    if (nameLines.length > 2) {
+      const words = tx.name.split(' ');
+      let best = 1, diff = Infinity;
+      for (let k = 1; k < words.length; k++) { const d = Math.abs(words.slice(0, k).join(' ').length - words.slice(k).join(' ').length); if (d < diff) { diff = d; best = k; } }
+      nameLines = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+    }
     nameSize = Math.min(maxName, ...nameLines.map((ln) => fitSize(r, ln, 'display', maxName, nw)));
   }
   const titleSize = Math.max(Math.min(fitSize(r, tx.leaderTitle, 'body', (r.portrait ? 34 : 30) * u, nw), (r.portrait ? 34 : 30) * u), 11);
