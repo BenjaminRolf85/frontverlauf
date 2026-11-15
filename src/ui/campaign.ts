@@ -11,7 +11,7 @@ import {
   type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
 import { PERSUADE, UNITS, type FactionId } from '../data/balance';
-import { t, tList } from '../i18n/i18n';
+import { getLanguage, t, tList } from '../i18n/i18n';
 import {
   chooseFaction, clearNotice, currentMissionId, isCompleted, isUnlocked, loadStore, loopDone, loopsDone, nextMissionId, recordRunResult,
   runOf, saveStore, totalStars,
@@ -392,7 +392,8 @@ export class ObjectivePanel {
     const m = c ? missionById(c.mission) : undefined;
     if (!s || !c || !m || !this.visible) { this.node.hidden = true; return; }
     this.node.hidden = false;
-    const key = JSON.stringify([c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
+    // Sprache im Schluessel: nach einem Sprachwechsel neu zeichnen / language in the key: redraw after a language change
+    const key = JSON.stringify([getLanguage(), c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.landing, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
     if (key === this.lastState) return;
     this.lastState = key;
     const done = c.status.filter((x) => x === 'done').length;

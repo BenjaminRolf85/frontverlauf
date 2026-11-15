@@ -60,6 +60,9 @@ export class Controller {
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
+  /** Spielende schon gemeldet (einmal je Partie, auch wenn es im KI-Zug faellt) / game end already reported (once per game, even during an AI turn) */
+  private gameOverShown = false;
+
   constructor(readonly view: View) {}
 
   get current() { return this.state ? this.state.factions[this.state.current] : null; }
@@ -72,6 +75,7 @@ export class Controller {
 
   load(s: GameState) {
     this.state = s;
+    this.gameOverShown = false;
     this.view.board.finishAnimations();
     const humans = s.factions.filter((f) => f.human);
     this.viewer = s.factions[s.current].human ? s.current : humans.length ? humans[0].index : -1;
@@ -526,14 +530,23 @@ export class Controller {
     if (this.pendingTurret && !s.tiles[this.pendingTurret.y * s.size + this.pendingTurret.x].turret) this.pendingTurret = null;
     this.updateHighlights();
     this.ui.update();
-    if (s.over) {
-      this.autosave();
-      const me = this.viewer >= 0 ? this.viewer : s.winner ?? 0;
-      audio.gameOver(s.winner === me, fid(me));
-      this.ui.gameOver();
-    }
+    if (s.over) this.finishGame();
     else if (!opts.ai) this.ui.rewards();
     return res;
+  }
+
+  /**
+   * Spielende genau einmal melden: Speichern, Klang, Ergebnisdialog (zaehlt das Kampagnenergebnis).
+   * Report the game end exactly once: save, sound, result dialog (records the campaign result).
+   */
+  private finishGame() {
+    const s = this.state;
+    if (!s?.over || this.gameOverShown) return;
+    this.gameOverShown = true;
+    this.autosave();
+    const me = this.viewer >= 0 ? this.viewer : s.winner ?? 0;
+    audio.gameOver(s.winner === me, s.factions[me]?.id);
+    this.ui.gameOver();
   }
 
   autosave() {
@@ -627,7 +640,7 @@ export class Controller {
     this.refresh();
     this.autosave();
     this.ui.update();
-    if (s.over) { this.ui.gameOver(); return; }
+    if (s.over) { this.finishGame(); return; }
     await this.beginHumanTurn();
   }
 

@@ -342,3 +342,21 @@ Diese Punkte ersetzen widersprechende Angaben weiter oben. / These points supers
 - EN: Difficulty: now rises per act (act I easy, easy, normal, normal, hard; act II normal, normal, hard; act III hard, hard, extreme), every act ends with a hard mission. Allies: Alvenia in 6, Meridon in 5 missions (m11 added), the others unchanged in 2. The act I tagline, closing line and the time loop (the portal flickers inside the mothership, Xyl'Tharra breathes again) are updated.
 - DE: Ortsnamen auf der Alienwelt: Alle Städte und Siedlungen tragen Zyrr-Namen (cityCulture), auch der eroberte Vorposten; sonst hieße er nach dem Startplatz des Spielers etwa "Kolosgrad".
 - EN: Place names on the alien world: every city and settlement carries a Zyrr name (cityCulture), the captured outpost too; otherwise it would be named after the player's start site, e.g. "Kolosgrad".
+
+## Fehlersuche: Regelkorrekturen / Bug hunt: rule fixes
+- DE: Endlos weiterspielen nach einem Fraktionssieg startet den laufenden Zug nicht erneut (kein doppeltes Einkommen); nur nach dem Rundenlimit beginnt der nächste Zug.
+- EN: Continuing endlessly after a faction victory does not restart the running turn (no double income); only after the round limit does the next turn begin.
+- DE: Ein Schütze, der beim Flächenschaden am Gegenschlag stirbt, bleibt tot. Abschüsse zählen, aber tote Einheiten und Endgegner werden nie befördert oder geheilt.
+- EN: A shooter that dies to return fire during splash damage stays dead. Kills count, but dead units and bosses are never promoted or healed.
+- DE: Neue Einheiten (Rekruten, Aufstand, Bunker-MG, Untertasse an der Absturzstelle, Belohnungspanzer) erscheinen nie auf Vulkangipfeln, brennender Lava oder dem Artefakt.
+- EN: New units (recruits, uprising, bunker MG, crash-site saucer, reward tank) never appear on volcano peaks, burning lava or the artifact.
+- DE: Scheidet eine Fraktion aus, verschwinden ihre Minen und Panzersperren, und ihre Außenposten werden frei.
+- EN: When a faction is eliminated, its mines and tank barriers vanish and its outposts are released.
+- DE: Diplomatie braucht Kontakt in mindestens einer Richtung; so lässt sich ein Friedensangebot immer beantworten.
+- EN: Diplomacy needs contact in at least one direction, so a peace offer can always be answered.
+- DE: Der Belohnungspanzer einer vollen Stadt gehört zu keiner Stadt (wie ein Überläufer) und zählt nicht zum Limit, kostet aber Sold.
+- EN: The reward tank of a full city belongs to no city (like a defector) and does not count towards the limit, but it costs upkeep.
+- DE: An Nachschublinien (Höhle) gibt die Bunker-Belohnung „Bevölkerung“ stattdessen Sterne.
+- EN: At supply lines (cavern) the bunker reward "population" gives stars instead.
+- DE: Endgegner laufen beim Zufallsereignis „Überläufer“ nie über.
+- EN: Bosses never defect in the "defector" random event.

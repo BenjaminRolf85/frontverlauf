@@ -67,36 +67,83 @@ export function actionButton(a: ActionItem): string {
 
 /** Dialog / dialog */
 /** Offene Dialoge, oberster zuletzt; Escape schliesst nur den obersten / open dialogs, topmost last; Escape closes only the topmost */
-const dialogStack: { overlay: HTMLElement; close: () => void; dismissable: boolean }[] = [];
+const dialogStack: { overlay: HTMLElement; box: HTMLElement; close: () => void; dismissable: boolean }[] = [];
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+/** Fokussierbare, sichtbare Elemente / focusable, visible elements */
+const focusables = (box: HTMLElement) => [...box.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => n.getClientRects().length > 0);
+/** Oberster offener Dialog (entfernte werden aufgeraeumt) / topmost open dialog (removed ones are cleaned up) */
+function topDialog() {
+  for (let i = dialogStack.length - 1; i >= 0; i--) if (!dialogStack[i].overlay.isConnected) dialogStack.splice(i, 1);
+  return dialogStack[dialogStack.length - 1];
+}
 if (typeof document !== 'undefined') {
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    // entfernte Dialoge aufraeumen / clean up removed dialogs
-    for (let i = dialogStack.length - 1; i >= 0; i--) if (!dialogStack[i].overlay.isConnected) dialogStack.splice(i, 1);
-    const top = dialogStack[dialogStack.length - 1];
-    if (top?.dismissable) { e.preventDefault(); top.close(); }
+    if (e.key === 'Escape') {
+      const top = topDialog();
+      if (top?.dismissable) { e.preventDefault(); top.close(); }
+      return;
+    }
+    // Fokusfalle: Tab bleibt im obersten Dialog / focus trap: Tab stays inside the topmost dialog
+    if (e.key !== 'Tab') return;
+    const top = topDialog();
+    if (!top) return;
+    const list = focusables(top.box);
+    if (!list.length) { e.preventDefault(); return; }
+    const first = list[0], last = list[list.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    const inside = !!active && top.box.contains(active);
+    if (e.shiftKey && (!inside || active === first)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (!inside || active === last)) { e.preventDefault(); first.focus(); }
   });
 }
 
-export function openDialog(root: HTMLElement, html: string, opts: { wide?: boolean; onClose?: () => void; dismissable?: boolean } = {}): { close: () => void; node: HTMLElement } {
+/**
+ * Dialog oeffnen: Fokus wandert hinein (focus = Selektor des Startelements), bleibt gefangen und kehrt beim Schliessen zum Ausloeser zurueck.
+ * Open a dialog: focus moves inside (focus = selector of the initial element), stays trapped and returns to the opener on close.
+ */
+export function openDialog(root: HTMLElement, html: string, opts: { wide?: boolean; onClose?: () => void; dismissable?: boolean; focus?: string } = {}): { close: () => void; node: HTMLElement } {
+  const opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
   const overlay = el('div', 'overlay');
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   const box = el('div', `panel dialog ${opts.wide ? 'wide' : ''}`, html);
   overlay.appendChild(box);
+  const title = box.querySelector<HTMLElement>('.panel-title h2');
+  if (title) { title.id ||= `dlg-${Math.random().toString(36).slice(2, 9)}`; overlay.setAttribute('aria-labelledby', title.id); }
   root.appendChild(overlay);
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
     const i = dialogStack.findIndex((d) => d.overlay === overlay);
     if (i >= 0) dialogStack.splice(i, 1);
+    const hadFocus = overlay.contains(document.activeElement);
     overlay.remove(); opts.onClose?.();
+    // Fokus zurueck zum Ausloeser, sofern kein neuer Dialog ihn uebernommen hat / focus back to the opener unless a new dialog took it
+    if ((hadFocus || document.activeElement === document.body) && opener?.isConnected && !topDialog()?.box.contains(document.activeElement)) opener.focus({ preventScroll: true });
   };
-  dialogStack.push({ overlay, close, dismissable: opts.dismissable !== false });
+  dialogStack.push({ overlay, box, close, dismissable: opts.dismissable !== false });
   if (opts.dismissable !== false) {
     overlay.addEventListener('pointerdown', (e) => { if (e.target === overlay) close(); });
   }
-  const focusable = box.querySelector<HTMLElement>('button, [tabindex]');
-  focusable?.focus();
+  const start = (opts.focus ? box.querySelector<HTMLElement>(opts.focus) : null) ?? focusables(box)[0] ?? box.querySelector<HTMLElement>('button, [tabindex]');
+  start?.focus({ preventScroll: true });
   return { close, node: box };
+}
+
+/**
+ * Inhalt neu setzen und den Fokus auf das gleiche Bedienelement zuruecklegen (data-action bzw. data-seg/data-value).
+ * Replace the content and put focus back on the same control (data-action or data-seg/data-value).
+ */
+export function rerender(node: HTMLElement, html: string) {
+  const a = document.activeElement as HTMLElement | null;
+  const had = !!a && node.contains(a);
+  const sel = had && a!.dataset.seg ? `[data-seg="${CSS.escape(a!.dataset.seg)}"][data-value="${CSS.escape(a!.dataset.value ?? '')}"]`
+    : had && a!.dataset.action ? `[data-action="${CSS.escape(a!.dataset.action)}"]` : null;
+  node.innerHTML = html;
+  if (!had) return;
+  const next = (sel ? node.querySelector<HTMLElement>(sel) : null) ?? focusables(node)[0];
+  next?.focus({ preventScroll: true });
 }
 
 export function dialogTitle(title: string, closeAction = 'close'): string {
@@ -107,6 +154,13 @@ export function dialogTitle(title: string, closeAction = 'close'): string {
 export function toast(root: HTMLElement, text: string, iconName = 'info') {
   let box = root.querySelector<HTMLElement>('.toasts');
   if (!box) { box = el('div', 'toasts'); box.setAttribute('aria-live', 'polite'); root.appendChild(box); }
+  // nicht ueber die Tutorial-Sprechblase legen: dann darunter / do not cover the tutorial bubble: go below it instead
+  const bubble = root.querySelector<HTMLElement>(':scope > .bubble');
+  const br = bubble && !bubble.hidden && bubble.getClientRects().length ? bubble.getBoundingClientRect() : null;
+  if (br && br.height) {
+    const gap = parseFloat(getComputedStyle(root).getPropertyValue('--p-space-3')) || 0;
+    box.style.top = `${br.bottom - root.getBoundingClientRect().top + gap}px`;
+  } else box.style.top = '';
   const n = el('div', 'toast', `${icon(iconName)}<span>${esc(text)}</span>`);
   box.appendChild(n);
   while (box.children.length > 3) box.firstElementChild?.remove();

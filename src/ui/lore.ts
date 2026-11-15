@@ -53,7 +53,7 @@ export function openPrologue(root: HTMLElement, onClose?: () => void) {
       <figcaption><details><summary>${esc(t('lore.textToggle'))}</summary><p>${esc(text)}</p></details></figcaption>
     </figure>
     <div class="row lore-actions"><button type="button" class="btn" data-action="close">${icon('play', 'icon-sm')}<span>${esc(t('lore.prologueContinue'))}</span></button></div>`, { wide: true, onClose });
-  d.node.classList.add('lore-dialog');
+  d.node.classList.add('lore-dialog', 'prologue');
   // ueber dem Hauptmenue anzeigen / show above the main menu
   d.node.parentElement?.classList.add('above-screen');
   d.node.addEventListener('click', (e) => {

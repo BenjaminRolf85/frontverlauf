@@ -143,7 +143,8 @@ let rockGeo: THREE.BufferGeometry | null = null;
 /** Kantiger Felsbrocken (Einheitsgroesse, Vertexfarben hell oben, dunkel unten) / angular rock (unit size, light top, dark bottom) */
 export function cliffRock(): THREE.BufferGeometry {
   if (rockGeo) return rockGeo;
-  const g = new THREE.DodecahedronGeometry(0.62, 0).toNonIndexed();
+  // Polyeder sind schon nicht indiziert / polyhedra are already non-indexed
+  const g = new THREE.DodecahedronGeometry(0.62, 0);
   g.scale(1, 0.85, 1);
   g.computeVertexNormals();
   const pos = g.getAttribute('position'), nor = g.getAttribute('normal');

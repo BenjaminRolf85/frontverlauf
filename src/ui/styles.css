@@ -107,6 +107,9 @@ h1, h2, h3, .display {
   display: flex; align-items: center; justify-content: space-between; gap: var(--p-space-2); margin-bottom: var(--p-space-3);
 }
 .panel-title h2, .panel-title h3 { font-size: inherit; min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
+/* Schliessen-X bleibt rund, auch wenn der Titel umbricht / the close X stays round even when the title wraps */
+.panel-title > .icon-btn { flex: none; align-self: flex-start; }
+.confirm-title { display: inline-flex; align-items: center; gap: var(--p-space-2); }
 .dialog { overflow-x: hidden; }
 .price { display: inline-flex; align-items: center; gap: var(--p-space-1); white-space: nowrap; }
 .kv > span { display: inline-flex; align-items: center; gap: var(--p-space-1); }
@@ -188,6 +191,8 @@ h1, h2, h3, .display {
 .nav-bar { display: flex; gap: var(--p-space-2); max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; }
 .nav-bar .btn { flex: 1; padding: 0 var(--p-space-2); font-size: var(--p-font-size-md); min-height: var(--p-size-touch-lg); }
 .nav-bar .btn.end { flex: 1.6; font-size: var(--p-font-size-lg); }
+/* "Zug beenden" bleibt einzeilig / "End turn" stays on one line */
+.nav-bar .btn.end span { white-space: nowrap; }
 
 /* ---------- Einheitenkarte / unit card ---------- */
 .unit-card { display: flex; gap: var(--p-space-3); align-items: center; }
@@ -360,6 +365,10 @@ h1, h2, h3, .display {
 }
 .menu-list { width: min(100%, var(--c-layout-menu-width)); display: flex; flex-direction: column; gap: var(--p-space-3); }
 .menu-list .btn { min-height: var(--p-size-touch-lg); }
+/* Pausenmenue im Dialog: mittig und kompakter, damit alle Knoepfe ohne Scrollen sichtbar sind
+   pause menu inside a dialog: centred and more compact so every button is visible without scrolling */
+.dialog .menu-list { margin-inline: auto; gap: var(--p-space-2); }
+.dialog .menu-list .btn { min-height: var(--p-size-touch); }
 .form { width: min(100%, var(--c-layout-form-width)); display: flex; flex-direction: column; gap: var(--p-space-4); }
 .field { display: flex; flex-direction: column; gap: var(--p-space-2); }
 .field > label, .field > .label { font-family: var(--p-font-display); font-size: var(--p-font-size-lg); letter-spacing: var(--p-letter-spacing-display); }
@@ -443,10 +452,13 @@ input[type="text"], select {
 /* Schmale Geraete / narrow devices */
 @media (max-width: 480px) /* --p-breakpoint-narrow */ {
   .bubble { left: var(--p-space-2); transform: none; width: auto; right: calc(var(--c-icon-button-size) + var(--p-space-4)); }
+  /* Hinweise lassen die Kartensteuerung rechts frei / toasts leave the map controls on the right free */
+  .toasts { left: var(--p-space-2); transform: none; width: auto; right: calc(env(safe-area-inset-right) + var(--c-icon-button-size) + var(--p-space-4)); }
   .top-bar { gap: var(--p-space-1); }
   .res .val { font-size: var(--p-font-size-md); }
   .res .sub { display: none; }
-  .faction-chip .label { display: none; }
+  /* nur in der Statusleiste und neben ausgeschriebenen Namen nur das Symbol / icon only in the top bar and next to spelled-out names */
+  .top-bar .faction-chip .label, .score-row .faction-chip .label { display: none; }
   .nav-bar .btn:not(.end) span { display: none; }
   .nav-bar .btn:not(.end) { flex: none; width: var(--p-size-touch-lg); padding: 0; }
 }
@@ -654,4 +666,6 @@ input[type="text"], select {
 .lore-page summary { cursor: pointer; min-height: var(--p-size-touch); display: flex; align-items: center; }
 @media (min-width: 900px) { .lore-page.zoomed img { width: 100%; } }
 .lore-actions { justify-content: flex-end; margin-top: var(--p-space-2); }
+/* Prolog: Bild begrenzen, damit "Zur Front" ohne Scrollen sichtbar bleibt / prologue: cap the image so the call to action stays visible */
+.prologue .lore-page:not(.zoomed) img { max-height: max(30vh, calc(100vh - 18rem)); max-height: max(30dvh, calc(100dvh - 18rem)); width: auto; max-width: 100%; align-self: center; }
 .overlay.above-screen { z-index: calc(var(--p-z-overlay) + 1); }

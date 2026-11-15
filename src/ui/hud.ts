@@ -10,11 +10,11 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, weather, weatherFor, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview,
+  supplyLines, turretAt, turretTargets, turretPreview, missionById,
   type GameState, type Unit,
 } from '../core';
 import type { Controller } from '../game/controller';
-import { has as hasText, t } from '../i18n/i18n';
+import { has as hasText, num, t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
 import { Portrait } from './portrait';
 import { leaderPortrait } from './leaders';
@@ -114,7 +114,7 @@ function attackPreview(s: GameState, p: CombatPreview): { short: string; full: s
 function unitStatsLine(type: UnitTypeId): string {
   const st = UNITS[type];
   const abil = st.abilities.filter((a) => a !== 'carry').map((a) => t(`abilities.${a}`));
-  return [`${t('stats.attack')} ${st.attack}`, `${t('stats.defense')} ${st.defense}`, `${t('stats.move')} ${st.move}`, `${t('stats.range')} ${st.range || t('stats.noRange')}`, ...abil].join(' · ');
+  return [`${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`, `${t('stats.range')} ${st.range ? num(st.range) : t('stats.noRange')}`, ...abil].join(' · ');
 }
 
 /** Treffsicherheit einer Einheit als Kurztext und Tooltip / accuracy of a unit as short text and tooltip */
@@ -292,7 +292,8 @@ export class Hud {
     const f = s.factions[viewerIdx];
     const inc = income(s, viewerIdx);
     const up = upkeep(s, viewerIdx);
-    const limit = s.config.roundLimit;
+    // Kampagne: Rundenzahl des Einsatzes / campaign: the mission's round count
+    const limit = s.config.roundLimit ?? (s.campaign ? missionById(s.campaign.mission)?.rounds ?? null : null);
     // Netto-Einkommen: auf dem Handy kompakt neben den Sternen / net income: compact next to the stars on phones
     const net = inc - up;
     const netTxt = `${net >= 0 ? '+' : ''}${net}`;
@@ -390,10 +391,10 @@ export class Hud {
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>
         <div class="sheet-more"><div class="stats">
-          <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${st.attack}</span>
-          <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${st.defense}</span>
-          <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${st.move}</span>
-          <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range || esc(t('stats.noRange'))}</span>
+          <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
+          <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
+          <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${num(st.move)}</span>
+          <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
           ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : t('hud.upkeepFree'))}</span>`; })()}
@@ -608,7 +609,7 @@ export class Hud {
       const targets = barrierTargets(s, u);
       const ok = targets.length > 0;
       const base = barrierCheck(s, u, u.x, u.y + (u.y + 1 < s.size ? 1 : -1));
-      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'cannotCapture' ? 'unitExhausted' : base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
+      const reason = ok ? t('actions.barrierHint') : t(`errors.${base === 'ok' || base === 'occupied' || base === 'outOfRange' ? 'invalidTile' : base}`);
       this.actions.push({ id: 'barrier', icon: 'shield', label: g.barrierMode ? t('actions.cancel') : t('actions.barrier'), cost: g.barrierMode ? undefined : barrierCost(s, u.owner), enabled: ok || g.barrierMode, reason,
         run: () => { if (g.barrierMode) { g.barrierMode = false; g.updateHighlights(); this.render(); } else { g.startBarrier(); g.ui.toast(t('actions.barrierHint'), 'shield'); } } });
     }
@@ -617,7 +618,7 @@ export class Hud {
       const targets = mineTargets(s, u);
       const ok = targets.length > 0;
       const base = neighbors(s.size, u.x, u.y).map((q) => mineCheck(s, u, q.x, q.y)).find((r) => r !== 'occupied' && r !== 'invalidTile' && r !== 'outOfRange') ?? 'invalidTile';
-      const reason = ok ? t('actions.mineHint') : base === 'cannotCapture' ? t('errors.unitExhausted') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
+      const reason = ok ? t('actions.mineHint') : base === 'unitLimit' ? t('errors.mineLimit', { n: COUNTER.mine.maxPerFaction }) : t(`errors.${base}`);
       this.actions.push({ id: 'mine', icon: 'warning', label: g.mineMode ? t('actions.cancel') : t('actions.mine'), cost: g.mineMode ? undefined : COUNTER.mine.cost, variant: 'primary', enabled: ok || g.mineMode, reason,
         run: () => { if (g.mineMode) { g.mineMode = false; g.updateHighlights(); this.render(); } else { g.startMine(); g.ui.toast(t('actions.mineHint'), 'warning'); } } });
     }
@@ -735,7 +736,7 @@ export class Hud {
         const tech = lockedBuildingTech(s, f, b, x, y);
         if (tech) locked.push({
           id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: false,
-          reason: `${t('hud.needsTech', { tech: t(`techs.${tech}`) })} · ${t(`buildingDesc.${b}`)}`,
+          reason: `${t('hud.needsTech', { tech: t(`techs.${tech}`) })} · ${buildingDescText(b)}`,
           run: () => {},
         });
         continue;

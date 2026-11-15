@@ -24,6 +24,17 @@
 @media (min-width: 900px) and (min-height: 600px) {
   .minimap-canvas { width: var(--c-minimap-size-desktop); height: var(--c-minimap-size-desktop); }
 }
+/* Kampagnenziele rechts neben der Lagekarte statt darueber / campaign objectives to the right of the overview map instead of on top */
+@media (orientation: landscape), (min-width: 900px) /* --p-breakpoint-lg */ {
+  #ui:has(.minimap:not(.collapsed):not([hidden])) .objectives {
+    left: calc(env(safe-area-inset-left) + var(--p-space-2) + var(--c-minimap-size) + var(--p-border-width-thick) * 2 + var(--p-space-4));
+  }
+}
+@media (min-width: 900px) and (min-height: 600px) {
+  #ui:has(.minimap:not(.collapsed):not([hidden])) .objectives {
+    left: calc(env(safe-area-inset-left) + var(--p-space-2) + var(--c-minimap-size-desktop) + var(--p-border-width-thick) * 2 + var(--p-space-4));
+  }
+}
 
 /* ---------- Kriegsstatistik / war statistics ---------- */
 .stats-panel { display: flex; flex-direction: column; gap: var(--p-space-3); margin-top: var(--p-space-3); }

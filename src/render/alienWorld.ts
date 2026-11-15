@@ -120,6 +120,8 @@ export class AlienWorldFx {
   private insects: Spot[] = [];
   private meshes: { grazer?: THREE.InstancedMesh[]; jelly?: THREE.InstancedMesh[]; insect?: THREE.InstancedMesh } = {};
   private tmp = new THREE.Object3D();
+  /** einmal gebautes Insekten-Material / insect material built once */
+  private insectMat: THREE.MeshBasicMaterial | null = null;
   active = false;
 
   clear() {
@@ -179,7 +181,8 @@ export class AlienWorldFx {
       const land = t.terrain !== 'shallow' && t.terrain !== 'ocean';
       const free = !occupied.has(k) && t.cityId === null && !t.building;
       if (land && free && t.terrain === 'plain' && (t.resource === 'livestock' || h < 0.12) && this.grazers.length < ALIEN_CAPS.grazers) this.grazers.push(p);
-      if (h > 0.9 && this.jellies.length < ALIEN_CAPS.jellies) this.jellies.push(p);
+      // Quallen wie Grasfresser nur ueber freien Feldern (nicht auf Einheiten oder Staedten) / jellies like grazers only above free tiles (not on units or cities)
+      if (free && h > 0.9 && this.jellies.length < ALIEN_CAPS.jellies) this.jellies.push(p);
       if (land && t.terrain === 'forest' && this.insects.length < ALIEN_CAPS.insects) for (let i = 0; i < 2; i++) this.insects.push({ ...p, ph: p.ph + i * 3.1 });
     }
     const add = (geo: THREE.BufferGeometry, count: number): THREE.InstancedMesh[] => {
@@ -192,7 +195,7 @@ export class AlienWorldFx {
     this.meshes.jelly = add(jellyGeometry(), this.jellies.length);
     if (this.insects.length) {
       // Insekten leuchten im Bloom / insects glow in the bloom
-      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, color: glowColor(hex(semantic.white), 1.8) });
+      const mat = this.insectMat ??= new THREE.MeshBasicMaterial({ vertexColors: true, color: glowColor(hex(semantic.white), 1.8) });
       const m = new THREE.InstancedMesh(insectGeometry(), mat, this.insects.length);
       m.frustumCulled = false; m.raycast = () => {}; m.renderOrder = 4;
       this.meshes.insect = m;

@@ -8,7 +8,7 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, peaceTreaties, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, leagueAvailable, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
-  activeEmbassies, baseBuilding, countBuildings, pilgrimVeteranAt, resourceSiteOk,
+  activeEmbassies, baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
 } from '../core';
 import {
   UPKEEP, ROSTERS, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -121,7 +121,7 @@ function focusPeace(ctx: Ctx, g: number): boolean {
 export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
   const { fa, prof } = ctx;
   for (const g of fa.peaceOffers.slice().sort((a, b) => a - b)) {
-    if (!ctx.s.factions[g]?.alive || !fa.contacts.includes(g) || fa.relations[g] !== 'war') continue;
+    if (!ctx.s.factions[g]?.alive || !inContact(ctx.s, ctx.f, g) || fa.relations[g] !== 'war') continue;
     const mine = strength(ctx, ctx.f), theirs = strength(ctx, g);
     let accept: boolean;
     if (prof.difficulty === 'easy' || leagueSeeker(ctx)) accept = true;
@@ -722,7 +722,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
   // Forschung / research
   const sites = siteCounts(ctx);
-  const unconnected = ctx.myCities.filter((c) => !c.connected && !c.isHQ).length;
+  // erobertes fremdes Hauptquartier zaehlt wie jede andere Stadt / a captured foreign HQ counts like any other city
+  const unconnected = ctx.myCities.filter((c) => !c.connected && !(c.isHQ && c.hqOf === f)).length;
   for (const t of TECH_IDS) {
     if (!canResearch(s, f)) break;
     if (fa.techs.includes(t)) continue;

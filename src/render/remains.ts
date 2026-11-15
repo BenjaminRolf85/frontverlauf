@@ -39,7 +39,7 @@ export function splatGeometry(color: string, variant: number): THREE.BufferGeome
       const a = r() * Math.PI * 2, d = 0.3 + r() * 0.1;
       parts.push(new THREE.CircleGeometry(0.025 + r() * 0.03, 8).translate(Math.cos(a) * d, Math.sin(a) * d, 0));
     }
-    const g = mergeGeometries(parts.map((p) => p.toNonIndexed()))!;
+    const g = mergeGeometries(parts.map((p) => (p.index ? p.toNonIndexed() : p)))!;
     g.rotateX(-Math.PI / 2);
     g.translate(0, 0.006, 0);
     return paint(g, color);
@@ -47,7 +47,8 @@ export function splatGeometry(color: string, variant: number): THREE.BufferGeome
 }
 
 function part(g: THREE.BufferGeometry, color: string, m: THREE.Matrix4): THREE.BufferGeometry {
-  const p = g.toNonIndexed();
+  // Polyeder sind schon nicht indiziert (sonst Warnung von three) / polyhedra are already non-indexed (otherwise three warns)
+  const p = g.index ? g.toNonIndexed() : g.clone();
   p.applyMatrix4(m);
   p.deleteAttribute('uv');
   return paint(p, color);
@@ -154,7 +155,7 @@ export function wreckGeometry(type: UnitTypeId, faction: FactionId, variant: num
 
 /** Comic-Tropfen fuer Blutspritzer / comic droplet for blood spurts */
 export function dropletGeometry(color: string): THREE.BufferGeometry {
-  return memo(`drop-${color}`, () => paint(new THREE.IcosahedronGeometry(0.035, 0).toNonIndexed(), color));
+  return memo(`drop-${color}`, () => paint(new THREE.IcosahedronGeometry(0.035, 0), color));
 }
 
 /** Comic-Feuerball / comic fireball */

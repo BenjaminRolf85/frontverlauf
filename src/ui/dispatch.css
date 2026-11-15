@@ -2,7 +2,8 @@
  * Funksprueche der Anfuehrer: Comic-Panel mit Portraet und Sprechblase. Nur Design-Tokens.
  * Leader dispatches: comic panel with portrait and speech bubble. Design tokens only.
  */
-.dispatch-layer { position: absolute; inset: 0; pointer-events: none !important; overflow: hidden; z-index: var(--p-z-toast); }
+/* unter Dialogen, damit offene Fenster bedienbar bleiben / below dialogs so open windows stay usable */
+.dispatch-layer { position: absolute; inset: 0; pointer-events: none !important; overflow: hidden; z-index: var(--p-z-dispatch); }
 
 .dispatch {
   --dispatch-x: -50%;

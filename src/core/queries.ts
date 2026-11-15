@@ -23,6 +23,8 @@ export const cityAt = (s: GameState, x: number, y: number) => {
 export const ownCities = (s: GameState, f: number) => s.cities.filter((c) => c.owner === f);
 export const ownUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f);
 export const hqOf = (s: GameState, f: number) => s.cities.find((c) => c.isHQ && c.hqOf === f && c.owner === f);
+/** Kontakt zwischen f und g in mindestens einer Richtung / contact between f and g in at least one direction */
+export const inContact = (s: GameState, f: number, g: number) => s.factions[f].contacts.includes(g) || !!s.factions[g]?.contacts.includes(f);
 
 /** Hoehlen-Karte (Kampagnenfinale)? / cavern map (campaign finale)? */
 export const isCavern = (s: GameState) => s.config.theme === 'cavern';
@@ -1129,12 +1131,12 @@ export function aliveFactions(s: GameState): number[] {
 
 // ---------- Panzersperre / tank barrier ----------
 
-export type BarrierCheck = 'ok' | 'cannotCapture' | 'techMissing' | 'invalidTile' | 'notEnoughStars' | 'occupied' | 'outOfRange';
+export type BarrierCheck = 'ok' | 'cannotBuild' | 'unitExhausted' | 'techMissing' | 'invalidTile' | 'notEnoughStars' | 'occupied' | 'outOfRange';
 
 /** Kann die Einheit eine Panzersperre auf (x,y) bauen? / can the unit build a tank barrier on (x,y)? */
 export function barrierCheck(s: GameState, u: Unit, x: number, y: number): BarrierCheck {
-  if (!BARRIER.builders.includes(u.type)) return 'cannotCapture';
-  if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
+  if (!BARRIER.builders.includes(u.type)) return 'cannotBuild';
+  if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
@@ -1325,6 +1327,9 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   const t = tileAt(s, x, y)!;
   if (!isLand(t)) return 'invalidTile';
   if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) return 'invalidTile';
+  // kein Vulkangipfel, keine Lava, nicht das Artefakt der Kampagne / no volcano peak, no lava, not the campaign artifact
+  const art = s.campaign?.artifact;
+  if (t.volcano || burning(s, t) || (art && art.x === x && art.y === y)) return 'invalidTile';
   if (unitAt(s, x, y) || t.wonderOf || t.turret) return 'occupied';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
   const home = recruitHome(s, f, x, y);
@@ -1377,12 +1382,12 @@ export function mineTriggers(s: GameState, u: Unit, x: number, y: number): boole
 
 export const mineCount = (s: GameState, f: number) => s.tiles.filter((t) => t.mine && t.mine.owner === f).length;
 
-export type MineCheck = 'ok' | 'cannotCapture' | 'invalidTile' | 'notEnoughStars' | 'occupied' | 'outOfRange' | 'unitLimit';
+export type MineCheck = 'ok' | 'cannotBuild' | 'unitExhausted' | 'invalidTile' | 'notEnoughStars' | 'occupied' | 'outOfRange' | 'unitLimit';
 
 /** Kann die Einheit eine Mine auf (x, y) legen? / can the unit lay a mine on (x, y)? */
 export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineCheck {
-  if (!has(u, 'mines')) return 'cannotCapture';
-  if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
+  if (!has(u, 'mines')) return 'cannotBuild';
+  if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
   if (!COUNTER.mine.terrain.includes(t.terrain) || t.cityId !== null || t.mine || t.outpost || t.feature || burning(s, t) || t.volcano || t.wonderOf) return 'invalidTile';

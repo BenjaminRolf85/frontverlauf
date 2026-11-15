@@ -17,11 +17,11 @@ import {
   recruitCheck, recruitHome, supplyLines, turretTargets, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
-  hqOf, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
+  hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, leagueMet, meridonNeed,
-  cityAt, isBoss, isWonderStructure, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  cityAt, isBoss, isWonderStructure, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -167,12 +167,16 @@ function reveal(s: GameState, f: number, x: number, y: number, r: number, ev: Ga
   }
 }
 
+/**
+ * Freies Nachbarfeld fuer eine neue Einheit: kein Vulkan, keine Lava, nicht das Artefakt.
+ * Free adjacent tile for a new unit: no volcano, no lava, not the artifact.
+ */
 function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: number; y: number } | null {
   for (const p of neighbors(s.size, x, y)) {
     const t = tileAt(s, p.x, p.y)!;
-    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret) continue;
+    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret || spawnBlocked(s, p)) continue;
     if (water ? !isWater(t) : !isLand(t)) continue;
-    if (!water && t.terrain === 'mountain') continue;
+    if (!water && (t.terrain === 'mountain' || t.volcano || burning(s, t))) continue;
     return p;
   }
   return null;
@@ -293,6 +297,9 @@ function gainKill(s: GameState, u: Unit, ev: GameEvent[]) {
   s.factions[u.owner].kills++;
   // Kaperschiff: Beute je Abschuss / privateer: prize money per kill
   if (has(u, 'plunder')) s.factions[u.owner].stars += UNIQUE.plunderStars;
+  // Tote Schuetzen (Gegenschlag beim Flaechenschaden) und Endgegner werden nie befoerdert oder geheilt
+  // dead shooters (return fire during splash) and bosses are never promoted or healed
+  if (u.hp <= 0 || isBoss(u)) return;
   if (!u.veteran && u.kills >= veteranKills(s, u)) {
     u.veteran = true;
     u.maxHp += VETERAN.bonusHp;
@@ -399,6 +406,12 @@ function checkElimination(s: GameState, ev: GameEvent[]) {
       f.eliminatedRound = s.round;
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
       for (const u of s.units.filter((o) => o.owner === f.index)) killUnit(s, u, null, ev, false);
+      // Minen und Sperren verschwinden, Aussenposten werden frei / mines and barriers vanish, outposts are released
+      for (const t of s.tiles) {
+        if (t.mine?.owner === f.index) t.mine = null;
+        if (t.barrier?.owner === f.index) t.barrier = null;
+        if (t.outpost?.owner === f.index) { releaseOutpost(s, t); t.outpost = null; }
+      }
       clearWonderMarks(s);
       s.pendingRewards = s.pendingRewards.filter((p) => cityById(s, p.cityId)?.owner !== f.index);
       ev.push({ t: 'eliminated', faction: f.index });
@@ -603,10 +616,14 @@ export function continueEndless(s: GameState): GameEvent[] {
   s.winner = null;
   // nach einem Fraktionssieg keine weiteren Fraktionssiege / no further faction victories after a faction victory
   if (s.victory?.kind === 'faction') s.config.factionVictory = false;
+  // Ein Fraktionssieg faellt am Ende von startTurn, der Zug laeuft also schon; nur das Rundenlimit (Punktesieg)
+  // endet vor startTurn. / A faction victory is declared at the end of startTurn, so the turn is already running;
+  // only the round limit (points victory) ends before startTurn.
+  const turnStarted = s.victory?.kind !== 'points';
   s.victory = undefined;
   s.config.roundLimit = null;
   s.config.mode = 'endless';
-  startTurn(s, ev);
+  if (!turnStarted) startTurn(s, ev);
   return ev;
 }
 
@@ -785,8 +802,9 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
       break;
     }
     case 'population': {
+      // Nachschublinien wachsen nicht: dann Sterne / supply lines do not grow: stars instead
       const hq = hqOf(s, f) ?? ownCities(s, f)[0];
-      if (hq) addPop(s, hq, BUNKER.population, ev); else giveStars();
+      if (hq && !supplyLines(s)) addPop(s, hq, BUNKER.population, ev); else giveStars();
       break;
     }
     case 'veteranMg': {
@@ -848,7 +866,9 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
     case 'govQuarter': c.govQuarter = true; break;
     case 'tank': {
       const p = !unitAt(s, c.x, c.y) ? { x: c.x, y: c.y } : freeNeighbor(s, c.x, c.y, false);
-      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? 'tank', f, p.x, p.y, c.id);
+      // volle Stadt: der Panzer gehoert zu keiner Stadt (wie ein Ueberlaeufer) / full city: the tank belongs to no city (like a defector)
+      const home = supportedUnits(s, c) < unitLimit(s, c) ? c.id : null;
+      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? 'tank', f, p.x, p.y, home);
       break;
     }
   }
@@ -909,6 +929,8 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
         if (spawned >= max) break;
         const nt = tileAt(s, p.x, p.y)!;
         if (unitAt(s, p.x, p.y) || nt.wonderOf || nt.turret || !isLand(nt) || (nt.terrain === 'mountain' && !s.factions[f].techs.includes('mountainTraining'))) continue;
+        // kein Vulkangipfel, keine Lava, nicht das Artefakt / no volcano peak, no lava, not the artifact
+        if (nt.volcano || burning(s, nt) || spawnBlocked(s, p)) continue;
         spawnUnit(s, ROSTERS[s.factions[f].id]?.infantry ?? 'infantry', f, p.x, p.y, null);
         spawned++;
       }
@@ -1273,7 +1295,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
       const check = barrierCheck(s, u, cmd.x, cmd.y);
-      if (check !== 'ok') return fail(check === 'cannotCapture' ? 'unitExhausted' : check);
+      if (check !== 'ok') return fail(check);
       fa.stars -= barrierCost(s, f);
       tileAt(s, cmd.x, cmd.y)!.barrier = { owner: f };
       u.exhausted = true;
@@ -1285,7 +1307,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const u = ownUnit(cmd.unit);
       if (typeof u === 'string') return fail(u);
       const check = mineCheck(s, u, cmd.x, cmd.y);
-      if (check !== 'ok') return fail(check === 'cannotCapture' ? 'unitExhausted' : check);
+      if (check !== 'ok') return fail(check);
       fa.stars -= COUNTER.mine.cost;
       tileAt(s, cmd.x, cmd.y)!.mine = { owner: f };
       u.exhausted = true;
@@ -1359,7 +1381,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     case 'diplomacy': {
       const g = cmd.target;
       if (g === f || !s.factions[g] || !s.factions[g].alive) return fail('invalidTarget');
-      if (!fa.contacts.includes(g)) return fail('noContact');
+      // Kontakt in eine Richtung genuegt (sonst bleibt ein Friedensangebot unbeantwortbar)
+      // contact in either direction suffices (otherwise a peace offer could not be answered)
+      if (!inContact(s, f, g)) return fail('noContact');
       const ga = s.factions[g];
       switch (cmd.action) {
         case 'proposePeace': {

@@ -171,7 +171,7 @@ export class Board {
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
-  readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : cloudGeometry(v)));
+  readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : this.theme === 'alien' ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
   /** Darstellungsqualitaet (View.setQuality): 'low' = weniger Hoehlen-Deko / render quality: 'low' = less cavern decoration */
   quality: 'low' | 'high' = 'high';
   /** Felswaende, Gewoelbe und Tropfsteine der Hoehle / rock walls, vault and stalactites of the cavern */
@@ -309,6 +309,22 @@ export class Board {
     return g;
   }
 
+  /** Grenzsegment, einmal gebaut / border segment, built once */
+  private borderGeo: THREE.BufferGeometry | null = null;
+  private slab: { key: string; geo: THREE.BufferGeometry } | null = null;
+  /**
+   * Scholle je Kartengroesse und Thema einmal bauen; die alte samt Kontur freigeben (sonst GPU-Leck bei jedem Neuaufbau).
+   * Build the slab once per map size and theme; dispose the old one with its outline (otherwise a GPU leak on every rebuild).
+   */
+  private slabGeometry(size: number, cave: boolean): THREE.BufferGeometry {
+    const key = `${size}|${cave}`;
+    if (this.slab?.key === key) return this.slab.geo;
+    if (this.slab) { hullGeometry(this.slab.geo).dispose(); this.slab.geo.dispose(); }
+    const geo = withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), cave ? semantic.caveWallDark : semantic.soil), 'none');
+    this.slab = { key, geo };
+    return geo;
+  }
+
   private clearGroup(g: THREE.Group) {
     for (const c of [...g.children]) {
       g.remove(c);
@@ -366,7 +382,7 @@ export class Board {
     this.revealFog(s, viewer, explored);
 
     // Scholle / slab
-    const slab = outlined(withGlow(paint(new THREE.BoxGeometry(size + 0.1, SLAB_DEPTH, size + 0.1).toNonIndexed(), cave ? semantic.caveWallDark : semantic.soil), 'none'), OUTLINE.tile, landMaterial());
+    const slab = outlined(this.slabGeometry(size, cave), OUTLINE.tile, landMaterial());
     slab.position.y = TILE_BOTTOM - SLAB_DEPTH / 2 + 0.001;
     this.staticLayer.add(slab);
 
@@ -711,7 +727,7 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     if (borderSegs.length) {
-      const g = paint(new THREE.BoxGeometry(0.98, 0.05, 0.07).toNonIndexed(), semantic.white);
+      const g = this.borderGeo ??= paint(new THREE.BoxGeometry(0.98, 0.05, 0.07).toNonIndexed(), semantic.white);
       const mesh = new THREE.InstancedMesh(g, toonMaterial(), borderSegs.length);
       borderSegs.forEach((b, i) => { mesh.setMatrixAt(i, b.m); mesh.setColorAt(i, new THREE.Color(hex(b.color))); });
       mesh.raycast = () => {};
@@ -1125,6 +1141,8 @@ export class Board {
     });
   }
 
+  private highlightLooks = new Map<HighlightKind, { geo: THREE.BufferGeometry; mat: THREE.MeshBasicMaterial }>();
+
   /** Markierungen / highlights */
   setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind }[]) {
     this.clearGroup(this.highlightLayer);
@@ -1142,11 +1160,19 @@ export class Board {
       byKind.get(h.kind)!.push(m);
     }
     for (const [kind, mats] of byKind) {
-      const big = kind === 'select' || kind === 'target' || kind === 'hint';
-      const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
-      const flat = paint(ring.toNonIndexed(), colors[kind]);
-      const mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide });
-      const mesh = new THREE.InstancedMesh(flat, mat, mats.length);
+      // Ring und Material je Art einmal bauen (sonst GPU-Leck bei jeder Auswahl) / ring and material built once per kind (otherwise a GPU leak on every selection)
+      let look = this.highlightLooks.get(kind);
+      if (!look) {
+        const big = kind === 'select' || kind === 'target' || kind === 'hint';
+        const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
+        look = {
+          geo: paint(ring.toNonIndexed(), colors[kind]),
+          mat: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide }),
+        };
+        ring.dispose();
+        this.highlightLooks.set(kind, look);
+      }
+      const mesh = new THREE.InstancedMesh(look.geo, look.mat, mats.length);
       mats.forEach((m, i) => mesh.setMatrixAt(i, m));
       mesh.renderOrder = 5;
       mesh.raycast = () => {};

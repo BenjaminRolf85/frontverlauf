@@ -126,8 +126,8 @@ export class Sky {
   set(phase: DayPhase, overcast: number, animate: boolean, world: 'cavern' | 'alien' | null = null) {
     if (world === 'cavern') overcast = 0;
     if (phase === this.phase && overcast === this.overcast && world === this.world) return;
-    // Wechsel zwischen Oberflaeche und Hoehle nie ueberblenden / never blend between surface and cavern
-    if ((world === 'cavern') !== (this.world === 'cavern')) animate = false;
+    // Wechsel des Kartenthemas (Oberflaeche, Hoehle, Alienwelt) nie ueberblenden / never blend when the map theme changes (surface, cavern, alien world)
+    if (world !== this.world) animate = false;
     this.phase = phase;
     this.overcast = overcast;
     this.world = world;
