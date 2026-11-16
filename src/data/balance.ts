@@ -1188,12 +1188,12 @@ export const PRODUCTION = {
    */
   hqSites: { dravon: ['motorPool'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
   /**
-   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) hat ueberall
-   * eine Kaserne; der Eroberer bekommt sie nicht.
-   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) has barracks
-   * everywhere; the conqueror does not get them.
+   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) und Dravon
+   * (Drill, auch in neu eroberten Staedten und Depots) haben ueberall eine Kaserne; der Eroberer bekommt sie nicht.
+   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) and Dravon (drill,
+   * also in newly captured cities and depots) have barracks everywhere; the conqueror does not get them.
    */
-  citySites: { korvat: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  citySites: { korvat: ['trainingCamp'], dravon: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
   /**
    * Voraussetzung im Stadtgebiet beim Bau: eines dieser Gebaeude. Panzerwerk: Tagebau oder Tiefbauzeche (beide nur auf Erz),
    * Geschuetzgiesserei: Forstbetrieb (Holz fuer Lafetten), Trockendock: Marinestuetzpunkt. Geht die Voraussetzung spaeter

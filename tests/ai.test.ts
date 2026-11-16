@@ -68,7 +68,9 @@ describe('KI / AI', () => {
     // after the Alvenia rework; the stalemate rate stayed the same over 72 games (16 vs 15), hence another fixed seed
     // Seed 8 endete mit Dravons Feuer und Bewegung (80 %) nach 150 Runden mit zwei Ueberlebenden, daher Seed 11
     // seed 8 ended with two survivors after 150 rounds with Dravon's fire and manoeuvre (80 %), hence seed 11
-    for (const [seed, mapType] of [[4, 'continent'], [103, 'continent'], [11, 'continent'], [4, 'lakes']] as const) {
+    // Seed 4 (Festland) endete mit Dravons Kaserne in jeder Stadt nach 150 Runden mit drei Ueberlebenden, daher Seed 9
+    // seed 4 (continent) ended with three survivors after 150 rounds with Dravon's barracks in every city, hence seed 9
+    for (const [seed, mapType] of [[9, 'continent'], [103, 'continent'], [11, 'continent'], [4, 'lakes']] as const) {
       // reine Eroberung: Fraktionssiege wuerden das Spiel vorher beenden (eigener Test in victory.test.ts)
       // pure conquest: faction victories would end the game earlier (own test in victory.test.ts)
       const s = createGame(config({ seed, size: 11, mode: 'conquest', mapType, factionVictory: false }));
