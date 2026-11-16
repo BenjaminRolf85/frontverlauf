@@ -10,7 +10,7 @@ import {
   rosterUnits, siteOf, techUnlocks, trainCheck, unitCost, upgradeCheck, visionRadius,
 } from '../src/core';
 import {
-  BARRIER, BUILDINGS, ECON, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, TECH_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
+  BARRIER, BUILDINGS, ECON, PRODUCTION, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, TECH_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
   type FactionId, type UnitTypeId,
 } from '../src/data/balance';
 import { createGame, defaultConfig } from '../src/core';
@@ -49,8 +49,8 @@ describe('Einzigartige Einheiten / unique units', () => {
       // eine Stadt ohne eingebaute Kaserne / a city without built-in barracks
       const c = addCity(s, 6, 2, 0, { level: 3 });
       expect(UNITS[type].tech).toBeNull();
-      // Korvat hat in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat has barracks built into every city
-      expect(trainCheck(s, c, type)).toBe(f === 'korvat' ? 'ok' : 'buildingMissing');
+      // Korvat und Dravon haben in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat and Dravon have barracks built into every city
+      expect(trainCheck(s, c, type)).toBe(PRODUCTION.citySites[f]?.includes(site) ? 'ok' : 'buildingMissing');
       giveSites(c, site);
       expect(trainCheck(s, c, type)).toBe('ok');
       expect(rosterUnits(s, 0)).toContain(type);
