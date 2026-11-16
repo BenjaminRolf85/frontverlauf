@@ -11,7 +11,7 @@ import { buildCtx } from '../src/ai/analysis';
 import { chooseUnitType } from '../src/ai/economy';
 import { mineOption } from '../src/ai/tactics';
 import { planNextCommand } from '../src/ai/ai';
-import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
+import { addCity, addUnit, blankGame, endTurn, fails, giveSites, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
 
 function g(factions?: FactionId[]) {
   const s = blankGame({ stars: 200, factions });
@@ -225,17 +225,19 @@ describe('Minen / mines', () => {
 describe('Freischaltungen / unlocks', () => {
   it('Menschen: Panzerabwehr mit Ruestungsindustrie, Flak mit Aerodynamik, Minenleger mit Befestigung / humans', () => {
     const s = g();
+    // Menschen: alle drei aus dem Ruestungswerk, Forschung reicht nicht / humans: all three from the armoury, research is not enough
     const c = s.cities[0];
-    expect(trainCheck(s, c, 'antiTank')).toBe('techMissing');
-    expect(trainCheck(s, c, 'antiAir')).toBe('techMissing');
-    expect(trainCheck(s, c, 'mineLayer')).toBe('techMissing');
     s.factions[0].techs.push('armsIndustry', 'aerodynamics', 'fortification');
+    expect(trainCheck(s, c, 'antiTank')).toBe('buildingMissing');
+    expect(trainCheck(s, c, 'antiAir')).toBe('buildingMissing');
+    expect(trainCheck(s, c, 'mineLayer')).toBe('buildingMissing');
+    giveSites(c, 'armory');
     expect(trainCheck(s, c, 'antiTank')).toBe('ok');
     expect(trainCheck(s, c, 'antiAir')).toBe('ok');
     expect(trainCheck(s, c, 'mineLayer')).toBe('ok');
     expect(trainCheck(s, c, 'faustZealot')).toBe('invalid');
     expect(trainCheck(s, c, 'flakDrone')).toBe('invalid');
-    expect(techUnlocks('aerodynamics').units).toEqual(['antiAir']);
+    expect(techUnlocks('aerodynamics').units).toEqual([]);
   });
 
   it('Kult: Panzerfaust-Eiferer mit Ruestungsindustrie; NEXUS: Flak-Drohne mit Rechenleistung 2 / cult and NEXUS', () => {
@@ -254,7 +256,7 @@ describe('KI und Konter / AI and counters', () => {
   it('bildet Panzerabwehr gegen viele Fahrzeuge aus / trains anti-tank against many vehicles', () => {
     const s = g();
     s.factions[0].human = false;
-    s.factions[0].techs.push('armsIndustry', 'motorization');
+    giveSites(s.cities[0], 'armory', 'motorPool');
     for (let i = 0; i < 3; i++) addUnit(s, 'infantry', 0, 2 + i, 3);
     for (let i = 0; i < 4; i++) addUnit(s, 'tank', 1, 7 + (i % 2), 6 + i);
     const ctx = buildCtx(s, 0);
@@ -264,7 +266,7 @@ describe('KI und Konter / AI and counters', () => {
   it('bildet Flak gegen Flieger aus, auch in Not / trains AA against flyers, also when urgent', () => {
     const s = g();
     s.factions[0].human = false;
-    s.factions[0].techs.push('armsIndustry', 'aerodynamics');
+    giveSites(s.cities[0], 'armory');
     for (let i = 0; i < 3; i++) addUnit(s, 'infantry', 0, 2 + i, 4);
     addUnit(s, 'heli', 1, 3, 3);
     addUnit(s, 'heli', 1, 8, 8);
@@ -276,7 +278,7 @@ describe('KI und Konter / AI and counters', () => {
   it('ohne Fahrzeuge keine Panzerabwehr / no anti-tank without vehicles', () => {
     const s = g();
     s.factions[0].human = false;
-    s.factions[0].techs.push('armsIndustry');
+    giveSites(s.cities[0], 'armory');
     for (let i = 0; i < 3; i++) addUnit(s, 'infantry', 0, 2 + i, 3);
     for (let i = 0; i < 4; i++) addUnit(s, 'infantry', 1, 7, 5 + i);
     expect(chooseUnitType(buildCtx(s, 0), s.cities[0], false)).not.toBe('antiTank');

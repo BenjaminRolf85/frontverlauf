@@ -674,6 +674,8 @@ export const semantic = {
   faithBeam: c.alveniaBeam,
   /** Suendenzeichen (Plakette, Marke) / sinner mark (badge, tag) */
   sinMark: c.red500,
+  /** Produktionsstaette im Stadtfeld (Marke, Khaki wie Kisten und Planen) / production site in the city panel (tag, khaki like crates and tarps) */
+  productionSite: c.khaki500,
 } as const;
 
 /** marker = gut sichtbare Markierungsfarbe fuer eigene Einheiten / well visible marker colour for own units */

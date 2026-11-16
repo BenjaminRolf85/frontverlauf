@@ -156,7 +156,7 @@
       "short": "Velkar",
       "alignment": "defensiv und technikstark",
       "perk": "Fertigungsvorsprung",
-      "perkDesc": "Alle Produktionsfähigkeiten kosten 12 % weniger.",
+      "perkDesc": "Alle Doktrinen kosten 12 % weniger.",
       "discount": "Pioniertrupp 20 % günstiger",
       "home": "Gebirge und Wald",
       "leader": "Aurel Kesh",
@@ -287,7 +287,7 @@
     "artillery": "Beschießt Ziele aus drei Feldern Entfernung, braucht aber Begleitschutz.",
     "spy": "Unsichtbar hinter den Linien, zettelt Aufstände in Feindstädten an.",
     "heli": "Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, braucht aber Sprit.",
-    "tank": "Stählerne Faust: nicht käuflich, kommt als Stadtbelohnung.",
+    "tank": "Stählerne Faust: aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "landingBoat": "Bringt eine Landeinheit übers Wasser, kann aber nicht angreifen.",
     "submarine": "Taucht unsichtbar ab und torpediert aus zwei Feldern Entfernung.",
     "destroyer": "Schnelles Kampfschiff, das die Küsten sauber hält.",
@@ -325,11 +325,11 @@
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
     "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
     "scientist": "Kämpft nicht, trägt aber einen Schutzanzug. Arbeitet direkt neben dem Mutterschiff der Zyrr, dort deckt ihn die Hülle (Kampagne).",
-    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Nicht käuflich, kommt als Stadtbelohnung.",
+    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
     "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
     "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite 2 und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
-    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Nicht käuflich, kommt als Stadtbelohnung.",
+    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung."
   },
   "abilities": {
@@ -464,7 +464,14 @@
     "polarStation": "Polarstation",
     "wreckSmelter": "Wrackschmelze",
     "pilgrimSite": "Pilgerstätte",
-    "depotNode": "Depotknoten"
+    "depotNode": "Depotknoten",
+    "trainingCamp": "Kaserne",
+    "armory": "Rüstungswerk",
+    "motorPool": "Fahrzeugwerk",
+    "tankWorks": "Panzerwerk",
+    "foundry": "Geschützgießerei",
+    "airfield": "Flugfeld",
+    "dryDock": "Trockendock"
   },
   "buildingDesc": {
     "storehouse": "1 Bevölkerungspunkt",
@@ -477,7 +484,7 @@
     "foodFactory": "1 Bevölkerungspunkt je angrenzendem Agrarbetrieb",
     "steelMill": "2 Bevölkerungspunkte je angrenzendem Tagebau",
     "logisticsCenter": "3 Sterne pro Runde je angrenzendem Forst-, Agrar- oder Tagebaubetrieb, höchstens 24",
-    "navalBase": "1 Bevölkerungspunkt, Einschiffung, Seeverbindung",
+    "navalBase": "1 Bevölkerungspunkt, Einschiffung, Seeverbindung. Menschen rüsten Schiffe im Gebiet dieser Stadt auf zu: {units}.",
     "road": "halbe Bewegungskosten, Stadtverbindung",
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",
     "researchCenter": "1 Bevölkerungspunkt; 100 Punkte, alle 3 Runden 50 mehr, höchstens 300",
@@ -492,15 +499,22 @@
     "mercenaryBarracks": "3 Bevölkerungspunkte, in dieser Stadt ausgebildete Einheiten starten als Veteranen, eine je Stadt, nur Dravon",
     "embassyPalace": "{pop} Bevölkerungspunkte. Bußzehnt: +{perSinner} Sterne pro Runde je Fraktion mit einer Sündentat (höchstens {maxSinners}). Einer je Fraktion, nur Alvenia",
     "tradingPost": "1 Bevölkerungspunkt, +2 Sterne pro Runde je verbundener Hafenstadt (Marinestützpunkt im Stadtgebiet), eines je Fraktion, nur Meridon",
-    "testLab": "1 Bevölkerungspunkt, Produktionsfähigkeiten je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
+    "testLab": "1 Bevölkerungspunkt, Doktrinen je Labor 5 % günstiger (höchstens 3 Labore), eines je Stadt, nur Velkar",
     "tractorStation": "{pop} Bevölkerungspunkte, dazu +{adj} je angrenzendem Agrarbetrieb oder angrenzender Traktorstation. Nur auf Ackerland; baut einen eigenen Agrarbetrieb aus (Preis und Bevölkerung: nur die Differenz). Zählt als Agrarbetrieb, nur Korvat",
     "deepMine": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf Erz; baut einen eigenen Tagebau aus (Preis und Bevölkerung: nur die Differenz). Zählt als Tagebau, nur Dravon",
     "hillVineyard": "{pop} Bevölkerungspunkte, +{stars} Sterne pro Runde; eigene Einheiten im Gebiet dieser Stadt heilen {heal} LP mehr. Nur auf Ebenen in der Landschaft Hügel ohne Ressource, eines je Stadt, nur Alvenia",
     "tradeHarbour": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde, +{naval} mit Marinestützpunkt in der Stadt. Nur auf Fischgründen; baut eine eigene Fischerei aus (Preis und Bevölkerung: nur die Differenz), nur Meridon",
-    "polarStation": "{pop} Bevölkerungspunkte, Produktionsfähigkeiten je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
+    "polarStation": "{pop} Bevölkerungspunkte, Doktrinen je Station {pct} % günstiger (höchstens {max} Stationen, zusätzlich zum Versuchslabor). Nur in der Tundra ohne Ressource, nur Velkar",
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
-    "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS"
+    "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS",
+    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier hat eine eingebaut.",
+    "armory": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "motorPool": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "tankWorks": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt.",
+    "foundry": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eine je Stadt.",
+    "airfield": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "dryDock": "Schiffe im Gebiet dieser Stadt rüsten auf zu: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt."
   },
   "resource": {
     "upgrade": "Ausbau, nur die Differenz"
@@ -758,7 +772,8 @@
     "orbitalCooldown": "Der Orbitallaser lädt noch.",
     "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
     "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
-    "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen"
+    "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen",
+    "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -941,8 +956,8 @@
     "s4": "Gut! Beende jetzt den Zug. Einnehmen geht erst zu Beginn deines nächsten Zuges.",
     "s5": "Wähle die Infanterie und tippe auf Einnehmen. Die Siedlung wird zu deiner Stadt.",
     "s6": "Sterne sind die einzige Währung. Öffne die Forschung und erforsche eine Technologie.",
-    "s7": "Tippe auf ein Feld mit Ressource in deinem Stadtgebiet und baue etwas. Gebäude bringen Bevölkerung, Städte wachsen.",
-    "s8": "Tippe auf dein Hauptquartier und bilde eine Einheit aus.",
+    "s7": "Tippe auf ein Feld in deinem Stadtgebiet und baue etwas. Gebäude bringen Bevölkerung, Städte wachsen. Produktionsstätten wie Rüstungswerk oder Fahrzeugwerk schalten in ihrer Stadt neue Einheiten frei.",
+    "s8": "Tippe auf dein Hauptquartier und bilde eine Einheit aus. Die eingebaute Kaserne bildet Infanterie aus; andere Einheiten brauchen ihre Produktionsstätte in der Stadt.",
     "s9": "Das war's! Erkunde die Karte, nimm Siedlungen ein und besiege den Gegner. Viel Erfolg!",
     "goal": "Das Ziel: Im Punktemodus gewinnt nach {rounds} Runden der höchste Punktestand (Medaille oben). In der Eroberung gewinnt, wer als Letzter Städte hält, so wie hier. Mit Fraktionssiegen kann jede Fraktion zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü.",
     "goalOpen": "Siegverfolgung öffnen",
@@ -2587,7 +2602,7 @@
     "empty": "frei",
     "radioTower": "Funkturm",
     "bunker": "Bunker",
-    "barracks": "Kaserne",
+    "barracks": "Drillhalle",
     "radioTowerDesc": "Deckt einmalig einen 5 x 5 Felder großen verdeckten Bereich im Umkreis von 6 Feldern auf.",
     "bunkerDesc": "Eigene Einheiten in dieser Stadt erhalten +2 Verteidigung.",
     "barracksDesc": "Hier ausgebildete Einheiten starten als Veteranen (+5 max. LP).",
@@ -3295,10 +3310,12 @@
     "hintBonus": "Nach Bewegung: {pct} % ({name})",
     "tagBonus": "Gezogen: {pct} % ({name})",
     "bonus": {
-      "korvat": "Steppensturm"
+      "korvat": "Steppensturm",
+      "dravon": "Feuer und Bewegung"
     },
     "bonusDesc": {
-      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin."
+      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin.",
+      "dravon": "Dravons Soldaten sind die am besten ausgebildeten: Nach einer Bewegung greifen alle Dravon-Einheiten mit {pct} % statt {base} % Schaden an. Das Trefferglück gilt weiterhin."
     }
   },
   "homeDefense": {
@@ -3464,7 +3481,7 @@
       "title": "Fraktionssiege",
       "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegtechnologie (Stufe 3), in der Forschung gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
     },
-    "productionNote": "Menschen-Fraktionen nennen das Produktion: Sie schalten Produktionsfähigkeiten frei, Zyrr, NEXUS und Kult forschen. Regeln und Kosten sind gleich.",
+    "productionNote": "Menschen-Fraktionen nennen das Doktrinen: Sie führen Doktrinen ein, die Vorteile bringen, ihre Einheiten kommen aus Produktionsstätten. Zyrr, NEXUS und Kult forschen. Die Kosten sind gleich.",
     "emplacements": {
       "title": "Geschützstellungen (Dravon)",
       "text": "Festungsbau: Mit {tech} bauen Pioniertrupps und Minenleger der Dravon für {cost} Sterne eine Geschützstellung auf ein freies Nachbarfeld im eigenen Gebiet (passierbares Land ohne Stadt, Gebäude, Ressource, Besonderheit oder Einheit). Höchstens {per} je eigener Stadt, mindestens {spacing} Felder Abstand. Die Stellung ist ein Bauwerk, keine Einheit: Panzerung {hp}, Angriff {atk}, Verteidigung {def}, unpassierbar, ohne Sold und ohne Punkte. Zu Beginn jeder Runde feuert sie einmal auf eine sichtbare Einheit in Reichweite {range}, die mit Dravon im Krieg ist (nie im Frieden, nie auf Verbündete), immer mit vollem Schaden und Trefferglück. Gegner greifen sie wie ein Verdan-Geschütz an; zerstört bleiben Trümmer, ein Abschuss zählt nicht. Geht das Gebiet verloren oder scheidet Dravon aus, wird sie geschleift."
@@ -3476,6 +3493,14 @@
     "judgement": {
       "title": "Sünde und Strafgericht",
       "text": "Solange das Heilige Alvenia im Spiel ist, wird jede andere Fraktion, die plündert, brandschatzt (Brand-Angriff), feindliche Einheiten bekehrt, eine Stadt einer anderen Fraktion erobert, einen Frieden bricht oder Alvenia angreift, {rounds} Runden lang als Sünder gezeichnet; jede neue Tat frischt das Zeichen auf. Außerirdische und Roboter (Zyrr, NEXUS) sind als gottlose Kreaturen ohne Tat dauerhaft Sünder; der Bußzehnt des Lichtdoms zählt nur Sünder mit einer Tat. Strafgericht: Alvenias Einheiten machen gegen Sünder +{pct} % Schaden, auch beim Gegenschlag. Märtyrer-Segen: Fällt eine Alvenia-Einheit im Kampf, heilen eigene Einheiten daneben {heal} LP und verteidigen sich {bless} Runden mit +{def} %. Glaubensbollwerk: auf eigenem Gebiet +{home} % Verteidigung. Großes Strafgericht (Siegbedingung): {n} Einheiten von Sündern vernichten (Karte 14 × 14, je nach Größe mehr oder weniger), sobald das Große Strafgericht freigeschaltet ist."
+    },
+    "sites": {
+      "title": "Produktionsstätten (Menschen)",
+      "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier hat eine Kaserne eingebaut. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
+    },
+    "doctrines": {
+      "title": "Doktrinen (Menschen)",
+      "text": "Im Doktrinen-Baum schalten die Menschen-Fraktionen keine Einheiten frei, sondern Vorteile, Gebäude und Ausbauten. Kosten: (Stufe x Städte + 4) x 5 Sterne. Neue Wirkungen:"
     }
   },
   "lore": {
@@ -3601,77 +3626,78 @@
   },
   "production": {
     "hud": {
-      "research": "Produktion"
+      "research": "Doktrinen"
     },
     "tech": {
-      "title": "Produktionskapazitäten",
-      "researched": "freigeschaltet",
-      "available": "freischaltbar",
-      "research": "Freischalten für {cost}",
-      "costFormula": "Produktionskosten: (Stufe x Städte + 4) x 5",
-      "needParent": "Erst {tech} freischalten.",
-      "notYourTurn": "Freischalten geht nur im eigenen Zug.",
-      "confirm": "Freischalten",
-      "done": "Bereits freigeschaltet.",
-      "legendVictory": "Siegfähigkeit (gestrichelt)",
-      "victoryGroup": "Siegfähigkeit"
+      "title": "Doktrinen",
+      "researched": "eingeführt",
+      "available": "verfügbar",
+      "research": "Einführen für {cost}",
+      "costFormula": "Kosten einer Doktrin: (Stufe x Städte + 4) x 5",
+      "needParent": "Erst {tech} einführen.",
+      "notYourTurn": "Einführen geht nur im eigenen Zug.",
+      "confirm": "Einführen",
+      "done": "Bereits eingeführt.",
+      "legendVictory": "Siegdoktrin (gestrichelt)",
+      "victoryGroup": "Siegdoktrin",
+      "unlocks": "Wirkung"
     },
     "errors": {
-      "techMissing": "Produktionsfähigkeit fehlt.",
-      "alreadyResearched": "Bereits freigeschaltet.",
-      "parentMissing": "Erst die vorherige Produktionsfähigkeit freischalten."
+      "techMissing": "Doktrin fehlt.",
+      "alreadyResearched": "Bereits eingeführt.",
+      "parentMissing": "Erst die vorherige Doktrin einführen."
     },
     "events": {
-      "research": "{tech} freigeschaltet",
-      "bunkerTech": "Bunker durchsucht: kostenlose Produktionsfähigkeit"
+      "research": "{tech} eingeführt",
+      "bunkerTech": "Bunker durchsucht: kostenlose Doktrin"
     },
     "hazards": {
-      "crashDesc": "Bergung: eine Gratis-Produktionsfähigkeit bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung; Zyrr erhalten einen Schwebegleiter. Deckung +1.",
-      "labDesc": "Bergung: eine Gratis-Produktionsfähigkeit bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
-      "salvagedTech": "Geborgen: Produktionsfähigkeit {tech}"
+      "crashDesc": "Bergung: eine Gratis-Doktrin bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung; Zyrr erhalten einen Schwebegleiter. Deckung +1.",
+      "labDesc": "Bergung: eine Gratis-Doktrin bis Stufe {tier}, sonst {n} Sterne, dazu Aufklärung. Deckung +1.",
+      "salvagedTech": "Geborgen: Doktrin {tech}"
     },
     "history": {
-      "techs": "Fähigkeiten"
+      "techs": "Doktrinen"
     },
     "tutorial": {
-      "s6": "Sterne sind die einzige Währung. Öffne die Produktion und schalte eine Produktionsfähigkeit frei."
+      "s6": "Sterne sind die einzige Währung. Öffne die Doktrinen und führe eine Doktrin ein."
     },
     "onboarding": {
-      "text": "Dein erster Einsatz. Das Tutorial führt in wenigen Zügen durch Ziel, Bewegen, Einnehmen, Produktion, Bauen, Ausbilden, Sold und Kampf."
+      "text": "Dein erster Einsatz. Das Tutorial führt in wenigen Zügen durch Ziel, Bewegen, Einnehmen, Doktrinen, Bauen, Ausbilden, Sold und Kampf."
     },
     "cityUpgrades": {
-      "lockedHint": "Weitere Ausbauten werden durch Produktionsfähigkeiten freigeschaltet ({n})."
+      "lockedHint": "Weitere Ausbauten werden durch Doktrinen freigeschaltet ({n})."
     },
     "grand": {
-      "academyCond": "alle Produktionsfähigkeiten freigeschaltet"
+      "academyCond": "alle Doktrinen eingeführt"
     },
     "techExtra": {
-      "cybernetics": "33 % Rabatt auf alle weiteren Produktionsfähigkeiten"
+      "cybernetics": "33 % Rabatt auf alle weiteren Doktrinen"
     },
     "victory": {
-      "noTech": "Siegfähigkeit noch nicht freigeschaltet",
-      "setupHint": "Jede Fraktion kann zusätzlich über eine eigene Siegbedingung gewinnen (eigene Siegfähigkeit der Stufe 3)."
+      "noTech": "Siegdoktrin noch nicht eingeführt",
+      "setupHint": "Jede Fraktion kann zusätzlich über eine eigene Siegbedingung gewinnen (eigene Siegdoktrin der Stufe 3)."
     },
     "rules": {
       "goal": {
-        "text": "Punktemodus: Nach {rounds} Runden gewinnt der höchste Punktestand (Medaille oben). Punkte gibt es unter anderem für erkundete Felder ({tile}), Gebietsfelder ({territory}), Stadtstufen ({level}) und Produktionsfähigkeiten ({tech} je Stufe). Eroberung: Es gewinnt, wer als Letzter Städte besitzt. Endlos und Sandkasten laufen ohne Rundenlimit. Fraktionssiege (abschaltbar): Jede Fraktion kann zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü."
+        "text": "Punktemodus: Nach {rounds} Runden gewinnt der höchste Punktestand (Medaille oben). Punkte gibt es unter anderem für erkundete Felder ({tile}), Gebietsfelder ({territory}), Stadtstufen ({level}) und Doktrinen ({tech} je Stufe). Eroberung: Es gewinnt, wer als Letzter Städte besitzt. Endlos und Sandkasten laufen ohne Rundenlimit. Fraktionssiege (abschaltbar): Jede Fraktion kann zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü."
       },
       "turn": {
-        "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Produktion und Ausbauten. Du startest mit {start} Sternen."
+        "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Produktionsstätten, Doktrinen und Ausbauten. Du startest mit {start} Sternen."
       },
       "cover": {
-        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Produktionsfähigkeit verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Doktrin verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
       },
       "cities": {
         "title": "Städte & Produktion",
-        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Produktionsfähigkeiten schalten Einheiten, Gebäude und Ausbauten frei und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
       },
       "factions": {
-        "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegfähigkeit (Stufe 3), in der Produktion gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
+        "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
       }
     },
     "orbital": {
-      "unlockHint": "Satelliten-Relay ab der Produktionsfähigkeit {tech}."
+      "unlockHint": "Satelliten-Relay ab der Doktrin {tech}."
     }
   },
   "intro": {
@@ -3823,5 +3849,29 @@
     "tag": "Gesegnet +{pct} %",
     "tagDesc": "Märtyrer-Segen: +{pct} % Verteidigung, noch {n} Runden.",
     "hint": "Ziel gesegnet +{pct} %"
+  },
+  "sites": {
+    "title": "Produktionsstätten",
+    "builtIn": "eingebaut",
+    "none": "Keine Produktionsstätte: Diese Stadt bildet nichts aus. Baue eine Kaserne im Stadtgebiet.",
+    "requires": "Benötigt {site}",
+    "needs": "{site} braucht {needs} im Stadtgebiet",
+    "or": " oder ",
+    "ship": "Benötigt {site} im Gebiet dieser Stadt"
+  },
+  "doctrine": {
+    "label": "Doktrin",
+    "motorization": "Fahrzeuge kosten {pct} % weniger.",
+    "aerodynamics": "Flak (Flakpanzer und Flugabwehr) macht {n} Schaden mehr.",
+    "armyAviation": "Hubschrauber verbrauchen im eigenen Gebiet keinen Sprit.",
+    "fortification": "Eigene Minen machen {n} Schaden mehr.",
+    "intelligence": "Spione ziehen {n} Feld weiter.",
+    "mining": "Panzer und Prototyp-Läufer (Panzerwerk) kosten {pct} % weniger.",
+    "armsIndustry": "MG-Infanterie und Panzerabwehr greifen mit +{pct} % an.",
+    "cybernetics": "Sanitäter heilen {n} LP mehr.",
+    "navalArtillery": "Alle Schiffe greifen mit +{pct} % an.",
+    "shipbuilding": "Schiffe aufrüsten kostet {pct} % weniger.",
+    "forestry": "Artillerie und Sonnenlanze (Geschützgießerei) kosten {pct} % weniger.",
+    "ballistics": "Artillerie und Sonnenlanze: Reichweite +{n}."
   }
 }

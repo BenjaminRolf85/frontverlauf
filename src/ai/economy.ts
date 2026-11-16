@@ -7,18 +7,19 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, diplomacyLocked,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
-  WONDERS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
+  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { relayTechBonus, relayValue } from './orbital';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
+import { materialBonus, productionBuys, siteFor } from './production';
 
 type Failed = Set<string>;
 
@@ -270,6 +271,42 @@ const MIL: Partial<Record<TechId, number>> = {
 };
 
 /**
+ * Menschen: Doktrinen statt Einheiten (Grundwert; dazu doctrineValue nach eigener Armee und Gebaeuden).
+ * Humans: doctrines instead of units (base value; plus doctrineValue by own army and buildings).
+ */
+const DOCTRINE_MIL: Partial<Record<TechId, number>> = {
+  motorization: 14, armsIndustry: 26, ballistics: 22, armyAviation: 16, camouflage: 10, fortification: 15,
+  cybernetics: 24, intelligence: 14, mountainTraining: 8, highAltitude: 6, coastalEconomy: 4, diving: 5,
+  shipbuilding: 7, navalArtillery: 7, coastalDefense: 4, aerodynamics: 8, roadbuilding: 8, logistics: 6,
+  fieldResearch: 3, forestry: 8, livestock: 2, supply: 2, agritech: 2, foodIndustry: 2, mining: 10,
+};
+
+/**
+ * Wert einer Doktrin nach eigener Armee und eigenen Gebaeuden (DOCTRINE), in Sternen.
+ * Worth of a doctrine by own army and own buildings (DOCTRINE), in stars.
+ */
+function doctrineValue(ctx: Ctx, t: TechId): number {
+  const { s } = ctx;
+  const n = (types: UnitTypeId[]) => ctx.my.filter((u) => types.includes(u.carried ?? u.type)).length;
+  switch (t) {
+    case 'motorization': return n(VEHICLE_UNITS) * 6;
+    case 'aerodynamics': return n(['antiAir']) * 6 + enemyMix(ctx).air * 4;
+    case 'armyAviation': return n(['heli', 'octocopter']) * 8;
+    case 'fortification': return n(['mineLayer']) * 6;
+    case 'intelligence': return n(['spy']) * 6;
+    // Rabatte auf Panzer und Geschuetze: nach vorhandener Staette / discounts on tanks and guns: by existing site
+    case 'mining': return (ctx.myCities.some((c) => citySites(s, c).includes('tankWorks')) ? 18 : 0) + n(PRODUCTION.units.tankWorks) * 6;
+    case 'forestry': return (ctx.myCities.some((c) => citySites(s, c).includes('foundry')) ? 14 : 0) + n(PRODUCTION.units.foundry) * 6;
+    case 'armsIndustry': return n(DOCTRINE.armsIndustryUnits) * 6;
+    case 'cybernetics': return n(['medic']) * 6;
+    case 'navalArtillery': return ctx.my.filter((u) => UNITS[u.type].ship).length * 6;
+    case 'shipbuilding': return ctx.my.filter((u) => UNITS[u.type].ship).length * 4;
+    case 'ballistics': return n(DOCTRINE.ballisticsUnits) * 9;
+    default: return 0;
+  }
+}
+
+/**
  * Kult: Forschung nur fuer Einheiten (und Wege dorthin), Staedte wachsen ohnehin nicht.
  * Cult: research only for units (and the way there), cities do not grow anyway.
  */
@@ -293,27 +330,33 @@ function techBase(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, unconn
     if (b === 'navalBase') { econ += ctx.navalNeed ? 45 : Math.min(1, sites[b]) * 4; continue; }
     econ += Math.min(5, sites[b]) * (BUILDINGS[b].pop || 1) * popVal * 0.45;
   }
-  let mil = (MIL[t] ?? 0) * prof.militaryW * (ctx.conquest ? 1.3 : 1);
-  if (t === 'ballistics' && ctx.hostileCities.length) mil += 12;
-  // Konter-Technologien, wenn die sichtbare Gegnerarmee sie verlangt / counter techs when the visible enemy army calls for them
-  if (t === 'armsIndustry' || t === 'aerodynamics') {
-    const ct = counterShares(ctx);
-    mil += (t === 'armsIndustry' ? ct.antiVehicle : ct.antiAir) * 70 * prof.militaryW;
+  // Menschen: Doktrinen; sonst Forschung fuer Einheiten / humans: doctrines; otherwise research for units
+  const human = usesSites(ctx.s, ctx.f);
+  let mil = ((human ? DOCTRINE_MIL : MIL)[t] ?? 0) * prof.militaryW * (ctx.conquest ? 1.3 : 1);
+  if (human) mil += doctrineValue(ctx, t) * prof.militaryW;
+  else {
+    if (t === 'ballistics' && ctx.hostileCities.length) mil += 12;
+    // Konter-Technologien, wenn die sichtbare Gegnerarmee sie verlangt / counter techs when the visible enemy army calls for them
+    if (t === 'armsIndustry' || t === 'aerodynamics') {
+      const ct = counterShares(ctx);
+      mil += (t === 'armsIndustry' ? ct.antiVehicle : ct.antiAir) * 70 * prof.militaryW;
+    }
   }
   if (t === 'intelligence') mil += ctx.fa.contacts.length * 12 * prof.embassyW;
   // Vorgaenger der eigenen Siegtechnologie ab der Spielmitte / parent of the own victory tech from mid game
   if (factionVictoryOn(ctx.s) && t === TECHS[victoryTechOf(ctx.s, ctx.f)].parent && ctx.s.round >= WONDERS.aiResearchRound - 4) mil += 40;
   if (t === 'roadbuilding') mil += unconnected * 12;
-  // Festungsbau braucht Pioniere (Befestigung) / fortification needs pioneers (Fortification)
-  if (t === UNITS.pioneer.tech) mil += emplacementTechBonus(ctx);
-  else if (t === TECHS[UNITS.pioneer.tech!].parent && !ctx.fa.techs.includes(UNITS.pioneer.tech!)) mil += emplacementTechBonus(ctx) * 0.6;
+  // Festungsbau braucht Pioniere (bei Fraktionen, die sie erforschen) / fortification needs pioneers (for factions that research them)
+  const pt = UNITS.pioneer.tech;
+  if (pt && t === pt) mil += emplacementTechBonus(ctx);
+  else if (pt && t === TECHS[pt].parent && !ctx.fa.techs.includes(pt)) mil += emplacementTechBonus(ctx) * 0.6;
   mil += relayTechBonus(ctx, t);
   if (t === 'mountainTraining' || t === 'highAltitude') {
     let m = 0;
     for (const c of ctx.myCities) for (const p of cityTiles(ctx.s, c)) if (ctx.s.tiles[idx(ctx.s.size, p.x, p.y)].terrain === 'mountain') m++;
     mil += m * 2;
   }
-  if ((t === 'shipbuilding' || t === 'diving') && ctx.navalNeed) mil += 10;
+  if ((t === 'shipbuilding' || t === 'diving') && ctx.navalNeed) mil += human ? (t === 'diving' ? 10 : 3) : 10;
   // Technik der einzigartigen Einheit oder des einzigartigen Gebaeudes / tech of the unique unit or building
   const uu = UNIQUE.units[ctx.fa.id], ub = UNIQUE.buildings[ctx.fa.id];
   if (uu && UNITS[uu].tech === t) mil += 12 * prof.militaryW;
@@ -374,7 +417,12 @@ function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, uncon
   for (const c of TECH_IDS) if (TECHS[c].parent === t) child = Math.max(child, techBase(ctx, c, sites, unconnected));
   v += child * 0.45;
   v += ctx.pf * 100 * TECHS[t].tier;
-  return v * ctx.prof.researchW;
+  // Menschen: Doktrinen konkurrieren mit den Produktionsstaetten um Sterne, daher hoeher gewichtet (AI.doctrineW); Velkar weniger,
+  // sein Forschungsrabatt (researchLead) macht Doktrinen ohnehin guenstig
+  // humans: doctrines compete with the production sites for stars, hence weighted higher (AI.doctrineW); Velkar less, its
+  // research discount (researchLead) makes doctrines cheap anyway
+  const w = !usesSites(ctx.s, ctx.f) ? 1 : FACTIONS[ctx.fa.id].perk === 'researchLead' ? AI.doctrineWLead : AI.doctrineW;
+  return v * ctx.prof.researchW * w;
 }
 
 /**
@@ -411,7 +459,8 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   const count = (t: UnitTypeId) => ctx.my.filter((u) => u.type === t || u.carried === t).length;
   const army = Math.max(1, ctx.my.length);
   const unexplored = ctx.fa.explored.some((e) => !e);
-  const avail = (t: UnitTypeId) => UNITS[t].cost !== null && (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!));
+  // Menschen: nur, wofuer die Stadt eine Produktionsstaette hat / humans: only what the city has a production site for
+  const avail = (t: UnitTypeId) => UNITS[t].cost !== null && (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && siteFor(s, c, t);
   // Konter: Anteile nach sichtbaren Fahrzeugen und Fliegern / counters: shares by visible vehicles and flyers
   const ct = counterShares(ctx);
   const soft = 1 - 0.5 * Math.min(1, ct.vehRatio + ct.airRatio);
@@ -436,6 +485,10 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,
     heli: army >= 4 ? 0.1 : 0,
     octocopter: army >= 4 ? 0.1 : 0,
+    // Panzerwerk: schwere Panzer, sobald die Armee steht / tank works: heavy tanks once the army stands
+    tank: army >= 4 ? 0.14 : 0.05,
+    teslaTank: army >= 4 ? 0.14 : 0.05,
+    reliquary: army >= 4 ? 0.14 : 0.05,
     // einzigartige Einheiten / unique units
     steppeRider: unexplored ? 0.18 : 0.1,
     stormbreaker: ctx.hostileCities.length || ctx.enemies.length ? 0.22 : 0.1,
@@ -445,7 +498,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
-    lightWarden: 0.7, sunLance: 1,
+    lightWarden: 0.7, sunLance: 1, tank: 1.2, teslaTank: 1.2, reliquary: 1.2,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
@@ -461,7 +514,8 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
-    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? 1.6 : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
+    // Pioniere nur noch knapp vor der Infanterie: sie kommen jetzt aus jeder Kaserne / pioneers only just ahead of infantry: they now come from every barracks
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery' || t === 'sunLance')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250;
@@ -602,12 +656,25 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (urgent) value = cost * 3.5;
       else if (deficit > 0) value = cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW;
       else value = cost * 0.25;
+      // Menschen: die erste Einheit einer neuen Produktionsstaette (ausser der Kaserne) zuegig ausbilden, fuer eine gemischte Armee
+      // humans: train the first unit of a new production site (except the barracks) promptly, for a mixed army
+      const site = usesSites(s, f) ? siteOf(t) : null;
+      if (!urgent && s.round >= 3 && site && site !== 'trainingCamp' && !ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) value = Math.max(value, cost * 2.2);
       value = value * factor + cost * ctx.pf - front * 0.05;
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
     mk(type, 1);
     const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? 'infantry';
     if (type !== cheap) mk(cheap, 0.8);
+    // Menschen: je neuer Staette dieser Stadt (ohne Kaserne) die erste Einheit anbieten, auch wenn der Wunschtyp ein anderer ist
+    // humans: offer the first unit of each new site of this city (except the barracks), even if the desired type is another one
+    if (usesSites(s, f) && !urgent && s.round >= 3) {
+      for (const site of citySites(s, c)) {
+        if (site === 'trainingCamp' || ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) continue;
+        const first = rosterUnits(s, f).find((t) => siteOf(t) === site && t !== type && UNITS[t].attack > 0 && trainCheck(s, c, t) !== 'buildingMissing' && trainCheck(s, c, t) !== 'invalid');
+        if (first) mk(first, 1);
+      }
+    }
   }
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
   // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
@@ -636,6 +703,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   }
 
   // Gebaeude / buildings
+  const counters = counterShares(ctx);
   for (const c of ctx.myCities) {
     for (const p of cityTiles(s, c)) {
       for (const b of POP_BUILDINGS) {
@@ -658,13 +726,16 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
         } else {
           const pop = popGain(s, f, b, p.x, p.y);
           if (pop <= 0) continue;
-          value = pop * popVal;
+          // Rohstoff fuer eine gewuenschte Staette (Panzerwerk, Geschuetzgiesserei) / raw material for a wanted site (tank works, foundry)
+          value = pop * popVal + materialBonus(ctx, c, b, counters);
         }
         if (prof.sloppy > 0) value *= 1 + (hashNoise(p.x, p.y, s.round) - 0.5) * prof.sloppy;
         buys.push({ cmd: { type: 'build', building: b, x: p.x, y: p.y }, cost: chk.cost, value, save: true });
       }
     }
   }
+  // Produktionsstaetten (Menschen) / production sites (humans)
+  buys.push(...productionBuys(ctx, popVal, counters));
   // Einzigartiges Gebaeude der Fraktion / the faction's unique building
   const ub = UNIQUE.buildings[fa.id];
   if (ub) {
@@ -831,7 +902,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (!to) continue;
     const chk = upgradeCheck(s, u, to);
     if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
-    const cost = UNITS[to].cost ?? 0;
+    const cost = shipUpgradeCost(s, f, to);
     const near = ctx.enemies.some((e) => dist(e, u) <= 4);
     if (!near) continue; // nur fuer Gefechte / only for combat
     const value = cost * 1.0;
@@ -919,8 +990,14 @@ function bestShip(ctx: Ctx, u: Unit): UnitTypeId | null {
   const order: UnitTypeId[] = UNIQUE.units[ctx.fa.id] === 'privateer' ? ['battleship', 'privateer', 'destroyer', 'submarine'] : ['battleship', 'destroyer', 'submarine'];
   const rank = (t: UnitTypeId) => (t === 'landingBoat' ? 0 : order.length - order.indexOf(t));
   for (const t of order) {
-    const tech = UNITS[t].tech;
-    if (tech && !hasTech(s, f, tech)) continue;
+    // Menschen: Staette im Gebiet unter dem Schiff; sonst Forschung / humans: site in the territory under the ship; otherwise research
+    if (usesSites(s, f)) {
+      const chk = upgradeCheck(s, u, t);
+      if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+    } else {
+      const tech = UNITS[t].tech;
+      if (tech && !hasTech(s, f, tech)) continue;
+    }
     if (rank(t) <= rank(u.type)) return null;
     return t;
   }

@@ -16,6 +16,7 @@ import { dataCenter, powerPlant, shrine } from './specials';
 import { xenoHarvester, xenoHive } from './xeno';
 import { embassyPalace, kolkhoz, mercenaryBarracks, testLab, tradingPost } from './unique';
 import { deepMine, depotNode, hillVineyard, pilgrimSite, polarStation, tractorStation, tradeHarbour, wreckSmelter } from './resource';
+import { productionSite } from './production';
 
 type Kind = BuildingId | 'outpost' | GrandProjectId;
 
@@ -565,6 +566,8 @@ export function building(kind: Kind, f: FactionId | null): Builder {
     case 'wreckSmelter': wreckSmelter(b, f); break;
     case 'pilgrimSite': pilgrimSite(b, f); break;
     case 'depotNode': depotNode(b, f); break;
+    // Produktionsstaetten der Menschen / human production sites
+    case 'trainingCamp': case 'armory': case 'motorPool': case 'tankWorks': case 'foundry': case 'airfield': case 'dryDock': productionSite(b, kind, f); break;
     default: grandProject(b, kind, f); break;
   }
   return b;

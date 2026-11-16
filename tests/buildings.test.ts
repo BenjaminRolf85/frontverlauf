@@ -15,10 +15,11 @@ describe('Gebaeude / buildings (table of section 6)', () => {
     ['storehouse', 10, 1, 'plain', 'supplies', 'supply'],
     ['ranch', 10, 1, 'plain', 'livestock', 'livestock'],
     ['fishery', 10, 1, 'shallow', 'fish', 'coastalEconomy'],
-    ['lumberCamp', 15, 1, 'forest', null, 'forestry'],
+    // Menschen bauen Forstbetrieb, Tagebau und Marinestuetzpunkt ohne Forschung (PRODUCTION) / humans build lumber camp, mine and naval base without research (PRODUCTION)
+    ['lumberCamp', 15, 1, 'forest', null, null],
     ['farm', 25, 2, 'plain', 'farmland', 'agritech'],
-    ['mine', 25, 2, 'mountain', 'ore', 'mining'],
-    ['navalBase', 35, 1, 'shallow', null, 'coastalEconomy'],
+    ['mine', 25, 2, 'mountain', 'ore', null],
+    ['navalBase', 35, 1, 'shallow', null, null],
     ['researchCenter', 100, 1, 'plain', null, 'aerodynamics'],
   ];
   for (const [b, cost, pop, terrain, resource, tech] of table) {

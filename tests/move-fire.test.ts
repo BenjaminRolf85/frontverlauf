@@ -201,7 +201,7 @@ describe('Steppensturm (Korvat) / Steppe Storm (Korvat)', () => {
   });
 
   it('alle anderen Fraktionen bleiben bei 50 %, auch ein bekehrter Steppenreiter / all other factions stay at 50 %, also a converted Steppe Rider', () => {
-    for (const f of FACTION_IDS.filter((x) => x !== 'korvat')) {
+    for (const f of FACTION_IDS.filter((x) => !MOVE_FIRE.bonus[x])) {
       const s = game([f, 'korvat']);
       for (const type of ['infantry', 'tank', 'steppeRider'] as UnitTypeId[]) {
         const u = addUnit(s, type, 0, 5, 5);
@@ -213,9 +213,21 @@ describe('Steppensturm (Korvat) / Steppe Storm (Korvat)', () => {
   });
 });
 
+describe('Feuer und Bewegung (Dravon) / Fire and Manoeuvre (Dravon)', () => {
+  it('alle Dravon-Einheiten greifen nach Bewegung mit 80 % an / all Dravon units attack with 80 % after moving', () => {
+    const s = game(['dravon', 'alvenia']);
+    expect(MOVE_FIRE.bonus.dravon?.all).toBe(0.8);
+    for (const type of ['infantry', 'tank', 'jeep', 'stormbreaker'] as UnitTypeId[]) {
+      const u = addUnit(s, type, 0, 5, 5);
+      u.moved = true;
+      expect(moveFireMult(s, u), type).toBe(0.8);
+    }
+  });
+});
+
 describe('KI und Feuern nach Bewegung / AI and firing after moving', () => {
   it('bewertet Ziehen-und-Feuern niedriger als Stehen-und-Feuern / values move-then-fire below stand-and-fire', () => {
-    const s = game(['dravon', 'alvenia']);
+    const s = game(['meridon', 'alvenia']);
     s.factions.forEach((f) => { f.human = false; });
     const a = addUnit(s, 'tank', 0, 5, 5);
     const d = addUnit(s, 'infantry', 1, 6, 5);
@@ -231,7 +243,7 @@ describe('KI und Feuern nach Bewegung / AI and firing after moving', () => {
   });
 
   it('greift lieber mit einer Einheit an, die schon in Reichweite steht / prefers attacking with a unit already in range', () => {
-    const s = game(['dravon', 'alvenia']);
+    const s = game(['meridon', 'alvenia']);
     s.factions.forEach((f) => { f.human = false; });
     const near = addUnit(s, 'tank', 0, 5, 5);
     const mover = addUnit(s, 'tank', 0, 4, 4);

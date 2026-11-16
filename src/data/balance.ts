@@ -76,7 +76,9 @@ export type BuildingId =
   // Einzigartige Gebaeude der klassischen Fraktionen / unique buildings of the classic factions
   | 'kolkhoz' | 'mercenaryBarracks' | 'embassyPalace' | 'tradingPost' | 'testLab'
   // Ressourcengebaeude der Fraktionen (je eins, siehe RESOURCE) / faction resource buildings (one each, see RESOURCE)
-  | 'tractorStation' | 'deepMine' | 'hillVineyard' | 'tradeHarbour' | 'polarStation' | 'wreckSmelter' | 'pilgrimSite' | 'depotNode';
+  | 'tractorStation' | 'deepMine' | 'hillVineyard' | 'tradeHarbour' | 'polarStation' | 'wreckSmelter' | 'pilgrimSite' | 'depotNode'
+  // Produktionsstaetten der Menschen (siehe PRODUCTION; dazu der Marinestuetzpunkt) / human production sites (see PRODUCTION; plus the naval base)
+  | 'trainingCamp' | 'armory' | 'motorPool' | 'tankWorks' | 'foundry' | 'airfield' | 'dryDock';
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
@@ -95,7 +97,13 @@ export interface UnitStats {
   range: number; // 0 = kann nicht angreifen / cannot attack
   vision: number;
   abilities: Ability[];
-  tech: TechId | null; // null = von Beginn an / available from start
+  /**
+   * Forschung, die die Einheit freischaltet (Kult, NEXUS, Zyrr und Schiffe der Sonderfraktionen); null = von Beginn an.
+   * Menschen-Einheiten haben null: sie kommen aus Produktionsstaetten (PRODUCTION), nicht aus der Forschung.
+   * Research that unlocks the unit (cult, NEXUS, Zyrr and the special factions' ships); null = available from start.
+   * Human units have null: they come from production sites (PRODUCTION), not from research.
+   */
+  tech: TechId | null;
   ship: boolean;
   /** nur fuer diese Fraktion / only for this faction */
   faction?: FactionId;
@@ -195,15 +203,15 @@ export const WONDER_UNITS: WonderUnitId[] = ['portal', 'hackRelay', 'fusionPlant
 
 export const UNITS: Record<UnitTypeId, UnitStats> = {
   infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
-  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: 'camouflage', ship: false },
-  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false },
-  pioneer: { cost: 15, hp: 15, attack: 1, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify'], tech: 'fortification', ship: false },
-  mg: { cost: 25, hp: 15, attack: 3, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: 'armsIndustry', ship: false },
-  medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 1, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: 'cybernetics', ship: false },
-  artillery: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false },
-  spy: { cost: 40, hp: 5, attack: 0, defense: 0.5, move: 2, range: 0, vision: 1, abilities: ['invisible', 'uprising'], tech: 'intelligence', ship: false },
-  heli: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: 'armyAviation', ship: false },
-  tank: { cost: null, hp: 40, attack: 5, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false },
+  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
+  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
+  pioneer: { cost: 15, hp: 15, attack: 1, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify'], tech: null, ship: false },
+  mg: { cost: 25, hp: 15, attack: 3, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
+  medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 1, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: null, ship: false },
+  artillery: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false },
+  spy: { cost: 40, hp: 5, attack: 0, defense: 0.5, move: 2, range: 0, vision: 1, abilities: ['invisible', 'uprising'], tech: null, ship: false },
+  heli: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false },
+  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false },
   // Schiffe: LP kommen von der getragenen Einheit; cost = Aufruestpreis.
   // Ships: HP come from the carried unit; cost = upgrade price.
   landingBoat: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry'], tech: 'coastalEconomy', ship: true },
@@ -232,40 +240,40 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Konter-Einheiten (Schere-Stein-Papier, siehe COUNTER) / counter units (rock-paper-scissors, see COUNTER)
   // Panzerabwehr-Trupp: muss stehen bleiben (kein Sturm), Reichweite 2, stark gegen Fahrzeuge, schwach gegen Infanterie
   // anti-tank squad: must stand still (no dash), range 2, strong vs vehicles, weak vs infantry
-  antiTank: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: 'armsIndustry', ship: false, bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  antiTank: { cost: 20, hp: 10, attack: 2, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, bonusVs: { vehicle: 2.5, foot: 0.6 } },
   // Flakpanzer: stark gegen Flieger, Feuerzone trifft Flieger, die daneben ihren Zug beenden / AA vehicle: strong vs flyers, fire zone hits flyers ending their turn next to it
-  antiAir: { cost: 30, hp: 15, attack: 2, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: 'aerodynamics', ship: false, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
+  antiAir: { cost: 30, hp: 15, attack: 2, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
   // Minenleger: legt verdeckte Minen auf Nachbarfelder / mine layer: lays hidden mines on adjacent tiles
-  mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: 'fortification', ship: false },
+  mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: null, ship: false },
   // Kult: Panzerfaust-Eiferer / cult: rocket zealot
   faustZealot: { cost: 14, hp: 7, attack: 1.6, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
   // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
   flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
   // Einzigartige Einheiten (siehe UNIQUE) / unique units (see UNIQUE)
   // Korvat: Steppenreiter, billig und schnell, Fusstruppe (kein Fahrzeug) / Steppe Riders, cheap and fast, foot troops (no vehicle)
-  steppeRider: { cost: 14, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash'], tech: 'livestock', ship: false, faction: 'korvat' },
+  steppeRider: { cost: 14, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat' },
   // Dravon: Sturmbrecher, Angriffe ohne Gegenschlag, aber verwundbar / Stormbreakers, attacks draw no retaliation, but vulnerable
-  stormbreaker: { cost: 30, hp: 15, attack: 4, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'shock'], tech: 'mining', ship: false, faction: 'dravon' },
+  stormbreaker: { cost: 30, hp: 15, attack: 4, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'shock'], tech: null, ship: false, faction: 'dravon' },
   // Alvenia: Ordenswacht (ID aus alten Spielstaenden), Verteidiger mit Selbstheilung / Order Guard (ID from old saves), defenders with self-repair
-  peacekeeper: { cost: 20, hp: 15, attack: 2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify', 'mend'], tech: 'fortification', ship: false, faction: 'alvenia' },
+  peacekeeper: { cost: 20, hp: 15, attack: 2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify', 'mend'], tech: null, ship: false, faction: 'alvenia' },
   // Meridon: Kaperschiff (Aufruestung wie andere Schiffe), Beute je Abschuss / Privateer (upgrade like other ships), prize per kill
-  privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: 'coastalEconomy', ship: true, faction: 'meridon' },
+  privateer: { cost: 20, hp: 0, attack: 2.5, defense: 1.5, move: 4, range: 1, vision: 2, abilities: ['carry', 'dash', 'plunder'], tech: null, ship: true, faction: 'meridon' },
   // Velkar: Prototyp-Laeufer, Flaechenschaden auf Reichweite 2, teuer / Prototype Walker, splash at range 2, expensive
-  protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: 'cybernetics', ship: false, faction: 'velkar' },
+  protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: null, ship: false, faction: 'velkar' },
   // Velkar-Varianten (siehe VARIANTS, Treffsicherheit HIT.unit) / Velkar variants (see VARIANTS, accuracy HIT.unit)
   // Tesla-Panzer: wie der Panzer, aber Angriff +40 % und eigene Trefferchancen (oft daneben) / Tesla tank: like the tank, but attack +40 % and own hit odds (often misses)
-  teslaTank: { cost: null, hp: 40, attack: 7, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar' },
+  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar' },
   // Oktokopter: Werte des Kampfhubschraubers / octocopter: the attack helicopter's values
-  octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: 'armyAviation', ship: false, faction: 'velkar' },
+  octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false, faction: 'velkar' },
   // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise / railgun marksman: range 3, fires only from a standstill (no dash), precise
-  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: 'camouflage', ship: false, faction: 'velkar' },
+  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'velkar' },
   // Alvenia-Varianten (siehe VARIANTS): Fernkampf aus dem Stand, starke Verteidigung / Alvenia variants (see VARIANTS): ranged from a standstill, strong defence
   // Lichtschuetzen: Reichweite 2, schiessen nur aus dem Stand (kein Sturm), gute Verteidigung, schwacher Angriff / Light Wardens: range 2, fire only from a standstill (no dash), good defence, weak attack
   lightWarden: { cost: 12, hp: 10, attack: 1.6, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
   // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, fires only from a standstill
-  reliquary: { cost: null, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
+  reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
-  sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'alvenia' },
+  sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'alvenia' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -649,11 +657,14 @@ export const MOVE_FIRE = {
   /**
    * Fraktionsbonus nach Besitzer: all = Faktor fuer alle Einheiten, units = eigener Faktor je Einheitentyp.
    * Korvat "Steppensturm": alle 75 %, Steppenreiter 100 %. Ein bekehrter Steppenreiter verliert ihn (Besitzer zaehlt).
+   * Dravon "Feuer und Bewegung": alle 80 % (die am besten ausgebildeten Soldaten).
    * Faction bonus by owner: all = factor for all units, units = own factor per unit type.
    * Korvat "Steppe Storm": all 75 %, Steppe Riders 100 %. A converted Steppe Rider loses it (the owner counts).
+   * Dravon "Fire and Manoeuvre": all 80 % (the best-trained soldiers).
    */
   bonus: {
     korvat: { all: 0.75, units: { steppeRider: 1 } },
+    dravon: { all: 0.8 },
   } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
 };
 
@@ -1078,7 +1089,8 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   foodFactory: { cost: 25, pop: 0, tech: 'foodIndustry', terrain: ['plain'], onePerCity: true, adjacency: { building: 'farm', pop: 1 } },
   steelMill: { cost: 25, pop: 0, tech: 'armsIndustry', terrain: ['plain'], onePerCity: true, adjacency: { building: 'mine', pop: 2 } },
   logisticsCenter: { cost: 25, pop: 0, tech: 'logistics', terrain: ['plain'], onePerCity: true },
-  navalBase: { cost: 35, pop: 1, tech: 'coastalEconomy', terrain: ['shallow'] },
+  // Marinestuetzpunkt: Einschiffung und Produktionsstaette der Schiffe (PRODUCTION), ohne Forschung / naval base: embarking and production site of ships (PRODUCTION), no research
+  navalBase: { cost: 35, pop: 1, tech: null, terrain: ['shallow'] },
   road: { cost: 15, pop: 0, tech: 'roadbuilding', terrain: ['plain', 'forest', 'mountain'] },
   bridge: { cost: 25, pop: 0, tech: 'roadbuilding', terrain: ['shallow'] },
   researchCenter: { cost: 100, pop: 1, tech: null, terrain: ['plain', 'forest', 'mountain', 'shallow'], onePerCity: true },
@@ -1113,6 +1125,112 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   pilgrimSite: { cost: 25, pop: 0, tech: 'camouflage', terrain: ['plain', 'forest'], biomes: ['desert', 'steppe'], nearVolcano: true, onePerCity: true },
   // NEXUS: Depotknoten auf Erz / depot node on ore
   depotNode: { cost: 25, pop: 1, tech: null, terrain: ['mountain'], resource: 'ore', compute: 1 },
+  // Produktionsstaetten der Menschen (PRODUCTION): eine je Stadt, ohne Forschung / human production sites (PRODUCTION): one per city, no research
+  trainingCamp: { cost: 10, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  armory: { cost: 20, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  motorPool: { cost: 20, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  tankWorks: { cost: 40, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  foundry: { cost: 30, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  airfield: { cost: 45, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  dryDock: { cost: 30, pop: 0, tech: null, terrain: ['shallow'], onePerCity: true },
+};
+
+/** Produktionsstaetten / production sites */
+export type ProductionSiteId = 'trainingCamp' | 'armory' | 'motorPool' | 'tankWorks' | 'foundry' | 'airfield' | 'navalBase' | 'dryDock';
+
+/**
+ * Produktionsstaetten der fuenf Menschen-Fraktionen: eine Stadt bildet eine Einheit nur aus, wenn in ihrem Gebiet die
+ * passende Staette steht (Schiffe: Aufruesten im Gebiet einer solchen Stadt). Erobert man die Stadt, gehoert die Staette
+ * dem neuen Besitzer (wirkt nur fuer Menschen). Kult, Zyrr und NEXUS behalten ihre Systeme (Stadtstufe, Horde, Rechenleistung).
+ * Production sites of the five human factions: a city trains a unit only if the matching site stands in its territory
+ * (ships: upgrading in the territory of such a city). Capturing the city hands the site to the new owner (works for
+ * humans only). Cult, Zyrr and NEXUS keep their systems (city level, horde, compute).
+ */
+export const PRODUCTION = {
+  /** Fraktionen mit Produktionsstaetten (statt Forschung fuer Einheiten) / factions with production sites (instead of research for units) */
+  factions: ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'] as FactionId[],
+  sites: ['trainingCamp', 'armory', 'motorPool', 'tankWorks', 'foundry', 'airfield', 'navalBase', 'dryDock'] as ProductionSiteId[],
+  /**
+   * Einheiten je Staette (Grundtypen und Fraktionsvarianten). Der Sturmbrecher (Dravon, Fusstruppe mit schwerer Ausruestung)
+   * kommt aus dem Ruestungswerk: im Fahrzeugwerk passt er nicht, in der Kaserne waere er ab Runde 1 im HQ zu haben.
+   * Units per site (base types and faction variants). The Stormbreaker (Dravon, foot troop with heavy gear) comes from the
+   * armoury: it does not fit the motor pool, and in the barracks it would be available at the HQ from round 1.
+   */
+  units: {
+    trainingCamp: ['infantry', 'pioneer', 'medic', 'sniper', 'spy', 'steppeRider', 'peacekeeper', 'lightWarden', 'railSniper'],
+    armory: ['mg', 'antiTank', 'mineLayer', 'antiAir', 'stormbreaker'],
+    motorPool: ['jeep'],
+    tankWorks: ['tank', 'teslaTank', 'reliquary', 'protoWalker'],
+    foundry: ['artillery', 'sunLance'],
+    airfield: ['heli', 'octocopter'],
+    navalBase: ['landingBoat', 'destroyer', 'privateer'],
+    dryDock: ['submarine', 'battleship'],
+  } as Record<ProductionSiteId, UnitTypeId[]>,
+  /**
+   * Eingebaute Kaserne: jedes Hauptquartier (auch ein erobertes), Sendetuerme und Nachschublinien bilden ohne eigenes Gebaeude
+   * Infanterie aus.
+   * Built-in barracks: every HQ (a captured one too), transmitter towers and supply lines train infantry without a building of their own.
+   */
+  builtIn: 'trainingCamp' as ProductionSiteId,
+  /**
+   * Zusaetzlich eingebaut im eigenen Hauptquartier je Fraktion: Dravon (Jeep-Rabatt, startete mit Motorisierung und Jeeps)
+   * behaelt sein Fahrzeugwerk. Gilt nur, solange das Hauptquartier dem Gruender gehoert.
+   * Additionally built into the own HQ per faction: Dravon (jeep discount, started with motorization and jeeps) keeps
+   * its motor pool. Only while the HQ belongs to its founder.
+   */
+  hqSites: { dravon: ['motorPool'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  /**
+   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) hat ueberall
+   * eine Kaserne; der Eroberer bekommt sie nicht.
+   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) has barracks
+   * everywhere; the conqueror does not get them.
+   */
+  citySites: { korvat: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  /**
+   * Voraussetzung im Stadtgebiet beim Bau: eines dieser Gebaeude. Panzerwerk: Tagebau oder Tiefbauzeche (beide nur auf Erz),
+   * Geschuetzgiesserei: Forstbetrieb (Holz fuer Lafetten), Trockendock: Marinestuetzpunkt. Geht die Voraussetzung spaeter
+   * verloren, arbeitet die Staette weiter.
+   * Prerequisite in the city territory when building: one of these buildings. Tank works: mine or deep mine (both only on
+   * ore), foundry: lumber camp (wood for gun carriages), dry dock: naval base. If the prerequisite is lost later, the site keeps working.
+   */
+  needs: { tankWorks: ['mine', 'deepMine'], foundry: ['lumberCamp'], dryDock: ['navalBase'] } as Partial<Record<ProductionSiteId, BuildingId[]>>,
+  /** Gebaeude, die Menschen ohne Forschung bauen (Rohstoffe der Staetten) / buildings humans build without research (raw materials of the sites) */
+  noTech: ['mine', 'lumberCamp'] as BuildingId[],
+};
+
+/**
+ * Doktrinen: Forschung der Menschen schaltet keine Einheiten mehr frei, sondern Vorteile. Je Doktrin eine Zahl; sie wirkt
+ * nur fuer Fraktionen mit Produktionsstaetten (PRODUCTION.factions), Kult und NEXUS behalten die alte Forschung.
+ * Doctrines: human research no longer unlocks units but advantages. One number per doctrine; it works only for factions
+ * with production sites (PRODUCTION.factions), the cult and NEXUS keep the old research.
+ */
+export const DOCTRINE = {
+  /** Motorisierung: Fahrzeuge (VEHICLE_UNITS) so viel billiger / motorization: vehicles this much cheaper */
+  motorizationDiscount: 0.15,
+  /** Aerodynamik: Flak (Flakpanzer und Flugabwehr-Ausbau) macht so viel mehr Schaden / aerodynamics: flak (AA vehicles and flak upgrade) deals this much more damage */
+  aerodynamicsFlak: 2,
+  /** Heeresflieger: Sprit pro Runde im eigenen Gebiet / army aviation: fuel burned per round in own territory */
+  armyAviationHomeBurn: 0,
+  /** Befestigung: eigene Minen machen so viel mehr Schaden / fortification: own mines deal this much more damage */
+  fortificationMine: 3,
+  /** Nachrichtendienst: Spione ziehen so viel weiter / intelligence: spies move this much further */
+  intelligenceSpyMove: 1,
+  /** Bergbau: Panzer aus dem Panzerwerk (Erz fuer Panzerstahl) so viel billiger / mining: tanks from the tank works (ore for armour steel) this much cheaper */
+  miningDiscount: 0.1,
+  /** Ruestungsindustrie: Angriff dieser Einheiten / arms industry: attack of these units */
+  armsIndustryAttack: 0.1,
+  armsIndustryUnits: ['mg', 'antiTank'] as UnitTypeId[],
+  /** Kybernetik: Sanitaeter heilen so viel mehr (dazu der Forschungsrabatt ECON.cyberneticsDiscount) / cybernetics: medics heal this much more (plus the research discount) */
+  cyberneticsMedic: 2,
+  /** Marineartillerie: Angriff aller Schiffe / naval artillery: attack of all ships */
+  navalArtilleryAttack: 0.2,
+  /** Schiffbau: Aufruesten von Schiffen so viel billiger / shipbuilding: ship upgrades this much cheaper */
+  shipbuildingDiscount: 0.25,
+  /** Forstwirtschaft: Geschuetze aus der Giesserei (Holz fuer Lafetten) so viel billiger / forestry: guns from the foundry (wood for carriages) this much cheaper */
+  forestryDiscount: 0.15,
+  /** Ballistik: Reichweite dieser Einheiten / ballistics: range of these units */
+  ballisticsRange: 1,
+  ballisticsUnits: ['artillery', 'sunLance'] as UnitTypeId[],
 };
 
 /**
@@ -1232,6 +1350,8 @@ export interface FactionStats {
   startTech: TechId | null;
   /** weitere Starttechnologien (Sonderfraktionen ohne Forschung, Dravon) / extra start techs (special factions without research, Dravon) */
   extraTechs?: TechId[];
+  /** weitere Starteinheiten neben dem Hauptquartier (freie Partie, nicht Kampagne) / extra start units next to the HQ (free game, not campaign) */
+  startExtra?: UnitTypeId[];
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
 }
@@ -1514,6 +1634,14 @@ export const AI = {
    * it); the attack value itself already sees the factor via combatPreview.
    */
   memorialGround: 16,
+  /**
+   * Menschen: Gewicht der Doktrinen in der Kaufliste (Doktrinen konkurrieren mit den Produktionsstaetten um Sterne);
+   * doctrineWLead fuer die Fraktion mit Forschungsrabatt (Velkar), die Doktrinen ohnehin guenstig bekommt.
+   * Humans: weight of doctrines in the purchase list (doctrines compete with the production sites for stars);
+   * doctrineWLead for the faction with the research discount (Velkar), which gets doctrines cheaply anyway.
+   */
+  doctrineW: 1.45,
+  doctrineWLead: 1.15,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };

@@ -1,6 +1,7 @@
 /** Spielstand als JSON im localStorage (immer in try/catch) und als Datei / save game as JSON in localStorage and as a file */
-import type { GameState } from '../core';
+import { citySites, cityTiles, isWater, replacedFor, tileAt, usesSites, type GameState } from '../core';
 import { outdatedCampaign, staleTempleSave } from '../core/campaign';
+import { PRODUCTION, UNITS, type ProductionSiteId, type TechId, type UnitTypeId } from '../data/balance';
 import type { Lang } from '../i18n/i18n';
 
 const SAVE_KEY = 'frontverlauf.save.v1';
@@ -79,7 +80,51 @@ export function migrateState(s: GameState): GameState {
     delete s.config.campaign;
     s.config.factionVictory = false;
   }
+  if (s.sites === undefined) migrateSites(s);
   return s;
+}
+
+/**
+ * Forschung, die eine Einheit vor den Produktionsstaetten freischaltete (Infanterie und Panzer: keine bzw. nicht kaeuflich).
+ * Research that unlocked a unit before the production sites (infantry and tank: none or not for sale).
+ */
+export const LEGACY_UNIT_TECH: Partial<Record<UnitTypeId, TechId>> = {
+  sniper: 'camouflage', jeep: 'motorization', pioneer: 'fortification', mg: 'armsIndustry', medic: 'cybernetics', artillery: 'ballistics',
+  spy: 'intelligence', heli: 'armyAviation', antiTank: 'armsIndustry', antiAir: 'aerodynamics', mineLayer: 'fortification',
+  steppeRider: 'livestock', stormbreaker: 'mining', peacekeeper: 'fortification', privateer: 'coastalEconomy', protoWalker: 'cybernetics',
+  octocopter: 'armyAviation', railSniper: 'camouflage', sunLance: 'ballistics',
+  landingBoat: 'coastalEconomy', submarine: 'diving', destroyer: 'shipbuilding', battleship: 'navalArtillery',
+};
+
+/**
+ * Alte Spielstaende vor den Produktionsstaetten: jede Stadt einer Menschen-Fraktion bekommt die Staetten eingebaut (City.works),
+ * deren Einheiten die Fraktion schon ausbilden konnte (Kaserne immer, Ruestungswerk mit Ruestungsindustrie usw.; Schiffs-
+ * staetten nur in Staedten mit Wasser im Gebiet). So verliert niemand mitten in der Partie eine Einheit.
+ * Old saves before the production sites: every city of a human faction gets the sites built in (City.works) whose units
+ * the faction could already train (barracks always, armoury with arms industry etc.; ship sites only in cities with water
+ * in their territory). So nobody loses a unit mid-game.
+ */
+export function migrateSites(s: GameState) {
+  for (const fa of s.factions) {
+    if (!usesSites(s, fa.index)) continue;
+    const could = (u: UnitTypeId) => {
+      const st = UNITS[u];
+      if ((st.faction && st.faction !== fa.id) || replacedFor(fa.id, u)) return false;
+      // Panzer und Bauarten waren nicht kaeuflich (nur Stadtbelohnung) / tanks and their designs were not for sale (city reward only)
+      if (u === 'tank' || u === 'teslaTank' || u === 'reliquary') return false;
+      const tech = LEGACY_UNIT_TECH[u];
+      return !tech || fa.techs.includes(tech);
+    };
+    const grant = PRODUCTION.sites.filter((site) => PRODUCTION.units[site].some(could));
+    for (const c of s.cities) {
+      if (c.owner !== fa.index) continue;
+      const have = citySites(s, c);
+      const water = cityTiles(s, c).some((p) => isWater(tileAt(s, p.x, p.y)!));
+      const add: ProductionSiteId[] = grant.filter((site) => !have.includes(site) && (water || (site !== 'navalBase' && site !== 'dryDock')));
+      if (add.length) c.works = [...(c.works ?? []), ...add];
+    }
+  }
+  s.sites = 1;
 }
 
 /** Gueltigen Spielstand pruefen und angleichen, sonst null / validate and migrate a save, otherwise null */

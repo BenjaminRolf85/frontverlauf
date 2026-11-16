@@ -26,9 +26,9 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /**
- * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat) und Verteidigung auf
+ * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat, Dravon) und Verteidigung auf
  * eigenem Gebiet (HOME_DEFENSE, Alvenia); Zahlen aus balance.ts.
- * Combat bonuses of a faction with name and text: firing after moving (MOVE_FIRE.bonus, Korvat) and defence on own
+ * Combat bonuses of a faction with name and text: firing after moving (MOVE_FIRE.bonus, Korvat, Dravon) and defence on own
  * territory (HOME_DEFENSE, Alvenia); numbers from balance.ts.
  */
 export function combatBonusTexts(f: FactionId): { name: string; desc: string; icon: string }[] {

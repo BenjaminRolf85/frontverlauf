@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { embassyCost, embassyIncome, levelUpCost, researchCost, unitCost, unitLimit, veteranKills } from '../src/core';
+import { embassyCost, embassyIncome, levelUpCost, researchCost, siteOf, unitCost, unitLimit, veteranKills } from '../src/core';
 import { FACTIONS, FACTION_IDS, UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { addCity, addUnit, blankGame, ok, revealAll, unit } from './helpers';
 
@@ -26,7 +26,9 @@ describe('Fraktionen / factions', () => {
   describe('20 % unit discounts (Dravon 30 %) / Einheitenrabatte (Dravon 30 %)', () => {
     const cases: [FactionId, UnitTypeId, number, number, string | null][] = [
       ['korvat', 'infantry', 8, 10, null],
-      ['dravon', 'jeep', 11, 15, 'motorization'], // 15*0.7=10.5 -> 11
+      // Dravon startet mit der Doktrin Motorisierung: 15*0.7=10.5 -> 11, dann Fahrzeuge -15 % -> 10
+      // Dravon starts with the motorization doctrine: 15*0.7=10.5 -> 11, then vehicles -15 % -> 10
+      ['dravon', 'jeep', 10, 15, 'motorization'],
       ['alvenia', 'sunLance', 36, 45, 'ballistics'],
       ['meridon', 'spy', 32, 40, 'intelligence'],
       ['velkar', 'pioneer', 12, 15, 'fortification'],
@@ -40,6 +42,8 @@ describe('Fraktionen / factions', () => {
         expect(UNITS[type].cost).toBe(full);
         if (!UNITS[type].faction) expect(unitCost(s, 1, type)).toBe(full);
         if (tech && !s.factions[0].techs.includes(tech as never)) s.factions[0].techs.push(tech as never);
+        // Produktionsstaette der Einheit / the unit's production site
+        hq.works = [siteOf(type)!];
         ok(s, { type: 'train', city: hq.id, unitType: type });
         expect(s.factions[0].stars).toBe(1000 - price);
       });

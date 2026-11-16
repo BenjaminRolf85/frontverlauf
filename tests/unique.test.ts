@@ -7,15 +7,15 @@ import de from '../src/i18n/de.json';
 import en from '../src/i18n/en.json';
 import {
   barrierCheck, buildCheck, combatPreview, effectiveAttack, effectiveMove, healAmount, income, outpostCheck, reachable, researchCost,
-  rosterUnits, techUnlocks, trainCheck, upgradeCheck, visionRadius,
+  rosterUnits, siteOf, techUnlocks, trainCheck, unitCost, upgradeCheck, visionRadius,
 } from '../src/core';
 import {
-  BARRIER, BUILDINGS, ECON, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
+  BARRIER, BUILDINGS, ECON, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, TECH_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
   type FactionId, type UnitTypeId,
 } from '../src/data/balance';
 import { createGame, defaultConfig } from '../src/core';
 import { playAiTurn } from '../src/ai/ai';
-import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile, unit, untilTurnOf } from './helpers';
+import { addCity, addUnit, blankGame, endTurn, fails, giveSites, ok, revealAll, setTerrain, tile, unit, untilTurnOf } from './helpers';
 
 const CLASSIC: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'];
 
@@ -43,25 +43,28 @@ describe('Einzigartige Einheiten / unique units', () => {
   for (const f of CLASSIC) {
     const type = UNIQUE.units[f]!;
     if (UNITS[type].ship) continue;
-    it(`${type} can only be trained by ${f} and needs ${UNITS[type].tech}`, () => {
-      const { s, hq } = duel(f);
-      s.factions[0].techs = s.factions[0].techs.filter((t) => t !== UNITS[type].tech);
-      expect(trainCheck(s, hq, type)).toBe('techMissing');
-      s.factions[0].techs.push(UNITS[type].tech!);
-      expect(trainCheck(s, hq, type)).toBe('ok');
+    it(`${type} can only be trained by ${f} and needs the ${siteOf(type)}`, () => {
+      const { s } = duel(f);
+      const site = siteOf(type)!;
+      // eine Stadt ohne eingebaute Kaserne / a city without built-in barracks
+      const c = addCity(s, 6, 2, 0, { level: 3 });
+      expect(UNITS[type].tech).toBeNull();
+      // Korvat hat in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat has barracks built into every city
+      expect(trainCheck(s, c, type)).toBe(f === 'korvat' ? 'ok' : 'buildingMissing');
+      giveSites(c, site);
+      expect(trainCheck(s, c, type)).toBe('ok');
       expect(rosterUnits(s, 0)).toContain(type);
-      expect(techUnlocks(UNITS[type].tech!, f).units).toContain(type);
-      const r = ok(s, { type: 'train', city: hq.id, unitType: type });
+      for (const t of TECH_IDS) expect(techUnlocks(t, f).units).not.toContain(type);
+      const r = ok(s, { type: 'train', city: c.id, unitType: type });
       expect(r.events[0]).toMatchObject({ t: 'train' });
-      expect(s.factions[0].stars).toBe(200 - UNITS[type].cost!);
-      // alle anderen Fraktionen nicht, auch nicht mit der Technik / no other faction, not even with the tech
+      expect(s.factions[0].stars).toBe(200 - unitCost(s, 0, type)!);
+      // alle anderen Fraktionen nicht, auch nicht mit der Staette / no other faction, not even with the site
       for (const g of FACTION_IDS) {
         if (g === f) continue;
         const o = duel(g, f === 'korvat' ? 'dravon' : 'korvat');
-        o.s.factions[0].techs.push(UNITS[type].tech!);
+        giveSites(o.hq, site);
         expect(trainCheck(o.s, o.hq, type), `${g} ${type}`).toBe('invalid');
         expect(rosterUnits(o.s, 0)).not.toContain(type);
-        expect(techUnlocks(UNITS[type].tech!, g).units).not.toContain(type);
         fails(o.s, { type: 'train', city: o.hq.id, unitType: type }, 'invalid');
       }
     });
@@ -69,10 +72,12 @@ describe('Einzigartige Einheiten / unique units', () => {
 
   it('the base tech tree without faction shows no unique units or buildings', () => {
     expect(techUnlocks('livestock')).toEqual({ units: [], buildings: ['ranch'] });
-    expect(techUnlocks('mining')).toEqual({ units: [], buildings: ['mine'] });
-    expect(techUnlocks('coastalEconomy').units).toEqual(['landingBoat']);
+    // Tagebau ohne Forschung (Menschen), Einheiten aus Produktionsstaetten / mine without research (humans), units from production sites
+    expect(techUnlocks('mining')).toEqual({ units: [], buildings: [] });
+    expect(techUnlocks('coastalEconomy').units).toEqual([]);
     expect(techUnlocks('coastalEconomy', 'nexus').units).not.toContain('privateer');
-    expect(techUnlocks('coastalEconomy', 'meridon').units).toContain('privateer');
+    expect(techUnlocks('coastalEconomy', 'meridon').units).toEqual([]);
+    expect(siteOf('privateer')).toBe('navalBase');
     expect(techUnlocks('livestock', 'korvat').buildings).toEqual(['ranch', 'kolkhoz']);
     expect(LAND_UNITS.some((u) => UNIQUE_UNITS.includes(u as never))).toBe(false);
   });
@@ -84,6 +89,9 @@ describe('Einzigartige Einheiten / unique units', () => {
       setTerrain(s, 3, 3, 'shallow');
       s.factions[0].techs.push('coastalEconomy');
       const boat = addUnit(s, 'landingBoat', 0, 3, 3);
+      // Meridon: erst mit Marinestuetzpunkt der Stadt / Meridon: only with the city's naval base
+      if (f === 'meridon') expect(upgradeCheck(s, boat, 'privateer')).toBe('buildingMissing');
+      giveSites(s.cities[0], 'navalBase');
       expect(upgradeCheck(s, boat, 'privateer'), f).toBe(f === 'meridon' ? 'ok' : 'invalid');
     }
     const { s, hq } = duel('meridon');
@@ -178,7 +186,7 @@ describe('Einzigartige Gebaeude / unique buildings', () => {
 
   it('mercenary barracks: units trained in that city start as veterans', () => {
     const { s, hq } = duel('dravon');
-    const other = addCity(s, 6, 2, 0, { level: 2 });
+    const other = giveSites(addCity(s, 6, 2, 0, { level: 2 }), 'trainingCamp');
     ok(s, { type: 'build', building: 'mercenaryBarracks', x: 3, y: 2 });
     const r = ok(s, { type: 'train', city: hq.id, unitType: 'infantry' });
     const u = s.units.find((x) => x.homeCity === hq.id)!;

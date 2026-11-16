@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cityIncome, continueEndless, createGame, defaultConfig, effectiveMove, healAmount, weatherFor } from '../src/core';
-import { CITY_UPGRADES, HEALING, MAP_SIZES, WEATHER } from '../src/data/balance';
+import { CITY_UPGRADES, DOCTRINE, HEALING, MAP_SIZES, WEATHER } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, tile, untilTurnOf } from './helpers';
 
 const roundWith = (seed: number, w: string) => { for (let r = 2; r < 400; r++) if (weatherFor(seed, r) === w) return r; throw new Error('none'); };
@@ -66,7 +66,8 @@ describe('Neue Ausbauten / new upgrades', () => {
     s.factions[0].techs.push('armyAviation');
     const h = addUnit(s, 'heli', 0, 8, 8, { fuel: 4 });
     const r = endTurn(s);
-    expect(h.hp).toBe(10 - CITY_UPGRADES.flakDamage);
+    // die Stadt besitzt Dravon mit der Doktrin Aerodynamik: Flak +2 / the city belongs to Dravon with the aerodynamics doctrine: flak +2
+    expect(h.hp).toBe(10 - CITY_UPGRADES.flakDamage - DOCTRINE.aerodynamicsFlak);
     expect(r.events.some((e) => e.t === 'flak')).toBe(true);
   });
   it('nur 3 Slots fuer 6 Ausbauten / only 3 slots for 6 upgrades', () => {

@@ -269,7 +269,8 @@ describe('Eigene Bauarten / own designs', () => {
     expect(UNITS.lightWarden.defense).toBeGreaterThan(UNITS.infantry.defense);
     expect(UNITS.reliquary.range).toBe(2);
     expect(UNITS.reliquary.defense).toBeGreaterThan(UNITS.tank.defense);
-    expect(UNITS.reliquary.cost).toBeNull();
+    // aus dem Panzerwerk zum Panzerpreis / from the tank works at the tank's price
+    expect(UNITS.reliquary.cost).toBe(UNITS.tank.cost);
     expect(UNITS.sunLance.range).toBeGreaterThan(UNITS.artillery.range);
     for (const t of ALVENIA_UNITS) {
       expect(UNITS[t].faction).toBe('alvenia');
