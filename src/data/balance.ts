@@ -213,7 +213,8 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Scharfschuetze: toedlich gegen Fusstruppen (+90 %: 7 bis 10 Schaden), gegen Panzerung bleibt es bei 2 bis 3 (siehe COUNTER)
   // sniper: deadly against foot troops (+90 %: 7 to 10 damage), against armour it stays at 2 to 3 (see COUNTER)
   sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, bonusVs: { foot: 1.9 } },
-  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
+  // Jeep: 3 Felder (Spielerwunsch, vorher 2); Schnee und Panzersperre bremsen wie bei allen Fahrzeuge / jeep: 3 tiles (player request, before 2); snow and barriers slow it like all vehicles
+  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
   pioneer: { cost: 15, hp: 15, attack: 1, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify'], tech: null, ship: false },
   mg: { cost: 25, hp: 15, attack: 3, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
   medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 1, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: null, ship: false },

@@ -280,7 +280,7 @@
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
     "sniper": "Fires from two tiles away and picks off foot troops, but barely scratches armour. Fragile itself.",
-    "jeep": "Fast scout: hit and run.",
+    "jeep": "Fast scout, drives 3 tiles: hit and run.",
     "pioneer": "Sturdy defender that builds tank barriers.",
     "mg": "Heavy firepower for the front line, strong on defence.",
     "medic": "Heals its neighbours and talks enemies into defecting.",

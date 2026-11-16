@@ -280,7 +280,7 @@
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
     "sniper": "Schießt aus zwei Feldern Entfernung und schaltet Fußtruppen aus, kratzt Panzerung aber kaum an. Selbst zerbrechlich.",
-    "jeep": "Schneller Aufklärer: zuschlagen und wieder abhauen.",
+    "jeep": "Schneller Aufklärer, fährt 3 Felder: zuschlagen und wieder abhauen.",
     "pioneer": "Zäher Verteidiger, der Panzersperren baut.",
     "mg": "Schwere Feuerkraft für die Front, stark in der Verteidigung.",
     "medic": "Heilt seine Nachbarn und überredet Feinde zum Überlaufen.",

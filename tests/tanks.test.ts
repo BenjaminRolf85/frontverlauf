@@ -57,6 +57,23 @@ describe('Panzer: Bewegung 2 / tanks: move 2', () => {
   });
 });
 
+describe('Jeep: Bewegung 3 / jeep: move 3', () => {
+  it('3 Felder, im Schnee 2, nach der Panzersperre 1 / 3 tiles, 2 in snow, 1 after a barrier', () => {
+    expect(UNITS.jeep.move).toBe(3);
+    // Kult-Buggy bleibt bei 2 (eigene Bauart) / the cult buggy stays at 2 (own design)
+    expect(UNITS.doomBuggy.move).toBe(2);
+    const s = blankGame({ weather: true, size: 14 });
+    addCity(s, 1, 1, 0, { hq: true }); addCity(s, 12, 12, 1, { hq: true });
+    const j = addUnit(s, 'jeep', 0, 6, 6);
+    s.round = roundWith(s.config.seed, 'clear');
+    expect(far(s, j)).toBe(3);
+    s.round = roundWith(s.config.seed, 'snow');
+    expect(far(s, j)).toBe(2);
+    j.slowed = true;
+    expect(far(s, j)).toBe(1);
+  });
+});
+
 describe('Panzer: Reichweite 2 / tanks: range 2', () => {
   it('Panzer und Tesla-Panzer schiessen 2 Felder weit, auch nach der Bewegung (Sturm) / tank and Tesla tank fire 2 tiles, also after moving (dash)', () => {
     for (const t of ['tank', 'teslaTank'] as const) {

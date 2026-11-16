@@ -316,7 +316,8 @@ describe('Einheitenwerte / unit stats (section 5)', () => {
     const table: [string, number | null, number, number, number, number, number, string[], string | null][] = [
       ['infantry', 10, 10, 2, 2, 1, 1, ['dash', 'fortify'], 'trainingCamp'],
       ['sniper', 15, 10, 2, 1, 1, 2, ['dash', 'fortify'], 'trainingCamp'],
-      ['jeep', 15, 10, 2, 1, 2, 1, ['dash', 'escape'], 'motorPool'],
+      // Jeep: Bewegung 3 (Spielerwunsch) / jeep: move 3 (player request)
+      ['jeep', 15, 10, 2, 1, 3, 1, ['dash', 'escape'], 'motorPool'],
       ['pioneer', 15, 15, 1, 3, 1, 1, ['fortify'], 'trainingCamp'],
       ['mg', 25, 15, 3, 3, 1, 1, ['dash', 'fortify'], 'armory'],
       ['medic', 25, 10, 0, 1, 1, 1, ['heal', 'convert'], 'trainingCamp'],
