@@ -5,8 +5,8 @@
 import {
   counterFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, type Pos } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, type Pos } from '../core';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
@@ -79,6 +79,8 @@ const fieldCache = new WeakMap<GameState, { key: string; fields: Map<string, Flo
 export function worth(u: Unit): number {
   // Wunder: sehr wertvolles Ziel / wonders: a very valuable target
   if (isWonder(u)) return WONDERS.aiWorth;
+  // Wissenschaftler (m2): der Wettlauf haengt an ihm, also vorsichtig fuehren und gern jagen / scientist (m2): the race hangs on it, so lead it carefully and hunt it keenly
+  if (u.type === 'scientist') return M2.ai.scientistWorth;
   const base = (t: UnitTypeId) => (t === 'tank' || t === 'teslaTank' || t === 'reliquary' ? 60 : UNITS[t].cost ?? 10);
   let w = u.carried ? base(u.carried) + (UNITS[u.type].cost ?? 0) : base(u.type);
   if (u.veteran) w += 8;
@@ -357,6 +359,8 @@ export function defBonusAt(ctx: Ctx, u: Unit, x: number, y: number, asShip = isS
   if (t.outpost && t.outpost.owner === f && INFANTRY_TYPES.includes(u.type)) b = Math.max(b, DEFENSE_BONUS.outpost);
   // Wrack als Deckung / wreck as cover
   if (t.remains?.kind === 'wreck' && !asShip) b += REMAINS.wreckDefenseBonus;
+  // Mutterschiff (m2): Huelle deckt den Wissenschaftler / mothership (m2): the hull covers the scientist
+  b += hullCover(s, u, x, y);
   // eigenes Gebiet (Alvenia: Glaubensbollwerk) / own territory (Alvenia: Bulwark of Faith)
   return b * (1 + homeDefenseAt(s, u, x, y));
 }

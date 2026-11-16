@@ -650,7 +650,7 @@ export class Hud {
       }
     } else if (explored && tile.feature === 'mothership') {
       // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress
-      ({ head, body } = shipSheet(s));
+      ({ head, body } = shipSheet(s, viewer));
     } else if (explored && templeSheet(s, x, y)) {
       // Fanatiker-Tempel (m4) / Fanatic temple (m4)
       const ts = templeSheet(s, x, y)!;

@@ -324,7 +324,7 @@
     "waal": "Dravon victory wonder: a giant land cruiser that already fires from the second build phase.",
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
-    "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign).",
+    "scientist": "Does not fight, but wears a protective suit. Works right next to the Zyrr mothership, where the hull covers him (campaign).",
     "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. From the tank works, and as a city reward.",
     "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
     "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire.",
@@ -849,7 +849,9 @@
     "eliminated": "eliminated",
     "breakHint": "Breaking peace is announced one round ahead.",
     "embassyHint": "Embassies need Intelligence and the discovered HQ. Each embassy gives both sides {inc} stars per round. The first costs {base} stars, each further one {step} more.",
-    "score": "{n} points"
+    "score": "{n} points",
+    "truceLocked": "Truce until the first sample",
+    "raceWar": "Everyone against everyone"
   },
   "settings": {
     "title": "Settings",
@@ -1065,7 +1067,9 @@
       "plansTemple": "War plans: in the temple",
       "plansCarried": "War plans: carried by {unit}",
       "plansDropped": "War plans: lying on the ground",
-      "plansDelivered": "War plans: delivered"
+      "plansDelivered": "War plans: delivered",
+      "workRace": "Take the sample first: {n} rounds of work at the mothership, by round {rounds}",
+      "workRacePanel": "Take the sample first ({have}/{n})"
     },
     "missions": {
       "m1": {
@@ -1086,23 +1090,21 @@
       },
       "m2": {
         "title": "The Mothership",
-        "tagline": "Bring the scientist to the wreck and let him work on it for 8 rounds",
+        "tagline": "Six factions, one wreck: take the sample first",
         "brief": [
-          "Commander, the transmitter towers got a fix: the mothership lies in a crater, broken in half and big as a village. It is still glowing, it is smoking, and greys stand guard.",
-          "Kkt. The mothership is sacred. Whoever touches its hull gets taken apart. Swarm, land and find the white coat!",
-          "{leader} to all units: our scientist needs eight rounds at that wreck, then we know how the Zyrr fly. Clear out the guards and cover him with everything we have. If he falls, it was all for nothing."
+          "Commander, the transmitter towers got a fix: the mothership lies in the middle of the crater, and everyone has seen it. Every human faction is sending its scientist, even the cult has a renegade researcher along. There is a truce for now. It holds until someone takes the first sample.",
+          "Kkt. The mothership is sacred. The swarm lands next to it, again and again. Whoever touches its hull gets taken apart, whatever colour he wears.",
+          "The hull sings, and we listen. Our researcher takes what the stars let fall. Whoever stands in our way ends up in the Bell.",
+          "{leader} to all units: our scientist needs eight rounds at that wreck, and we have to be faster than everyone else. Once the first sample is taken, everyone shoots at everyone. Cover him, hold the HQ and get the other scientists before they are done."
         ],
-        "ally": "{allyLeader} here. {ally} secures the crater, {leader}. Your scholar tinkers, we keep the greys away.",
-        "won": "Eight rounds of work, and the scientist grins like a kid at Christmas. Now we know how the thing flies. And where it came from.",
-        "lost": "The scientist has fallen, or we ran out of time. The wreck falls silent, and the Zyrr take their secrets back.",
+        "won": "Eight rounds of work, and our sample is the first. The others are left empty-handed, and now we know how the thing flies. And where it came from.",
+        "lost": "Our scientist has fallen, the HQ is lost, or we ran out of time. The wreck falls silent, and the others carry its secrets away.",
         "variants": {
           "velkar": {
-            "won": "Eight rounds! {leader} has already turned half the wreck into formulas and wants the other half tonight."
-          },
-          "alvenia": {
-            "ally": "{allyLeader} here, {leader}. {ally} stands at the crater as your brother in faith. Your scholar tinkers, we keep the Greys away."
+            "won": "Eight rounds, and the first sample is ours! {leader} has already turned half the wreck into formulas and wants the other half tonight."
           }
-        }
+        },
+        "lostRace": "{rival} was faster and took the sample. Their scientists cheer, and we stand empty-handed in front of the wreck."
       },
       "m3": {
         "title": "The Portal",
@@ -2063,7 +2065,7 @@
       "waal": "Leviathan",
       "coreDrill": "The Final Drill",
       "swarmMother": "Demoness from the Sky",
-      "scientist": "Scientist",
+      "scientist": "Renegade researcher",
       "teslaTank": "Thunder Cart",
       "octocopter": "Eightfold Angel",
       "railSniper": "Heretic Marksman",
@@ -3785,9 +3787,23 @@
     "workDesc": "The scientist examines the wreck. This ends his turn and counts one work round ({have}/{need}). Breaks do no harm, the rounds add up.",
     "notAdjacent": "Only right next to the mothership.",
     "done": "He has already worked this round.",
-    "tileDesc": "A crashed Zyrr mothership on four tiles: impassable, not capturable, not attackable. The scientist works on one of the tiles next to it ({have}/{need} rounds).",
+    "tileDesc": "A crashed Zyrr mothership on four tiles: impassable, not capturable, not attackable. A scientist works on one of the tiles next to it, where the hull covers him (+{cover} defence). Whoever first manages {need} rounds has the sample.",
     "toast": "The scientist worked on the mothership: {have}/{need} rounds.",
-    "toastDone": "Done! The scientist has cracked the mothership."
+    "toastDone": "Done! The scientist has cracked the mothership.",
+    "workTruce": "Careful: the first sample breaks the truce, then it is everyone against everyone.",
+    "race": "Race for the sample",
+    "raceRow": "{name}: {have} of {need} rounds",
+    "fallen": "fallen",
+    "coming": "on the way",
+    "truce": "Truce: it holds until someone takes the first sample. Only the Zyrr attack.",
+    "war": "Everyone against everyone: {name} broke the truce in round {round}.",
+    "truceKicker": "Mothership",
+    "truceTitle": "The truce is broken!",
+    "truceBody": "{name} takes the first sample at the mothership. From now on it is everyone against everyone.",
+    "truceBodyOwn": "Our scientist takes the first sample. From now on it is everyone against everyone, cover his back!",
+    "truceLine": "The sample is ours. Whoever comes near the wreck gets shot!",
+    "rivalToast": "{name} is only {left} rounds away from the sample ({have}/{need})!",
+    "rivalDone": "{name} has taken the sample."
   },
   "temple": {
     "name": "Fanatic temple",

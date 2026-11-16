@@ -25,7 +25,7 @@ import {
 import { TUTORIAL_CONFIG, Tutorial } from './ui/tutorial';
 import { Minimap } from './ui/minimap';
 import { XrSession } from './xr/xr';
-import { shipWorkToast } from './ui/mothership';
+import { shipWorkToast, truceHeadline } from './ui/mothership';
 import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
 import { plansToast } from './ui/temple';
 import { showRandomEvent } from './ui/events';
@@ -236,7 +236,13 @@ function boot() {
         case 'objective': objectiveToast(root, s, e.index, e.bonus, e.status); break;
         case 'wave': waveToast(root, s, e.faction, e.count); break;
         case 'ruin': ruinToast(root, s); break;
-        case 'shipWork': shipWorkToast(root, e); break;
+        case 'shipWork': shipWorkToast(root, s, e, viewer); break;
+        // m2: die Waffenruhe bricht, Schlagzeile und Funkspruch des Anfuehrers, der die erste Probe nahm
+        // m2: the truce breaks, headline and a dispatch from the leader who took the first sample
+        case 'truceBroken':
+          truceHeadline(root, s, e, viewer);
+          if (e.faction !== viewer) dispatches.say(s.factions[e.faction].id, 'angry', t('mothership.truceLine'));
+          break;
         // Kriegsplaene (m4) / war plans (m4)
         case 'plans': plansToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Meteorschauer und Saeureregen: Bescheid, wenn eigene Einheiten getroffen sind / meteors and acid rain: tell when own units are hit

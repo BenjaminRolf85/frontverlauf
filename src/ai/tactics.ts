@@ -8,7 +8,7 @@ import {
   turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
-import { scientistAttackBonus, workSpotPenalty } from './mothership';
+import { scientistAttackBonus, truceExposure, workSpotPenalty } from './mothership';
 import { carrierAttackBonus, planSeize } from './temple';
 import { AI, ALVENIA_UNITS, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type AlveniaUnitId, type WonderUnitId } from '../data/balance';
 import {
@@ -321,6 +321,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   const type = layer === 1 ? u.type : (u.carried ?? u.type);
   // Kampagne m2: den Arbeitsplatz des Wissenschaftlers freilassen / campaign m2: keep the scientist's work spot free
   v -= workSpotPenalty(ctx, u, x, y);
+  // Kampagne m2: in der Waffenruhe Abstand zu fremden Truppen halten / campaign m2: keep away from foreign troops during the truce
+  v -= truceExposure(ctx, u, x, y);
   // Belagerungsring: bei Sturm direkt neben die Zielstadt / siege ring: next to the target city when assaulting
   if (g.kind === 'city' && !onGoal && dist(g, { x, y }) === 1 && cautionFor(ctx, g) < 0.5) v += 12;
   if (t.feature === 'bunker' && ctx.fa.explored[k]) v += 20; // Bunkerbelohnung / bunker reward

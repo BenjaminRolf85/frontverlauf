@@ -4,7 +4,7 @@ import { CULT, FACTIONS, FACTION_IDS, INCOME, START, UNITS, ROSTERS, VARIANTS } 
 import { addCity, addUnit, blankGame, endTurn, ok, setTerrain, untilTurnOf } from './helpers';
 
 describe('Start', () => {
-  it('every faction starts with a level-1 HQ, one infantry (the cult with its horde), 25 stars and its start tech', () => {
+  it('every faction starts with a level-1 HQ, one infantry (the cult with its horde, Dravon with a jeep), 25 stars and its start tech', () => {
     const s = createGame(defaultConfig({
       seed: 99, size: 18, mapType: 'continent',
       factions: FACTION_IDS.map((id) => ({ id, human: true, difficulty: 'normal' as const })),
@@ -18,7 +18,8 @@ describe('Start', () => {
       expect(s.cities.filter((c) => c.owner === f.index)).toHaveLength(1);
       const units = ownUnits(s, f.index);
       // Kult: Starthorde neben dem Hauptquartier / cult: starting horde next to the HQ
-      const horde = f.id === CULT.faction ? CULT.startUnits : [];
+      // weitere Starteinheiten der Fraktion (Dravon: Jeep) / extra faction start units (Dravon: jeep)
+      const horde = f.id === CULT.faction ? CULT.startUnits : (FACTIONS[f.id].startExtra ?? []);
       expect(units).toHaveLength(1 + horde.length);
       // eigene Bauart (Alvenia: Lichtschuetzen) / own design (Alvenia: Light Wardens)
       expect(units[0].type).toBe(ROSTERS[f.id]?.start ?? VARIANTS[f.id]?.infantry ?? 'infantry');

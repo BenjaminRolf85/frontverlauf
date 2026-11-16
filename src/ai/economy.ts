@@ -7,8 +7,8 @@ import {
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
-  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites,
+  factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -125,6 +125,12 @@ export function planPeaceResponses(ctx: Ctx, failed: Failed): Command | null {
   const { fa, prof } = ctx;
   for (const g of fa.peaceOffers.slice().sort((a, b) => a - b)) {
     if (!ctx.s.factions[g]?.alive || !inContact(ctx.s, ctx.f, g) || fa.relations[g] !== 'war') continue;
+    // Wettlauf (m2): keine Angebote annehmen, nur ablehnen / race (m2): accept no offers, only decline
+    if (diplomacyLocked(ctx.s, ctx.f, g)) {
+      const no: Command = { type: 'diplomacy', action: 'declinePeace', target: g };
+      if (!failed.has(cmdKey(no))) return no;
+      continue;
+    }
     const mine = strength(ctx, ctx.f), theirs = strength(ctx, g);
     let accept: boolean;
     if (prof.difficulty === 'easy') accept = true;
@@ -161,7 +167,8 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
   const alive = aliveFactions(s).length;
   for (const g of fa.contacts.slice().sort((a, b) => a - b)) {
     const ga = s.factions[g];
-    if (!ga.alive) continue;
+    // Kampagne: Buendnis und Wettlauf (m2) stehen fest / campaign: alliance and race (m2) are fixed
+    if (!ga.alive || diplomacyLocked(s, f, g)) continue;
     const mine = strength(ctx, f), theirs = strength(ctx, g);
     const rel = fa.relations[g];
     // Friedensstifter bieten regelmaessig Frieden an; Alvenia nie einem Suender / peacemakers offer peace regularly; Alvenia never to a sinner
@@ -188,7 +195,7 @@ export function planDiplomacy(ctx: Ctx, failed: Failed): Command | null {
       // break peace when the partner is close to its faction victory; Alvenia never breaks (breaking a peace is a sin)
       // Kult: ohne Krieg keine Beute / cult: no war, no loot
       const cultBreak = isCultFaction(s, f) && ctx.roundsLeft > 3 && (noWar || mine > theirs * AI.cultBreakStrength);
-      const brk = judges(s, f) || isCampaignBond(s, f, g) ? false : nearVictory(ctx, g) || cultBreak || (ctx.conquest
+      const brk = judges(s, f) ? false : nearVictory(ctx, g) || cultBreak || (ctx.conquest
         ? alive <= 2 || noWar || s.round > 60
         : prof.difficulty === 'extreme' && mine > theirs * 2 && ctx.roundsLeft > 8);
       if (brk) {

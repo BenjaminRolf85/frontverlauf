@@ -46,12 +46,16 @@ function chooseStarts(rng: { rng: number }, size: number, count: number): Pos[] 
   return result;
 }
 
-export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern' | 'desert', settlements = 1): GeneratedMap {
+/**
+ * Karte erzeugen. fixedStarts: feste Startpunkte je Fraktion (Kampagne m2), sonst faire Abstaende per Zufall.
+ * Generate the map. fixedStarts: fixed start points per faction (campaign m2), otherwise fair spacing at random.
+ */
+export function generateMap(seed: number, size: MapSize, mapType: MapType, factions: FactionId[], theme?: 'cavern' | 'desert', settlements = 1, fixedStarts?: Pos[]): GeneratedMap {
   const rng = { rng: seed | 0 };
   const params = MAP_TYPES[mapType];
   const n = size * size;
   const tiles: Tile[] = Array.from({ length: n }, emptyTile);
-  const starts = chooseStarts(rng, size, factions.length);
+  const starts = fixedStarts && fixedStarts.length === factions.length ? fixedStarts.map((p) => ({ x: p.x, y: p.y })) : chooseStarts(rng, size, factions.length);
 
   // Heimatgebiete: naechster Startpunkt / home regions: nearest start
   for (let y = 0; y < size; y++) {

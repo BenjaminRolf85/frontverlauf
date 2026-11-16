@@ -776,6 +776,8 @@ export const components = {
     headlineSize: '32px', bannerWidth: '540px', panelGap: '14px', tilt: '-1.5deg', tiltAlt: '1.2deg',
     bannerMs: '4200ms', pendingInk: semantic.textMuted, doneInk: c.green700, failedInk: semantic.dangerBright,
     starOn: semantic.accentStrong, starOff: c.paper300, newsInk: semantic.stamp,
+    // Wettlauf am Mutterschiff (m2): Farbmarke, Balkenhoehe, Namensspalte / race at the mothership (m2): colour mark, bar height, name column
+    raceMark: '12px', raceBarHeight: '8px', raceNameWidth: '76px', raceStateWidth: '58px',
   },
   /** Oberwelt im Kampagnenbildschirm / overworld in the campaign screen */
   overworld: {
