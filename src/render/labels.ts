@@ -137,6 +137,50 @@ export function cityLabel(name: string, level: number | string, color: string, i
   return s;
 }
 
+/** Zeile der Wettlauf-Plakette (m2) / row of the race badge (m2) */
+export interface RaceRow { color: string; have: number; out: boolean }
+
+/**
+ * Wettlauf-Plakette ueber dem Mutterschiff (m2): je Fraktion eine Farbmarke und need Kaestchen, gefuellt in ihrer
+ * Farbe; ausgeschiedene Forscher blass mit Strich.
+ * Race badge above the mothership (m2): per faction a colour mark and need boxes filled in its colour; researchers that
+ * are out are pale with a stroke.
+ */
+export function raceBadge(rows: RaceRow[], need: number): THREE.Sprite {
+  const key = `race-${need}-${rows.map((r) => `${r.color}${r.have}${r.out ? 'x' : ''}`).join('|')}`;
+  const rowH = 30, pad = 10, cell = 22, gap = 5, mark = 22;
+  const W = pad * 2 + mark + 10 + need * cell + (need - 1) * gap, H = pad * 2 + rows.length * rowH;
+  const m = material(key, W + 6, H + 6, (ctx) => {
+    const ink = semantic.ink;
+    ctx.fillStyle = ink;
+    roundRect(ctx, 6, 6, W, H, 14); ctx.fill();
+    ctx.fillStyle = semantic.surfaceRaised;
+    roundRect(ctx, 2, 2, W, H, 14); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
+    rows.forEach((r, i) => {
+      const y = pad + 2 + i * rowH + (rowH - cell) / 2;
+      ctx.globalAlpha = r.out ? 0.35 : 1;
+      ctx.lineWidth = 3; ctx.strokeStyle = ink;
+      ctx.fillStyle = r.color;
+      ctx.beginPath(); ctx.arc(pad + 2 + mark / 2, y + cell / 2, mark / 2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      for (let k = 0; k < need; k++) {
+        const x = pad + 2 + mark + 10 + k * (cell + gap);
+        ctx.fillStyle = k < r.have ? r.color : semantic.surface;
+        roundRect(ctx, x, y, cell, cell, 5); ctx.fill(); ctx.stroke();
+      }
+      if (r.out) {
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(pad + 2, y + cell / 2); ctx.lineTo(W - pad, y + cell / 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    });
+  });
+  const sp = new THREE.Sprite(m);
+  sp.scale.set(1.5, 1.5 * ((H + 6) / (W + 6)), 1);
+  sp.renderOrder = 9;
+  return sp;
+}
+
 /** Fadenkreuz ueber angreifbaren Feinden / crosshair above attackable enemies */
 export function attackIcon(selected: boolean): THREE.Sprite {
   const key = `attack-${selected}`;

@@ -83,7 +83,10 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
     expect(new Set(MISSIONS.map((m) => m.size)).size).toBeGreaterThanOrEqual(3);
     // Erde: Zyrr, Kult, NEXUS, dann wieder Zyrr am Portal; Alienwelt: Zyrr; Wueste: alle drei / Earth: Zyrr, cult, NEXUS, then Zyrr again at the portal; alien world: Zyrr; desert: all three
     const foes = (id: string) => missionById(id)!.enemies.map((e) => e.id);
-    for (const id of ['m1', 'm2', 'm3', 'm10', 'm11']) expect(foes(id), id).toEqual(['zyrr']);
+    for (const id of ['m1', 'm3', 'm10', 'm11']) expect(foes(id), id).toEqual(['zyrr']);
+    // m2: alle gegen alle, dazu die anderen vier Menschen-Fraktionen als Rivalen / m2: free-for-all, plus the other four human factions as rivals
+    expect(foes('m2')).toEqual(['zyrr', 'vesper']);
+    expect(MISSIONS.filter((m) => m.rivals).map((m) => m.id)).toEqual(['m2']);
     for (const id of ['m4', 'm5', 'm6']) expect(foes(id), id).toEqual(['vesper']);
     for (const id of ['m7', 'm8']) expect(foes(id), id).toEqual(['nexus']);
     for (const id of ['m12', 'm13', 'm14', 'm9']) expect(new Set(foes(id)), id).toEqual(new Set(['zyrr', 'nexus', 'vesper']));
@@ -108,16 +111,20 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
       expect(a.factions[0].id).toBe(f);
       expect(a.factions[0].human).toBe(true);
       expect(factionVictoryOn(a)).toBe(false);
-      // Gegner: nur Sonderfraktionen, im Krieg mit dem Spieler / enemies: special factions only, at war with the player
+      // Gegner: nur Sonderfraktionen, im Krieg mit dem Spieler (m2: Waffenruhe ausser mit den Zyrr) / enemies: special factions only, at war with the player (m2: truce except with the Zyrr)
       const enemies = a.factions.slice(1, 1 + m.enemies.length);
       for (const e of enemies) {
         expect(CAMPAIGN_ENEMIES, tag).toContain(e.id);
-        expect(e.relations[0], tag).toBe('war');
+        expect(e.relations[0], tag).toBe(m.rivals && e.id !== 'zyrr' ? 'peace' : 'war');
         expect(e.human).toBe(false);
       }
+      // Rivalen (m2): die anderen Menschen-Fraktionen, KI / rivals (m2): the other human factions, AI
+      const rivals = a.factions.slice(1 + m.enemies.length, 1 + m.enemies.length + (m.rivals ? CAMPAIGN_FACTIONS.length - 1 : 0));
+      expect(rivals.map((r) => r.id).sort(), tag).toEqual(m.rivals ? CAMPAIGN_FACTIONS.filter((x) => x !== f).sort() : []);
+      for (const r of rivals) expect(r.human, tag).toBe(false);
       // Verbuendete: Menschen, nie die eigene Fraktion, Frieden mit dem Spieler, Krieg mit den Gegnern
       // allies: humans, never the own faction, peace with the player, war with the enemies
-      const allies = a.factions.slice(1 + m.enemies.length);
+      const allies = a.factions.slice(1 + m.enemies.length + rivals.length);
       expect(allies.length, tag).toBe(allyFor(m.id, f) ? 1 : 0);
       for (const al of allies) {
         expect(CAMPAIGN_FACTIONS).toContain(al.id);
@@ -154,7 +161,9 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
 
   it('Verbuendete: diplomatische Fraktionen oefter, fest je Mission / allies: diplomatic factions more often, fixed per mission', () => {
     const count = (f: FactionId) => MISSIONS.filter((m) => allyFor(m.id, f)).length;
-    expect(count('alvenia')).toBe(7);
+    // m2 ist alle gegen alle, ohne Verbuendeten / m2 is free-for-all, without an ally
+    expect(count('alvenia')).toBe(6);
+    for (const f of CAMPAIGN_FACTIONS) expect(allyFor('m2', f)).toBeNull();
     expect(count('meridon')).toBe(6);
     // jede Mission mit Verbuendetem hat ihre Funkzeile; Verbuendete nur in bekannten Missionen / every mission with an ally has its radio line; allies only in known missions
     for (const list of Object.values(CAMPAIGN_ALLIES)) for (const id of Object.keys(list!)) expect(MISSION_IDS, id).toContain(id);
@@ -163,7 +172,7 @@ describe('Kampagne: Aufbau / campaign: structure', () => {
     for (const f of ['korvat', 'dravon', 'velkar'] as const) { expect(count(f)).toBeGreaterThanOrEqual(1); expect(count(f)).toBeLessThanOrEqual(2); }
     for (const [f, list] of Object.entries(CAMPAIGN_ALLIES)) for (const al of Object.values(list!)) expect(al).not.toBe(f);
     // Spieler kann das Buendnis nicht brechen / the player cannot break the alliance
-    const s = game('m2', 'alvenia');
+    const s = game('m4', 'alvenia');
     const r = applyCommand(s, { type: 'diplomacy', action: 'announceBreak', target: s.campaign!.allies![0] });
     expect(r.ok).toBe(false);
   });

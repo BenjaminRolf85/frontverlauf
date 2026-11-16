@@ -300,10 +300,32 @@ export interface CampaignState {
   work?: number;
   /** Runde der letzten Arbeit (einmal je Runde) / round of the last work (once per round) */
   workRound?: number;
+  /**
+   * Wettlauf um die Probe (m2, alle gegen alle); scientist, work und workRound oben gelten fuer den Spieler.
+   * Race for the sample (m2, free-for-all); scientist, work and workRound above are the player's.
+   */
+  race?: RaceState;
   /** Fanatiker-Tempel (m4): Ankerfeld oben links der 2x2-Flaeche / Fanatic temple (m4): top-left anchor tile of the 2x2 footprint */
   temple?: Pos;
   /** Kriegsplaene (m4) / war plans (m4) */
   plans?: PlansState;
+}
+
+/**
+ * Wettlauf am Mutterschiff (m2): Waffenruhe bis zur ersten Arbeit (truce), wer sie gebrochen hat (opener, round), die
+ * Forscher der KI-Fraktionen (rivals: Einheit, Arbeit, letzte Arbeitsrunde; unit null = noch nicht erschienen oder gefallen,
+ * fallen = gefallen), die Fraktion ohne Basis (swarm, die Zyrr) und wer die Probe zuerst genommen hat (winner).
+ * Race at the mothership (m2): truce until the first work, who broke it (opener, round), the AI factions' researchers
+ * (rivals: unit, work, last work round; unit null = not yet arrived or fallen, fallen = fallen), the faction without a base
+ * (swarm, the Zyrr) and who took the sample first (winner).
+ */
+export interface RaceState {
+  truce: boolean;
+  opener: number | null;
+  round: number | null;
+  swarm: number;
+  rivals: { faction: number; unit: number | null; work: number; round: number | null; fallen: boolean }[];
+  winner: number | null;
 }
 
 /**
@@ -427,7 +449,9 @@ export type GameEvent =
   /** Kampagne: Welle (Feind oder Verstaerkung) eingetroffen / campaign: wave (enemy or reinforcements) arrived */
   | { t: 'wave'; faction: number; count: number; x: number; y: number }
   /** Kampagne m2: der Wissenschaftler arbeitet am Mutterschiff (have von need Runden) / campaign m2: the scientist works on the mothership (have of need rounds) */
-  | { t: 'shipWork'; unit: number; have: number; need: number; x: number; y: number }
+  | { t: 'shipWork'; unit: number; have: number; need: number; x: number; y: number; faction?: number }
+  /** Kampagne m2: die Waffenruhe ist gebrochen, faction hat als Erste am Schiff gearbeitet / campaign m2: the truce is broken, faction worked at the ship first */
+  | { t: 'truceBroken'; faction: number; round: number }
   | { t: 'wonder'; what: WonderEventKind; kind: WonderUnitId; unit: number; faction: number; x: number; y: number; stage?: number }
   /** Verdan-Verteidigungslinie erwacht (durch faction) / Verdan defence line wakes up (because of faction) */
   | { t: 'verdanActive'; faction: number }

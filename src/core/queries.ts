@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, M2, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -64,6 +64,28 @@ export function isCampaignBond(s: GameState, a: number, b: number): boolean {
   const al = s.campaign?.allies;
   return !!al && ((a === 0 && al.includes(b)) || (b === 0 && al.includes(a)));
 }
+
+/**
+ * Kampagne m2 (Wettlauf am Mutterschiff): Frieden und Krieg stehen fest; Waffenruhe bis zur ersten Probe, danach alle
+ * gegen alle, die Zyrr immer im Krieg. Weder Friedensbruch noch Friedensangebot.
+ * Campaign m2 (race at the mothership): peace and war are fixed; truce until the first sample, then everyone against
+ * everyone, the Zyrr always at war. Neither breaking a peace nor offering one.
+ */
+export const raceLocked = (s: GameState) => !!s.campaign?.race;
+
+/**
+ * Kampagne m2: steht der Wissenschaftler direkt neben dem Mutterschiff (2x2 ab ship), deckt ihn die Huelle (M2.hullCover).
+ * Campaign m2: if the scientist stands right next to the mothership (2x2 from ship), the hull covers it (M2.hullCover).
+ */
+export function hullCover(s: GameState, u: Unit, x = u.x, y = u.y): number {
+  const ship = s.campaign?.ship;
+  if (!ship || u.type !== 'scientist') return 0;
+  const gap = (v: number, lo: number) => (v < lo ? lo - v : v > lo + 1 ? v - (lo + 1) : 0);
+  return Math.max(gap(x, ship.x), gap(y, ship.y)) === 1 ? M2.hullCover : 0;
+}
+
+/** Diplomatie zwischen a und b gesperrt (Verbuendeter oder Wettlauf)? / diplomacy between a and b locked (ally or race)? */
+export const diplomacyLocked = (s: GameState, a: number, b: number) => isCampaignBond(s, a, b) || raceLocked(s);
 
 export function isHostile(s: GameState, a: number, b: number): boolean {
   if (a === b) return false;
@@ -515,6 +537,8 @@ export function defenseBonus(s: GameState, def: Unit, attacker?: Unit): number {
   if (t.xeno && isAlien(def)) b = Math.max(b, XENO.groundDefense);
   // Wrack als Deckung: +1 fuer Landeinheiten / wreck as cover: +1 for land units
   if ((t.remains?.kind === 'wreck' || t.feature === 'crashSite' || t.feature === 'labRuin') && !isShip(def)) b += REMAINS.wreckDefenseBonus;
+  // Mutterschiff (m2): die Huelle deckt den Wissenschaftler am Arbeitsplatz / mothership (m2): the hull covers the scientist at the work spot
+  b += hullCover(s, def);
   // Dschungel: Hinterhalt nur fuer Fusstruppen (keine Fahrzeuge, Schiffe oder Bauwerke) / jungle: ambush cover for foot troops only (no vehicles, ships or structures)
   if (isJungle(t) && unitClass(def.type) === 'foot') b = Math.max(b, JUNGLE.footDefense);
   return b;
@@ -919,7 +943,9 @@ export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
   // Wunder, Endgegner und der Traeger der Kriegsplaene (m4) lassen sich nicht bekehren / wonders, bosses and the carrier of the war plans (m4) cannot be converted
   const carrier = s.campaign?.plans?.at === 'carried' ? s.campaign.plans.unit : undefined;
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o) && o.id !== carrier);
+  // Die Wissenschaftler des Wettlaufs am Mutterschiff (m2) ebenso nicht / nor the scientists of the mothership race (m2)
+  const samplers = new Set<number | null | undefined>([s.campaign?.scientist, ...(s.campaign?.race?.rivals.map((r) => r.unit) ?? [])]);
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o) && o.id !== carrier && !samplers.has(o.id));
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */

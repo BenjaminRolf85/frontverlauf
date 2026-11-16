@@ -1,18 +1,19 @@
 /**
- * Kampagne m2 (Das Mutterschiff): das abgestuerzte Zyrr-Mutterschiff als 2x2-Wahrzeichen und der Wissenschaftler, der
- * daneben arbeitet. Reine Abfragen, die Platzierung und das Kommando 'workShip'; campaign.ts wertet die Ziele aus.
+ * Kampagne m2 (Das Mutterschiff, alle gegen alle): das abgestuerzte Zyrr-Mutterschiff als 2x2-Wahrzeichen in der
+ * Kartenmitte und die Wissenschaftler aller Fraktionen, die daneben um die Wette arbeiten. Reine Abfragen, die
+ * Platzierung, das Kommando 'workShip' und das Ende der Waffenruhe; campaign.ts wertet die Ziele aus.
  * Die vier Schiffsfelder tragen feature 'mothership': unpassierbar (Bewegung, Aufstellen, Wegefelder der KI), nicht
  * bebaubar, nicht einnehmbar und nicht angreifbar. Deterministisch, ohne Zufall.
- * Campaign m2 (The Mothership): the crashed Zyrr mothership as a 2x2 landmark and the scientist working next to it.
- * Pure queries, the placement and the 'workShip' command; campaign.ts evaluates the objectives.
+ * Campaign m2 (The Mothership, free-for-all): the crashed Zyrr mothership as a 2x2 landmark in the map centre and the
+ * scientists of every faction racing to work next to it. Pure queries, the placement, the 'workShip' command and the end
+ * of the truce; campaign.ts evaluates the objectives.
  * The four ship tiles carry feature 'mothership': impassable (movement, placing units, AI path fields), not buildable,
  * not capturable and not attackable. Deterministic, without randomness.
  */
 import { M2 } from '../data/balance';
 import { isLand, neighbors, tileAt } from './grid';
-import { unitAt } from './queries';
 import { revealArea } from './spawn';
-import type { ErrorCode, GameEvent, GameState, Pos, Tile, Unit } from './types';
+import type { ErrorCode, GameEvent, GameState, Pos, RaceState, Tile, Unit } from './types';
 
 /** Kantenlaenge des Schiffs in Feldern / edge length of the ship in tiles */
 export const SHIP_SIZE = 2;
@@ -54,50 +55,138 @@ export function workSpots(s: GameState): Pos[] {
   return out;
 }
 
-/** Wissenschaftler dieser Partie (lebend) / this game's scientist (alive) */
+/** Wissenschaftler des Spielers (lebend) / the player's scientist (alive) */
 export function scientistOf(s: GameState): Unit | undefined {
   const id = s.campaign?.scientist;
   return id === undefined ? undefined : s.units.find((u) => u.id === id);
 }
 
-/** Geleistete und noetige Arbeitsrunden / work rounds done and needed */
-export const shipWork = (s: GameState) => ({ have: s.campaign?.work ?? 0, need: M2.workRounds });
+/** Wettlauf dieser Partie (m2, alle gegen alle) / race of this game (m2, free-for-all) */
+export const raceOf = (s: GameState): RaceState | undefined => s.campaign?.race;
+/** Eintrag eines KI-Forschers im Wettlauf / entry of an AI researcher in the race */
+export const rivalOf = (s: GameState, f: number) => s.campaign?.race?.rivals.find((r) => r.faction === f);
+
+/** Wissenschaftler (Forscher) der Fraktion f, lebend / scientist (researcher) of faction f, alive */
+export function samplerOf(s: GameState, f: number): Unit | undefined {
+  if (f === 0) return scientistOf(s);
+  const id = rivalOf(s, f)?.unit;
+  return id === null || id === undefined ? undefined : s.units.find((u) => u.id === id);
+}
+
+/** Ist u der Wissenschaftler seiner Fraktion? / is u the scientist of its faction? */
+export const isSampler = (s: GameState, u: Unit) => u.type === 'scientist' && samplerOf(s, u.owner)?.id === u.id;
+
+/** Geleistete Arbeitsrunden der Fraktion f / work rounds done by faction f */
+export const workOf = (s: GameState, f: number) => (f === 0 ? s.campaign?.work ?? 0 : rivalOf(s, f)?.work ?? 0);
+
+/** Geleistete und noetige Arbeitsrunden (Standard: Spieler) / work rounds done and needed (default: player) */
+export const shipWork = (s: GameState, f = 0) => ({ have: workOf(s, f), need: M2.workRounds });
+
+/** Eintrag im Stand des Wettlaufs / entry in the race standings */
+export interface RaceEntry { faction: number; work: number; alive: boolean; pending: boolean }
 
 /**
- * Darf u jetzt am Schiff arbeiten? Nur der Wissenschaftler, nicht frisch, nicht erschoepft, einmal je Runde und nur direkt
- * neben dem Schiff (eine Bewegung davor ist erlaubt).
- * May u work on the ship now? Only the scientist, not fresh, not exhausted, once per round and only right next to the
- * ship (a move before it is allowed).
+ * Stand des Wettlaufs: jede Fraktion mit Wissenschaftler (der Spieler zuerst), Arbeit, ob er lebt oder noch kommt.
+ * Ohne Wettlauf nur der Spieler.
+ * Race standings: every faction with a scientist (the player first), work, whether it lives or is still to come.
+ * Without a race only the player.
+ */
+export function raceStandings(s: GameState): RaceEntry[] {
+  const out: RaceEntry[] = [{ faction: 0, work: s.campaign?.work ?? 0, alive: !!scientistOf(s), pending: false }];
+  for (const r of s.campaign?.race?.rivals ?? []) {
+    out.push({ faction: r.faction, work: r.work, alive: !!samplerOf(s, r.faction), pending: r.unit === null && !r.fallen });
+  }
+  return out;
+}
+
+/** Runde der letzten Arbeit der Fraktion f / round of faction f's last work */
+const lastWork = (s: GameState, f: number) => (f === 0 ? s.campaign?.workRound : rivalOf(s, f)?.round ?? undefined);
+
+/**
+ * Darf u jetzt am Schiff arbeiten? Nur der Wissenschaftler seiner Fraktion, nicht frisch, nicht erschoepft, einmal je
+ * Runde und nur direkt neben dem Schiff (eine Bewegung davor ist erlaubt).
+ * May u work on the ship now? Only its faction's scientist, not fresh, not exhausted, once per round and only right next
+ * to the ship (a move before it is allowed).
  */
 export function workCheck(s: GameState, u: Unit): 'ok' | ErrorCode {
   const c = s.campaign;
-  if (!c?.ship || c.result || u.type !== 'scientist' || c.scientist !== u.id) return 'invalid';
+  if (!c?.ship || c.result || !isSampler(s, u)) return 'invalid';
   if (u.fresh) return 'fresh';
-  if (u.exhausted || c.workRound === s.round) return 'unitExhausted';
+  if (u.exhausted || lastWork(s, u.owner) === s.round) return 'unitExhausted';
   if (shipDist(c.ship, u) !== 1) return 'outOfRange';
   return 'ok';
 }
 
-/** Eine Arbeitsrunde: zaehlt mit, beendet den Zug des Wissenschaftlers / one work round: counts up, ends the scientist's turn */
+/**
+ * Waffenruhe beenden: faction hat als Erste am Schiff gearbeitet; ab jetzt herrscht Krieg zwischen allen Fraktionen,
+ * offene Friedensangebote und angekuendigte Brueche verfallen.
+ * End the truce: faction worked at the ship first; from now on all factions are at war, open peace offers and announced
+ * breaks lapse.
+ */
+export function breakTruce(s: GameState, faction: number, ev: GameEvent[]) {
+  const r = s.campaign?.race;
+  if (!r?.truce) return;
+  r.truce = false;
+  r.opener = faction;
+  r.round = s.round;
+  for (const a of s.factions) {
+    a.peaceOffers = [];
+    a.relations = a.relations.map((rel, b) => (b === a.index ? rel : 'war'));
+    a.breakRound = a.breakRound.map(() => null);
+  }
+  ev.push({ t: 'truceBroken', faction, round: s.round });
+}
+
+/**
+ * Eine Arbeitsrunde: zaehlt fuer die Fraktion mit, beendet den Zug des Wissenschaftlers; die erste Arbeit bricht die
+ * Waffenruhe; wer zuerst M2.workRounds erreicht, hat die Probe (race.winner).
+ * One work round: counts for the faction, ends the scientist's turn; the first work breaks the truce; whoever first
+ * reaches M2.workRounds has the sample (race.winner).
+ */
 export function doWork(s: GameState, u: Unit, ev: GameEvent[]) {
   const c = s.campaign!;
-  c.work = (c.work ?? 0) + 1;
-  c.workRound = s.round;
+  let have: number;
+  if (u.owner === 0) {
+    c.work = (c.work ?? 0) + 1;
+    c.workRound = s.round;
+    have = c.work;
+  } else {
+    const r = rivalOf(s, u.owner)!;
+    r.work++;
+    r.round = s.round;
+    have = r.work;
+  }
   u.exhausted = true;
   u.moveDone = true;
-  ev.push({ t: 'shipWork', unit: u.id, have: c.work, need: M2.workRounds, x: u.x, y: u.y });
+  ev.push({ t: 'shipWork', unit: u.id, have, need: M2.workRounds, x: u.x, y: u.y, faction: u.owner });
+  if (c.race) {
+    breakTruce(s, u.owner, ev);
+    if (have >= M2.workRounds && c.race.winner === null) c.race.winner = u.owner;
+  }
 }
 
-/** Freies, flaches Land ohne Stadt, Merkmal, Geschuetz und Einheit / free flat land without city, feature, gun and unit */
-function open(s: GameState, q: Pos): boolean {
-  const t = tileAt(s, q.x, q.y);
-  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
+/**
+ * Gefallene Forscher austragen (nach jedem Kommando): unit wird null, fallen true.
+ * Strike off fallen researchers (after every command): unit becomes null, fallen true.
+ */
+export function updateRace(s: GameState) {
+  for (const r of s.campaign?.race?.rivals ?? []) {
+    if (r.unit !== null && !s.units.some((u) => u.id === r.unit)) { r.unit = null; r.fallen = true; }
+  }
 }
 
-/** Ringfeld: Land ohne Stadt, Vulkan, Geschuetz und Einheit; Berge werden eingeebnet / ring tile: land without city, volcano, gun and unit; mountains get levelled */
-function ringOk(s: GameState, q: Pos): boolean {
-  const t = tileAt(s, q.x, q.y);
-  return !!t && isLand(t) && t.cityId === null && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !unitAt(s, q.x, q.y);
+/** Linke obere Ecke des Schiffs genau in der Kartenmitte / top-left corner of the ship exactly in the map centre */
+export const centreShip = (size: number): Pos => ({ x: Math.floor((size - SHIP_SIZE) / 2), y: Math.floor((size - SHIP_SIZE) / 2) });
+
+/**
+ * Erreicht man von from aus einen Arbeitsplatz ueber Land (ohne Berge, Wasser und Vulkane)?
+ * Can a work spot be reached from from over land (without mountains, water and volcanoes)?
+ */
+export function shipReachable(s: GameState, from: Pos): boolean {
+  const ship = s.campaign?.ship;
+  if (!ship) return false;
+  const steps = landSteps(s, from, ship);
+  return workSpots(s).some((p) => steps[p.y * s.size + p.x] >= 0);
 }
 
 /** Begehbares Land fuer die Erreichbarkeit (ohne Berge und Wasser) / walkable land for reachability (no mountains, no water) */
@@ -124,57 +213,13 @@ function landSteps(s: GameState, from: Pos, ship: Pos | null): Int16Array {
 }
 
 /**
- * Bauplatz fuer das Mutterschiff: vier freie Landfelder (2x2) shipMin..shipMax Felder vom eigenen Hauptquartier,
- * mindestens zyrrDistance vom Hauptquartier der Zyrr, keine Stadt neben dem Schiff, genug freies Land rundherum und
- * ueber Land erreichbar. Bevorzugt die Richtung zu den Zyrr und den Abstand (shipMin + shipMax) / 2; bei Gleichstand
- * der kleinste Index. Reicht der Platz nicht, werden die Bedingungen schrittweise gelockert.
- * Building spot for the mothership: four free land tiles (2x2) shipMin..shipMax tiles from the own HQ, at least
- * zyrrDistance from the Zyrr HQ, no city next to the ship, enough free land around it and reachable over land. Prefers
- * the direction of the Zyrr and the distance (shipMin + shipMax) / 2; ties: the lowest index. If there is no room, the
- * conditions are relaxed step by step.
- */
-export function findShipSpot(s: GameState, home: Pos, enemy: Pos): Pos | null {
-  const steps = landSteps(s, home, null);
-  const want = (M2.shipMin + M2.shipMax) / 2;
-  const dir = { x: enemy.x - home.x, y: enemy.y - home.y };
-  const len = Math.max(1, Math.hypot(dir.x, dir.y));
-  for (const slack of [0, 1, 2, 3]) {
-    let best: Pos | null = null, bestScore = Infinity;
-    for (let y = 1; y + SHIP_SIZE < s.size; y++) for (let x = 1; x + SHIP_SIZE < s.size; x++) {
-      const p = { x, y };
-      if (!shipTiles(p).every((q) => open(s, q))) continue;
-      const d = shipDist(p, home);
-      if (d < M2.shipMin - slack || d > M2.shipMax + slack) continue;
-      if (shipDist(p, enemy) < M2.zyrrDistance - Math.min(slack, 2)) continue;
-      if (s.cities.some((c) => shipDist(p, c) < 2)) continue;
-      // Ring: freies Land und mindestens ein Feld ueber Land erreichbar / ring: free land and at least one tile reachable over land
-      let land = 0, reach = false;
-      for (let yy = y - 1; yy <= y + SHIP_SIZE; yy++) for (let xx = x - 1; xx <= x + SHIP_SIZE; xx++) {
-        const q = { x: xx, y: yy };
-        if (shipDist(p, q) !== 1 || !ringOk(s, q)) continue;
-        land++;
-        if (steps[yy * s.size + xx] >= 0) reach = true;
-      }
-      if (!reach || land < M2.ringLand - slack * 2) continue;
-      // Richtung zum Gegner: Abweichung vom Strahl Hauptquartier -> Zyrr / direction to the enemy: deviation from the ray HQ -> Zyrr
-      const cx = x + 0.5 - home.x, cy = y + 0.5 - home.y;
-      const along = (cx * dir.x + cy * dir.y) / len;
-      const side = Math.abs(cx * dir.y - cy * dir.x) / len;
-      const score = Math.abs(d - want) * 4 + side * 1.5 - Math.min(along, want) * 0.5 - land * 0.3;
-      if (score < bestScore - 1e-9) { bestScore = score; best = p; }
-    }
-    if (best) return best;
-  }
-  return null;
-}
-
-/**
  * Mutterschiff auf p setzen: vier geraeumte Ebenen mit feature 'mothership' und gleicher Landschaftszone (gleiche
- * Hoehe fuer das Modell); alle Fraktionen kennen das Schiff und seine Umgebung.
+ * Hoehe fuer das Modell); Berge bis crater Felder um das Schiff werden eingeebnet; alle Fraktionen kennen das Schiff
+ * und seine Umgebung.
  * Put the mothership onto p: four cleared plains with feature 'mothership' and the same biome (same height for the
- * model); every faction knows the ship and its surroundings.
+ * model); mountains up to crater tiles around the ship get levelled; every faction knows the ship and its surroundings.
  */
-export function placeShip(s: GameState, p: Pos) {
+export function placeShip(s: GameState, p: Pos, crater = 1) {
   const biome = tileAt(s, p.x, p.y)!.biome === 'jungle' ? 'grassland' : tileAt(s, p.x, p.y)!.biome;
   for (const q of shipTiles(p)) {
     Object.assign(tileAt(s, q.x, q.y)!, {
@@ -182,16 +227,18 @@ export function placeShip(s: GameState, p: Pos) {
       remains: null, outpost: null, grandProject: null, looted: false, xeno: false, marks: [], tracks: [],
     });
   }
-  // der Aufprall hat die Berge rundherum eingeebnet: die Arbeitsplaetze sind begehbar / the impact levelled the mountains around: the work spots are walkable
-  for (let y = p.y - 1; y <= p.y + SHIP_SIZE; y++) for (let x = p.x - 1; x <= p.x + SHIP_SIZE; x++) {
+  // der Aufprall hat die Berge im Krater (crater Felder um das Schiff) eingeebnet: Arbeitsplaetze und Anmarsch sind begehbar
+  // the impact levelled the mountains in the crater (crater tiles around the ship): work spots and approaches are walkable
+  for (let y = p.y - crater; y < p.y + SHIP_SIZE + crater; y++) for (let x = p.x - crater; x < p.x + SHIP_SIZE + crater; x++) {
     const t = tileAt(s, x, y);
-    if (!t || shipDist(p, { x, y }) !== 1 || t.terrain !== 'mountain' || t.cityId !== null || t.turret) continue;
+    const d = shipDist(p, { x, y });
+    if (!t || d < 1 || d > crater || t.terrain !== 'mountain' || t.cityId !== null || t.turret) continue;
     Object.assign(t, { terrain: 'plain', volcano: false, peak: undefined, building: null, mine: null });
     if (t.resource === 'ore') t.resource = null;
   }
   for (const f of s.factions) for (const q of shipTiles(p)) revealArea(s, f.index, q.x, q.y, 1);
 }
 
-/** Wissenschaftler neben dem Schiff? / scientist next to the ship? */
-export const scientistAtShip = (s: GameState) => { const u = scientistOf(s); return !!u && nextToShip(s, u); };
+/** Wissenschaftler (Standard: des Spielers) neben dem Schiff? / scientist (default: the player's) next to the ship? */
+export const scientistAtShip = (s: GameState, f = 0) => { const u = samplerOf(s, f); return !!u && nextToShip(s, u); };
 

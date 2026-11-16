@@ -7,7 +7,7 @@
 import { audio } from '../audio/audio';
 import './campaign.css';
 import {
-  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, towerCount, towersHeld, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
+  CAMPAIGN_FACTIONS, FINALE_ID, MISSIONS, MISSION_IDS, WORLDS, allyFor, rivalsFor, towerCount, towersHeld, missionById, missionConfig, objectiveProgress, isHoldObjective, panelOf,
   type GameEvent, type GameState, type MissionDef, type ObjectiveDef, type ObjectiveStatus, type Speaker,
 } from '../core';
 import { M2, PERSUADE, UNITS, type FactionId } from '../data/balance';
@@ -21,6 +21,7 @@ import { icon } from './icons';
 import { leaderPortrait } from './leaders';
 import { openPrologue } from './lore';
 import { attachOverworld } from './overworld';
+import { raceList, truceLine } from './mothership';
 import { plansPanelText, plansTip } from './temple';
 import type { ScreenHost } from './screens';
 
@@ -45,11 +46,11 @@ function textVars(x: MissionCtx, enemy = 0): Record<string, string> {
 }
 const fill = (s: string, v: Record<string, string>) => s.replace(/\{(\w+)\}/g, (all, k) => (k in v ? v[k] : all));
 
-/** Fraktions-Fassung, sonst allgemein / faction variant, else generic */
-function missionLine(x: MissionCtx, key: 'won' | 'lost' | 'ally'): string {
+/** Fraktions-Fassung, sonst allgemein; extra: weitere Platzhalter / faction variant, else generic; extra: more placeholders */
+function missionLine(x: MissionCtx, key: 'won' | 'lost' | 'ally' | 'lostRace', extra: Record<string, string> = {}): string {
   const base = `campaign.missions.${x.m.id}`;
   const v = t(`${base}.variants.${x.f}.${key}`);
-  return fill(v.startsWith('campaign.') ? t(`${base}.${key}`) : v, textVars(x));
+  return fill(v.startsWith('campaign.') ? t(`${base}.${key}`) : v, { ...textVars(x), ...extra });
 }
 function briefList(x: MissionCtx): string[] {
   const own = tList(`campaign.missions.${x.m.id}.variants.${x.f}.brief`);
@@ -89,7 +90,8 @@ export function objectiveText(m: MissionDef, o: ObjectiveDef, bonus: boolean, s?
     case 'ruins': return t('campaign.obj.ruins', { n: o.n, rounds });
     case 'rift': return t('campaign.obj.rift', { unit: t('units.swarmMother'), rounds });
     // Mutterschiff (m2) / mothership (m2)
-    case 'work': return t('campaign.obj.work', { n: o.rounds, rounds });
+    // alle gegen alle: als Erster die Probe nehmen / free-for-all: take the sample first
+    case 'work': return t(m.rivals ? 'campaign.obj.workRace' : 'campaign.obj.work', { n: o.rounds, rounds });
     case 'scientist': return t('campaign.obj.scientist');
     case 'scientistHp': return t('campaign.obj.scientistHp', { share: Math.round(M2.hpShare * 100) });
     case 'reach': {
@@ -166,7 +168,9 @@ function starsHtml(n: number, big = false): string {
 
 function versus(x: MissionCtx): string {
   const chip = (f: FactionId) => factionChip(f, t(`factions.${f}.short`));
-  return `${chip(x.f)}${x.ally ? `<span class="muted">${esc(t('campaign.and'))}</span>${chip(x.ally)}` : ''}<span class="muted">${esc(t('campaign.versus'))}</span>${x.m.enemies.map((e) => chip(e.id)).join('')}`;
+  // alle gegen alle: die anderen Menschen-Fraktionen stehen mit auf der Gegenseite / free-for-all: the other human factions are opponents too
+  const foes = [...x.m.enemies.map((e) => e.id), ...rivalsFor(x.m, x.f)];
+  return `${chip(x.f)}${x.ally ? `<span class="muted">${esc(t('campaign.and'))}</span>${chip(x.ally)}` : ''}<span class="muted">${esc(t('campaign.versus'))}</span>${foes.map(chip).join('')}`;
 }
 
 function objectiveList(m: MissionDef, s?: GameState): string {
@@ -359,7 +363,7 @@ export function campaignResult(host: ScreenHost) {
     <h1 class="logo result-title ${won ? '' : 'lost'}">${esc(won ? t('campaign.victory') : t('campaign.defeat'))}</h1>
     <div class="row center">${starsHtml(c.stars, true)}</div>
     <p class="center muted">${esc(t('campaign.rating', { n: c.stars }))}</p>
-    ${comicPanels(x, [{ speaker: 'hq', text: missionLine(x, won ? 'won' : 'lost') }])}
+    ${comicPanels(x, [{ speaker: 'hq', text: resultLine(s, x, won) }])}
     ${finale ? finaleHtml(x) : ''}
     ${objectiveList(m, s)}
     <div class="dialog-actions">
@@ -383,6 +387,16 @@ export function campaignResult(host: ScreenHost) {
     // Zeitschleife: direkt zur Fraktionswahl / time loop: straight to the faction picker
     else if (a === 'replay') { d.close(); openCampaign(host, { pick: true }); }
   });
+}
+
+/**
+ * Schlusszeile des eigenen Anfuehrers; im Wettlauf (m2) mit dem Grund, wenn ein Rivale die Probe zuerst genommen hat.
+ * Closing line of the own leader; in the race (m2) with the reason when a rival took the sample first.
+ */
+function resultLine(s: GameState, x: MissionCtx, won: boolean): string {
+  const w = s.campaign?.race?.winner;
+  if (!won && w !== null && w !== undefined && w !== 0) return missionLine(x, 'lostRace', { rival: t(`factions.${s.factions[w].id}.short`) });
+  return missionLine(x, won ? 'won' : 'lost');
 }
 
 /** Hauptmenue durch den Kampagnenbildschirm ersetzen / replace the main menu with the campaign screen */
@@ -426,7 +440,7 @@ export class ObjectivePanel {
     if (!s || !c || !m || !this.visible) { this.node.hidden = true; return; }
     this.node.hidden = false;
     // Sprache im Schluessel: nach einem Sprachwechsel neu zeichnen / language in the key: redraw after a language change
-    const key = JSON.stringify([getLanguage(), c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.caveHold, c.towerHold, c.siteDone, c.landing, c.plans, c.work, s.units.find((u) => u.id === c.scientist)?.hp ?? 0, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
+    const key = JSON.stringify([getLanguage(), c.status, c.bonus, s.round, this.collapsed, s.factions[0].kills, s.cities.map((x) => x.owner), c.hold, c.portalHold, c.caveHold, c.towerHold, c.siteDone, c.landing, c.plans, c.work, c.race, s.units.find((u) => u.id === c.scientist)?.hp ?? 0, (c.units ?? []).map((id) => s.units.find((u) => u.id === id)?.hp ?? 0)]);
     if (key === this.lastState) return;
     this.lastState = key;
     const done = c.status.filter((x) => x === 'done').length;
@@ -439,7 +453,7 @@ export class ObjectivePanel {
       const work = o.k === 'work' && pr ? pr : null;
       const prog = pr && !towers && !work && !(isHoldObjective(o) && bonus) ? `<span class="prog">${esc(t('campaign.progress', { have: pr.have, need: pr.need }))}</span>` : '<span></span>';
       const text = towers && o.k === 'towers' ? t('campaign.obj.towersPanel', { n: o.rounds, ...towers })
-        : work ? t('campaign.obj.workPanel', { n: work.need, have: work.have })
+        : work ? t(c.race ? 'campaign.obj.workRacePanel' : 'campaign.obj.workPanel', { n: work.need, have: work.have })
         // Kriegsplaene: Zustand im Text (im Tempel, getragen von, am Boden) / war plans: state in the text (in the temple, carried by, on the ground)
         : o.k === 'plans' && !bonus ? plansPanelText(s, objectiveText(m, o, bonus, s)) : objectiveText(m, o, bonus, s);
       return `<li class="${st} ${bonus ? 'bonus' : ''}">${icon(bonus && st === 'pending' ? 'star' : STATUS_ICON[st], 'icon-sm')}<span>${esc(text)}</span>${prog}</li>`;
@@ -455,9 +469,19 @@ export class ObjectivePanel {
     this.node.innerHTML = `<button type="button" class="obj-toggle" data-action="obj-toggle" aria-expanded="${!this.collapsed}" aria-label="${esc(t('campaign.toggle'))}">
         ${icon('capture', 'icon-sm')}<span class="title">${esc(this.collapsed ? t('campaign.short') : missionTitle(m.id))}</span>
         <span class="obj-count tag">${done}/${m.objectives.length}</span></button>
-      ${this.collapsed ? '' : `<ul>${m.objectives.map((o, i) => row(o, i, false)).join('')}${m.bonus.map((o, i) => row(o, i, true)).join('')}</ul>${warn}
+      ${this.collapsed ? '' : `<ul>${m.objectives.map((o, i) => row(o, i, false)).join('')}${m.bonus.map((o, i) => row(o, i, true)).join('')}</ul>${warn}${raceBlock(s)}
         <div class="obj-round">${esc(t('campaign.roundOf', { n: Math.min(s.round, m.rounds), max: m.rounds }))}</div>`}`;
   }
+}
+
+/**
+ * Wettlauf im Ziel-Panel (m2): Waffenruhe oder Krieg, dazu der Stand jeder Fraktion.
+ * Race in the objective panel (m2): truce or war, plus every faction's progress.
+ */
+function raceBlock(s: GameState): string {
+  const r = s.campaign?.race;
+  if (!r) return '';
+  return `<div class="obj-race"><div class="obj-race-head ${r.truce ? '' : 'war'}">${icon(r.truce ? 'diplomacy' : 'warning', 'icon-sm')}<span>${esc(truceLine(s))}</span></div>${raceList(s, 0)}</div>`;
 }
 
 /** Hinweis bei Statuswechsel eines Ziels / toast when an objective changes status */

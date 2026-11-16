@@ -59,22 +59,24 @@ function playSound(e: RandomEvent, viewer: number) {
 let current: HTMLElement | null = null;
 let timer = 0;
 
+/** Inhalt einer Schlagzeile / content of a headline */
+/** ms: Anzeigedauer (Standard 4200) / ms: display time (default 4200) */
+export interface Headline { kicker: string; round: number; icon: string; title: string; body: string; bad?: boolean; sound?: 'alarm'; ms?: number }
+
 /**
- * Schlagzeile zeigen (eine zur Zeit, Antippen schliesst). Fortgesetzte Duerre nur als kurzer Hinweis.
- * Show a headline (one at a time, tap closes). An ongoing drought only as a short toast.
+ * Schlagzeile zeigen (eine zur Zeit, Antippen schliesst): Zufallsereignisse und grosse Kampagnen-Momente.
+ * Show a headline (one at a time, tap closes): random events and big campaign moments.
  */
-export function showRandomEvent(root: HTMLElement, e: RandomEvent, s: GameState, viewer: number) {
-  const { title, body } = randomEventText(e, s);
-  if (e.ongoing) { if (e.faction === viewer) toast(root, body, EVENT_ICON[e.kind]); return; }
-  playSound(e, viewer);
+export function showHeadline(root: HTMLElement, h: Headline) {
+  if (h.sound) audio.sting(h.sound);
   current?.remove();
   window.clearTimeout(timer);
   const n = document.createElement('div');
-  n.className = `headline ${badFor(e, viewer) ? 'bad' : ''}`;
+  n.className = `headline ${h.bad ? 'bad' : ''}`;
   n.setAttribute('role', 'status');
   n.setAttribute('aria-live', 'polite');
-  n.innerHTML = `<div class="kicker">${icon('info', 'icon-sm')}<span>${esc(t('randomEvents.kicker'))}</span><span class="grow"></span><span>${esc(t('hud.round'))} ${s.round}</span></div>
-    <div class="main"><span class="unit-badge">${icon(EVENT_ICON[e.kind])}</span><h3>${esc(title)}</h3><p>${esc(body)}</p></div>`;
+  n.innerHTML = `<div class="kicker">${icon('info', 'icon-sm')}<span>${esc(h.kicker)}</span><span class="grow"></span><span>${esc(t('hud.round'))} ${h.round}</span></div>
+    <div class="main"><span class="unit-badge">${icon(h.icon)}</span><h3>${esc(h.title)}</h3><p>${esc(h.body)}</p></div>`;
   const close = () => {
     if (!n.isConnected) return;
     n.classList.add('out');
@@ -84,5 +86,16 @@ export function showRandomEvent(root: HTMLElement, e: RandomEvent, s: GameState,
   n.addEventListener('click', close);
   root.appendChild(n);
   current = n;
-  timer = window.setTimeout(close, 4200);
+  timer = window.setTimeout(close, h.ms ?? 4200);
+}
+
+/**
+ * Schlagzeile zu einem Zufallsereignis. Fortgesetzte Duerre nur als kurzer Hinweis.
+ * Headline for a random event. An ongoing drought only as a short toast.
+ */
+export function showRandomEvent(root: HTMLElement, e: RandomEvent, s: GameState, viewer: number) {
+  const { title, body } = randomEventText(e, s);
+  if (e.ongoing) { if (e.faction === viewer) toast(root, body, EVENT_ICON[e.kind]); return; }
+  playSound(e, viewer);
+  showHeadline(root, { kicker: t('randomEvents.kicker'), round: s.round, icon: EVENT_ICON[e.kind], title, body, bad: badFor(e, viewer) });
 }

@@ -835,6 +835,10 @@
   --c-campaign-star-on: #f5b700;
   --c-campaign-star-off: #cdb97e;
   --c-campaign-news-ink: #a3271c;
+  --c-campaign-race-mark: 12px;
+  --c-campaign-race-bar-height: 8px;
+  --c-campaign-race-name-width: 76px;
+  --c-campaign-race-state-width: 58px;
   --c-overworld-max-width: 1240px;
   --c-overworld-tip-max-width: 260px;
   --c-overworld-stage-height: 64vh;

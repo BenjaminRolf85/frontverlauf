@@ -5,12 +5,12 @@
 import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
-import { FUEL } from '../data/balance';
+import { FUEL, M2 } from '../data/balance';
 import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
-import { attackIcon, cityLabel, hpBadge } from './labels';
+import { attackIcon, cityLabel, hpBadge, raceBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
 import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
@@ -36,7 +36,7 @@ import { towerGeometry } from './models/towers';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
 import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
-import { shipTiles, turretGuard } from '../core';
+import { raceStandings, shipTiles, turretGuard } from '../core';
 import { plansGeometry, templeGeometry } from './models/temple';
 
 /**
@@ -685,6 +685,14 @@ export class Board {
             addDeco(mothershipGeometry(low), m, false, 'built');
             addDeco(mothershipSmokeGeometry(low), m, true);
             glowSpots.push({ x: x - off + 0.5, y: ty, z: y - off + 0.5, size: 2.4, color: xenoLight });
+            // Wettlauf (m2): Stand aller Fraktionen ueber dem Wrack / race (m2): every faction's progress above the wreck
+            if (this.showLabels && s.campaign?.race) {
+              const rows = raceStandings(s).map((e) => ({ color: factionTokens[s.factions[e.faction].id].primary, have: Math.min(e.work, M2.workRounds), out: !e.alive && !e.pending }));
+              const badge = raceBadge(rows, M2.workRounds);
+              badge.position.set(x - off + 0.5, ty + 1.35, y - off + 0.5);
+              badge.center.set(0.5, 0);
+              this.labelLayer.add(badge);
+            }
           }
         } else if (t.feature) { const fg = featureGeometry(t.feature); addDeco(desert && fg ? sandify(fg, `feature${t.feature}`) : fg, new THREE.Matrix4().makeTranslation(x - off, top, y - off), false, 'built'); }
         // Ruinenstaette (m13): leuchtet, sobald entziffert / ruin site (m13): glows once deciphered
