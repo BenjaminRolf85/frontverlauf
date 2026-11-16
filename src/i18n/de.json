@@ -3309,6 +3309,12 @@
     "cooldown": "Rückzug bereit in {n} Runden",
     "fx": "Rückzug"
   },
+  "rear": {
+    "hint": "Von hinten +{pct} %",
+    "name": "Angriff von hinten",
+    "rule": "Jede Einheit blickt in eine von acht Richtungen: in die Richtung ihres letzten Schritts; wer angreift, dreht sich zum Ziel, wer zurückschießt, zum Angreifer. Neue Einheiten blicken zur Kartenmitte. Steht der Angreifer im Rücken des Ziels (die drei Felder dahinter, auf Distanz derselbe Kegel), macht er {pct} % mehr Schaden, vor dem Trefferglück. Flanken zählen nicht, der Gegenschlag auch nicht. Bauwerke, Wunder und Geschütze haben keinen Rücken. Die Blickrichtung der gewählten Einheit zeigt ein Pfeil am Sockel.",
+    "facing": "Blickrichtung"
+  },
   "moveFire": {
     "hint": "Nach Bewegung: halber Schaden",
     "tag": "Gezogen: halber Schaden",

@@ -3,7 +3,7 @@
  * Rules / help: short collapsible sections. All numbers come from balance.ts so the page stays correct.
  */
 import {
-  BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
+  BARRIER, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
   VICTORY_TECH, WONDERS,
 } from '../data/balance';
 import { BUILDINGS, PRODUCTION, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
@@ -29,7 +29,7 @@ function sections(): Section[] {
     { id: 'goal', icon: 'medal', params: { rounds: MODES.pointsRounds, tile: SCORE.revealedTile, territory: SCORE.territoryTile, level: SCORE.cityLevel, tech: SCORE.techPerTier } },
     { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq } },
     { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0 } },
-    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => combatBonusLines() + unitHitLines() },
+    { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => rearLine() + combatBonusLines() + unitHitLines() },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
@@ -66,6 +66,11 @@ function siteLines(): string {
 /** Eine Zeile je neuer Doktrin-Wirkung / one line per new doctrine effect */
 function doctrineLines(): string {
   return `<ul>${DOCTRINE_TECHS.map((tech) => `<li><strong>${esc(t(`techs.${tech}`))}:</strong> ${esc(doctrineText(tech))}</li>`).join('')}</ul>`;
+}
+
+/** Angriff von hinten (Ausrichtung, Rueckenbereich) / attack from behind (facing, rear arc) */
+function rearLine(): string {
+  return `<p><strong>${esc(t('rear.name'))}:</strong> ${esc(t('rear.rule', { pct: pct(COMBAT.rearAttack) }))}</p>`;
 }
 
 /** Kampfboni der Fraktionen (Feuern nach Bewegung, eigenes Gebiet) / combat bonuses of the factions (firing after moving, own territory) */

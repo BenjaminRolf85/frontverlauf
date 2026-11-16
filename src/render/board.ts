@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL, M2 } from '../data/balance';
-import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
+import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -18,7 +18,7 @@ import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
-import { CombatFx, aimTurrets, angleDelta, headingOf, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
+import { CombatFx, aimTurrets, angleDelta, headingOf, lerpAngle, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
@@ -95,6 +95,17 @@ function unitModel(g: THREE.BufferGeometry, material: THREE.Material): THREE.Gro
     model.add(tur);
   }
   return model;
+}
+/**
+ * Weltwinkel der Ausrichtung im Spielstand (Unit.facing, 8 Richtungen), undefined ohne Ausrichtung oder bei Bauwerken.
+ * Die Wanne zeigt immer diese Richtung, Drehtuerme zielen frei (nur Darstellung).
+ * World heading of the facing in the game state (Unit.facing, 8 directions), undefined without a facing or for
+ * structures. The hull always shows this direction, turrets aim freely (render only).
+ */
+export function coreHeading(u: Pick<Unit, 'type' | 'facing'> | undefined): number | undefined {
+  if (!u || u.facing === undefined || u.facing === null || !canFace(u)) return undefined;
+  const d = FACING_DIRS[u.facing];
+  return d ? headingOf(d.x, d.y) : undefined;
 }
 /** Versatz je Bauwerk; das Fusionskraftwerk-Modell deckt seine 2x2-Flaeche selbst ab / offset per wonder; the fusion plant model covers its 2x2 footprint itself */
 const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
@@ -1082,7 +1093,9 @@ export class Board {
         model.scale.setScalar(UNIT_SCALE);
         model.name = 'model';
         // Fusionskraftwerk nie drehen, sonst passt die 2x2-Flaeche nicht / never rotate the fusion plant or its 2x2 footprint breaks
-        model.rotation.y = u.type === 'fusionPlant' ? 0 : this.facing.get(u.id) ?? 0;
+        // Wanne nach der Ausrichtung im Spielstand, sonst gemerkt / hull from the facing in the game state, else remembered
+        model.rotation.y = u.type === 'fusionPlant' ? 0 : coreHeading(u) ?? this.facing.get(u.id) ?? 0;
+        if (coreHeading(u) !== undefined) this.facing.set(u.id, coreHeading(u)!);
         // Drehtuerme behalten ihr letztes Ziel / turrets keep their last target
         aimTurrets(model, this.turretAim.get(u.id));
         grp.add(model);
@@ -1146,6 +1159,14 @@ export class Board {
         const want = cur.userData.unitGlow ? glowMat : mat;
         if (cur !== want) mesh.material = want;
       });
+    }
+    // Wanne folgt der Ausrichtung im Spielstand (ausser waehrend einer Animation) / hull follows the facing in the game state (except while animating)
+    for (const u of s.units) {
+      const h = coreHeading(u);
+      if (h === undefined || this.isAnimating(u.id)) continue;
+      this.facing.set(u.id, h);
+      const m = this.units.get(u.id)?.group.getObjectByName('model');
+      if (m && Math.abs(angleDelta(m.rotation.y, h)) > 1e-3) m.rotation.y = h;
     }
     // Ausrichtung bleibt auch fuer verdeckte Einheiten erhalten, nur Gefallene werden vergessen
     // facing survives for hidden units too, only fallen units are forgotten
@@ -1235,8 +1256,14 @@ export class Board {
     const last = pts[pts.length - 1];
     const model = v.group.getObjectByName('model');
     // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
-    const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
-    this.facing.set(unitId, face(pts.length - 1));
+    const h0 = model ? model.rotation.y : this.facing.get(unitId) ?? 0;
+    const walk = pathFacing(pts, h0);
+    // Ziel ist die Ausrichtung im Spielstand; weicht sie von der Laufrichtung ab (Rueckzug: Front zum Feind), ohne Drehen zuruecksetzen
+    // the goal is the facing in the game state; if it differs from the walking direction (retreat: front to the enemy), back off without turning
+    const want = coreHeading(s.units.find((x) => x.id === unitId));
+    const backing = want !== undefined && Math.abs(angleDelta(walk(pts.length - 1), want)) > 0.3;
+    const face = backing ? (f: number) => lerpAngle(h0, want, Math.min(1, f / Math.max(1, pts.length - 1))) : walk;
+    this.facing.set(unitId, want ?? face(pts.length - 1));
     // Drehtuerme schwenken beim Fahren zurueck nach vorn / turrets swing back to the front while driving
     this.turretAim.delete(unitId);
     const turns = turretsIn(model).map((tu) => ({ tu, turn: turretTurn(tu, undefined) }));
@@ -1248,7 +1275,7 @@ export class Board {
       v.group.position.lerpVectors(pts[i], pts[i + 1], local);
       // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
       this.life.moveFrame(unitId, t, f);
-      if (model) model.rotation.y = face(f);
+      if (model) model.rotation.y = t >= 1 && want !== undefined ? want : face(f);
       for (const { tu, turn } of turns) tu.rotation.y = turn.at(Math.min(1, t / 0.45));
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
@@ -1282,14 +1309,17 @@ export class Board {
     const a = this.tileCenter(s, u.x, u.y), b = this.tileCenter(s, target.x, target.y);
     const heading = headingOf(b.x - a.x, b.z - a.z);
     const model = this.units.get(unitId)?.group.getObjectByName('model');
+    // Wanne: Ausrichtung im Spielstand (8 Richtungen) / hull: facing in the game state (8 directions)
+    const core = coreHeading(u);
     if (this.hasTurret(s, u)) {
-      const hull = model ? model.rotation.y : this.facing.get(unitId) ?? 0;
+      const hull = core ?? (model ? model.rotation.y : this.facing.get(unitId) ?? 0);
+      if (core !== undefined) { this.facing.set(unitId, core); if (model) model.rotation.y = core; }
       const rel = angleDelta(hull, heading);
       this.turretAim.set(unitId, rel);
       aimTurrets(model, rel);
     } else {
-      this.facing.set(unitId, heading);
-      if (model) model.rotation.y = heading;
+      this.facing.set(unitId, core ?? heading);
+      if (model) model.rotation.y = core ?? heading;
     }
     this.dirty = true;
   }
@@ -1301,7 +1331,7 @@ export class Board {
   faceMove(s: GameState, unitId: number, from: { x: number; y: number }, path: { x: number; y: number }[]) {
     if (!path.length) return;
     const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
-    const heading = pathFacing(pts, this.facing.get(unitId) ?? 0)(pts.length - 1);
+    const heading = coreHeading(s.units.find((x) => x.id === unitId)) ?? pathFacing(pts, this.facing.get(unitId) ?? 0)(pts.length - 1);
     this.facing.set(unitId, heading);
     this.turretAim.delete(unitId);
     const model = this.units.get(unitId)?.group.getObjectByName('model');
@@ -1329,7 +1359,7 @@ export class Board {
    * (heavy cannon). gunFires = the gun shoots at the unit, otherwise the unit attacks.
    */
   animateTurret(s: GameState, gun: { x: number; y: number }, unitId: number, gunFires: boolean,
-    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void; gunFaction?: FactionId }): Promise<void> {
+    o: { unitType: Unit['type']; unitFaction: FactionId; retaliate: boolean; onImpact?: () => void; onReturnFire?: () => void; onReturnImpact?: () => void; gunFaction?: FactionId; unitHull?: number }): Promise<void> {
     const GUN = -1;
     const proxy = new THREE.Group();
     proxy.position.copy(this.tileCenter(s, gun.x, gun.y)).add(new THREE.Vector3(0, 0.12, 0));
@@ -1348,7 +1378,7 @@ export class Board {
     const gf: FactionId = o.gunFaction ?? 'nexus';
     const info: AttackInfo = gunFires
       ? { attacker: 'tank', target: o.unitType, attackerFaction: gf, targetFaction: o.unitFaction, attackerWater: false, targetWater: uw, retaliate: false, onImpact: o.onImpact }
-      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: gf, attackerWater: uw, targetWater: false, retaliate: o.retaliate,
+      : { attacker: o.unitType, target: 'tank', attackerFaction: o.unitFaction, targetFaction: gf, attackerWater: uw, targetWater: false, retaliate: o.retaliate, attackerHull: o.unitHull,
         onImpact: o.onImpact, onReturnFire: o.onReturnFire, onReturnImpact: o.onReturnImpact };
     if (!this.animations) {
       info.onImpact?.();
@@ -1433,8 +1463,14 @@ export class Board {
 
   private highlightLooks = new Map<HighlightKind, { geo: THREE.BufferGeometry; mat: THREE.MeshBasicMaterial }>();
 
-  /** Markierungen / highlights */
-  setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind }[]) {
+  /** Pfeil der Ausrichtung je Markierungsart / facing arrow per highlight kind */
+  private facingLooks = new Map<HighlightKind, { geos: THREE.BufferGeometry[]; mat: THREE.MeshBasicMaterial }>();
+
+  /**
+   * Markierungen; facing = Ausrichtung der Einheit auf dem Feld (0-7): kleiner Pfeil aussen am Ring.
+   * Highlights; facing = facing of the unit on the tile (0-7): a small arrow outside the ring.
+   */
+  setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind; facing?: number }[]) {
     this.clearGroup(this.highlightLayer);
     if (!s || !list.length) { this.dirty = true; return; }
     const colors: Record<HighlightKind, string> = {
@@ -1467,6 +1503,27 @@ export class Board {
       mesh.renderOrder = 5;
       mesh.raycast = () => {};
       this.highlightLayer.add(mesh);
+    }
+    // Ausrichtung: Pfeil aussen am Ring, in der Farbe des Rings, mit dunklem Rand / facing: arrow outside the ring, in the ring's colour, with a dark rim
+    for (const h of list) {
+      const d = h.facing !== undefined ? FACING_DIRS[h.facing] : undefined;
+      if (!d) continue;
+      let look = this.facingLooks.get(h.kind);
+      if (!look) {
+        const tri = (w: number, z0: number, z1: number, color: string) => paint(new THREE.BufferGeometry().setAttribute('position',
+          new THREE.Float32BufferAttribute([-w, 0, z0, 0, 0, z1, w, 0, z0], 3)), color);
+        const geos = [tri(0.105, 0.455, 0.625, semantic.ink), tri(0.07, 0.48, 0.59, colors[h.kind]).translate(0, 0.002, 0)];
+        look = { geos, mat: new THREE.MeshBasicMaterial({ vertexColors: true, depthWrite: false, side: THREE.DoubleSide }) };
+        this.facingLooks.set(h.kind, look);
+      }
+      const p = this.tileCenter(s, h.x, h.y);
+      p.y = Math.max(p.y, TILE_TOP.shallow) + 0.022;
+      const arrow = new THREE.Group();
+      look.geos.forEach((g, i) => { const m = new THREE.Mesh(g, look!.mat); m.renderOrder = 6 + i; m.raycast = () => {}; arrow.add(m); });
+      arrow.position.copy(p);
+      arrow.rotation.y = headingOf(d.x, d.y);
+      arrow.name = 'facing';
+      this.highlightLayer.add(arrow);
     }
     // Fadenkreuz ueber Feinden in Reichweite / crosshair above enemies in range
     for (const h of list) {

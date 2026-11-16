@@ -3309,6 +3309,12 @@
     "cooldown": "Retreat ready in {n} rounds",
     "fx": "Retreat"
   },
+  "rear": {
+    "hint": "From behind +{pct} %",
+    "name": "Attack from behind",
+    "rule": "Every unit faces one of eight directions: the direction of its last step; an attacker turns towards its target, a unit returning fire towards the attacker. New units face the map centre. If the attacker stands in the target's rear (the three tiles behind it, the same cone at range), it deals {pct} % more damage, before hit luck. Flanks do not count, nor does return fire. Structures, wonders and guns have no rear. An arrow on the base shows the facing of the selected unit.",
+    "facing": "Facing"
+  },
   "moveFire": {
     "hint": "After moving: half damage",
     "tag": "Moved: half damage",
