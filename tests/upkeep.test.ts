@@ -5,7 +5,8 @@ import { addCity, addUnit, blankGame, endTurn, revealAll, untilTurnOf } from './
 
 describe('Sold / upkeep', () => {
   it('die ersten 4 Einheiten sind frei, danach 30 % des Kaufpreises, Panzer pauschal 12 / first 4 free, then 30 %, tanks flat 12', () => {
-    const s = blankGame({ stars: 100, factions: ['korvat', 'dravon'] });
+    // Grundregel ohne Fraktionsfaktor: Dravon statt Korvat (Korvat zahlt 33 % weniger, faction-units.test.ts) / base rule without faction factor: Dravon instead of Korvat
+    const s = blankGame({ stars: 100, factions: ['dravon', 'korvat'] });
     addCity(s, 2, 2, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
     revealAll(s, 0);
     for (let i = 0; i < 4; i++) addUnit(s, 'infantry', 0, 1 + i, 5);
@@ -21,7 +22,7 @@ describe('Sold / upkeep', () => {
   });
   it('wird zu Rundenbeginn abgezogen, Sterne fallen nicht unter 0 / deducted at turn start, never below 0', () => {
     // genug Sterne fuer den vollen Sold (unbezahlter Sold: siehe audit-fixes.test.ts) / enough stars for the full upkeep (unpaid upkeep: see audit-fixes.test.ts)
-    const s = blankGame({ stars: 60, factions: ['korvat', 'dravon'] });
+    const s = blankGame({ stars: 60, factions: ['dravon', 'korvat'] });
     addCity(s, 2, 2, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
     for (let i = 0; i < 5; i++) addUnit(s, 'infantry', 0, 1 + i, 5);
     for (let i = 0; i < 4; i++) addUnit(s, 'tank', 0, 1 + i, 7);

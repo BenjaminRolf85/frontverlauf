@@ -38,6 +38,8 @@ const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   swarmMother: 1.2,
   // Velkar: Tesla-Panzer mit vielen Ringen / Velkar: Tesla tank with many rings
   teslaTank: 1.25,
+  // Korvat-Koloss und NEXUS-Baureihen mit vielen Teilen / Korvat colossus and NEXUS series with many parts
+  steppeColossus: 1.3, cyborg: 1.4, flameTank: 1.4, kamikazeDrone: 1.5,
 };
 import { cloud, decoration } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
@@ -55,6 +57,8 @@ import { mothership, mothershipSmoke } from './mothership';
 import { scientist } from './scientist';
 import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from './velkarTech';
 import { lightWarden, reliquary, sunLance } from './alveniaFaith';
+import { steppeColossus } from './korvatHeavy';
+import { cyborg, flameTank, kamikazeDrone } from './nexusSeries';
 import { withGlow } from '../atmosphere';
 export { techParts, type TechPart } from './velkarTech';
 
@@ -93,6 +97,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'lightWarden': return lightWarden(faction).build();
       case 'reliquary': return reliquary(faction).build();
       case 'sunLance': return sunLance(faction).build();
+      // Korvat: Steppenkoloss / Korvat: Steppe Colossus
+      case 'steppeColossus': return steppeColossus(faction).build();
       case 'landingBoat': return landingBoat(faction, c ? carriedGeometry(c, faction) : null).build();
       case 'submarine': return submarine(faction).build();
       case 'destroyer': return destroyer(faction).build();
@@ -113,6 +119,10 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'quadDrone': return quadDrone(faction).build();
       case 'railgun': return railgun(faction).build();
       case 'titan': return titan(faction).build();
+      // NEXUS: neue Baureihen / NEXUS: new series
+      case 'cyborg': return cyborg(faction).build();
+      case 'flameTank': return flameTank(faction).build();
+      case 'kamikazeDrone': return kamikazeDrone(faction).build();
       // Konter-Einheiten / counter units
       case 'antiTank': return antiTank(faction).build();
       case 'antiAir': return antiAir(faction).build();
@@ -157,11 +167,12 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   steppeRider: 1.1, stormbreaker: 1.2, peacekeeper: 1.1, protoWalker: 1.1,
   teslaTank: 1.05, octocopter: 1.1, railSniper: 1.2,
   lightWarden: 1.2, reliquary: 1.05, sunLance: 1.1,
+  steppeColossus: 1.0, cyborg: 1.2, flameTank: 1.05, kamikazeDrone: 1.3,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
   tank: 1.18, doomCrawler: 1.1, titan: 1.08, jeep: 1.08, destroyer: 1.45, battleship: 1.4, submarine: 1.4, landingBoat: 1.15,
-  privateer: 1.45,
+  privateer: 1.45, steppeColossus: 1.04,
 };
 /** Hoechste Modellhoehe unter dem Lebensbalken / highest model point below the HP badge */
 const MAX_H = 0.62;
@@ -254,6 +265,10 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'lightWarden': return lightWarden(faction, true).build();
       case 'reliquary': return reliquary(faction, true).build();
       case 'sunLance': return sunLance(faction, true).build();
+      case 'steppeColossus': return steppeColossus(faction, true).build();
+      case 'cyborg': return cyborg(faction, true).build();
+      case 'flameTank': return flameTank(faction, true).build();
+      case 'kamikazeDrone': return kamikazeDrone(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

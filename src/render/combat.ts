@@ -21,9 +21,9 @@ export const weaponOf = (type: UnitTypeId): Weapon => WEAPON[type] ?? 'none';
 const FX_ORDER = 70;
 
 /** Explosive Waffen: Feuerball, Truemmer, Rauch / explosive weapons: fireball, debris, smoke */
-const EXPLOSIVE = new Set<Weapon>(['cannon', 'artillery', 'rocket', 'heliRockets', 'droneRockets', 'naval', 'bigNaval', 'torpedo', 'plasma']);
-/** Nahkampf: Ausfall statt Geschoss / melee: lunge instead of a projectile */
-const MELEE = new Set<Weapon>(['buzz', 'none']);
+const EXPLOSIVE = new Set<Weapon>(['cannon', 'artillery', 'rocket', 'heliRockets', 'droneRockets', 'naval', 'bigNaval', 'torpedo', 'plasma', 'blast']);
+/** Nahkampf: Ausfall statt Geschoss; die Kamikaze-Drohne (blast) springt ins Ziel / melee: lunge instead of a projectile; the kamikaze drone (blast) leaps into the target */
+const MELEE = new Set<Weapon>(['buzz', 'none', 'blast']);
 
 /**
  * Kamerawackeln je Einschlag (0 = keines) / camera shake per impact (0 = none).
@@ -33,6 +33,8 @@ export function impactShake(w: Weapon): number {
   switch (w) {
     case 'artillery': case 'bigNaval': return 0.75;
     case 'cannon': case 'rocket': return 0.55;
+    // Kamikaze-Drohne: Sprengladung direkt am Ziel / kamikaze drone: blast charge right at the target
+    case 'blast': return 0.6;
     case 'naval': case 'heliRockets': case 'droneRockets': case 'plasma': case 'torpedo': case 'railgun': case 'deathRay': case 'coil': case 'radiantGun': return 0.28;
     // Sonnenlanze: schwerer Lichteinschlag / Sun Lance: heavy light impact
     case 'sunBeam': return 0.5;
@@ -641,6 +643,9 @@ function shoot(fx: CombatFx, w: Weapon, from: THREE.Vector3, to: THREE.Vector3, 
       }
       return t;
     }
+    // Kamikaze-Drohne: kein Geschoss, der Sprung dauert bis zur Explosion / kamikaze drone: no projectile, the leap lasts until the blast
+    case 'blast':
+      return 240;
     case 'buzz': case 'none': default:
       return 130;
   }
@@ -706,7 +711,7 @@ function impact(fx: CombatFx, w: Weapon, at: THREE.Vector3, floor: number, surfa
   const col = energy(f);
   const ground = at.clone().setY(floor + 0.02);
   if (EXPLOSIVE.has(w)) {
-    const big = (w === 'artillery' || w === 'bigNaval' ? 1.25 : w === 'cannon' || w === 'rocket' ? 1.05 : 0.85) * scale;
+    const big = (w === 'artillery' || w === 'bigNaval' || w === 'blast' ? 1.25 : w === 'cannon' || w === 'rocket' ? 1.05 : 0.85) * scale;
     flash(fx, at, 0.8 * big, w === 'plasma' ? col : semantic.fxFlash, delay, 170);
     // Feuerball aus Baeuschen: heiss -> Glut -> Rauch / fireball from puffs: hot -> ember -> smoke
     for (let i = 0; i < 6; i++) {
@@ -805,9 +810,13 @@ const MUZZLE: Partial<Record<UnitTypeId, [number, number]>> = {
   teslaTank: [0.52, 0.0], octocopter: [0.24, 0.12], railSniper: [0.3, 0.5],
   // Alvenia: Lichtgewehr, Kristall des Lichtgeschuetzes, Spitze der Sonnenlanze / Alvenia: light rifle, crystal of the light gun, tip of the Sun Lance
   lightWarden: [0.28, 0.5], reliquary: [0.24, 0.5], sunLance: [0.5, 0.42],
+  // Korvat: Langrohr des Steppenkolosses / Korvat: long gun of the Steppe Colossus
+  steppeColossus: [0.27, 0.45],
+  // NEXUS: Armkanone des Cyborgs, Duese des Flammenwerfers, Ladung der Drohne / NEXUS: cyborg arm cannon, flamethrower nozzle, drone charge
+  cyborg: [0.3, 0.16], flameTank: [0.22, 0.4], kamikazeDrone: [0.12, 0.1],
 };
 /** Trefferhoehe / hit height */
-const HIT_H: Partial<Record<UnitTypeId, number>> = { heli: 0.36, octocopter: 0.34, teslaTank: 0.3, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34, protoWalker: 0.4, steppeRider: 0.3 };
+const HIT_H: Partial<Record<UnitTypeId, number>> = { steppeColossus: 0.26, kamikazeDrone: 0.1, heli: 0.36, octocopter: 0.34, teslaTank: 0.3, tripod: 0.38, titan: 0.42, mech: 0.32, submarine: 0.06, quadDrone: 0.34, protoWalker: 0.4, steppeRider: 0.3 };
 
 /** Angaben des Controllers zu einem Angriff / controller details for an attack */
 export interface AttackInfo {
@@ -946,6 +955,8 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   // Rueckstoss bzw. Ausfall / recoil or lunge
   const kick = (w: Weapon, e: number) => {
     if (e < 0) return 0;
+    // Kamikaze: bis ans Ziel und dort bleiben (die Drohne verschwindet danach) / kamikaze: up to the target and stay there (the drone vanishes afterwards)
+    if (w === 'blast') return smooth(e / 240) * 0.75 * dist;
     if (MELEE.has(w)) return e < 260 ? Math.sin((e / 260) * Math.PI) * 0.3 * dist : 0;
     const amt = w === 'cannon' || w === 'artillery' || w === 'bigNaval' || w === 'naval' || w === 'railgun' ? -0.08 : w === 'rocket' ? -0.04 : -0.03;
     return e < 35 ? amt * (e / 35) : amt * Math.max(0, 1 - (e - 35) / 170);

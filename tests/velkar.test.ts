@@ -106,13 +106,14 @@ describe('Tesla-Panzer / Tesla tank', () => {
     s.pendingRewards = [{ cityId: c.id, level: 5 }];
     ok(s, { type: 'reward', city: c.id, choice: 'b' });
     expect(s.units.some((u) => u.owner === 0 && u.type === 'teslaTank')).toBe(true);
-    // Korvat bekommt weiter den Panzer / Korvat still gets the tank
+    // Korvat bekommt seine eigene Bauart (Steppenkoloss), keinen Tesla-Panzer / Korvat gets its own design (Steppe Colossus), no Tesla tank
     const k = s.cities[1];
     k.level = 5;
     s.current = 1;
     s.pendingRewards = [{ cityId: k.id, level: 5 }];
     ok(s, { type: 'reward', city: k.id, choice: 'b' });
-    expect(s.units.some((u) => u.owner === 1 && u.type === 'tank')).toBe(true);
+    expect(s.units.some((u) => u.owner === 1 && u.type === 'steppeColossus')).toBe(true);
+    expect(s.units.some((u) => u.owner === 1 && u.type === 'teslaTank')).toBe(false);
     // kaeuflich im Panzerwerk wie der Panzer / for sale at the tank works like the tank
     expect(UNITS.teslaTank.cost).toBe(UNITS.tank.cost);
     expect(UNITS.teslaTank.hp).toBe(UNITS.tank.hp);
@@ -179,11 +180,12 @@ describe('Liste der Velkar / Velkar roster', () => {
       const i = s.factions.findIndex((x) => x.id === f);
       const l = rosterUnits(s, i);
       // Alvenia hat eigene Bauarten fuer Panzer (Reliquiar), nicht fuer Hubschrauber und Scharfschuetze / Alvenia has its own tank design (Reliquary), not for helicopter and sniper
-      for (const t of ['tank', 'heli', 'sniper'] as const) if (!(f === 'alvenia' && t === 'tank')) expect(l, f).toContain(t);
+      // Korvat ebenso (Steppenkoloss) / Korvat as well (Steppe Colossus)
+      for (const t of ['tank', 'heli', 'sniper'] as const) if (!((f === 'alvenia' || f === 'korvat') && t === 'tank')) expect(l, f).toContain(t);
       for (const t of ['teslaTank', 'octocopter', 'railSniper'] as const) expect(l, f).not.toContain(t);
       expect(techUnlocks('armyAviation', f).units).toEqual([]);
     }
-    expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia']);
+    expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia', 'korvat']);
     expect(LAND_UNITS).toContain('sniper');
   });
 
@@ -200,7 +202,10 @@ describe('Liste der Velkar / Velkar roster', () => {
     expect(trainCheck(s, s.cities[1], 'sniper')).toBe('ok');
     expect(trainCheck(s, s.cities[0], 'teslaTank')).toBe('ok');
     expect(trainCheck(s, s.cities[0], 'tank')).toBe('invalid');
-    expect(trainCheck(s, s.cities[1], 'tank')).toBe('ok');
+    // Korvat: Steppenkoloss statt Panzer / Korvat: Steppe Colossus instead of the tank
+    expect(trainCheck(s, s.cities[1], 'tank')).toBe('invalid');
+    expect(trainCheck(s, s.cities[1], 'steppeColossus')).toBe('ok');
+    expect(trainCheck(s, s.cities[0], 'steppeColossus')).toBe('invalid');
   });
 
   it('Speichern und Laden / save and load', () => {

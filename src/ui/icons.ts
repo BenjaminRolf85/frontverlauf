@@ -102,6 +102,12 @@ const P: Record<string, string> = {
   furnace: '<path d="M5 8.5h14l-2.5 7h-9z"/><path d="M9 15.5l-3 5.5M15 15.5l3 5.5M12 15.5v5.5"/><path d="M12 2.5c1.6 1.6 1.6 3.2 0 4.5-1.6-1.3-1.6-2.9 0-4.5z" fill="currentColor"/>',
   bell: '<path d="M4 21V3.5h16V21"/><path d="M12 3.5V6"/><path d="M8.5 15.5C8.5 10 9.8 6.5 12 6.5s3.5 3.5 3.5 9z"/><path d="M7.5 15.5h9"/><circle cx="12" cy="17.8" r="1.2" fill="currentColor"/>',
   drone: '<path d="M3.5 14h17v7h-17z"/><path d="M9 14v7M15 14v7"/><path d="M10 6.5h4v3h-4z" fill="currentColor"/><path d="M10 7.5L6.5 5M14 7.5l3.5-2.5M4 4.5h5M15 4.5h5M12 9.5v2.5"/>',
+  // Neue Fraktionseinheiten: schwerer Panzer (Korvat), Cyborg, Flamme, Kamikaze-Laufdrohne (NEXUS)
+  // new faction units: heavy tank (Korvat), cyborg, flame, kamikaze walker drone (NEXUS)
+  heavyTank: '<path d="M3 15.5h18l-2 4.5H5z"/><path d="M5 15.5l1.2-3.5h11.6l1.2 3.5"/><path d="M8 12V8.5h7V12"/><path d="M15 10h7"/><path d="M7 18h.01M10.5 18h.01M14 18h.01M17.5 18h.01" stroke-width="2.8"/>',
+  cyborg: '<path d="M7 10a5 5 0 0 1 10 0v3.5H7z"/><path d="M12 10h5" stroke-width="2.6"/><path d="M8 13.5l1 3h6l1-3"/><path d="M4.5 21c.8-2.6 3.8-4.5 7.5-4.5s6.7 1.9 7.5 4.5"/><circle cx="9.3" cy="10.3" r="1" fill="currentColor"/>',
+  flame: '<path d="M12 21.5c-3.9 0-6.5-2.6-6.5-6.2 0-3.6 2.8-5.5 3.6-9.8 2 1.4 3.2 3.3 3.3 5.3 1-.8 1.6-2 1.7-3.3 2.6 2 4.4 4.7 4.4 7.8 0 3.6-2.6 6.2-6.5 6.2z"/><path d="M12 21.5c-1.6 0-2.8-1.1-2.8-2.7 0-1.7 1.4-2.6 2.1-4.3 1.9 1.1 3.5 2.6 3.5 4.3 0 1.6-1.2 2.7-2.8 2.7z" fill="currentColor"/>',
+  kamikaze: '<circle cx="11" cy="11.5" r="5"/><path d="M7.5 15l-3 5M14.5 15l3 5M9.5 16.3L8.5 20.5M12.5 16.3l1 4.2"/><path d="M14.5 7.5l2-2.5"/><path d="M18.8 2.8l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="currentColor"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

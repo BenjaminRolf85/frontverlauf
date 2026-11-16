@@ -6,12 +6,12 @@ import {
   type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
-  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
+  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow, memorialAt, memorialEffect, memorialMult,
-  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite,
+  blessingOf, blessingRoundsLeft, judgementAt, twinCheck, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
@@ -51,6 +51,10 @@ export const UNIT_ICON: Record<string, string> = {
   teslaTank: 'tesla', octocopter: 'fuel', railSniper: 'range',
   // Alvenia-Bauarten / Alvenia designs
   lightWarden: 'range', reliquary: 'emblemHalo', sunLance: 'sun',
+  // Korvat: Steppenkoloss / Korvat: Steppe Colossus
+  steppeColossus: 'heavyTank',
+  // NEXUS: Cyborg, Flammenwerferpanzer, Kamikaze-Drohne / NEXUS: cyborg, flamethrower tank, kamikaze drone
+  cyborg: 'cyborg', flameTank: 'flame', kamikazeDrone: 'kamikaze',
   // Wunder der Siegbedingungen / victory wonders
   portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
@@ -58,12 +62,18 @@ const COUNTER_KEY: Record<CounterClass, string> = { vehicle: 'counter.vsVehicle'
 
 /** Konter-Boni als Text, z. B. "+150 % gegen Fahrzeuge" / counter bonuses as text */
 export function counterTags(type: UnitTypeId): { text: string; good: boolean }[] {
-  const bonus = UNITS[type].bonusVs;
-  if (!bonus) return [];
-  return (Object.entries(bonus) as [CounterClass, number][]).map(([cls, f]) => {
+  const bonus = UNITS[type].bonusVs ?? {};
+  const sign = (pct: number) => (pct > 0 ? `+${pct}` : `${pct}`);
+  const out = (Object.entries(bonus) as [CounterClass, number][]).map(([cls, f]) => {
     const pct = Math.round((f - 1) * 100);
-    return { text: t(COUNTER_KEY[cls], { pct: pct > 0 ? `+${pct}` : `${pct}` }), good: pct > 0 };
+    return { text: t(COUNTER_KEY[cls], { pct: sign(pct) }), good: pct > 0 };
   });
+  // Rassen-Bonus (Kamikaze-Drohne): menschliche Fusstruppen, Zyrr / race bonus (kamikaze drone): human foot troops, Zyrr
+  for (const r of UNITS[type].bonusRace ?? []) {
+    const pct = Math.round((r.factor - 1) * 100);
+    out.push({ text: t(r.races.includes('alien') ? 'counter.alien' : 'counter.humanFoot', { pct: sign(pct) }), good: pct > 0 });
+  }
+  return out;
 }
 export const BUILD_ICON: Partial<Record<BuildingId, string>> = {
   road: 'move', bridge: 'move', researchCenter: 'research', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown',
@@ -190,6 +200,8 @@ function memorialHint(s: GameState, u: Unit, key: 'Hint' | 'Tag' = 'Hint'): stri
 /** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
 function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; judgement?: number; blessing?: number; memorial?: number }, u: Unit, target: Unit | null): string {
   return [hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
+    // Kamikaze: die Drohne ist danach zerstoert / kamikaze: the drone is destroyed afterwards
+    has(u, 'kamikaze') ? t('kamikaze.note') : '',
     // Strafgericht gegen Suender, Segen des Ziels / judgement against sinners, blessing of the target
     p.judgement ? t('sin.judgement', { pct: Math.round(p.judgement * 100) }) : '',
     target && p.homeDefense ? homeDefenseHint(s, target) : '',
@@ -573,12 +585,12 @@ export class Hud {
           <span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
-          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: unitUpkeep(vUnit) }) : isCultFaction(s, vUnit.owner) ? t('cult.noUpkeep') : t('hud.upkeepFree'))}</span>`; })()}
+          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: num(Math.round(unitUpkeep(vUnit) * upkeepFactor(s, vUnit.owner) * 10) / 10) }) : isCultFaction(s, vUnit.owner) ? t('cult.noUpkeep') : t('hud.upkeepFree'))}</span>`; })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
           ${accuracyStat(s, vUnit)}
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
         </div>
-        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
+        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div>${hasText(`unitDesc.${vUnit.type}`) ? `<p class="muted unit-desc">${esc(t(`unitDesc.${vUnit.type}`))}</p>` : ''}</div>`;
       // Wunder: Phase, Restrunden, Unterbrechungsregel (immer sichtbar) / wonder: phase, rounds left, interruption rule (always visible)
       if (isWonder(vUnit)) body += wonderPanel(s, vUnit);
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);
@@ -968,9 +980,12 @@ export class Hud {
       if (st.cost === null) continue;
       if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
       const chk = trainCheck(s, c, type);
+      // Meridon "Zwei fuer einen": 2x im Knopf, Grund, falls nur eine kommt / Meridon "Two for One": 2x on the button, reason if only one comes
+      const twin = twinCheck(s, c, type);
+      const twinNote = twin === 'twin' ? t('twin.desc', { unit: t(`units.${type}`) }) : twin ? t(`twin.${twin}`) : '';
       const item: ActionItem = {
-        id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
-        desc: unitStatsLine(type),
+        id: `train-${type}`, icon: UNIT_ICON[type], label: twin === 'twin' ? t('twin.label', { unit: t(`units.${type}`) }) : t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
+        desc: twinNote ? `${twinNote} ${unitStatsLine(type)}` : unitStatsLine(type),
         enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : chk === 'buildingMissing' ? trainLockReason(s, c, type) : this.err(chk),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
       };

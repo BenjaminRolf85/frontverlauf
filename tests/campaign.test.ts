@@ -438,7 +438,8 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     const ev = passRound(s);
     expect(ev.some((e) => e.t === 'wave' && e.faction === 0)).toBe(true);
     expect(s.units.filter((u) => u.owner === 0).length).toBe(own + 2);
-    expect(s.units.some((u) => u.owner === 0 && u.type === 'tank')).toBe(true);
+    // Korvat: Steppenkoloss statt Panzer (VARIANTS) / Korvat: Steppe Colossus instead of the tank (VARIANTS)
+    expect(s.units.some((u) => u.owner === 0 && u.type === 'steppeColossus')).toBe(true);
 
     const m8 = missionById('m8')!;
     const need = m8.objectives.find((o) => o.k === 'kills')!;

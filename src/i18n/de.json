@@ -94,7 +94,9 @@
       "style": "Massenheere, rote Banner, Chorgesang",
       "aiStyle": "Baut große Heere aus billiger Infanterie und rückt in breiter Front vor.",
       "perk2": "Erdwälle",
-      "perk2Desc": "Außenposten kosten 15 statt 25 Sterne."
+      "perk2Desc": "Außenposten kosten 15 statt 25 Sterne.",
+      "feature": "Steppenkoloss",
+      "featureDesc": "Eigener Panzer statt des Standardpanzers: {hp} LP statt {tankHp} und Angriff {atk} statt {tankAtk}, die meisten LP und der stärkste Angriff aller Panzer. Preis {cost} Sterne und Sold {upkeep} pro Runde wie beim Panzer ({tankCost} und {tankUpkeep}). Aus dem Panzerwerk, dazu als Stadtbelohnung."
     },
     "dravon": {
       "name": "Protektorat Dravon",
@@ -149,7 +151,9 @@
       "style": "Häfen, Gold, Spione, Seeleute",
       "aiStyle": "Lässt die Städte wachsen und schickt Spione voraus.",
       "perk2": "Lotsenwesen",
-      "perk2Desc": "Landungsboote fahren 1 Feld weiter."
+      "perk2Desc": "Landungsboote fahren 1 Feld weiter.",
+      "feature": "Zwei für einen",
+      "featureDesc": "Bildet eine Stadt Infanterie aus, kommen zwei Soldaten zum Preis von einem; der zweite erscheint auf einem freien Nachbarfeld (eigenes Gebiet zuerst). Beide kosten Sold und belegen das Stadtlimit. Passt nur einer, kommt nur einer."
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -219,7 +223,9 @@
       "style": "Roboter, Rechenzentren, Cyan-Licht",
       "aiStyle": "Rechnet erst, baut Wirtschaft und Rechenzentren auf, greift spät an, dann aber unerbittlich.",
       "perk2": "Sensornetz",
-      "perk2Desc": "Alle Einheiten sehen 1 Feld weiter."
+      "perk2Desc": "Alle Einheiten sehen 1 Feld weiter.",
+      "feature": "Neue Baureihen",
+      "featureDesc": "Cyborg-Infanterie (von Beginn an, {cyborgHp} LP), Kamikaze-Laufdrohnen (ab {droneC} Rechenleistung, {droneMove} Felder pro Zug, explodieren beim Angriff ohne Gegenschlag, +{droneFoot} % gegen menschliche Fußtruppen, +{droneAlien} % gegen Zyrr) und Flammenwerferpanzer (ab {flameC}, Flammen ignorieren Deckung, +{flameFoot} % gegen Fußtruppen)."
     }
   },
   "units": {
@@ -275,7 +281,11 @@
     "railSniper": "Railgun-Schütze",
     "lightWarden": "Lichtschützen",
     "reliquary": "Reliquiar",
-    "sunLance": "Sonnenlanze"
+    "sunLance": "Sonnenlanze",
+    "steppeColossus": "Steppenkoloss",
+    "cyborg": "Cyborg-Infanterie",
+    "flameTank": "Flammenwerferpanzer",
+    "kamikazeDrone": "Kamikaze-Laufdrohne"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
@@ -330,7 +340,11 @@
     "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
     "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite 2 und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
     "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
-    "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung."
+    "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung.",
+    "steppeColossus": "Der schwerste Panzer der Volksliga: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "cyborg": "Maschinensoldat mit Panzerplatten und Servo-Gliedern: robuster und schlagkräftiger als der Kampfandroide, dafür teurer. Ab dem ersten Zug verfügbar.",
+    "flameTank": "Kettenfahrzeug mit Brennstofftanks und Flammenwerfer: Reichweite 1, die Flammen ignorieren jede Deckung (Wald, Stadt, Außenposten), besonders stark gegen Fußtruppen.",
+    "kamikazeDrone": "Kleine Laufdrohne mit Sprengladung: läuft 3 Felder pro Zug und explodiert beim Angriff. Das Ziel schlägt nicht zurück, die Drohne ist danach zerstört. Besonders verheerend gegen menschliche Fußtruppen und Zyrr."
   },
   "abilities": {
     "dash": "Sturm",
@@ -388,7 +402,9 @@
     "wonder": "Siegbauwerk",
     "wonderDesc": "Kein Sold, zählt nicht zum Stadtlimit, nicht bekehrbar.",
     "boss": "Endgegnerin",
-    "bossDesc": "Heilt auf Xeno-Boden, brütet Graue auf Nachbarfeldern und trifft mit einem psychischen Schrei alle feindlichen Nachbarn. Nicht bekehrbar, kein Sold."
+    "bossDesc": "Heilt auf Xeno-Boden, brütet Graue auf Nachbarfeldern und trifft mit einem psychischen Schrei alle feindlichen Nachbarn. Nicht bekehrbar, kein Sold.",
+    "kamikaze": "Kamikaze",
+    "kamikazeDesc": "Der Angriff ist die Explosion: nur das Ziel nimmt Schaden, es schlägt nicht zurück, und die Drohne ist danach zerstört. Kein Abzug für Angriffe nach der Bewegung."
   },
   "stats": {
     "cost": "Kosten",
@@ -1741,7 +1757,11 @@
       "railSniper": "Schienenschütze",
       "lightWarden": "Laternenträger",
       "reliquary": "Heiligenschrank",
-      "sunLance": "Sonnenpflug"
+      "sunLance": "Sonnenpflug",
+      "steppeColossus": "Väterchen Stahl",
+      "cyborg": "Blechgrenadier",
+      "flameTank": "Feuerdrescher",
+      "kamikazeDrone": "Knallkäfer"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1796,7 +1816,11 @@
       "railSniper": "Beute-Railgun",
       "lightWarden": "Lichtsoldaten",
       "reliquary": "Schreinpanzer",
-      "sunLance": "Strahlbatterie"
+      "sunLance": "Strahlbatterie",
+      "steppeColossus": "Steppenfestung",
+      "cyborg": "Drillcyborg",
+      "flameTank": "Brennpanzer",
+      "kamikazeDrone": "Sprengläufer"
     },
     "alvenia": {
       "infantry": "Gemeindewache",
@@ -1851,7 +1875,11 @@
       "railSniper": "Präzisionsschütze",
       "lightWarden": "Lichtschützen",
       "reliquary": "Reliquiar",
-      "sunLance": "Sonnenlanze"
+      "sunLance": "Sonnenlanze",
+      "steppeColossus": "Roter Moloch",
+      "cyborg": "Entseelter",
+      "flameTank": "Höllenschlund",
+      "kamikazeDrone": "Teufelsfunke"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1906,7 +1934,11 @@
       "railSniper": "Magnetbüchse",
       "lightWarden": "Leuchtwächter",
       "reliquary": "Goldtruhe auf Ketten",
-      "sunLance": "Brennglas"
+      "sunLance": "Brennglas",
+      "steppeColossus": "Schwerlastkoloss",
+      "cyborg": "Leihsoldat-Maschine",
+      "flameTank": "Brandschaden",
+      "kamikazeDrone": "Wegwerfdrohne"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -1961,7 +1993,11 @@
       "railSniper": "Railgun-Schütze",
       "lightWarden": "Optik-Infanterie",
       "reliquary": "Buntglas-Bunker",
-      "sunLance": "Heliostat"
+      "sunLance": "Heliostat",
+      "steppeColossus": "Überschwerer Prototyp",
+      "cyborg": "Mensch-Maschine-Muster",
+      "flameTank": "Thermoversuch",
+      "kamikazeDrone": "Einwegsonde"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -2016,7 +2052,11 @@
       "railSniper": "Stachelrohr",
       "lightWarden": "Leuchtende Zweibeiner",
       "reliquary": "Rollender Tempel",
-      "sunLance": "Sonnenstachel"
+      "sunLance": "Sonnenstachel",
+      "steppeColossus": "Riesenschale",
+      "cyborg": "Mischprobe",
+      "flameTank": "Glutschale",
+      "kamikazeDrone": "Platzkäfer"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -2071,7 +2111,11 @@
       "railSniper": "Ketzerschütze",
       "lightWarden": "Scheinheilige",
       "reliquary": "Götzenschrein",
-      "sunLance": "Blendlanze"
+      "sunLance": "Blendlanze",
+      "steppeColossus": "Eiserner Koloss",
+      "cyborg": "Gefallener Leib",
+      "flameTank": "Fegefeuerwagen",
+      "kamikazeDrone": "Selbstmordteufel"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -2126,7 +2170,11 @@
       "railSniper": "Schienenprozess",
       "lightWarden": "Einheit L-2 Wache",
       "reliquary": "Einheit R-4 Reliquienkasten",
-      "sunLance": "Einheit S-6 Spiegelarray"
+      "sunLance": "Einheit S-6 Spiegelarray",
+      "steppeColossus": "Einheit T-12 Schwerchassis",
+      "cyborg": "Einheit C-9 Cyborg-Infanterie",
+      "flameTank": "Einheit F-5 Brennplattform",
+      "kamikazeDrone": "Einheit X-1 Einwegläufer"
     }
   },
   "identity": {
@@ -2695,7 +2743,9 @@
     "vsVehicle": "{pct} % gegen Fahrzeuge",
     "vsAir": "{pct} % gegen Flieger",
     "vsFoot": "{pct} % gegen Fußtruppen",
-    "hint": "Konter: Schaden gegen diese Zielklasse, beim Angriff und beim Gegenschlag."
+    "hint": "Konter: Schaden gegen diese Zielklasse, beim Angriff und beim Gegenschlag.",
+    "humanFoot": "{pct} % gegen menschliche Fußtruppen",
+    "alien": "{pct} % gegen Zyrr"
   },
   "leaders": {
     "title": "Fraktion",
@@ -2717,7 +2767,10 @@
     "detailsFor": "Details zu {name}",
     "victory": "Siegbedingung",
     "combat": "Kampfbonus",
-    "feature": "Fraktionsmerkmal"
+    "feature": "Fraktionsmerkmal",
+    "upkeep": "Sold",
+    "upkeepValue": "{pct} % weniger Sold",
+    "upkeepDesc": "Volksarmee: Der Sold aller Einheiten ist um {pct} % geringer (auf die Summe gerechnet, aufgerundet)."
   },
   "dispatchUi": {
     "kicker": "Funkspruch",
@@ -3457,7 +3510,7 @@
     },
     "upkeep": {
       "title": "Sold",
-      "text": "Die ersten {free} Einheiten sind Stammtruppe und kosten keinen Sold. Jede weitere kostet pro Runde {pct} % ihres Preises (aufgerundet), Panzer pauschal {tank}. Der Sold wird vom Einkommen abgezogen. Oben neben den Sternen steht das Netto-Einkommen pro Runde, im Einheitenfeld der Sold jeder Einheit."
+      "text": "Die ersten {free} Einheiten sind Stammtruppe und kosten keinen Sold. Jede weitere kostet pro Runde {pct} % ihres Preises (aufgerundet), Panzer pauschal {tank}. Korvat zahlt {korvat} % weniger Sold (auf die Summe gerechnet, aufgerundet). Der Sold wird vom Einkommen abgezogen. Oben neben den Sternen steht das Netto-Einkommen pro Runde, im Einheitenfeld der Sold jeder Einheit."
     },
     "combat": {
       "title": "Kampf & Trefferglück",
@@ -3507,6 +3560,10 @@
     "doctrines": {
       "title": "Doktrinen (Menschen)",
       "text": "Im Doktrinen-Baum schalten die Menschen-Fraktionen keine Einheiten frei, sondern Vorteile, Gebäude und Ausbauten. Kosten: (Stufe x Städte + 4) x 5 Sterne. Neue Wirkungen:"
+    },
+    "factionUnits": {
+      "title": "Eigene Bauarten der Fraktionen",
+      "text": "Einige Fraktionen haben eigene Einheiten oder Ausbildungsregeln. Die Zahlen stehen auch im Fraktionsprofil."
     }
   },
   "lore": {
@@ -3879,5 +3936,16 @@
     "shipbuilding": "Schiffe aufrüsten kostet {pct} % weniger.",
     "forestry": "Artillerie und Sonnenlanze (Geschützgießerei) kosten {pct} % weniger.",
     "ballistics": "Artillerie und Sonnenlanze: Reichweite +{n}."
+  },
+  "kamikaze": {
+    "note": "Explodiert: die Drohne ist danach zerstört, kein Gegenschlag",
+    "killed": "Kamikaze-Drohne explodiert"
+  },
+  "twin": {
+    "label": "2x {unit}",
+    "desc": "Zwei für einen: eine zweite {unit} erscheint neben der Stadt. Preis einmal, beide kosten Sold und belegen das Stadtlimit.",
+    "limit": "Nur 1: das Stadtlimit lässt nur noch Platz für eine Einheit.",
+    "noRoom": "Nur 1: kein freies Feld neben der Stadt für die zweite Einheit.",
+    "trained": "Zwei für einen: 2x {unit} ausgebildet"
   }
 }

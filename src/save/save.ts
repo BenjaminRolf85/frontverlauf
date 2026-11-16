@@ -111,7 +111,7 @@ export function migrateSites(s: GameState) {
       const st = UNITS[u];
       if ((st.faction && st.faction !== fa.id) || replacedFor(fa.id, u)) return false;
       // Panzer und Bauarten waren nicht kaeuflich (nur Stadtbelohnung) / tanks and their designs were not for sale (city reward only)
-      if (u === 'tank' || u === 'teslaTank' || u === 'reliquary') return false;
+      if (u === 'tank' || u === 'teslaTank' || u === 'reliquary' || u === 'steppeColossus') return false;
       const tech = LEGACY_UNIT_TECH[u];
       return !tech || fa.techs.includes(tech);
     };
