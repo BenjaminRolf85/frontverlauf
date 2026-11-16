@@ -74,26 +74,29 @@ export function steppeColossus(f: FactionId, lite = false): Builder {
   mgTurret(b, L, 0.105, 0.21, -0.14, 0.4, lite);
   // grosser Gussturm, mittig / big cast turret, centred
   const ty = 0.21, tz = -0.02;
-  b.add(geo.rtaper(0.25, 0.26, 0.19, 0.19, 0.1, 0.03, 0.005), L.hull, { p: [0, ty + 0.05, tz] });
-  b.add(geo.cyl(0.13, 0.13, 0.014, lite ? 10 : 16, true), L.trim, { p: [0, ty + 0.012, tz] });
-  b.add(geo.rbox(0.13, 0.07, 0.06, 0.018), L.hullDark, { p: [0, ty + 0.05, tz + 0.13] });
-  // EIN Langrohr mit grosser Muendungsbremse / ONE long gun with a big muzzle brake
-  gun(b, 0, ty + 0.055, tz + 0.15, 0.27, 0.019, L.hullDark, { brake: 'big', sleeves: 2, lite });
-  if (!lite) {
-    // roter Ring und Stern am Turm / red band and star on the turret
-    b.add(geo.cyl(0.118, 0.118, 0.01, 16, true), star, { p: [0, ty + 0.075, tz] });
-    for (const s of [-1, 1]) addEmblem(b, fid, 0.036, 0.006, L.emblem, { p: [s * 0.122, ty + 0.05, tz - 0.01], r: [0, s * HALF_PI, 0] });
-    // Nieten, Staukorb, Kuppel mit Kommandant, Antenne / rivets, stowage basket, cupola with commander, antenna
-    for (let i = 0; i < 10; i++) {
-      const a = (i / 10) * Math.PI * 2;
-      b.box(0.007, 0.007, 0.007, L.hullDark, [Math.sin(a) * 0.118, ty + 0.032, tz + Math.cos(a) * 0.118]);
+  // Drehturm um den Turmkranz / turret rotating around the turret ring
+  b.turret([0, ty, tz], () => {
+    b.add(geo.rtaper(0.25, 0.26, 0.19, 0.19, 0.1, 0.03, 0.005), L.hull, { p: [0, ty + 0.05, tz] });
+    b.add(geo.cyl(0.13, 0.13, 0.014, lite ? 10 : 16, true), L.trim, { p: [0, ty + 0.012, tz] });
+    b.add(geo.rbox(0.13, 0.07, 0.06, 0.018), L.hullDark, { p: [0, ty + 0.05, tz + 0.13] });
+    // EIN Langrohr mit grosser Muendungsbremse / ONE long gun with a big muzzle brake
+    gun(b, 0, ty + 0.055, tz + 0.15, 0.27, 0.019, L.hullDark, { brake: 'big', sleeves: 2, lite });
+    if (!lite) {
+      // roter Ring und Stern am Turm / red band and star on the turret
+      b.add(geo.cyl(0.118, 0.118, 0.01, 16, true), star, { p: [0, ty + 0.075, tz] });
+      for (const s of [-1, 1]) addEmblem(b, fid, 0.036, 0.006, L.emblem, { p: [s * 0.122, ty + 0.05, tz - 0.01], r: [0, s * HALF_PI, 0] });
+      // Nieten, Staukorb, Kuppel mit Kommandant, Antenne / rivets, stowage basket, cupola with commander, antenna
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2;
+        b.box(0.007, 0.007, 0.007, L.hullDark, [Math.sin(a) * 0.118, ty + 0.032, tz + Math.cos(a) * 0.118]);
+      }
+      b.add(geo.cbox(0.18, 0.035, 0.045, 0.006), L.trim, { p: [0, ty + 0.04, tz - 0.14] });
+      for (const x of [-0.06, 0, 0.06]) b.box(0.006, 0.037, 0.047, mat.dark, [x, ty + 0.04, tz - 0.14]);
+      cupola(b, L, -0.055, ty + 0.1, tz - 0.04, 0.036, lite);
+      commander(b, fid, -0.055, ty + 0.11, tz - 0.04, 11);
+      for (const x of [-0.075, 0.075]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.105, tz + 0.05] });
+      antenna(b, 0.08, ty + 0.1, tz - 0.1, 0.22, L.trim as ColorLike);
     }
-    b.add(geo.cbox(0.18, 0.035, 0.045, 0.006), L.trim, { p: [0, ty + 0.04, tz - 0.14] });
-    for (const x of [-0.06, 0, 0.06]) b.box(0.006, 0.037, 0.047, mat.dark, [x, ty + 0.04, tz - 0.14]);
-    cupola(b, L, -0.055, ty + 0.1, tz - 0.04, 0.036, lite);
-    commander(b, fid, -0.055, ty + 0.11, tz - 0.04, 11);
-    for (const x of [-0.075, 0.075]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.105, tz + 0.05] });
-    antenna(b, 0.08, ty + 0.1, tz - 0.1, 0.22, L.trim as ColorLike);
-  }
+  });
   return b;
 }

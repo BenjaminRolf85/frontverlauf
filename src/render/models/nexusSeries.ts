@@ -118,26 +118,29 @@ export function flameTank(f: FactionId, lite = false): Builder {
   }
   // gedrungener Turm vorn / squat turret at the front
   const ty = 0.155, tz = 0.05;
-  b.cyl(0.07, 0.08, 0.025, lite ? 8 : 12, metal, [0, ty + 0.012, tz]);
-  b.add(geo.rtaper(0.16, 0.15, 0.12, 0.11, 0.07, 0.018), plate, { p: [0, ty + 0.06, tz] });
-  b.box(0.1, 0.008, 0.006, glow, [0, ty + 0.07, tz + 0.074]);
-  // Flammenwerfer: Rohr, breite Duese, Zuendflamme / flamethrower: barrel, wide nozzle, pilot flame
-  const gy = ty + 0.05;
-  b.cyl(0.024, 0.028, 0.16, lite ? 8 : 12, metal, [0, gy, tz + 0.15], [HALF_PI, 0, 0]);
-  b.add(geo.cyl(0.044, 0.026, 0.06, lite ? 8 : 12), mat.dark, { p: [0, gy, tz + 0.255], r: [HALF_PI, 0, 0] });
-  b.add(geo.cyl(0.036, 0.036, 0.006, lite ? 8 : 12, true), mat.ink, { p: [0, gy, tz + 0.286], r: [HALF_PI, 0, 0] });
-  b.add(geo.ico(0.016, lite ? 0 : 1), mat.orange, { p: [0, gy - 0.034, tz + 0.27] });
-  if (!lite) {
-    b.add(geo.ico(0.009, 0), mat.yellow, { p: [0, gy - 0.03, tz + 0.282] });
-    b.cyl(0.006, 0.006, 0.05, 6, metal, [0, gy - 0.03, tz + 0.245], [HALF_PI, 0, 0]);
-    // Leitungen von den Tanks zum Turm / hoses from the tanks to the turret
-    for (const s of [-1, 1]) b.tube([s * 0.075, 0.24, -0.06], [s * 0.04, ty + 0.07, tz - 0.04], 0.008, 6, mat.dark);
-    for (let i = 0; i < 3; i++) b.box(0.05, 0.006, 0.006, mat.dark, [0, gy + 0.03, tz + 0.1 + i * 0.03]);
-    // Sensorkopf / sensor head
-    b.add(geo.rbox(0.04, 0.025, 0.03, 0.007), plate, { p: [-0.05, ty + 0.11, tz - 0.02] });
-    b.box(0.03, 0.01, 0.004, glow, [-0.05, ty + 0.11, tz - 0.004]);
-    antenna(b, 0.05, ty + 0.095, tz - 0.04, 0.12, glow);
-  }
+  // Leitungen von den Tanks zum Turmkranz bleiben an der Wanne / hoses from the tanks to the turret ring stay on the hull
+  if (!lite) for (const s of [-1, 1]) b.tube([s * 0.075, 0.24, -0.06], [s * 0.03, ty + 0.02, tz - 0.03], 0.008, 6, mat.dark);
+  // Drehturm um den Turmkranz / turret rotating around the turret ring
+  b.turret([0, ty, tz], () => {
+    b.cyl(0.07, 0.08, 0.025, lite ? 8 : 12, metal, [0, ty + 0.012, tz]);
+    b.add(geo.rtaper(0.16, 0.15, 0.12, 0.11, 0.07, 0.018), plate, { p: [0, ty + 0.06, tz] });
+    b.box(0.1, 0.008, 0.006, glow, [0, ty + 0.07, tz + 0.074]);
+    // Flammenwerfer: Rohr, breite Duese, Zuendflamme / flamethrower: barrel, wide nozzle, pilot flame
+    const gy = ty + 0.05;
+    b.cyl(0.024, 0.028, 0.16, lite ? 8 : 12, metal, [0, gy, tz + 0.15], [HALF_PI, 0, 0]);
+    b.add(geo.cyl(0.044, 0.026, 0.06, lite ? 8 : 12), mat.dark, { p: [0, gy, tz + 0.255], r: [HALF_PI, 0, 0] });
+    b.add(geo.cyl(0.036, 0.036, 0.006, lite ? 8 : 12, true), mat.ink, { p: [0, gy, tz + 0.286], r: [HALF_PI, 0, 0] });
+    b.add(geo.ico(0.016, lite ? 0 : 1), mat.orange, { p: [0, gy - 0.034, tz + 0.27] });
+    if (!lite) {
+      b.add(geo.ico(0.009, 0), mat.yellow, { p: [0, gy - 0.03, tz + 0.282] });
+      b.cyl(0.006, 0.006, 0.05, 6, metal, [0, gy - 0.03, tz + 0.245], [HALF_PI, 0, 0]);
+      for (let i = 0; i < 3; i++) b.box(0.05, 0.006, 0.006, mat.dark, [0, gy + 0.03, tz + 0.1 + i * 0.03]);
+      // Sensorkopf / sensor head
+      b.add(geo.rbox(0.04, 0.025, 0.03, 0.007), plate, { p: [-0.05, ty + 0.11, tz - 0.02] });
+      b.box(0.03, 0.01, 0.004, glow, [-0.05, ty + 0.11, tz - 0.004]);
+      antenna(b, 0.05, ty + 0.095, tz - 0.04, 0.12, glow);
+    }
+  });
   return b;
 }
 
