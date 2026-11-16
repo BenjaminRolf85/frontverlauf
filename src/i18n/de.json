@@ -418,6 +418,8 @@
     "ore": "Erz"
   },
   "features": {
+    "battlefield": "Schlachtfeld (umkämpft)",
+    "battlefieldHeavy": "Schlachtfeld (verwüstet)",
     "bunker": "Verlassener Bunker",
     "radar": "Radarstation",
     "village": "Neutrale Siedlung",

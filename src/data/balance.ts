@@ -923,33 +923,33 @@ export const WAR_MARKS = {
    */
   scar: {
     /** Treffer leichter Waffen (Gewehr, MG, Jeep ...) / hit by light weapons (rifle, MG, jeep ...) */
-    hit: 1,
+    hit: 2,
     /** Treffer schwerer Waffen (craterUnits) und Raketen / hit by heavy weapons (craterUnits) and rockets */
-    heavyHit: 3,
+    heavyHit: 4,
     /** Flaechenschaden auf Nachbarfeldern / splash damage on adjacent tiles */
     splash: 1,
     /** Gegenfeuer auf das Feld des Angreifers / return fire on the attacker's tile */
     returnFire: 1,
     /** Tod einer Einheit (Skelett) / death of a unit (skeleton) */
-    death: 2,
+    death: 3,
     /** Zerstoertes Fahrzeug, Schiff oder Flieger (Wrack) / destroyed vehicle, ship or flyer (wreck) */
-    wreck: 3,
+    wreck: 4,
     /** Minenexplosion / mine explosion */
-    mine: 4,
+    mine: 5,
     /** Orbitalschlag je getroffenem Feld / orbital strike per struck tile */
-    orbital: 5,
+    orbital: 6,
     /** Treffer eines Geschuetzes (Verdan-Linie, Geschuetzstellung) / hit by a gun (Verdan line, emplacement) */
     turret: 2,
     /** Meteoreinschlag (Wetter) / meteor impact (weather) */
     meteor: 1,
     /** Grosse Explosion (fuer kuenftige Kamikaze-/Sprengeffekte, addBattleScar) / big blast (for future kamikaze/blast effects, addBattleScar) */
-    blast: 4,
+    blast: 5,
     max: 30,
     light: 1,
-    medium: 6,
-    heavy: 16,
-    healAfter: 8,
-    healEvery: 2,
+    medium: 7,
+    heavy: 18,
+    healAfter: 12,
+    healEvery: 3,
     /** Rauchfahnen ueber schwer umkaempften Feldern, solange der letzte Kampf so viele Runden her ist / smoke over heavy tiles while the last fight is this many rounds ago */
     smokeRounds: 2,
   },

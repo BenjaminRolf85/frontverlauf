@@ -493,7 +493,10 @@ export class Board {
         // Schlachtfeld-Stufe (0 unberuehrt .. 3 verwuestet) / battlefield tier (0 untouched .. 3 devastated)
         const scar = scarTier(t);
         const ground = scarGround(t.terrain, t.biome, this.theme, this.snowy);
-        add(this.tileGeo(t.terrain, homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKeyTier(scar, ground)), pos, k);
+        // vernarbte Felder ohne Heimatfaerbung (verbrannte Erde; die Grenzlinien zeigen das Gebiet weiter): spart Feldgeometrien und Draw-Calls
+        // scarred tiles without the home tint (scorched earth; the border lines still show the territory): saves tile geometries and draw calls
+        const scarKey = scarKeyTier(scar, ground);
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -611,7 +614,7 @@ export class Board {
           if (!hasStructure || t.building === 'road') addDeco(jungleDecoration((x * 5 + y * 11) % 4), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.8, 0.45)) : at(), true);
         } else if (!occ && (!hasStructure || t.building === 'road') && t.terrain === 'plain' && !t.resource && scar >= 2) {
           // umkaempfte Wiese: verbranntes Gras (mittel) oder nackte Erde (schwer) / fought-over meadow: burnt grass (medium) or bare earth (heavy)
-          if (scar === 2) addDeco(burntGrassGeometry((x * 7 + y * 13) % 4), at());
+          if (scar === 2) addDeco(burntGrassGeometry((x * 7 + y * 13) % 2), at());
         } else if (!occ && (!hasStructure || t.building === 'road') && !(alien && t.resource === 'fish')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
         // brennende Lava nach einem Ausbruch / burning lava after an eruption
         if (burning(s, t)) {
@@ -631,25 +634,27 @@ export class Board {
         // Schlachtfeld ab mittlerer Stufe: Truemmer, Zaeune, Trichter, Strassenschaeden, Rauch, Oel auf See
         // battlefield from the medium tier: debris, fences, shell holes, road damage, smoke, oil at sea
         if (scar >= 2) {
-          const sv = Math.floor(tileHash(x, y, seed, 41) * 4);
+          // wenige Varianten je Modell (jede Variante kostet einen Draw-Call), Drehung sorgt fuer Abwechslung
+          // few variants per model (each variant costs a draw call), rotation adds variety
+          const sv = Math.floor(tileHash(x, y, seed, 41) * 6);
           const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 43) * Math.PI * 2);
           const put = (geo: THREE.BufferGeometry, m: THREE.Matrix4) => { if (!decals.has(geo)) decals.set(geo, []); decals.get(geo)!.push(m); };
           if (ground === 'water') {
-            if (!t.building && !alien) put(oilSlickGeometry(sv, scar >= 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.004, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (!t.building && !alien) put(oilSlickGeometry(sv % 2, scar >= 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.004, y - off), rot, new THREE.Vector3(1, 1, 1)));
           } else if (t.terrain !== 'mountain') {
             // Bauwerke, Ressourcen und Sonderorte bleiben frei lesbar / structures, resources and special sites stay readable
             const clear = (!hasStructure || t.building === 'road') && !t.resource && !t.volcano;
-            if (scar >= 3) put(shellHolesGeometry(sv), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
-            if (clear && (scar >= 3 || tileHash(x, y, seed, 47) < 0.6)) addDeco(debrisGeometry(sv), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (scar >= 3) put(shellHolesGeometry(sv % 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (clear && (scar >= 3 || tileHash(x, y, seed, 47) < 0.6)) addDeco(debrisGeometry(sv % 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
             if (clear && scar === 2 && t.terrain === 'plain' && !t.road && !cave && !alien && tileHash(x, y, seed, 53) < 0.4) {
               const side = Math.floor(tileHash(x, y, seed, 59) * 4) * (Math.PI / 2);
-              addDeco(brokenFenceGeometry(sv), new THREE.Matrix4().compose(new THREE.Vector3(x - off + Math.sin(side) * 0.4, top, y - off + Math.cos(side) * 0.4),
+              addDeco(brokenFenceGeometry(sv % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off + Math.sin(side) * 0.4, top, y - off + Math.cos(side) * 0.4),
                 new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), side), new THREE.Vector3(1, 1, 1)));
             }
-            if (t.road) put(roadDamageGeometry(sv), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (t.road) put(roadDamageGeometry(sv % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
             // Rauch in der hinteren Ecke, nur kurz nach dem Kampf / smoke in the back corner, only shortly after the fight
             if (clear && scarSmokes(scar, t.scar?.r, s.round, WAR_MARKS.scar.smokeRounds) && tileHash(x, y, seed, 61) < (low ? 0.25 : 0.5)) {
-              addDeco(smokeWispGeometry(sv), new THREE.Matrix4().makeTranslation(x - off - 0.3, top, y - off - 0.3), true);
+              addDeco(smokeWispGeometry(sv % 2), new THREE.Matrix4().makeTranslation(x - off - 0.3, top, y - off - 0.3), true);
             }
           }
         }

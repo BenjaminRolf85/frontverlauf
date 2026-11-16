@@ -418,6 +418,8 @@
     "ore": "Ore"
   },
   "features": {
+    "battlefield": "Battlefield (contested)",
+    "battlefieldHeavy": "Battlefield (devastated)",
     "bunker": "Abandoned bunker",
     "radar": "Radar station",
     "village": "Neutral settlement",
