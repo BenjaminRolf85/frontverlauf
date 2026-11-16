@@ -36,6 +36,11 @@ export interface Tile {
   peak?: number;
   /** Krater und Brandflecken (optisch) / craters and scorch marks (visual) */
   marks?: { k: 'crater' | 'scorch'; a: number; ox: number; oz: number }[];
+  /**
+   * Schlachtfeld (optisch): Kampfintensitaet v (WAR_MARKS.scar) und Runde r des letzten Kampfes; fehlt = unberuehrt
+   * (auch in alten Spielstaenden). Battlefield (visual): fighting intensity v and round r of the last fight; missing = untouched.
+   */
+  scar?: { v: number; r: number };
   /** Kettenspuren: Winkel und Runde (optisch) / track marks: angle and round (visual) */
   tracks?: { a: number; r: number }[];
   /** Fluss (optisch) / river (visual) */

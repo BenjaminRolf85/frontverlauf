@@ -16,6 +16,7 @@ import { processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
+import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
 import {
   recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers,
@@ -253,6 +254,8 @@ function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], lea
     // cult in the game: the fallen soldier becomes a memorial, a new death refreshes the duration (no stacking)
     if (leavesMemorial(u.type) && cultInGame(s)) t.memorial = { until: s.round + CULT.memorialRounds, unit: u.type, faction: u.owner };
   }
+  // Schlachtfeld: Tod hinterlaesst Spuren, Wracks (auch Schiffe auf See) mehr / battlefield: a death scars the tile, wrecks (ships at sea too) more
+  if (leaveRemains) addBattleScar(s, u.x, u.y, REMAINS.wreckUnits.includes(u.type) || UNITS[u.type].ship ? WAR_MARKS.scar.wreck : WAR_MARKS.scar.death);
   ev.push({ t: 'killed', unit: u.id, by, remains: kind, x: u.x, y: u.y });
   // Wunder zerstoert: Grundflaeche freigeben / wonder destroyed: release its footprint
   if (isWonder(u)) {
@@ -686,6 +689,8 @@ function cutAtMine(s: GameState, u: Unit, r: Reach): { reach: Reach; mine: boole
   return { reach: r, mine: false };
 }
 const isShipUnit = (u: Unit) => UNITS[u.type].ship;
+/** Schlachtfeld-Gewicht eines Treffers nach Waffe / battlefield weight of a hit by weapon */
+const scarWeight = (u: Unit, rocket = false) => (rocket || WAR_MARKS.craterUnits.includes(u.type) ? WAR_MARKS.scar.heavyHit : WAR_MARKS.scar.hit);
 
 /** Mine explodiert unter der Einheit / mine explodes under the unit. true = Einheit vernichtet / unit destroyed */
 function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
@@ -696,7 +701,7 @@ function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
   const dmg = mineDamage(s, owner, u.type);
   u.hp -= dmg;
   u.moveDone = true;
-  addMark(s, u.x, u.y, 'crater');
+  addMark(s, u.x, u.y, 'crater', WAR_MARKS.scar.mine);
   ev.push({ t: 'mineHit', unit: u.id, x: u.x, y: u.y, dmg, owner });
   spare(s, u);
   if (u.hp > 0) return false;
@@ -704,8 +709,12 @@ function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
   return true;
 }
 
-/** Kriegsspur auf einem Feld hinterlassen / leave a war mark on a tile */
-function addMark(s: GameState, x: number, y: number, k: 'crater' | 'scorch') {
+/**
+ * Kriegsspur auf einem Feld hinterlassen; weight erhoeht die Schlachtfeld-Intensitaet (scars.ts, auch auf Wasser).
+ * Leave a war mark on a tile; weight raises the battlefield intensity (scars.ts, on water too).
+ */
+function addMark(s: GameState, x: number, y: number, k: 'crater' | 'scorch', weight: number) {
+  addBattleScar(s, x, y, weight);
   const t = tileAt(s, x, y);
   if (!t || !isLand(t) || t.cityId !== null) return;
   const n = (t.marks ?? []).length;
@@ -747,7 +756,7 @@ function advance(s: GameState, ev: GameEvent[]) {
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
   if (wrapped) {
-    recordRound(s); s.round++; expireMemorials(s); processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
+    recordRound(s); s.round++; expireMemorials(s); healScars(s); processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
     // Vulkane und Geschuetze koennen den Kult ausscheiden lassen / volcanoes and guns can eliminate the cult
     checkElimination(s, ev, true);
     if (s.over) return;
@@ -864,7 +873,7 @@ function processTurrets(s: GameState, ev: GameEvent[]) {
     const hit: HitKind = hitChanceOn(s) ? rollHit(raceOdds(s, G.race, p.hp / G.hp, true), nextRandom(s)) : 'full';
     const dmg = hitDamage(base, hit);
     u.hp -= dmg;
-    if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
+    if (dmg > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.turret);
     ev.push({ t: 'turretFire', x: p.x, y: p.y, target: u.id, dmg, ...(hitChanceOn(s) ? { hit } : {}), ...(p.owner !== undefined ? { owner: p.owner, victim: u.owner } : {}) });
     spare(s, u);
     if (u.hp <= 0) killUnit(s, u, null, ev);
@@ -889,7 +898,7 @@ function processMeteors(s: GameState, ev: GameEvent[]) {
     const dmg = Math.min(u.hp - M.minHp, M.damage + (roll < M.extraChance ? 1 : 0));
     if (dmg <= 0) continue;
     u.hp -= dmg;
-    if (w === 'meteor') addMark(s, u.x, u.y, 'scorch');
+    if (w === 'meteor') addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.meteor);
     hits.push({ unit: u.id, dmg, x: u.x, y: u.y });
   }
   ev.push({ t: 'weatherHit', kind: w, hits });
@@ -926,6 +935,9 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   const destroyed = t.turret.hp <= 0;
   if (destroyed) { t.turret = null; t.turretRuin = true; if (owner !== undefined) t.turretRuinOwner = owner; }
   if (ret > 0) u.hp -= ret;
+  // Kriegsspuren an der Stellung und beim Angreifer / war marks at the emplacement and at the attacker
+  addMark(s, x, y, WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch', scarWeight(u));
+  if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
   ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}), ...(owner !== undefined ? { owner } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
@@ -1159,8 +1171,9 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   for (const sp of splash) { const o = unitById(s, sp.unit); if (sp.dmg > 0 && o && o.hp > 0) interruptWonder(s, o, ev); }
   // Kriegsspuren / war marks
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
-  addMark(s, target.x, target.y, markKind);
-  for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch'); }
+  addMark(s, target.x, target.y, markKind, scarWeight(u, rocket));
+  for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch', WAR_MARKS.scar.splash); }
+  if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
   ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   // Suende: Brandschatzen (Brand-Angriff) oder Frevel (Angriff auf die richtende Fraktion), erst nach dem Treffer
@@ -1253,7 +1266,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const dmg = retreatDamage(s, u, target);
       target.hp -= dmg;
       spare(s, target);
-      addMark(s, target.x, target.y, 'scorch');
+      addMark(s, target.x, target.y, 'scorch', scarWeight(u));
       ev.push({ t: 'attack', unit: u.id, target: target.id, dmg, ret: 0, retreat: true });
       // Frevel: Angriff auf die richtende Fraktion / sacrilege: attack on the judging faction
       if (judges(s, target.owner)) markSin(s, f, 'sacrilege', ev);
@@ -1645,7 +1658,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         kill: (u, e) => killUnit(s, u, null, e),
         spare: (u) => spare(s, u),
         interrupt: (u, e) => interruptWonder(s, u, e),
-        mark: (x, y) => addMark(s, x, y, 'scorch'),
+        mark: (x, y) => addMark(s, x, y, 'scorch', WAR_MARKS.scar.orbital),
         wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
       });
       checkElimination(s, ev);
