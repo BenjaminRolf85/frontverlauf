@@ -590,7 +590,7 @@ export class Hud {
           ${accuracyStat(s, vUnit)}
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}
         </div>
-        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}</div></div>`;
+        <div class="row">${st.abilities.filter((a) => a !== 'carry').map((a) => `<span class="tag" title="${esc(t(`abilities.${a}Desc`))}">${esc(t(`abilities.${a}`))}</span>`).join('')}${counterTags(vUnit.type).map((c) => `<span class="tag ${c.good ? '' : 'warn'}" title="${esc(t('counter.hint'))}">${esc(c.text)}</span>`).join('')}${st.returnRange !== undefined ? `<span class="tag" title="${esc(t('stats.returnRangeDesc', { n: st.returnRange }))}">${esc(t('stats.returnRange', { n: st.returnRange }))}</span>` : ''}</div></div>`;
       // Wunder: Phase, Restrunden, Unterbrechungsregel (immer sichtbar) / wonder: phase, rounds left, interruption rule (always visible)
       if (isWonder(vUnit)) body += wonderPanel(s, vUnit);
       if (myTurn && vUnit.owner === s.current) this.unitActions(s, vUnit);

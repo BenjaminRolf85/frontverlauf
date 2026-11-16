@@ -114,6 +114,13 @@ export interface UnitStats {
    * 2.5 = +150 % gegen diese Klasse, 0.6 = -40 % / 2.5 = +150 % against this class, 0.6 = -40 %.
    */
   bonusVs?: Partial<Record<CounterClass, number>>;
+  /**
+   * Hoechster Abstand fuer den Gegenschlag, falls kleiner als die Reichweite (fehlt = Reichweite). Panzer: Angriff auf 2 Felder,
+   * Gegenschlag nur auf 1 Feld (der Turm muss erst richten), damit Panzerabwehr und Scharfschuetzen aus 2 Feldern ihren Konter behalten.
+   * Largest distance for return fire if smaller than the range (missing = range). Tanks: attack at 2 tiles, return fire only
+   * at 1 tile (the turret has to traverse first), so anti-tank squads and snipers keep their counter from 2 tiles.
+   */
+  returnRange?: number;
 }
 
 /** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
@@ -213,8 +220,9 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   artillery: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false },
   spy: { cost: 40, hp: 5, attack: 0, defense: 0.5, move: 2, range: 0, vision: 1, abilities: ['invisible', 'uprising'], tech: null, ship: false },
   heli: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false },
-  // Panzer: faehrt 2 Felder und schiesst 2 Felder weit (Schnee und Panzersperre bremsen auf 1) / tank: drives 2 tiles and fires 2 tiles (snow and barriers slow it to 1)
-  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false },
+  // Panzer: faehrt 2 Felder und schiesst 2 Felder weit (Schnee und Panzersperre bremsen auf 1), Gegenschlag nur auf 1 Feld
+  // tank: drives 2 tiles and fires 2 tiles (snow and barriers slow it to 1), return fire only at 1 tile
+  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, returnRange: 1 },
   // Schiffe: LP kommen von der getragenen Einheit; cost = Aufruestpreis.
   // Ships: HP come from the carried unit; cost = upgrade price.
   landingBoat: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry'], tech: 'coastalEconomy', ship: true },
@@ -265,7 +273,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: null, ship: false, faction: 'velkar' },
   // Velkar-Varianten (siehe VARIANTS, Treffsicherheit HIT.unit) / Velkar variants (see VARIANTS, accuracy HIT.unit)
   // Tesla-Panzer: wie der Panzer, aber Angriff +40 % und eigene Trefferchancen (oft daneben) / Tesla tank: like the tank, but attack +40 % and own hit odds (often misses)
-  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar' },
+  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar', returnRange: 1 },
   // Oktokopter: Werte des Kampfhubschraubers / octocopter: the attack helicopter's values
   octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false, faction: 'velkar' },
   // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise; wie der Scharfschuetze stark gegen

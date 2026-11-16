@@ -3,8 +3,8 @@
  * Buying a city level with stars and the unit limit from city upgrades.
  */
 import { describe, expect, it } from 'vitest';
-import { applyCommand, buyLevelCheck, buyLevelCost, cityIncome, cultSlots, levelUpCost, rewardOptions, trainCheck, unitLimit, upgradeUnitLimit } from '../src/core';
-import { CITY, CITY_UPGRADES, INCOME, SUPPLY_LINE, TOWER } from '../src/data/balance';
+import { applyCommand, buyLevelCheck, cityIncome, cultSlots, levelUpCost, rewardOptions, trainCheck, unitLimit, upgradeUnitLimit } from '../src/core';
+import { CITY, CITY_UPGRADES, INCOME, PERKS, SUPPLY_LINE, TOWER } from '../src/data/balance';
 import { planNextCommand } from '../src/ai/ai';
 import { addCity, addUnit, blankGame, endTurn, fails, giveSites, ok, untilTurnOf } from './helpers';
 
@@ -134,7 +134,8 @@ describe('Stufe kaufen / buy level', () => {
 describe('Einheitenlimit durch Ausbauten / unit limit from upgrades', () => {
   it('jeder Ausbau +1 / every upgrade +1', () => {
     const { s, hq } = g();
-    const base = hq.level + CITY.unitLimitExtra;
+    // Korvat: Massenmobilisierung +1 (PERKS) / Korvat: mass mobilisation +1 (PERKS)
+    const base = hq.level + CITY.unitLimitExtra + PERKS.massMobilizationExtraUnits;
     expect(unitLimit(s, hq)).toBe(base);
     ok(s, { type: 'cityUpgrade', city: hq.id, upgrade: 'bunker' });
     expect(upgradeUnitLimit(s, hq)).toBe(1);
@@ -160,9 +161,10 @@ describe('Einheitenlimit durch Ausbauten / unit limit from upgrades', () => {
     const tower = addCity(s, 6, 6, 0);
     tower.tower = true;
     tower.upgrades = ['bunker'];
-    expect(unitLimit(s, tower)).toBe(TOWER.unitLimit);
+    const extra = PERKS.massMobilizationExtraUnits;
+    expect(unitLimit(s, tower)).toBe(TOWER.unitLimit + extra);
     s.config.theme = 'cavern';
-    expect(unitLimit(s, hq)).toBe(SUPPLY_LINE.mainShaftUnitLimit);
+    expect(unitLimit(s, hq)).toBe(SUPPLY_LINE.mainShaftUnitLimit + extra);
     expect(upgradeUnitLimit(s, hq)).toBe(0);
     // der Kult nutzt eroberte Ausbauten nicht / the cult does not use captured upgrades
     const cult = blankGame({ factions: ['vesper', 'korvat'] });
@@ -187,6 +189,7 @@ describe('Einheitenlimit durch Ausbauten / unit limit from upgrades', () => {
     ok(s, { type: 'capture', unit: inf.id });
     expect(c.owner).toBe(1);
     expect(c.upgrades).toEqual(['bunker']);
-    expect(unitLimit(s, c)).toBe(c.level + CITY.unitLimitExtra + 1);
+    // Korvat erobert: Massenmobilisierung +1, Bunker +1 / Korvat captures: mass mobilisation +1, bunker +1
+    expect(unitLimit(s, c)).toBe(c.level + CITY.unitLimitExtra + PERKS.massMobilizationExtraUnits + 1);
   });
 });

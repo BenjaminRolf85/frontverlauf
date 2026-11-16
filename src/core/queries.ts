@@ -910,7 +910,9 @@ function coverBonus(s: GameState, att: Unit, def: Unit): number {
 /** Kann das Ziel ueberhaupt zurueckschlagen? / can the target strike back at all? */
 function canReturnFire(s: GameState, att: Unit, def: Unit): boolean {
   // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
-  return !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && UNITS[def.type].range > 0 && dist(att, def) <= effectiveRange(s, def);
+  // Panzer: Gegenschlag nur auf kurze Distanz (UNITS.returnRange) / tanks: return fire only at short distance (UNITS.returnRange)
+  const reach = Math.min(effectiveRange(s, def), UNITS[def.type].returnRange ?? Infinity);
+  return !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && UNITS[def.type].range > 0 && dist(att, def) <= reach;
 }
 
 /**

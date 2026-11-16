@@ -401,7 +401,9 @@
     "kills": "Abschüsse",
     "veteran": "Veteran",
     "carrying": "trägt {unit}",
-    "noRange": "keine"
+    "noRange": "keine",
+    "returnRange": "Gegenschlag {n} Feld",
+    "returnRangeDesc": "Schießt beim Angriff 2 Felder weit, schlägt aber nur auf {n} Feld zurück: Der Turm muss erst schwenken."
   },
   "terrain": {
     "plain": "Ebene",
