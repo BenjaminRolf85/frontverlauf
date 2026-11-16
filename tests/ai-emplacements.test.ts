@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, createGame, defaultConfig, emplacementCheck, emplacementsOf, missionConfig, turretList, type Command, type GameState,
+  applyCommand, createGame, defaultConfig, emplacementCheck, emplacementLimit, emplacementsOf, missionConfig, turretList, type Command, type GameState,
 } from '../src/core';
 import { AI, EMPLACEMENT, VERDAN, type FactionId, type GameMode } from '../src/data/balance';
 import { aiDebug, planNextCommand } from '../src/ai/ai';
@@ -14,7 +14,7 @@ import { addCity, addUnit, blankGame, revealAll } from './helpers';
 
 /** Spielt wie die Oberflaeche und zaehlt Fehlbefehle und Stellungs-Ereignisse / plays like the UI and counts failed commands and emplacement events */
 function run(s: GameState, maxRounds: number) {
-  const st = { fails: 0, built: 0, shots: 0, hits: 0 };
+  const st = { fails: 0, built: 0, shots: 0, hits: 0, overLimit: 0 };
   while (!s.over && s.round <= maxRounds) {
     const f = s.current;
     for (let i = 0; i < AI.maxCommandsPerTurn + 5 && !s.over; i++) {
@@ -22,7 +22,12 @@ function run(s: GameState, maxRounds: number) {
       const res = applyCommand(s, cmd);
       if (!res.ok) st.fails++;
       for (const e of res.events) {
-        if (e.t === 'emplacement') st.built++;
+        if (e.t === 'emplacement') {
+          st.built++;
+          // beim Bau nie mehr Stellungen als erlaubt (spaeter verlorene Staedte senken das Limit, die Stellungen bleiben)
+          // never more emplacements than allowed when building (cities lost later lower the limit, the emplacements stay)
+          if (emplacementsOf(s, f).length > emplacementLimit(s, f)) st.overLimit++;
+        }
         if (e.t === 'turretFire' && e.owner !== undefined) st.shots++;
         if (e.t === 'turretHit' && e.owner !== undefined) st.hits++;
       }
@@ -58,9 +63,8 @@ describe('KI baut Geschuetzstellungen / AI builds gun emplacements', () => {
       const st = run(s, 40);
       expect(st.fails, `seed ${seed} ${mode}`).toBe(0);
       built += st.built; shots += st.shots;
-      // nie mehr Stellungen als Staedte / never more emplacements than cities
-      const d = ids.indexOf('dravon');
-      if (s.factions[d].alive) expect(emplacementsOf(s, d).length).toBeLessThanOrEqual(s.cities.filter((c) => c.owner === d).length * EMPLACEMENT.perCity);
+      // nie mehr Stellungen als Staedte, geprueft beim Bau / never more emplacements than cities, checked when building
+      expect(st.overLimit, `seed ${seed} ${mode}`).toBe(0);
     }
     expect(built).toBeGreaterThanOrEqual(4);
     expect(shots).toBeGreaterThan(0);
