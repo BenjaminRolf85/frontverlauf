@@ -10,8 +10,15 @@ import { describe, expect, it } from 'vitest';
 import {
   FACING_DIRS, canFace, combatPreview, facingTowards, hitDamage, inRearArc, rearAttackBonus, returnFire, type GameState, type Unit,
 } from '../src/core';
-import { COMBAT, type FactionId, type UnitTypeId } from '../src/data/balance';
+import { AI, COMBAT, type FactionId, type UnitTypeId } from '../src/data/balance';
+import { applyCommand, createGame, defaultConfig } from '../src/core';
+import { planNextCommand } from '../src/ai/ai';
+import { buildCtx, expectedDamage } from '../src/ai/analysis';
+import { attackValue } from '../src/ai/tactics';
 import { isValidState, migrateState } from '../src/save/save';
+import * as THREE from 'three';
+import { angleDelta, headingOf, playAttack, type AttackInfo, type CombatFx, type FxHost } from '../src/render/combat';
+import { coreHeading } from '../src/render/board';
 import { addCity, addUnit, blankGame, giveSites, ok, revealAll, unit } from './helpers';
 
 function game(factions: FactionId[] = ['alvenia', 'dravon'], hitChance = false): GameState {
@@ -245,4 +252,132 @@ describe('Schaden von hinten / damage from behind', () => {
     expect(od.facing).toBeUndefined();
     expect(combatPreview(mo, mo.units.find((u: Unit) => u.id === a.id)!, od).rear).toBe(0);
   });
+});
+
+describe('Darstellung: Wanne folgt der Ausrichtung / render: the hull follows the facing', () => {
+  /** Einheit mit Modell, optional mit Drehturm / unit with a model, optionally with a turret */
+  function unitObj(x: number, z: number, turret: boolean) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    const model = new THREE.Group();
+    model.name = 'model';
+    g.add(model);
+    if (turret) {
+      const t = new THREE.Group();
+      t.name = 'turret';
+      t.userData.turret = { rest: 0 };
+      t.position.set(0, 0.1, 0);
+      model.add(t);
+    }
+    return { g, model, turret: model.getObjectByName('turret') };
+  }
+  function host(objs: Record<number, THREE.Group>) {
+    const facing = new Map<number, number>(), aim = new Map<number, number | undefined>();
+    const h: FxHost = {
+      unitObject: (id) => objs[id],
+      anim: (_d, update) => { update(0.5); update(1); return Promise.resolve(); },
+      hold: () => {},
+      facing: (id) => facing.get(id) ?? 0,
+      setFacing: (id, a) => { facing.set(id, a); },
+      setTurretAim: (id, rel) => { aim.set(id, rel); },
+    };
+    return { h, facing, aim };
+  }
+  // Partikel ohne DOM (Testumgebung node) / particles without a DOM (node test environment)
+  const fakeFx = { emit: () => ({ obj: new THREE.Object3D(), mat: { color: new THREE.Color(), opacity: 1 } }) } as unknown as CombatFx;
+  const info = (o: Partial<AttackInfo>): AttackInfo => ({ attacker: 'tank', target: 'infantry', attackerFaction: 'korvat', targetFaction: 'dravon', attackerWater: false, targetWater: false, retaliate: false, ...o });
+
+  it('Weltwinkel der 8 Richtungen / world heading of the 8 directions', () => {
+    FACING_DIRS.forEach((d, i) => expect(coreHeading({ type: 'infantry', facing: i })).toBeCloseTo(headingOf(d.x, d.y)));
+    expect(coreHeading({ type: 'infantry', facing: undefined })).toBeUndefined();
+    expect(coreHeading({ type: 'fusionPlant', facing: 2 })).toBeUndefined();
+  });
+
+  it('ohne Turm: die Einheit dreht in die Ausrichtung des Spielstands / without a turret: the unit turns into the facing of the game state', async () => {
+    // Ziel als Springerzug: genauer Winkel ~63 Grad, Spielstand rundet auf Nordosten / knight's move target: exact ~63 degrees, the game state rounds to north-east
+    const a = unitObj(0, 0, false), d = unitObj(2, -1, false);
+    const { h, facing } = host({ 1: a.g, 2: d.g });
+    const hull = coreHeading({ type: 'infantry', facing: facingTowards({ x: 0, y: 0 }, { x: 2, y: -1 }) })!;
+    expect(Math.abs(angleDelta(hull, headingOf(2, -1)))).toBeGreaterThan(0.1);
+    await playAttack(h, fakeFx, 1, 2, info({ attacker: 'infantry', attackerHull: hull }));
+    expect(a.model.rotation.y).toBeCloseTo(hull);
+    expect(facing.get(1)).toBeCloseTo(hull);
+  });
+
+  it('mit Turm: Wanne in die Ausrichtung, Turm genau aufs Ziel / with a turret: hull into the facing, turret exactly at the target', async () => {
+    const a = unitObj(0, 0, true), d = unitObj(2, -1, false);
+    const { h, facing, aim } = host({ 1: a.g, 2: d.g });
+    const hull = coreHeading({ type: 'tank', facing: facingTowards({ x: 0, y: 0 }, { x: 2, y: -1 }) })!;
+    await playAttack(h, fakeFx, 1, 2, info({ attackerHull: hull }));
+    const rel = angleDelta(hull, headingOf(2, -1));
+    expect(a.model.rotation.y).toBeCloseTo(hull);
+    expect(facing.get(1)).toBeCloseTo(hull);
+    expect(aim.get(1)).toBeCloseTo(rel);
+    expect(a.turret!.rotation.y).toBeCloseTo(rel);
+  });
+
+  it('Gegenschlag: Verteidiger dreht zum Angreifer, ohne Gegenschlag bleibt er / return fire: the defender turns to the attacker, without it he stays', async () => {
+    const a = unitObj(0, 0, false), d = unitObj(1, 0, false);
+    d.model.rotation.y = headingOf(1, 0);
+    const { h } = host({ 1: a.g, 2: d.g });
+    await playAttack(h, fakeFx, 1, 2, info({ attacker: 'infantry', retaliate: false, attackerHull: headingOf(1, 0) }));
+    expect(d.model.rotation.y).toBeCloseTo(headingOf(1, 0));
+    await playAttack(h, fakeFx, 1, 2, info({ attacker: 'infantry', retaliate: true, attackerHull: headingOf(1, 0), targetHull: headingOf(-1, 0) }));
+    expect(Math.abs(angleDelta(d.model.rotation.y, headingOf(-1, 0)))).toBeLessThan(1e-6);
+  });
+});
+
+describe('KI und Angriff von hinten / AI and attack from behind', () => {
+  it('bewertet Angriffe in den Ruecken hoeher / values attacks into the rear higher', () => {
+    const s = game(['meridon', 'alvenia']);
+    s.factions.forEach((f) => { f.human = false; });
+    const a = addUnit(s, 'mg', 0, 5, 5);
+    const d = addUnit(s, 'tank', 1, 6, 5);
+    d.facing = W;
+    const front = attackValue(buildCtx(s, 0), a, d);
+    d.facing = E;
+    expect(attackValue(buildCtx(s, 0), a, d)).toBeGreaterThan(front);
+  });
+
+  it('offener Ruecken zaehlt als Gefahr / an exposed rear counts as danger', () => {
+    const s = game(['meridon', 'alvenia']);
+    s.factions.forEach((f) => { f.human = false; });
+    const u = addUnit(s, 'infantry', 0, 5, 5);
+    addUnit(s, 'tank', 1, 5, 7);
+    const ctx = buildCtx(s, 0);
+    const facingFoe = expectedDamage(ctx, u, 5, 5, false, S);
+    const backToFoe = expectedDamage(ctx, u, 5, 5, false, N);
+    expect(facingFoe).toBeGreaterThan(0);
+    expect(backToFoe).toBeCloseTo(facingFoe * (1 + COMBAT.rearAttack), 5);
+    expect(expectedDamage(ctx, u, 5, 5, false, undefined)).toBeCloseTo(facingFoe, 5);
+  });
+
+  it('KI-Partie ohne Fehlbefehle, mit Angriffen von hinten / AI game without failed commands, with attacks from behind', () => {
+    const s = createGame(defaultConfig({
+      seed: 33, size: 14, mode: 'conquest', mapType: 'continent', roundLimit: null, hitChance: true,
+      factions: (['korvat', 'zyrr', 'dravon', 'vesper'] as FactionId[]).map((id) => ({ id, human: false, difficulty: 'normal' as const })),
+    }));
+    let failed = 0, attacks = 0, rear = 0;
+    while (!s.over && s.round <= 30) {
+      const f = s.current;
+      for (let i = 0; i < AI.maxCommandsPerTurn + 5 && !s.over; i++) {
+        const cmd = planNextCommand(s, f);
+        let behind = false;
+        if (cmd.type === 'attack' || cmd.type === 'rocket' || cmd.type === 'retreat') {
+          const a = unit(s, cmd.unit), d = unit(s, cmd.target);
+          behind = !!a && !!d && combatPreview(s, a, d).rear > 0;
+        }
+        const r = applyCommand(s, cmd);
+        if (!r.ok) failed++;
+        else if (cmd.type === 'attack' || cmd.type === 'rocket' || cmd.type === 'retreat') { attacks++; if (behind) rear++; }
+        if (cmd.type === 'endTurn' && r.ok) break;
+      }
+    }
+    expect(failed).toBe(0);
+    expect(attacks).toBeGreaterThan(0);
+    expect(rear).toBeGreaterThan(0);
+    expect(rear).toBeLessThan(attacks);
+    // jede bewegliche Einheit hat eine Ausrichtung, Bauwerke keine / every mobile unit has a facing, structures none
+    for (const u of s.units) expect(u.facing === undefined).toBe(!canFace(u));
+  }, 120_000);
 });
