@@ -193,7 +193,8 @@ export function craterGeometry(variant: number): THREE.BufferGeometry {
     const parts: THREE.BufferGeometry[] = [];
     parts.push(part(new THREE.CircleGeometry(0.16, 12), semantic.char, M(0, 0.008, 0, -Math.PI / 2, 0, 0)));
     parts.push(part(new THREE.CircleGeometry(0.1, 10), semantic.ink, M(0, 0.01, 0, -Math.PI / 2, 0, 0)));
-    parts.push(part(new THREE.TorusGeometry(0.16, 0.028, 4, 12).scale(1, 1, 0.5), semantic.terrainPlainSide, M(0, 0.012, 0, -Math.PI / 2, 0, 0)));
+    // Rand aus aufgeworfener Erde (nicht Sand: sonst leuchten Kraterringe auf dunklem Schlachtfeld) / rim of thrown-up earth (not sand: rings would glare on a dark battlefield)
+    parts.push(part(new THREE.TorusGeometry(0.16, 0.028, 4, 12).scale(1, 1, 0.5), semantic.battleChurned, M(0, 0.012, 0, -Math.PI / 2, 0, 0)));
     for (let i = 0; i < 6; i++) {
       const a = r() * Math.PI * 2, d = 0.2 + r() * 0.08;
       parts.push(part(new THREE.DodecahedronGeometry(0.018 + r() * 0.012, 0), i % 2 ? semantic.terrainPlainSide : semantic.char, M(Math.cos(a) * d, 0.012, Math.sin(a) * d, r(), r(), r())));
@@ -344,10 +345,11 @@ export function burntGrassGeometry(variant: number): THREE.BufferGeometry {
 export function smokeWispGeometry(variant: number): THREE.BufferGeometry {
   return memo(`smokewisp-${variant}`, () => {
     const r = rnd(variant * 17 + 601);
-    const parts: THREE.BufferGeometry[] = [part(new THREE.IcosahedronGeometry(0.05, 0), semantic.char, M(0, 0.04, 0))];
-    for (let i = 0; i < 3; i++) {
-      const y = 0.14 + i * 0.15, rad = 0.06 + i * 0.03;
-      parts.push(part(new THREE.IcosahedronGeometry(rad, 0), i === 0 ? semantic.battleSmokeDark : semantic.battleSmoke, M(i * 0.05 + (r() - 0.5) * 0.03, y, -i * 0.02, r(), r(), r())));
+    const parts: THREE.BufferGeometry[] = [part(new THREE.IcosahedronGeometry(0.03, 0), semantic.char, M(0, 0.02, 0))];
+    // kleine, nach oben heller werdende Woelkchen, die im Wind schraeg abtreiben / small puffs getting lighter upwards, drifting off in the wind
+    const puffs: [number, number, number, string][] = [[0.0, 0.08, 0.035, semantic.battleSmokeDark], [0.03, 0.16, 0.045, semantic.battleSmoke], [0.07, 0.25, 0.055, semantic.battleSmoke], [0.12, 0.34, 0.06, semantic.battleSmokeLight]];
+    for (const [dx, y, rad, col] of puffs) {
+      parts.push(part(new THREE.IcosahedronGeometry(rad, 1), col, M(dx + (r() - 0.5) * 0.02, y, -dx * 0.4, r(), r(), r())));
     }
     const g = mergeGeometries(noUv(parts))!;
     g.name = `scar|smoke|${variant}`;
@@ -363,7 +365,7 @@ export function oilSlickGeometry(variant: number, big: boolean): THREE.BufferGeo
   return memo(`oilslick-${variant}-${big}`, () => {
     const r = rnd(variant * 19 + 701);
     const shape = new THREE.Shape();
-    const n = 14, base = big ? 0.3 : 0.2;
+    const n = 14, base = big ? 0.24 : 0.16;
     for (let i = 0; i <= n; i++) {
       const a = (i / n) * Math.PI * 2;
       const rad = base * (0.75 + r() * 0.35);
@@ -371,7 +373,7 @@ export function oilSlickGeometry(variant: number, big: boolean): THREE.BufferGeo
       if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
     }
     const parts: THREE.BufferGeometry[] = [part(new THREE.ShapeGeometry(shape), semantic.oil, M(0, 0.004, 0, -Math.PI / 2, 0, 0))];
-    parts.push(part(new THREE.RingGeometry(base * 0.55, base * 0.62, 12), semantic.battleSmokeDark, M(0.03, 0.006, -0.02, -Math.PI / 2, 0, 0)));
+    parts.push(part(new THREE.RingGeometry(base * 0.55, base * 0.62, 12), semantic.battleSmoke, M(0.03, 0.006, -0.02, -Math.PI / 2, 0, 0)));
     for (let i = 0; i < (big ? 4 : 2); i++) {
       const a = r() * Math.PI * 2, d = base * (0.4 + r() * 0.6);
       parts.push(part(new THREE.BoxGeometry(0.1, 0.014, 0.03), semantic.timber, M(Math.cos(a) * d, 0.01, Math.sin(a) * d, 0, r() * 3, 0)));

@@ -648,7 +648,7 @@ export class Board {
             }
             if (t.road) put(roadDamageGeometry(sv), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
             // Rauch in der hinteren Ecke, nur kurz nach dem Kampf / smoke in the back corner, only shortly after the fight
-            if (clear && scarSmokes(scar, t.scar?.r, s.round, WAR_MARKS.scar.smokeRounds) && (!low || (x + y) % 2 === 0)) {
+            if (clear && scarSmokes(scar, t.scar?.r, s.round, WAR_MARKS.scar.smokeRounds) && tileHash(x, y, seed, 61) < (low ? 0.25 : 0.5)) {
               addDeco(smokeWispGeometry(sv), new THREE.Matrix4().makeTranslation(x - off - 0.3, top, y - off - 0.3), true);
             }
           }

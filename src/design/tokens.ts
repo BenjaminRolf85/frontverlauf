@@ -569,6 +569,7 @@ export const semantic = {
   battleStumpCut: c.stump300,
   battleSmoke: c.smoke400,
   battleSmokeDark: c.smoke700,
+  battleSmokeLight: c.cloud300,
   battleCasing: c.brass400,
   alienBone: c.alienBone,
   verdanStone: c.verdanStone,

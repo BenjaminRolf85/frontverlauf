@@ -22,7 +22,7 @@ export type ScarGround = 'earth' | 'snow' | 'sand' | 'alien' | 'cave' | 'rock' |
 /** Anteil der Narbenfarbe an der Oberseite je Stufe (Stufe 1 bleibt unverfaerbt) / share of the scar colour on the top per tier (tier 1 keeps its colour) */
 export const SCAR_TINT: readonly number[] = [0, 0, 0.36, 0.62];
 /** Groesse der Krater je Stufe / crater size per tier */
-export const SCAR_MARK_SCALE: readonly number[] = [1, 1.1, 1.25, 1.4];
+export const SCAR_MARK_SCALE: readonly number[] = [1, 1, 1.1, 1.2];
 
 /**
  * Untergrund eines Feldes: Wasser, Hoehle, Alienwelt, Wueste, Schnee (Wetter oder Tundra), Fels oder Erde.
