@@ -173,7 +173,10 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
 
   // Siedlungen: zuerst eine je Startpunkt im Abstand 3, dann der Rest / villages: one per start at distance 3, then the rest
   const villages: Pos[] = [];
+  // nie direkt am Rand: mindestens MAPGEN.villageEdge Felder bis zum Kartenrand / never at the edge: at least MAPGEN.villageEdge tiles to the map edge
+  const inner = (p: Pos, edge: number = MAPGEN.villageEdge) => p.x >= edge && p.y >= edge && p.x < size - edge && p.y < size - edge;
   const cityOk = (p: Pos) => {
+    if (!inner(p)) return false;
     const t = tiles[idx(size, p.x, p.y)];
     if (t.terrain === 'shallow' || t.terrain === 'ocean') return false;
     if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
@@ -181,7 +184,8 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   };
   // Heimatsiedlung: Land, kein Radar, Abstand >= 3 zu fremden Starts und >= 2 zu anderen Siedlungen
   // home village: land, no radar, distance >= 3 to other starts and >= 2 to other villages
-  const homeOk = (p: Pos, own: Pos) => {
+  const homeOk = (p: Pos, own: Pos, edge: number = MAPGEN.villageEdge) => {
+    if (!inner(p, edge)) return false;
     const t = tiles[idx(size, p.x, p.y)];
     if (t.terrain === 'shallow' || t.terrain === 'ocean') return false;
     if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
@@ -192,10 +196,16 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   for (const s of starts) {
     const home = landComponent(size, tiles, s);
     let pick: Pos | null = null;
-    for (const d of [3, 2]) {
-      const ring: Pos[] = [];
-      for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s)) ring.push(p);
-      if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
+    // kleine Startinsel am Rand: notfalls 1 Feld Abstand zum Rand, nie direkt am Rand
+    // small start island at the edge: if need be 1 tile from the edge, never right at the edge
+    for (const edge of [MAPGEN.villageEdge, MAPGEN.villageEdgeHome]) {
+      // Abstand 3, sonst 2; schmale Randinseln notfalls 4 oder 5 / distance 3, else 2; narrow edge islands 4 or 5 if need be
+      for (const d of edge === MAPGEN.villageEdge ? [3, 2] : [3, 2, 4, 5]) {
+        const ring: Pos[] = [];
+        for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s, edge)) ring.push(p);
+        if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
+      }
+      if (pick) break;
     }
     if (!pick) {
       const ring: Pos[] = [];

@@ -128,6 +128,7 @@ describe('Siedlungen der Kampagne / campaign settlements', () => {
   it('weniger Siedlungen in der Kampagne, freie Partien unveraendert / fewer settlements in the campaign, free games unchanged', () => {
     expect(CAMPAIGN_SETTLEMENTS.surface).toBeLessThanOrEqual(0.5);
     expect(CAMPAIGN_SETTLEMENTS.desert).toBeLessThanOrEqual(0.34);
+    let campAll = 0, freeAll = 0;
     for (const m of MISSIONS) {
       const cfg = missionConfig(m.id, 'korvat');
       expect(cfg.settlements, m.id).toBe(m.settlements ?? CAMPAIGN_SETTLEMENTS[m.theme ?? 'surface']);
@@ -135,8 +136,12 @@ describe('Siedlungen der Kampagne / campaign settlements', () => {
       // Sendetuerme kommen dazu, zaehlen aber nicht als Siedlung / transmitter towers are added but do not count as settlements
       const camp = createGame(cfg).cities.filter((c) => !c.tower).length;
       const free = createGame({ ...cfg, campaign: undefined, settlements: undefined }).cities.length;
-      expect(camp, m.id).toBeLessThan(free);
+      // kleine Karten (m1, 11x11) sind durch den Randabstand der Siedlungen auch frei voll: dort gleich viele
+      // small maps (m1, 11x11) are full in a free game too because of the settlements' edge distance: equal there
+      expect(camp, m.id).toBeLessThanOrEqual(free);
+      campAll += camp; freeAll += free;
     }
+    expect(campAll).toBeLessThan(freeAll * 0.85);
     // freie Partie: kein Faktor, dieselbe Karte wie immer / free game: no factor, the same map as always
     const cfg = defaultConfig({ seed: 77, size: 14, mapType: 'continent', factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'dravon', human: false, difficulty: 'normal' }] });
     expect(cfg.settlements).toBeUndefined();
