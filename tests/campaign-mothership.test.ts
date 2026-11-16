@@ -11,13 +11,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCommand, centreShip, createGame, defenseBonus, dist, hullCover, emplacementCheck, hqOf, isLand, isSampler, missionById, missionConfig, nextToShip,
-  objectiveProgress, outdatedCampaign, raceStandings, reachable, samplerOf, shipDist, shipReachable, shipTiles, tileAt, unitAt, workCheck, workSpots,
+  convertTargets, objectiveProgress, outdatedCampaign, raceStandings, reachable, samplerOf, shipDist, shipReachable, shipTiles, tileAt, unitAt, workCheck, workSpots,
   CAMPAIGN_FACTIONS, type GameEvent, type GameState, type Pos, type Unit,
 } from '../src/core';
 import { aiDebug, planNextCommand } from '../src/ai/ai';
 import { AI, CITY_UPGRADES, M2, type FactionId } from '../src/data/balance';
 import { isValidState, migrateState } from '../src/save/save';
-import { freeFor } from '../src/core/spawn';
+import { freeFor, revealArea } from '../src/core/spawn';
 
 const game = (f: FactionId = 'korvat') => createGame(missionConfig('m2', f));
 const sci = (s: GameState) => s.units.find((u) => u.id === s.campaign!.scientist)!;
@@ -294,6 +294,20 @@ describe('m2: Wettlauf / race', () => {
     endTurn(h);
     expect(h.campaign!.status[2]).toBe('failed');
     expect(h.campaign!.result).toBe('lost');
+  });
+
+  it('Wissenschaftler im Wettlauf lassen sich nicht bekehren / scientists in the race cannot be converted', () => {
+    const s = game('korvat');
+    rivalWorks(s, 2); // Waffenruhe vorbei / truce over
+    const own = sci(s);
+    const rival = samplerOf(s, 4)!;
+    const preacher = s.units.find((u) => u.owner === 2 && u.id !== samplerOf(s, 2)!.id)!;
+    preacher.type = 'prophet';
+    for (const target of [own, rival]) {
+      placeAt(s, preacher, { x: target.x + 1, y: target.y });
+      revealArea(s, 2, target.x, target.y, 1);
+      expect(convertTargets(s, preacher).some((t) => t.id === target.id), `${target.owner}`).toBe(false);
+    }
   });
 
   it('gefallene Forscher der KI scheiden aus dem Wettlauf aus / fallen AI researchers drop out of the race', () => {

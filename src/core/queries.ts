@@ -943,7 +943,9 @@ export function convertTargets(s: GameState, u: Unit): Unit[] {
   if (!has(u, 'convert') || !canActStill(u)) return [];
   // Wunder, Endgegner und der Traeger der Kriegsplaene (m4) lassen sich nicht bekehren / wonders, bosses and the carrier of the war plans (m4) cannot be converted
   const carrier = s.campaign?.plans?.at === 'carried' ? s.campaign.plans.unit : undefined;
-  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o) && o.id !== carrier);
+  // Die Wissenschaftler des Wettlaufs am Mutterschiff (m2) ebenso nicht / nor the scientists of the mothership race (m2)
+  const samplers = new Set<number | null | undefined>([s.campaign?.scientist, ...(s.campaign?.race?.rivals.map((r) => r.unit) ?? [])]);
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) === 1 && canSeeUnit(s, u.owner, o) && !isWonder(o) && !isBoss(o) && o.id !== carrier && !samplers.has(o.id));
 }
 
 /** Ausserirdische heilen nur auf Xeno-Boden (terraformt) / aliens heal only on xeno (terraformed) ground */
