@@ -24,7 +24,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, twinCheck, twinSpot, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
   medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked,
@@ -381,7 +381,8 @@ function gainKill(s: GameState, u: Unit, ev: GameEvent[]) {
   if (has(u, 'plunder')) s.factions[u.owner].stars += UNIQUE.plunderStars;
   // Tote Schuetzen (Gegenschlag beim Flaechenschaden) und Endgegner werden nie befoerdert oder geheilt
   // dead shooters (return fire during splash) and bosses are never promoted or healed
-  if (u.hp <= 0 || isBoss(u)) return;
+  // Kamikaze-Drohnen sind nach dem Angriff verbraucht / kamikaze drones are spent after the attack
+  if (u.hp <= 0 || isBoss(u) || has(u, 'kamikaze')) return;
   if (!u.veteran && u.kills >= veteranKills(s, u)) {
     u.veteran = true;
     u.maxHp += VETERAN.bonusHp;
@@ -936,13 +937,15 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   if (destroyed) { t.turret = null; t.turretRuin = true; if (owner !== undefined) t.turretRuinOwner = owner; }
   if (ret > 0) u.hp -= ret;
   // Kriegsspuren an der Stellung und beim Angreifer / war marks at the emplacement and at the attacker
-  addMark(s, x, y, WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch', scarWeight(u));
+  addMark(s, x, y, WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch', has(u, 'kamikaze') ? WAR_MARKS.scar.blast : scarWeight(u));
   if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
-  ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}), ...(owner !== undefined ? { owner } : {}) });
+  ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}), ...(owner !== undefined ? { owner } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   if (has(u, 'submerged')) u.revealed = true;
   // Geschuetze zaehlen nie als Abschuss (Punkte, Statistik, Bonusziele) / guns never count as kills (score, stats, bonus objectives)
   if (u.hp <= 0) { killUnit(s, u, null, ev); return { ok: true, events: ev }; }
+  // Kamikaze: auch am Geschuetz explodiert die Drohne / kamikaze: the drone explodes at a gun too
+  if (has(u, 'kamikaze')) { killUnit(s, u, null, ev, false); return { ok: true, events: ev }; }
   u.attacked = true;
   if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
   if (u.moved && u.attacked) u.exhausted = true;
@@ -1171,10 +1174,11 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   for (const sp of splash) { const o = unitById(s, sp.unit); if (sp.dmg > 0 && o && o.hp > 0) interruptWonder(s, o, ev); }
   // Kriegsspuren / war marks
   const markKind = WAR_MARKS.craterUnits.includes(u.type) ? 'crater' : 'scorch';
-  addMark(s, target.x, target.y, markKind, scarWeight(u, rocket));
+  // Kamikaze-Drohne: Explosion wiegt schwer / kamikaze drone: the blast weighs heavily
+  addMark(s, target.x, target.y, markKind, has(u, 'kamikaze') ? WAR_MARKS.scar.blast : scarWeight(u, rocket));
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch', WAR_MARKS.scar.splash); }
   if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
-  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   // Suende: Brandschatzen (Brand-Angriff) oder Frevel (Angriff auf die richtende Fraktion), erst nach dem Treffer
   // sin: burning (burn attack) or sacrilege (attack on the judging faction), only after the hit
@@ -1186,6 +1190,11 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   for (const sp of splash) {
     const o = unitById(s, sp.unit);
     if (o && o.hp <= 0) { killUnit(s, o, u.id, ev); gainKill(s, u, ev); }
+  }
+  // Kamikaze: die Drohne ist mit der Explosion verbraucht (kein Wrack, kein Verlust in der Statistik) / kamikaze: the drone is spent with the explosion (no wreck, no loss in the statistics)
+  if (has(u, 'kamikaze') && u.hp > 0) {
+    killUnit(s, u, null, ev, false);
+    return { ok: true, events: ev };
   }
   if (u.hp <= 0) {
     killUnit(s, u, target.id, ev);
@@ -1380,8 +1389,17 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = trainCheck(s, c, cmd.unitType);
       if (check !== 'ok') return fail(check);
       fa.stars -= unitCost(s, f, cmd.unitType)!;
+      // Meridon "Zwei fuer einen": vor der Ausbildung pruefen, die erste Einheit belegt dann einen Platz / check before training, the first unit then takes a slot
+      const twin = twinCheck(s, c, cmd.unitType);
+      const twinAt = twin === 'twin' ? twinSpot(s, c) : null;
       const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, c.id);
-      ev.push({ t: 'train', unit: u.id, city: c.id });
+      ev.push({ t: 'train', unit: u.id, city: c.id, ...(twin ? { twin } : {}) });
+      const twins = [u];
+      if (twinAt) {
+        const u2 = spawnUnit(s, cmd.unitType, f, twinAt.x, twinAt.y, c.id);
+        twins.push(u2);
+        ev.push({ t: 'train', unit: u2.id, city: c.id, twin: 'second' });
+      }
       if (isWonder(u)) {
         ev.push({ t: 'wonder', what: 'started', kind: u.type as WonderUnitId, unit: u.id, faction: f, x: u.x, y: u.y, stage: 0 });
         res = { ok: true, events: ev };
@@ -1389,8 +1407,11 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       }
       // Kaserne oder Soeldnerkaserne: Einheit startet als Veteran / barracks or mercenary barracks: unit starts as a veteran
       if (hasCityUpgrade(c, 'barracks') || (buildingWorksFor(s, f, 'mercenaryBarracks') && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks'))) {
-        u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
-        ev.push({ t: 'veteran', unit: u.id });
+        // beide Einheiten sind gleich (Meridon) / both units are identical (Meridon)
+        for (const v of twins) {
+          v.veteran = true; v.maxHp += VETERAN.bonusHp; v.hp = v.maxHp;
+          ev.push({ t: 'veteran', unit: v.id });
+        }
       }
       res = { ok: true, events: ev };
       break;

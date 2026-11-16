@@ -57,6 +57,8 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   v += carrierAttackBonus(ctx, d) * (p.killChance + 0.4);
   // Heiliges Alvenia: Suender zuerst richten / Holy Alvenia: judge sinners first
   if (p.judgement > 0) v += AI.sinnerTarget * (0.5 + p.killChance);
+  // Kamikaze: die Drohne ist danach verbraucht / kamikaze: the drone is spent afterwards
+  if (has(a, 'kamikaze')) v -= worth(a) * AI.kamikazeCost;
   return v;
 }
 
@@ -120,6 +122,8 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
     if (lazyUnit(ctx, u)) continue;
     for (const t of attackTargets(s, u)) {
       let v = attackValue(ctx, u, t);
+      // Kamikaze nur, wenn es sich lohnt (der Wert der Drohne ist schon abgezogen) / kamikaze only when worth it (the drone's worth is already subtracted)
+      if (has(u, 'kamikaze') && v < AI.kamikazeMin) continue;
       // Fernkampf ohne Gegenschlag zuerst / ranged first (no retaliation)
       if (UNITS[u.type].range > 1) v += 1;
       const c: Command = { type: 'attack', unit: u.id, target: t.id };
@@ -138,6 +142,7 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
     if (u.fuel !== null && !u.moved && !heliSafe(s, u, u.x, u.y)) continue;
     for (const p of turretTargets(s, u)) {
       const v = gunAttackValue(ctx, u, p);
+      if (has(u, 'kamikaze') && v < AI.kamikazeMin) continue;
       const c: Command = { type: 'attackTurret', unit: u.id, x: p.x, y: p.y };
       if (v > bv && ok(failed, c)) { bv = v; best = c; }
     }
@@ -188,6 +193,8 @@ function gunAttackValue(ctx: Ctx, u: Unit, p: Pos): number {
   const prize = own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
   let v = (expected / gunStats(gun).hp) * prize + kill * prize;
   v -= ret >= u.hp ? worth(u) + 6 : (ret / u.hp) * worth(u) * 0.7;
+  // Kamikaze: die Drohne ist danach verbraucht / kamikaze: the drone is spent afterwards
+  if (has(u, 'kamikaze')) v -= worth(u) * AI.kamikazeCost;
   return v;
 }
 

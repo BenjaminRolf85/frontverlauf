@@ -21,7 +21,7 @@ export type AlienUnitId = 'grey' | 'terraformer' | 'skimmer' | 'mech' | 'tripod'
 /** Einheiten des Weltuntergangskults (nur Vesper) / doomsday cult units (Vesper only) */
 export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler' | 'faustZealot';
 /** Robotereinheiten (nur NEXUS) / robot units (NEXUS only) */
-export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone';
+export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone' | 'cyborg' | 'flameTank' | 'kamikazeDrone';
 /** Einzigartige Einheiten der fuenf klassischen Fraktionen (je eine) / unique units of the five classic factions (one each) */
 export type UniqueUnitId = 'steppeRider' | 'stormbreaker' | 'peacekeeper' | 'privateer' | 'protoWalker';
 /**
@@ -44,7 +44,12 @@ export type VelkarUnitId = 'teslaTank' | 'octocopter' | 'railSniper';
  * Holy Alvenia faction variants (replace infantry, tank and artillery in its roster, see VARIANTS).
  */
 export type AlveniaUnitId = 'lightWarden' | 'reliquary' | 'sunLance';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId;
+/**
+ * Fraktionsvariante der Korvat: Steppenkoloss statt Panzer (siehe VARIANTS).
+ * Korvat faction variant: Steppe Colossus instead of the tank (see VARIANTS).
+ */
+export type KorvatUnitId = 'steppeColossus';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId | KorvatUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -53,6 +58,9 @@ export type Ability =
   // Einzigartige Einheiten: Sturmangriff ohne Gegenschlag, Selbstheilung, Kaperbeute
   // unique units: shock assault without retaliation, self-repair, prize money
   | 'shock' | 'mend' | 'plunder'
+  // Kamikaze (NEXUS-Laufdrohne): der Angriff ist die Explosion, kein Gegenschlag, die Einheit ist danach zerstoert (KAMIKAZE)
+  // kamikaze (NEXUS walker drone): the attack is the explosion, no return fire, the unit is destroyed afterwards (KAMIKAZE)
+  | 'kamikaze'
   // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
   | 'wonder'
   // Endgegner: kein Sold, nicht bekehrbar, nimmt nichts ein, Faehigkeiten siehe SWARM_MOTHER / boss: no upkeep, not convertible, captures nothing, abilities see SWARM_MOTHER
@@ -114,6 +122,13 @@ export interface UnitStats {
    * 2.5 = +150 % gegen diese Klasse, 0.6 = -40 % / 2.5 = +150 % against this class, 0.6 = -40 %.
    */
   bonusVs?: Partial<Record<CounterClass, number>>;
+  /**
+   * Zusaetzlicher Schadensfaktor gegen Ziele bestimmter Rassen (HitRace der Zieleinheit), optional nur gegen eine Klasse;
+   * der erste passende Eintrag gilt, zusaetzlich zu bonusVs (Angriff und Gegenschlag).
+   * Extra damage multiplier against targets of certain races (the target unit's HitRace), optionally only against one class;
+   * the first matching entry applies, on top of bonusVs (attack and return fire).
+   */
+  bonusRace?: { races: HitRace[]; cls?: CounterClass; factor: number }[];
 }
 
 /** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
@@ -236,6 +251,17 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   quadDrone: { cost: 35, hp: 10, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'nexus', compute: 2 },
   railgun: { cost: 45, hp: 10, attack: 4.5, defense: 0.5, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'nexus', compute: 3 },
   titan: { cost: 60, hp: 35, attack: 4.5, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'nexus', compute: 4 },
+  // Cyborg-Infanterie: robuster und staerker als der Androide, teurer, von Beginn an (Rechenleistung 0 wie der Androide)
+  // cyborg infantry: sturdier and stronger than the android, more expensive, from the start (compute 0 like the android)
+  cyborg: { cost: 18, hp: 15, attack: 2.8, defense: 2.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
+  // Flammenwerferpanzer: Reichweite 1, Flammen ignorieren Deckung (burn: Wald, Stadt, Aussenposten), stark gegen Fusstruppen;
+  // Bewegung 2 wie die Panzer der Menschen
+  // flamethrower tank: range 1, flames ignore cover (burn: forest, city, outposts), strong against foot troops; move 2 like the human tanks
+  flameTank: { cost: 40, hp: 26, attack: 4, defense: 2.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'burn'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { foot: 1.5 } },
+  // Kamikaze-Laufdrohne: 3 Felder, explodiert beim Angriff (KAMIKAZE), stark gegen menschliche Fusstruppen und Zyrr
+  // kamikaze walker drone: 3 tiles, explodes when attacking (KAMIKAZE), strong against human foot troops and Zyrr
+  kamikazeDrone: { cost: 12, hp: 6, attack: 4.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'walker', 'kamikaze'], tech: null, ship: false, faction: 'nexus', compute: 1,
+    bonusRace: [{ races: ['human', 'cult'], cls: 'foot', factor: 2 }, { races: ['alien'], factor: 1.8 }] },
   tripod: { cost: 55, hp: 25, attack: 4.5, defense: 2, move: 1, range: 2, vision: 2, abilities: ['deathRay', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   // Konter-Einheiten (Schere-Stein-Papier, siehe COUNTER) / counter units (rock-paper-scissors, see COUNTER)
   // Panzerabwehr-Trupp: muss stehen bleiben (kein Sturm), Reichweite 2, stark gegen Fahrzeuge, schwach gegen Infanterie
@@ -274,6 +300,11 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
   sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'alvenia' },
+  // Korvat: Steppenkoloss statt Panzer: die meisten LP und der staerkste Angriff aller Panzer; Preis, Sold, Bewegung 2 und
+  // Reichweite 2 wie der Panzer (gemessen, siehe BALANCING.md)
+  // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 2 and
+  // range 2 like the tank (measured, see BALANCING.md)
+  steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -325,11 +356,12 @@ export const SWARM_MOTHER = {
 /** Einheiten der Zyrr / Zyrr roster */
 export const ALIEN_UNITS: AlienUnitId[] = ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'];
 export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'faustZealot'];
-export const ROBOT_UNITS: RobotUnitId[] = ['android', 'spider', 'quadDrone', 'railgun', 'titan', 'flakDrone'];
+export const ROBOT_UNITS: RobotUnitId[] = ['android', 'cyborg', 'kamikazeDrone', 'spider', 'quadDrone', 'flakDrone', 'railgun', 'flameTank', 'titan'];
 export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
 export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
 export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance'];
+export const KORVAT_UNITS: KorvatUnitId[] = ['steppeColossus'];
 
 /**
  * Fraktionsvarianten: die eigene Bauart ersetzt eine Grundeinheit in Liste, Stadtbelohnung und Kampagnen-Verstaerkung.
@@ -342,6 +374,8 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
   // Heiliges Alvenia: Lichtschuetzen statt Infanterie, Reliquiar statt Panzer, Sonnenlanze statt Artillerie
   // Holy Alvenia: Light Wardens instead of infantry, Reliquary instead of the tank, Sun Lance instead of artillery
   alvenia: { infantry: 'lightWarden', tank: 'reliquary', artillery: 'sunLance' },
+  // Korvat: Steppenkoloss statt Panzer / Korvat: Steppe Colossus instead of the tank
+  korvat: { tank: 'steppeColossus' },
 };
 
 /**
@@ -353,6 +387,7 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
 export const VEHICLE_UNITS: UnitTypeId[] = [
   'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
   'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank', 'reliquary', 'sunLance',
+  'steppeColossus', 'flameTank',
 ];
 /** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
 export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
@@ -406,7 +441,16 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * Upkeep: running cost per round. The first units (oldest first) are free, each further one costs
  * a share of its price (rounded up); tanks cost a flat amount.
  */
-export const UPKEEP = { freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12 } as Partial<Record<UnitTypeId, number>> };
+export const UPKEEP = {
+  freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12, steppeColossus: 12 } as Partial<Record<UnitTypeId, number>>,
+  /**
+   * Faktor auf den Gesamtsold einer Fraktion (Besitzer zaehlt). Korvat "Volksarmee": 33 % weniger Sold. Gerundet wird die
+   * Summe (aufgerundet), nicht jede Einheit: sonst bliebe Infanterie bei 3 Sternen (3 x 0,67 = 2,01, aufgerundet 3).
+   * Factor on a faction's total upkeep (the owner counts). Korvat "People's Army": 33 % less upkeep. The total is rounded
+   * (up), not each unit: otherwise infantry would stay at 3 stars (3 x 0.67 = 2.01, rounded up 3).
+   */
+  faction: { korvat: 0.67 } as Partial<Record<FactionId, number>>,
+};
 
 /** Kartenbesonderheiten / map hazards and gimmicks */
 export type HazardLevel = 'none' | 'normal' | 'many';
@@ -520,6 +564,33 @@ export const CULT = {
 
 /** NEXUS: Rechenleistung aus Rechenzentren mit Energie / NEXUS: compute from powered data centers */
 export const NEXUS = { faction: 'nexus' as FactionId };
+
+/**
+ * Kamikaze-Laufdrohne (NEXUS, Faehigkeit 'kamikaze'): der Angriff ist die Explosion. Schaden nach der normalen Formel mit
+ * Rassen-Bonus (UNITS.bonusRace), nur das Ziel (keine Nachbarn), kein Gegenschlag, kein Abzug fuer Feuern nach Bewegung (die Drohne
+ * laeuft ins Ziel). Trefferglueck wie bei Robotern: ein Fehlschuss ist ein Blindgaenger, die Drohne ist trotzdem verbraucht.
+ * Die Drohne hinterlaesst kein Wrack und zaehlt nicht als Verlust in der Statistik; Kampagnen-Effekte wie Maertyrertum loest sie nicht aus.
+ * Kamikaze walker drone (NEXUS, ability 'kamikaze'): the attack is the explosion. Damage by the normal formula with the race
+ * bonus (UNITS.bonusRace), target only (no neighbours), no return fire, no penalty for firing after moving (the drone walks
+ * into the target). Hit luck as for robots: a miss is a dud, the drone is spent anyway. The drone leaves no wreck and does not
+ * count as a loss in the statistics; it triggers no death effects such as martyrdom.
+ */
+export const KAMIKAZE = {
+  /** Abstand der Explosion: nur direkt daneben / explosion distance: right next to it only */
+  range: 1,
+};
+
+/**
+ * Meridon "Zwei fuer einen": bildet eine Stadt eine dieser Einheiten aus, erscheint eine zweite gleiche Einheit auf einem
+ * freien Nachbarfeld an Land (eigenes Gebiet zuerst), zum Preis von einer. Die zweite zaehlt fuer Sold und Stadtlimit;
+ * passt sie nicht mehr ins Limit oder ist kein Feld frei, kommt nur eine. Nur die Grundinfanterie der Kaserne.
+ * Meridon "Two for One": when a city trains one of these units, a second identical unit appears on a free adjacent land
+ * tile (own territory first), for the price of one. The second counts for upkeep and the city limit; if it no longer fits
+ * the limit or no tile is free, only one comes. Basic barracks infantry only.
+ */
+export const TWIN_TRAINING = {
+  units: { meridon: ['infantry'] } as Partial<Record<FactionId, UnitTypeId[]>>,
+};
 
 /** Terraformen und Xeno-Boden / terraforming and xeno ground */
 export const XENO = {
@@ -788,7 +859,7 @@ export const COUNTER = {
 
 /** Kettenspuren (optisch) / track marks (visual) */
 export const TRACKS = {
-  units: ['tank', 'teslaTank', 'reliquary'] as UnitTypeId[],
+  units: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'flameTank'] as UnitTypeId[],
   keepRounds: 8,
   maxPerTile: 3,
 };
@@ -909,7 +980,7 @@ export const CITY_UPGRADES = {
 
 /** Kriegsspuren (optisch): Krater von schweren Waffen, Brandflecken von allen anderen / war marks (visual) */
 export const WAR_MARKS = {
-  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance'] as UnitTypeId[],
+  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone'] as UnitTypeId[],
   maxPerTile: 4,
   /**
    * Schlachtfeld (optisch, Tile.scar): Kampfintensitaet je Feld in Punkten. Jeder Treffer, jeder Tod und jede Explosion
@@ -1210,7 +1281,7 @@ export const PRODUCTION = {
     trainingCamp: ['infantry', 'pioneer', 'medic', 'sniper', 'spy', 'steppeRider', 'peacekeeper', 'lightWarden', 'railSniper'],
     armory: ['mg', 'antiTank', 'mineLayer', 'antiAir', 'stormbreaker'],
     motorPool: ['jeep'],
-    tankWorks: ['tank', 'teslaTank', 'reliquary', 'protoWalker'],
+    tankWorks: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'protoWalker'],
     foundry: ['artillery', 'sunLance'],
     airfield: ['heli', 'octocopter'],
     navalBase: ['landingBoat', 'destroyer', 'privateer'],
@@ -1700,6 +1771,27 @@ export const AI = {
    */
   doctrineW: 1.45,
   doctrineWLead: 1.15,
+  /**
+   * Kamikaze-Drohne: der Angriff kostet die Drohne, also zieht die KI ihren Wert mal diesem Faktor ab; sie sprengt sich nur,
+   * wenn Vernichtung oder Schaden am Ziel das aufwiegen (zusaetzlich zur Mindestschwelle des Profils).
+   * Kamikaze drone: the attack costs the drone, so the AI subtracts its worth times this factor; it only blows itself up
+   * when the kill or the damage on the target outweighs that (on top of the profile's minimum threshold).
+   */
+  kamikazeCost: 1,
+  /** Kamikaze: Mindestwert eines Angriffs (Sterne-Gegenwert nach Abzug der Drohne) / kamikaze: minimum value of an attack (star equivalent after subtracting the drone) */
+  kamikazeMin: 3,
+  /**
+   * Meridon "Zwei fuer einen": Wertfaktor einer Ausbildung, die zwei Einheiten bringt; passt nur eine (Limit, kein Feld),
+   * gilt der Faktor nicht (der zweite Platz waere verschenkt).
+   * Meridon "Two for One": value factor of a training that brings two units; if only one fits (limit, no tile), the factor
+   * does not apply (the second slot would be wasted).
+   */
+  twinValue: 1.8,
+  /**
+   * Korvat: Zuschlag auf den Wert des Panzerwerks, weil dort der Steppenkoloss entsteht (die Korvat haben selten Erz).
+   * Korvat: bonus on the worth of the tank works because the Steppe Colossus is built there (Korvat rarely has ore).
+   */
+  colossusWorks: 24,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };

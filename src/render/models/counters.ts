@@ -186,20 +186,26 @@ export function antiAir(f: FactionId, lite = false): Builder {
   }
   // offener Drehturm mit Seitenschilden / open turret with side shields
   const tz = st === 'meridon' ? -0.07 : -0.03;
-  b.cyl(0.09, 0.1, 0.025, lite ? 8 : 12, L.hullDark, [0, top + 0.012, tz]);
-  b.block(0, top + 0.02, tz, 0.2, 0.04, 0.16, L.hull);
-  for (const s of [-1, 1]) {
-    if (st === 'alvenia') b.add(geo.rtaper(0.014, 0.16, 0.014, 0.1, 0.09, 0.006), L.hull, { p: [s * 0.105, top + 0.1, tz] });
-    else b.add(geo.taper(0.014, 0.16, 0.014, 0.1, 0.09, 0.0), L.hull, { p: [s * 0.105, top + 0.1, tz] });
-    if (st === 'dravon') b.box(0.016, 0.012, 0.16, L.trim, [s * 0.105, top + 0.06, tz]);
-  }
-  const quad = st === 'korvat' || st === 'meridon';
-  const dravon = st === 'dravon';
-  b.group({ p: [0, top + 0.1, tz], r: [-0.95, 0, 0] }, () => {
-    aaGuns(b, L, quad ? 4 : 2, dravon ? 0.3 : 0.24, dravon ? 0.013 : 0.01, quad ? 0.04 : 0.045, lite, st === 'velkar' ? L.secondary : undefined);
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, top, tz], () => {
+    b.cyl(0.09, 0.1, 0.025, lite ? 8 : 12, L.hullDark, [0, top + 0.012, tz]);
+    b.block(0, top + 0.02, tz, 0.2, 0.04, 0.16, L.hull);
+    for (const s of [-1, 1]) {
+      if (st === 'alvenia') b.add(geo.rtaper(0.014, 0.16, 0.014, 0.1, 0.09, 0.006), L.hull, { p: [s * 0.105, top + 0.1, tz] });
+      else b.add(geo.taper(0.014, 0.16, 0.014, 0.1, 0.09, 0.0), L.hull, { p: [s * 0.105, top + 0.1, tz] });
+      if (st === 'dravon') b.box(0.016, 0.012, 0.16, L.trim, [s * 0.105, top + 0.06, tz]);
+    }
+    const quad = st === 'korvat' || st === 'meridon';
+    const dravon = st === 'dravon';
+    b.group({ p: [0, top + 0.1, tz], r: [-0.95, 0, 0] }, () => {
+      aaGuns(b, L, quad ? 4 : 2, dravon ? 0.3 : 0.24, dravon ? 0.013 : 0.01, quad ? 0.04 : 0.045, lite, st === 'velkar' ? L.secondary : undefined);
+    });
+    // Visier / sight
+    b.add(geo.cbox(0.03, 0.03, 0.03, 0.006), mat.dark, { p: [-0.07, top + 0.14, tz + 0.03] });
+    // Munitionsgurte / ammo belts
+    if (!lite) for (let i = 0; i < 5; i++) b.box(0.01, 0.022, 0.008, mat.gold, [-0.06 + i * 0.012, top + 0.055, tz + 0.085]);
+    if (!lite) antenna(b, -0.08, top + 0.04, tz - 0.08, 0.13, L.secondary);
   });
-  // Visier / sight
-  b.add(geo.cbox(0.03, 0.03, 0.03, 0.006), mat.dark, { p: [-0.07, top + 0.14, tz + 0.03] });
   if (!lite) {
     // Radar hinten / radar at the rear
     if (st === 'alvenia' || st === 'velkar') dish(b, 0.06, top + 0.03, tz - 0.12, 0.05, -0.5, st === 'velkar' ? L.hullDark : mat.white);
@@ -208,9 +214,6 @@ export function antiAir(f: FactionId, lite = false): Builder {
       b.box(0.11, 0.035, 0.008, mat.metal, [0.07, top + 0.145, tz - 0.11], [0, 0.4, 0]);
       for (let i = 0; i < 4; i++) b.box(0.004, 0.035, 0.01, mat.dark, [0.03 + i * 0.027, top + 0.145, tz - 0.105], [0, 0.4, 0]);
     }
-    antenna(b, -0.08, top + 0.04, tz - 0.08, 0.13, L.secondary);
-    // Munitionsgurte / ammo belts
-    for (let i = 0; i < 5; i++) b.box(0.01, 0.022, 0.008, mat.gold, [-0.06 + i * 0.012, top + 0.055, tz + 0.085]);
   }
   return b;
 }

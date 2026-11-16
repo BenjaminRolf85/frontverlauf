@@ -193,29 +193,32 @@ function korvat(b: Builder, L: Look, lite: boolean) {
   }
   // grosser gegossener Turm / large cast turret
   const ty = 0.155, tz = -0.03;
-  b.add(geo.rtaper(0.24, 0.24, 0.18, 0.17, 0.09, 0.028, 0.005), L.hull, { p: [0, ty + 0.045, tz] });
-  b.add(geo.cyl(0.124, 0.124, 0.012, lite ? 10 : 16, true), L.trim, { p: [0, ty + 0.018, tz] });
-  b.add(geo.rbox(0.15, 0.06, 0.05, 0.016), L.hullDark, { p: [0, ty + 0.045, tz + 0.12] });
-  // ZWEI parallele Rohre / TWO parallel barrels
-  for (const x of [-0.034, 0.034]) gun(b, x, ty + 0.048, tz + 0.14, 0.235, 0.015, L.hullDark, { brake: 'box', sleeves: 1, lite });
-  if (!lite) {
-    b.box(0.04, 0.012, 0.03, L.hullDark, [0, ty + 0.048, tz + 0.15]);
-    // Nieten am Turm + Staukorb / turret rivets + stowage basket
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      b.box(0.007, 0.007, 0.007, L.hullDark, [Math.sin(a) * 0.112, ty + 0.03, tz + Math.cos(a) * 0.112]);
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, ty, tz], () => {
+    b.add(geo.rtaper(0.24, 0.24, 0.18, 0.17, 0.09, 0.028, 0.005), L.hull, { p: [0, ty + 0.045, tz] });
+    b.add(geo.cyl(0.124, 0.124, 0.012, lite ? 10 : 16, true), L.trim, { p: [0, ty + 0.018, tz] });
+    b.add(geo.rbox(0.15, 0.06, 0.05, 0.016), L.hullDark, { p: [0, ty + 0.045, tz + 0.12] });
+    // ZWEI parallele Rohre / TWO parallel barrels
+    for (const x of [-0.034, 0.034]) gun(b, x, ty + 0.048, tz + 0.14, 0.235, 0.015, L.hullDark, { brake: 'box', sleeves: 1, lite });
+    if (!lite) {
+      b.box(0.04, 0.012, 0.03, L.hullDark, [0, ty + 0.048, tz + 0.15]);
+      // Nieten am Turm + Staukorb / turret rivets + stowage basket
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        b.box(0.007, 0.007, 0.007, L.hullDark, [Math.sin(a) * 0.112, ty + 0.03, tz + Math.cos(a) * 0.112]);
+      }
+      b.add(geo.cbox(0.17, 0.035, 0.04, 0.006), L.trim, { p: [0, ty + 0.035, tz - 0.135] });
+      for (const x of [-0.06, 0, 0.06]) b.box(0.006, 0.037, 0.042, mat.dark, [x, ty + 0.035, tz - 0.135]);
+      cupola(b, L, -0.05, ty + 0.09, tz - 0.04, 0.036, lite);
+      commander(b, f, -0.05, ty + 0.1, tz - 0.04, 7);
+      b.cyl(0.025, 0.028, 0.016, 10, L.hullDark, [0.055, ty + 0.098, tz - 0.02]);
+      roofMg(b, L, 0.055, ty + 0.106, tz - 0.02, L.trim);
+      // Winkelspiegel vorn am Turm / periscopes at the turret front
+      for (const x of [-0.07, 0.07]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.095, tz + 0.05] });
+      antenna(b, 0.075, ty + 0.09, tz - 0.1, 0.2, L.trim);
+      sideEmblems(b, f, L, 0.112, ty + 0.05, tz - 0.02, 0.032);
     }
-    b.add(geo.cbox(0.17, 0.035, 0.04, 0.006), L.trim, { p: [0, ty + 0.035, tz - 0.135] });
-    for (const x of [-0.06, 0, 0.06]) b.box(0.006, 0.037, 0.042, mat.dark, [x, ty + 0.035, tz - 0.135]);
-    cupola(b, L, -0.05, ty + 0.09, tz - 0.04, 0.036, lite);
-    commander(b, f, -0.05, ty + 0.1, tz - 0.04, 7);
-    b.cyl(0.025, 0.028, 0.016, 10, L.hullDark, [0.055, ty + 0.098, tz - 0.02]);
-    roofMg(b, L, 0.055, ty + 0.106, tz - 0.02, L.trim);
-    // Winkelspiegel vorn am Turm / periscopes at the turret front
-    for (const x of [-0.07, 0.07]) b.add(geo.cbox(0.022, 0.016, 0.016, 0.004), mat.dark, { p: [x, ty + 0.095, tz + 0.05] });
-    antenna(b, 0.075, ty + 0.09, tz - 0.1, 0.2, L.trim);
-    sideEmblems(b, f, L, 0.112, ty + 0.05, tz - 0.02, 0.032);
-  }
+  });
 }
 
 // ---------- Dravon ----------
@@ -247,24 +250,27 @@ function dravon(b: Builder, L: Look, lite: boolean) {
   }
   // scharfer Keilturm weit hinten / sharp wedge turret set far back
   const ty = 0.14, tz = -0.08;
-  b.add(geo.prismXZ([[-0.12, -0.12], [0.12, -0.12], [0.13, 0.03], [0.06, 0.15], [-0.06, 0.15], [-0.13, 0.03]], 0.072), L.hull, { p: [0, ty, tz] });
-  b.add(geo.prismXZ([[-0.1, -0.1], [0.1, -0.1], [0.11, 0.02], [0.04, 0.12], [-0.04, 0.12], [-0.11, 0.02]], 0.02), shade(L.hull, 0.85), { p: [0, ty + 0.072, tz] });
-  b.add(geo.prismXZ([[-0.125, -0.12], [0.125, -0.12], [0.135, 0.03], [-0.135, 0.03]], 0.008), gold, { p: [0, ty + 0.034, tz] });
-  b.add(geo.prismXZ([[-0.12, -0.13], [0.12, -0.13], [0.12, -0.12], [-0.12, -0.12]], 0.05), mat.dark, { p: [0, ty + 0.01, tz] });
-  // ueberlanges Geschuetz mit grosser Muendungsbremse / very long gun with big muzzle brake
-  b.add(geo.cbox(0.07, 0.05, 0.05, 0.012), shade(L.hull, 0.8), { p: [0, ty + 0.036, tz + 0.16] });
-  gun(b, 0, ty + 0.036, tz + 0.18, 0.33, 0.021, shade(L.hull, 0.8), { brake: 'big', sleeves: 2, lite });
-  if (!lite) {
-    // Koax-MG, Dach-MG, Kommandant, Antennen, Embleme / coaxial MG, roof MG, commander, antennas, emblems
-    b.cyl(0.004, 0.004, 0.08, 6, mat.dark, [0.045, ty + 0.03, tz + 0.2], [HALF_PI, 0, 0]);
-    roofMg(b, L, 0.06, ty + 0.092, tz - 0.01, gold);
-    cupola(b, L, -0.05, ty + 0.092, tz - 0.03, 0.034, lite);
-    commander(b, f, -0.05, ty + 0.1, tz - 0.03, 7);
-    antenna(b, 0.09, ty + 0.072, tz - 0.1, 0.18, gold);
-    antenna(b, -0.09, ty + 0.072, tz - 0.1, 0.15, gold);
-    sideEmblems(b, f, L, 0.127, ty + 0.05, tz - 0.04, 0.03, gold);
-    b.box(0.006, 0.006, 0.12, gold, [0, ty + 0.093, tz]);
-  }
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, ty, tz], () => {
+    b.add(geo.prismXZ([[-0.12, -0.12], [0.12, -0.12], [0.13, 0.03], [0.06, 0.15], [-0.06, 0.15], [-0.13, 0.03]], 0.072), L.hull, { p: [0, ty, tz] });
+    b.add(geo.prismXZ([[-0.1, -0.1], [0.1, -0.1], [0.11, 0.02], [0.04, 0.12], [-0.04, 0.12], [-0.11, 0.02]], 0.02), shade(L.hull, 0.85), { p: [0, ty + 0.072, tz] });
+    b.add(geo.prismXZ([[-0.125, -0.12], [0.125, -0.12], [0.135, 0.03], [-0.135, 0.03]], 0.008), gold, { p: [0, ty + 0.034, tz] });
+    b.add(geo.prismXZ([[-0.12, -0.13], [0.12, -0.13], [0.12, -0.12], [-0.12, -0.12]], 0.05), mat.dark, { p: [0, ty + 0.01, tz] });
+    // ueberlanges Geschuetz mit grosser Muendungsbremse / very long gun with big muzzle brake
+    b.add(geo.cbox(0.07, 0.05, 0.05, 0.012), shade(L.hull, 0.8), { p: [0, ty + 0.036, tz + 0.16] });
+    gun(b, 0, ty + 0.036, tz + 0.18, 0.33, 0.021, shade(L.hull, 0.8), { brake: 'big', sleeves: 2, lite });
+    if (!lite) {
+      // Koax-MG, Dach-MG, Kommandant, Antennen, Embleme / coaxial MG, roof MG, commander, antennas, emblems
+      b.cyl(0.004, 0.004, 0.08, 6, mat.dark, [0.045, ty + 0.03, tz + 0.2], [HALF_PI, 0, 0]);
+      roofMg(b, L, 0.06, ty + 0.092, tz - 0.01, gold);
+      cupola(b, L, -0.05, ty + 0.092, tz - 0.03, 0.034, lite);
+      commander(b, f, -0.05, ty + 0.1, tz - 0.03, 7);
+      antenna(b, 0.09, ty + 0.072, tz - 0.1, 0.18, gold);
+      antenna(b, -0.09, ty + 0.072, tz - 0.1, 0.15, gold);
+      sideEmblems(b, f, L, 0.127, ty + 0.05, tz - 0.04, 0.03, gold);
+      b.box(0.006, 0.006, 0.12, gold, [0, ty + 0.093, tz]);
+    }
+  });
 }
 
 // ---------- Alvenia ----------
@@ -291,32 +297,35 @@ function alvenia(b: Builder, L: Look, lite: boolean) {
   }
   // glatter, flacher Turm mit Panzermodulen / smooth low turret with armour modules
   const ty = 0.13, tz = -0.02;
-  b.add(geo.rtaper(0.24, 0.25, 0.17, 0.17, 0.07, 0.022, 0.012), L.hull, { p: [0, ty + 0.035, tz] });
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < 3; i++) b.add(geo.rbox(0.03, 0.05, 0.06, 0.008), shade(L.hull, 0.9), { p: [s * 0.12, ty + 0.032, tz - 0.07 + i * 0.065], r: [0, 0, s * 0.18] });
-    b.add(geo.rtaper(0.07, 0.03, 0.05, 0.02, 0.05, 0.006), shade(L.hull, 0.9), { p: [s * 0.075, ty + 0.03, tz + 0.12], r: [0.3, s * 0.2, 0] });
-  }
-  // weisse Streifen auf dem Turmdach / white stripes on the turret roof
-  for (const x of [-0.03, 0.03]) b.box(0.016, 0.004, 0.16, white, [x, ty + 0.071, tz - 0.01]);
-  b.add(geo.cbox(0.07, 0.05, 0.04, 0.012), L.hullDark, { p: [0, ty + 0.035, tz + 0.13] });
-  gun(b, 0, ty + 0.035, tz + 0.15, 0.27, 0.015, L.hullDark, { brake: 'ring', sleeves: 3, lite, seg: 12 });
-  if (!lite) {
-    b.cyl(0.024, 0.024, 0.05, 12, L.hullDark, [0, ty + 0.035, tz + 0.29], [HALF_PI, 0, 0]);
-    // Nebelwerfer 4x2 / smoke dischargers 4x2
-    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
-      b.cyl(0.007, 0.007, 0.026, 6, mat.dark, [s * (0.085 + i * 0.011), ty + 0.07, tz + 0.085 - i * 0.012], [0.6, 0, s * 0.35]);
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, ty, tz], () => {
+    b.add(geo.rtaper(0.24, 0.25, 0.17, 0.17, 0.07, 0.022, 0.012), L.hull, { p: [0, ty + 0.035, tz] });
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < 3; i++) b.add(geo.rbox(0.03, 0.05, 0.06, 0.008), shade(L.hull, 0.9), { p: [s * 0.12, ty + 0.032, tz - 0.07 + i * 0.065], r: [0, 0, s * 0.18] });
+      b.add(geo.rtaper(0.07, 0.03, 0.05, 0.02, 0.05, 0.006), shade(L.hull, 0.9), { p: [s * 0.075, ty + 0.03, tz + 0.12], r: [0.3, s * 0.2, 0] });
     }
-    // Rundblickperiskop + Kommandant / panoramic sight + commander
-    b.cyl(0.012, 0.014, 0.04, 10, L.hullDark, [0.055, ty + 0.09, tz - 0.03]);
-    b.add(geo.rbox(0.04, 0.026, 0.034, 0.008), L.hullDark, { p: [0.055, ty + 0.122, tz - 0.03] });
-    b.box(0.03, 0.012, 0.004, mat.glass, [0.055, ty + 0.124, tz - 0.012]);
-    cupola(b, L, -0.05, ty + 0.07, tz - 0.04, 0.034, lite);
-    roofMg(b, L, 0.05, ty + 0.07, tz - 0.03, L.trim);
-    commander(b, f, -0.05, ty + 0.08, tz - 0.04, 7);
-    antenna(b, -0.09, ty + 0.07, tz - 0.1, 0.2, white);
-    b.add(geo.cbox(0.16, 0.03, 0.035, 0.008), L.hullDark, { p: [0, ty + 0.035, tz - 0.135] });
-    sideEmblems(b, f, L, 0.137, ty + 0.035, tz - 0.0, 0.026, white);
-  }
+    // weisse Streifen auf dem Turmdach / white stripes on the turret roof
+    for (const x of [-0.03, 0.03]) b.box(0.016, 0.004, 0.16, white, [x, ty + 0.071, tz - 0.01]);
+    b.add(geo.cbox(0.07, 0.05, 0.04, 0.012), L.hullDark, { p: [0, ty + 0.035, tz + 0.13] });
+    gun(b, 0, ty + 0.035, tz + 0.15, 0.27, 0.015, L.hullDark, { brake: 'ring', sleeves: 3, lite, seg: 12 });
+    if (!lite) {
+      b.cyl(0.024, 0.024, 0.05, 12, L.hullDark, [0, ty + 0.035, tz + 0.29], [HALF_PI, 0, 0]);
+      // Nebelwerfer 4x2 / smoke dischargers 4x2
+      for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
+        b.cyl(0.007, 0.007, 0.026, 6, mat.dark, [s * (0.085 + i * 0.011), ty + 0.07, tz + 0.085 - i * 0.012], [0.6, 0, s * 0.35]);
+      }
+      // Rundblickperiskop + Kommandant / panoramic sight + commander
+      b.cyl(0.012, 0.014, 0.04, 10, L.hullDark, [0.055, ty + 0.09, tz - 0.03]);
+      b.add(geo.rbox(0.04, 0.026, 0.034, 0.008), L.hullDark, { p: [0.055, ty + 0.122, tz - 0.03] });
+      b.box(0.03, 0.012, 0.004, mat.glass, [0.055, ty + 0.124, tz - 0.012]);
+      cupola(b, L, -0.05, ty + 0.07, tz - 0.04, 0.034, lite);
+      roofMg(b, L, 0.05, ty + 0.07, tz - 0.03, L.trim);
+      commander(b, f, -0.05, ty + 0.08, tz - 0.04, 7);
+      antenna(b, -0.09, ty + 0.07, tz - 0.1, 0.2, white);
+      b.add(geo.cbox(0.16, 0.03, 0.035, 0.008), L.hullDark, { p: [0, ty + 0.035, tz - 0.135] });
+      sideEmblems(b, f, L, 0.137, ty + 0.035, tz - 0.0, 0.026, white);
+    }
+  });
 }
 
 // ---------- Meridon ----------
@@ -365,20 +374,23 @@ function meridon(b: Builder, L: Look, lite: boolean) {
   }
   // kleiner Turm mit kurzem Rohr / small turret with short gun
   const ty = 0.115, tz = 0.0;
-  b.add(geo.ctaper(0.15, 0.15, 0.13, 0.12, 0.055, 0.02), L.hull, { p: [0, ty + 0.0275, tz] });
-  container(b, 0, ty + 0.025, tz - 0.105, 0.13, 0.045, 0.05, orange, lite ? 0 : 4, 'x');
-  for (const s of [-1, 1]) b.box(0.004, 0.012, 0.13, orange, [s * 0.072, ty + 0.045, tz]);
-  b.add(geo.cbox(0.05, 0.04, 0.03, 0.01), L.hullDark, { p: [0, ty + 0.028, tz + 0.085] });
-  gun(b, 0, ty + 0.028, tz + 0.1, 0.17, 0.011, L.hullDark, { brake: 'ring', sleeves: 1, lite });
-  if (!lite) {
-    b.cyl(0.003, 0.003, 0.06, 6, mat.dark, [0.03, ty + 0.03, tz + 0.12], [HALF_PI, 0, 0]);
-    cupola(b, L, -0.035, ty + 0.055, tz - 0.02, 0.03, lite);
-    roofMg(b, L, 0.04, ty + 0.055, tz - 0.02, null);
-    commander(b, f, -0.035, ty + 0.065, tz - 0.02, 7);
-    antenna(b, 0.05, ty + 0.055, tz - 0.06, 0.2, orange);
-    b.add(geo.profileZY([[0, 0], [-0.05, -0.012], [0, -0.024]], 0.004), orange, { p: [0.05, ty + 0.255, tz - 0.084] });
-    sideEmblems(b, f, L, 0.075, ty + 0.03, tz + 0.02, 0.022, mat.paper);
-  }
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, ty, tz], () => {
+    b.add(geo.ctaper(0.15, 0.15, 0.13, 0.12, 0.055, 0.02), L.hull, { p: [0, ty + 0.0275, tz] });
+    container(b, 0, ty + 0.025, tz - 0.105, 0.13, 0.045, 0.05, orange, lite ? 0 : 4, 'x');
+    for (const s of [-1, 1]) b.box(0.004, 0.012, 0.13, orange, [s * 0.072, ty + 0.045, tz]);
+    b.add(geo.cbox(0.05, 0.04, 0.03, 0.01), L.hullDark, { p: [0, ty + 0.028, tz + 0.085] });
+    gun(b, 0, ty + 0.028, tz + 0.1, 0.17, 0.011, L.hullDark, { brake: 'ring', sleeves: 1, lite });
+    if (!lite) {
+      b.cyl(0.003, 0.003, 0.06, 6, mat.dark, [0.03, ty + 0.03, tz + 0.12], [HALF_PI, 0, 0]);
+      cupola(b, L, -0.035, ty + 0.055, tz - 0.02, 0.03, lite);
+      roofMg(b, L, 0.04, ty + 0.055, tz - 0.02, null);
+      commander(b, f, -0.035, ty + 0.065, tz - 0.02, 7);
+      antenna(b, 0.05, ty + 0.055, tz - 0.06, 0.2, orange);
+      b.add(geo.profileZY([[0, 0], [-0.05, -0.012], [0, -0.024]], 0.004), orange, { p: [0.05, ty + 0.255, tz - 0.084] });
+      sideEmblems(b, f, L, 0.075, ty + 0.03, tz + 0.02, 0.022, mat.paper);
+    }
+  });
 }
 
 // ---------- Velkar ----------
@@ -418,30 +430,34 @@ function velkar(b: Builder, L: Look, lite: boolean) {
     }
     b.add(geo.cbox(0.12, 0.012, 0.06, 0.006), mat.ink, { p: [0, 0.122, -0.14] });
   }
+  // Embleme an den Schuerzen (Wanne) / emblems on the skirts (hull)
+  if (!lite) sideEmblems(b, f, L, 0.198, 0.065, 0.165, 0.022, green);
   // unbemannter Turm (Waffenstation) / unmanned turret (weapon station)
   const ty = 0.12, tz = -0.02;
-  b.cyl(0.1, 0.11, 0.05, 6, L.hull, [0, ty + 0.025, tz], [0, Math.PI / 6, 0]);
-  b.cyl(0.09, 0.1, 0.006, 6, green, [0, ty + 0.053, tz], [0, Math.PI / 6, 0]);
-  b.add(geo.rtaper(0.1, 0.12, 0.08, 0.1, 0.045, 0.01), shade(L.hull, 0.9), { p: [0, ty + 0.078, tz + 0.01] });
-  b.add(geo.cbox(0.06, 0.04, 0.04, 0.01), L.hullDark, { p: [0, ty + 0.075, tz + 0.08] });
-  gun(b, 0, ty + 0.075, tz + 0.1, 0.24, 0.016, L.hullDark, { brake: 'box', sleeves: 1, lite });
-  if (!lite) {
-    // Kamera + Sensormast + kleine Waffenstation / camera + sensor mast + small weapon station
-    b.add(geo.cbox(0.03, 0.026, 0.032, 0.006), mat.dark, { p: [0.055, ty + 0.1, tz + 0.06] });
-    b.cyl(0.009, 0.009, 0.004, 8, green, [0.055, ty + 0.1, tz + 0.077], [HALF_PI, 0, 0]);
-    b.tube([-0.04, ty + 0.1, tz - 0.04], [-0.04, ty + 0.23, tz - 0.05], 0.005, 6, mat.dark);
-    b.add(geo.rbox(0.05, 0.03, 0.03, 0.008), L.hullDark, { p: [-0.04, ty + 0.245, tz - 0.05] });
-    b.box(0.03, 0.014, 0.004, green, [-0.04, ty + 0.245, tz - 0.034]);
-    b.cyl(0.03, 0.03, 0.004, 12, mat.white, [-0.04, ty + 0.268, tz - 0.05]);
-    roofMg(b, L, 0.045, ty + 0.1, tz - 0.035, null);
-    b.add(geo.cbox(0.02, 0.016, 0.02, 0.004), mat.dark, { p: [0.045, ty + 0.15, tz - 0.035] });
-    b.box(0.006, 0.006, 0.004, green, [0.045, ty + 0.15, tz - 0.024]);
-    for (const s of [-1, 1]) b.box(0.006, 0.006, 0.09, green, [s * 0.06, ty + 0.1, tz + 0.01]);
-    antenna(b, 0.08, ty + 0.05, tz - 0.08, 0.18, green);
-    sideEmblems(b, f, L, 0.198, 0.065, 0.165, 0.022, green);
-    // Schneetarn / snow camo
-    for (const [x, z] of [[0.06, -0.06], [-0.07, 0.03], [0.03, 0.05]] as [number, number][]) b.box(0.03, 0.004, 0.024, mat.snow, [x, ty + 0.1, tz + z]);
-  }
+  // Drehturm: dreht sich zum Ziel (siehe Builder.turret) / turret: turns towards the target (see Builder.turret)
+  b.turret([0, ty, tz], () => {
+    b.cyl(0.1, 0.11, 0.05, 6, L.hull, [0, ty + 0.025, tz], [0, Math.PI / 6, 0]);
+    b.cyl(0.09, 0.1, 0.006, 6, green, [0, ty + 0.053, tz], [0, Math.PI / 6, 0]);
+    b.add(geo.rtaper(0.1, 0.12, 0.08, 0.1, 0.045, 0.01), shade(L.hull, 0.9), { p: [0, ty + 0.078, tz + 0.01] });
+    b.add(geo.cbox(0.06, 0.04, 0.04, 0.01), L.hullDark, { p: [0, ty + 0.075, tz + 0.08] });
+    gun(b, 0, ty + 0.075, tz + 0.1, 0.24, 0.016, L.hullDark, { brake: 'box', sleeves: 1, lite });
+    if (!lite) {
+      // Kamera + Sensormast + kleine Waffenstation / camera + sensor mast + small weapon station
+      b.add(geo.cbox(0.03, 0.026, 0.032, 0.006), mat.dark, { p: [0.055, ty + 0.1, tz + 0.06] });
+      b.cyl(0.009, 0.009, 0.004, 8, green, [0.055, ty + 0.1, tz + 0.077], [HALF_PI, 0, 0]);
+      b.tube([-0.04, ty + 0.1, tz - 0.04], [-0.04, ty + 0.23, tz - 0.05], 0.005, 6, mat.dark);
+      b.add(geo.rbox(0.05, 0.03, 0.03, 0.008), L.hullDark, { p: [-0.04, ty + 0.245, tz - 0.05] });
+      b.box(0.03, 0.014, 0.004, green, [-0.04, ty + 0.245, tz - 0.034]);
+      b.cyl(0.03, 0.03, 0.004, 12, mat.white, [-0.04, ty + 0.268, tz - 0.05]);
+      roofMg(b, L, 0.045, ty + 0.1, tz - 0.035, null);
+      b.add(geo.cbox(0.02, 0.016, 0.02, 0.004), mat.dark, { p: [0.045, ty + 0.15, tz - 0.035] });
+      b.box(0.006, 0.006, 0.004, green, [0.045, ty + 0.15, tz - 0.024]);
+      for (const s of [-1, 1]) b.box(0.006, 0.006, 0.09, green, [s * 0.06, ty + 0.1, tz + 0.01]);
+      antenna(b, 0.08, ty + 0.05, tz - 0.08, 0.18, green);
+      // Schneetarn / snow camo
+      for (const [x, z] of [[0.06, -0.06], [-0.07, 0.03], [0.03, 0.05]] as [number, number][]) b.box(0.03, 0.004, 0.024, mat.snow, [x, ty + 0.1, tz + z]);
+    }
+  });
 }
 
 export function tank(f: FactionId, lite = false): Builder {

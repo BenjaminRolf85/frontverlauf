@@ -9,13 +9,13 @@ import {
 import { BUILDINGS, PRODUCTION, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
 import { doctrineText, needsText } from './production';
-import { num, t } from '../i18n/i18n';
+import { has, num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
 import { techT } from './terms';
 import { victoryShortText } from './victory';
 import { emplacementRuleParams } from './emplacement';
-import { combatBonusTexts, memorialText } from './factionInfo';
+import { combatBonusTexts, featureParams, memorialText } from './factionInfo';
 
 const pct = (f: number) => Math.round(f * 100);
 /** Faktor als Text mit Komma im Deutschen / factor as text, comma in German */
@@ -28,7 +28,7 @@ function sections(): Section[] {
   return [
     { id: 'goal', icon: 'medal', params: { rounds: MODES.pointsRounds, tile: SCORE.revealedTile, territory: SCORE.territoryTile, level: SCORE.cityLevel, tech: SCORE.techPerTier } },
     { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq } },
-    { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0 } },
+    { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0, korvat: Math.round((1 - (UPKEEP.faction.korvat ?? 1)) * 100) } },
     { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => combatBonusLines() + unitHitLines() },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
@@ -46,6 +46,8 @@ function sections(): Section[] {
       extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p>` },
     // Heiliges Alvenia: Suende, Strafgericht, Segen / Holy Alvenia: sin, judgement, blessing
     { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] } },
+    // Eigene Bauarten und Ausbildungsregeln (Korvat, Meridon, Velkar, Alvenia, NEXUS) / own designs and training rules
+    { id: 'factionUnits', icon: 'heavyTank', extra: featureLines },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
 }
@@ -85,6 +87,11 @@ function unitHitLines(): string {
     return `<li><strong>${esc(t(`units.${u}`))}${f ? ` (${esc(t(`factions.${f}.short`))})` : ''}:</strong> ${esc(odds)}</li>`;
   });
   return rows.length ? `<p>${esc(t('hit.unitRule'))}</p><ul>${rows.join('')}</ul>` : '';
+}
+
+/** Eine Zeile je Fraktionsmerkmal (eigene Bauarten, Zahlen aus balance.ts) / one line per faction feature (own designs, numbers from balance.ts) */
+function featureLines(): string {
+  return `<ul>${FACTION_IDS.filter((f) => has(`factions.${f}.feature`)).map((f) => `<li><strong>${esc(t(`factions.${f}.feature`))} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(t(`factions.${f}.featureDesc`, featureParams(f)))}</li>`).join('')}</ul>`;
 }
 
 /** Eine Zeile je Fraktion: Siegbedingung und Siegtechnologie / one line per faction: victory condition and victory tech */

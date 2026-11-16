@@ -439,6 +439,24 @@ export class Controller {
     this.ui.update();
   }
 
+  /**
+   * Schnelle KI ohne Animation: Ausrichtung von Einheiten und Drehtuermen trotzdem nachfuehren (Fahrtrichtung, Ziel,
+   * Gegenschlag), sonst zeigen Rohre nach der Runde in beliebige Richtungen.
+   * Fast AI without animation: still update the facing of units and turrets (driving direction, target, return fire),
+   * otherwise barrels point anywhere after the turn.
+   */
+  private faceEvents(s: GameState, events: GameEvent[], before: Map<number, { x: number; y: number }>) {
+    const board = this.view.board;
+    for (const e of events) {
+      if (e.t === 'move') { const from = before.get(e.unit); if (from) board.faceMove(s, e.unit, from, e.path); }
+      else if (e.t === 'attack') {
+        const ab = before.get(e.unit), tb = before.get(e.target);
+        if (tb) board.faceTarget(s, e.unit, tb);
+        if (ab && (e.ret > 0 || e.retHit === 'miss')) board.faceTarget(s, e.target, ab);
+      } else if (e.t === 'turretHit') board.faceTarget(s, e.unit, { x: e.x, y: e.y });
+    }
+  }
+
   /** Kommando ausfuehren und animieren / execute and animate a command */
   async exec(cmd: Command, opts: { ai?: boolean } = {}): Promise<CommandResult> {
     const s = this.state!;
@@ -463,7 +481,7 @@ export class Controller {
             if (animate && from && board.unitObject(e.unit) && (visible(from.x, from.y) || e.path.some((p) => visible(p.x, p.y)))) {
               this.play('move');
               await board.animateMove(s, e.unit, from, e.path);
-            }
+            } else if (from) board.faceMove(s, e.unit, from, e.path);
             break;
           }
           case 'attack': {
@@ -489,6 +507,8 @@ export class Controller {
             };
             // Gegenschlag / retaliation
             const returnFire = () => { if (seen && tb) audio.weapon(tb.type); };
+            // Gegenschlag auch dann zeigen, wenn er daneben geht / show the return fire even when it misses
+            const retaliates = e.ret > 0 || e.retHit === 'miss';
             const returnHit = () => {
               const att = unitById(s, e.unit) ?? null;
               const ap = att ? { x: att.x, y: att.y } : before.get(e.unit);
@@ -500,7 +520,7 @@ export class Controller {
               const retShake = seen ? impactShake(weaponOf(tb.type)) * 0.8 : 0;
               await board.animateAttack(e.unit, e.target, {
                 attacker: ab.type, target: tb.type, attackerFaction: fid(ab.owner), targetFaction: fid(tb.owner),
-                attackerWater: water(ab), targetWater: water(tb), retaliate: e.ret > 0, splash: (e.splash ?? []).map((sp) => sp.unit),
+                attackerWater: water(ab), targetWater: water(tb), retaliate: retaliates, splash: (e.splash ?? []).map((sp) => sp.unit),
                 onFire: fire,
                 onImpact: () => { hit(); this.view.shake(shake); },
                 onReturnFire: returnFire,
@@ -508,7 +528,10 @@ export class Controller {
               });
             } else {
               fire(); hit(); returnHit();
-              if (e.ret > 0) window.setTimeout(returnFire, 280);
+              if (retaliates) window.setTimeout(returnFire, 280);
+              // ohne Animation: Ausrichtung (Turm oder Einheit) sofort setzen / without animation: set the facing (turret or unit) at once
+              if (tb) board.faceTarget(s, e.unit, tb);
+              if (retaliates && ab) board.faceTarget(s, e.target, ab);
             }
             break;
           }
@@ -528,6 +551,15 @@ export class Controller {
             if (visible(c.x, c.y)) this.ui.fx('capture', c.x, c.y);
             // Kult: erbeutete Sterne ueber der Stadt / cult: plundered stars above the city
             if (e.plunder && visible(c.x, c.y)) this.ui.fx('num', c.x, c.y, `+${e.plunder}`);
+            break;
+          }
+          // Meridon "Zwei fuer einen": die zweite Einheit erscheint sichtbar; nur eine, wenn Limit oder Platz fehlen
+          // Meridon "Two for One": the second unit appears visibly; only one if the limit or the space is missing
+          case 'train': {
+            const nu = unitById(s, e.unit);
+            if (!e.twin || !nu || nu.owner !== this.viewer) break;
+            if (e.twin === 'second') { if (visible(nu.x, nu.y)) this.ui.fx('levelUp', nu.x, nu.y); this.ui.toast(t('twin.trained', { unit: t(`units.${nu.type}`) }), 'people'); }
+            else if (e.twin !== 'twin') this.ui.toast(t(`twin.${e.twin}`), 'warning');
             break;
           }
           // Kult: Rekrut im Feld / cult: recruit in the field
@@ -612,12 +644,12 @@ export class Controller {
             audio.weapon(ab.type);
             if (animate && board.unitObject(e.unit)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.unit, false, {
-                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0, ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
+                unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0 || e.retHit === 'miss', ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
                 onImpact: () => { hit(); this.view.shake(e.destroyed ? SHAKE.wreck : impactShake(weaponOf(ab.type))); },
                 onReturnFire: () => audio.weapon('tank'),
                 onReturnImpact: back,
               });
-            } else { hit(); back(); }
+            } else { hit(); back(); board.faceTarget(s, e.unit, { x: e.x, y: e.y }); }
             break;
           }
           // Endgegner: Auftauchen, psychischer Schrei, Brut / boss: emergence, psychic scream, brood
@@ -773,9 +805,10 @@ export class Controller {
           const fast = this.aiSpeed === 'instant' || this.speedUp || !this.view.board.animations;
           let res: CommandResult;
           if (fast) {
+            const before = new Map(s.units.map((u) => [u.id, { x: u.x, y: u.y }]));
             res = applyCommand(s, cmd);
             this.onCommand?.(cmd, res);
-            if (res.ok) { for (const e of res.events) this.ui.event(e, s); this.ui.afterCommand?.(res.events); }
+            if (res.ok) { for (const e of res.events) this.ui.event(e, s); this.ui.afterCommand?.(res.events); this.faceEvents(s, res.events, before); }
           } else {
             res = await this.exec(cmd, { ai: true });
             const delay = AI_DELAY[this.aiSpeed];

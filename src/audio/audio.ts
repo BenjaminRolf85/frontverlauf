@@ -26,7 +26,9 @@ export type Weapon =
   // Velkar: Tesla-Entladung, Spulengewehr, Oktokopter-Raketen / Velkar: Tesla discharge, coil rifle, octocopter rockets
   | 'tesla' | 'coil' | 'droneRockets'
   // Heiliges Alvenia: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Holy Alvenia: light rifle, light gun, sun beam
-  | 'radiant' | 'radiantGun' | 'sunBeam' | 'none';
+  | 'radiant' | 'radiantGun' | 'sunBeam'
+  // NEXUS: Sprengladung der Kamikaze-Drohne / NEXUS: blast charge of the kamikaze drone
+  | 'blast' | 'none';
 
 export const WEAPON: Record<UnitTypeId, Weapon> = {
   infantry: 'rifle', sniper: 'sniper', jeep: 'mg', pioneer: 'rifle', mg: 'mg', medic: 'none', artillery: 'artillery',
@@ -48,6 +50,10 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   teslaTank: 'tesla', octocopter: 'droneRockets', railSniper: 'coil',
   // Alvenia-Bauarten: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Alvenia designs: light rifle, light gun, sun beam
   lightWarden: 'radiant', reliquary: 'radiantGun', sunLance: 'sunBeam',
+  // Korvat: Steppenkoloss / Korvat: Steppe Colossus
+  steppeColossus: 'cannon',
+  // NEXUS: Cyborg, Flammenwerferpanzer, Kamikaze-Drohne (Sprengladung) / NEXUS: cyborg, flamethrower tank, kamikaze drone (blast charge)
+  cyborg: 'energy', flameTank: 'flame', kamikazeDrone: 'blast',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
@@ -369,6 +375,12 @@ export class AudioEngine {
         this.explosion(t + 1.05, 0.5);
         break;
       }
+      case 'blast':
+        // Kamikaze-Drohne: kurzes Piepen, dann die Sprengladung / kamikaze drone: short beeps, then the blast charge
+        for (let i = 0; i < 3; i++) this.tone(1900, t + i * 0.09, 0.05, 'square', 0.14, out, 1, 0.002);
+        this.boom(t + 0.3, 1, 60, out);
+        this.explosion(t + 0.32, 0.9);
+        break;
       case 'flame':
         this.noise(t, 0.9, 0.55, 700, out, { type: 'lowpass', freqEnd: 1600, attack: 0.08 });
         this.noise(t, 0.9, 0.2, 3000, out, { type: 'highpass', attack: 0.1 });
