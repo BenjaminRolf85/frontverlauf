@@ -80,7 +80,8 @@ export type BuildingId =
 export type GrandProjectId =
   | 'peaceMonument' | 'stateBank' | 'victoryColumn' | 'worldTradeCenter' | 'governmentPalace' | 'academy'
   | 'satelliteCenter';
-export type MapSize = 11 | 14 | 16 | 18 | 22 | 26;
+/** 28 nur fuer die Kampagne m2 (Alle gegen alle am Mutterschiff), nicht in der Spielauswahl / 28 only for campaign m2 (free-for-all at the mothership), not in the game setup */
+export type MapSize = 11 | 14 | 16 | 18 | 22 | 26 | 28;
 export type MapType = 'continent' | 'lakes' | 'continents' | 'islands' | 'waterworld';
 export type Difficulty = 'easy' | 'normal' | 'hard' | 'extreme';
 export type GameMode = 'points' | 'conquest' | 'sandbox' | 'endless';
@@ -160,7 +161,7 @@ export const WONDERS = {
    * Alvenia, Great Judgement: this many destroyed units of sinners (SIN) per map size; only kills with the victory tech
    * researched count.
    */
-  judgementKills: { 11: 18, 14: 22, 16: 24, 18: 26, 22: 29, 26: 33 } as Record<MapSize, number>,
+  judgementKills: { 11: 18, 14: 22, 16: 24, 18: 26, 22: 29, 26: 33, 28: 35 } as Record<MapSize, number>,
   /**
    * Faktor auf das Ziel nach Zahl der Gegner (Index = Gegner, danach 1): im Zweikampf richtet Alvenia nur einen Gegner, aber
    * oft (Kult). Wie beim Kult und bei Korvat skaliert die Bedingung mit der Fraktionszahl.
@@ -275,8 +276,11 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   coreDrill: { cost: WONDERS.cost.coreDrill, hp: 20, attack: 0, defense: 2.5, move: 1, range: 0, vision: 1, abilities: ['wonder'], tech: 'coreDrilling', ship: false, faction: 'vesper' },
   // Endgegner: Schwarmmutter Xyl'Tharra, schwebt, Reichweite 2, Faehigkeiten siehe SWARM_MOTHER / boss: Swarm Mother Xyl'Tharra, floats, range 2, abilities see SWARM_MOTHER
   swarmMother: { cost: null, hp: 60, attack: 5, defense: 4, move: 1, range: 2, vision: 2, abilities: ['boss', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
-  // Kampagne m2: Wissenschaftler, kaempft nicht, wenig LP, arbeitet am Mutterschiff (M2) / campaign m2: scientist, no combat, low HP, works on the mothership (M2)
-  scientist: { cost: null, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: [], tech: null, ship: false },
+  // Kampagne m2: Wissenschaftler, kaempft nicht, arbeitet am Mutterschiff (M2); Bewegung 2 fuer den weiten Weg zur Kartenmitte,
+  // Schutzanzug (18 LP, Verteidigung 3), weil ihn im Wettlauf alle jagen
+  // campaign m2: scientist, no combat, works on the mothership (M2); movement 2 for the long way to the map centre,
+  // protective suit (18 HP, defence 3) because everyone hunts it in the race
+  scientist: { cost: null, hp: 18, attack: 0, defense: 3, move: 2, range: 0, vision: 1, abilities: [], tech: null, ship: false },
 };
 
 /**
@@ -1371,38 +1375,92 @@ export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hq
 export const TOWER_HOLD = { m1Rounds: 5, m1Towers: 2, m1FastRound: 12, m1MissionRounds: 16, m1RaidRound: 8, m1RaidDistance: 2 };
 
 /**
- * Kampagne m2 (Das Mutterschiff): ein abgestuerztes Zyrr-Mutterschiff (2x2 Felder, unpassierbar) liegt shipMin..shipMax
- * Felder vor dem eigenen Hauptquartier, mindestens zyrrDistance Felder vom Hauptquartier der Zyrr. Der Wissenschaftler
- * arbeitet daneben ("Am Schiff arbeiten", beendet seinen Zug): workRounds Arbeitsrunden insgesamt (nicht in Folge) gewinnen
- * den Einsatz, sein Tod verliert ihn. Wellen landen waveDistance Felder vom Schiff. Bonus: Sieg bis fastRound, der
- * Wissenschaftler faellt nie unter hpShare seiner LP.
- * Campaign m2 (The Mothership): a crashed Zyrr mothership (2x2 tiles, impassable) lies shipMin..shipMax tiles in front of
- * the own HQ, at least zyrrDistance tiles from the Zyrr HQ. The scientist works next to it ("Work on the ship", ends its
- * turn): workRounds work rounds in total (not in a row) win the mission, its death loses it. Waves land waveDistance tiles
- * from the ship. Bonus: win by fastRound, the scientist never drops below hpShare of its HP.
+ * Kampagne m2 (Das Mutterschiff, alle gegen alle): Karte size x size, das abgestuerzte Zyrr-Mutterschiff (2x2 Felder,
+ * unpassierbar) liegt genau in der Mitte. Sechs Fraktionen starten startInset Felder vom Rand: vier in den Ecken (der
+ * Spieler immer in einer Ecke), zwei an den Mitten zweier gegenueberliegender Kanten. Die Zyrr haben keine Basis, ihre
+ * Wellen landen waveDistance Felder vom Schiff. Jede Fraktion hat einen Wissenschaftler (der Kult einen abtruennigen
+ * Forscher, gleiche Einheit); wer zuerst workRounds Arbeitsrunden (zusammengezaehlt) schafft, gewinnt die Probe. Bis zur
+ * ersten Arbeit am Schiff herrscht Waffenruhe zwischen allen ausser den Zyrr, danach Krieg aller gegen alle. Bonus: Sieg
+ * bis fastRound, der Wissenschaftler faellt nie unter hpShare seiner LP.
+ * Campaign m2 (The Mothership, free-for-all): map size x size, the crashed Zyrr mothership (2x2 tiles, impassable) lies
+ * exactly in the centre. Six factions start startInset tiles from the edge: four in the corners (the player always in a
+ * corner), two at the midpoints of two opposite edges. The Zyrr have no base, their waves land waveDistance tiles from
+ * the ship. Every faction has a scientist (the cult a renegade researcher, same unit); whoever first manages workRounds
+ * work rounds (cumulative) wins the sample. Until the first work at the ship there is a truce between everyone but the
+ * Zyrr, then war of all against all. Bonus: win by fastRound, the scientist never drops below hpShare of its HP.
  */
 export const M2 = {
   workRounds: 8,
-  missionRounds: 18,
-  fastRound: 14,
+  missionRounds: 26,
+  fastRound: 20,
   hpShare: 0.5,
-  shipMin: 6,
-  shipMax: 8,
-  zyrrDistance: 4,
-  /** freie Landfelder im Ring um das Schiff (von 12) / free land tiles in the ring around the ship (of 12) */
-  ringLand: 9,
+  /** Kartengroesse und Abstand der Startpunkte vom Rand / map size and distance of the start points from the edge */
+  size: 28 as MapSize,
+  startInset: 3,
+  /** Krater: der Aufprall hat die Berge bis so weit um das Schiff eingeebnet / crater: the impact levelled the mountains this far around the ship */
+  crater: 3,
+  /** Landepunkte der Wellen: Abstand zum Schiff / wave landing points: distance to the ship */
   waveDistance: 3,
   /** Truppe des Spielers am Hauptquartier (dazu der Wissenschaftler) / the player's troops at the HQ (plus the scientist) */
   playerUnits: ['tank', 'jeep', 'infantry', 'mg'] as UnitTypeId[],
-  /** Sterne der Zyrr zu Beginn (ihr Lager ist ausgebrannt) / Zyrr stars at the start (their camp is burnt out) */
+  /** Truppe jeder KI-Menschenfraktion (dazu Starteinheit und Wissenschaftler) / troops of every AI human faction (plus start unit and scientist) */
+  rivalUnits: ['jeep', 'mg'] as UnitTypeId[],
+  /** Truppe des Kults (dazu seine Starthorde und der Forscher) / troops of the cult (plus its starting horde and the researcher) */
+  cultUnits: [] as UnitTypeId[],
+  /** Sterne der Zyrr zu Beginn (keine Basis, sie leben von den Wellen) / Zyrr stars at the start (no base, they live off the waves) */
   zyrrStars: 0,
   /** Wachen am Schiff zu Beginn / guards at the ship at the start */
-  guards: ['grey', 'grey', 'grey', 'mech'] as UnitTypeId[],
+  guards: ['grey', 'grey', 'grey'] as UnitTypeId[],
   /**
-   * KI: Gegner jagen den Wissenschaftler, Wachen bleiben am Schiff; die Spieler-Seite eskortiert ihn.
-   * AI: enemies hunt the scientist, guards stay at the ship; the player side escorts it.
+   * Wellen der Zyrr: Runde, Einheiten, Landepunkt (0 Norden, 1 Osten, 2 Sueden, 3 Westen des Schiffs), Sterne fuer den Sold.
+   * Zyrr waves: round, units, landing point (0 north, 1 east, 2 south, 3 west of the ship), stars for the upkeep.
    */
-  ai: { huntValue: 125, huntCap: 2, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3, shipValue: 60, shipCap: 2, clearValue: 95, clearCap: 2, clearRange: 2, spotPenalty: 40 },
+  waves: [
+    { round: 3, units: ['grey', 'grey'], at: 0, stars: 4 },
+    { round: 5, units: ['grey', 'grey'], at: 1, stars: 4 },
+    { round: 7, units: ['grey', 'skimmer'], at: 2, stars: 5 },
+    { round: 9, units: ['grey', 'grey', 'skimmer'], at: 3, stars: 5 },
+    { round: 11, units: ['grey', 'grey', 'mech'], at: 0, stars: 6 },
+    { round: 13, units: ['grey', 'skimmer', 'mech'], at: 1, stars: 6 },
+    { round: 15, units: ['grey', 'grey', 'skimmer'], at: 2, stars: 6 },
+    { round: 17, units: ['grey', 'grey', 'mech'], at: 3, stars: 6 },
+    { round: 19, units: ['grey', 'skimmer', 'mech'], at: 0, stars: 6 },
+    { round: 21, units: ['grey', 'grey', 'mech'], at: 1, stars: 6 },
+    { round: 23, units: ['grey', 'skimmer', 'mech'], at: 2, stars: 6 },
+  ] as { round: number; units: UnitTypeId[]; at: number; stars: number }[],
+  /**
+   * Wettlauf: die Forscher der KI-Fraktionen erscheinen erst zu Beginn dieser Runde an ihrem Hauptquartier (1 = sofort);
+   * Warnhinweis, sobald einer Fraktion nur noch raceWarn Runden fehlen.
+   * Race: the AI factions' researchers only appear at their HQ at the start of this round (1 = at once); warning toast
+   * once a faction is only raceWarn rounds short.
+   */
+  rivalStartRound: 1,
+  raceWarn: 2,
+  /**
+   * Deckung der Huelle: Verteidigungsbonus (wie ein Wrack) fuer einen Wissenschaftler direkt neben dem Schiff.
+   * Hull cover: defence bonus (like a wreck) for a scientist right next to the ship.
+   */
+  hullCover: 2,
+  /**
+   * KI: Jaeger auf feindliche Wissenschaftler (Wert steigt mit deren Fortschritt), Wachen am Schiff, Eskorte des eigenen.
+   * AI: hunters on hostile scientists (value rises with their progress), guards at the ship, escort of the own one.
+   */
+  ai: {
+    huntValue: 125, huntCap: 2, huntProgress: 6, attackBonus: 35, guardValue: 75, guardCap: 2, escortValue: 115, escortCap: 3,
+    clearValue: 95, clearCap: 2, clearRange: 3, spotPenalty: 40,
+    /** Jagd nur auf Wissenschaftler hoechstens so weit vom Schiff (oder neben eigenen Einheiten) / hunt only scientists at most this far from the ship (or next to own units) */
+    huntRange: 4,
+    /** Wissenschaftler wartet bis zu waitDistance vor dem Arbeitsplatz, solange in waitRange mehr Gegner als eigene Kaempfer stehen / the scientist waits up to waitDistance before the work spot while more enemies than own fighters stand within waitRange */
+    waitDistance: 4, waitRange: 2,
+    /** unterwegs wartet er, wenn kein eigener Kaempfer so nah ist; Vortrupp am angesteuerten Arbeitsplatz / on the way it waits if no own fighter is this close; vanguard at the targeted work spot */
+    escortGap: 1, vanguardCap: 2,
+    /** Anteil von Jagdwert und Angriffszuschlag fuer die Zyrr (sie verteidigen das Wrack gegen alle) / share of hunt value and attack bonus for the Zyrr (they defend the wreck against everyone) */
+    swarmHunt: 0,
+    /** Waffenruhe: Abzug je fremder bewaffneter Einheit, die das Feld des eigenen Wissenschaftlers erreicht / truce: penalty per foreign armed unit that reaches the own scientist's tile */
+    truceExposure: 12,
+    /** Wert des Wissenschaftlers fuer Vorsicht und Angriff (sonst 10 wie eine billige Einheit) / scientist's worth for caution and attacks (otherwise 10 like a cheap unit) */
+    scientistWorth: 30,
+  },
 };
 
 /**

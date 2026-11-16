@@ -11,11 +11,13 @@
  *
  * Der Spieler waehlt eine menschliche Fraktion und ist immer Fraktion 0; die Gegner sind nur Sonderfraktionen
  * (Zyrr, Kult, NEXUS). Manche Missionen bringen eine verbuendete Menschen-Fraktion (KI, im Frieden mit dem Spieler,
- * geteilte Karte); sie steht immer hinter den Gegnern. Die Einrichtung setzt nur allgemeine Menschen-Einheiten
+ * geteilte Karte); sie steht immer hinter den Gegnern. In m2 (alle gegen alle) spielen die anderen vier Menschen-Fraktionen
+ * als KI-Rivalen mit, direkt hinter den Gegnern (MissionDef.rivals). Die Einrichtung setzt nur allgemeine Menschen-Einheiten
  * (Infanterie, MG, Jeep, Panzer, Artillerie), damit jede Mission fuer alle fuenf Menschen-Fraktionen funktioniert.
  * The player picks a human faction and is always faction 0; the enemies are special factions only
  * (Zyrr, cult, NEXUS). Some missions add an allied human faction (AI, at peace with the player, shared map);
- * it always comes after the enemies. The setup places only generic human units (infantry, MG, jeep, tank,
+ * it always comes after the enemies. In m2 (free-for-all) the other four human factions take part as AI rivals, right
+ * after the enemies (MissionDef.rivals). The setup places only generic human units (infantry, MG, jeep, tank,
  * artillery), so every mission works for all five human factions.
  *
  * "Halten"-Ziele gelten bis zum Missionsende (Rundenlimit) oder bis alle "Erreichen"-Ziele erfuellt sind;
@@ -28,10 +30,10 @@ import {
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, factionVariant, hqOf, isHostile, ownCities, score, unitAt } from './queries';
-import { findShipSpot, placeShip, scientistOf, shipDist } from './mothership';
+import { centreShip, placeShip, scientistOf, shipDist, updateRace } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import { chooseTempleSite, placeTemple, runPursuit, templeDist, templeRing, updatePlans } from './temple';
-import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, Unit } from './types';
+import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, RaceState, Unit } from './types';
 import { WORLDS, worldOf } from './worlds';
 
 /**
@@ -178,12 +180,20 @@ export interface SetupKit {
    */
   towers(): City[];
   /**
-   * Mutterschiff (m2, 2x2 Felder) zwischen home und enemy setzen (das Modell selbst ist die Markierung); liefert die linke obere Ecke.
-   * Put the mothership (m2, 2x2 tiles) between home and enemy (the model itself is the marker); returns the top-left corner.
+   * Mutterschiff (m2, 2x2 Felder) genau in die Kartenmitte setzen (das Modell selbst ist die Markierung); liefert die linke obere Ecke.
+   * Put the mothership (m2, 2x2 tiles) exactly into the map centre (the model itself is the marker); returns the top-left corner.
    */
-  mothership(home: Pos, enemy: Pos): Pos | null;
-  /** Wissenschaftler des Spielers nahe einem Punkt (m2) / the player's scientist near a point (m2) */
-  scientist(near: Pos): Unit | null;
+  mothership(): Pos;
+  /**
+   * Wissenschaftler einer Fraktion nahe einem Punkt (m2; Standard der Spieler, sonst als Forscher im Wettlauf).
+   * Scientist of a faction near a point (m2; default the player, otherwise as a researcher in the race).
+   */
+  scientist(near: Pos, owner?: number): Unit | null;
+  /**
+   * Basis einer Fraktion aufloesen (m2, die Zyrr): Hauptquartier, Gebiet, Xeno-Boden und Einheiten verschwinden.
+   * Dissolve a faction's base (m2, the Zyrr): HQ, territory, xeno ground and units vanish.
+   */
+  dissolve(owner: number): void;
   /**
    * Fanatiker-Tempel (2x2) mit den Kriegsplaenen, Platz aus TEMPLE_PLANS relativ zu from (Hauptquartier des Spielers)
    * und dem Hauptquartier von owner; null, wenn kein Platz passt.
@@ -236,6 +246,13 @@ export interface MissionDef {
   /** Landetrupp: der Spieler beginnt ohne Stadt (siehe CampaignState.landing) / landing party: the player starts without a city */
   landing?: boolean;
   /**
+   * Alle gegen alle (m2): die anderen vier Menschen-Fraktionen spielen als KI-Rivalen mit (hinter den Gegnern), feste
+   * Startpunkte (missionStarts), Waffenruhe bis zur ersten Probe (CampaignState.race).
+   * Free-for-all (m2): the other four human factions take part as AI rivals (after the enemies), fixed start points
+   * (missionStarts), truce until the first sample (CampaignState.race).
+   */
+  rivals?: boolean;
+  /**
    * Endgegner: taucht am Zielfeld at auf, sobald eine Spielereinheit nahe kommt oder ab einer Runde (SWARM_MOTHER), und wird
    * als Zieleinheit markiert (CampaignState.units).
    * Boss: emerges at target tile at once a player unit comes close or from a round (SWARM_MOTHER), and is marked as a
@@ -260,16 +277,16 @@ export interface MissionDef {
 
 /**
  * Verbuendete Menschen-Fraktion je Spielerfraktion und Mission (fest, nie die eigene). Die diplomatischen Fraktionen
- * bekommen oefter Hilfe: Alvenia in 7, Meridon in 6, die anderen in 2 Missionen. Auf der Alienwelt helfen sich nur
+ * bekommen oefter Hilfe: Alvenia und Meridon in 6, die anderen in 2 Missionen (m2 ist alle gegen alle, ohne Verbuendeten). Auf der Alienwelt helfen sich nur
  * die beiden Diplomaten gegenseitig (m11); die Landetrupps (m10, m12) sind allein; in der Wueste stehen ihnen andere
  * gestrandete Menschen bei (m13, m14).
  * Allied human faction per player faction and mission (fixed, never the own one). The diplomatic factions
- * get help more often: Alvenia in 7, Meridon in 6, the others in 2 missions. On the alien world only the two
+ * get help more often: Alvenia and Meridon in 6, the others in 2 missions (m2 is free-for-all, without an ally). On the alien world only the two
  * diplomats help each other (m11); the landing parties (m10, m12) are alone; in the desert other stranded humans
  * stand by them (m13, m14).
  */
 export const CAMPAIGN_ALLIES: Partial<Record<FactionId, Record<string, FactionId>>> = {
-  alvenia: { m2: 'meridon', m4: 'korvat', m6: 'velkar', m8: 'dravon', m11: 'meridon', m14: 'korvat', m9: 'meridon' },
+  alvenia: { m4: 'korvat', m6: 'velkar', m8: 'dravon', m11: 'meridon', m14: 'korvat', m9: 'meridon' },
   meridon: { m5: 'dravon', m7: 'velkar', m3: 'alvenia', m11: 'alvenia', m13: 'velkar', m9: 'alvenia' },
   korvat: { m6: 'alvenia', m9: 'dravon' },
   dravon: { m8: 'velkar', m9: 'meridon' },
@@ -310,40 +327,44 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     },
   },
   {
-    // Das Mutterschiff: der Wissenschaftler arbeitet M2.workRounds Runden am Wrack, Wellen der Zyrr jagen ihn
-    // the mothership: the scientist works M2.workRounds rounds at the wreck, Zyrr waves hunt him
-    id: 'm2', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }],
-    seed: 2202, size: 16, mapType: 'continent', hazards: 'none', weather: true, events: false, startStars: 30, rounds: M2.missionRounds,
-    objectives: [{ k: 'work', rounds: M2.workRounds }, { k: 'scientist' }], bonus: [{ k: 'fast', rounds: M2.fastRound }, { k: 'scientistHp' }],
-    briefing: ['scout', 'enemy', 'hq'], persuade: true,
-    // alle drei Runden eine Welle, abwechselnd hinter dem Schiff und an seiner Flanke, langsam staerker
-    // a wave every three rounds, alternating behind the ship and at its flank, slowly growing
-    waves: [
-      { round: 4, owner: 1, units: ['grey', 'grey'], at: 0, stars: 4 },
-      { round: 7, owner: 1, units: ['grey', 'grey'], at: 1, stars: 4 },
-      { round: 10, owner: 1, units: ['grey', 'skimmer'], at: 0, stars: 5 },
-      { round: 13, owner: 1, units: ['grey', 'grey', 'skimmer'], at: 1, stars: 5 },
-      { round: 16, owner: 1, units: ['grey', 'grey', 'mech'], at: 0, stars: 6 },
-    ],
+    // Das Mutterschiff, alle gegen alle: sechs Fraktionen um das Wrack in der Kartenmitte, Waffenruhe bis zur ersten
+    // Probe; wer zuerst M2.workRounds Runden daran arbeitet, gewinnt. Die Zyrr haben keine Basis, ihre Wellen landen am Schiff.
+    // the mothership, free-for-all: six factions around the wreck in the map centre, truce until the first sample;
+    // whoever first works M2.workRounds rounds on it wins. The Zyrr have no base, their waves land at the ship.
+    id: 'm2', level: 'easy', enemies: [{ id: 'zyrr', difficulty: 'easy' }, { id: 'vesper', difficulty: 'easy' }], rivals: true,
+    seed: 2240, size: M2.size, mapType: 'continent', hazards: 'none', weather: true, events: false, startStars: 30, rounds: M2.missionRounds,
+    objectives: [{ k: 'work', rounds: M2.workRounds }, { k: 'scientist' }, { k: 'holdHq' }], bonus: [{ k: 'fast', rounds: M2.fastRound }, { k: 'scientistHp' }],
+    briefing: ['scout', 'enemy', { speaker: 'enemy', enemy: 1 }, 'hq'], persuade: true,
+    // alle zwei Runden landet eine Welle an einer anderen Seite des Schiffs, langsam staerker
+    // every two rounds a wave lands at another side of the ship, slowly growing
+    waves: M2.waves.map((w) => ({ ...w, owner: 1, units: [...w.units] })),
     setup(k) {
-      const a = k.hq(0), b = k.hq(1);
-      const v = k.grantNear(0, a) ?? a;
-      const ship = k.mothership(a, b);
+      const s = k.s;
+      const swarm = s.campaign!.race!.swarm;
+      // das Lager der Zyrr in der Mitte ist das Wrack / the Zyrr camp in the centre is the wreck
+      k.dissolve(swarm);
+      const ship = k.mothership();
+      const a = k.hq(0);
       k.scientist(a);
       for (const type of M2.playerUnits) k.spawn(type, 0, a);
-      if (v !== a) k.spawn('infantry', 0, v);
-      k.s.factions[1].stars = M2.zyrrStars;
-      if (!ship) return;
+      const v = k.grantNear(0, a);
+      if (v) k.spawn('infantry', 0, v);
+      // Rivalen und Kult: Truppe am Hauptquartier, Forscher sofort oder spaeter (M2.rivalStartRound)
+      // rivals and cult: troops at the HQ, researcher at once or later (M2.rivalStartRound)
+      for (const r of s.campaign!.race!.rivals) {
+        const h = k.hq(r.faction);
+        if (!h) continue;
+        for (const type of s.factions[r.faction].id === 'vesper' ? M2.cultUnits : M2.rivalUnits) k.spawn(type, r.faction, h);
+        if (M2.rivalStartRound <= 1) k.scientist(h, r.faction);
+      }
+      s.factions[swarm].stars = M2.zyrrStars;
       // Wachen der Zyrr rund um das Wrack / Zyrr guards around the wreck
       const c = { x: ship.x + 1, y: ship.y + 1 };
-      for (const type of M2.guards) k.spawn(type, 1, c, { min: 1 });
-      // Landeplaetze: hinter dem Schiff (von uns aus) und an der Flanke / landing spots: behind the ship (seen from us) and at the flank
-      // nie naeher an unserem Hauptquartier als das Schiff selbst / never closer to our HQ than the ship itself
-      const off = (q: Pos) => shipDist(ship, q) >= M2.waveDistance && shipDist(ship, q) <= M2.waveDistance + 1 && dist(q, a) >= shipDist(ship, a);
-      const back = k.landNear(k.toward(c, { x: 2 * c.x - a.x, y: 2 * c.y - a.y }, M2.waveDistance + 1), off);
-      k.point(back);
-      const side = { x: c.x + (c.y - a.y), y: c.y - (c.x - a.x) };
-      k.point(k.landNear(k.toward(c, side, M2.waveDistance + 1), (q) => off(q) && dist(q, back) >= 3));
+      for (const type of M2.guards) k.spawn(type, swarm, c, { min: 1 });
+      // Landeplaetze an allen vier Seiten des Schiffs (Norden, Osten, Sueden, Westen) / landing spots on all four sides of the ship (north, east, south, west)
+      const d = M2.waveDistance;
+      const off = (q: Pos) => shipDist(ship, q) === d;
+      for (const p of [{ x: ship.x, y: ship.y - d }, { x: ship.x + 1 + d, y: ship.y }, { x: ship.x + 1, y: ship.y + 1 + d }, { x: ship.x - d, y: ship.y + 1 }]) k.point(k.landNear(p, off));
     },
   },
   // Kapitel Die Glocke (gegen den Kult) / chapter The Bell (vs the cult)
@@ -667,6 +688,30 @@ export const missionById = (id: string) => MISSIONS.find((m) => m.id === id);
 /** Letzte Mission (Finale) / last mission (finale) */
 export const FINALE_ID = MISSION_IDS[MISSION_IDS.length - 1];
 
+/** Rivalen einer Alle-gegen-alle-Mission: die anderen Menschen-Fraktionen / rivals of a free-for-all mission: the other human factions */
+export const rivalsFor = (m: MissionDef, faction: FactionId): FactionId[] => (m.rivals ? CAMPAIGN_FACTIONS.filter((f) => f !== faction) : []);
+/** Schwierigkeit der KI-Rivalen (m2 ist ein frueher, leichter Einsatz) / difficulty of the AI rivals (m2 is an early, easy mission) */
+const M2_RIVAL_DIFFICULTY: Difficulty = 'easy';
+
+/**
+ * Feste Startpunkte einer Alle-gegen-alle-Mission (m2) in Fraktionsreihenfolge: Spieler in der vorderen Ecke, die
+ * Zyrr in der Mitte (ihr Lager wird zum Wrack), der Kult an der Mitte der hinteren Kante, der erste Rivale an der Mitte
+ * der vorderen Kante, die anderen Rivalen in den uebrigen Ecken. Sonst null (faire Zufallsstartpunkte).
+ * Fixed start points of a free-for-all mission (m2) in faction order: the player in the front corner, the Zyrr in the
+ * centre (their camp becomes the wreck), the cult at the midpoint of the back edge, the first rival at the midpoint of
+ * the front edge, the other rivals in the remaining corners. Otherwise null (fair random start points).
+ */
+export function missionStarts(cfg: GameConfig): Pos[] | null {
+  const m = cfg.campaign ? missionById(cfg.campaign.mission) : undefined;
+  if (!m?.rivals) return null;
+  const n = cfg.size, lo = M2.startInset, hi = n - 1 - M2.startInset;
+  const ship = centreShip(n);
+  const layout: Pos[] = [
+    { x: hi, y: hi }, { x: ship.x, y: ship.y }, { x: ship.x, y: lo }, { x: ship.x + 1, y: hi }, { x: hi, y: lo }, { x: lo, y: hi }, { x: lo, y: lo },
+  ];
+  return layout.length >= cfg.factions.length ? layout.slice(0, cfg.factions.length) : null;
+}
+
 /** Spielkonfiguration einer Mission fuer eine Menschen-Fraktion / game configuration of a mission for a human faction */
 export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS[0]): GameConfig {
   const m = missionById(id);
@@ -678,6 +723,8 @@ export function missionConfig(id: string, faction: FactionId = CAMPAIGN_FACTIONS
     factions: [
       { id: faction, human: true, difficulty: 'normal' },
       ...m.enemies.map((e) => ({ id: e.id, human: false, difficulty: e.difficulty })),
+      // alle gegen alle: die anderen Menschen-Fraktionen als KI-Rivalen / free-for-all: the other human factions as AI rivals
+      ...rivalsFor(m, faction).map((r) => ({ id: r, human: false, difficulty: M2_RIVAL_DIFFICULTY })),
       ...(ally ? [{ id: ally, human: false, difficulty: 'normal' as Difficulty }] : []),
     ],
     startStars: m.startStars, roundLimit: null, weather: m.weather, hazards: m.hazards, events: m.events,
@@ -703,13 +750,15 @@ export function spawnBlocked(s: GameState, q: Pos): boolean {
 }
 
 /**
- * Kampagnenstand einer aelteren Missionsfassung? Alle Missionen: andere CAMPAIGN_REV; m2: die alte Bergung ohne Mutterschiff.
- * Solche Spielstaende laufen als freie Partie weiter (der Fortschritt im Feldzug bleibt, der Einsatz startet neu).
+ * Kampagnenstand einer aelteren Missionsfassung? Alle Missionen: andere CAMPAIGN_REV; m2: die alte Bergung ohne Mutterschiff
+ * und das Mutterschiff vor dem Wettlauf aller gegen alle (ohne race). Solche Spielstaende laufen als freie Partie weiter
+ * (der Fortschritt im Feldzug bleibt, der Einsatz startet neu).
  * Campaign state of an older mission version? All missions: a different CAMPAIGN_REV; m2: the old salvage without the
- * mothership. Such saves continue as a free game (the run progress stays, the mission restarts).
+ * mothership and the mothership before the free-for-all race (without race). Such saves continue as a free game (the
+ * run progress stays, the mission restarts).
  */
 export function outdatedCampaign(c: CampaignState): boolean {
-  return c.rev !== CAMPAIGN_REV || (c.mission === 'm2' && !c.ship);
+  return c.rev !== CAMPAIGN_REV || (c.mission === 'm2' && (!c.ship || !c.race));
 }
 
 /** Feld fuer eine Einheit von owner frei (keine fremde Stadt, nicht das Artefakt)? / tile free for a unit of owner (no foreign city, not the artifact)? */
@@ -769,19 +818,24 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
       if (!s.cities.some((x) => x.tower)) placeTowers(s, towerCount(m));
       return s.cities.filter((x) => x.tower);
     },
-    mothership: (home, enemy) => {
-      const p = findShipSpot(s, home, enemy);
-      if (!p) return null;
-      placeShip(s, p);
+    mothership: () => {
+      const p = centreShip(s.size);
+      placeShip(s, p, M2.crater);
       c.ship = { x: p.x, y: p.y };
       c.work = 0;
       return p;
     },
-    scientist: (near) => {
-      const u = spawnNear(s, 'scientist', PLAYER, near, null, 0);
-      if (u) c.scientist = u.id;
+    scientist: (near, owner = PLAYER) => {
+      const u = spawnNear(s, 'scientist', owner, near, null, 0);
+      if (!u) return null;
+      if (owner === PLAYER) c.scientist = u.id;
+      else {
+        const r = c.race?.rivals.find((x) => x.faction === owner);
+        if (r) r.unit = u.id;
+      }
       return u;
     },
+    dissolve: (owner) => dissolveBase(s, owner),
     temple: (from, owner) => {
       const e = hqOf(s, owner);
       const a = chooseTempleSite(s, from, e ? { x: e.x, y: e.y } : null);
@@ -942,12 +996,15 @@ export function setupMission(s: GameState) {
   const id = s.config.campaign?.mission;
   const m = id ? missionById(id) : undefined;
   if (!m) return;
-  const allies = s.factions.filter((f) => f.index > m.enemies.length).map((f) => f.index);
+  // Rivalen (alle gegen alle) stehen hinter den Gegnern, ein Verbuendeter ganz hinten / rivals (free-for-all) come after the enemies, an ally last
+  const rivalEnd = m.enemies.length + (m.rivals ? CAMPAIGN_FACTIONS.length - 1 : 0);
+  const allies = s.factions.filter((f) => f.index > rivalEnd).map((f) => f.index);
   const c: CampaignState = {
     mission: m.id, targets: [], status: m.objectives.map(() => 'pending'), bonus: m.bonus.map(() => 'pending'),
     startCities: [], result: null, stars: 0, rev: CAMPAIGN_REV, units: [], spawns: [], waves: 0, allies,
   };
   s.campaign = c;
+  if (m.rivals) c.race = startRace(s);
   // Heimatwelt der Zyrr: alles Land und Flachwasser ist Xeno-Boden / Zyrr homeworld: all land and shallow water is xeno ground
   if (m.theme === 'alien') for (const t of s.tiles) if (t.terrain !== 'ocean') t.xeno = true;
   if (m.landing) c.landing = true;
@@ -966,6 +1023,8 @@ export function setupMission(s: GameState) {
       for (const f of s.factions) revealArea(s, f.index, t.x, t.y, 0);
     }
   }
+  // Wettlauf: Waffenruhe zwischen allen ausser den Zyrr, alle kennen einander / race: truce between everyone but the Zyrr, everyone knows each other
+  if (c.race) declareTruce(s, c.race);
   for (const [a, b] of m.allied ?? []) {
     if (!s.factions[a] || !s.factions[b]) continue;
     s.factions[a].relations[b] = 'peace';
@@ -985,6 +1044,66 @@ export function setupMission(s: GameState) {
   }
   shareVision(s, c);
   c.startCities = ownCities(s, PLAYER).map((x) => x.id);
+}
+
+/**
+ * Wettlauf anlegen (m2): die Zyrr (erster Gegner) sind der Schwarm ohne Basis, jede andere Fraktion ausser dem Spieler
+ * bekommt einen Eintrag fuer ihren Forscher; Waffenruhe bis zur ersten Probe.
+ * Set up the race (m2): the Zyrr (first enemy) are the swarm without a base, every other faction but the player gets an
+ * entry for its researcher; truce until the first sample.
+ */
+function startRace(s: GameState): RaceState {
+  const swarm = s.factions.find((f) => f.id === 'zyrr')?.index ?? 1;
+  const rivals = s.factions.filter((f) => f.index !== PLAYER && f.index !== swarm).map((f) => ({ faction: f.index, unit: null, work: 0, round: null, fallen: false }));
+  return { truce: true, opener: null, round: null, swarm, rivals, winner: null };
+}
+
+/** Waffenruhe: Frieden und Kontakt zwischen allen ausser dem Schwarm / truce: peace and contact between everyone but the swarm */
+function declareTruce(s: GameState, r: RaceState) {
+  const list = s.factions.filter((f) => f.index !== r.swarm);
+  for (const a of list) for (const b of list) {
+    if (a === b) continue;
+    a.relations[b.index] = 'peace';
+    if (!a.contacts.includes(b.index)) a.contacts.push(b.index);
+  }
+}
+
+/**
+ * Basis aufloesen (m2, die Zyrr): Staedte, Gebiet und Einheiten der Fraktion verschwinden, ihr Xeno-Boden auch; sie lebt
+ * als Schwarm weiter (swarmHolds).
+ * Dissolve the base (m2, the Zyrr): the faction's cities, territory and units vanish, its xeno ground too; it lives on as
+ * a swarm (swarmHolds).
+ */
+function dissolveBase(s: GameState, owner: number) {
+  const gone = new Set(s.cities.filter((x) => x.owner === owner).map((x) => x.id));
+  for (const t of s.tiles) {
+    if (t.territory !== null && gone.has(t.territory)) t.territory = null;
+    if (t.cityId !== null && gone.has(t.cityId)) t.cityId = null;
+    t.xeno = false;
+  }
+  s.cities = s.cities.filter((x) => !gone.has(x.id));
+  s.units = s.units.filter((u) => u.owner !== owner);
+}
+
+/**
+ * Schwarm ohne Basis (m2, die Zyrr): scheidet ohne Stadt nicht aus, solange der Einsatz laeuft.
+ * Swarm without a base (m2, the Zyrr): not eliminated without a city while the mission runs.
+ */
+export const swarmHolds = (s: GameState, f: number) => s.campaign?.race?.swarm === f && !s.campaign.result;
+
+/**
+ * Spaete Forscher der KI-Fraktionen (M2.rivalStartRound) erscheinen an ihrem Hauptquartier (zu Beginn des Spielerzugs).
+ * Late researchers of the AI factions (M2.rivalStartRound) appear at their HQ (at the start of the player's turn).
+ */
+function rivalArrivals(s: GameState, c: CampaignState) {
+  if (!c.race || s.round < M2.rivalStartRound) return;
+  for (const r of c.race.rivals) {
+    if (r.unit !== null || r.fallen || !s.factions[r.faction]?.alive) continue;
+    const h = hqOf(s, r.faction) ?? ownCities(s, r.faction)[0];
+    if (!h) continue;
+    const u = spawnNear(s, 'scientist', r.faction, h, null, 0);
+    if (u) r.unit = u.id;
+  }
 }
 
 /** Geteilte Karte: der Spieler kennt alles, was seine Verbuendeten kennen / shared map: the player knows what its allies know */
@@ -1186,7 +1305,8 @@ function check(s: GameState, c: CampaignState, o: ObjectiveDef, prev: ObjectiveS
     }
     case 'fast': return s.round > o.rounds ? 'failed' : 'pending';
     // Mutterschiff (m2) / mothership (m2)
-    case 'work': return (c.work ?? 0) >= o.rounds ? 'done' : 'pending';
+    // alle gegen alle: hat ein Rivale die Probe zuerst, ist das Ziel verfehlt / free-for-all: if a rival has the sample first, the objective fails
+    case 'work': return (c.work ?? 0) >= o.rounds ? 'done' : c.race?.winner !== null && c.race?.winner !== undefined && c.race.winner !== PLAYER ? 'failed' : 'pending';
     case 'scientist': return scientistOf(s) ? 'pending' : 'failed';
     case 'scientistHp': {
       const u = scientistOf(s);
@@ -1247,7 +1367,10 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   const expired = s.round > m.rounds;
   // Kriegsplaene (m4): Tod des Traegers, Abliefern, Rueckholung / war plans (m4): death of the carrier, delivery, recovery
   updatePlans(s, c, ev);
+  // Wettlauf (m2): gefallene Forscher austragen / race (m2): strike off fallen researchers
+  updateRace(s);
   if (turnChange && s.current === PLAYER && !s.over && !expired) {
+    rivalArrivals(s, c);
     runWaves(s, c, m, ev);
     runPursuit(s, c, ev, (type, owner, near) => spawnNear(s, type, owner, near, null, 0));
     countArtifact(s, c);
@@ -1311,7 +1434,9 @@ export function evaluateCampaign(s: GameState, ev: GameEvent[], turnChange: bool
   const enemyWinner = holder !== null && holder !== PLAYER && isHostile(s, PLAYER, holder) && c.status.includes('failed') && m.objectives.some((o) => o.k === 'artifact')
     ? holder
     : (s.factions.find((f) => f.index !== PLAYER && f.alive && !isCampaignAlly(s, f.index))?.index ?? null);
-  const winner = result === 'won' ? PLAYER : enemyWinner;
+  // Wettlauf verloren: wer die Probe genommen hat / race lost: whoever took the sample
+  const raceWinner = c.race?.winner ?? null;
+  const winner = result === 'won' ? PLAYER : raceWinner !== null && raceWinner !== PLAYER ? raceWinner : enemyWinner;
   if (!s.over) {
     s.over = true;
     s.winner = winner;

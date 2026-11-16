@@ -11,7 +11,7 @@ import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, burning, erupts } from './hazards';
 import { noteCapture, noteDeath, recordRound } from './history';
-import { evaluateCampaign, landingPartyHolds, riftSpares, setupMission, spawnBlocked } from './campaign';
+import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMission, spawnBlocked, swarmHolds } from './campaign';
 import { processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
@@ -25,7 +25,7 @@ import {
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
-  cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, diplomacyLocked,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -38,7 +38,8 @@ export function createGame(cfg: GameConfig): GameState {
   // new games: hit luck and faction victories explicitly on unless chosen otherwise (old saves without the field: off, see save.ts)
   const config: GameConfig = { ...cfg, hitChance: cfg.hitChance ?? true, factionVictory: cfg.factionVictory ?? true };
   const ids = config.factions.map((f) => f.id);
-  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' || config.theme === 'desert' ? config.theme : undefined, config.settlements ?? 1);
+  // Kampagne m2: feste Startpunkte (Ecken, Kantenmitten, die Zyrr in der Mitte) / campaign m2: fixed start points (corners, edge midpoints, the Zyrr in the centre)
+  const map = generateMap(config.seed, config.size, config.mapType, ids, config.theme === 'cavern' || config.theme === 'desert' ? config.theme : undefined, config.settlements ?? 1, missionStarts(config) ?? undefined);
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
@@ -464,14 +465,14 @@ function updateGrandProjects(s: GameState, f: number, ev: GameEvent[]) {
 }
 
 /**
- * Ausgeschieden? Normal ohne Stadt (der Landetrupp der Kampagne lebt, solange er Einheiten hat); der Kult ohne Einheit
- * (Wunder zaehlen nicht), seine Staedte werden dann neutral.
- * Eliminated? Normally without a city (the campaign landing party lives while it has units); the cult without a unit
- * (wonders do not count), its cities then turn neutral.
+ * Ausgeschieden? Normal ohne Stadt (der Landetrupp der Kampagne lebt, solange er Einheiten hat, die Zyrr in m2 haben
+ * nie eine Basis); der Kult ohne Einheit (Wunder zaehlen nicht), seine Staedte werden dann neutral.
+ * Eliminated? Normally without a city (the campaign landing party lives while it has units, the Zyrr in m2 never have
+ * a base); the cult without a unit (wonders do not count), its cities then turn neutral.
  */
 function eliminatedNow(s: GameState, f: number): boolean {
   if (isCultFaction(s, f)) return cultUnits(s, f).length === 0;
-  return ownCities(s, f).length === 0 && !landingPartyHolds(s, f);
+  return ownCities(s, f).length === 0 && !landingPartyHolds(s, f) && !swarmHolds(s, f);
 }
 
 /** cultOnly: nur den Kult pruefen (nach jedem Kommando und Zugwechsel) / only check the cult (after every command and turn change) */
@@ -1567,6 +1568,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       // Kontakt in eine Richtung genuegt (sonst bleibt ein Friedensangebot unbeantwortbar)
       // contact in either direction suffices (otherwise a peace offer could not be answered)
       if (!inContact(s, f, g)) return fail('noContact');
+      // Kampagne: Buendnis mit dem Verbuendeten und Wettlauf in m2 (Waffenruhe, dann alle gegen alle) stehen fest
+      // campaign: the alliance with the ally and the race in m2 (truce, then everyone against everyone) are fixed
+      if (cmd.action !== 'embassy' && cmd.action !== 'declinePeace' && diplomacyLocked(s, f, g)) return fail('invalid');
       const ga = s.factions[g];
       switch (cmd.action) {
         case 'proposePeace': {
@@ -1592,8 +1596,6 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         }
         case 'announceBreak': {
           if (fa.relations[g] !== 'peace') return fail('invalid');
-          // Kampagne: das Buendnis mit dem Verbuendeten haelt / campaign: the alliance with the ally holds
-          if (isCampaignBond(s, f, g)) return fail('invalid');
           fa.relations[g] = 'breaking'; ga.relations[f] = 'breaking';
           fa.breakRound[g] = s.round;
           ev.push({ t: 'breakAnnounced', from: f, to: g });

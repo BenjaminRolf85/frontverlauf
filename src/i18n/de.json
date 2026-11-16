@@ -324,7 +324,7 @@
     "waal": "Siegbauwerk von Dravon: riesiger Landkreuzer, schießt schon ab der zweiten Bauphase.",
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
     "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
-    "scientist": "Kämpft nicht und hält wenig aus. Arbeitet direkt neben dem Mutterschiff der Zyrr (Kampagne).",
+    "scientist": "Kämpft nicht, trägt aber einen Schutzanzug. Arbeitet direkt neben dem Mutterschiff der Zyrr, dort deckt ihn die Hülle (Kampagne).",
     "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Nicht käuflich, kommt als Stadtbelohnung.",
     "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
     "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
@@ -834,7 +834,9 @@
     "eliminated": "ausgeschieden",
     "breakHint": "Ein Bruch wird eine Runde vorher angekündigt.",
     "embassyHint": "Botschaften brauchen Geheimdienst und das entdeckte Hauptquartier. Jede Botschaft bringt beiden Seiten {inc} Sterne pro Runde. Die erste kostet {base} Sterne, jede weitere {step} mehr.",
-    "score": "{n} Punkte"
+    "score": "{n} Punkte",
+    "truceLocked": "Waffenruhe bis zur ersten Probe",
+    "raceWar": "Alle gegen alle"
   },
   "settings": {
     "title": "Einstellungen",
@@ -1050,7 +1052,9 @@
       "plansTemple": "Kriegspläne: im Tempel",
       "plansCarried": "Kriegspläne: getragen von {unit}",
       "plansDropped": "Kriegspläne: liegen am Boden",
-      "plansDelivered": "Kriegspläne: abgeliefert"
+      "plansDelivered": "Kriegspläne: abgeliefert",
+      "workRace": "Nimm als Erster die Probe: {n} Runden Arbeit am Mutterschiff, bis Runde {rounds}",
+      "workRacePanel": "Nimm als Erster die Probe ({have}/{n})"
     },
     "missions": {
       "m1": {
@@ -1071,23 +1075,21 @@
       },
       "m2": {
         "title": "Das Mutterschiff",
-        "tagline": "Bring den Wissenschaftler ans Wrack und lass ihn 8 Runden daran arbeiten",
+        "tagline": "Sechs Fraktionen, ein Wrack: Nimm als Erster die Probe",
         "brief": [
-          "Kommandant, die Peilung der Sendetürme hat es gefunden: Das Mutterschiff liegt in einem Krater, mitten durchgebrochen und groß wie ein Dorf. Es glüht noch, es raucht, und Graue stehen Wache.",
-          "Kkt. Das Mutterschiff ist heilig. Wer seine Hülle berührt, wird zerlegt. Schwarm, landet und findet den Weißkittel!",
-          "{leader} an alle: Unser Wissenschaftler braucht acht Runden an diesem Wrack, dann wissen wir, wie die Zyrr fliegen. Räumt die Wachen weg und deckt ihn mit allem, was wir haben. Fällt er, war alles umsonst."
+          "Kommandant, die Peilung der Sendetürme hat es gefunden: Das Mutterschiff liegt mitten im Krater, und alle haben es gesehen. Jede Menschenfraktion schickt ihren Wissenschaftler, sogar der Kult hat einen abtrünnigen Forscher dabei. Noch herrscht Waffenruhe. Sie hält, bis jemand die erste Probe nimmt.",
+          "Kkt. Das Mutterschiff ist heilig. Der Schwarm landet daneben, immer wieder. Wer seine Hülle berührt, wird zerlegt, ganz gleich, welche Farbe er trägt.",
+          "Die Hülle singt, und wir hören zu. Unser Forscher nimmt sich, was die Sterne fallen ließen. Wer uns dabei im Weg steht, landet in der Glocke.",
+          "{leader} an alle: Unser Wissenschaftler braucht acht Runden an diesem Wrack, und wir müssen schneller sein als alle anderen. Sobald die erste Probe genommen ist, schießt jeder auf jeden. Deckt ihn, haltet das Hauptquartier und holt euch die Wissenschaftler der anderen, bevor sie fertig sind."
         ],
-        "ally": "{allyLeader} hier. {ally} sichert den Krater, {leader}. Euer Gelehrter schraubt, wir halten die Grauen fern.",
-        "won": "Acht Runden Arbeit, und der Wissenschaftler grinst wie ein Kind an Weihnachten. Wir wissen jetzt, wie das Ding fliegt. Und woher es kam.",
-        "lost": "Der Wissenschaftler ist gefallen, oder die Zeit lief uns davon. Das Wrack schweigt, und die Zyrr holen sich ihre Geheimnisse zurück.",
+        "won": "Acht Runden Arbeit, und unsere Probe ist die erste. Die anderen haben das Nachsehen, und wir wissen jetzt, wie das Ding fliegt. Und woher es kam.",
+        "lost": "Unser Wissenschaftler ist gefallen, das Hauptquartier verloren, oder die Zeit lief uns davon. Das Wrack schweigt, und die anderen tragen seine Geheimnisse fort.",
         "variants": {
           "velkar": {
-            "won": "Acht Runden! {leader} hat das halbe Wrack schon in Formeln übersetzt und will die andere Hälfte noch heute Nacht."
-          },
-          "alvenia": {
-            "ally": "{allyLeader} hier, {leader}. {ally} steht als Glaubensbruder am Krater. Euer Gelehrter schraubt, wir halten die Grauen fern."
+            "won": "Acht Runden, und die erste Probe gehört uns! {leader} hat das halbe Wrack schon in Formeln übersetzt und will die andere Hälfte noch heute Nacht."
           }
-        }
+        },
+        "lostRace": "{rival} war schneller und hat die Probe genommen. Ihre Wissenschaftler jubeln, und wir stehen mit leeren Händen vor dem Wrack."
       },
       "m3": {
         "title": "Das Portal",
@@ -2048,7 +2050,7 @@
       "waal": "Leviathan",
       "coreDrill": "Der Letzte Bohrer",
       "swarmMother": "Dämonin vom Himmel",
-      "scientist": "Wissenschaftler",
+      "scientist": "Abtrünniger Forscher",
       "teslaTank": "Donnerkarren",
       "octocopter": "Achtfacher Engel",
       "railSniper": "Ketzerschütze",
@@ -3761,9 +3763,23 @@
     "workDesc": "Der Wissenschaftler untersucht das Wrack. Das beendet seinen Zug und zählt eine Arbeitsrunde ({have}/{need}). Pausen schaden nicht, die Runden werden zusammengezählt.",
     "notAdjacent": "Nur direkt neben dem Mutterschiff.",
     "done": "In dieser Runde hat er schon gearbeitet.",
-    "tileDesc": "Ein abgestürztes Mutterschiff der Zyrr auf vier Feldern: nicht begehbar, nicht einnehmbar, nicht angreifbar. Der Wissenschaftler arbeitet auf einem der Nachbarfelder ({have}/{need} Runden).",
+    "tileDesc": "Ein abgestürztes Mutterschiff der Zyrr auf vier Feldern: nicht begehbar, nicht einnehmbar, nicht angreifbar. Ein Wissenschaftler arbeitet auf einem der Nachbarfelder, dort deckt ihn die Hülle (+{cover} Verteidigung). Wer zuerst {need} Runden schafft, hat die Probe.",
     "toast": "Der Wissenschaftler hat am Mutterschiff gearbeitet: {have}/{need} Runden.",
-    "toastDone": "Geschafft! Der Wissenschaftler hat das Mutterschiff entschlüsselt."
+    "toastDone": "Geschafft! Der Wissenschaftler hat das Mutterschiff entschlüsselt.",
+    "workTruce": "Achtung: Die erste Probe bricht die Waffenruhe, danach kämpft jeder gegen jeden.",
+    "race": "Wettlauf um die Probe",
+    "raceRow": "{name}: {have} von {need} Runden",
+    "fallen": "gefallen",
+    "coming": "unterwegs",
+    "truce": "Waffenruhe: Sie hält, bis jemand die erste Probe nimmt. Nur die Zyrr greifen an.",
+    "war": "Alle gegen alle: {name} hat die Waffenruhe in Runde {round} gebrochen.",
+    "truceKicker": "Mutterschiff",
+    "truceTitle": "Die Waffenruhe ist gebrochen!",
+    "truceBody": "{name} nimmt die erste Probe am Mutterschiff. Ab jetzt kämpft jeder gegen jeden.",
+    "truceBodyOwn": "Unser Wissenschaftler nimmt die erste Probe. Ab jetzt kämpft jeder gegen jeden, haltet ihm den Rücken frei!",
+    "truceLine": "Die Probe gehört uns. Wer sich dem Wrack nähert, wird beschossen!",
+    "rivalToast": "{name} braucht nur noch {left} Runden bis zur Probe ({have}/{need})!",
+    "rivalDone": "{name} hat die Probe genommen."
   },
   "temple": {
     "name": "Fanatiker-Tempel",

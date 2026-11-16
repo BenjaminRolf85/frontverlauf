@@ -8,7 +8,7 @@ import {
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
-  cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, techState,
+  cityById, diplomacyLocked, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, techState,
   techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -624,14 +624,19 @@ export function diplomacyDialog(host: ScreenHost) {
         // Heiliges Alvenia: Suendenzeichen mit Tat und Restrunden / Holy Alvenia: sinner mark with deed and rounds left
         const sin = sinTag(s, o.index);
         if (sin) tags.push(sin);
+        // Kampagne: Buendnis oder Wettlauf (m2) stehen fest, keine Friedensangebote und kein Bruch / campaign: alliance or race (m2) are fixed, no peace offers and no breaking
+        const locked = diplomacyLocked(s, f, o.index);
+        if (locked && s.campaign?.race) tags.push(`<span class="tag ${s.campaign.race.truce ? 'ok' : 'warn'}">${esc(t(s.campaign.race.truce ? 'diplomacy.truceLocked' : 'diplomacy.raceWar'))}</span>`);
         const btns: string[] = [];
-        if (canAct) {
+        if (canAct && !locked) {
           if (me.peaceOffers.includes(o.index)) {
             btns.push(`<span class="muted">${esc(t('diplomacy.offerReceived'))}</span>`);
             btns.push(button(t('diplomacy.accept'), { action: `accept-${o.index}`, icon: 'check' }));
             btns.push(button(t('diplomacy.decline'), { action: `decline-${o.index}`, variant: 'secondary', icon: 'close' }));
           } else if (rel === 'war' && !o.peaceOffers.includes(f)) btns.push(button(t('diplomacy.proposePeace'), { action: `peace-${o.index}`, variant: 'secondary', icon: 'diplomacy' }));
           if (rel === 'peace') btns.push(button(t('diplomacy.announceBreak'), { action: `break-${o.index}`, variant: 'danger', icon: 'warning' }));
+        }
+        if (canAct) {
           const hq = hqOf(s, o.index);
           if (me.techs.includes('intelligence') && !me.embassies.includes(o.index) && hq && isExplored(s, f, hq.x, hq.y)) {
             const cost = embassyCost(s, f);
