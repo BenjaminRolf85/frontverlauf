@@ -1343,6 +1343,8 @@ export interface FactionStats {
   startTech: TechId | null;
   /** weitere Starttechnologien (Sonderfraktionen ohne Forschung, Dravon) / extra start techs (special factions without research, Dravon) */
   extraTechs?: TechId[];
+  /** weitere Starteinheiten neben dem Hauptquartier (freie Partie, nicht Kampagne) / extra start units next to the HQ (free game, not campaign) */
+  startExtra?: UnitTypeId[];
   /** Gewichte fuer das Heimatgebiet / weights for the home region */
   home: { plain: number; forest: number; mountain: number; water: number; res: Partial<Record<ResourceId, number>> };
 }
@@ -1351,7 +1353,7 @@ export const FACTION_IDS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon
 
 export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
-  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
+  dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], startExtra: ['jeep'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
   alvenia: { perk: 'judgement', perk2: 'martyrBlessing', discountUnit: 'sunLance', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
   meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },

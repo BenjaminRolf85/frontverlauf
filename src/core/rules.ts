@@ -88,6 +88,15 @@ export function createGame(cfg: GameConfig): GameState {
     // eigene Bauart (VARIANTS, z. B. Alvenia: Lichtschuetzen) / own design (VARIANTS, e.g. Alvenia: Light Wardens)
     const u = spawnUnit(s, ROSTERS[s.factions[i].id]?.start ?? factionVariant(s, i, START.unit), i, p.x, p.y, cult ? null : s.cities[i].id);
     u.fresh = false;
+    // weitere Starteinheiten der Fraktion (z. B. Dravon: Jeep), nur in der freien Partie / extra faction start units (e.g. Dravon: jeep), free game only
+    if (!config.campaign) {
+      for (const type of FACTIONS[s.factions[i].id].startExtra ?? []) {
+        const q = freeNeighbor(s, p.x, p.y, false);
+        if (!q) break;
+        const e = spawnUnit(s, type, i, q.x, q.y, s.cities[i].id);
+        e.fresh = false;
+      }
+    }
     // Kult: Starthorde auf freien Feldern neben dem Hauptquartier / cult: starting horde on free tiles next to the HQ
     if (cult) {
       for (const type of CULT.startUnits) {
