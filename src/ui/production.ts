@@ -79,12 +79,12 @@ const DOCTRINE_VARS: Partial<Record<TechId, Record<string, number>>> = {
   aerodynamics: { n: DOCTRINE.aerodynamicsFlak },
   fortification: { n: DOCTRINE.fortificationMine },
   intelligence: { n: DOCTRINE.intelligenceSpyMove },
-  mining: { n: DOCTRINE.miningStars },
+  mining: { pct: Math.round(DOCTRINE.miningDiscount * 100) },
   armsIndustry: { pct: Math.round(DOCTRINE.armsIndustryAttack * 100) },
   cybernetics: { n: DOCTRINE.cyberneticsMedic },
   navalArtillery: { pct: Math.round(DOCTRINE.navalArtilleryAttack * 100) },
   shipbuilding: { pct: Math.round(DOCTRINE.shipbuildingDiscount * 100) },
-  forestry: { n: DOCTRINE.forestryStars },
+  forestry: { pct: Math.round(DOCTRINE.forestryDiscount * 100) },
   ballistics: { n: DOCTRINE.ballisticsRange },
 };
 

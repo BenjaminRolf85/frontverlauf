@@ -42,12 +42,12 @@ function siteWorth(ctx: Ctx, site: ProductionSiteId, counters: { antiVehicle: nu
   const r = s.round;
   switch (site) {
     // erste Staette jeder Art: etwa so wertvoll wie ein Wirtschaftsgebaeude, ab Runde 2 / first site of each kind: about as worth as an economy building, from round 2
-    case 'armory': return n === 0 ? (r >= 2 ? 22 : 0) + (counters.antiVehicle + counters.antiAir) * 40 : cities >= 4 && n < 2 ? 6 : 0;
-    case 'motorPool': return n === 0 ? (r >= 2 ? 14 : 0) + (r >= 2 && ctx.fa.explored.some((e) => !e) ? 6 : 0) : cities >= 5 && n < 2 ? 4 : 0;
-    case 'foundry': return n === 0 ? (r >= 4 ? 16 : 0) + (r >= 4 && ctx.hostileCities.length ? 12 : 0) : cities >= 5 && n < 2 ? 4 : 0;
-    case 'tankWorks': return n === 0 ? (r >= 5 ? 26 + Math.min(16, r) : 0) : cities >= 5 && n < 2 ? 10 : 0;
-    case 'airfield': return n === 0 && r >= 8 ? 26 : 0;
-    case 'dryDock': return n === 0 && ctx.navalNeed && r >= 8 ? 14 : 0;
+    case 'armory': return n === 0 ? (r >= 2 ? 40 : 0) + (counters.antiVehicle + counters.antiAir) * 40 : cities >= 4 && n < 2 ? 8 : 0;
+    case 'motorPool': return n === 0 ? (r >= 2 ? 26 : 0) + (r >= 2 && ctx.fa.explored.some((e) => !e) ? 6 : 0) : cities >= 5 && n < 2 ? 6 : 0;
+    case 'foundry': return n === 0 ? (r >= 4 ? 22 : 0) + (r >= 4 && ctx.hostileCities.length ? 12 : 0) : cities >= 5 && n < 2 ? 6 : 0;
+    case 'tankWorks': return n === 0 ? (r >= 5 ? 44 + Math.min(20, r) : 0) : cities >= 5 && n < 2 ? 14 : 0;
+    case 'airfield': return n === 0 && r >= 8 ? 40 : 0;
+    case 'dryDock': return n === 0 && ctx.navalNeed && r >= 8 ? 16 : 0;
     default: return 0;
   }
 }

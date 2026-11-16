@@ -8,11 +8,11 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities, isCampaignBond,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
-  WONDERS, DOCTRINE, VEHICLE_UNITS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
+  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { relayTechBonus, relayValue } from './orbital';
@@ -268,10 +268,10 @@ const MIL: Partial<Record<TechId, number>> = {
  * Humans: doctrines instead of units (base value; plus doctrineValue by own army and buildings).
  */
 const DOCTRINE_MIL: Partial<Record<TechId, number>> = {
-  motorization: 12, armsIndustry: 18, ballistics: 14, armyAviation: 8, camouflage: 10, fortification: 15,
-  cybernetics: 24, intelligence: 12, mountainTraining: 8, highAltitude: 6, coastalEconomy: 4, diving: 5,
-  shipbuilding: 6, navalArtillery: 6, coastalDefense: 4, aerodynamics: 8, roadbuilding: 8, logistics: 6,
-  fieldResearch: 3, forestry: 6, livestock: 2, supply: 2, agritech: 2, foodIndustry: 2, mining: 8,
+  motorization: 14, armsIndustry: 26, ballistics: 22, armyAviation: 16, camouflage: 10, fortification: 15,
+  cybernetics: 24, intelligence: 14, mountainTraining: 8, highAltitude: 6, coastalEconomy: 4, diving: 5,
+  shipbuilding: 7, navalArtillery: 7, coastalDefense: 4, aerodynamics: 8, roadbuilding: 8, logistics: 6,
+  fieldResearch: 3, forestry: 8, livestock: 2, supply: 2, agritech: 2, foodIndustry: 2, mining: 10,
 };
 
 /**
@@ -279,23 +279,22 @@ const DOCTRINE_MIL: Partial<Record<TechId, number>> = {
  * Worth of a doctrine by own army and own buildings (DOCTRINE), in stars.
  */
 function doctrineValue(ctx: Ctx, t: TechId): number {
-  const { s, f } = ctx;
+  const { s } = ctx;
   const n = (types: UnitTypeId[]) => ctx.my.filter((u) => types.includes(u.carried ?? u.type)).length;
-  const horizon = Math.min(ctx.points ? ctx.roundsLeft : 20, 15) * 0.45;
-  const own = (b: BuildingId) => s.tiles.filter((x) => x.building && baseBuilding(x.building) === b && territoryOwner(s, x) === f).length;
   switch (t) {
-    case 'motorization': return n(VEHICLE_UNITS) * 4;
-    case 'aerodynamics': return n(['antiAir']) * 4 + enemyMix(ctx).air * 3;
-    case 'armyAviation': return n(['heli', 'octocopter']) * 6;
-    case 'fortification': return n(['mineLayer']) * 4;
-    case 'intelligence': return n(['spy']) * 4;
-    case 'mining': return own('mine') * DOCTRINE.miningStars * horizon;
-    case 'forestry': return own('lumberCamp') * DOCTRINE.forestryStars * horizon;
-    case 'armsIndustry': return n(DOCTRINE.armsIndustryUnits) * 4;
-    case 'cybernetics': return n(['medic']) * 4;
-    case 'navalArtillery': return ctx.my.filter((u) => UNITS[u.type].ship).length * 4;
-    case 'shipbuilding': return ctx.my.filter((u) => UNITS[u.type].ship).length * 3;
-    case 'ballistics': return n(DOCTRINE.ballisticsUnits) * 7;
+    case 'motorization': return n(VEHICLE_UNITS) * 6;
+    case 'aerodynamics': return n(['antiAir']) * 6 + enemyMix(ctx).air * 4;
+    case 'armyAviation': return n(['heli', 'octocopter']) * 8;
+    case 'fortification': return n(['mineLayer']) * 6;
+    case 'intelligence': return n(['spy']) * 6;
+    // Rabatte auf Panzer und Geschuetze: nach vorhandener Staette / discounts on tanks and guns: by existing site
+    case 'mining': return (ctx.myCities.some((c) => citySites(s, c).includes('tankWorks')) ? 18 : 0) + n(PRODUCTION.units.tankWorks) * 6;
+    case 'forestry': return (ctx.myCities.some((c) => citySites(s, c).includes('foundry')) ? 14 : 0) + n(PRODUCTION.units.foundry) * 6;
+    case 'armsIndustry': return n(DOCTRINE.armsIndustryUnits) * 6;
+    case 'cybernetics': return n(['medic']) * 6;
+    case 'navalArtillery': return ctx.my.filter((u) => UNITS[u.type].ship).length * 6;
+    case 'shipbuilding': return ctx.my.filter((u) => UNITS[u.type].ship).length * 4;
+    case 'ballistics': return n(DOCTRINE.ballisticsUnits) * 9;
     default: return 0;
   }
 }
@@ -411,7 +410,12 @@ function techValue(ctx: Ctx, t: TechId, sites: Record<BuildingId, number>, uncon
   for (const c of TECH_IDS) if (TECHS[c].parent === t) child = Math.max(child, techBase(ctx, c, sites, unconnected));
   v += child * 0.45;
   v += ctx.pf * 100 * TECHS[t].tier;
-  return v * ctx.prof.researchW;
+  // Menschen: Doktrinen konkurrieren mit den Produktionsstaetten um Sterne, daher hoeher gewichtet (AI.doctrineW); Velkar weniger,
+  // sein Forschungsrabatt (researchLead) macht Doktrinen ohnehin guenstig
+  // humans: doctrines compete with the production sites for stars, hence weighted higher (AI.doctrineW); Velkar less, its
+  // research discount (researchLead) makes doctrines cheap anyway
+  const w = !usesSites(ctx.s, ctx.f) ? 1 : FACTIONS[ctx.fa.id].perk === 'researchLead' ? AI.doctrineWLead : AI.doctrineW;
+  return v * ctx.prof.researchW * w;
 }
 
 /**
@@ -645,12 +649,25 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (urgent) value = cost * 3.5;
       else if (deficit > 0) value = cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW;
       else value = cost * 0.25;
+      // Menschen: die erste Einheit einer neuen Produktionsstaette (ausser der Kaserne) zuegig ausbilden, fuer eine gemischte Armee
+      // humans: train the first unit of a new production site (except the barracks) promptly, for a mixed army
+      const site = usesSites(s, f) ? siteOf(t) : null;
+      if (!urgent && s.round >= 3 && site && site !== 'trainingCamp' && !ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) value = Math.max(value, cost * 2.2);
       value = value * factor + cost * ctx.pf - front * 0.05;
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
     mk(type, 1);
     const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? 'infantry';
     if (type !== cheap) mk(cheap, 0.8);
+    // Menschen: je neuer Staette dieser Stadt (ohne Kaserne) die erste Einheit anbieten, auch wenn der Wunschtyp ein anderer ist
+    // humans: offer the first unit of each new site of this city (except the barracks), even if the desired type is another one
+    if (usesSites(s, f) && !urgent && s.round >= 3) {
+      for (const site of citySites(s, c)) {
+        if (site === 'trainingCamp' || ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) continue;
+        const first = rosterUnits(s, f).find((t) => siteOf(t) === site && t !== type && UNITS[t].attack > 0 && trainCheck(s, c, t) !== 'buildingMissing' && trainCheck(s, c, t) !== 'invalid');
+        if (first) mk(first, 1);
+      }
+    }
   }
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
   // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning

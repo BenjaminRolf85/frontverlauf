@@ -11,7 +11,7 @@ import {
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow, memorialAt, memorialEffect, memorialMult,
-  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost,
+  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
@@ -1031,6 +1031,10 @@ export class Hud {
         continue;
       }
       if (!chk.ok && chk.error !== 'notEnoughStars' && chk.error !== 'onePerCity') continue;
+      // eingebaute Staette (Kaserne im Hauptquartier usw.) nicht noch einmal anbieten / do not offer a built-in site again (barracks in the HQ etc.)
+      const terr = s.tiles[y * s.size + x].territory;
+      const tc = terr !== null ? cityById(s, terr) : undefined;
+      if (isProductionSite(b) && tc && builtInSite(s, tc, b)) continue;
       // Ressourcengebaeude als Ausbau eines Grundgebaeudes / resource building as upgrade of a base building
       const upgrade = !!BUILDINGS[b].upgrades && s.tiles[y * s.size + x].building === BUILDINGS[b].upgrades;
       this.actions.push({

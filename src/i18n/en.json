@@ -508,13 +508,13 @@
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only",
-    "trainingCamp": "{pop} population. Trains in this city: {units}. One per city; every headquarters has one built in.",
-    "armory": "{pop} population. Trains in this city: {units}. One per city.",
-    "motorPool": "{pop} population. Trains in this city: {units}. One per city.",
-    "tankWorks": "{pop} population. Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
-    "foundry": "{pop} population. Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
-    "airfield": "{pop} population. Trains in this city: {units}. One per city.",
-    "dryDock": "{pop} population. Ships in this city's territory upgrade to: {units}. Needs {needs} in the city territory. One per city."
+    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters has one built in.",
+    "armory": "Trains in this city: {units}. One per city.",
+    "motorPool": "Trains in this city: {units}. One per city.",
+    "tankWorks": "Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
+    "foundry": "Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
+    "airfield": "Trains in this city: {units}. One per city.",
+    "dryDock": "Ships in this city's territory upgrade to: {units}. Needs {needs} in the city territory. One per city."
   },
   "resource": {
     "upgrade": "Upgrade, only the difference"
@@ -3848,12 +3848,12 @@
     "armyAviation": "Helicopters burn no fuel in own territory.",
     "fortification": "Own mines deal {n} more damage.",
     "intelligence": "Spies move {n} tile further.",
-    "mining": "+{n} star per round per mine and deep mine.",
+    "mining": "Tanks and prototype walkers (tank works) cost {pct} % less.",
     "armsIndustry": "MG infantry and anti-tank squads attack with +{pct} %.",
     "cybernetics": "Medics heal {n} more HP.",
     "navalArtillery": "All ships attack with +{pct} %.",
     "shipbuilding": "Ship upgrades cost {pct} % less.",
-    "forestry": "+{n} star per round per lumber camp.",
+    "forestry": "Artillery and Sun Lance (foundry) cost {pct} % less.",
     "ballistics": "Artillery and Sun Lance: range +{n}."
   }
 }

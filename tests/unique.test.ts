@@ -49,7 +49,8 @@ describe('Einzigartige Einheiten / unique units', () => {
       // eine Stadt ohne eingebaute Kaserne / a city without built-in barracks
       const c = addCity(s, 6, 2, 0, { level: 3 });
       expect(UNITS[type].tech).toBeNull();
-      expect(trainCheck(s, c, type)).toBe('buildingMissing');
+      // Korvat hat in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat has barracks built into every city
+      expect(trainCheck(s, c, type)).toBe(f === 'korvat' ? 'ok' : 'buildingMissing');
       giveSites(c, site);
       expect(trainCheck(s, c, type)).toBe('ok');
       expect(rosterUnits(s, 0)).toContain(type);

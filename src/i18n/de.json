@@ -508,13 +508,13 @@
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
     "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS",
-    "trainingCamp": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier hat eine eingebaut.",
-    "armory": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
-    "motorPool": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
-    "tankWorks": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt.",
-    "foundry": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eine je Stadt.",
-    "airfield": "{pop} Bevölkerungspunkt. Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
-    "dryDock": "{pop} Bevölkerungspunkt. Schiffe im Gebiet dieser Stadt rüsten auf zu: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt."
+    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier hat eine eingebaut.",
+    "armory": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "motorPool": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "tankWorks": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt.",
+    "foundry": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eine je Stadt.",
+    "airfield": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
+    "dryDock": "Schiffe im Gebiet dieser Stadt rüsten auf zu: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt."
   },
   "resource": {
     "upgrade": "Ausbau, nur die Differenz"
@@ -3848,12 +3848,12 @@
     "armyAviation": "Hubschrauber verbrauchen im eigenen Gebiet keinen Sprit.",
     "fortification": "Eigene Minen machen {n} Schaden mehr.",
     "intelligence": "Spione ziehen {n} Feld weiter.",
-    "mining": "+{n} Stern pro Runde je Tagebau und Tiefbauzeche.",
+    "mining": "Panzer und Prototyp-Läufer (Panzerwerk) kosten {pct} % weniger.",
     "armsIndustry": "MG-Infanterie und Panzerabwehr greifen mit +{pct} % an.",
     "cybernetics": "Sanitäter heilen {n} LP mehr.",
     "navalArtillery": "Alle Schiffe greifen mit +{pct} % an.",
     "shipbuilding": "Schiffe aufrüsten kostet {pct} % weniger.",
-    "forestry": "+{n} Stern pro Runde je Forstbetrieb.",
+    "forestry": "Artillerie und Sonnenlanze (Geschützgießerei) kosten {pct} % weniger.",
     "ballistics": "Artillerie und Sonnenlanze: Reichweite +{n}."
   }
 }

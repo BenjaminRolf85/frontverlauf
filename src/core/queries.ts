@@ -91,6 +91,9 @@ export function unitCost(s: GameState, f: number, type: UnitTypeId): number | nu
   let cost = fs.discountUnit === type ? Math.ceil(base * (1 - fs.discount)) : base;
   // Doktrin Motorisierung: Fahrzeuge billiger / motorization doctrine: cheaper vehicles
   if (hasDoctrine(s, f, 'motorization') && VEHICLE_UNITS.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.motorizationDiscount));
+  // Doktrinen Bergbau (Panzerwerk) und Forstwirtschaft (Geschuetzgiesserei) / mining (tank works) and forestry (foundry) doctrines
+  if (hasDoctrine(s, f, 'mining') && PRODUCTION.units.tankWorks.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.miningDiscount));
+  if (hasDoctrine(s, f, 'forestry') && PRODUCTION.units.foundry.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.forestryDiscount));
   return cost;
 }
 
@@ -206,15 +209,10 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
-  // Doktrinen Bergbau und Forstwirtschaft: Sterne je Tagebau bzw. Forstbetrieb / mining and forestry doctrines: stars per mine or lumber camp
-  const mining = hasDoctrine(s, c.owner, 'mining') ? DOCTRINE.miningStars : 0;
-  const forestry = hasDoctrine(s, c.owner, 'forestry') ? DOCTRINE.forestryStars : 0;
   for (const p of cityTiles(s, c)) {
     const b = tileAt(s, p.x, p.y)!.building;
     if (b === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
     else if (b && BUILDINGS[b].stars) inc += resourceBuildingStars(s, c, b);
-    if (b && baseBuilding(b) === 'mine') inc += mining;
-    if (b === 'lumberCamp') inc += forestry;
   }
   return inc;
 }
@@ -1295,11 +1293,17 @@ export const hasDoctrine = (s: GameState, f: number | null, tech: TechId): boole
 export const DOCTRINE_TECHS: TechId[] = ['motorization', 'aerodynamics', 'armyAviation', 'fortification', 'intelligence', 'mining', 'armsIndustry', 'cybernetics', 'navalArtillery', 'shipbuilding', 'forestry', 'ballistics'];
 
 /**
- * Eingebaute Staette der Stadt ohne eigenes Feld: Kaserne im Hauptquartier, in Sendetuermen und Nachschublinien, dazu City.works.
- * Built-in site of the city without a tile of its own: barracks in the HQ, in transmitter towers and supply lines, plus City.works.
+ * Eingebaute Staette der Stadt ohne eigenes Feld: Kaserne im Hauptquartier, in Sendetuermen und Nachschublinien,
+ * PRODUCTION.hqSites im eigenen Hauptquartier, PRODUCTION.citySites in jeder Stadt der Fraktion, dazu City.works.
+ * Built-in site of the city without a tile of its own: barracks in the HQ, in transmitter towers and supply lines,
+ * PRODUCTION.hqSites in the own HQ, PRODUCTION.citySites in every city of the faction, plus City.works.
  */
 export function builtInSite(s: GameState, c: City, site: ProductionSiteId): boolean {
   if (site === PRODUCTION.builtIn && (c.isHQ || c.tower || supplyLines(s))) return true;
+  // Fraktions-Extra im eigenen Hauptquartier (Dravon: Fahrzeugwerk) / faction extra in the own HQ (Dravon: motor pool)
+  if (c.isHQ && c.hqOf !== null && c.hqOf === c.owner && PRODUCTION.hqSites[s.factions[c.owner].id]?.includes(site)) return true;
+  // Fraktions-Extra in jeder eigenen Stadt (Korvat: Kaserne) / faction extra in every own city (Korvat: barracks)
+  if (c.owner !== null && PRODUCTION.citySites[s.factions[c.owner].id]?.includes(site)) return true;
   return !!c.works?.includes(site);
 }
 

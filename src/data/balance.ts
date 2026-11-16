@@ -1119,13 +1119,13 @@ export const BUILDINGS: Record<BuildingId, BuildingStats> = {
   // NEXUS: Depotknoten auf Erz / depot node on ore
   depotNode: { cost: 25, pop: 1, tech: null, terrain: ['mountain'], resource: 'ore', compute: 1 },
   // Produktionsstaetten der Menschen (PRODUCTION): eine je Stadt, ohne Forschung / human production sites (PRODUCTION): one per city, no research
-  trainingCamp: { cost: 10, pop: 1, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
-  armory: { cost: 20, pop: 1, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
-  motorPool: { cost: 20, pop: 1, tech: null, terrain: ['plain'], onePerCity: true },
-  tankWorks: { cost: 40, pop: 1, tech: null, terrain: ['plain'], onePerCity: true },
-  foundry: { cost: 30, pop: 1, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
-  airfield: { cost: 45, pop: 1, tech: null, terrain: ['plain'], onePerCity: true },
-  dryDock: { cost: 30, pop: 1, tech: null, terrain: ['shallow'], onePerCity: true },
+  trainingCamp: { cost: 10, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  armory: { cost: 20, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  motorPool: { cost: 20, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  tankWorks: { cost: 40, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  foundry: { cost: 30, pop: 0, tech: null, terrain: ['plain', 'forest'], onePerCity: true },
+  airfield: { cost: 45, pop: 0, tech: null, terrain: ['plain'], onePerCity: true },
+  dryDock: { cost: 30, pop: 0, tech: null, terrain: ['shallow'], onePerCity: true },
 };
 
 /** Produktionsstaetten / production sites */
@@ -1166,6 +1166,20 @@ export const PRODUCTION = {
    */
   builtIn: 'trainingCamp' as ProductionSiteId,
   /**
+   * Zusaetzlich eingebaut im eigenen Hauptquartier je Fraktion: Dravon (Jeep-Rabatt, startete mit Motorisierung und Jeeps)
+   * behaelt sein Fahrzeugwerk. Gilt nur, solange das Hauptquartier dem Gruender gehoert.
+   * Additionally built into the own HQ per faction: Dravon (jeep discount, started with motorization and jeeps) keeps
+   * its motor pool. Only while the HQ belongs to its founder.
+   */
+  hqSites: { dravon: ['motorPool'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  /**
+   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) hat ueberall
+   * eine Kaserne; der Eroberer bekommt sie nicht.
+   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) has barracks
+   * everywhere; the conqueror does not get them.
+   */
+  citySites: { korvat: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  /**
    * Voraussetzung im Stadtgebiet beim Bau: eines dieser Gebaeude. Panzerwerk: Tagebau oder Tiefbauzeche (beide nur auf Erz),
    * Geschuetzgiesserei: Forstbetrieb (Holz fuer Lafetten), Trockendock: Marinestuetzpunkt. Geht die Voraussetzung spaeter
    * verloren, arbeitet die Staette weiter.
@@ -1194,8 +1208,8 @@ export const DOCTRINE = {
   fortificationMine: 3,
   /** Nachrichtendienst: Spione ziehen so viel weiter / intelligence: spies move this much further */
   intelligenceSpyMove: 1,
-  /** Bergbau: Sterne pro Runde je Tagebau und Tiefbauzeche / mining: stars per round per mine and deep mine */
-  miningStars: 1,
+  /** Bergbau: Panzer aus dem Panzerwerk (Erz fuer Panzerstahl) so viel billiger / mining: tanks from the tank works (ore for armour steel) this much cheaper */
+  miningDiscount: 0.1,
   /** Ruestungsindustrie: Angriff dieser Einheiten / arms industry: attack of these units */
   armsIndustryAttack: 0.1,
   armsIndustryUnits: ['mg', 'antiTank'] as UnitTypeId[],
@@ -1205,8 +1219,8 @@ export const DOCTRINE = {
   navalArtilleryAttack: 0.2,
   /** Schiffbau: Aufruesten von Schiffen so viel billiger / shipbuilding: ship upgrades this much cheaper */
   shipbuildingDiscount: 0.25,
-  /** Forstwirtschaft: Sterne pro Runde je Forstbetrieb / forestry: stars per round per lumber camp */
-  forestryStars: 1,
+  /** Forstwirtschaft: Geschuetze aus der Giesserei (Holz fuer Lafetten) so viel billiger / forestry: guns from the foundry (wood for carriages) this much cheaper */
+  forestryDiscount: 0.15,
   /** Ballistik: Reichweite dieser Einheiten / ballistics: range of these units */
   ballisticsRange: 1,
   ballisticsUnits: ['artillery', 'sunLance'] as UnitTypeId[],
@@ -1557,6 +1571,14 @@ export const AI = {
    * it); the attack value itself already sees the factor via combatPreview.
    */
   memorialGround: 16,
+  /**
+   * Menschen: Gewicht der Doktrinen in der Kaufliste (Doktrinen konkurrieren mit den Produktionsstaetten um Sterne);
+   * doctrineWLead fuer die Fraktion mit Forschungsrabatt (Velkar), die Doktrinen ohnehin guenstig bekommt.
+   * Humans: weight of doctrines in the purchase list (doctrines compete with the production sites for stars);
+   * doctrineWLead for the faction with the research discount (Velkar), which gets doctrines cheaply anyway.
+   */
+  doctrineW: 1.45,
+  doctrineWLead: 1.15,
 };
 
 export const PLAYER_LIMITS = { min: 2, max: 5 };
