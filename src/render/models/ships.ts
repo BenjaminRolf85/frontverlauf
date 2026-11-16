@@ -126,10 +126,17 @@ function lifeboats(b: Builder, L: Look, x: number, y: number, z: number) {
   }
 }
 
-/** Geschuetzturm / gun turret; dir 1 = nach vorn, -1 = nach hinten */
+/** Schwenkgrenze der Schiffstuerme / traverse limit of ship turrets */
+const SHIP_TURRET_ARC = (Math.PI * 3) / 4;
+
+/**
+ * Geschuetzturm / gun turret; dir 1 = nach vorn, -1 = nach hinten / dir 1 = forward, -1 = aft.
+ * Drehbar (Builder.turret): schwenkt hoechstens 135 Grad aus der Ruhestellung, damit kein Rohr durch die Aufbauten zeigt.
+ * Rotating (Builder.turret): traverses at most 135 degrees from rest so no barrel points through the superstructure.
+ */
 function turret(b: Builder, f: FactionId, L: Look, z: number, y: number, size: number, barrels: number, dir: 1 | -1) {
   const big = styleOf(f) === 'dravon' ? 1.45 : 1;
-  b.group({ p: [0, y, z], r: [0, dir === 1 ? 0 : Math.PI, 0] }, () => {
+  b.group({ p: [0, y, z], r: [0, dir === 1 ? 0 : Math.PI, 0] }, () => b.turret([0, 0, 0], () => {
     if (styleOf(f) === 'alvenia') {
       b.cyl(size * 0.5, size * 0.55, size * 0.34, 8, L.hull, [0, size * 0.25, 0]);
       b.add(geo.hemi(size * 0.5, 8, 2), L.hull, { p: [0, size * 0.42, 0], s: [1, 0.3, 1] });
@@ -153,7 +160,7 @@ function turret(b: Builder, f: FactionId, L: Look, z: number, y: number, size: n
       b.cyl(size * 0.07 * big, size * 0.08 * big, len, 8, mat.dark, [x, size * 0.26, size * 0.4 + len / 2], [HALF_PI - 0.06, 0, 0]);
       b.cyl(size * 0.09 * big, size * 0.09 * big, size * 0.07, 8, mat.ink, [x, size * 0.26 + len * 0.06, size * 0.4 + len], [HALF_PI - 0.06, 0, 0]);
     }
-  });
+  }, { arc: SHIP_TURRET_ARC }));
 }
 
 /** Dreibeinmast mit Radar / tripod mast with radar */

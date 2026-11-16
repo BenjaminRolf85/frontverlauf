@@ -94,7 +94,9 @@
       "style": "mass armies, red banners, choirs",
       "aiStyle": "Builds large armies of cheap infantry and advances on a broad front.",
       "perk2": "Earthworks",
-      "perk2Desc": "Outposts cost 15 instead of 25 stars."
+      "perk2Desc": "Outposts cost 15 instead of 25 stars.",
+      "feature": "Steppe Colossus",
+      "featureDesc": "Own tank instead of the standard tank: {hp} HP instead of {tankHp} and attack {atk} instead of {tankAtk}, the most HP and the strongest attack of all tanks. Price {cost} stars and upkeep {upkeep} per round as for the tank ({tankCost} and {tankUpkeep}). From the tank works, and as a city reward."
     },
     "dravon": {
       "name": "Protectorate of Dravon",
@@ -149,7 +151,9 @@
       "style": "harbours, gold, spies, sailors",
       "aiStyle": "Grows its cities and sends spies ahead.",
       "perk2": "Harbour pilots",
-      "perk2Desc": "Landing boats move 1 tile further."
+      "perk2Desc": "Landing boats move 1 tile further.",
+      "feature": "Two for One",
+      "featureDesc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -219,7 +223,9 @@
       "style": "robots, data centers, cyan light",
       "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly.",
       "perk2": "Sensor net",
-      "perk2Desc": "All units see 1 tile further."
+      "perk2Desc": "All units see 1 tile further.",
+      "feature": "New series",
+      "featureDesc": "Cyborg infantry (from the start, {cyborgHp} HP), kamikaze walker drones (from {droneC} compute, {droneMove} tiles per turn, explode when attacking without return fire, +{droneFoot} % vs human foot troops, +{droneAlien} % vs Zyrr) and flamethrower tanks (from {flameC}, flames ignore cover, +{flameFoot} % vs foot troops)."
     }
   },
   "units": {
@@ -275,7 +281,11 @@
     "railSniper": "Railgun marksman",
     "lightWarden": "Light Wardens",
     "reliquary": "Reliquary",
-    "sunLance": "Sun Lance"
+    "sunLance": "Sun Lance",
+    "steppeColossus": "Steppe Colossus",
+    "cyborg": "Cyborg infantry",
+    "flameTank": "Flamethrower tank",
+    "kamikazeDrone": "Kamikaze walker drone"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
@@ -330,7 +340,11 @@
     "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire. Deadly against foot troops, weak against armour.",
     "lightWarden": "Order marksmen with radiant scopes and long rifles: range 2 and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
     "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: drives two tiles, range 2, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
-    "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence."
+    "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence.",
+    "steppeColossus": "The heaviest tank of the People's League: double track runs, a huge cast turret with a long gun and two MG turrets. The most HP and the strongest attack of all tanks, at the standard tank's price. From the tank works, and as a city reward.",
+    "cyborg": "Machine soldier with armour plates and servo limbs: sturdier and harder-hitting than the combat android, but pricier. Available from the first turn.",
+    "flameTank": "Tracked vehicle with fuel tanks and a flamethrower: range 1, the flames ignore all cover (forest, city, outposts), especially strong against foot troops.",
+    "kamikazeDrone": "Small walker drone with an explosive charge: walks 3 tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr."
   },
   "abilities": {
     "dash": "Assault",
@@ -388,7 +402,9 @@
     "wonder": "Victory wonder",
     "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted.",
     "boss": "Boss",
-    "bossDesc": "Heals on xeno ground, broods greys on adjacent tiles and hits every hostile neighbour with a psychic scream. Cannot be converted, no upkeep."
+    "bossDesc": "Heals on xeno ground, broods greys on adjacent tiles and hits every hostile neighbour with a psychic scream. Cannot be converted, no upkeep.",
+    "kamikaze": "Kamikaze",
+    "kamikazeDesc": "The attack is the explosion: only the target takes damage, it cannot strike back, and the drone is destroyed afterwards. No penalty for attacking after moving."
   },
   "stats": {
     "cost": "Cost",
@@ -420,6 +436,8 @@
     "ore": "Ore"
   },
   "features": {
+    "battlefield": "Battlefield (contested)",
+    "battlefieldHeavy": "Battlefield (devastated)",
     "bunker": "Abandoned bunker",
     "radar": "Radar station",
     "village": "Neutral settlement",
@@ -1746,7 +1764,11 @@
       "railSniper": "Rail Rifleman",
       "lightWarden": "Lantern Bearers",
       "reliquary": "Saint's Cupboard",
-      "sunLance": "Sun Plough"
+      "sunLance": "Sun Plough",
+      "steppeColossus": "Father Steel",
+      "cyborg": "Tin Grenadier",
+      "flameTank": "Fire Thresher",
+      "kamikazeDrone": "Bang Beetle"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1801,7 +1823,11 @@
       "railSniper": "Looted Railgun",
       "lightWarden": "Light Troopers",
       "reliquary": "Shrine Tank",
-      "sunLance": "Beam Battery"
+      "sunLance": "Beam Battery",
+      "steppeColossus": "Steppe Fortress",
+      "cyborg": "Drill Cyborg",
+      "flameTank": "Burner Tank",
+      "kamikazeDrone": "Blast Runner"
     },
     "alvenia": {
       "infantry": "Parish Guard",
@@ -1856,7 +1882,11 @@
       "railSniper": "Precision Marksman",
       "lightWarden": "Light Wardens",
       "reliquary": "Reliquary",
-      "sunLance": "Sun Lance"
+      "sunLance": "Sun Lance",
+      "steppeColossus": "Red Moloch",
+      "cyborg": "Unsouled One",
+      "flameTank": "Hellmouth",
+      "kamikazeDrone": "Devil's Spark"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1911,7 +1941,11 @@
       "railSniper": "Magnet Gun",
       "lightWarden": "Lamp Wardens",
       "reliquary": "Gold Chest on Tracks",
-      "sunLance": "Burning Glass"
+      "sunLance": "Burning Glass",
+      "steppeColossus": "Heavy-Haul Colossus",
+      "cyborg": "Hired Machine",
+      "flameTank": "Fire Damage",
+      "kamikazeDrone": "Disposable Drone"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -1966,7 +2000,11 @@
       "railSniper": "Railgun marksman",
       "lightWarden": "Optics Infantry",
       "reliquary": "Stained-Glass Bunker",
-      "sunLance": "Heliostat"
+      "sunLance": "Heliostat",
+      "steppeColossus": "Super-Heavy Prototype",
+      "cyborg": "Man-Machine Sample",
+      "flameTank": "Thermal Trial",
+      "kamikazeDrone": "One-Way Probe"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -2021,7 +2059,11 @@
       "railSniper": "Spike Tube",
       "lightWarden": "Glowing Bipeds",
       "reliquary": "Rolling Temple",
-      "sunLance": "Sun Stinger"
+      "sunLance": "Sun Stinger",
+      "steppeColossus": "Giant Shell",
+      "cyborg": "Mixed Specimen",
+      "flameTank": "Ember Shell",
+      "kamikazeDrone": "Pop Beetle"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -2076,7 +2118,11 @@
       "railSniper": "Heretic Marksman",
       "lightWarden": "Hypocrites",
       "reliquary": "Idol Shrine",
-      "sunLance": "Blinding Lance"
+      "sunLance": "Blinding Lance",
+      "steppeColossus": "Iron Colossus",
+      "cyborg": "Fallen Flesh",
+      "flameTank": "Purgatory Wagon",
+      "kamikazeDrone": "Suicide Imp"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -2131,7 +2177,11 @@
       "railSniper": "Rail Process",
       "lightWarden": "Unit L-2 Warden",
       "reliquary": "Unit R-4 Relic Case",
-      "sunLance": "Unit S-6 Mirror Array"
+      "sunLance": "Unit S-6 Mirror Array",
+      "steppeColossus": "Unit T-12 Heavy Chassis",
+      "cyborg": "Unit C-9 Cyborg Infantry",
+      "flameTank": "Unit F-5 Burner Platform",
+      "kamikazeDrone": "Unit X-1 One-Way Walker"
     }
   },
   "identity": {
@@ -2701,7 +2751,9 @@
     "vsVehicle": "{pct} % vs vehicles",
     "vsAir": "{pct} % vs flyers",
     "vsFoot": "{pct} % vs foot troops",
-    "hint": "Counter: damage against this target class, when attacking and retaliating."
+    "hint": "Counter: damage against this target class, when attacking and retaliating.",
+    "humanFoot": "{pct} % vs human foot troops",
+    "alien": "{pct} % vs Zyrr"
   },
   "leaders": {
     "title": "Faction",
@@ -2723,7 +2775,10 @@
     "detailsFor": "Details on {name}",
     "victory": "Victory condition",
     "combat": "Combat bonus",
-    "feature": "Faction feature"
+    "feature": "Faction feature",
+    "upkeep": "Upkeep",
+    "upkeepValue": "{pct} % less upkeep",
+    "upkeepDesc": "People's Army: the upkeep of all units is {pct} % lower (applied to the total, rounded up)."
   },
   "dispatchUi": {
     "kicker": "Dispatch",
@@ -3463,7 +3518,7 @@
     },
     "upkeep": {
       "title": "Upkeep",
-      "text": "The first {free} units are core troops and pay no upkeep. Every further unit costs {pct} % of its price per round (rounded up), tanks a flat {tank}. Upkeep is deducted from income. Next to the stars at the top you see the net income per round, the unit panel shows each unit's upkeep."
+      "text": "The first {free} units are core troops and pay no upkeep. Every further unit costs {pct} % of its price per round (rounded up), tanks a flat {tank}. Korvat pays {korvat} % less upkeep (applied to the total, rounded up). Upkeep is deducted from income. Next to the stars at the top you see the net income per round, the unit panel shows each unit's upkeep."
     },
     "combat": {
       "title": "Combat & hit luck",
@@ -3513,6 +3568,10 @@
     "doctrines": {
       "title": "Doctrines (humans)",
       "text": "In the doctrine tree the human factions unlock no units but advantages, buildings and upgrades. Cost: (tier x cities + 4) x 5 stars. New effects:"
+    },
+    "factionUnits": {
+      "title": "Faction designs",
+      "text": "Some factions have their own units or their own way of training. The numbers are also shown in the faction profile."
     }
   },
   "lore": {
@@ -3905,5 +3964,16 @@
     "tagDesc": "Has not moved for a whole turn: attacks on it miss {pct} percentage points more often. Lost with the next move.",
     "hint": "Target entrenched: +{pct} % miss chance",
     "desc": "Korvat ground units that do not move for a whole own turn dig in: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
+  },
+  "kamikaze": {
+    "note": "Explodes: the drone is destroyed afterwards, no return fire",
+    "killed": "Kamikaze drone explodes"
+  },
+  "twin": {
+    "label": "2x {unit}",
+    "desc": "Two for One: a second {unit} appears next to the city. Paid once, both cost upkeep and take a slot of the city limit.",
+    "limit": "Only 1: the city limit has room for one more unit only.",
+    "noRoom": "Only 1: no free tile next to the city for the second unit.",
+    "trained": "Two for One: 2x {unit} trained"
   }
 }

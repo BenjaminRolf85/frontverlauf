@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
-import { FUEL, M2 } from '../data/balance';
+import { FUEL, M2, WAR_MARKS } from '../data/balance';
 import { attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
@@ -18,8 +18,10 @@ import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
-import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
+import { CombatFx, aimTurrets, angleDelta, headingOf, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
+import { brokenFenceGeometry, burntGrassGeometry, debrisGeometry, oilSlickGeometry, roadDamageGeometry, shellHolesGeometry, smokeWispGeometry, stumpsGeometry } from './remains';
+import { SCAR_MARK_SCALE, scarColors, scarGround, scarKeyTier, scarSmokes } from './scars';
 import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
 import { TechParts } from './techParts';
@@ -36,7 +38,7 @@ import { towerGeometry } from './models/towers';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
 import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
-import { raceStandings, shipTiles, turretGuard } from '../core';
+import { raceStandings, scarTier, shipTiles, turretGuard, type ScarTier } from '../core';
 import { plansGeometry, templeGeometry } from './models/temple';
 
 /**
@@ -74,6 +76,28 @@ function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null,
 }
 const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2], stage = 0) =>
   safe(models.unitGeometry, factionTokens[f].primary, type, f, c, stage)!;
+/**
+ * Einheitenmodell aus der Geometrie: Wanne mit Kontur, Drehtuerme als Kinder 'turret' am Drehpunkt (gleiches Material,
+ * gleiche Konturbreite). Ohne Tuerme genau wie bisher ein outlined()-Objekt.
+ * Unit model from the geometry: hull with outline, turrets as children 'turret' at their pivot (same material, same
+ * outline width). Without turrets exactly an outlined() object as before.
+ */
+function unitModel(g: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+  const split = models.splitTurrets(g);
+  if (!split) return outlined(g, OUTLINE.unit, material);
+  const model = outlined(split.hull, OUTLINE.unit, material);
+  if (!g.boundingBox) g.computeBoundingBox();
+  model.userData.bounds = g.boundingBox;
+  for (const t of split.turrets) {
+    const tur = outlined(t.geometry, OUTLINE.unit, material);
+    tur.name = 'turret';
+    tur.position.copy(t.pivot);
+    tur.rotation.y = t.yaw;
+    tur.userData.turret = { rest: t.yaw, ...(t.arc !== undefined ? { arc: t.arc } : {}) } satisfies TurretInfo;
+    model.add(tur);
+  }
+  return model;
+}
 /** Versatz je Bauwerk; das Fusionskraftwerk-Modell deckt seine 2x2-Flaeche selbst ab / offset per wonder; the fusion plant model covers its 2x2 footprint itself */
 const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
@@ -181,6 +205,13 @@ export class Board {
   readonly combat = new CombatFx();
   /** gemerkte Blickrichtung (rotation.y des Modells) je Einheit / remembered facing (model rotation.y) per unit */
   private facing = new Map<number, number>();
+  /**
+   * Zielrichtung der Drehtuerme relativ zur Wanne (fehlt = Ruhestellung); nur Darstellung, nicht im Spielstand.
+   * Aim of the turrets relative to the hull (absent = rest); render state only, not in the game state.
+   */
+  private turretAim = new Map<number, number>();
+  /** Partie, zu der facing/turretAim gehoeren (Kachel-Array als Kennung) / game that facing/turretAim belong to (tile array as id) */
+  private facingGame: GameState['tiles'] | null = null;
   /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
   readonly life = new UnitLife();
   /** Bewegliche Teile der Velkar-Einheiten (Rotoren, Lichtboegen, Messdrohnen) / moving parts of Velkar units (rotors, arcs, survey drones) */
@@ -329,8 +360,9 @@ export class Board {
     return { top, side };
   }
 
-  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false, crater = -1): THREE.BufferGeometry {
-    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}-${this.theme}-${crater}`;
+  /** scar: Schlachtfeld-Stufe fuer die Farbe (scarKeyTier), Teil des Schluessels / scar: battlefield tier for the colour (scarKeyTier), part of the key */
+  private tileGeo(terrain: TerrainId | 'fog', tint: string | null, biome?: BiomeId, peak = 2, xeno = false, crater = -1, scar: ScarTier = 0): THREE.BufferGeometry {
+    const key = `${terrain}-${tint}-${biome}-${peak}-${this.snowy}-${xeno}-${this.theme}-${crater}-${scar}`;
     let g = this.tileGeoCache.get(key);
     if (g) return g;
     if (terrain === 'fog') {
@@ -342,7 +374,9 @@ export class Board {
       const top = terrain === 'shallow' || terrain === 'ocean' ? WATER_BOX_TOP
         : TILE_TOP[terrain] + (biome ? BIOME_LIFT[biome] : 0) + (terrain === 'mountain' ? PEAK_LIFT[peak] : 0) - (crater >= 0 && terrain !== 'mountain' ? CRATER_DIP[crater] : 0);
       const h = top - TILE_BOTTOM;
-      const c = this.theme === 'cavern' ? this.caveColors(terrain, tint, biome, xeno, crater) : this.tileColors(terrain, tint, biome, xeno);
+      const base = this.theme === 'cavern' ? this.caveColors(terrain, tint, biome, xeno, crater) : this.tileColors(terrain, tint, biome, xeno);
+      // Schlachtfeld: aufgewuehlte oder verwuestete Erde / battlefield: churned or devastated earth
+      const c = scar ? scarColors(base, scar, scarGround(terrain, biome, this.theme, this.snowy)) : base;
       g = coloredBox(0.98, h, 0.98, c.top, c.side);
       g.translate(0, TILE_BOTTOM + h / 2, 0);
     }
@@ -485,7 +519,13 @@ export class Board {
         }
         const homeFaction = t.home !== null && s.factions[t.home] ? s.factions[t.home].id : null;
         const ring = crater.get(k) ?? -1;
-        add(this.tileGeo(t.terrain, homeFaction && !t.xeno ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring), pos, k);
+        // Schlachtfeld-Stufe (0 unberuehrt .. 3 verwuestet) / battlefield tier (0 untouched .. 3 devastated)
+        const scar = scarTier(t);
+        const ground = scarGround(t.terrain, t.biome, this.theme, this.snowy);
+        // vernarbte Felder ohne Heimatfaerbung (verbrannte Erde; die Grenzlinien zeigen das Gebiet weiter): spart Feldgeometrien und Draw-Calls
+        // scarred tiles without the home tint (scorched earth; the border lines still show the territory): saves tile geometries and draw calls
+        const scarKey = scarKeyTier(scar, ground);
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -500,6 +540,8 @@ export class Board {
         // Pflanzen wiegen sich / plants sway
         const plant = t.terrain === 'forest' || t.resource === 'farmland' || (t.terrain === 'plain' && !t.resource);
         const jungle = t.terrain === 'forest' && t.biome === 'jungle';
+        // schwer umkaempfter Wald wird zu Baumstuempfen (nicht in Hoehle und Alienwelt) / heavily fought-over forest turns into stumps (not in the cavern or alien world)
+        const stumps = scar >= 3 && t.terrain === 'forest' && !t.resource && !cave && !alien;
         if (t.volcano) {
           // Vulkan statt Berggipfel, Rauch darueber / volcano instead of the peak, smoke above
           addDeco(volcanoGeometry(variant), at(), false, 'lava');
@@ -565,8 +607,9 @@ export class Board {
           else if (t.terrain === 'mountain') {
             if (occ) addDeco(mesaGeometry(variant), corner(0.45, 0.6));
             else if (free) addDeco(mesaGeometry((x * 5 + y * 11) % 4), at());
-          } else if (t.terrain === 'forest' && free) addDeco(thornScrubGeometry((x * 5 + y * 11) % 4, low || occ), occ ? corner(0.5, 0.8) : at());
-          else if (t.terrain === 'plain' && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) {
+          } else if (stumps && free) { if (!occ) addDeco(stumpsGeometry((x * 5 + y * 11) % 4), at()); }
+          else if (t.terrain === 'forest' && free) addDeco(thornScrubGeometry((x * 5 + y * 11) % 4, low || occ), occ ? corner(0.5, 0.8) : at());
+          else if (t.terrain === 'plain' && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 3) {
             const site = s.campaign?.sites?.some((p) => p.x === x && p.y === y) || (s.campaign?.cave?.x === x && s.campaign?.cave?.y === y);
             const h1 = tileHash(x, y, seed, 23), h2 = tileHash(x, y, seed, 29);
             const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 31) * Math.PI * 2);
@@ -592,23 +635,57 @@ export class Board {
         } else if (t.xeno && t.terrain !== 'mountain' && t.terrain !== 'shallow' && t.terrain !== 'ocean') {
           // Xeno-Flora statt Baeumen und Graesern / xeno flora instead of trees and grass
           if (!occ && (!hasStructure || t.building === 'road')) addDeco(t.resource ? decorationGeometry(t.terrain, t.resource, variant) : xenoDecoration((x * 7 + y * 13 + x * y) % 6), at(), !t.resource);
+        } else if (stumps) {
+          // zerschossener Wald / shot-up forest
+          if (!occ && (!hasStructure || t.building === 'road')) addDeco(stumpsGeometry((x * 5 + y * 11) % 4), at());
         } else if (jungle && !t.resource) {
           // dichter Dschungel, auch neben Einheiten sichtbar am Rand / dense jungle, kept at the edge next to units
           if (!hasStructure || t.building === 'road') addDeco(jungleDecoration((x * 5 + y * 11) % 4), occ ? new THREE.Matrix4().compose(new THREE.Vector3(x - off - 0.28, top, y - off - 0.28), new THREE.Quaternion(), new THREE.Vector3(0.45, 0.8, 0.45)) : at(), true);
+        } else if (!occ && (!hasStructure || t.building === 'road') && t.terrain === 'plain' && !t.resource && scar >= 2) {
+          // umkaempfte Wiese: verbranntes Gras (mittel) oder nackte Erde (schwer) / fought-over meadow: burnt grass (medium) or bare earth (heavy)
+          if (scar === 2) addDeco(burntGrassGeometry((x * 7 + y * 13) % 2), at());
         } else if (!occ && (!hasStructure || t.building === 'road') && !(alien && t.resource === 'fish')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
         // brennende Lava nach einem Ausbruch / burning lava after an eruption
         if (burning(s, t)) {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
-        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 2) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
         if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building && !alien) fishTiles.push({ x: x - off, z: y - off, y: top });
-        // Krater und Brandflecken / craters and scorch marks
+        // Krater und Brandflecken, groesser je Schlachtfeld-Stufe / craters and scorch marks, larger per battlefield tier
+        const ms = SCAR_MARK_SCALE[scar];
         for (const [i, mk] of (t.marks ?? []).entries()) {
           const geo = mk.k === 'crater' ? craterGeometry((x + y + i) % 3) : scorchGeometry((x * 3 + y + i) % 3);
           if (!decals.has(geo)) decals.set(geo, []);
-          decals.get(geo)!.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off + mk.ox, top, y - off + mk.oz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), mk.a), new THREE.Vector3(1, 1, 1)));
+          decals.get(geo)!.push(new THREE.Matrix4().compose(new THREE.Vector3(x - off + mk.ox, top, y - off + mk.oz), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), mk.a), new THREE.Vector3(ms, 1, ms)));
+        }
+        // Schlachtfeld ab mittlerer Stufe: Truemmer, Zaeune, Trichter, Strassenschaeden, Rauch, Oel auf See
+        // battlefield from the medium tier: debris, fences, shell holes, road damage, smoke, oil at sea
+        if (scar >= 2) {
+          // wenige Varianten je Modell (jede Variante kostet einen Draw-Call), Drehung sorgt fuer Abwechslung
+          // few variants per model (each variant costs a draw call), rotation adds variety
+          const sv = Math.floor(tileHash(x, y, seed, 41) * 6);
+          const rot = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 43) * Math.PI * 2);
+          const put = (geo: THREE.BufferGeometry, m: THREE.Matrix4) => { if (!decals.has(geo)) decals.set(geo, []); decals.get(geo)!.push(m); };
+          if (ground === 'water') {
+            if (!t.building && !alien) put(oilSlickGeometry(sv % 2, scar >= 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top + 0.004, y - off), rot, new THREE.Vector3(1, 1, 1)));
+          } else if (t.terrain !== 'mountain') {
+            // Bauwerke, Ressourcen und Sonderorte bleiben frei lesbar / structures, resources and special sites stay readable
+            const clear = (!hasStructure || t.building === 'road') && !t.resource && !t.volcano;
+            if (scar >= 3) put(shellHolesGeometry(sv % 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (clear && (scar >= 3 || tileHash(x, y, seed, 47) < 0.6)) addDeco(debrisGeometry(sv % 3), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            if (clear && scar === 2 && t.terrain === 'plain' && !t.road && !cave && !alien && tileHash(x, y, seed, 53) < 0.4) {
+              const side = Math.floor(tileHash(x, y, seed, 59) * 4) * (Math.PI / 2);
+              addDeco(brokenFenceGeometry(sv % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off + Math.sin(side) * 0.4, top, y - off + Math.cos(side) * 0.4),
+                new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), side), new THREE.Vector3(1, 1, 1)));
+            }
+            if (t.road) put(roadDamageGeometry(sv % 2), new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), rot, new THREE.Vector3(1, 1, 1)));
+            // Rauch in der hinteren Ecke, nur kurz nach dem Kampf / smoke in the back corner, only shortly after the fight
+            if (clear && scarSmokes(scar, t.scar?.r, s.round, WAR_MARKS.scar.smokeRounds) && tileHash(x, y, seed, 61) < (low ? 0.25 : 0.5)) {
+              addDeco(smokeWispGeometry(sv % 2), new THREE.Matrix4().makeTranslation(x - off - 0.3, top, y - off - 0.3), true);
+            }
+          }
         }
         // Kettenspuren / track marks
         for (const m of t.tracks ?? []) {
@@ -1019,6 +1096,14 @@ export class Board {
 
   /** Einheiten abgleichen / sync units */
   syncUnits(s: GameState, viewer: number) {
+    // neue Partie: gemerkte Ausrichtungen gelten nicht mehr / new game: remembered facings no longer apply
+    if (this.facingGame !== s.tiles) {
+      if (this.facingGame) {
+        this.facing.clear(); this.turretAim.clear();
+        for (const v of this.units.values()) { const m = v.group.getObjectByName('model'); if (m) { m.rotation.y = 0; aimTurrets(m, undefined); } }
+      }
+      this.facingGame = s.tiles;
+    }
     const seen = new Set<number>();
     for (const u of s.units) {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
@@ -1035,7 +1120,7 @@ export class Board {
         const own = viewer >= 0 && u.owner === viewer;
         const ugeo = unitGeometry(u.type, f, u.carried, stage);
         // Velkar: leuchtende Lichter (Leuchtmaske in der Geometrie) / Velkar: glowing lights (glow mask in the geometry)
-        const model = outlined(ugeo, OUTLINE.unit, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
+        const model = unitModel(ugeo, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
         this.techParts.attach(u.id, model, u.type, f, ugeo.userData.finishScale ?? 1, this.quality === 'low');
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
@@ -1046,6 +1131,8 @@ export class Board {
         model.name = 'model';
         // Fusionskraftwerk nie drehen, sonst passt die 2x2-Flaeche nicht / never rotate the fusion plant or its 2x2 footprint breaks
         model.rotation.y = u.type === 'fusionPlant' ? 0 : this.facing.get(u.id) ?? 0;
+        // Drehtuerme behalten ihr letztes Ziel / turrets keep their last target
+        aimTurrets(model, this.turretAim.get(u.id));
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
@@ -1108,9 +1195,13 @@ export class Board {
         if (cur !== want) mesh.material = want;
       });
     }
+    // Ausrichtung bleibt auch fuer verdeckte Einheiten erhalten, nur Gefallene werden vergessen
+    // facing survives for hidden units too, only fallen units are forgotten
+    const alive = new Set(s.units.map((u) => u.id));
     for (const [id, v] of this.units) {
-      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); this.techParts.detach(id); }
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.techParts.detach(id); }
     }
+    for (const m of [this.facing, this.turretAim]) for (const id of m.keys()) if (!alive.has(id) && !this.isAnimating(id)) m.delete(id);
     this.life.endSync(seen);
     this.updateShadows();
     this.dirty = true;
@@ -1194,6 +1285,9 @@ export class Board {
     // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
     const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
     this.facing.set(unitId, face(pts.length - 1));
+    // Drehtuerme schwenken beim Fahren zurueck nach vorn / turrets swing back to the front while driving
+    this.turretAim.delete(unitId);
+    const turns = turretsIn(model).map((tu) => ({ tu, turn: turretTurn(tu, undefined) }));
     this.life.startMove(s, unitId, [from, ...path]);
     return this.addAnim(dur, (t) => {
       const f = t * (pts.length - 1);
@@ -1203,6 +1297,7 @@ export class Board {
       // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
       this.life.moveFrame(unitId, t, f);
       if (model) model.rotation.y = face(f);
+      for (const { tu, turn } of turns) tu.rotation.y = turn.at(Math.min(1, t / 0.45));
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
   }
@@ -1213,7 +1308,54 @@ export class Board {
     hold: (id, on) => { if (on) this.animating.add(id); else this.animating.delete(id); },
     facing: (id) => this.facing.get(id) ?? 0,
     setFacing: (id, a) => { this.facing.set(id, a); },
+    setTurretAim: (id, rel) => { if (rel === undefined) this.turretAim.delete(id); else this.turretAim.set(id, rel); },
   };
+
+  /** Hat die Einheit Drehtuerme? (auch ohne sichtbares Modell) / does the unit have turrets? (also without a visible model) */
+  private hasTurret(s: GameState, u: Unit): boolean {
+    const model = this.units.get(u.id)?.group.getObjectByName('model');
+    if (model) return turretsIn(model).length > 0;
+    return models.turretsOf(unitGeometry(u.type, s.factions[u.owner].id, u.carried)).length > 0;
+  }
+
+  /**
+   * Ohne Animation (schnelle KI, Animationen aus, verdeckte Einheit): Ausrichtung zum Ziel sofort setzen.
+   * Einheiten mit Turm drehen nur den Turm, alle anderen die ganze Einheit.
+   * Without animation (fast AI, animations off, hidden unit): set the facing towards the target at once.
+   * Units with a turret only turn the turret, all others the whole unit.
+   */
+  faceTarget(s: GameState, unitId: number, target: { x: number; y: number }) {
+    const u = s.units.find((x) => x.id === unitId);
+    if (!u || u.type === 'fusionPlant' || (u.x === target.x && u.y === target.y)) return;
+    const a = this.tileCenter(s, u.x, u.y), b = this.tileCenter(s, target.x, target.y);
+    const heading = headingOf(b.x - a.x, b.z - a.z);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (this.hasTurret(s, u)) {
+      const hull = model ? model.rotation.y : this.facing.get(unitId) ?? 0;
+      const rel = angleDelta(hull, heading);
+      this.turretAim.set(unitId, rel);
+      aimTurrets(model, rel);
+    } else {
+      this.facing.set(unitId, heading);
+      if (model) model.rotation.y = heading;
+    }
+    this.dirty = true;
+  }
+
+  /**
+   * Ohne Animation gefahren: Wanne in die letzte Fahrtrichtung, Tuerme nach vorn.
+   * Moved without animation: hull towards the last driving direction, turrets to the front.
+   */
+  faceMove(s: GameState, unitId: number, from: { x: number; y: number }, path: { x: number; y: number }[]) {
+    if (!path.length) return;
+    const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
+    const heading = pathFacing(pts, this.facing.get(unitId) ?? 0)(pts.length - 1);
+    this.facing.set(unitId, heading);
+    this.turretAim.delete(unitId);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (model && s.units.find((x) => x.id === unitId)?.type !== 'fusionPlant') { model.rotation.y = heading; aimTurrets(model, undefined); }
+    this.dirty = true;
+  }
 
   /**
    * Angriff mit Waffeneffekten (siehe combat.ts); ohne Angaben nur Ausrichten und Ausfall.
@@ -1245,6 +1387,7 @@ export class Board {
       hold: (id, on) => { if (id !== GUN) this.fxHost.hold(id, on); },
       facing: (id) => (id === GUN ? 0 : this.fxHost.facing(id)),
       setFacing: (id, a) => { if (id !== GUN) this.fxHost.setFacing(id, a); },
+      setTurretAim: (id, rel) => { if (id !== GUN) this.fxHost.setTurretAim?.(id, rel); },
     };
     const water = (x: number, y: number) => { const tt = s.tiles[y * s.size + x].terrain; return tt === 'shallow' || tt === 'ocean'; };
     const u = s.units.find((x) => x.id === unitId);

@@ -204,37 +204,40 @@ export function reliquary(f: FactionId, lite = false): Builder {
   }
   // Schrein mit Spitzdach / shrine with a pointed roof
   const sy = by + 0.07, sz = -0.06;
-  b.add(geo.cbox(0.2, 0.12, 0.22, 0.012), FAITH.plate, { p: [0, sy + 0.06, sz] });
-  b.add(geo.profileXY([[-0.115, 0], [0.115, 0], [0, 0.1]], 0.24), FAITH.cloth, { p: [0, sy + 0.12, sz - 0.12] });
-  b.add(geo.profileXY([[-0.12, -0.004], [0.12, -0.004], [0, 0.104]], 0.012), FAITH.gold, { p: [0, sy + 0.12, sz + 0.115] });
-  b.add(geo.profileXY([[-0.12, -0.004], [0.12, -0.004], [0, 0.104]], 0.012), FAITH.gold, { p: [0, sy + 0.12, sz - 0.127] });
-  b.box(0.012, 0.012, 0.25, FAITH.gold, [0, sy + 0.222, sz]);
-  faithStar(b, [0, sy + 0.165, sz + 0.124], 0.03);
-  // Buntglasfenster: Spitzbogenfelder in Blau und Gold mit Goldsprossen / stained-glass windows: pointed panes in blue and gold with gold mullions
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < (lite ? 2 : 3); i++) {
-      const z = sz - 0.07 + i * (lite ? 0.14 : 0.07);
-      b.add(geo.profileXY([[-0.02, 0], [0.02, 0], [0.02, 0.05], [0, 0.07], [-0.02, 0.05]], 0.006), i % 2 ? FAITH.glassGold : FAITH.glassBlue, { p: [s * 0.102, sy + 0.025, z], r: [0, s * HALF_PI, 0] });
-      b.box(0.008, 0.075, 0.006, FAITH.goldDark, [s * 0.104, sy + 0.06, z]);
+  // Schrein mit Lichtgeschuetz dreht sich zum Ziel (siehe Builder.turret) / shrine with light gun turns towards the target (see Builder.turret)
+  b.turret([0, sy, sz], () => {
+    b.add(geo.cbox(0.2, 0.12, 0.22, 0.012), FAITH.plate, { p: [0, sy + 0.06, sz] });
+    b.add(geo.profileXY([[-0.115, 0], [0.115, 0], [0, 0.1]], 0.24), FAITH.cloth, { p: [0, sy + 0.12, sz - 0.12] });
+    b.add(geo.profileXY([[-0.12, -0.004], [0.12, -0.004], [0, 0.104]], 0.012), FAITH.gold, { p: [0, sy + 0.12, sz + 0.115] });
+    b.add(geo.profileXY([[-0.12, -0.004], [0.12, -0.004], [0, 0.104]], 0.012), FAITH.gold, { p: [0, sy + 0.12, sz - 0.127] });
+    b.box(0.012, 0.012, 0.25, FAITH.gold, [0, sy + 0.222, sz]);
+    faithStar(b, [0, sy + 0.165, sz + 0.124], 0.03);
+    // Buntglasfenster: Spitzbogenfelder in Blau und Gold mit Goldsprossen / stained-glass windows: pointed panes in blue and gold with gold mullions
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < (lite ? 2 : 3); i++) {
+        const z = sz - 0.07 + i * (lite ? 0.14 : 0.07);
+        b.add(geo.profileXY([[-0.02, 0], [0.02, 0], [0.02, 0.05], [0, 0.07], [-0.02, 0.05]], 0.006), i % 2 ? FAITH.glassGold : FAITH.glassBlue, { p: [s * 0.102, sy + 0.025, z], r: [0, s * HALF_PI, 0] });
+        b.box(0.008, 0.075, 0.006, FAITH.goldDark, [s * 0.104, sy + 0.06, z]);
+      }
     }
-  }
-  if (!lite) {
-    // Rosette vorn / rose window at the front
-    b.add(geo.cyl(0.032, 0.032, 0.008, 12), FAITH.glassBlue, { p: [0, sy + 0.07, sz + 0.112], r: [HALF_PI, 0, 0] });
-    b.add(geo.torus(0.034, 0.005, 3, 14), FAITH.gold, { p: [0, sy + 0.07, sz + 0.116] });
-    for (let i = 0; i < 4; i++) b.box(0.004, 0.064, 0.004, FAITH.goldDark, [0, sy + 0.07, sz + 0.118], [0, 0, (i * Math.PI) / 4]);
-  }
-  // Lichtgeschuetz vorn, lang mit Goldringen und Leuchtkristall / light gun at the front, long with gold rings and a glowing crystal
-  b.group({ p: [0, sy + 0.05, sz + 0.12] }, () => {
-    b.add(geo.cbox(0.09, 0.07, 0.08, 0.014), FAITH.plate, { p: [0, 0, 0.02] });
-    b.box(0.095, 0.01, 0.085, FAITH.gold, [0, 0.03, 0.02]);
-    const len = 0.36;
-    b.cyl(0.018, 0.022, len, lite ? 8 : 12, FAITH.plateShade, [0, 0, 0.06 + len / 2], [HALF_PI, 0, 0]);
-    for (const t of lite ? [0.5, 1] : [0.25, 0.5, 0.75, 1]) b.cyl(0.026, 0.026, 0.016, lite ? 8 : 12, FAITH.gold, [0, 0, 0.06 + len * t - 0.008], [HALF_PI, 0, 0]);
-    b.add(geo.ico(0.018, lite ? 0 : 1), FAITH.halo, { p: [0, 0, 0.07 + len] });
+    if (!lite) {
+      // Rosette vorn / rose window at the front
+      b.add(geo.cyl(0.032, 0.032, 0.008, 12), FAITH.glassBlue, { p: [0, sy + 0.07, sz + 0.112], r: [HALF_PI, 0, 0] });
+      b.add(geo.torus(0.034, 0.005, 3, 14), FAITH.gold, { p: [0, sy + 0.07, sz + 0.116] });
+      for (let i = 0; i < 4; i++) b.box(0.004, 0.064, 0.004, FAITH.goldDark, [0, sy + 0.07, sz + 0.118], [0, 0, (i * Math.PI) / 4]);
+    }
+    // Lichtgeschuetz vorn, lang mit Goldringen und Leuchtkristall / light gun at the front, long with gold rings and a glowing crystal
+    b.group({ p: [0, sy + 0.05, sz + 0.12] }, () => {
+      b.add(geo.cbox(0.09, 0.07, 0.08, 0.014), FAITH.plate, { p: [0, 0, 0.02] });
+      b.box(0.095, 0.01, 0.085, FAITH.gold, [0, 0.03, 0.02]);
+      const len = 0.36;
+      b.cyl(0.018, 0.022, len, lite ? 8 : 12, FAITH.plateShade, [0, 0, 0.06 + len / 2], [HALF_PI, 0, 0]);
+      for (const t of lite ? [0.5, 1] : [0.25, 0.5, 0.75, 1]) b.cyl(0.026, 0.026, 0.016, lite ? 8 : 12, FAITH.gold, [0, 0, 0.06 + len * t - 0.008], [HALF_PI, 0, 0]);
+      b.add(geo.ico(0.018, lite ? 0 : 1), FAITH.halo, { p: [0, 0, 0.07 + len] });
+    });
+    // schwebender Sonnenkranz ueber dem Dach / floating sun halo above the roof
+    haloRing(b, [0, sy + 0.27, sz], 0.075, 0.006, lite ? 12 : 20);
   });
-  // schwebender Sonnenkranz ueber dem Dach / floating sun halo above the roof
-  haloRing(b, [0, sy + 0.27, sz], 0.075, 0.006, lite ? 12 : 20);
   // Weihrauchfass am Heck / incense censer at the rear
   if (!lite) {
     b.tube([-0.08, by + 0.05, -0.2], [-0.08, by + 0.2, -0.24], 0.004, 4, FAITH.goldDark);

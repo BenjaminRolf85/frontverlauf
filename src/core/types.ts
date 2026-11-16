@@ -36,6 +36,11 @@ export interface Tile {
   peak?: number;
   /** Krater und Brandflecken (optisch) / craters and scorch marks (visual) */
   marks?: { k: 'crater' | 'scorch'; a: number; ox: number; oz: number }[];
+  /**
+   * Schlachtfeld (optisch): Kampfintensitaet v (WAR_MARKS.scar) und Runde r des letzten Kampfes; fehlt = unberuehrt
+   * (auch in alten Spielstaenden). Battlefield (visual): fighting intensity v and round r of the last fight; missing = untouched.
+   */
+  scar?: { v: number; r: number };
   /** Kettenspuren: Winkel und Runde (optisch) / track marks: angle and round (visual) */
   tracks?: { a: number; r: number }[];
   /** Fluss (optisch) / river (visual) */
@@ -410,14 +415,20 @@ export type WonderEventKind = 'started' | 'phase' | 'interrupted' | 'destroyed';
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
-  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean }
+  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean;
+    /** Kamikaze-Drohne: der Angriff war die Explosion, die Drohne ist danach zerstoert / kamikaze drone: the attack was the explosion, the drone is destroyed afterwards */
+    kamikaze?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
   | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number; bought?: true }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
-  | { t: 'train'; unit: number; city: number }
+  /**
+   * twin (Meridon, TWIN_TRAINING): 'twin' = eine zweite Einheit folgt, 'second' = dies ist die zweite, 'limit'/'noRoom' = nur eine (Limit bzw. kein Feld)
+   * twin (Meridon, TWIN_TRAINING): 'twin' = a second unit follows, 'second' = this is the second, 'limit'/'noRoom' = only one (limit or no tile)
+   */
+  | { t: 'train'; unit: number; city: number; twin?: 'twin' | 'second' | 'limit' | 'noRoom' }
   /** Kult: Einheit by ruft im Feld die Einheit unit / cult: unit by calls up unit in the field */
   | { t: 'recruit'; unit: number; by: number }
   | { t: 'build'; building: BuildingId | 'outpost' | GrandProjectId; x: number; y: number; faction: number }
@@ -482,7 +493,7 @@ export type GameEvent =
   /** owner/victim nur bei Geschuetzstellungen: Besitzer und Fraktion des Ziels / owner/victim only for emplacements: owner and the target's faction */
   | { t: 'turretFire'; x: number; y: number; target: number; dmg: number; hit?: HitKind; owner?: number; victim?: number }
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
-  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number }
+  | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number; kamikaze?: boolean }
   /** Geschuetzstellung gebaut / gun emplacement built */
   | { t: 'emplacement'; x: number; y: number; faction: number }
   /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */

@@ -18,21 +18,21 @@ const HALF_PI = Math.PI / 2;
 const V = (a: V3) => new THREE.Vector3(a[0], a[1], a[2]);
 
 /** Gliedsegment als gefaster Quader / limb segment as chamfered box */
-function limb(b: Builder, a: V3, c: V3, w: number, d: number, col: ColorLike, lite: boolean) {
+export function limb(b: Builder, a: V3, c: V3, w: number, d: number, col: ColorLike, lite: boolean) {
   b.segment(V(a), V(c), (l) => (lite ? geo.box(w, l + 0.01, d) : geo.rbox(w, l + 0.01, d, Math.min(w, d) * 0.25)), col);
 }
 
-function joint(b: Builder, p: V3, r: number, lite: boolean, col: ColorLike = mat.gunmetal) {
+export function joint(b: Builder, p: V3, r: number, lite: boolean, col: ColorLike = mat.gunmetal) {
   b.add(geo.sphere(r, lite ? 6 : 10, lite ? 3 : 5), col, { p });
 }
 
 /** Sechseckpaneel auf einer Flaeche / hexagon panel on a face */
-function hexPanel(b: Builder, p: V3, r: number, col: ColorLike, rot: V3) {
+export function hexPanel(b: Builder, p: V3, r: number, col: ColorLike, rot: V3) {
   b.add(geo.cyl(r, r, 0.005, 6), col, { p, r: rot });
 }
 
 /** Leuchtspulen entlang +z / glowing coils along +z */
-function coils(b: Builder, x: number, y: number, z0: number, z1: number, n: number, r: number, square = false) {
+export function coils(b: Builder, x: number, y: number, z0: number, z1: number, n: number, r: number, square = false) {
   for (let i = 0; i < n; i++) {
     const z = z0 + ((i + 0.5) / n) * (z1 - z0);
     b.add(geo.torus(r, r * 0.16, 3, square ? 4 : 10), mat.cyanGlow, { p: [x, y, z], r: [0, 0, square ? Math.PI / 4 : 0] });
@@ -234,51 +234,54 @@ export function titan(f: FactionId, lite = false): Builder {
   // Becken + Rumpf mit Leuchtkern / pelvis + torso with glowing core
   b.add(geo.rbox(0.18, 0.06, 0.11, 0.018), metal, { p: [0, 0.27, 0] });
   b.cyl(0.06, 0.07, 0.04, lite ? 8 : 12, metal, [0, 0.305, 0]);
-  b.add(lite ? geo.taper(0.18, 0.12, 0.27, 0.15, 0.15) : geo.rtaper(0.18, 0.12, 0.27, 0.15, 0.15, 0.022), plate, { p: [0, 0.385, 0] });
-  b.add(geo.sphere(0.032, lite ? 8 : 14, lite ? 4 : 8), glow, { p: [0, 0.385, 0.075] });
-  b.add(geo.torus(0.042, 0.009, 4, lite ? 10 : 18), metal, { p: [0, 0.385, 0.078] });
-  if (!lite) {
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      b.box(0.004, 0.022, 0.004, glow, [Math.sin(a) * 0.06, 0.385 + Math.cos(a) * 0.06, 0.076], [0, 0, -a]);
-    }
-    addEmblem(b, f, 0.026, 0.006, L.primary, { p: [-0.08, 0.42, 0.074] });
-    for (const s of [-1, 1]) hexPanel(b, [s * 0.11, 0.37, 0.062], 0.024, shade(plate, 0.9), [HALF_PI, 0, 0]);
-  }
-  // Kopf mit Visier / head with visor
-  b.cyl(0.03, 0.035, 0.03, lite ? 6 : 10, metal, [0, 0.47, 0]);
-  b.add(geo.rbox(0.08, 0.06, 0.08, 0.016), plate, { p: [0, 0.505, 0.01] });
-  b.box(0.07, 0.012, 0.006, glow, [0, 0.51, 0.052]);
-  b.add(geo.rtaper(0.06, 0.07, 0.02, 0.05, 0.02, 0.006), L.primary, { p: [0, 0.545, 0.0] });
-  // schwere Schulterpanzer / heavy pauldrons
-  for (const s of [-1, 1]) {
-    joint(b, [s * 0.15, 0.43, 0], 0.035, lite);
-    b.add(lite ? geo.box(0.1, 0.07, 0.12) : geo.rtaper(0.1, 0.12, 0.08, 0.1, 0.07, 0.016), L.primary, { p: [s * 0.17, 0.46, 0], r: [0, 0, s * -0.2] });
+  // Oberkoerper dreht sich zum Ziel (Torso-Drehung, siehe Builder.turret) / upper body turns towards the target (torso twist, see Builder.turret)
+  b.turret([0, 0.3, 0], () => {
+    b.add(lite ? geo.taper(0.18, 0.12, 0.27, 0.15, 0.15) : geo.rtaper(0.18, 0.12, 0.27, 0.15, 0.15, 0.022), plate, { p: [0, 0.385, 0] });
+    b.add(geo.sphere(0.032, lite ? 8 : 14, lite ? 4 : 8), glow, { p: [0, 0.385, 0.075] });
+    b.add(geo.torus(0.042, 0.009, 4, lite ? 10 : 18), metal, { p: [0, 0.385, 0.078] });
     if (!lite) {
-      b.box(0.004, 0.06, 0.1, glow, [s * 0.22, 0.45, 0], [0, 0, s * -0.2]);
-      addEmblem(b, f, 0.024, 0.006, plate, { p: [s * 0.22, 0.46, 0], r: [0, s * HALF_PI, s * -0.2] });
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        b.box(0.004, 0.022, 0.004, glow, [Math.sin(a) * 0.06, 0.385 + Math.cos(a) * 0.06, 0.076], [0, 0, -a]);
+      }
+      addEmblem(b, f, 0.026, 0.006, L.primary, { p: [-0.08, 0.42, 0.074] });
+      for (const s of [-1, 1]) hexPanel(b, [s * 0.11, 0.37, 0.062], 0.024, shade(plate, 0.9), [HALF_PI, 0, 0]);
     }
-  }
-  // rechter Arm: Armkanone / right arm: arm cannon
-  limb(b, [0.17, 0.42, 0], [0.19, 0.33, 0.03], 0.055, 0.06, plate, lite);
-  joint(b, [0.19, 0.33, 0.03], 0.03, lite);
-  b.add(geo.rbox(0.07, 0.07, 0.1, 0.016), metal, { p: [0.19, 0.31, 0.08] });
-  b.cyl(0.032, 0.038, 0.2, lite ? 8 : 14, metal, [0.19, 0.31, 0.2], [HALF_PI, 0, 0]);
-  if (!lite) coils(b, 0.19, 0.31, 0.13, 0.28, 4, 0.04);
-  b.cyl(0.026, 0.026, 0.012, lite ? 8 : 14, mat.ink, [0.19, 0.31, 0.302], [HALF_PI, 0, 0]);
-  b.add(geo.ico(0.02, lite ? 0 : 1), glow, { p: [0.19, 0.31, 0.305] });
-  // linker Arm: Armklinge / left arm: arm blade
-  limb(b, [-0.17, 0.42, 0], [-0.19, 0.33, 0.03], 0.055, 0.06, plate, lite);
-  joint(b, [-0.19, 0.33, 0.03], 0.03, lite);
-  b.add(geo.rbox(0.06, 0.06, 0.12, 0.014), metal, { p: [-0.19, 0.31, 0.09] });
-  b.add(geo.profileZY([[0.12, -0.02], [0.33, 0.0], [0.36, 0.03], [0.14, 0.03]], 0.012), plate, { p: [-0.19, 0.31, 0] });
-  b.box(0.014, 0.006, 0.22, glow, [-0.19, 0.31, 0.24], [-0.06, 0, 0]);
-  // Ruecken: Reaktorpacks + Antennen / back: reactor packs + antennas
-  for (const s of [-1, 1]) {
-    b.cyl(0.03, 0.034, 0.12, lite ? 6 : 12, metal, [s * 0.06, 0.41, -0.1]);
-    b.add(geo.cyl(0.031, 0.031, 0.014, lite ? 6 : 12, true), glow, { p: [s * 0.06, 0.45, -0.1] });
-    if (!lite) antenna(b, s * 0.1, 0.46, -0.07, 0.12, glow);
-  }
+    // Kopf mit Visier / head with visor
+    b.cyl(0.03, 0.035, 0.03, lite ? 6 : 10, metal, [0, 0.47, 0]);
+    b.add(geo.rbox(0.08, 0.06, 0.08, 0.016), plate, { p: [0, 0.505, 0.01] });
+    b.box(0.07, 0.012, 0.006, glow, [0, 0.51, 0.052]);
+    b.add(geo.rtaper(0.06, 0.07, 0.02, 0.05, 0.02, 0.006), L.primary, { p: [0, 0.545, 0.0] });
+    // schwere Schulterpanzer / heavy pauldrons
+    for (const s of [-1, 1]) {
+      joint(b, [s * 0.15, 0.43, 0], 0.035, lite);
+      b.add(lite ? geo.box(0.1, 0.07, 0.12) : geo.rtaper(0.1, 0.12, 0.08, 0.1, 0.07, 0.016), L.primary, { p: [s * 0.17, 0.46, 0], r: [0, 0, s * -0.2] });
+      if (!lite) {
+        b.box(0.004, 0.06, 0.1, glow, [s * 0.22, 0.45, 0], [0, 0, s * -0.2]);
+        addEmblem(b, f, 0.024, 0.006, plate, { p: [s * 0.22, 0.46, 0], r: [0, s * HALF_PI, s * -0.2] });
+      }
+    }
+    // rechter Arm: Armkanone / right arm: arm cannon
+    limb(b, [0.17, 0.42, 0], [0.19, 0.33, 0.03], 0.055, 0.06, plate, lite);
+    joint(b, [0.19, 0.33, 0.03], 0.03, lite);
+    b.add(geo.rbox(0.07, 0.07, 0.1, 0.016), metal, { p: [0.19, 0.31, 0.08] });
+    b.cyl(0.032, 0.038, 0.2, lite ? 8 : 14, metal, [0.19, 0.31, 0.2], [HALF_PI, 0, 0]);
+    if (!lite) coils(b, 0.19, 0.31, 0.13, 0.28, 4, 0.04);
+    b.cyl(0.026, 0.026, 0.012, lite ? 8 : 14, mat.ink, [0.19, 0.31, 0.302], [HALF_PI, 0, 0]);
+    b.add(geo.ico(0.02, lite ? 0 : 1), glow, { p: [0.19, 0.31, 0.305] });
+    // linker Arm: Armklinge / left arm: arm blade
+    limb(b, [-0.17, 0.42, 0], [-0.19, 0.33, 0.03], 0.055, 0.06, plate, lite);
+    joint(b, [-0.19, 0.33, 0.03], 0.03, lite);
+    b.add(geo.rbox(0.06, 0.06, 0.12, 0.014), metal, { p: [-0.19, 0.31, 0.09] });
+    b.add(geo.profileZY([[0.12, -0.02], [0.33, 0.0], [0.36, 0.03], [0.14, 0.03]], 0.012), plate, { p: [-0.19, 0.31, 0] });
+    b.box(0.014, 0.006, 0.22, glow, [-0.19, 0.31, 0.24], [-0.06, 0, 0]);
+    // Ruecken: Reaktorpacks + Antennen / back: reactor packs + antennas
+    for (const s of [-1, 1]) {
+      b.cyl(0.03, 0.034, 0.12, lite ? 6 : 12, metal, [s * 0.06, 0.41, -0.1]);
+      b.add(geo.cyl(0.031, 0.031, 0.014, lite ? 6 : 12, true), glow, { p: [s * 0.06, 0.45, -0.1] });
+      if (!lite) antenna(b, s * 0.1, 0.46, -0.07, 0.12, glow);
+    }
+  });
   return b;
 }
 

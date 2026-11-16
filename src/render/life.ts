@@ -28,7 +28,9 @@ import { crawlerGeometry, lizardGeometry, mothBodyGeometry, mothWingGeometry, sp
 export type LifeKind = 'foot' | 'vehicle' | 'walker' | 'flyer' | 'ship';
 
 /** Fusstruppen / foot troops */
-const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist']);
+const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist',
+  // NEXUS: Cyborg-Infanterie, Kamikaze-Laufdrohne (klein und flink) / NEXUS: cyborg infantry, kamikaze walker drone (small and nimble)
+  'cyborg', 'kamikazeDrone']);
 /** Laeufer: schwer und langsam / walkers: heavy and slow */
 const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider', 'flakDrone', 'protoWalker']);
 
@@ -265,7 +267,8 @@ export class UnitLife {
     if (!r) {
       const geo = (model.userData.mesh as THREE.Mesh | undefined)?.geometry;
       if (geo && !geo.boundingBox) geo.computeBoundingBox();
-      const bb = geo?.boundingBox;
+      // Modelle mit Drehturm: Masse des ganzen Modells / models with a turret: bounds of the whole model
+      const bb = (model.userData.bounds as THREE.Box3 | undefined) ?? geo?.boundingBox;
       const top = (bb ? bb.max.y : 0.3) * restScale;
       const half = (bb ? Math.max(-bb.min.x, bb.max.x, 0.05) : 0.15) * restScale;
       // Gieren zuerst, dann Neigen und Rollen relativ zur Blickrichtung / yaw first, then pitch and roll relative to facing

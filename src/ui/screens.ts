@@ -12,12 +12,12 @@ import {
   techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, usesSites, type GameConfig, type GameState, diplomacyLocked,
 } from '../core';
 import type { Controller } from '../game/controller';
-import { getLanguage, locale, num, setLanguage, t } from '../i18n/i18n';
+import { getLanguage, has as hasText, locale, num, setLanguage, t } from '../i18n/i18n';
 import type { Settings } from '../save/save';
 import { button, dialogTitle, esc, factionBadge, factionChip, iconButton, openDialog, price, rerender, segmented } from './components';
 import { emplacementDesc, emplacementName, emplacementStats } from './emplacement';
 import { FACTION_EMBLEM, icon, iconAt } from './icons';
-import { buildingDescText, cityName, unitDisplayName, unitName } from './hud';
+import { buildingDescText, cityName, counterTags, unitDisplayName, unitName } from './hud';
 import { sinTag } from './sin';
 import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
@@ -729,7 +729,8 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
       <span>${esc(t('stats.attack'))}</span><span>${num(st.attack)}</span><span>${esc(t('stats.defense'))}</span><span>${num(st.defense)}</span>
       <span>${esc(t('stats.move'))}</span><span>${num(st.move)}</span><span>${esc(t('stats.range'))}</span><span>${unitRange(u.type, s.factions[u.owner].id) ? num(unitRange(u.type, s.factions[u.owner].id)) : esc(t('stats.noRange'))}</span>
       <span>${esc(t('stats.cost'))}</span><span>${unitCost(s, viewer >= 0 ? viewer : u.owner, u.type) ?? '-'}</span><span>${esc(t('stats.kills'))}</span><span>${u.kills}</span></div>
-      <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
+      <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>
+      ${counterTags(u.type).length ? `<p>${counterTags(u.type).map((c) => esc(c.text)).join(' · ')}</p>` : ''}${hasText(`unitDesc.${u.type}`) ? `<p>${esc(t(`unitDesc.${u.type}`))}</p>` : ''}`;
   }
   if (c) {
     html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(c.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(c.tower ? t('tower.name') : supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : `${isDesert(s) ? `${t('desert.outpost')} · ` : isAlienWorld(s) ? `${t(s.factions[c.owner].id === 'zyrr' ? 'burrow.zyrr' : 'burrow.own')} · ` : ''}${t('hud.level', { n: c.level })}`)}`}</p>`;
