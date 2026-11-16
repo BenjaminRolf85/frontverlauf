@@ -15,7 +15,7 @@ describe('Kampfhubschrauber / helicopter', () => {
     expect(FUEL.tank).toBe(4);
     expect(MAX_FUEL).toBe(4);
     const { s, hq } = hg();
-    s.factions[0].techs.push('motorization', 'aerodynamics', 'armyAviation');
+    hq.works = ['airfield'];
     ok(s, { type: 'train', city: hq.id, unitType: 'heli' });
     expect(s.units[s.units.length - 1].fuel).toBe(4);
   });

@@ -3,7 +3,7 @@
  * AI situation picture: only visible things, threat, path fields (land/sea), goals and assignment.
  */
 import {
-  counterFactor, area, canSeeUnit, cityById, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
+  counterFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
   isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
@@ -124,7 +124,8 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const wader = fa.id === XENO.faction;
   const hasMountain = hasTech(s, f, 'mountainTraining') || wader;
   const hasDiving = hasTech(s, f, 'diving');
-  const hasCoastal = hasTech(s, f, 'coastalEconomy');
+  // Einschiffen: Menschen am eigenen Marinestuetzpunkt, andere mit Kuestenwirtschaft / embarking: humans at an own naval base, others with coastal economy
+  const hasCoastal = canEmbark(s, f);
   const landOk = new Uint8Array(n), seaOk = new Uint8Array(n), landCost = new Uint8Array(n), seaCost = new Uint8Array(n);
   const navalOwn = new Uint8Array(n), realLand = new Uint8Array(n);
   let structs = 0;
@@ -196,7 +197,8 @@ export function buildCtx(s: GameState, f: number): Ctx {
   }
   // Kult bildet nicht aus: seine Staedte muessen nicht frei bleiben / the cult does not train: its cities need not stay free
   if (desired > my.length && fa.stars >= 10 && !cult) {
-    for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c)) ctx.trainable.add(c.id);
+    // Menschen: nur Staedte mit einer Produktionsstaette / humans: only cities with a production site
+    for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c) && (!usesSites(s, f) || citySites(s, c).length > 0)) ctx.trainable.add(c.id);
   }
   ctx.navalNeed = computeNavalNeed(ctx);
   assignGoals(ctx);

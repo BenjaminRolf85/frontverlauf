@@ -98,31 +98,38 @@ describe('Forschungsbaum / research tree', () => {
     for (const [t, parent] of Object.values(tree)) expect(TECHS[t].parent).toBe(parent);
   });
 
+  // Menschen: Doktrinen statt Einheiten; Tagebau, Forstbetrieb und Marinestuetzpunkt ohne Forschung (PRODUCTION)
+  // humans: doctrines instead of units; mine, lumber camp and naval base without research (PRODUCTION)
   it('unlocks of the spec', () => {
-    expect(techUnlocks('motorization').units).toEqual(['jeep']);
+    expect(techUnlocks('motorization').units).toEqual([]);
     expect(techUnlocks('roadbuilding').buildings).toEqual(['road', 'bridge']);
     expect(techUnlocks('logistics').buildings).toEqual(['logisticsCenter']);
     expect(techUnlocks('aerodynamics').buildings).toEqual(['researchCenter']);
-    expect(techUnlocks('armyAviation').units).toEqual(['heli']);
+    expect(techUnlocks('armyAviation').units).toEqual([]);
     expect(techUnlocks('supply').buildings).toEqual(['storehouse']);
     expect(techUnlocks('agritech').buildings).toEqual(['farm']);
     expect(techUnlocks('foodIndustry').buildings).toEqual(['foodFactory']);
-    expect(techUnlocks('fortification').units).toEqual(['pioneer', 'mineLayer']);
-    expect(techUnlocks('intelligence').units).toEqual(['spy']);
-    expect(techUnlocks('mining').buildings).toEqual(['mine']);
-    expect(techUnlocks('armsIndustry')).toEqual({ units: ['mg', 'antiTank'], buildings: ['steelMill'] });
+    expect(techUnlocks('fortification').units).toEqual([]);
+    expect(techUnlocks('intelligence').units).toEqual([]);
+    expect(techUnlocks('mining').buildings).toEqual([]);
+    expect(techUnlocks('armsIndustry')).toEqual({ units: [], buildings: ['steelMill'] });
     expect(techUnlocks('highAltitude').buildings).toEqual(['researchCenter']);
-    expect(techUnlocks('cybernetics').units).toEqual(['medic']);
-    expect(techUnlocks('coastalEconomy')).toEqual({ units: ['landingBoat'], buildings: ['fishery', 'navalBase'] });
-    expect(techUnlocks('diving').units).toEqual(['submarine']);
-    expect(techUnlocks('navalArtillery').units).toEqual(['battleship']);
-    expect(techUnlocks('shipbuilding').units).toEqual(['destroyer']);
+    expect(techUnlocks('cybernetics').units).toEqual([]);
+    expect(techUnlocks('coastalEconomy')).toEqual({ units: [], buildings: ['fishery'] });
+    expect(techUnlocks('diving').units).toEqual([]);
+    expect(techUnlocks('navalArtillery').units).toEqual([]);
+    expect(techUnlocks('shipbuilding').units).toEqual([]);
+    // NEXUS ruestet Schiffe weiter ueber die Forschung auf / NEXUS still upgrades ships through research
+    expect(techUnlocks('coastalEconomy', 'nexus').units).toEqual(['landingBoat']);
+    expect(techUnlocks('diving', 'nexus').units).toEqual(['submarine']);
     expect(techUnlocks('coastalDefense').buildings).toEqual(['researchCenter']);
     expect(techUnlocks('livestock').buildings).toEqual(['ranch']);
-    expect(techUnlocks('camouflage').units).toEqual(['sniper']);
+    expect(techUnlocks('camouflage').units).toEqual([]);
     expect(techUnlocks('fieldResearch').buildings).toEqual(['researchCenter']);
-    expect(techUnlocks('forestry').buildings).toEqual(['lumberCamp']);
-    expect(techUnlocks('ballistics')).toEqual({ units: ['artillery'], buildings: ['materialsPlant'] });
+    expect(techUnlocks('forestry').buildings).toEqual([]);
+    expect(techUnlocks('ballistics')).toEqual({ units: [], buildings: ['materialsPlant'] });
+    // der Kult forscht weiter fuer Einheiten / the cult still researches units
+    expect(techUnlocks('ballistics', 'vesper').units).toEqual(['rocketCart']);
   });
 
   it('a tech requires its predecessor; costs are deducted; no double research', () => {
@@ -142,11 +149,13 @@ describe('Forschungsbaum / research tree', () => {
     fails(s, { type: 'research', tech: 'logistics' }, 'notEnoughStars');
   });
 
-  it('research unlocks training (jeep after motorization)', () => {
+  it('research does not unlock training: the jeep needs the motor pool (Produktionsstaette / production site)', () => {
     const s = withCities(1);
     const hq = s.cities[0];
-    expect(trainCheck(s, hq, 'jeep')).toBe('techMissing');
+    expect(trainCheck(s, hq, 'jeep')).toBe('buildingMissing');
     ok(s, { type: 'research', tech: 'motorization' });
+    expect(trainCheck(s, hq, 'jeep')).toBe('buildingMissing');
+    hq.works = ['motorPool'];
     expect(trainCheck(s, hq, 'jeep')).toBe('ok');
   });
 

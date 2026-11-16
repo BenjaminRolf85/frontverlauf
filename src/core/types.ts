@@ -1,5 +1,5 @@
 import type {
-  BiomeId, BuildingId, CityUpgradeId, Difficulty, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
+  BiomeId, BuildingId, CityUpgradeId, Difficulty, ProductionSiteId, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
   UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId, SinDeed,
 } from '../data/balance';
 
@@ -108,6 +108,13 @@ export interface City {
   plundered?: number;
   /** Kult: wie oft diese Stadt schon gepluendert wurde (fehlt = nie) / cult: how often this city has been plundered (missing = never) */
   plunderCount?: number;
+  /**
+   * Eingebaute Produktionsstaetten ohne eigenes Feld (alte Spielstaende, Kampagne), zusaetzlich zu den Gebaeuden im Stadtgebiet
+   * und der eingebauten Kaserne des Hauptquartiers (PRODUCTION.builtIn). Gehen mit der Stadt an den Eroberer.
+   * Built-in production sites without a tile of their own (old saves, campaign), in addition to the buildings in the city
+   * territory and the HQ's built-in barracks (PRODUCTION.builtIn). Pass to the conqueror with the city.
+   */
+  works?: ProductionSiteId[];
   nameIndex: number;
 }
 
@@ -331,6 +338,13 @@ export type RandomEventKind = 'storm' | 'epidemic' | 'rebels' | 'convoy' | 'defe
 
 export interface GameState {
   version: 1;
+  /**
+   * Regelstand der Produktionsstaetten (1 = Einheiten aus Staetten, Forschung als Doktrinen); fehlt = alter Spielstand, den
+   * migrateState angleicht.
+   * Rules revision of the production sites (1 = units from sites, research as doctrines); missing = old save that
+   * migrateState brings up to date.
+   */
+  sites?: number;
   config: GameConfig;
   rng: number;
   size: number;
@@ -517,7 +531,9 @@ export type ErrorCode =
   // Orbitallaser / orbital laser
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
   // Kriegsplaene (m4) / war plans (m4)
-  | 'cannotCarry';
+  | 'cannotCarry'
+  // Produktionsstaette fehlt (Ausbilden) oder Voraussetzung fehlt (Bauen) / production site missing (training) or prerequisite missing (building)
+  | 'buildingMissing';
 
 export interface CommandResult {
   ok: boolean;

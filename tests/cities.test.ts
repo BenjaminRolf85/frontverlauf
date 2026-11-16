@@ -153,12 +153,12 @@ describe('Einheitenlimit und Ausbildung / unit limit and training', () => {
     ok(s, { type: 'move', unit: u.id, to: { x: 5, y: 4 } });
   });
 
-  it('training requires tech, stars and an own city; the tank cannot be bought', () => {
+  it('training requires a production site, stars and an own city; the tank comes from the tank works', () => {
     const s = blankGame({ stars: 12 });
     const c = addCity(s, 5, 5, 0, { hq: true });
     const e = addCity(s, 9, 9, 1, { hq: true });
-    expect(trainCheck(s, c, 'jeep')).toBe('techMissing');
-    expect(trainCheck(s, c, 'tank')).toBe('invalid');
+    expect(trainCheck(s, c, 'jeep')).toBe('buildingMissing');
+    expect(trainCheck(s, c, 'tank')).toBe('buildingMissing');
     expect(trainCheck(s, c, 'landingBoat')).toBe('invalid');
     fails(s, { type: 'train', city: e.id, unitType: 'infantry' }, 'notYourCity');
     s.factions[0].stars = 7;

@@ -7,14 +7,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCommand, attackTargets, canAttackNow, combatPreview, createGame, defaultConfig, expectedHitMult, hitDamage, hitOdds, rollHit,
-  rosterUnits, techUnlocks, trainCheck, unitLuckFactor, type GameState, type Unit,
+  rosterUnits, siteOf, techUnlocks, trainCheck, unitLuckFactor, type GameState, type Unit,
 } from '../src/core';
 import { nextRandom } from '../src/core/rng';
 import { AI, FACTION_IDS, HIT, HIT_KINDS, LAND_UNITS, ROSTERS, UNITS, VARIANTS, type FactionId } from '../src/data/balance';
 import { planNextCommand } from '../src/ai/ai';
 import { isValidState, migrateState } from '../src/save/save';
 import { unitGeometry, techParts } from '../src/render/models';
-import { addCity, addUnit, blankGame, fails, ok, revealAll, unit } from './helpers';
+import { addCity, addUnit, blankGame, fails, giveSites, ok, revealAll, unit } from './helpers';
 
 function game(factions: FactionId[] = ['velkar', 'korvat'], hitChance = true): GameState {
   const s = blankGame({ factions, size: 11, hitChance });
@@ -113,7 +113,8 @@ describe('Tesla-Panzer / Tesla tank', () => {
     s.pendingRewards = [{ cityId: k.id, level: 5 }];
     ok(s, { type: 'reward', city: k.id, choice: 'b' });
     expect(s.units.some((u) => u.owner === 1 && u.type === 'tank')).toBe(true);
-    expect(UNITS.teslaTank.cost).toBeNull();
+    // kaeuflich im Panzerwerk wie der Panzer / for sale at the tank works like the tank
+    expect(UNITS.teslaTank.cost).toBe(UNITS.tank.cost);
     expect(UNITS.teslaTank.hp).toBe(UNITS.tank.hp);
   });
 });
@@ -168,9 +169,11 @@ describe('Liste der Velkar / Velkar roster', () => {
     expect(list).toContain('octocopter');
     expect(list).toContain('railSniper');
     for (const t of ['tank', 'heli', 'sniper'] as const) expect(list).not.toContain(t);
-    expect(techUnlocks('armyAviation', 'velkar').units).toEqual(['octocopter']);
-    expect(techUnlocks('camouflage', 'velkar').units).toContain('railSniper');
-    expect(techUnlocks('camouflage', 'velkar').units).not.toContain('sniper');
+    // Produktionsstaetten statt Forschung / production sites instead of research
+    expect(siteOf('octocopter')).toBe('airfield');
+    expect(siteOf('railSniper')).toBe('trainingCamp');
+    expect(siteOf('teslaTank')).toBe('tankWorks');
+    expect(techUnlocks('armyAviation', 'velkar').units).toEqual([]);
     // andere Menschen behalten Panzer, Hubschrauber, Scharfschuetze / other humans keep tank, helicopter, sniper
     for (const f of FACTION_IDS.filter((id) => !ROSTERS[id] && id !== 'velkar')) {
       const i = s.factions.findIndex((x) => x.id === f);
@@ -178,7 +181,7 @@ describe('Liste der Velkar / Velkar roster', () => {
       // Alvenia hat eigene Bauarten fuer Panzer (Reliquiar), nicht fuer Hubschrauber und Scharfschuetze / Alvenia has its own tank design (Reliquary), not for helicopter and sniper
       for (const t of ['tank', 'heli', 'sniper'] as const) if (!(f === 'alvenia' && t === 'tank')) expect(l, f).toContain(t);
       for (const t of ['teslaTank', 'octocopter', 'railSniper'] as const) expect(l, f).not.toContain(t);
-      expect(techUnlocks('armyAviation', f).units).toEqual(['heli']);
+      expect(techUnlocks('armyAviation', f).units).toEqual([]);
     }
     expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia']);
     expect(LAND_UNITS).toContain('sniper');
@@ -186,8 +189,8 @@ describe('Liste der Velkar / Velkar roster', () => {
 
   it('Ausbildung: Grundtypen fuer Velkar gesperrt, Bauarten fuer andere / training: base types locked for Velkar, designs for others', () => {
     const s = game(['velkar', 'korvat']);
-    s.factions[0].techs.push('camouflage', 'armyAviation');
-    s.factions[1].techs.push('camouflage', 'armyAviation');
+    giveSites(s.cities[0], 'airfield', 'tankWorks');
+    giveSites(s.cities[1], 'airfield', 'tankWorks');
     s.factions[0].stars = 200; s.factions[1].stars = 200;
     expect(trainCheck(s, s.cities[0], 'sniper')).toBe('invalid');
     expect(trainCheck(s, s.cities[0], 'heli')).toBe('invalid');
@@ -195,6 +198,9 @@ describe('Liste der Velkar / Velkar roster', () => {
     expect(trainCheck(s, s.cities[0], 'octocopter')).toBe('ok');
     expect(trainCheck(s, s.cities[1], 'railSniper')).toBe('invalid');
     expect(trainCheck(s, s.cities[1], 'sniper')).toBe('ok');
+    expect(trainCheck(s, s.cities[0], 'teslaTank')).toBe('ok');
+    expect(trainCheck(s, s.cities[0], 'tank')).toBe('invalid');
+    expect(trainCheck(s, s.cities[1], 'tank')).toBe('ok');
   });
 
   it('Speichern und Laden / save and load', () => {

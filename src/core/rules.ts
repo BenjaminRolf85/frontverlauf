@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING,
+  COUNTER, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
@@ -18,14 +18,15 @@ import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
 import { seizeCheck, seizePlans } from './temple';
 import {
-  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers, unitClass,
+  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
-  hasTech, hqOf, inContact, income, isHostile, weather, fuelBurn, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
+  hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost, isCampaignBond,
+  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -42,6 +43,8 @@ export function createGame(cfg: GameConfig): GameState {
   const n = config.size * config.size;
   const s: GameState = {
     version: 1,
+    // Produktionsstaetten und Doktrinen (alte Spielstaende ohne Feld gleicht migrateState an) / production sites and doctrines (old saves without the field are migrated)
+    sites: 1,
     config,
     rng: (config.seed ^ 0x5bd1e995) | 0,
     size: config.size,
@@ -619,7 +622,8 @@ function endTurnProcessing(s: GameState, ev: GameEvent[]) {
   for (const u of s.units.slice()) {
     if (u.owner !== f || u.fuel === null) continue;
     if (isRefuelSpot(s, f, u.x, u.y)) continue;
-    u.fuel -= fuelBurn(s);
+    // Doktrin Heeresflieger: im eigenen Gebiet kein Sprit / army aviation doctrine: no fuel in own territory
+    u.fuel -= fuelBurnAt(s, f, u.x, u.y);
     if (u.fuel <= 0) { killUnit(s, u, null, ev); ev.push({ t: 'crash', unit: u.id }); }
   }
   // Flugabwehr feindlicher Staedte trifft Hubschrauber, die hier ihren Zug beenden
@@ -628,8 +632,9 @@ function endTurnProcessing(s: GameState, ev: GameEvent[]) {
     if (u.owner !== f || !UNITS[u.type].abilities.includes('fly')) continue;
     const c = s.cities.find((cc) => cc.owner !== null && cc.owner !== f && isHostile(s, f, cc.owner) && (cc.upgrades ?? []).includes('flak') && dist(cc, u) <= CITY_UPGRADES.flakRange);
     if (!c) continue;
-    u.hp -= CITY_UPGRADES.flakDamage;
-    ev.push({ t: 'flak', city: c.id, unit: u.id, dmg: CITY_UPGRADES.flakDamage });
+    const dmg = flakDamage(s, c.owner!, CITY_UPGRADES.flakDamage);
+    u.hp -= dmg;
+    ev.push({ t: 'flak', city: c.id, unit: u.id, dmg });
     if (u.hp <= 0) killUnit(s, u, null, ev);
   }
   flakZones(s, f, ev);
@@ -644,8 +649,10 @@ function flakZones(s: GameState, f: number, ev: GameEvent[]) {
     if (u.owner !== f || !UNITS[u.type].abilities.includes('fly')) continue;
     const aa = s.units.find((o) => o.owner !== f && isHostile(s, f, o.owner) && has(o, 'flak') && dist(o, u) <= COUNTER.flak.range);
     if (!aa) continue;
-    u.hp -= COUNTER.flak.damage;
-    ev.push({ t: 'aaFire', unit: aa.id, target: u.id, dmg: COUNTER.flak.damage });
+    // Doktrin Aerodynamik des Flak-Besitzers: mehr Schaden / aerodynamics doctrine of the flak's owner: more damage
+    const dmg = flakDamage(s, aa.owner, COUNTER.flak.damage);
+    u.hp -= dmg;
+    ev.push({ t: 'aaFire', unit: aa.id, target: u.id, dmg });
     if (u.hp <= 0) { killUnit(s, u, aa.id, ev); gainKill(s, aa, ev); }
   }
 }
@@ -675,7 +682,8 @@ function detonateMine(s: GameState, u: Unit, ev: GameEvent[]): boolean {
   const t = tileAt(s, u.x, u.y)!;
   const owner = t.mine!.owner;
   t.mine = null;
-  const dmg = unitClass(u.type) === 'vehicle' ? COUNTER.mine.damageVehicle : COUNTER.mine.damageFoot;
+  // Doktrin Befestigung des Minenbesitzers: mehr Schaden / fortification doctrine of the mine's owner: more damage
+  const dmg = mineDamage(s, owner, u.type);
   u.hp -= dmg;
   u.moveDone = true;
   addMark(s, u.x, u.y, 'crater');
@@ -1288,7 +1296,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       for (const o of s.units) {
         // keine Bauwerke, keine Ausserirdischen abseits von Xeno-Boden / no structures, no aliens off xeno ground
         if (o.owner !== f || dist(o, u) !== 1 || !medicCanHeal(s, o)) continue;
-        const amount = Math.min(HEALING.medic, o.maxHp - o.hp);
+        // Doktrin Kybernetik: mehr Heilung / cybernetics doctrine: more healing
+        const amount = Math.min(medicHealAmount(s, f), o.maxHp - o.hp);
         o.hp += amount;
         ev.push({ t: 'heal', unit: o.id, amount });
       }
@@ -1516,7 +1525,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (typeof u === 'string') return fail(u);
       const check = upgradeCheck(s, u, cmd.to);
       if (check !== 'ok') return fail(check);
-      fa.stars -= UNITS[cmd.to].cost ?? 0;
+      fa.stars -= shipUpgradeCost(s, f, cmd.to);
       u.type = cmd.to;
       ev.push({ t: 'upgrade', unit: u.id, to: cmd.to });
       res = { ok: true, events: ev };

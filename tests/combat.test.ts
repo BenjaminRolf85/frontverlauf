@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canMove, combatPreview, defenseBonus, attackTargets, canAttackNow } from '../src/core';
+import { canMove, combatPreview, defenseBonus, attackTargets, canAttackNow, siteOf } from '../src/core';
 import { COMBAT, DEFENSE_BONUS, VETERAN } from '../src/data/balance';
 import { addCity, addUnit, blankGame, fails, ok, revealAll, setTerrain, unit } from './helpers';
 
@@ -277,8 +277,8 @@ describe('Faehigkeiten im Kampf / combat abilities', () => {
   it('battleship splash damage hits enemy units next to the target only', () => {
     const s = duel();
     setTerrain(s, 3, 5, 'shallow');
+    // ohne Doktrin Marineartillerie (die gaebe +20 % Angriff) / without the naval artillery doctrine (it would add +20 % attack)
     const b = addUnit(s, 'battleship', 0, 3, 5);
-    s.factions[0].techs.push('navalArtillery');
     const target = addUnit(s, 'mg', 1, 6, 5);
     const nb = addUnit(s, 'mg', 1, 7, 5);
     const nb2 = addUnit(s, 'mg', 1, 6, 6);
@@ -309,24 +309,25 @@ describe('Faehigkeiten im Kampf / combat abilities', () => {
 });
 
 describe('Einheitenwerte / unit stats (section 5)', () => {
+  // letzte Spalte: Produktionsstaette (Menschen-Einheiten haben keine Forschung mehr) / last column: production site (human units have no research any more)
   it('land units and helicopter match the spec table', async () => {
     const { UNITS } = await import('../src/data/balance');
     const table: [string, number | null, number, number, number, number, number, string[], string | null][] = [
-      ['infantry', 10, 10, 2, 2, 1, 1, ['dash', 'fortify'], null],
-      ['sniper', 15, 10, 2, 1, 1, 2, ['dash', 'fortify'], 'camouflage'],
-      ['jeep', 15, 10, 2, 1, 2, 1, ['dash', 'escape'], 'motorization'],
-      ['pioneer', 15, 15, 1, 3, 1, 1, ['fortify'], 'fortification'],
-      ['mg', 25, 15, 3, 3, 1, 1, ['dash', 'fortify'], 'armsIndustry'],
-      ['medic', 25, 10, 0, 1, 1, 1, ['heal', 'convert'], 'cybernetics'],
-      ['artillery', 40, 10, 4, 0, 1, 3, ['noRetaliate', 'ignoreOutpost'], 'ballistics'],
-      ['spy', 40, 5, 0, 0.5, 2, 0, ['invisible', 'uprising'], 'intelligence'],
-      ['heli', 50, 10, 3.5, 1, 3, 1, ['dash', 'persist', 'fly', 'fuel'], 'armyAviation'],
-      ['tank', null, 40, 5, 4, 1, 1, ['dash'], null],
+      ['infantry', 10, 10, 2, 2, 1, 1, ['dash', 'fortify'], 'trainingCamp'],
+      ['sniper', 15, 10, 2, 1, 1, 2, ['dash', 'fortify'], 'trainingCamp'],
+      ['jeep', 15, 10, 2, 1, 2, 1, ['dash', 'escape'], 'motorPool'],
+      ['pioneer', 15, 15, 1, 3, 1, 1, ['fortify'], 'trainingCamp'],
+      ['mg', 25, 15, 3, 3, 1, 1, ['dash', 'fortify'], 'armory'],
+      ['medic', 25, 10, 0, 1, 1, 1, ['heal', 'convert'], 'trainingCamp'],
+      ['artillery', 40, 10, 4, 0, 1, 3, ['noRetaliate', 'ignoreOutpost'], 'foundry'],
+      ['spy', 40, 5, 0, 0.5, 2, 0, ['invisible', 'uprising'], 'trainingCamp'],
+      ['heli', 50, 10, 3.5, 1, 3, 1, ['dash', 'persist', 'fly', 'fuel'], 'airfield'],
+      ['tank', 60, 40, 5, 4, 1, 1, ['dash'], 'tankWorks'],
     ];
-    for (const [id, cost, hp, att, def, move, range, abilities, tech] of table) {
+    for (const [id, cost, hp, att, def, move, range, abilities, site] of table) {
       const st = UNITS[id as keyof typeof UNITS];
-      expect({ id, cost: st.cost, hp: st.hp, att: st.attack, def: st.defense, move: st.move, range: st.range, tech: st.tech })
-        .toEqual({ id, cost, hp, att, def, move, range, tech });
+      expect({ id, cost: st.cost, hp: st.hp, att: st.attack, def: st.defense, move: st.move, range: st.range, tech: st.tech, site: siteOf(id as keyof typeof UNITS) })
+        .toEqual({ id, cost, hp, att, def, move, range, tech: null, site });
       expect([...st.abilities].sort()).toEqual([...abilities].sort());
     }
   });

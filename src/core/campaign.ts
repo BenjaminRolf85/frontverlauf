@@ -24,10 +24,10 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  BUILDINGS, CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type ProductionSiteId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
-import { cityAt, factionVariant, hqOf, isHostile, ownCities, score, unitAt } from './queries';
+import { cityAt, cityHasSite, cityTiles, factionVariant, hqOf, isHostile, ownCities, score, unitAt } from './queries';
 import { findShipSpot, placeShip, scientistOf, shipDist } from './mothership';
 import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
 import { chooseTempleSite, placeTemple, runPursuit, templeDist, templeRing, updatePlans } from './temple';
@@ -160,6 +160,13 @@ export interface SetupKit {
   portal(p: Pos): void;
   /** Stadtausbau setzen / add a city upgrade */
   upgrade(c: City, id: CityUpgradeId): void;
+  /**
+   * Produktionsstaetten in die Stadt setzen (ohne Preis und Bevoelkerung): auf ein freies passendes Feld im Stadtgebiet,
+   * sonst eingebaut (City.works). Fuer die Einheiten, mit denen die Mission rechnet.
+   * Put production sites into the city (no price, no population): on a free fitting tile in the city territory, otherwise
+   * built in (City.works). For the units the mission relies on.
+   */
+  sites(c: City, ids: ProductionSiteId[]): void;
   /**
    * Ruinenstaette der Vergessenen nahe einem Punkt anlegen, mit einer schlafenden Verdan-Wache daneben.
    * Lay out a ruin site of the Forgotten near a point, with a dormant Verdan sentinel next to it.
@@ -301,6 +308,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
       k.spawn('infantry', 0, a); k.spawn('jeep', 0, a);
+      k.sites(a, ['motorPool']);
       // Sonden der Zyrr schwaermen frueh aus / Zyrr probes swarm out early
       k.spawn('grey', 1, b, { min: 1 });
       k.point(ringNear(k, a, k.toward(a, b, 4), 3, 5));
@@ -328,6 +336,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
     setup(k) {
       const a = k.hq(0), b = k.hq(1);
       const v = k.grantNear(0, a) ?? a;
+      k.sites(a, ['armory']);
       const ship = k.mothership(a, b);
       k.scientist(a);
       for (const type of M2.playerUnits) k.spawn(type, 0, a);
@@ -358,6 +367,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       const a = k.hq(0);
       const t = k.temple(a, 1);
       k.spawn('jeep', 0, a); k.spawn('mg', 0, a); k.spawn('infantry', 0, a);
+      k.sites(a, ['armory']);
       // Tempelwache auf der Seite zum Spieler hin / temple guard on the side facing the player
       if (t) {
         const front = templeRing(k.s)[0] ?? t;
@@ -375,6 +385,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.target(b);
       k.grantNear(1, b);
       k.spawn('jeep', 0, a); k.spawn('infantry', 0, a); k.spawn('mg', 0, a);
+      k.sites(a, ['armory']);
       // die Starthorde des Kults bewacht die Pilgerstadt, ein Flammenjuenger dazu / the cult's starting horde guards the pilgrim city, plus a torchbearer
       k.spawn('torchbearer', 1, b, { min: 1 });
       revealArea(k.s, 0, b.x, b.y, 1);
@@ -393,6 +404,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       if (drill) { k.mark(drill); revealArea(k.s, 0, drill.x, drill.y, 2); }
       k.spawn('zealot', 1, p, { min: 1 }); k.spawn('faustZealot', 1, p, { min: 1 });
       k.spawn('tank', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a);
+      k.sites(a, ['foundry']);
     },
   },
   // Kapitel Erwachen (gegen NEXUS) / chapter Awakening (vs NEXUS)
@@ -413,6 +425,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
         revealArea(k.s, 0, c.x, c.y, 1);
       }
       k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a);
+      k.sites(a, ['armory', 'foundry']);
     },
   },
   {
@@ -431,6 +444,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       const a = k.hq(0), b = k.hq(1);
       k.upgrade(a, 'bunker');
       k.spawn('mg', 0, a); k.spawn('mg', 0, a); k.spawn('infantry', 0, a);
+      k.sites(a, ['armory']);
       // zwei getrennte Angriffsrichtungen (nie dasselbe Feld) / two separate attack directions (never the same tile)
       const p0 = ringNear(k, a, k.toward(a, b, 4), 3, 5);
       k.point(p0);
@@ -465,6 +479,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.spawn('grey', 1, p, { min: 1 }); k.spawn('grey', 1, p, { min: 1 });
       const v = k.grantNear(0, a) ?? a;
       k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('jeep', 0, a); k.spawn('tank', 0, a);
+      k.sites(a, ['armory', 'foundry']);
       if (v !== a) k.spawn('infantry', 0, v);
       // alle kennen das Portal, der Spieler sieht auch die Wache / everyone knows the portal, the player also sees the guard
       for (const f of k.s.factions) revealArea(k.s, f.index, p.x, p.y, f.index === 0 ? 2 : 1);
@@ -527,6 +542,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.portal(ringNear(k, a, k.toward(a, { x: k.s.size - 1 - b.x, y: k.s.size - 1 - b.y }, 2), 1, 2));
       k.upgrade(a, 'bunker');
       k.spawn('tank', 0, a); k.spawn('tank', 0, a); k.spawn('mg', 0, a); k.spawn('artillery', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      k.sites(a, ['armory', 'foundry']);
       k.upgrade(b, 'bunker');
       k.grantNear(1, b, 2); k.grantNear(1, b, 2);
       k.spawn('mech', 1, b); k.spawn('tripod', 1, b, { min: 1 }); k.spawn('grey', 1, b, { min: 1 });
@@ -583,6 +599,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       const a = k.hq(0);
       k.grantNear(0, a);
       k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      k.sites(a, ['armory', 'foundry']);
       // Staetten: Kartenmitte und auf halbem Weg zu den drei anderen / sites: map centre and halfway to the three others
       const mid = { x: Math.floor(s.size / 2), y: Math.floor(s.size / 2) };
       const wants = [mid, ...[1, 2, 3].map((f) => k.mid(a, k.hq(f)))].slice(0, RUINS.sites);
@@ -608,6 +625,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.upgrade(a, 'bunker');
       k.grantNear(0, a);
       k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a); k.spawn('infantry', 0, a);
+      k.sites(a, ['armory', 'foundry']);
       const mouth = k.caveMouth(a);
       // alle kennen den Schlund; Ankunftspunkte zwischen ihm und den Basen / everyone knows the mouth; arrival points between it and the bases
       for (let f = 1; f <= 3; f++) k.point(ringNear(k, mouth, k.toward(mouth, k.hq(f), 5), 4, 6));
@@ -636,6 +654,7 @@ const DEFS: Omit<MissionDef, 'act'>[] = [
       k.upgrade(a, 'bunker');
       k.grantNear(0, a);
       k.spawn('mg', 0, a); k.spawn('jeep', 0, a); k.spawn('artillery', 0, a);
+      k.sites(a, ['armory', 'foundry']);
       // Ankunftspunkte zwischen Artefakt und den Basen der drei Rassen, ausserhalb der Verdan-Linie
       // arrival points between the artifact and the three races' bases, outside the Verdan line
       const art = k.s.campaign!.artifact!;
@@ -757,6 +776,7 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
     point: (p) => { (c.spawns ??= []).push({ x: p.x, y: p.y }); return c.spawns.length - 1; },
     portal: (p) => { c.portal = { x: p.x, y: p.y }; c.portalHold = 0; },
     upgrade: (city, id) => { if (!(city.upgrades ?? []).includes(id)) city.upgrades = [...(city.upgrades ?? []), id]; },
+    sites: (city, ids) => placeSites(s, city, ids),
     ruin: (near) => placeRuin(s, c, near),
     caveMouth: (from) => {
       const p = placeCaveMouth(s, from);
@@ -931,6 +951,25 @@ function placeTurrets(s: GameState, art: Pos) {
     if (!p) continue;
     const t = tileAt(s, p.x, p.y)!;
     Object.assign(t, { turret: { hp: VERDAN.hp, active: false }, resource: null, building: null, road: false, mine: null, barrier: null });
+  }
+}
+
+/**
+ * Produktionsstaetten der Mission setzen: je Staette ein freies passendes Feld im Stadtgebiet (ohne Ressource, Strasse,
+ * Merkmal), sonst eingebaut. Kein Preis, keine Bevoelkerung.
+ * Place the mission's production sites: per site a free fitting tile in the city territory (no resource, road, feature),
+ * otherwise built in. No price, no population.
+ */
+function placeSites(s: GameState, c: City, ids: ProductionSiteId[]) {
+  for (const id of ids) {
+    if (cityHasSite(s, c, id)) continue;
+    const spot = cityTiles(s, c).find((p) => {
+      const t = tileAt(s, p.x, p.y)!;
+      return t.cityId === null && !t.building && !t.resource && !t.road && !t.feature && !t.grandProject && !t.outpost && !t.turret &&
+        !t.temple && !t.wonderOf && !t.volcano && BUILDINGS[id].terrain.includes(t.terrain);
+    });
+    if (spot) tileAt(s, spot.x, spot.y)!.building = id;
+    else c.works = [...(c.works ?? []), id];
   }
 }
 

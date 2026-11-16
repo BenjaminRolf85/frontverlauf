@@ -10,7 +10,7 @@ import {
   techUnlocks, trainCheck, type GameState,
 } from '../src/core';
 import {
-  BUILDINGS, CITY, FACTION_IDS, HEALING, INCOME, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNITS, VETERAN, type BuildingId, type FactionId, type TechId,
+  BUILDINGS, CITY, DOCTRINE, FACTION_IDS, HEALING, INCOME, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNITS, VETERAN, type BuildingId, type FactionId, type TechId,
 } from '../src/data/balance';
 import { addCity, addUnit, blankGame, fails, ok, setTerrain, tile, unit } from './helpers';
 
@@ -128,7 +128,8 @@ describe('Ressourcengebaeude: Ortsregeln und Wirkung / site rules and effects', 
     let p0 = totalPop(s, c.id);
     ok(s, { type: 'build', building: b, x: 5, y: 4 });
     expect(totalPop(s, c.id) - p0).toBe(BUILDINGS.deepMine.pop);
-    expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.deepMine.stars);
+    // dazu die Doktrin Bergbau (die Tiefbauzeche braucht sie): +1 je Tagebau / plus the mining doctrine (the deep mine needs it): +1 per mine
+    expect(cityInc(s, c.id) - inc0).toBe(BUILDINGS.deepMine.stars! + DOCTRINE.miningStars);
     // Ausbau eines Tagebaus / upgrade of a mine
     s.factions[0].techs.push('mining');
     setTerrain(s, 3, 4, 'mountain', { resource: 'ore' });

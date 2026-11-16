@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { reachable, upgradeCheck, score } from '../src/core';
 import { UNITS } from '../src/data/balance';
-import { addCity, addUnit, blankGame, fails, ok, setTerrain, unit, untilTurnOf } from './helpers';
+import { addCity, addUnit, blankGame, fails, giveSites, ok, setTerrain, unit, untilTurnOf } from './helpers';
 
 /** Kueste: Land x<=4, Flachwasser x=5..7, Ozean x>=8 / coast: land x<=4, shallow 5..7, ocean >=8 */
 function coast() {
@@ -56,8 +56,9 @@ describe('Schiffe / ships', () => {
   });
 
   it('upgrade in own territory for the upgrade price; not outside', () => {
-    const { s } = coast();
-    s.factions[0].techs.push('shipbuilding', 'diving', 'navalArtillery');
+    // Menschen: Marinestuetzpunkt und Trockendock der Stadt statt Forschung / humans: the city's naval base and dry dock instead of research
+    const { s, hq } = coast();
+    giveSites(hq, 'navalBase', 'dryDock');
     const b = addUnit(s, 'landingBoat', 0, 5, 5);
     const far = addUnit(s, 'landingBoat', 0, 7, 9);
     expect(upgradeCheck(s, far, 'destroyer')).toBe('notInTerritory');
@@ -72,11 +73,13 @@ describe('Schiffe / ships', () => {
     expect(upgradeCheck(s, land, 'destroyer')).toBe('invalid');
   });
 
-  it('upgrade needs the tech and enough stars', () => {
-    const { s } = coast();
+  it('upgrade needs the production site and enough stars', () => {
+    const { s, hq } = coast();
     const b = addUnit(s, 'landingBoat', 0, 5, 5);
-    expect(upgradeCheck(s, b, 'submarine')).toBe('techMissing');
+    expect(upgradeCheck(s, b, 'submarine')).toBe('buildingMissing');
     s.factions[0].techs.push('diving');
+    expect(upgradeCheck(s, b, 'submarine')).toBe('buildingMissing');
+    giveSites(hq, 'dryDock');
     s.factions[0].stars = 24;
     fails(s, { type: 'upgrade', unit: b.id, to: 'submarine' }, 'notEnoughStars');
   });

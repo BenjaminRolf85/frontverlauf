@@ -8,7 +8,7 @@ import {
   type Unit,
 } from '../src/core';
 import {
-  CITY, FUEL, UNITS, type FactionId, type GameMode, type MapSize, type TerrainId, type UnitTypeId,
+  CITY, FUEL, UNITS, type FactionId, type GameMode, type MapSize, type ProductionSiteId, type TerrainId, type UnitTypeId,
 } from '../src/data/balance';
 
 export interface BlankOptions {
@@ -100,6 +100,15 @@ export function addCity(s: GameState, x: number, y: number, owner: number | null
     }
     t.territory = c.id;
   }
+  return c;
+}
+
+/**
+ * Produktionsstaetten in eine Stadt einbauen (ohne Feld, wie alte Spielstaende und die Kampagne).
+ * Build production sites into a city (without a tile, like old saves and the campaign).
+ */
+export function giveSites(c: City, ...sites: ProductionSiteId[]): City {
+  c.works = [...(c.works ?? []), ...sites];
   return c;
 }
 

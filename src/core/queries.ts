@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -88,7 +88,10 @@ export function unitCost(s: GameState, f: number, type: UnitTypeId): number | nu
   const base = UNITS[type].cost;
   if (base === null) return null;
   const fs = FACTIONS[s.factions[f].id];
-  return fs.discountUnit === type ? Math.ceil(base * (1 - fs.discount)) : base;
+  let cost = fs.discountUnit === type ? Math.ceil(base * (1 - fs.discount)) : base;
+  // Doktrin Motorisierung: Fahrzeuge billiger / motorization doctrine: cheaper vehicles
+  if (hasDoctrine(s, f, 'motorization') && VEHICLE_UNITS.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.motorizationDiscount));
+  return cost;
 }
 
 export function unitLimit(s: GameState, c: City): number {
@@ -203,10 +206,15 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
+  // Doktrinen Bergbau und Forstwirtschaft: Sterne je Tagebau bzw. Forstbetrieb / mining and forestry doctrines: stars per mine or lumber camp
+  const mining = hasDoctrine(s, c.owner, 'mining') ? DOCTRINE.miningStars : 0;
+  const forestry = hasDoctrine(s, c.owner, 'forestry') ? DOCTRINE.forestryStars : 0;
   for (const p of cityTiles(s, c)) {
     const b = tileAt(s, p.x, p.y)!.building;
     if (b === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
     else if (b && BUILDINGS[b].stars) inc += resourceBuildingStars(s, c, b);
+    if (b && baseBuilding(b) === 'mine') inc += mining;
+    if (b === 'lumberCamp') inc += forestry;
   }
   return inc;
 }
@@ -328,13 +336,13 @@ export function researchCenterPoints(s: GameState, t: Tile): number {
   return Math.min(SCORE.researchCenterMax, SCORE.researchCenterBase + steps * SCORE.researchCenterStep);
 }
 
-/** Panzer, Tesla-Panzer und Reliquiar (Stadtbelohnung, nicht kaeuflich) / tank, Tesla tank and Reliquary (city reward, not for sale) */
+/** Panzer, Tesla-Panzer und Reliquiar (Panzerwerk und Stadtbelohnung): feste Punkte SCORE.tankUnit / tank, Tesla tank and Reliquary (tank works and city reward): fixed points SCORE.tankUnit */
 const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank' || t === 'reliquary';
 
 export function unitScore(u: Unit): number {
   if (isWonder(u)) return 0;
   if (isRewardTank(u.type)) return SCORE.tankUnit;
-  if (u.carried) return (UNITS[u.carried].cost ?? (isRewardTank(u.carried) ? SCORE.tankUnit : 0)) + (UNITS[u.type].cost ?? 0);
+  if (u.carried) return (isRewardTank(u.carried) ? SCORE.tankUnit : UNITS[u.carried].cost ?? 0) + (UNITS[u.type].cost ?? 0);
   return UNITS[u.type].cost ?? 0;
 }
 
@@ -439,7 +447,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
         if (has(u, 'wade') && !walkable(t)) {
           stop = true;
         } else if (!walkable(t)) {
-          if (t.building === 'navalBase' && territoryOwner(s, t) === f && hasTech(s, f, 'coastalEconomy') && !has(u, 'wonder')) {
+          if (t.building === 'navalBase' && territoryOwner(s, t) === f && canEmbark(s, f) && !has(u, 'wonder')) {
             embark = true; stop = true;
           } else continue;
         } else {
@@ -899,7 +907,19 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
 export function effectiveAttack(s: GameState, u: Unit): number {
   const a = UNITS[u.type].attack;
-  return u.veteran && a > 0 && perk2Of(s, u.owner) === 'battleHardened' ? a + PERKS2.battleHardenedAttack : a;
+  const base = u.veteran && a > 0 && perk2Of(s, u.owner) === 'battleHardened' ? a + PERKS2.battleHardenedAttack : a;
+  return base * doctrineAttack(s, u);
+}
+
+/**
+ * Faktor der Doktrinen auf den Angriff: Ruestungsindustrie (MG, Panzerabwehr), Marineartillerie (Schiffe).
+ * Doctrine factor on the attack: arms industry (MG, anti-tank), naval artillery (ships).
+ */
+export function doctrineAttack(s: GameState, u: Unit): number {
+  if (!usesSites(s, u.owner)) return 1;
+  if (DOCTRINE.armsIndustryUnits.includes(u.type) && hasTech(s, u.owner, 'armsIndustry')) return 1 + DOCTRINE.armsIndustryAttack;
+  if (UNITS[u.type].ship && hasTech(s, u.owner, 'navalArtillery')) return 1 + DOCTRINE.navalArtilleryAttack;
+  return 1;
 }
 
 /** Watende Einheit unter Wasser: greift nicht an, schlaegt nicht zurueck / wading unit under water: no attack, no retaliation */
@@ -1038,7 +1058,7 @@ export function isRefuelSpot(s: GameState, f: number, x: number, y: number): boo
 /** Felder, von denen aus noch ein Rueckflug moeglich ist / tiles that still allow a safe return */
 export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
   if (u.fuel === null) return true;
-  if (isRefuelSpot(s, u.owner, x, y)) return true;
+  if (isRefuelSpot(s, u.owner, x, y) || fuelBurnAt(s, u.owner, x, y) === 0) return true;
   let fuel = u.fuel - fuelBurn(s);
   if (fuel <= 0) return false;
   // Rueckflug mit dem vorhersagbaren Wetter der naechsten Runden (Regen bremst, Wind verbraucht mehr Sprit)
@@ -1062,14 +1082,23 @@ export function heliSafe(s: GameState, u: Unit, x: number, y: number): boolean {
 }
 
 export function heliWillCrash(s: GameState, u: Unit): boolean {
-  return u.fuel !== null && u.fuel <= fuelBurn(s) && !isRefuelSpot(s, u.owner, u.x, u.y);
+  return u.fuel !== null && u.fuel <= fuelBurnAt(s, u.owner, u.x, u.y) && !isRefuelSpot(s, u.owner, u.x, u.y);
+}
+
+/**
+ * Sprit pro Runde auf (x, y) fuer Fraktion f: Wetter, mit der Doktrin Heeresflieger im eigenen Gebiet DOCTRINE.armyAviationHomeBurn.
+ * Fuel burned per round at (x, y) for faction f: weather, with the army aviation doctrine in own territory DOCTRINE.armyAviationHomeBurn.
+ */
+export function fuelBurnAt(s: GameState, f: number, x: number, y: number): number {
+  if (hasDoctrine(s, f, 'armyAviation') && territoryOwner(s, tileAt(s, x, y)!) === f) return Math.min(fuelBurn(s), DOCTRINE.armyAviationHomeBurn);
+  return fuelBurn(s);
 }
 
 export const MAX_FUEL = FUEL.tank;
 
 // ---------- Bauen / building ----------
 
-export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt' | 'wrongFaction' | 'cannotBuild'; cost: number };
+export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techMissing' | 'invalidTile' | 'notInTerritory' | 'onePerCity' | 'notEnoughStars' | 'alreadyBuilt' | 'wrongFaction' | 'cannotBuild' | 'buildingMissing'; cost: number };
 
 export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
   const st = BUILDINGS[b];
@@ -1082,6 +1111,8 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (own && own !== s.factions[f].id) return { ok: false, error: 'wrongFaction', cost };
   // Kult: nur Schrein, Pilgerstaette, Strassen und Bruecken (Staedte wachsen nicht) / cult: only shrine, pilgrimage site, roads and bridges (cities do not grow)
   if (isCultFaction(s, f) && !CULT.buildings.includes(b)) return { ok: false, error: 'cannotBuild', cost };
+  // Produktionsstaetten nur fuer Menschen (der Marinestuetzpunkt fuer alle) / production sites for humans only (the naval base for everyone)
+  if (isProductionSite(b) && b !== 'navalBase' && !usesSites(s, f)) return { ok: false, error: 'wrongFaction', cost };
   // Ressourcengebaeude der Fraktion: eigene Ortsregeln / the faction's resource building: own site rules
   if (RESOURCE_BUILDINGS.includes(b)) return resourceBuildCheck(s, f, b, x, y);
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
@@ -1097,7 +1128,7 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (b === 'researchCenter') {
     const terr = t.terrain === 'ocean' ? null : (t.terrain as 'plain' | 'forest' | 'mountain' | 'shallow');
     if (!terr || !hasTech(s, f, RESEARCH_CENTER_TECH[terr])) return { ok: false, error: 'techMissing', cost };
-  } else if (st.tech && !hasTech(s, f, st.tech)) return { ok: false, error: 'techMissing', cost };
+  } else if (buildingTech(s, f, b) && !hasTech(s, f, buildingTech(s, f, b)!)) return { ok: false, error: 'techMissing', cost };
   // Geschuetzfeld (Verdan oder Stellung): nichts darauf bauen / gun tile (Verdan or emplacement): nothing is built on it
   if (t.cityId !== null || t.feature !== null || t.grandProject || t.outpost || t.wonderOf || t.turret || t.temple) return { ok: false, error: 'invalidTile', cost };
   if (!st.terrain.includes(t.terrain)) return { ok: false, error: 'invalidTile', cost };
@@ -1118,7 +1149,11 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (st.onePerCity) {
     const c = cityById(s, t.territory!)!;
     if (cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === b)) return { ok: false, error: 'onePerCity', cost };
+    // eingebaute Staette zaehlt mit (Hauptquartier, alte Spielstaende) / a built-in site counts too (HQ, old saves)
+    if (isProductionSite(b) && builtInSite(s, c, b)) return { ok: false, error: 'onePerCity', cost };
   }
+  // Voraussetzung im Stadtgebiet (Panzerwerk: Tagebau auf Erz usw.) / prerequisite in the city territory (tank works: mine on ore etc.)
+  if (isProductionSite(b) && siteNeed(s, cityById(s, t.territory!)!, b)) return { ok: false, error: 'buildingMissing', cost };
   if (st.onePerFaction && countBuildings(s, f, b) > 0) return { ok: false, error: 'alreadyBuilt', cost };
   if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
   return { ok: true, cost };
@@ -1244,8 +1279,79 @@ export function barrierCost(s: GameState, f: number): number {
   return perk2Of(s, f) === 'engineerCorps' ? PERKS2.engineerCorpsBarrierCost : BARRIER.cost;
 }
 
-export function trainCheck(s: GameState, c: City, type: UnitTypeId):
-  'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' {
+// ---------- Produktionsstaetten und Doktrinen / production sites and doctrines ----------
+
+/** Hat Fraktion f Produktionsstaetten und Doktrinen (die fuenf Menschen-Fraktionen)? / does faction f use production sites and doctrines (the five human factions)? */
+export const usesSites = (s: GameState, f: number | null): boolean => f !== null && !!s.factions[f] && PRODUCTION.factions.includes(s.factions[f].id);
+/** Ist das Gebaeude eine Produktionsstaette? / is the building a production site? */
+export const isProductionSite = (b: BuildingId | null | undefined): b is ProductionSiteId => !!b && (PRODUCTION.sites as BuildingId[]).includes(b);
+const SITE_OF = new Map<UnitTypeId, ProductionSiteId>();
+for (const site of PRODUCTION.sites) for (const u of PRODUCTION.units[site]) SITE_OF.set(u, site);
+/** Produktionsstaette einer Einheit (null = keine noetig, z. B. Sonderfraktionen) / production site of a unit (null = none needed, e.g. special factions) */
+export const siteOf = (type: UnitTypeId): ProductionSiteId | null => SITE_OF.get(type) ?? null;
+/** Wirkt die Doktrin (erforschte Technologie) fuer f? Nur fuer Menschen / does the doctrine (researched tech) work for f? Humans only */
+export const hasDoctrine = (s: GameState, f: number | null, tech: TechId): boolean => usesSites(s, f) && hasTech(s, f!, tech);
+/** Technologien mit einem neuen Doktrin-Effekt (Zahl in DOCTRINE, Text in doctrine.<tech>) / techs with a new doctrine effect (number in DOCTRINE, text in doctrine.<tech>) */
+export const DOCTRINE_TECHS: TechId[] = ['motorization', 'aerodynamics', 'armyAviation', 'fortification', 'intelligence', 'mining', 'armsIndustry', 'cybernetics', 'navalArtillery', 'shipbuilding', 'forestry', 'ballistics'];
+
+/**
+ * Eingebaute Staette der Stadt ohne eigenes Feld: Kaserne im Hauptquartier, in Sendetuermen und Nachschublinien, dazu City.works.
+ * Built-in site of the city without a tile of its own: barracks in the HQ, in transmitter towers and supply lines, plus City.works.
+ */
+export function builtInSite(s: GameState, c: City, site: ProductionSiteId): boolean {
+  if (site === PRODUCTION.builtIn && (c.isHQ || c.tower || supplyLines(s))) return true;
+  return !!c.works?.includes(site);
+}
+
+/** Produktionsstaetten der Stadt (Gebaeude im Gebiet und eingebaute), in fester Reihenfolge / production sites of the city (buildings in the territory and built-in ones), in fixed order */
+export function citySites(s: GameState, c: City): ProductionSiteId[] {
+  const have = new Set<ProductionSiteId>();
+  for (const site of PRODUCTION.sites) if (builtInSite(s, c, site)) have.add(site);
+  for (const p of cityTiles(s, c)) {
+    const b = tileAt(s, p.x, p.y)!.building;
+    if (isProductionSite(b)) have.add(b);
+  }
+  return PRODUCTION.sites.filter((x) => have.has(x));
+}
+/** Hat die Stadt die Staette (Gebaeude im Gebiet oder eingebaut)? / does the city have the site (building in the territory or built in)? */
+export const cityHasSite = (s: GameState, c: City, site: ProductionSiteId): boolean =>
+  builtInSite(s, c, site) || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === site);
+
+/**
+ * Fehlende Voraussetzung, um die Staette b im Gebiet der Stadt c zu bauen (Liste der moeglichen Gebaeude), sonst null.
+ * Missing prerequisite to build site b in the territory of city c (list of the possible buildings), otherwise null.
+ */
+export function siteNeed(s: GameState, c: City, b: BuildingId): BuildingId[] | null {
+  const need = isProductionSite(b) ? PRODUCTION.needs[b] : undefined;
+  if (!need) return null;
+  return cityTiles(s, c).some((p) => { const x = tileAt(s, p.x, p.y)!.building; return !!x && need.includes(x); }) ? null : need;
+}
+
+/**
+ * Forschung, die Fraktion f fuer ein Gebaeude braucht: Menschen bauen Tagebau und Forstbetrieb ohne (PRODUCTION.noTech).
+ * Research faction f needs for a building: humans build mines and lumber camps without (PRODUCTION.noTech).
+ */
+export function buildingTech(s: GameState, f: number, b: BuildingId): TechId | null {
+  if (usesSites(s, f) && PRODUCTION.noTech.includes(b)) return null;
+  return BUILDINGS[b].tech;
+}
+
+/** Einschiffen am eigenen Marinestuetzpunkt: Menschen immer, andere mit Kuestenwirtschaft / embarking at an own naval base: humans always, others with coastal economy */
+export const canEmbark = (s: GameState, f: number): boolean => usesSites(s, f) || hasTech(s, f, 'coastalEconomy');
+
+/** Heilung eines Sanitaeters (Doktrin Kybernetik: mehr) / a medic's healing (cybernetics doctrine: more) */
+export const medicHealAmount = (s: GameState, f: number): number => HEALING.medic + (hasDoctrine(s, f, 'cybernetics') ? DOCTRINE.cyberneticsMedic : 0);
+/** Flak-Schaden der Fraktion f (Doktrin Aerodynamik: mehr) / flak damage of faction f (aerodynamics doctrine: more) */
+export const flakDamage = (s: GameState, f: number, base: number): number => base + (hasDoctrine(s, f, 'aerodynamics') ? DOCTRINE.aerodynamicsFlak : 0);
+/** Minenschaden gegen eine Einheit dieses Typs (Doktrin Befestigung des Minenbesitzers: mehr) / mine damage against a unit of this type (the mine owner's fortification doctrine: more) */
+export function mineDamage(s: GameState, owner: number, type: UnitTypeId): number {
+  const base = unitClass(type) === 'vehicle' ? COUNTER.mine.damageVehicle : COUNTER.mine.damageFoot;
+  return base + (hasDoctrine(s, owner, 'fortification') ? DOCTRINE.fortificationMine : 0);
+}
+
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing';
+
+export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
   const st = UNITS[type];
   if (st.ship || st.cost === null) return 'invalid';
@@ -1269,22 +1375,38 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId):
   if (st.compute !== undefined && computePower(s, c.owner) < st.compute) return 'computeMissing';
   if (alien && !tileAt(s, c.x, c.y)!.xeno) return 'invalid';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
+  // Menschen: nur mit der passenden Produktionsstaette dieser Stadt / humans: only with this city's matching production site
+  if (usesSites(s, c.owner)) {
+    const site = siteOf(type);
+    if (site && !cityHasSite(s, c, site)) return 'buildingMissing';
+  }
   if (unitAt(s, c.x, c.y)) return 'occupied';
   if (supportedUnits(s, c) >= unitLimit(s, c)) return 'unitLimit';
   if (s.factions[c.owner].stars < unitCost(s, c.owner, type)!) return 'notEnoughStars';
   return 'ok';
 }
 
-export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' {
+export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' | 'buildingMissing' {
   if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat') return 'invalid';
   if (u.fresh) return 'invalid';
   // Fraktionsschiffe (Kaperschiff) nur fuer ihre Fraktion / faction ships (privateer) only for their faction
   if (UNITS[to].faction && UNITS[to].faction !== s.factions[u.owner].id) return 'invalid';
   const t = tileAt(s, u.x, u.y)!;
   if (territoryOwner(s, t) !== u.owner) return 'notInTerritory';
-  if (UNITS[to].tech && !hasTech(s, u.owner, UNITS[to].tech!)) return 'techMissing';
-  if (s.factions[u.owner].stars < (UNITS[to].cost ?? 0)) return 'notEnoughStars';
+  if (usesSites(s, u.owner)) {
+    // Menschen: im Gebiet einer Stadt mit Marinestuetzpunkt bzw. Trockendock / humans: in the territory of a city with a naval base or dry dock
+    const site = siteOf(to);
+    const c = t.territory !== null ? cityById(s, t.territory) : undefined;
+    if (site && (!c || !cityHasSite(s, c, site))) return 'buildingMissing';
+  } else if (UNITS[to].tech && !hasTech(s, u.owner, UNITS[to].tech!)) return 'techMissing';
+  if (s.factions[u.owner].stars < shipUpgradeCost(s, u.owner, to)) return 'notEnoughStars';
   return 'ok';
+}
+
+/** Preis einer Schiffsaufruestung (Doktrin Schiffbau: billiger) / price of a ship upgrade (shipbuilding doctrine: cheaper) */
+export function shipUpgradeCost(s: GameState, f: number, to: UnitTypeId): number {
+  const base = UNITS[to].cost ?? 0;
+  return hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base;
 }
 
 /** Belohnungsoptionen beim Stadtaufstieg / reward options when a city levels up */
@@ -1324,11 +1446,15 @@ export function techUnlocks(tech: TechId, faction?: FactionId): { units: UnitTyp
   // Menschen sehen Menschen-Einheiten, Sonderfraktionen ihre eigenen / humans see human units, special factions their own
   // klassische Fraktionen sehen zusaetzlich ihre einzigartige Einheit / classic factions also see their unique unit
   const roster = faction ? ROSTERS[faction] : undefined;
-  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].tech === tech &&
+  // Menschen: Forschung schaltet keine Einheiten frei (Produktionsstaetten), nur Doktrinen / humans: research unlocks no units (production sites), only doctrines
+  const sites = !faction || PRODUCTION.factions.includes(faction);
+  const units = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => !sites && UNITS[k].tech === tech &&
     (roster ? UNITS[k].faction === faction || (UNITS[k].ship && !UNITS[k].faction) : !UNITS[k].faction || UNITS[k].faction === faction) &&
     // eigene Bauarten ersetzen den Grundtyp (VARIANTS) / own designs replace the base type (VARIANTS)
     !(faction && replacedFor(faction, k)));
-  const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech && (!FACTION_BUILDINGS[k] || FACTION_BUILDINGS[k] === faction));
+  const buildings = (Object.keys(BUILDINGS) as BuildingId[]).filter((k) => BUILDINGS[k].tech === tech && (!FACTION_BUILDINGS[k] || FACTION_BUILDINGS[k] === faction) &&
+    // Menschen bauen Tagebau und Forstbetrieb ohne Forschung / humans build mines and lumber camps without research
+    !(sites && PRODUCTION.noTech.includes(k)));
   for (const [terr, t] of Object.entries(RESEARCH_CENTER_TECH)) if (t === tech && terr) buildings.push('researchCenter');
   return { units, buildings };
 }
@@ -1428,7 +1554,8 @@ export const weather = (s: GameState): WeatherId => weatherAt(s);
 export function effectiveRange(s: GameState, u: Unit): number {
   // unbewaffneter Waal: keine Reichweite, kein Gegenschlag / unarmed Waal: no range, no return fire
   if (u.type === 'waal' && !waalArmed(u)) return 0;
-  const base = UNITS[u.type].range;
+  // Doktrin Ballistik: Artillerie weiter / ballistics doctrine: artillery reaches further
+  const base = UNITS[u.type].range + (DOCTRINE.ballisticsUnits.includes(u.type) && hasDoctrine(s, u.owner, 'ballistics') ? DOCTRINE.ballisticsRange : 0);
   if (base > 0 && weather(s) === 'rain' && WEATHER.rain.rangeUnits.includes(u.type)) return Math.max(1, base + WEATHER.rain.rangeDelta);
   // Sandsturm: Fernkaempfer sehen ihr Ziel schlechter / dust storm: ranged units see their target worse
   if (base >= WEATHER.dust.rangeFrom && weather(s) === 'dust') return Math.max(1, base + WEATHER.dust.rangeDelta);
@@ -1443,6 +1570,8 @@ export function effectiveMove(s: GameState, u: Unit): number {
   if (weather(s) === 'dust' && WEATHER.dust.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.dust.moveDelta);
   // Meridon, Lotsenwesen: Landungsboote weiter / harbour pilots: landing boats further
   if (u.type === 'landingBoat' && perk2Of(s, u.owner) === 'harbourPilots') m += PERKS2.harbourPilotsMove;
+  // Doktrin Nachrichtendienst: Spione weiter / intelligence doctrine: spies move further
+  if (has(u, 'uprising') && hasDoctrine(s, u.owner, 'intelligence')) m += DOCTRINE.intelligenceSpyMove;
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
   return m;
 }
