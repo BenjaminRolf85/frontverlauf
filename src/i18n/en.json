@@ -3900,7 +3900,7 @@
     }
   },
   "entrench": {
-    "name": "Entrench",
+    "name": "Trench Warfare",
     "tag": "Entrenched",
     "tagDesc": "Has not moved for a whole turn: attacks on it miss {pct} percentage points more often. Lost with the next move.",
     "hint": "Target entrenched: +{pct} % miss chance",

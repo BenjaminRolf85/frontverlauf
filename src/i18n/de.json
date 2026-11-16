@@ -3900,7 +3900,7 @@
     }
   },
   "entrench": {
-    "name": "Verschanzen",
+    "name": "Stellungskrieg",
     "tag": "Verschanzt",
     "tagDesc": "Hat einen ganzen Zug nicht gezogen: Angriffe auf die Einheit gehen um {pct} Prozentpunkte öfter daneben. Endet mit der nächsten Bewegung.",
     "hint": "Ziel verschanzt: +{pct} % Fehlschusschance",
