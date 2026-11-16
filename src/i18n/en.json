@@ -156,7 +156,7 @@
       "short": "Velkar",
       "alignment": "defensive and engineering-driven",
       "perk": "Production lead",
-      "perkDesc": "All production capabilities cost 12 % less.",
+      "perkDesc": "All doctrines cost 12 % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
@@ -287,7 +287,7 @@
     "artillery": "Shells targets from three tiles away but needs an escort.",
     "spy": "Invisible behind the lines, sparks uprisings in enemy cities.",
     "heli": "Flies over everything and strikes again after every kill, but needs fuel.",
-    "tank": "Steel fist: not for sale, comes as a city reward.",
+    "tank": "Steel fist: from the tank works, and as a city reward.",
     "landingBoat": "Ferries a land unit across water but cannot attack.",
     "submarine": "Hides underwater and torpedoes from two tiles away.",
     "destroyer": "Fast warship that keeps the coasts clear.",
@@ -325,11 +325,11 @@
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
     "scientist": "Does not fight and cannot take much. Works right next to the Zyrr mothership (campaign).",
-    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Not for sale, comes as a city reward.",
+    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. From the tank works, and as a city reward.",
     "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
     "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire.",
     "lightWarden": "Order marksmen with radiant scopes and long rifles: range 2 and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
-    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: range 2, very high defence, fires only from a standstill. Not for sale, comes as a city reward.",
+    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: range 2, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
     "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence."
   },
   "abilities": {
@@ -464,7 +464,14 @@
     "polarStation": "Polar station",
     "wreckSmelter": "Wreck smelter",
     "pilgrimSite": "Pilgrimage site",
-    "depotNode": "Depot node"
+    "depotNode": "Depot node",
+    "trainingCamp": "Barracks",
+    "armory": "Armoury",
+    "motorPool": "Motor pool",
+    "tankWorks": "Tank works",
+    "foundry": "Foundry",
+    "airfield": "Airfield",
+    "dryDock": "Dry dock"
   },
   "buildingDesc": {
     "storehouse": "1 population point",
@@ -477,7 +484,7 @@
     "foodFactory": "1 population point per adjacent farm",
     "steelMill": "2 population points per adjacent mine",
     "logisticsCenter": "3 stars per round per adjacent lumber camp, farm or mine, at most 24",
-    "navalBase": "1 population point, embarking, sea connection",
+    "navalBase": "1 population point, embarking, sea connection. Humans upgrade ships in this city's territory to: {units}.",
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
     "researchCenter": "1 population point; 100 points, 50 more every 3 rounds, at most 300",
@@ -492,15 +499,22 @@
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
     "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction with a sinful deed (at most {maxSinners}). One per faction, Alvenia only",
     "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
-    "testLab": "1 population, production capabilities 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
+    "testLab": "1 population, doctrines 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
     "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
     "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
     "hillVineyard": "{pop} population, +{stars} stars per round; own units in this city's territory heal {heal} HP more. Only on plains in the hills biome without a resource, one per city, Alvenia only",
     "tradeHarbour": "{pop} population and +{stars} stars per round, +{naval} with a naval base in the city. Only on fish; upgrades an own fishery (price and population: only the difference), Meridon only",
-    "polarStation": "{pop} population, production capabilities {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
+    "polarStation": "{pop} population, doctrines {pct} % cheaper per station (at most {max} stations, on top of the test lab). Only in the tundra without a resource, Velkar only",
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
-    "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only"
+    "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only",
+    "trainingCamp": "{pop} population. Trains in this city: {units}. One per city; every headquarters has one built in.",
+    "armory": "{pop} population. Trains in this city: {units}. One per city.",
+    "motorPool": "{pop} population. Trains in this city: {units}. One per city.",
+    "tankWorks": "{pop} population. Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
+    "foundry": "{pop} population. Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
+    "airfield": "{pop} population. Trains in this city: {units}. One per city.",
+    "dryDock": "{pop} population. Ships in this city's territory upgrade to: {units}. Needs {needs} in the city territory. One per city."
   },
   "resource": {
     "upgrade": "Upgrade, only the difference"
@@ -758,7 +772,8 @@
     "orbitalCooldown": "The orbital laser is still charging.",
     "notVisible": "The target tile is not revealed.",
     "relayLimit": "Velkar already owns a satellite relay.",
-    "cannotCarry": "This unit cannot carry the war plans"
+    "cannotCarry": "This unit cannot carry the war plans",
+    "buildingMissing": "Production site or prerequisite missing."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -939,8 +954,8 @@
     "s4": "Well done! Now end your turn. Capturing is only possible at the start of your next turn.",
     "s5": "Select the infantry and tap Capture. The settlement becomes your city.",
     "s6": "Stars are the only currency. Open research and research a technology.",
-    "s7": "Tap a resource tile inside your city territory and build something. Buildings add population, cities grow.",
-    "s8": "Tap your headquarters and train a unit.",
+    "s7": "Tap a tile inside your city territory and build something. Buildings add population, cities grow. Production sites such as the armoury or the motor pool unlock new units in their city.",
+    "s8": "Tap your headquarters and train a unit. The built-in barracks trains infantry; other units need their production site in the city.",
     "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!",
     "goal": "The goal: in points mode the highest score wins after {rounds} rounds (medal at the top). In conquest the last side holding cities wins, as here. With faction victories every faction can also win through its own goal. The victory tracker in the menu shows the standings.",
     "goalOpen": "Open victory tracker",
@@ -2585,7 +2600,7 @@
     "empty": "free",
     "radioTower": "Radio tower",
     "bunker": "Bunker",
-    "barracks": "Barracks",
+    "barracks": "Drill hall",
     "radioTowerDesc": "Reveals a hidden 5 x 5 tile area within 6 tiles, once.",
     "bunkerDesc": "Own units in this city get +2 defence.",
     "barracksDesc": "Units trained here start as veterans (+5 max HP).",
@@ -3462,7 +3477,7 @@
       "title": "Faction victories",
       "text": "Can be switched off in the setup. It needs the faction's own victory tech (tier 3), drawn with a dashed rim in the research. The victory tracker in the menu shows the progress of all known factions."
     },
-    "productionNote": "Human factions call this production: they unlock production capabilities, while the Zyrr, NEXUS and the cult research. Rules and costs are the same.",
+    "productionNote": "Human factions call this doctrines: they adopt doctrines that bring advantages, and their units come from production sites. The Zyrr, NEXUS and the cult research. Costs are the same.",
     "emplacements": {
       "title": "Gun emplacements (Dravon)",
       "text": "Fortress building: with {tech}, Dravon pioneer squads and mine layers build a gun emplacement for {cost} stars on a free adjacent tile in own territory (passable land without a city, building, resource, feature or unit). At most {per} per own city, at least {spacing} tiles apart. The emplacement is a structure, not a unit: armour {hp}, attack {atk}, defence {def}, impassable, no upkeep and no score. At the start of every round it fires once at a visible unit in range {range} that is at war with Dravon (never at peace, never at allies), always with full damage and hit luck. Enemies attack it like a Verdan gun; once destroyed, rubble remains and no kill is counted. If the territory is lost or Dravon is eliminated, it is razed."
@@ -3474,6 +3489,14 @@
     "judgement": {
       "title": "Sin and Judgement",
       "text": "While Holy Alvenia is in the game, every other faction that plunders, burns (burn attack), converts hostile units, captures a city of another faction, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; every new deed refreshes the mark. Aliens and robots (Zyrr, NEXUS) are permanent sinners without a deed as godless creatures; the Cathedral of Light's penance tithe counts only sinners with a deed. Judgement: Alvenia's units deal +{pct} % damage to sinners, return fire included. Martyr's Blessing: when an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {bless} rounds. Bulwark of Faith: +{home} % defence on own territory. Great Judgement (victory condition): destroy {n} units of sinners (14 × 14 map, more or fewer by size) once the Great Judgement is unlocked."
+    },
+    "sites": {
+      "title": "Production sites (humans)",
+      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters has barracks built in. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
+    },
+    "doctrines": {
+      "title": "Doctrines (humans)",
+      "text": "In the doctrine tree the human factions unlock no units but advantages, buildings and upgrades. Cost: (tier x cities + 4) x 5 stars. New effects:"
     }
   },
   "lore": {
@@ -3599,77 +3622,78 @@
   },
   "production": {
     "hud": {
-      "research": "Production"
+      "research": "Doctrines"
     },
     "tech": {
-      "title": "Production capacities",
-      "researched": "unlocked",
+      "title": "Doctrines",
+      "researched": "adopted",
       "available": "available",
-      "research": "Unlock for {cost}",
-      "costFormula": "Production cost: (tier x cities + 4) x 5",
-      "needParent": "Unlock {tech} first.",
-      "notYourTurn": "You can only unlock on your own turn.",
-      "confirm": "Unlock",
-      "done": "Already unlocked.",
-      "legendVictory": "Victory capability (dashed)",
-      "victoryGroup": "Victory capability"
+      "research": "Adopt for {cost}",
+      "costFormula": "Doctrine cost: (tier x cities + 4) x 5",
+      "needParent": "Adopt {tech} first.",
+      "notYourTurn": "You can only adopt on your own turn.",
+      "confirm": "Adopt",
+      "done": "Already adopted.",
+      "legendVictory": "Victory doctrine (dashed)",
+      "victoryGroup": "Victory doctrine",
+      "unlocks": "Effect"
     },
     "errors": {
-      "techMissing": "Production capability missing.",
-      "alreadyResearched": "Already unlocked.",
-      "parentMissing": "Unlock the previous production capability first."
+      "techMissing": "Doctrine missing.",
+      "alreadyResearched": "Already adopted.",
+      "parentMissing": "Adopt the previous doctrine first."
     },
     "events": {
-      "research": "{tech} unlocked",
-      "bunkerTech": "Bunker searched: free production capability"
+      "research": "{tech} adopted",
+      "bunkerTech": "Bunker searched: free doctrine"
     },
     "hazards": {
-      "crashDesc": "Salvage: a free production capability up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
-      "labDesc": "Salvage: a free production capability up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
-      "salvagedTech": "Salvaged: production capability {tech}"
+      "crashDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
+      "labDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
+      "salvagedTech": "Salvaged: doctrine {tech}"
     },
     "history": {
-      "techs": "Capabilities"
+      "techs": "Doctrines"
     },
     "tutorial": {
-      "s6": "Stars are the only currency. Open production and unlock a production capability."
+      "s6": "Stars are the only currency. Open the doctrines and adopt a doctrine."
     },
     "onboarding": {
-      "text": "Your first operation. In a few turns the tutorial covers the goal, moving, capturing, production, building, training, upkeep and combat."
+      "text": "Your first operation. In a few turns the tutorial covers the goal, moving, capturing, doctrines, building, training, upkeep and combat."
     },
     "cityUpgrades": {
-      "lockedHint": "More upgrades are unlocked by production capabilities ({n})."
+      "lockedHint": "More upgrades are unlocked by doctrines ({n})."
     },
     "grand": {
-      "academyCond": "unlocked all production capabilities"
+      "academyCond": "adopted all doctrines"
     },
     "techExtra": {
-      "cybernetics": "33 % discount on all further production capabilities"
+      "cybernetics": "33 % discount on all further doctrines"
     },
     "victory": {
-      "noTech": "Victory capability not unlocked yet",
-      "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory capability)."
+      "noTech": "Victory doctrine not adopted yet",
+      "setupHint": "Each faction can also win through its own victory condition (its own tier-3 victory doctrine)."
     },
     "rules": {
       "goal": {
-        "text": "Points mode: after {rounds} rounds the highest score wins (medal at the top). Points come from explored tiles ({tile}), territory tiles ({territory}), city levels ({level}), production capabilities ({tech} per tier) and more. Conquest: the last side holding cities wins. Endless and sandbox have no round limit. Faction victories (optional): every faction can also win through its own goal. The victory tracker in the menu shows the standings."
+        "text": "Points mode: after {rounds} rounds the highest score wins (medal at the top). Points come from explored tiles ({tile}), territory tiles ({territory}), city levels ({level}), doctrines ({tech} per tier) and more. Conquest: the last side holding cities wins. Endless and sandbox have no round limit. Faction victories (optional): every faction can also win through its own goal. The victory tracker in the menu shows the standings."
       },
       "turn": {
-        "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production and upgrades. You start with {start} stars."
+        "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production sites, doctrines and upgrades. You start with {start} stars."
       },
       "cover": {
-        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching production capability, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
       },
       "cities": {
         "title": "Cities & production",
-        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Production capabilities unlock units, buildings and upgrades and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
       },
       "factions": {
-        "text": "Can be switched off in the setup. It needs the faction's own victory capability (tier 3), drawn with a dashed rim in production. The victory tracker in the menu shows the progress of all known factions."
+        "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
       }
     },
     "orbital": {
-      "unlockHint": "Satellite relay from the production capability {tech}."
+      "unlockHint": "Satellite relay from the doctrine {tech}."
     }
   },
   "intro": {
@@ -3807,5 +3831,29 @@
     "tag": "Blessed +{pct} %",
     "tagDesc": "Martyr's Blessing: +{pct} % defence, {n} more rounds.",
     "hint": "Target blessed +{pct} %"
+  },
+  "sites": {
+    "title": "Production sites",
+    "builtIn": "built in",
+    "none": "No production site: this city trains nothing. Build barracks in the city territory.",
+    "requires": "Requires {site}",
+    "needs": "{site} needs {needs} in the city territory",
+    "or": " or ",
+    "ship": "Requires {site} in this city's territory"
+  },
+  "doctrine": {
+    "label": "Doctrine",
+    "motorization": "Vehicles cost {pct} % less.",
+    "aerodynamics": "Flak (AA vehicles and flak upgrade) deals {n} more damage.",
+    "armyAviation": "Helicopters burn no fuel in own territory.",
+    "fortification": "Own mines deal {n} more damage.",
+    "intelligence": "Spies move {n} tile further.",
+    "mining": "+{n} star per round per mine and deep mine.",
+    "armsIndustry": "MG infantry and anti-tank squads attack with +{pct} %.",
+    "cybernetics": "Medics heal {n} more HP.",
+    "navalArtillery": "All ships attack with +{pct} %.",
+    "shipbuilding": "Ship upgrades cost {pct} % less.",
+    "forestry": "+{n} star per round per lumber camp.",
+    "ballistics": "Artillery and Sun Lance: range +{n}."
   }
 }

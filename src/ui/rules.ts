@@ -6,7 +6,9 @@ import {
   BARRIER, CITY_UPGRADES, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
   VICTORY_TECH, WONDERS,
 } from '../data/balance';
-import { UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { BUILDINGS, PRODUCTION, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { DOCTRINE_TECHS } from '../core';
+import { doctrineText, needsText } from './production';
 import { num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
@@ -31,6 +33,9 @@ function sections(): Section[] {
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots } },
+    // Produktionsstaetten und Doktrinen der Menschen / human production sites and doctrines
+    { id: 'sites', icon: 'build', extra: siteLines },
+    { id: 'doctrines', icon: 'lightning', extra: doctrineLines },
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     // Festungsbau der Dravon / Dravon fortress building
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
@@ -43,6 +48,24 @@ function sections(): Section[] {
     { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] } },
     { id: 'factions', icon: 'trophy', extra: factionLines },
   ];
+}
+
+/**
+ * Eine Zeile je Produktionsstaette: Preis, Einheiten (Fraktionseinheiten mit Kuerzel), Voraussetzung. Zahlen aus balance.ts.
+ * One line per production site: price, units (faction units with their short name), prerequisite. Numbers from balance.ts.
+ */
+function siteLines(): string {
+  return `<ul>${PRODUCTION.sites.map((site) => {
+    const units = PRODUCTION.units[site].map((u) => { const f = UNITS[u].faction; return f ? `${t(`units.${u}`)} (${t(`factions.${f}.short`)})` : t(`units.${u}`); }).join(', ');
+    const need = PRODUCTION.needs[site];
+    const extra = site === PRODUCTION.builtIn ? ` · ${t('sites.builtIn')}: ${t('hud.hq')}` : '';
+    return `<li><strong>${esc(t(`buildings.${site}`))}</strong> (${BUILDINGS[site].cost} ${esc(t('hud.stars'))}${esc(extra)}): ${esc(units)}${need ? `. ${esc(t('sites.needs', { site: t(`buildings.${site}`), needs: needsText(need) }))}` : ''}</li>`;
+  }).join('')}</ul>`;
+}
+
+/** Eine Zeile je neuer Doktrin-Wirkung / one line per new doctrine effect */
+function doctrineLines(): string {
+  return `<ul>${DOCTRINE_TECHS.map((tech) => `<li><strong>${esc(t(`techs.${tech}`))}:</strong> ${esc(doctrineText(tech))}</li>`).join('')}</ul>`;
 }
 
 /** Kampfboni der Fraktionen (Feuern nach Bewegung, eigenes Gebiet) / combat bonuses of the factions (firing after moving, own territory) */

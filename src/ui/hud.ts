@@ -11,7 +11,7 @@ import {
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, canAttackNow, memorialAt, memorialEffect, memorialMult,
-  blessingOf, blessingRoundsLeft, judgementAt,
+  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type GameState, type Unit,
 } from '../core';
@@ -32,6 +32,7 @@ import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
+import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars, trainLockReason } from './production';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
@@ -65,20 +66,24 @@ export function counterTags(type: UnitTypeId): { text: string; good: boolean }[]
   });
 }
 export const BUILD_ICON: Partial<Record<BuildingId, string>> = {
-  road: 'move', bridge: 'move', researchCenter: 'research', navalBase: 'boot', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown',
+  road: 'move', bridge: 'move', researchCenter: 'research', logisticsCenter: 'star', dataCenter: 'research', powerPlant: 'lightning', shrine: 'crown',
   kolkhoz: 'wheat', mercenaryBarracks: 'tent', embassyPalace: 'columns', tradingPost: 'scale', testLab: 'tesla',
   // Ressourcengebaeude der Fraktionen / faction resource buildings
   tractorStation: 'tractor', deepMine: 'headframe', hillVineyard: 'grapes', tradeHarbour: 'crane',
   polarStation: 'polar', wreckSmelter: 'furnace', pilgrimSite: 'bell', depotNode: 'drone',
+  // Produktionsstaetten der Menschen / human production sites
+  ...SITE_ICON,
 };
 
 /**
  * Gebaeudebeschreibung mit Zahlen aus balance.ts (Platzhalter in buildingDesc).
  * Building description with numbers from balance.ts (placeholders in buildingDesc).
  */
-export function buildingDescText(b: BuildingId): string {
+export function buildingDescText(b: BuildingId, f?: FactionId | null): string {
   const st = BUILDINGS[b];
   return t(`buildingDesc.${b}`, {
+    // Produktionsstaetten: Einheiten und Voraussetzung / production sites: units and prerequisite
+    ...siteDescVars(b, f),
     pop: st.pop, stars: st.stars ?? 0, adj: st.adjacency?.pop ?? 0, compute: st.compute ?? 0, slots: CULT.shrineSlots,
     pct: Math.round(RESOURCE.polarDiscount * 100), max: RESOURCE.polarMax,
     heal: RESOURCE.vineyardHeal, naval: RESOURCE.harbourNavalBonus,
@@ -602,7 +607,7 @@ export class Hud {
           <div class="muted unit-sub">${esc(t('tower.name'))} · ${esc(t(`factions.${fid}.short`))}</div></div>`;
         body += `<div class="row"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>
-          <p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: unitLimit(s, city) }))}</p>`;
+          <p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: unitLimit(s, city) }))}</p>${citySitesHtml(s, city)}`;
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
       } else if (supplyLines(s)) {
@@ -613,7 +618,7 @@ export class Hud {
           <div class="muted unit-sub">${esc(t(shaft ? 'cavern.mainShaft' : 'cavern.supplyLine'))} · ${esc(t(`factions.${fid}.short`))}</div></div>`;
         body += `<div class="row"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, city), max: unitLimit(s, city) }))}</span>
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div>
-          <p class="muted sheet-more">${esc(t(shaft ? 'cavern.mainShaftDesc' : 'cavern.supplyLineDesc', { n: shaft ? SUPPLY_LINE.mainShaftIncome : SUPPLY_LINE.income, max: unitLimit(s, city) }))}</p>`;
+          <p class="muted sheet-more">${esc(t(shaft ? 'cavern.mainShaftDesc' : 'cavern.supplyLineDesc', { n: shaft ? SUPPLY_LINE.mainShaftIncome : SUPPLY_LINE.income, max: unitLimit(s, city) }))}</p>${citySitesHtml(s, city)}`;
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
       } else {
@@ -631,6 +636,8 @@ export class Hud {
           ${Array.from({ length: CITY_UPGRADES.slots }, (_, i) => { const up = cityUpgrades(city)[i]; return up
             ? `<span class="slot filled" title="${esc(t(`cityUpgrades.${up}Desc`, orbitalVars()))}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
+        // Produktionsstaetten der Stadt (Menschen), immer sichtbar / the city's production sites (humans), always visible
+        body += citySitesHtml(s, city);
         // Kult: Beute dieser Stadt; NEXUS: Rechenleistung / cult: loot of this city; NEXUS: compute
         body += lootTag(s, viewer, city);
         if (isRobotFaction(s, city.owner)) {
@@ -898,10 +905,14 @@ export class Hud {
     if (UNITS[u.type].ship) {
       for (const to of [...SHIP_UPGRADES, ...(UNIQUE.units[s.factions[u.owner].id] === 'privateer' ? ['privateer' as const] : [])]) {
         if (to === u.type) continue;
+        // Menschen: Staette statt Forschung, Sperrgrund mit Staette / humans: site instead of research, lock reason with the site
+        const sites = usesSites(s, u.owner);
         const tech = UNITS[to].tech;
-        if (tech && !s.factions[u.owner].techs.includes(tech)) continue;
+        if (!sites && tech && !s.factions[u.owner].techs.includes(tech)) continue;
         const chk = upgradeCheck(s, u, to);
-        this.actions.push({ id: `up-${to}`, icon: 'upgrade', label: t('actions.upgrade', { unit: t(`units.${to}`) }), cost: UNITS[to].cost ?? 0, enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk), run: () => void g.exec({ type: 'upgrade', unit: u.id, to }) });
+        const site = siteOf(to);
+        const reason = chk === 'ok' ? undefined : chk === 'buildingMissing' && site ? t('sites.ship', { site: t(`buildings.${site}`) }) : this.err(chk);
+        this.actions.push({ id: `up-${to}`, icon: 'upgrade', label: t('actions.upgrade', { unit: t(`units.${to}`) }), cost: shipUpgradeCost(s, u.owner, to), enabled: chk === 'ok', reason, run: () => void g.exec({ type: 'upgrade', unit: u.id, to }) });
       }
     }
   }
@@ -949,18 +960,22 @@ export class Hud {
     }
     // Kult bildet nicht aus, auch den Erdkernbohrer nicht (der Prophet ruft ihn) / the cult does not train, not even the earth-core drill (the prophet calls it up)
     if (isCultFaction(s, c.owner!)) return;
+    // Menschen: gesperrte Einheiten (Produktionsstaette fehlt) mit Grund hinter den verfuegbaren / humans: locked units (site missing) with a reason after the available ones
+    const locked: ActionItem[] = [];
     for (const type of rosterUnits(s, c.owner!)) {
       const st = UNITS[type];
       if (st.cost === null) continue;
       if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
       const chk = trainCheck(s, c, type);
-      this.actions.push({
+      const item: ActionItem = {
         id: `train-${type}`, icon: UNIT_ICON[type], label: t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
         desc: unitStatsLine(type),
-        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : this.err(chk),
+        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : chk === 'buildingMissing' ? trainLockReason(s, c, type) : this.err(chk),
         run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
-      });
+      };
+      (chk === 'buildingMissing' ? locked : this.actions).push(item);
     }
+    this.actions.push(...locked);
   }
 
   /**
@@ -1006,13 +1021,22 @@ export class Hud {
         });
         continue;
       }
+      // Produktionsstaette ohne Voraussetzung (Panzerwerk ohne Tagebau usw.): gesperrt mit Grund / production site without its prerequisite (tank works without a mine etc.): locked with a reason
+      if (!chk.ok && chk.error === 'buildingMissing') {
+        locked.push({
+          id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), cost: chk.cost, enabled: false,
+          reason: `${buildLockReason(b)} · ${buildingDescText(b, s.factions[f].id)}`,
+          run: () => {},
+        });
+        continue;
+      }
       if (!chk.ok && chk.error !== 'notEnoughStars' && chk.error !== 'onePerCity') continue;
       // Ressourcengebaeude als Ausbau eines Grundgebaeudes / resource building as upgrade of a base building
       const upgrade = !!BUILDINGS[b].upgrades && s.tiles[y * s.size + x].building === BUILDINGS[b].upgrades;
       this.actions.push({
         id: `build-${b}`, icon: BUILD_ICON[b] ?? 'build', label: t(`buildings.${b}`), sub: upgrade ? t('resource.upgrade') : undefined, cost: chk.cost, enabled: chk.ok,
-        desc: buildingDescText(b),
-        reason: chk.ok ? buildingDescText(b) : this.err(chk.error),
+        desc: buildingDescText(b, s.factions[f].id),
+        reason: chk.ok ? buildingDescText(b, s.factions[f].id) : this.err(chk.error),
         run: () => void g.exec({ type: 'build', building: b, x, y }),
       });
     }

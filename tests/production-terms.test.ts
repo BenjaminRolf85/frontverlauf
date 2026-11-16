@@ -51,10 +51,11 @@ describe('Forschung / Produktion / research / production', () => {
 
   it('HUD, Dialog und Hinweis je Rasse / HUD, dialog and toast by race', () => {
     setLanguage('de');
+    // Menschen: Doktrinen (Einheiten kommen aus Produktionsstaetten) / humans: doctrines (units come from production sites)
     for (const f of HUMANS) {
-      expect(techT('hud.research', f)).toBe('Produktion');
-      expect(techT('tech.title', f)).toBe('Produktionskapazitäten');
-      expect(techT('events.research', f, { tech: 'X' })).toBe('X freigeschaltet');
+      expect(techT('hud.research', f)).toBe('Doktrinen');
+      expect(techT('tech.title', f)).toBe('Doktrinen');
+      expect(techT('events.research', f, { tech: 'X' })).toBe('X eingeführt');
     }
     for (const f of ['zyrr', 'nexus', 'vesper'] as const) {
       expect(techT('hud.research', f)).toBe('Forschung');
@@ -64,9 +65,9 @@ describe('Forschung / Produktion / research / production', () => {
     expect(has('production.hud.endTurn')).toBe(false);
     expect(techT('hud.endTurn', 'korvat')).toBe(t('hud.endTurn'));
     setLanguage('en');
-    expect(techT('hud.research', 'velkar')).toBe('Production');
-    expect(techT('tech.title', 'dravon')).toBe('Production capacities');
-    expect(techT('tech.researched', 'meridon')).toBe('unlocked');
+    expect(techT('hud.research', 'velkar')).toBe('Doctrines');
+    expect(techT('tech.title', 'dravon')).toBe('Doctrines');
+    expect(techT('tech.researched', 'meridon')).toBe('adopted');
     expect(techT('hud.research', 'nexus')).toBe('Research');
     expect(techT('tech.researched', 'zyrr')).toBe('researched');
   });
@@ -95,7 +96,7 @@ describe('Forschung / Produktion / research / production', () => {
 
   it('Velkar-Texte sprechen von Produktion / Velkar texts talk about production', () => {
     setLanguage('de');
-    expect(t('factions.velkar.perkDesc')).toBe('Alle Produktionsfähigkeiten kosten 12 % weniger.');
+    expect(t('factions.velkar.perkDesc')).toBe('Alle Doktrinen kosten 12 % weniger.');
     for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/forsch/i);
     setLanguage('en');
     for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/research/i);

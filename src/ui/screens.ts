@@ -9,7 +9,7 @@ import {
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, type GameConfig, type GameState,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, usesSites, type GameConfig, type GameState,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, locale, num, setLanguage, t } from '../i18n/i18n';
@@ -30,6 +30,7 @@ import { rulesDialog } from './rules';
 import { factionIdOf, techIcon, techT } from './terms';
 import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
+import { doctrineText } from './production';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -560,10 +561,13 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
     return `<li class="unlock">${icon('helmet', 'icon-sm')}<strong>${esc(t(`units.${u}`))}</strong>
       <span class="muted">${esc(t('stats.attack'))} ${num(us.attack)} · ${esc(t('stats.defense'))} ${num(us.defense)} · ${esc(t('stats.move'))} ${num(us.move)} · ${esc(t('stats.range'))} ${us.range ? num(us.range) : esc(t('stats.noRange'))}${price !== null ? ` · ${price} ${esc(t('hud.stars'))}` : ''}</span></li>`;
   });
-  const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b))}</span></li>`);
+  const buildingRows = [...new Set(un.buildings)].map((b) => `<li class="unlock">${icon('build', 'icon-sm')}<strong>${esc(t(`buildings.${b}`))}</strong><span class="muted">${esc(buildingDescText(b, fa.id))}</span></li>`);
   const vf = TECHS[tech].faction;
   const extra = tt(`techExtra.${tech}`, vf ? victoryParams(vf, s) : {});
   const extraRows = extra.startsWith('techExtra.') ? [] : [`<li class="unlock">${icon(vf ? 'crown' : 'lightning', 'icon-sm')}${vf ? `<strong>${esc(t('traits.victory'))}</strong><span class="muted">${esc(extra)}</span>` : `<strong>${esc(extra)}</strong>`}</li>`];
+  // Menschen: neue Doktrin-Wirkung (keine Einheiten mehr, die kommen aus Produktionsstaetten) / humans: new doctrine effect (no units any more, those come from production sites)
+  const doctrine = usesSites(s, f) ? doctrineText(tech) : '';
+  if (doctrine) extraRows.unshift(`<li class="unlock">${icon('lightning', 'icon-sm')}<strong>${esc(t('doctrine.label'))}</strong><span class="muted">${esc(doctrine)}</span></li>`);
   // Stadt-Ausbauten, die diese Forschung freischaltet / city upgrades unlocked by this research
   for (const up of CITY_UPGRADE_IDS) {
     if (CITY_UPGRADES.tech[up] !== tech) continue;
@@ -585,7 +589,7 @@ function techInfoBox(host: ScreenHost, tech: TechId, onClose: () => void) {
       <span>${esc(t('hud.stars'))}</span><span>${price(fa.stars)}</span>
       ${parent ? `<span>${esc(t('tech.requires'))}</span><span>${esc(t(`techs.${parent}`))} ${fa.techs.includes(parent) ? icon('check', 'icon-sm') : icon('lock', 'icon-sm')}</span>` : ''}
     </div>
-    <h3 class="display">${esc(t('tech.unlocks'))}</h3>
+    <h3 class="display">${esc(tt('tech.unlocks'))}</h3>
     <ul class="unlock-list">${[...unitRows, ...buildingRows, ...extraRows].join('')}</ul>
     ${reason ? `<p class="tag warn">${esc(reason)}</p>` : ''}
     <div class="dialog-actions">
