@@ -18,7 +18,7 @@ import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
-import { CombatFx, pathFacing, playAttack, type AttackInfo, type FxHost } from './combat';
+import { CombatFx, aimTurrets, angleDelta, headingOf, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
@@ -74,6 +74,28 @@ function safe<T extends unknown[]>(fn: (...a: T) => THREE.BufferGeometry | null,
 }
 const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parameters<typeof models.unitGeometry>[1], c: Parameters<typeof models.unitGeometry>[2], stage = 0) =>
   safe(models.unitGeometry, factionTokens[f].primary, type, f, c, stage)!;
+/**
+ * Einheitenmodell aus der Geometrie: Wanne mit Kontur, Drehtuerme als Kinder 'turret' am Drehpunkt (gleiches Material,
+ * gleiche Konturbreite). Ohne Tuerme genau wie bisher ein outlined()-Objekt.
+ * Unit model from the geometry: hull with outline, turrets as children 'turret' at their pivot (same material, same
+ * outline width). Without turrets exactly an outlined() object as before.
+ */
+function unitModel(g: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+  const split = models.splitTurrets(g);
+  if (!split) return outlined(g, OUTLINE.unit, material);
+  const model = outlined(split.hull, OUTLINE.unit, material);
+  if (!g.boundingBox) g.computeBoundingBox();
+  model.userData.bounds = g.boundingBox;
+  for (const t of split.turrets) {
+    const tur = outlined(t.geometry, OUTLINE.unit, material);
+    tur.name = 'turret';
+    tur.position.copy(t.pivot);
+    tur.rotation.y = t.yaw;
+    tur.userData.turret = { rest: t.yaw, ...(t.arc !== undefined ? { arc: t.arc } : {}) } satisfies TurretInfo;
+    model.add(tur);
+  }
+  return model;
+}
 /** Versatz je Bauwerk; das Fusionskraftwerk-Modell deckt seine 2x2-Flaeche selbst ab / offset per wonder; the fusion plant model covers its 2x2 footprint itself */
 const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
@@ -181,6 +203,11 @@ export class Board {
   readonly combat = new CombatFx();
   /** gemerkte Blickrichtung (rotation.y des Modells) je Einheit / remembered facing (model rotation.y) per unit */
   private facing = new Map<number, number>();
+  /**
+   * Zielrichtung der Drehtuerme relativ zur Wanne (fehlt = Ruhestellung); nur Darstellung, nicht im Spielstand.
+   * Aim of the turrets relative to the hull (absent = rest); render state only, not in the game state.
+   */
+  private turretAim = new Map<number, number>();
   /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
   readonly life = new UnitLife();
   /** Bewegliche Teile der Velkar-Einheiten (Rotoren, Lichtboegen, Messdrohnen) / moving parts of Velkar units (rotors, arcs, survey drones) */
@@ -1035,7 +1062,7 @@ export class Board {
         const own = viewer >= 0 && u.owner === viewer;
         const ugeo = unitGeometry(u.type, f, u.carried, stage);
         // Velkar: leuchtende Lichter (Leuchtmaske in der Geometrie) / Velkar: glowing lights (glow mask in the geometry)
-        const model = outlined(ugeo, OUTLINE.unit, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
+        const model = unitModel(ugeo, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
         this.techParts.attach(u.id, model, u.type, f, ugeo.userData.finishScale ?? 1, this.quality === 'low');
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
@@ -1046,6 +1073,8 @@ export class Board {
         model.name = 'model';
         // Fusionskraftwerk nie drehen, sonst passt die 2x2-Flaeche nicht / never rotate the fusion plant or its 2x2 footprint breaks
         model.rotation.y = u.type === 'fusionPlant' ? 0 : this.facing.get(u.id) ?? 0;
+        // Drehtuerme behalten ihr letztes Ziel / turrets keep their last target
+        aimTurrets(model, this.turretAim.get(u.id));
         grp.add(model);
         grp.add(this.groundMarker(f, own));
         grp.userData.unitId = u.id;
@@ -1108,9 +1137,13 @@ export class Board {
         if (cur !== want) mesh.material = want;
       });
     }
+    // Ausrichtung bleibt auch fuer verdeckte Einheiten erhalten, nur Gefallene werden vergessen
+    // facing survives for hidden units too, only fallen units are forgotten
+    const alive = new Set(s.units.map((u) => u.id));
     for (const [id, v] of this.units) {
-      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.facing.delete(id); this.techParts.detach(id); }
+      if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.techParts.detach(id); }
     }
+    for (const m of [this.facing, this.turretAim]) for (const id of m.keys()) if (!alive.has(id) && !this.isAnimating(id)) m.delete(id);
     this.life.endSync(seen);
     this.updateShadows();
     this.dirty = true;
@@ -1194,6 +1227,9 @@ export class Board {
     // sanft in Laufrichtung drehen, Ergebnis merken / turn smoothly into the walking direction, remember the result
     const face = pathFacing(pts, model ? model.rotation.y : this.facing.get(unitId) ?? 0);
     this.facing.set(unitId, face(pts.length - 1));
+    // Drehtuerme schwenken beim Fahren zurueck nach vorn / turrets swing back to the front while driving
+    this.turretAim.delete(unitId);
+    const turns = turretsIn(model).map((tu) => ({ tu, turn: turretTurn(tu, undefined) }));
     this.life.startMove(s, unitId, [from, ...path]);
     return this.addAnim(dur, (t) => {
       const f = t * (pts.length - 1);
@@ -1203,6 +1239,7 @@ export class Board {
       // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
       this.life.moveFrame(unitId, t, f);
       if (model) model.rotation.y = face(f);
+      for (const { tu, turn } of turns) tu.rotation.y = turn.at(Math.min(1, t / 0.45));
       if (t >= 1) { v.group.position.copy(last); this.animating.delete(unitId); }
     });
   }
@@ -1213,7 +1250,54 @@ export class Board {
     hold: (id, on) => { if (on) this.animating.add(id); else this.animating.delete(id); },
     facing: (id) => this.facing.get(id) ?? 0,
     setFacing: (id, a) => { this.facing.set(id, a); },
+    setTurretAim: (id, rel) => { if (rel === undefined) this.turretAim.delete(id); else this.turretAim.set(id, rel); },
   };
+
+  /** Hat die Einheit Drehtuerme? (auch ohne sichtbares Modell) / does the unit have turrets? (also without a visible model) */
+  private hasTurret(s: GameState, u: Unit): boolean {
+    const model = this.units.get(u.id)?.group.getObjectByName('model');
+    if (model) return turretsIn(model).length > 0;
+    return models.turretsOf(unitGeometry(u.type, s.factions[u.owner].id, u.carried)).length > 0;
+  }
+
+  /**
+   * Ohne Animation (schnelle KI, Animationen aus, verdeckte Einheit): Ausrichtung zum Ziel sofort setzen.
+   * Einheiten mit Turm drehen nur den Turm, alle anderen die ganze Einheit.
+   * Without animation (fast AI, animations off, hidden unit): set the facing towards the target at once.
+   * Units with a turret only turn the turret, all others the whole unit.
+   */
+  faceTarget(s: GameState, unitId: number, target: { x: number; y: number }) {
+    const u = s.units.find((x) => x.id === unitId);
+    if (!u || u.type === 'fusionPlant' || (u.x === target.x && u.y === target.y)) return;
+    const a = this.tileCenter(s, u.x, u.y), b = this.tileCenter(s, target.x, target.y);
+    const heading = headingOf(b.x - a.x, b.z - a.z);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (this.hasTurret(s, u)) {
+      const hull = model ? model.rotation.y : this.facing.get(unitId) ?? 0;
+      const rel = angleDelta(hull, heading);
+      this.turretAim.set(unitId, rel);
+      aimTurrets(model, rel);
+    } else {
+      this.facing.set(unitId, heading);
+      if (model) model.rotation.y = heading;
+    }
+    this.dirty = true;
+  }
+
+  /**
+   * Ohne Animation gefahren: Wanne in die letzte Fahrtrichtung, Tuerme nach vorn.
+   * Moved without animation: hull towards the last driving direction, turrets to the front.
+   */
+  faceMove(s: GameState, unitId: number, from: { x: number; y: number }, path: { x: number; y: number }[]) {
+    if (!path.length) return;
+    const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
+    const heading = pathFacing(pts, this.facing.get(unitId) ?? 0)(pts.length - 1);
+    this.facing.set(unitId, heading);
+    this.turretAim.delete(unitId);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (model && s.units.find((x) => x.id === unitId)?.type !== 'fusionPlant') { model.rotation.y = heading; aimTurrets(model, undefined); }
+    this.dirty = true;
+  }
 
   /**
    * Angriff mit Waffeneffekten (siehe combat.ts); ohne Angaben nur Ausrichten und Ausfall.
@@ -1245,6 +1329,7 @@ export class Board {
       hold: (id, on) => { if (id !== GUN) this.fxHost.hold(id, on); },
       facing: (id) => (id === GUN ? 0 : this.fxHost.facing(id)),
       setFacing: (id, a) => { if (id !== GUN) this.fxHost.setFacing(id, a); },
+      setTurretAim: (id, rel) => { if (id !== GUN) this.fxHost.setTurretAim?.(id, rel); },
     };
     const water = (x: number, y: number) => { const tt = s.tiles[y * s.size + x].terrain; return tt === 'shallow' || tt === 'ocean'; };
     const u = s.units.find((x) => x.id === unitId);

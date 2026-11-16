@@ -265,7 +265,8 @@ export class UnitLife {
     if (!r) {
       const geo = (model.userData.mesh as THREE.Mesh | undefined)?.geometry;
       if (geo && !geo.boundingBox) geo.computeBoundingBox();
-      const bb = geo?.boundingBox;
+      // Modelle mit Drehturm: Masse des ganzen Modells / models with a turret: bounds of the whole model
+      const bb = (model.userData.bounds as THREE.Box3 | undefined) ?? geo?.boundingBox;
       const top = (bb ? bb.max.y : 0.3) * restScale;
       const half = (bb ? Math.max(-bb.min.x, bb.max.x, 0.05) : 0.15) * restScale;
       // Gieren zuerst, dann Neigen und Rollen relativ zur Blickrichtung / yaw first, then pitch and roll relative to facing
