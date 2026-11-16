@@ -982,6 +982,48 @@ export const CITY_UPGRADES = {
 export const WAR_MARKS = {
   craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone'] as UnitTypeId[],
   maxPerTile: 4,
+  /**
+   * Schlachtfeld (optisch, Tile.scar): Kampfintensitaet je Feld in Punkten. Jeder Treffer, jeder Tod und jede Explosion
+   * erhoeht sie (gewichtet nach Waffe), gedeckelt bei max. Ab light / medium / heavy Punkten zeigt die Karte leichte
+   * Spuren, aufgewuehlte Erde oder verwuestetes Land. Nach healAfter Runden ohne Kampf holt sich die Natur das Feld
+   * zurueck: alle healEvery Runden ein Punkt weniger; bei 0 verschwinden auch die Krater. Keine Wirkung auf die Regeln.
+   * Battlefield (visual, Tile.scar): fighting intensity per tile in points. Every hit, death and explosion raises it
+   * (weighted by weapon), capped at max. From light / medium / heavy points the map shows light marks, churned earth or
+   * devastated land. After healAfter rounds without fighting nature reclaims the tile: one point less every healEvery
+   * rounds; at 0 the craters vanish too. No effect on the rules.
+   */
+  scar: {
+    /** Treffer leichter Waffen (Gewehr, MG, Jeep ...) / hit by light weapons (rifle, MG, jeep ...) */
+    hit: 2,
+    /** Treffer schwerer Waffen (craterUnits) und Raketen / hit by heavy weapons (craterUnits) and rockets */
+    heavyHit: 4,
+    /** Flaechenschaden auf Nachbarfeldern / splash damage on adjacent tiles */
+    splash: 1,
+    /** Gegenfeuer auf das Feld des Angreifers / return fire on the attacker's tile */
+    returnFire: 1,
+    /** Tod einer Einheit (Skelett) / death of a unit (skeleton) */
+    death: 3,
+    /** Zerstoertes Fahrzeug, Schiff oder Flieger (Wrack) / destroyed vehicle, ship or flyer (wreck) */
+    wreck: 4,
+    /** Minenexplosion / mine explosion */
+    mine: 5,
+    /** Orbitalschlag je getroffenem Feld / orbital strike per struck tile */
+    orbital: 6,
+    /** Treffer eines Geschuetzes (Verdan-Linie, Geschuetzstellung) / hit by a gun (Verdan line, emplacement) */
+    turret: 2,
+    /** Meteoreinschlag (Wetter) / meteor impact (weather) */
+    meteor: 1,
+    /** Grosse Explosion (fuer kuenftige Kamikaze-/Sprengeffekte, addBattleScar) / big blast (for future kamikaze/blast effects, addBattleScar) */
+    blast: 5,
+    max: 30,
+    light: 1,
+    medium: 7,
+    heavy: 18,
+    healAfter: 12,
+    healEvery: 3,
+    /** Rauchfahnen ueber schwer umkaempften Feldern, solange der letzte Kampf so viele Runden her ist / smoke over heavy tiles while the last fight is this many rounds ago */
+    smokeRounds: 2,
+  },
 };
 
 export const HEALING = {
