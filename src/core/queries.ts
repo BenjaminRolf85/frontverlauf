@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -601,6 +601,8 @@ export interface CombatPreview {
   blessing: number;
   /** Mahnmal unter dem Angreifer: Schadensfaktor (1 = keins, mehr = Kult, weniger = Furcht) / memorial under the attacker: damage factor (1 = none) */
   memorial: number;
+  /** Ziel verschanzt (Korvat): zusaetzliche Fehlschusschance (0 = nein) / target entrenched (Korvat): extra miss chance (0 = no) */
+  entrenched: number;
 }
 
 /**
@@ -766,12 +768,54 @@ export const unitRace = (s: GameState, u: Unit): HitRace => hitRace(u.type, s.fa
  * Wahrscheinlichkeiten der Trefferarten fuer einen Angreifer bei aktuellem Wetter; ranged = Fernangriff (z. B. Mech-Raketen).
  * Hit-kind odds for an attacker in the current weather; ranged = ranged attack (e.g. mech rockets).
  */
-export function hitOdds(s: GameState, u: Unit, ranged = false): Record<HitKind, number> {
+export function hitOdds(s: GameState, u: Unit, ranged = false, target?: Unit): Record<HitKind, number> {
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
   // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
   const windOk = ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
-  return withFactionCrit(raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk, HIT.unit[u.type]), factionCrit(s, u));
+  // verschanztes Ziel (Korvat): mehr Fehlschuesse / entrenched target (Korvat): more misses
+  return withEntrench(withFactionCrit(raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk, HIT.unit[u.type]), factionCrit(s, u)), target ? entrenchMiss(s, target) : 0);
 }
+
+// ---------- Verschanzen (ENTRENCH, Korvat) / entrenching (ENTRENCH, Korvat) ----------
+
+/** Kann sich diese Einheit verschanzen (Bodeneinheit, kein Bauwerk, kein Endgegner)? / can this unit entrench (ground unit, no structure, no boss)? */
+export const canEntrench = (u: Unit): boolean => !UNITS[u.type].ship && !has(u, 'fly') && !has(u, 'wonder') && !has(u, 'boss');
+
+/**
+ * Ist u jetzt verschanzt? Fraktion mit ENTRENCH-Bonus (Besitzer), Zeichen gesetzt und seitdem nicht gezogen.
+ * Is u entrenched now? Faction with an ENTRENCH bonus (owner), mark set and not moved since.
+ */
+export function isEntrenched(s: GameState, u: Unit): boolean {
+  const f = s.factions[u.owner]?.id;
+  return !!f && (ENTRENCH.bonus[f] ?? 0) > 0 && u.entrenched === true && !u.moved && canEntrench(u);
+}
+
+/** Zusaetzliche Fehlschusschance bei Angriffen auf u (0 = nicht verschanzt) / extra miss chance for attacks on u (0 = not entrenched) */
+export const entrenchMiss = (s: GameState, u: Unit): number => (isEntrenched(s, u) ? ENTRENCH.bonus[s.factions[u.owner].id] ?? 0 : 0);
+
+/** Verschiebt einen Anteil von vollen Treffern zu Fehlschuessen / moves a share from full hits to misses */
+export function withEntrench(o: Record<HitKind, number>, extra: number): Record<HitKind, number> {
+  if (extra <= 0) return o;
+  const d = Math.min(o.full, extra);
+  return { ...o, full: o.full - d, miss: o.miss + d };
+}
+
+/**
+ * Schadensfaktor gegen ein verschanztes Ziel ohne Wurf: Erwartungswert der Grundchancen mit und ohne Verschiebung
+ * (Menschen etwa 0,78). Ohne Trefferglueck immer; mit Trefferglueck 1 (die Chancen tragen es), ausser always (Schuss ohne
+ * Wurf wie beim geordneten Rueckzug). base = Grundchancen des Schuetzen.
+ * Damage factor against an entrenched target without a roll: expected value of the base odds with and without the shift
+ * (humans about 0.78). Always without hit luck; with hit luck 1 (the odds carry it), unless always (a shot without a roll
+ * such as the orderly retreat). base = the shooter's base odds.
+ */
+export function entrenchFactor(s: GameState, base: Record<HitKind, number>, target: Unit, always = false): number {
+  const miss = entrenchMiss(s, target);
+  if (miss <= 0 || (hitChanceOn(s) && !always)) return 1;
+  return expectedHitMult(withEntrench(base, miss)) / expectedHitMult(base);
+}
+
+/** Grundchancen einer Einheit ohne Wetter und LP (Rasse oder eigenes Profil, Fraktionsbonus) / base odds of a unit without weather and HP */
+export const baseHitOdds = (s: GameState, u: Unit): Record<HitKind, number> => withFactionCrit(HIT.unit[u.type] ?? HIT.odds[unitRace(s, u)], factionCrit(s, u));
 
 /**
  * Kritischer Fraktionsbonus einer Einheit (HIT.factionCrit, nach Besitzer, nur menschliche Einheiten), sonst 0.
@@ -871,7 +915,9 @@ export function retreatTile(s: GameState, u: Unit, target: Unit): Pos | null {
  * the step back does not count, as it only follows the shot.
  */
 export function retreatDamage(s: GameState, u: Unit, target: Unit): number {
-  const full = combatPreview(s, u, target).toDefender;
+  // Schuss ohne Wurf: ein verschanztes Ziel zaehlt auch mit Trefferglueck ueber den Erwartungswert / shot without a roll: an entrenched target counts via the expected value even with hit luck
+  const trench = hitChanceOn(s) ? entrenchFactor(s, baseHitOdds(s, u), target, true) : 1;
+  const full = combatPreview(s, u, target).toDefender * trench;
   return full > 0 ? Math.max(1, Math.round(full * RETREAT.damage)) : 0;
 }
 
@@ -931,7 +977,9 @@ export function returnFire(s: GameState, att: Unit, def: Unit, defHp: number): n
   const boss = UNITS[def.type].abilities.includes('boss') ? SWARM_MOTHER.returnFactor : 1;
   // Strafgericht: der Verteidiger richtet einen suendigen Angreifer / judgement: the defender judges a sinful attacker
   const judge = 1 + judgementAt(s, def, att);
-  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss * judge) : 0;
+  // verschanzter Angreifer (Korvat): ohne Trefferglueck weniger Gegenschlag / entrenched attacker (Korvat): less return fire without hit luck
+  const trench = entrenchFactor(s, baseHitOdds(s, def), att);
+  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss * judge * trench) : 0;
 }
 
 /** Kampfvorschau; rocket = Mech-Raketen (Fernangriff fuer den Wind) / combat preview; rocket = mech rockets (ranged for the wind) */
@@ -953,7 +1001,9 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // Mahnmal des Kults unter dem Angreifer (nur eigener Angriff, nicht der Gegenschlag) / cult memorial under the attacker (own attack only, not return fire)
   const memorial = memorialMult(s, att);
   const judgement = judgementAt(s, att, def);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial) : 0;
+  // verschanztes Ziel (Korvat): ohne Trefferglueck um den Erwartungswert weniger / entrenched target (Korvat): less by the expected value without hit luck
+  const trench = entrenchFactor(s, baseHitOdds(s, att), def);
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -961,7 +1011,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   const toAttacker = retaliates ? retFull : 0;
   // Trefferglueck: Erwartungswert, Spanne und Vernichtungschance; Gegenschlag je Trefferart mit den LP danach
   // hit luck: expected value, range and kill chance; return fire per hit kind with the HP left afterwards
-  const odds = hitOdds(s, att, rocket || dist(att, def) >= 2);
+  const odds = hitOdds(s, att, rocket || dist(att, def) >= 2, def);
   let expected = 0, killChance = 0, expectedRet = 0, min = Infinity, max = 0;
   for (const k of HIT_KINDS) {
     if (odds[k] <= 0) continue;
@@ -971,10 +1021,10 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     if (dmg >= def.hp) { killChance += odds[k]; continue; }
     const rb = returnFire(s, att, def, def.hp - dmg);
     if (rb <= 0) continue;
-    const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg });
+    const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg }, false, att);
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial, entrenched: entrenchMiss(s, def) };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -2234,7 +2284,8 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
     if (hp <= 0 || !near || has(u, 'shock')) return 0;
     const df = G.defense * (hp / G.hp);
     const tt = attackForce + df;
-    return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor) : 0;
+    // verschanzter Angreifer (Korvat) / entrenched attacker (Korvat)
+    return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor * entrenchFactor(s, HIT.odds[G.race], u)) : 0;
   };
   return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) };
 }
@@ -2245,11 +2296,13 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
  * Shot of a gun with hp HP at def (full hit); G = stats (default Verdan, emplacement: EMPLACEMENT).
  * A gun never moves, its fire is always full damage (no MOVE_FIRE).
  */
-export function turretShotDamage(s: GameState, hp: number, def: Unit, G: { attack: number; hp: number } = VERDAN): number {
+export function turretShotDamage(s: GameState, hp: number, def: Unit, G: { attack: number; hp: number; race?: HitRace } = VERDAN): number {
   const attackForce = G.attack * (hp / G.hp);
   const defenseForce = effectiveDefense(s, def) * (def.hp / def.maxHp) * defenseBonus(s, def) * (1 + homeDefenseAt(s, def));
   const total = attackForce + defenseForce;
-  return total > 0 ? Math.round((attackForce / total) * G.attack * COMBAT.damageFactor) : 0;
+  // verschanztes Ziel (Korvat) / entrenched target (Korvat)
+  const trench = entrenchFactor(s, HIT.odds[G.race ?? 'robot'], def);
+  return total > 0 ? Math.round((attackForce / total) * G.attack * COMBAT.damageFactor * trench) : 0;
 }
 
 /**

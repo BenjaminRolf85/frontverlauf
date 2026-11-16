@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { CULT, EMPLACEMENT, FACTIONS, HIT, HOME_DEFENSE, MARTYR, MOVE_FIRE, RANGE_BONUS, RESOURCE, SIN, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
+import { CULT, EMPLACEMENT, FACTIONS, HIT, ENTRENCH, HOME_DEFENSE, MARTYR, MOVE_FIRE, RANGE_BONUS, RESOURCE, SIN, UNITS, type BuildingId, type FactionId, type UnitTypeId } from '../data/balance';
 import { factionRace } from '../core';
 import { has, num, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -26,9 +26,9 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
 /**
- * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat, Dravon), Reichweite (RANGE_BONUS, Korvat) und Verteidigung auf
+ * Kampfboni einer Fraktion mit Namen und Text: Feuern nach Bewegung (MOVE_FIRE.bonus, Korvat, Dravon), Reichweite (RANGE_BONUS, Korvat), Verschanzen (ENTRENCH, Korvat) und Verteidigung auf
  * eigenem Gebiet (HOME_DEFENSE, Alvenia); Zahlen aus balance.ts.
- * Combat bonuses of a faction with name and text: firing after moving (MOVE_FIRE.bonus, Korvat, Dravon), range (RANGE_BONUS, Korvat) and defence on own
+ * Combat bonuses of a faction with name and text: firing after moving (MOVE_FIRE.bonus, Korvat, Dravon), range (RANGE_BONUS, Korvat), entrenching (ENTRENCH, Korvat) and defence on own
  * territory (HOME_DEFENSE, Alvenia); numbers from balance.ts.
  */
 export function combatBonusTexts(f: FactionId): { name: string; desc: string; icon: string }[] {
@@ -43,6 +43,9 @@ export function combatBonusTexts(f: FactionId): { name: string; desc: string; ic
   // Fraktionsbonus auf kritische Treffer (Dravon) / faction crit bonus (Dravon)
   const c = HIT.factionCrit[f];
   if (c) out.push({ icon: 'dice', name: t(`hit.factionCrit.${f}`), desc: t(`hit.factionCritDesc.${f}`, { pct: pct(HIT.odds.human.crit + c), base: pct(HIT.odds.human.crit) }) });
+  // Verschanzen (ENTRENCH, Korvat) / entrenching (ENTRENCH, Korvat)
+  const e = ENTRENCH.bonus[f];
+  if (e) out.push({ icon: 'shield', name: t('entrench.name'), desc: t('entrench.desc', { pct: pct(e) }) });
   // Reichweitenbonus (Korvat-Artillerie, RANGE_BONUS) / range bonus (Korvat artillery, RANGE_BONUS)
   const r = RANGE_BONUS.bonus[f];
   if (r) {

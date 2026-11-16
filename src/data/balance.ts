@@ -709,6 +709,21 @@ export const HOME_DEFENSE = {
  * weather (rain and dust storm still cut 1) and stacks with the ballistics doctrine (+1). A converted unit loses it
  * (the owner counts).
  */
+export const ENTRENCH = {
+  /**
+   * Verschanzen nach Besitzer: Anteil, der bei Angriffen auf eine verschanzte Einheit von den vollen Treffern zu den
+   * Fehlschuessen wandert (Korvat: +20 Punkte daneben). Verschanzt ist eine Bodeneinheit (kein Schiff, Flieger, Bauwerk,
+   * Endgegner), die einen ganzen eigenen Zug nicht gezogen hat: das Zeichen wird am Ende des eigenen Zuges gesetzt, wenn
+   * sie in diesem Zug weder gezogen noch neu aufgestellt wurde, und faellt mit der naechsten Bewegung. Gilt fuer jeden
+   * Angriff auf sie (auch Gegenschlag und Geschuetze); ohne Trefferglueck sinkt der Schaden um den Erwartungswert.
+   * Entrenching by owner: share that moves from full hits to misses for attacks on an entrenched unit (Korvat: +20 points
+   * miss). A ground unit (no ship, flyer, structure, boss) is entrenched once it has not moved for a whole own turn: the mark
+   * is set at the end of the own turn if it neither moved nor was newly placed during that turn, and it falls with the next
+   * move. Applies to every attack on it (return fire and guns too); without hit luck damage drops by the expected value.
+   */
+  bonus: { korvat: 0.2 } as Partial<Record<FactionId, number>>,
+};
+
 export const RANGE_BONUS = {
   bonus: { korvat: { artillery: 1 } } as Partial<Record<FactionId, Partial<Record<UnitTypeId, number>>>>,
 };

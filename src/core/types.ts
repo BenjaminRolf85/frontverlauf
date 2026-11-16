@@ -165,6 +165,13 @@ export interface Unit {
   slowed?: boolean;
   /** ab der naechsten eigenen Runde gebremst / slowed from the next own round */
   slowedNext?: boolean;
+  /**
+   * Verschanzt (ENTRENCH, Korvat): am Ende des eigenen Zuges gesetzt, wenn die Einheit in diesem Zug nicht gezogen ist;
+   * faellt mit der naechsten Bewegung (fehlt = nein).
+   * Entrenched (ENTRENCH, Korvat): set at the end of the own turn if the unit did not move during that turn; falls with
+   * the next move (missing = no).
+   */
+  entrenched?: boolean;
   /** stand zu Beginn des Zuges hier (fuer Einnahme) / stood here at turn start (for capture) */
   startX: number;
   startY: number;

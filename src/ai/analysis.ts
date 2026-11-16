@@ -3,10 +3,10 @@
  * AI situation picture: only visible things, threat, path fields (land/sea), goals and assignment.
  */
 import {
-  counterFactor, unitRange, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
+  counterFactor, unitRange, entrenchFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
   isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, type Pos } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
@@ -386,6 +386,9 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     const judge = judges(ctx.s, e.owner) && isSinner(ctx.s, ctx.f) ? 1 + SIN.judgement : 1;
     total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire * judge;
   }
+  // verschanzt (Korvat) und bleibt stehen: weniger erwarteter Schaden wie in combatPreview (menschliche Schuetzen als Mass)
+  // entrenched (Korvat) and staying put: less expected damage as in combatPreview (human shooters as the yardstick)
+  if (x === u.x && y === u.y) total *= entrenchFactor(ctx.s, HIT.odds.human, u, true);
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
   return list.length > 1 ? total * 0.75 : total;
 }

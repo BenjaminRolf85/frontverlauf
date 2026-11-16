@@ -3898,5 +3898,12 @@
     "bonusDesc": {
       "korvat": "Korvat artillery fires {range} tiles instead of {base}. Rain and dust storms still shorten it by 1; the ballistics doctrine adds 1."
     }
+  },
+  "entrench": {
+    "name": "Entrench",
+    "tag": "Entrenched",
+    "tagDesc": "Has not moved for a whole turn: attacks on it miss {pct} percentage points more often. Lost with the next move.",
+    "hint": "Target entrenched: +{pct} % miss chance",
+    "desc": "Korvat ground units that do not move for a whole own turn dig in: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
   }
 }

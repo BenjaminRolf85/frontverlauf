@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
+  COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
@@ -18,7 +18,7 @@ import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
 import { seizeCheck, seizePlans } from './temple';
 import {
-  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers,
+  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, withEntrench, entrenchMiss, canEntrench, effectiveRange, mineCheck, mineTriggers,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -634,6 +634,11 @@ function bossTurn(s: GameState, u: Unit, ev: GameEvent[]) {
 
 function endTurnProcessing(s: GameState, ev: GameEvent[]) {
   const f = s.current;
+  // Verschanzen (ENTRENCH): wer diesen ganzen Zug nicht gezogen hat und nicht neu ist, ist verschanzt
+  // entrenching (ENTRENCH): a unit that did not move during this whole turn and is not new is entrenched
+  if ((ENTRENCH.bonus[s.factions[f].id] ?? 0) > 0) {
+    for (const u of s.units) if (u.owner === f) u.entrenched = canEntrench(u) && !u.moved && !u.fresh;
+  }
   for (const u of s.units.slice()) {
     if (u.owner !== f || u.fuel === null) continue;
     if (isRefuelSpot(s, f, u.x, u.y)) continue;
@@ -866,7 +871,8 @@ function processTurrets(s: GameState, ev: GameEvent[]) {
     const u = p.owner !== undefined ? emplacementTarget(s, p) : turretTarget(s, p);
     if (!u) continue;
     const base = turretShotDamage(s, p.hp, u, G);
-    const hit: HitKind = hitChanceOn(s) ? rollHit(raceOdds(s, G.race, p.hp / G.hp, true), nextRandom(s)) : 'full';
+    // verschanztes Ziel (Korvat): mehr Fehlschuesse / entrenched target (Korvat): more misses
+    const hit: HitKind = hitChanceOn(s) ? rollHit(withEntrench(raceOdds(s, G.race, p.hp / G.hp, true), entrenchMiss(s, u)), nextRandom(s)) : 'full';
     const dmg = hitDamage(base, hit);
     u.hp -= dmg;
     if (dmg > 0) addMark(s, u.x, u.y, 'scorch');
@@ -919,7 +925,7 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   const owner = t.turret.owner;
   const G = gunStats(t.turret);
   const retBase = left > 0 ? pre.ret(left) : 0;
-  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(raceOdds(s, G.race, left / G.hp, true), nextRandom(s)) : 'full';
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(withEntrench(raceOdds(s, G.race, left / G.hp, true), entrenchMiss(s, u)), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   t.turret.hp = Math.max(0, left);
   if (!wasAwake && owner === undefined) {
@@ -1074,6 +1080,8 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     }
   }
   u.x = r.x; u.y = r.y;
+  // wer zieht, verlaesst seine Stellung (ENTRENCH) / whoever moves leaves its position (ENTRENCH)
+  if (u.entrenched) u.entrenched = false;
   // Bewegung setzt den Erdkernbohrer zurueck / moving resets the earth-core drill
   if (u.type === 'coreDrill') u.stillRounds = 0;
   const bt = tileAt(s, u.x, u.y)!;
@@ -1143,7 +1151,8 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   // Gegenschlag nur, wenn das Ziel ueberlebt, mit den LP nach dem Treffer; eigenes Trefferglueck des Verteidigers
   // return fire only if the target survives, with the HP left after the hit; defender's own hit luck
   const retBase = kills ? 0 : returnFire(s, u, target, target.hp - dealt);
-  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, { ...target, hp: target.hp - dealt }), nextRandom(s)) : 'full';
+  // Gegenschlag auf einen verschanzten Angreifer (Korvat): mehr Fehlschuesse / return fire on an entrenched attacker (Korvat): more misses
+  const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, { ...target, hp: target.hp - dealt }, false, u), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
   const splash: { unit: number; dmg: number }[] = [];
   if (has(u, 'splash')) {
@@ -1326,6 +1335,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const target = unitById(s, cmd.target);
       if (!target || !convertTargets(s, u).some((o) => o.id === target.id)) return fail('invalidTarget');
       target.owner = f; target.homeCity = null; target.exhausted = true; target.fresh = true;
+      if (target.entrenched) target.entrenched = false;
       u.exhausted = true;
       s.factions[f].lastAttackRound = s.round;
       ev.push({ t: 'convert', unit: u.id, target: target.id });

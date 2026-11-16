@@ -3898,5 +3898,12 @@
     "bonusDesc": {
       "korvat": "Korvat-Artillerie schießt {range} statt {base} Felder weit. Regen und Sandsturm kürzen weiterhin um 1, die Doktrin Ballistik bringt +1."
     }
+  },
+  "entrench": {
+    "name": "Verschanzen",
+    "tag": "Verschanzt",
+    "tagDesc": "Hat einen ganzen Zug nicht gezogen: Angriffe auf die Einheit gehen um {pct} Prozentpunkte öfter daneben. Endet mit der nächsten Bewegung.",
+    "hint": "Ziel verschanzt: +{pct} % Fehlschusschance",
+    "desc": "Korvat-Bodeneinheiten, die einen ganzen eigenen Zug nicht ziehen, verschanzen sich: Jeder Angriff auf sie, auch Gegenschlag und Geschütze, geht um {pct} Prozentpunkte öfter daneben (von den vollen Treffern); ohne Trefferglück sinkt der Schaden um denselben Erwartungswert. Die nächste Bewegung beendet es."
   }
 }
