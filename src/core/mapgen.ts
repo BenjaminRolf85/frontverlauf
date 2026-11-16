@@ -199,8 +199,9 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     // kleine Startinsel am Rand: notfalls 1 Feld Abstand zum Rand, nie direkt am Rand
     // small start island at the edge: if need be 1 tile from the edge, never right at the edge
     for (const edge of [MAPGEN.villageEdge, MAPGEN.villageEdgeHome]) {
-      // Abstand 3, sonst 2; schmale Randinseln notfalls 4 oder 5 / distance 3, else 2; narrow edge islands 4 or 5 if need be
-      for (const d of edge === MAPGEN.villageEdge ? [3, 2] : [3, 2, 4, 5]) {
+      // Abstand 3, sonst 2, notfalls 4 oder 5; erst danach wird der Randabstand gelockert
+      // distance 3, else 2, if need be 4 or 5; only then is the edge distance relaxed
+      for (const d of [3, 2, 4, 5]) {
         const ring: Pos[] = [];
         for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s, edge)) ring.push(p);
         if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
