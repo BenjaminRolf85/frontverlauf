@@ -58,6 +58,67 @@ const smooth = (t: number) => { const k = Math.max(0, Math.min(1, t)); return k 
 /** Blickwinkel (Modelle blicken nach +z) / heading angle (models face +z) */
 export const headingOf = (dx: number, dz: number) => Math.atan2(dx, dz);
 
+// ---------- Drehtuerme / turrets ----------
+
+/** Daten eines Turm-Objekts (userData.turret, gesetzt vom Brett) / data of a turret object (userData.turret, set by the board) */
+export interface TurretInfo { rest: number; arc?: number }
+
+/**
+ * Turmwinkel relativ zur Wanne: rel = gewuenschte Richtung relativ zur Wanne (fehlt = Ruhestellung),
+ * arc begrenzt den Schwenk um die Ruhestellung.
+ * Turret angle relative to the hull: rel = wanted heading relative to the hull (absent = rest),
+ * arc limits the traverse around the rest heading.
+ */
+export function turretYaw(rest: number, arc: number | undefined, rel: number | undefined): number {
+  if (rel === undefined) return rest;
+  let d = angleDelta(rest, rel);
+  if (arc !== undefined && Math.abs(d) > arc) d = Math.sign(d) * arc;
+  return rest + d;
+}
+
+/** Turm-Objekte eines Einheitenmodells / turret objects of a unit model */
+export function turretsIn(model: THREE.Object3D | undefined | null): THREE.Object3D[] {
+  return model ? model.children.filter((o) => o.userData.turret) : [];
+}
+
+/** Turmwinkel aller Tuerme setzen (rel wie bei turretYaw) / set the angle of all turrets (rel as in turretYaw) */
+export function aimTurrets(model: THREE.Object3D | undefined | null, rel: number | undefined): void {
+  for (const t of turretsIn(model)) {
+    const ti = t.userData.turret as TurretInfo;
+    t.rotation.y = turretYaw(ti.rest, ti.arc, rel);
+  }
+}
+
+/**
+ * Schwenk eines Turms von seinem jetzigen Winkel zu rel (wie turretYaw): rundum auf dem kuerzesten Weg, mit Schwenkgrenze
+ * innerhalb der Grenze (nie durch den gesperrten Bereich). at(k) liefert den Winkel fuer k = 0..1.
+ * Traverse of a turret from its current angle to rel (as in turretYaw): all round the shortest way, with a traverse
+ * limit inside the limit (never through the blocked sector). at(k) gives the angle for k = 0..1.
+ */
+export function turretTurn(t: THREE.Object3D, rel: number | undefined): { to: number; span: number; at: (k: number) => number } {
+  const ti = t.userData.turret as TurretInfo;
+  const from = t.rotation.y;
+  const to = turretYaw(ti.rest, ti.arc, rel);
+  if (ti.arc === undefined) return { to, span: angleDelta(from, to), at: (k) => (k >= 1 ? to : lerpAngle(from, to, k)) };
+  const d0 = angleDelta(ti.rest, from), d1 = to - ti.rest;
+  return { to, span: d1 - d0, at: (k) => (k >= 1 ? to : ti.rest + d0 + (d1 - d0) * k) };
+}
+
+/** Vektor (x, z) um die Hochachse drehen (Blickwinkel-Konvention) / rotate (x, z) about the vertical axis (heading convention) */
+const rotY = (x: number, z: number, a: number): [number, number] => [x * Math.cos(a) + z * Math.sin(a), -x * Math.sin(a) + z * Math.cos(a)];
+
+/**
+ * Muendung eines Turms: o = Einheitenursprung, q = Drehpunkt im Einheitenrahmen ohne Wannendrehung (inkl. Massstab),
+ * hull = Wannenwinkel, aim = Weltwinkel des Turms, [h, fwd] = Muendung bei Ruhestellung (MUZZLE).
+ * Muzzle of a turret: o = unit origin, q = pivot in the unit frame without hull rotation (scale included),
+ * hull = hull heading, aim = world heading of the turret, [h, fwd] = muzzle at rest (MUZZLE).
+ */
+export function turretMuzzle(o: THREE.Vector3, q: THREE.Vector3, hull: number, aim: number, h: number, fwd: number): THREE.Vector3 {
+  const [px, pz] = rotY(q.x, q.z, hull);
+  const [tx, tz] = rotY(-q.x, fwd - q.z, aim);
+  return new THREE.Vector3(o.x + px + tx, o.y + h, o.z + pz + tz);
+}
+
 /**
  * Ausrichtung entlang eines Pfades: am Anfang jedes Abschnitts sanft in die neue Richtung drehen.
  * Facing along a path: turn smoothly into the new direction at the start of each segment.
@@ -773,6 +834,53 @@ export interface FxHost {
   hold(id: number, on: boolean): void;
   facing(id: number): number;
   setFacing(id: number, angle: number): void;
+  /**
+   * Zielrichtung der Tuerme relativ zur Wanne merken (undefined = Ruhestellung) / remember the turrets' aim relative
+   * to the hull (undefined = rest)
+   */
+  setTurretAim?(id: number, rel: number | undefined): void;
+}
+
+/**
+ * Drehung einer Einheit zum Ziel: mit Turm dreht nur der Turm (Wanne bleibt), sonst die ganze Einheit.
+ * Turning a unit towards its target: with a turret only the turret turns (hull stays), otherwise the whole unit.
+ */
+interface Swing {
+  /** Wannenwinkel waehrend der Drehung / hull heading during the turn */
+  hull: number;
+  /** Weltwinkel der Waffe am Ende / world heading of the weapon at the end */
+  aim: number;
+  /** Drehpunkt des Hauptturms (Einheitenrahmen ohne Wannendrehung), null = kein Turm / main turret pivot, null = no turret */
+  pivot: THREE.Vector3 | null;
+  /** Dauer der Drehung (ms) / duration of the turn (ms) */
+  ms: number;
+  apply(k: number): void;
+  commit(host: FxHost, id: number): void;
+}
+
+/** Drehdauer fuer einen Winkel / turn duration for an angle */
+const turnMs = (d: number) => Math.min(130, (Math.abs(d) / Math.PI) * 170);
+
+function swing(model: THREE.Object3D | undefined, facing: number, target: number): Swing {
+  const turrets = turretsIn(model);
+  const h0 = model ? model.rotation.y : facing;
+  if (!model || !turrets.length) {
+    return {
+      hull: h0, aim: target, pivot: null, ms: turnMs(angleDelta(h0, target)),
+      apply: (k) => { if (model) model.rotation.y = k >= 1 ? target : lerpAngle(h0, target, k); },
+      commit: (host, id) => host.setFacing(id, target),
+    };
+  }
+  const rel = angleDelta(h0, target);
+  const turns = turrets.map((t) => turretTurn(t, rel));
+  const main = turrets[0];
+  // Drehpunkt im Einheitenrahmen: Modellversatz + Turmposition * Modellmassstab / pivot in the unit frame
+  const pivot = main.position.clone().multiply(model.scale).add(model.position);
+  return {
+    hull: h0, aim: h0 + turns[0].to, pivot, ms: turnMs(turns[0].span),
+    apply: (k) => turrets.forEach((t, i) => { t.rotation.y = turns[i].at(k); }),
+    commit: (host, id) => host.setTurretAim?.(id, rel),
+  };
 }
 
 /** Abstand Treffer -> Gegenschlag (Klang kommt per Rueckruf synchron) / gap impact -> return fire (sound comes in sync via callback) */
@@ -796,20 +904,22 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const dist = Math.max(0.001, flat.length());
   const dirN = flat.clone().divideScalar(dist);
   const aw = info ? weaponOf(info.attacker) : 'none';
-  const a0 = aModel ? aModel.rotation.y : host.facing(attackerId);
   const a1 = headingOf(flat.x, flat.z);
-  const turnA = Math.min(130, (Math.abs(angleDelta(a0, a1)) / Math.PI) * 170);
+  // Mit Turm: die Wanne bleibt stehen, nur der Turm dreht sich / with a turret: the hull stays, only the turret turns
+  const aSwing = swing(aModel, host.facing(attackerId), a1);
+  const turnA = aSwing.ms;
 
-  const muzzle = (o: THREE.Vector3, type: UnitTypeId | undefined, ang: number) => {
+  const muzzle = (o: THREE.Vector3, type: UnitTypeId | undefined, sw: Swing) => {
     const [h, fwd] = (type && MUZZLE[type]) || [0.24, 0.17];
-    return o.clone().add(new THREE.Vector3(Math.sin(ang) * fwd, h, Math.cos(ang) * fwd));
+    if (sw.pivot) return turretMuzzle(o, sw.pivot, sw.hull, sw.aim, h, fwd);
+    return o.clone().add(new THREE.Vector3(Math.sin(sw.aim) * fwd, h, Math.cos(sw.aim) * fwd));
   };
   const hitPoint = (o: THREE.Vector3, type: UnitTypeId | undefined) => o.clone().add(new THREE.Vector3(0, (type && HIT_H[type]) ?? 0.18, 0));
   const surfaceOf = (type: UnitTypeId | undefined, water: boolean): Surface => (water ? 'water' : type && FLESH.has(type) ? 'flesh' : 'metal');
 
   // Hinweg / outbound
   const fireAt = turnA;
-  const flight = info ? shoot(fx, aw, muzzle(aStart, info.attacker, a1), hitPoint(dStart, info.target), info.attackerFaction, fireAt, info.attackerWater) : 130;
+  const flight = info ? shoot(fx, aw, muzzle(aStart, info.attacker, aSwing), hitPoint(dStart, info.target), info.attackerFaction, fireAt, info.attackerWater) : 130;
   const impactAt = fireAt + flight;
   if (info) {
     impact(fx, aw, hitPoint(dStart, info.target), dStart.y, surfaceOf(info.target, info.targetWater), info.attackerFaction, impactAt);
@@ -823,12 +933,12 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   // Rueckweg (Gegenschlag) / return (retaliation)
   const ret = !!info?.retaliate;
   const dw = info ? weaponOf(info.target) : 'none';
-  const d0 = dModel ? dModel.rotation.y : host.facing(targetId);
   const d1 = headingOf(-flat.x, -flat.z);
+  const dSwing = swing(dModel, host.facing(targetId), d1);
   const retFireAt = impactAt + RETURN_GAP;
   let retImpactAt = retFireAt;
   if (ret && info) {
-    retImpactAt = retFireAt + shoot(fx, dw, muzzle(dStart, info.target, d1), hitPoint(aStart, info.attacker), info.targetFaction, retFireAt, info.targetWater);
+    retImpactAt = retFireAt + shoot(fx, dw, muzzle(dStart, info.target, dSwing), hitPoint(aStart, info.attacker), info.targetFaction, retFireAt, info.targetWater);
     impact(fx, dw, hitPoint(aStart, info.attacker), aStart.y, surfaceOf(info.attacker, info.attackerWater), info.targetFaction, retImpactAt);
   }
   const total = (ret ? retImpactAt : impactAt) + TAIL;
@@ -848,8 +958,8 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   host.hold(attackerId, true); host.hold(targetId, true);
   return host.anim(total, (t) => {
     const ms = t * total;
-    if (aModel) aModel.rotation.y = turnA > 0 ? lerpAngle(a0, a1, smooth(ms / turnA)) : a1;
-    if (ret && dModel) dModel.rotation.y = lerpAngle(d0, d1, smooth((ms - impactAt - 40) / (RETURN_GAP - 50)));
+    aSwing.apply(turnA > 0 ? smooth(ms / turnA) : 1);
+    if (ret) dSwing.apply(smooth((ms - impactAt - 40) / (RETURN_GAP - 50)));
     // Angreifer: Rueckstoss, spaeter Treffer durch Gegenschlag / attacker: recoil, later hit by the return fire
     const ka = kick(aw, ms - fireAt);
     const ja = ret ? jolt(ms - retImpactAt) : 0;
@@ -866,9 +976,8 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
     }
     if (t >= 1) {
       a.position.copy(aStart); d.position.copy(dStart);
-      if (aModel) aModel.rotation.y = a1;
-      host.setFacing(attackerId, a1);
-      if (ret) { if (dModel) dModel.rotation.y = d1; host.setFacing(targetId, d1); }
+      aSwing.apply(1); aSwing.commit(host, attackerId);
+      if (ret) { dSwing.apply(1); dSwing.commit(host, targetId); }
       host.hold(attackerId, false); host.hold(targetId, false);
     }
   });

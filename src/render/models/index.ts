@@ -8,6 +8,14 @@
  *   / tile 1x1, origin bottom centre, y=0 = tile top, units face +z
  * - Ergebnisse werden zwischengespeichert und duerfen nicht veraendert werden
  *   / results are cached and must not be mutated
+ * - Drehtuerme: Turmteile im Modell in b.turret([x, y, z], () => { ... }) bauen (Drehpunkt = Mitte des Turmkranzes,
+ *   Rohr nach +z); das Brett dreht den Turm dann zum Ziel. Beispiel (tanks.ts):
+ *     const ty = 0.155, tz = -0.03;
+ *     b.turret([0, ty, tz], () => { b.add(geo.rtaper(...), L.hull, { p: [0, ty + 0.045, tz] }); gun(b, 0, ty + 0.048, tz + 0.14, ...); });
+ *   Wanne, Ketten und Embleme an der Wanne bleiben ausserhalb. Mehrere Tuerme moeglich, { arc } begrenzt den Schwenk.
+ *   / turrets: build turret parts inside b.turret([x, y, z], () => { ... }) (pivot = centre of the turret ring, barrel
+ *   along +z); the board then turns the turret towards the target. Hull, tracks and hull emblems stay outside.
+ *   Several turrets are possible, { arc } limits the traverse.
  */
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
@@ -16,7 +24,8 @@ import { WONDER_UNITS, type BuildingId, type FactionId, type GrandProjectId, typ
 import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
-import { memo, withDetail } from './kit';
+import { memo, scaleWithTurrets, withDetail } from './kit';
+export { splitTurrets, turretsOf, type TurretRange, type TurretSplit } from './kit';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
@@ -166,14 +175,14 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   if (wide) {
     g.computeBoundingBox();
     const bx = g.boundingBox!;
-    g.scale(Math.max(1, Math.min(wide, 0.45 / Math.max(-bx.min.x, bx.max.x))), 1, 1);
+    scaleWithTurrets(g, Math.max(1, Math.min(wide, 0.45 / Math.max(-bx.min.x, bx.max.x))), 1, 1);
   }
   g.computeBoundingBox();
   let bb = g.boundingBox!;
   const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
   const want = UNIT_SIZE[type] ?? 1;
   const s = Math.max(1, Math.min(want, 0.45 / ext, MAX_H / bb.max.y));
-  if (s > 1.001) { g.scale(s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
+  if (s > 1.001) { scaleWithTurrets(g, s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
   // Vergroesserung merken: bewegliche Teile (techParts) sitzen in denselben Koordinaten / remember the enlargement: moving parts (techParts) use the same coordinates
   g.userData.finishScale = s;
   const H = Math.max(0.15, bb.max.y);
