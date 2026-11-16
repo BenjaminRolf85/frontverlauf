@@ -214,13 +214,13 @@ describe('Steppensturm (Korvat) / Steppe Storm (Korvat)', () => {
 });
 
 describe('Feuer und Bewegung (Dravon) / Fire and Manoeuvre (Dravon)', () => {
-  it('alle Dravon-Einheiten greifen nach Bewegung mit 80 % an / all Dravon units attack with 80 % after moving', () => {
+  it('alle Dravon-Einheiten greifen nach Bewegung mit vollem Schaden an / all Dravon units attack with full damage after moving', () => {
     const s = game(['dravon', 'alvenia']);
-    expect(MOVE_FIRE.bonus.dravon?.all).toBe(0.8);
+    expect(MOVE_FIRE.bonus.dravon?.all).toBe(1);
     for (const type of ['infantry', 'tank', 'jeep', 'stormbreaker'] as UnitTypeId[]) {
       const u = addUnit(s, type, 0, 5, 5);
       u.moved = true;
-      expect(moveFireMult(s, u), type).toBe(0.8);
+      expect(moveFireMult(s, u), type).toBe(1);
     }
   });
 });

@@ -665,14 +665,14 @@ export const MOVE_FIRE = {
   /**
    * Fraktionsbonus nach Besitzer: all = Faktor fuer alle Einheiten, units = eigener Faktor je Einheitentyp.
    * Korvat "Steppensturm": alle 75 %, Steppenreiter 100 %. Ein bekehrter Steppenreiter verliert ihn (Besitzer zaehlt).
-   * Dravon "Feuer und Bewegung": alle 80 % (die am besten ausgebildeten Soldaten).
+   * Dravon "Feuer und Bewegung": alle 100 %, kein Abzug nach Bewegung (die am besten ausgebildeten Soldaten).
    * Faction bonus by owner: all = factor for all units, units = own factor per unit type.
    * Korvat "Steppe Storm": all 75 %, Steppe Riders 100 %. A converted Steppe Rider loses it (the owner counts).
-   * Dravon "Fire and Manoeuvre": all 80 % (the best-trained soldiers).
+   * Dravon "Fire and Manoeuvre": all 100 %, no penalty after moving (the best-trained soldiers).
    */
   bonus: {
     korvat: { all: 0.75, units: { steppeRider: 1 } },
-    dravon: { all: 0.8 },
+    dravon: { all: 1 },
   } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
 };
 
