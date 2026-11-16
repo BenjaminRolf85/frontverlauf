@@ -289,15 +289,15 @@
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
-    "sniper": "Schießt aus zwei Feldern Entfernung, ist aber selbst zerbrechlich.",
-    "jeep": "Schneller Aufklärer: zuschlagen und wieder abhauen.",
+    "sniper": "Schießt aus zwei Feldern Entfernung und schaltet Fußtruppen aus, kratzt Panzerung aber kaum an. Selbst zerbrechlich.",
+    "jeep": "Schneller Aufklärer, fährt 3 Felder: zuschlagen und wieder abhauen.",
     "pioneer": "Zäher Verteidiger, der Panzersperren baut.",
     "mg": "Schwere Feuerkraft für die Front, stark in der Verteidigung.",
     "medic": "Heilt seine Nachbarn und überredet Feinde zum Überlaufen.",
-    "artillery": "Beschießt Ziele aus drei Feldern Entfernung, braucht aber Begleitschutz.",
+    "artillery": "Beschießt Ziele aus drei Feldern Entfernung (Korvat: vier), braucht aber Begleitschutz.",
     "spy": "Unsichtbar hinter den Linien, zettelt Aufstände in Feindstädten an.",
     "heli": "Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, braucht aber Sprit.",
-    "tank": "Stählerne Faust: aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "tank": "Stählerne Faust: fährt zwei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "landingBoat": "Bringt eine Landeinheit übers Wasser, kann aber nicht angreifen.",
     "submarine": "Taucht unsichtbar ab und torpediert aus zwei Feldern Entfernung.",
     "destroyer": "Schnelles Kampfschiff, das die Küsten sauber hält.",
@@ -335,11 +335,11 @@
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
     "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
     "scientist": "Kämpft nicht, trägt aber einen Schutzanzug. Arbeitet direkt neben dem Mutterschiff der Zyrr, dort deckt ihn die Hülle (Kampagne).",
-    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Fährt zwei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
-    "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
+    "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern. Tödlich gegen Fußtruppen, schwach gegen Panzerung.",
     "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite 2 und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
-    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: fährt zwei Felder, Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung.",
     "steppeColossus": "Der schwerste Panzer der Volksliga: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "cyborg": "Maschinensoldat mit Panzerplatten und Servo-Gliedern: robuster und schlagkräftiger als der Kampfandroide, dafür teurer. Ab dem ersten Zug verfügbar.",
@@ -417,7 +417,9 @@
     "kills": "Abschüsse",
     "veteran": "Veteran",
     "carrying": "trägt {unit}",
-    "noRange": "keine"
+    "noRange": "keine",
+    "returnRange": "Gegenschlag {n} Feld",
+    "returnRangeDesc": "Schießt beim Angriff 2 Felder weit, schlägt aber nur auf {n} Feld zurück: Der Turm muss erst schwenken."
   },
   "terrain": {
     "plain": "Ebene",
@@ -695,7 +697,9 @@
     "needsTech": "Benötigt: {tech}",
     "hintPrompt": "Aktion gedrückt halten oder darauf zeigen: Hier steht, was sie tut.",
     "hintExpand": "Erklärung ganz anzeigen",
-    "moreActions": "Weitere Aktionen"
+    "moreActions": "Weitere Aktionen",
+    "unitLimitRule": "Einheitenlimit: Stufe + 1 = {lv}, dazu {up} durch Ausbauten (+{per} je Ausbau).",
+    "unitLimitUpgrades": "(+{n} Ausbauten)"
   },
   "actions": {
     "confirmTitle": "Bist du sicher?",
@@ -791,7 +795,8 @@
     "notVisible": "Das Zielfeld ist nicht aufgedeckt.",
     "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
     "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen",
-    "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt."
+    "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt.",
+    "alreadyBought": "In dieser Runde schon gekauft."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -2669,7 +2674,8 @@
     "lockedHint": "Weitere Ausbauten werden durch Forschung freigeschaltet ({n}).",
     "lockedHintLevel": "Weitere Ausbauten ab höherer Stadtstufe ({n}).",
     "satRelay": "Satelliten-Relay",
-    "satRelayDesc": "Nur Velkar, eines zugleich. Schaltet den Orbitallaser frei: alle {cd} Runden {dmg} Schaden auf eine Fläche {w}×{h} Felder. Geht verloren, wenn die Stadt fällt."
+    "satRelayDesc": "Nur Velkar, eines zugleich. Schaltet den Orbitallaser frei: alle {cd} Runden {dmg} Schaden auf eine Fläche {w}×{h} Felder. Geht verloren, wenn die Stadt fällt.",
+    "capacity": "Dazu +{n} Einheitenlimit."
   },
   "saves": {
     "deleteConfirm": "Spielstand in Platz {n} wirklich löschen? Das lässt sich nicht rückgängig machen.",
@@ -3516,7 +3522,7 @@
     },
     "combat": {
       "title": "Kampf & Trefferglück",
-      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
+      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Panzer fahren 2 Felder und schießen 2 Felder weit, schlagen aber nur auf 1 Feld zurück. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
     },
     "cover": {
       "title": "Deckung",
@@ -3528,7 +3534,7 @@
     },
     "cities": {
       "title": "Städte & Forschung",
-      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
     },
     "outposts": {
       "title": "Außenposten",
@@ -3755,7 +3761,7 @@
       },
       "cities": {
         "title": "Städte & Produktion",
-        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
       },
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
@@ -3938,6 +3944,26 @@
     "shipbuilding": "Schiffe aufrüsten kostet {pct} % weniger.",
     "forestry": "Artillerie und Sonnenlanze (Geschützgießerei) kosten {pct} % weniger.",
     "ballistics": "Artillerie und Sonnenlanze: Reichweite +{n}."
+  },
+  "buyLevel": {
+    "label": "Stufe kaufen",
+    "desc": "Hebt die Stadt sofort auf Stufe {n}: +{income} Sterne je Runde, eine Einheit mehr und eine Belohnung wie beim Wachstum. Einmal je Stadt und Runde.",
+    "once": "In dieser Stadt wurde in dieser Runde schon eine Stufe gekauft."
+  },
+  "rangeBonus": {
+    "bonus": {
+      "korvat": "Lange Rohre"
+    },
+    "bonusDesc": {
+      "korvat": "Korvat-Artillerie schießt {range} statt {base} Felder weit. Regen und Sandsturm kürzen weiterhin um 1, die Doktrin Ballistik bringt +1."
+    }
+  },
+  "entrench": {
+    "name": "Stellungskrieg",
+    "tag": "Verschanzt",
+    "tagDesc": "Hat einen ganzen Zug nicht gezogen: Angriffe auf die Einheit gehen um {pct} Prozentpunkte öfter daneben. Endet mit der nächsten Bewegung.",
+    "hint": "Ziel verschanzt: +{pct} % Fehlschusschance",
+    "desc": "Korvat-Bodeneinheiten, die einen ganzen eigenen Zug nicht ziehen, verschanzen sich: Jeder Angriff auf sie, auch Gegenschlag und Geschütze, geht um {pct} Prozentpunkte öfter daneben (von den vollen Treffern); ohne Trefferglück sinkt der Schaden um denselben Erwartungswert. Die nächste Bewegung beendet es."
   },
   "kamikaze": {
     "note": "Explodiert: die Drohne ist danach zerstört, kein Gegenschlag",

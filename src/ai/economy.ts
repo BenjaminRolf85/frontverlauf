@@ -6,7 +6,7 @@ import {
   unitClass, twinCheck, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  unitCost, unitLimit, upgradeCheck, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
 } from '../core';
@@ -893,6 +893,22 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (prof.difficulty === 'easy') value *= 0.5;
       buys.push({ cmd, cost, value, save: up !== 'bunker' || !front });
     }
+  }
+
+  // Stufe kaufen: so viel wert wie die Bevoelkerung, die der Aufstieg sonst braucht (popVal je Punkt), plus Platz fuer
+  // Einheiten, wenn die Stadt voll ist und Truppen fehlen. Der Preis ist gut doppelt so hoch, also kauft die KI erst, wenn
+  // sie reich ist (minRatio sinkt mit dem Vorrat); nicht in bedrohten Staedten.
+  // buy level: worth as much as the population the level-up would otherwise need (popVal per point), plus room for units
+  // when the city is full and troops are missing. The price is a good twice as high, so the AI only buys when rich
+  // (minRatio falls with the treasury); not in threatened cities.
+  for (const c of ctx.myCities) {
+    const chk = buyLevelCheck(s, f, c);
+    if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+    if (ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0)) continue;
+    let value = levelUpCost(s, c) * popVal * 0.9;
+    if (deficit > 0 && supportedUnits(s, c) >= unitLimit(s, c)) value += 15 * prof.militaryW;
+    if (prof.difficulty === 'easy') value *= 0.5;
+    buys.push({ cmd: { type: 'buyLevel', city: c.id }, cost: buyLevelCost(c), value, save: false });
   }
 
   // Botschaften / embassies

@@ -104,6 +104,8 @@ export interface City {
   noIncomeNext: boolean;
   /** gekaufte Ausbauten (hoechstens 3) / bought upgrades (at most 3) */
   upgrades?: CityUpgradeId[];
+  /** Runde, in der zuletzt eine Stufe mit Sternen gekauft wurde (fehlt = nie) / round in which a level was last bought with stars (missing = never) */
+  levelBought?: number;
   /**
    * Sendeturm der Kampagne: bildet aus wie eine Nachschublinie, waechst nicht, keine Ausbauten (TOWER).
    * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
@@ -168,6 +170,13 @@ export interface Unit {
   slowed?: boolean;
   /** ab der naechsten eigenen Runde gebremst / slowed from the next own round */
   slowedNext?: boolean;
+  /**
+   * Verschanzt (ENTRENCH, Korvat): am Ende des eigenen Zuges gesetzt, wenn die Einheit in diesem Zug nicht gezogen ist;
+   * faellt mit der naechsten Bewegung (fehlt = nein).
+   * Entrenched (ENTRENCH, Korvat): set at the end of the own turn if the unit did not move during that turn; falls with
+   * the next move (missing = no).
+   */
+  entrenched?: boolean;
   /** stand zu Beginn des Zuges hier (fuer Einnahme) / stood here at turn start (for capture) */
   startX: number;
   startY: number;
@@ -413,7 +422,7 @@ export type GameEvent =
   /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
   | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
-  | { t: 'cityLevel'; city: number; level: number }
+  | { t: 'cityLevel'; city: number; level: number; bought?: true }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
   /**
    * twin (Meridon, TWIN_TRAINING): 'twin' = eine zweite Einheit folgt, 'second' = dies ist die zweite, 'limit'/'noRoom' = nur eine (Limit bzw. kein Feld)
@@ -546,6 +555,8 @@ export type Command =
   /** Wunder bauen (den Bohrer ruft ein Prophet per 'recruit') / build a wonder (a prophet calls up the drill via 'recruit') */
   | { type: 'wonder'; kind: WonderKind; x: number; y: number }
   | { type: 'reward'; city: number; choice: 'a' | 'b' }
+  /** Stufe der Stadt mit Sternen kaufen (CITY.buyLevelCost) / buy the city's next level with stars (CITY.buyLevelCost) */
+  | { type: 'buyLevel'; city: number }
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
   /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
   | { type: 'orbitalStrike'; x: number; y: number }
@@ -568,7 +579,9 @@ export type ErrorCode =
   // Kriegsplaene (m4) / war plans (m4)
   | 'cannotCarry'
   // Produktionsstaette fehlt (Ausbilden) oder Voraussetzung fehlt (Bauen) / production site missing (training) or prerequisite missing (building)
-  | 'buildingMissing';
+  | 'buildingMissing'
+  // Stufe kaufen: in dieser Runde schon gekauft / buy level: already bought this round
+  | 'alreadyBought';
 
 export interface CommandResult {
   ok: boolean;

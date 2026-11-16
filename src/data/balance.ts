@@ -123,6 +123,13 @@ export interface UnitStats {
    */
   bonusVs?: Partial<Record<CounterClass, number>>;
   /**
+   * Hoechster Abstand fuer den Gegenschlag, falls kleiner als die Reichweite (fehlt = Reichweite). Panzer: Angriff auf 2 Felder,
+   * Gegenschlag nur auf 1 Feld (der Turm muss erst richten), damit Panzerabwehr und Scharfschuetzen aus 2 Feldern ihren Konter behalten.
+   * Largest distance for return fire if smaller than the range (missing = range). Tanks: attack at 2 tiles, return fire only
+   * at 1 tile (the turret has to traverse first), so anti-tank squads and snipers keep their counter from 2 tiles.
+   */
+  returnRange?: number;
+  /**
    * Zusaetzlicher Schadensfaktor gegen Ziele bestimmter Rassen (HitRace der Zieleinheit), optional nur gegen eine Klasse;
    * der erste passende Eintrag gilt, zusaetzlich zu bonusVs (Angriff und Gegenschlag).
    * Extra damage multiplier against targets of certain races (the target unit's HitRace), optionally only against one class;
@@ -218,15 +225,20 @@ export const WONDER_UNITS: WonderUnitId[] = ['portal', 'hackRelay', 'fusionPlant
 
 export const UNITS: Record<UnitTypeId, UnitStats> = {
   infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
-  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
-  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
+  // Scharfschuetze: toedlich gegen Fusstruppen (+90 %: 7 bis 10 Schaden), gegen Panzerung bleibt es bei 2 bis 3 (siehe COUNTER)
+  // sniper: deadly against foot troops (+90 %: 7 to 10 damage), against armour it stays at 2 to 3 (see COUNTER)
+  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, bonusVs: { foot: 1.9 } },
+  // Jeep: 3 Felder (Spielerwunsch, vorher 2); Schnee und Panzersperre bremsen wie bei allen Fahrzeuge / jeep: 3 tiles (player request, before 2); snow and barriers slow it like all vehicles
+  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
   pioneer: { cost: 15, hp: 15, attack: 1, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify'], tech: null, ship: false },
   mg: { cost: 25, hp: 15, attack: 3, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
   medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 1, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: null, ship: false },
   artillery: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false },
   spy: { cost: 40, hp: 5, attack: 0, defense: 0.5, move: 2, range: 0, vision: 1, abilities: ['invisible', 'uprising'], tech: null, ship: false },
   heli: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false },
-  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false },
+  // Panzer: faehrt 2 Felder und schiesst 2 Felder weit (Schnee und Panzersperre bremsen auf 1), Gegenschlag nur auf 1 Feld
+  // tank: drives 2 tiles and fires 2 tiles (snow and barriers slow it to 1), return fire only at 1 tile
+  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, returnRange: 1 },
   // Schiffe: LP kommen von der getragenen Einheit; cost = Aufruestpreis.
   // Ships: HP come from the carried unit; cost = upgrade price.
   landingBoat: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry'], tech: 'coastalEconomy', ship: true },
@@ -288,23 +300,26 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: null, ship: false, faction: 'velkar' },
   // Velkar-Varianten (siehe VARIANTS, Treffsicherheit HIT.unit) / Velkar variants (see VARIANTS, accuracy HIT.unit)
   // Tesla-Panzer: wie der Panzer, aber Angriff +40 % und eigene Trefferchancen (oft daneben) / Tesla tank: like the tank, but attack +40 % and own hit odds (often misses)
-  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar' },
+  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar', returnRange: 1 },
   // Oktokopter: Werte des Kampfhubschraubers / octocopter: the attack helicopter's values
   octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false, faction: 'velkar' },
-  // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise / railgun marksman: range 3, fires only from a standstill (no dash), precise
-  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'velkar' },
+  // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise; wie der Scharfschuetze stark gegen
+  // Fusstruppen (+30 %) und schwach gegen Panzerung (-35 %), etwas weniger ausgepraegt, weil Angriff und Reichweite hoeher sind
+  // railgun marksman: range 3, fires only from a standstill (no dash), precise; like the sniper strong against foot troops
+  // (+30 %) and weak against armour (-35 %), a little less pronounced because attack and range are higher
+  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'velkar', bonusVs: { foot: 1.3, vehicle: 0.65 } },
   // Alvenia-Varianten (siehe VARIANTS): Fernkampf aus dem Stand, starke Verteidigung / Alvenia variants (see VARIANTS): ranged from a standstill, strong defence
   // Lichtschuetzen: Reichweite 2, schiessen nur aus dem Stand (kein Sturm), gute Verteidigung, schwacher Angriff / Light Wardens: range 2, fire only from a standstill (no dash), good defence, weak attack
   lightWarden: { cost: 12, hp: 10, attack: 1.6, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
-  // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, fires only from a standstill
-  reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 1, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
+  // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, faehrt 2 Felder, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, drives 2 tiles, fires only from a standstill
+  reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 2, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
   sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'alvenia' },
   // Korvat: Steppenkoloss statt Panzer: die meisten LP und der staerkste Angriff aller Panzer; Preis, Sold, Bewegung 2 und
   // Reichweite 2 wie der Panzer (gemessen, siehe BALANCING.md)
   // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 2 and
   // range 2 like the tank (measured, see BALANCING.md)
-  steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat' },
+  steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat', returnRange: 1 },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -758,6 +773,33 @@ export const HOME_DEFENSE = {
   bonus: { alvenia: 0.3 } as Partial<Record<FactionId, number>>,
 };
 
+/**
+ * Reichweitenbonus nach Besitzer und Einheitentyp (Felder). Korvat "Lange Rohre": Artillerie 4 statt 3 Felder. Gilt vor dem
+ * Wetter (Regen und Sandsturm kuerzen weiter um 1) und stapelt mit der Doktrin Ballistik (+1). Eine bekehrte Einheit
+ * verliert ihn (der Besitzer zaehlt).
+ * Range bonus by owner and unit type (tiles). Korvat "Long Barrels": artillery 4 instead of 3 tiles. Applies before the
+ * weather (rain and dust storm still cut 1) and stacks with the ballistics doctrine (+1). A converted unit loses it
+ * (the owner counts).
+ */
+export const ENTRENCH = {
+  /**
+   * Verschanzen nach Besitzer: Anteil, der bei Angriffen auf eine verschanzte Einheit von den vollen Treffern zu den
+   * Fehlschuessen wandert (Korvat: +20 Punkte daneben). Verschanzt ist eine Bodeneinheit (kein Schiff, Flieger, Bauwerk,
+   * Endgegner), die einen ganzen eigenen Zug nicht gezogen hat: das Zeichen wird am Ende des eigenen Zuges gesetzt, wenn
+   * sie in diesem Zug weder gezogen noch neu aufgestellt wurde, und faellt mit der naechsten Bewegung. Gilt fuer jeden
+   * Angriff auf sie (auch Gegenschlag und Geschuetze); ohne Trefferglueck sinkt der Schaden um den Erwartungswert.
+   * Entrenching by owner: share that moves from full hits to misses for attacks on an entrenched unit (Korvat: +20 points
+   * miss). A ground unit (no ship, flyer, structure, boss) is entrenched once it has not moved for a whole own turn: the mark
+   * is set at the end of the own turn if it neither moved nor was newly placed during that turn, and it falls with the next
+   * move. Applies to every attack on it (return fire and guns too); without hit luck damage drops by the expected value.
+   */
+  bonus: { korvat: 0.2 } as Partial<Record<FactionId, number>>,
+};
+
+export const RANGE_BONUS = {
+  bonus: { korvat: { artillery: 1 } } as Partial<Record<FactionId, Partial<Record<UnitTypeId, number>>>>,
+};
+
 /** Suendentaten / sinful deeds */
 export type SinDeed = 'plunder' | 'burn' | 'convert' | 'capture' | 'breakPeace' | 'sacrilege' | 'godless';
 export const SIN_DEEDS: SinDeed[] = ['plunder', 'burn', 'convert', 'capture', 'breakPeace', 'sacrilege', 'godless'];
@@ -1071,9 +1113,21 @@ export const INCOME = {
 export const CITY = {
   /** Aufstieg von Stufe n auf n+1 braucht n+1 Punkte / level n -> n+1 needs n+1 points */
   levelUpCost: (level: number) => level + 1,
+  /**
+   * Stufe kaufen: Sternepreis fuer den Aufstieg von Stufe n auf n+1 = buyLevelBase x (n + 1), hoechstens einmal je Stadt und
+   * Runde; nicht fuer den Kult, Sendetuerme und Nachschublinien (sie wachsen nicht). Ein Bevoelkerungspunkt kostet ueber
+   * Gebaeude etwa 10 bis 12,5 Sterne, ein normaler Aufstieg also etwa 11 x (n + 1); gekauft ist er gut doppelt so teuer.
+   * Buy level: star price for the step from level n to n+1 = buyLevelBase x (n + 1), at most once per city and round; not
+   * for the cult, transmitter towers and supply lines (they do not grow). A population point costs about 10 to 12.5 stars
+   * through buildings, so a normal level-up costs about 11 x (n + 1); bought it is a good twice as expensive.
+   */
+  buyLevelBase: 25,
+  buyLevelCost: (level: number) => CITY.buyLevelBase * (level + 1),
   baseRadius: 1, // 3x3
   expandedRadius: 2, // 5x5
   unitLimitExtra: 1, // Stufe + 1 / level + 1
+  /** jeder Stadt-Ausbau (CITY_UPGRADES) traegt eine Einheit mehr / every city upgrade (CITY_UPGRADES) supports one more unit */
+  unitLimitPerUpgrade: 1,
   rewardStars: 15,
   rewardPopulation: 3,
   bunkerRingLevel: 3,
