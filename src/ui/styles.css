@@ -242,7 +242,7 @@ h1, h2, h3, .display {
 .tag.ok { background: var(--c-tech-node-researched); }
 /* Produktionsstaetten der Stadt (Menschen) / the city's production sites (humans) */
 .sites-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-1) var(--p-space-2); margin-top: var(--p-space-2); }
-.tag.site-tag { background: var(--s-production-site); min-height: var(--p-space-6); }
+.tag.site-tag { background: var(--s-production-site); }
 /* Heiliges Alvenia: Suendenzeichen und Segen / Holy Alvenia: sinner mark and blessing */
 .tag.sin { background: var(--s-sin-mark); color: var(--s-text-inverse); }
 .tag.bless { background: var(--s-faith-halo); }
