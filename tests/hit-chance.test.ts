@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { combatPreview, hitOdds, hitRace, rollHit, type GameEvent } from '../src/core';
+import { combatPreview, factionCrit, hitOdds, hitRace, rollHit, unitLuckFactor, type GameEvent } from '../src/core';
 import { HIT, HIT_KINDS } from '../src/data/balance';
 import { addUnit, blankGame, ok, revealAll } from './helpers';
 
@@ -93,5 +93,36 @@ describe('Trefferglueck / hit luck', () => {
     const s = blankGame({ factions: ['korvat', 'dravon'], hitChance: false });
     const a = addUnit(s, 'infantry', 0, 5, 5);
     expect(hitOdds(s, a)).toEqual({ miss: 0, graze: 0, partial: 0, full: 1, crit: 0 });
+  });
+});
+
+describe('Gezielter Schuss (Dravon) / Aimed Shot (Dravon)', () => {
+  it('Dravon-Einheiten treffen oefter kritisch, auf Kosten voller Treffer / Dravon units crit more, at the cost of full hits', () => {
+    const s = blankGame({ factions: ['dravon', 'korvat', 'nexus'], hitChance: true });
+    const c = HIT.factionCrit.dravon!;
+    expect(c).toBe(0.08);
+    for (const type of ['infantry', 'tank', 'jeep', 'stormbreaker'] as const) {
+      const u = addUnit(s, type, 0, 5, 5);
+      const o = hitOdds(s, u);
+      expect(o.crit, type).toBeCloseTo(HIT.odds.human.crit + c, 6);
+      expect(o.full, type).toBeCloseTo(HIT.odds.human.full - c, 6);
+      expect(Object.values(o).reduce((a, b) => a + b, 0)).toBeCloseTo(1, 6);
+      s.units = s.units.filter((x) => x.id !== u.id);
+    }
+    // andere Menschen und fremde Rassen im Besitz Dravons bleiben unveraendert / other humans and foreign races owned by Dravon stay unchanged
+    const k = addUnit(s, 'infantry', 1, 2, 2);
+    expect(factionCrit(s, k)).toBe(0);
+    expect(hitOdds(s, k).crit).toBeCloseTo(HIT.odds.human.crit, 6);
+    const bot = addUnit(s, 'android', 0, 8, 8);
+    expect(factionCrit(s, bot)).toBe(0);
+  });
+
+  it('ohne Trefferglueck steigt Dravons Schaden um den Erwartungswert / without hit luck Dravon damage rises by the expected value', () => {
+    const s = blankGame({ factions: ['dravon', 'korvat'], hitChance: false });
+    const d = addUnit(s, 'infantry', 0, 5, 5);
+    const k = addUnit(s, 'infantry', 1, 7, 7);
+    expect(unitLuckFactor(s, k)).toBe(1);
+    const extra = HIT.factionCrit.dravon! * (HIT.mult.crit - HIT.mult.full);
+    expect(unitLuckFactor(s, d)).toBeCloseTo((mean(HIT.odds.human) + extra) / mean(HIT.odds.human), 6);
   });
 });

@@ -40,6 +40,9 @@ export function combatBonusTexts(f: FactionId): { name: string; desc: string; ic
     out.push({ icon: 'boot', name: t(`moveFire.bonus.${f}`),
       desc: t(`moveFire.bonusDesc.${f}`, { pct: pct(b.all), base: pct(MOVE_FIRE.damage), rider: pct((rider && b.units?.[rider]) ?? b.all) }) });
   }
+  // Fraktionsbonus auf kritische Treffer (Dravon) / faction crit bonus (Dravon)
+  const c = HIT.factionCrit[f];
+  if (c) out.push({ icon: 'dice', name: t(`hit.factionCrit.${f}`), desc: t(`hit.factionCritDesc.${f}`, { pct: pct(HIT.odds.human.crit + c), base: pct(HIT.odds.human.crit) }) });
   const h = HOME_DEFENSE.bonus[f];
   if (h) out.push({ icon: 'shield', name: t(`homeDefense.bonus.${f}`), desc: t(`homeDefense.bonusDesc.${f}`, { pct: pct(h) }) });
   // Kult: Mahnmal (zur Schau gestellte Gefallene) / cult: memorial (the fallen put on display)

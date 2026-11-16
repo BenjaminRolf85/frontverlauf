@@ -3295,7 +3295,13 @@
       "teslaTank": "Eigene Trefferchancen: oft daneben ({miss} %), dafür Angriff {atk} statt {base} wie beim Panzer; kritische Treffer bleiben möglich ({crit} %).",
       "railSniper": "Eigene Trefferchancen: maschinengenau, nur {miss} % daneben und {crit} % kritisch."
     },
-    "unitRule": "Eigene Trefferchancen einzelner Einheiten:"
+    "unitRule": "Eigene Trefferchancen einzelner Einheiten:",
+    "factionCrit": {
+      "dravon": "Gezielter Schuss"
+    },
+    "factionCritDesc": {
+      "dravon": "Dravons Drill zahlt sich aus: Alle Dravon-Einheiten treffen in {pct} % statt {base} % der Angriffe kritisch (anderthalbfacher Schaden), die zusätzlichen kritischen Treffer gehen von den vollen Treffern ab. Das Wetter wirkt wie bei allen Menschen."
+    }
   },
   "retreat": {
     "action": "Geordneter Rückzug (−{dmg})",

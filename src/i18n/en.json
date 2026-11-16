@@ -3295,7 +3295,13 @@
       "teslaTank": "Own hit odds: often misses ({miss}%), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit}%).",
       "railSniper": "Own hit odds: machine precision, only {miss}% misses and {crit}% critical hits."
     },
-    "unitRule": "Own hit odds of single units:"
+    "unitRule": "Own hit odds of single units:",
+    "factionCrit": {
+      "dravon": "Aimed Shot"
+    },
+    "factionCritDesc": {
+      "dravon": "Dravon's drill pays off: all Dravon units land a critical hit (one and a half times the damage) in {pct} % instead of {base} % of attacks; the extra critical hits come out of the full hits. Weather works as for all humans."
+    }
   },
   "retreat": {
     "action": "Orderly retreat (−{dmg})",
