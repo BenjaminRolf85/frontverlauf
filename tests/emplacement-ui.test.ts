@@ -19,7 +19,9 @@ describe('Geschuetzstellung: Texte / gun emplacement: texts', () => {
       expect(f.value).toBe(t('factions.dravon.feature'));
       expect(f.desc).toContain(String(EMPLACEMENT.cost));
       expect(f.desc).not.toMatch(/\{\w+\}/);
-      expect(factionTraits('korvat').some((tr) => tr.kind === 'feature')).toBe(false);
+      // andere Fraktionen haben kein Festungsbau-Merkmal (Korvat hat jetzt den Steppenkoloss als Merkmal) / other factions have no fortress-building trait (Korvat now has the Steppe Colossus as its feature)
+      for (const id of ['korvat', 'meridon', 'nexus', 'zyrr', 'vesper'] as const) expect(factionTraits(id).some((tr) => tr.kind === 'feature' && tr.value === f.value)).toBe(false);
+      expect(factionTraits('korvat').find((tr) => tr.kind === 'feature')?.value).toBe(t('factions.korvat.feature'));
     });
     it(`${lang}: Regelseite und Panel / rules page and panel`, () => {
       setLanguage(lang);

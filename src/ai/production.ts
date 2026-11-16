@@ -9,9 +9,9 @@
  * lumber camp for the foundry.
  */
 import {
-  buildCheck, citySites, cityTiles, siteNeed, siteOf, supportedUnits, unitLimit, usesSites, type City, type Command, type GameState,
+  buildCheck, citySites, cityTiles, factionVariant, siteNeed, siteOf, supportedUnits, unitLimit, usesSites, type City, type Command, type GameState,
 } from '../core';
-import { BUILDINGS, PRODUCTION, type BuildingId, type ProductionSiteId, type UnitTypeId } from '../data/balance';
+import { AI, BUILDINGS, PRODUCTION, type BuildingId, type ProductionSiteId, type UnitTypeId } from '../data/balance';
 import type { Ctx } from './analysis';
 import { hashNoise } from './profile';
 
@@ -45,7 +45,11 @@ function siteWorth(ctx: Ctx, site: ProductionSiteId, counters: { antiVehicle: nu
     case 'armory': return n === 0 ? (r >= 2 ? 40 : 0) + (counters.antiVehicle + counters.antiAir) * 40 : cities >= 4 && n < 2 ? 8 : 0;
     case 'motorPool': return n === 0 ? (r >= 2 ? 26 : 0) + (r >= 2 && ctx.fa.explored.some((e) => !e) ? 6 : 0) : cities >= 5 && n < 2 ? 6 : 0;
     case 'foundry': return n === 0 ? (r >= 4 ? 22 : 0) + (r >= 4 && ctx.hostileCities.length ? 12 : 0) : cities >= 5 && n < 2 ? 6 : 0;
-    case 'tankWorks': return n === 0 ? (r >= 5 ? 44 + Math.min(20, r) : 0) : cities >= 5 && n < 2 ? 14 : 0;
+    // Korvat: der Steppenkoloss macht das Panzerwerk wertvoller (AI.colossusWorks) / Korvat: the Steppe Colossus makes the tank works worth more (AI.colossusWorks)
+    case 'tankWorks': {
+      const heavy = factionVariant(s, ctx.f, 'tank') === 'steppeColossus' ? AI.colossusWorks : 0;
+      return n === 0 ? (r >= 5 ? 44 + Math.min(20, r) + heavy : 0) : cities >= (heavy ? 4 : 5) && n < 2 ? 14 + heavy : 0;
+    }
     case 'airfield': return n === 0 && r >= 8 ? 40 : 0;
     case 'dryDock': return n === 0 && ctx.navalNeed && r >= 8 ? 16 : 0;
     default: return 0;

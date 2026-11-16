@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, TWIN_TRAINING, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -345,8 +345,12 @@ export function paidUnits(s: GameState, f: number): Unit[] {
 export function upkeep(s: GameState, f: number): number {
   let sum = 0;
   for (const u of paidUnits(s, f)) sum += unitUpkeep(u);
-  return sum;
+  // Fraktionsfaktor (Korvat) auf die Summe, aufgerundet / faction factor (Korvat) on the total, rounded up
+  const k = upkeepFactor(s, f);
+  return k === 1 ? sum : Math.ceil(sum * k - 1e-9);
 }
+/** Faktor auf den Sold der Fraktion f (UPKEEP.faction, 1 = keiner) / factor on faction f's upkeep (UPKEEP.faction, 1 = none) */
+export const upkeepFactor = (s: GameState, f: number): number => (s.factions[f] ? UPKEEP.faction[s.factions[f].id] ?? 1 : 1);
 /** Netto-Einkommen nach Sold / net income after upkeep */
 export const netIncome = (s: GameState, f: number) => income(s, f) - upkeep(s, f);
 
@@ -356,8 +360,11 @@ export function researchCenterPoints(s: GameState, t: Tile): number {
   return Math.min(SCORE.researchCenterMax, SCORE.researchCenterBase + steps * SCORE.researchCenterStep);
 }
 
-/** Panzer, Tesla-Panzer und Reliquiar (Panzerwerk und Stadtbelohnung): feste Punkte SCORE.tankUnit / tank, Tesla tank and Reliquary (tank works and city reward): fixed points SCORE.tankUnit */
-const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank' || t === 'reliquary';
+/**
+ * Panzer, Tesla-Panzer, Reliquiar und Steppenkoloss (Panzerwerk und Stadtbelohnung): feste Punkte SCORE.tankUnit
+ * tank, Tesla tank, Reliquary and Steppe Colossus (tank works and city reward): fixed points SCORE.tankUnit
+ */
+export const isRewardTank = (t: UnitTypeId) => t === 'tank' || t === 'teslaTank' || t === 'reliquary' || t === 'steppeColossus';
 
 export function unitScore(u: Unit): number {
   if (isWonder(u)) return 0;
@@ -688,7 +695,8 @@ export function memorialMult(s: GameState, u: Unit, x = u.x, y = u.y): number {
 }
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
-export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) ? moveFireMult(s, u) : 1);
+// Kamikaze: die Drohne laeuft ins Ziel, kein Abzug (KAMIKAZE) / kamikaze: the drone walks into the target, no penalty (KAMIKAZE)
+export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) && !has(u, 'kamikaze') ? moveFireMult(s, u) : 1);
 
 /** Deckungsfaktor gegen Fernangriffe (1 = keine) / cover factor against ranged attacks (1 = none) */
 export function rangedCover(s: GameState, att: Unit, def: Unit): number {
@@ -880,7 +888,8 @@ function coverBonus(s: GameState, att: Unit, def: Unit): number {
 /** Kann das Ziel ueberhaupt zurueckschlagen? / can the target strike back at all? */
 function canReturnFire(s: GameState, att: Unit, def: Unit): boolean {
   // Sturmangriff (shock): das Ziel schlaegt nicht zurueck / shock assault: the target does not strike back
-  return !has(att, 'shock') && !has(def, 'noRetaliate') && !submerged(s, def) && UNITS[def.type].range > 0 && dist(att, def) <= effectiveRange(s, def);
+  // Kamikaze: das Ziel kann die explodierende Drohne nicht mehr treffen / kamikaze: the target cannot hit the exploding drone any more
+  return !has(att, 'shock') && !has(att, 'kamikaze') && !has(def, 'noRetaliate') && !submerged(s, def) && UNITS[def.type].range > 0 && dist(att, def) <= effectiveRange(s, def);
 }
 
 /**
@@ -916,7 +925,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
   // less damage after moving, before hit luck; return fire stays undiminished
-  const moveFire = movedThisTurn(att);
+  const moveFire = movedThisTurn(att) && !has(att, 'kamikaze');
   // Strafgericht (Alvenia gegen Suender): eigener Faktor auf den Schaden, vor dem Trefferglueck / judgement (Alvenia against sinners): own factor on the damage, before hit luck
   // Mahnmal des Kults unter dem Angreifer (nur eigener Angriff, nicht der Gegenschlag) / cult memorial under the attacker (own attack only, not return fire)
   const memorial = memorialMult(s, att);
@@ -1901,11 +1910,58 @@ export function unitClass(type: UnitTypeId): UnitClass {
 /** Schadensfaktor des Angreifertyps gegen den Zieltyp (1 = neutral) / damage factor of the attacker type against the target type */
 export function counterFactor(attacker: UnitTypeId, target: UnitTypeId): number {
   const bonus = UNITS[attacker].bonusVs;
-  if (!bonus) return 1;
-  const cls = unitClass(target);
-  if (cls === 'ship') return 1;
+  const races = UNITS[attacker].bonusRace;
+  if (!bonus && !races) return 1;
+  const cls0 = unitClass(target);
+  if (cls0 === 'ship') return 1;
   // Bauwerke nehmen Konter-Schaden wie Fahrzeuge / structures take counter damage like vehicles
-  return bonus[cls === 'structure' ? COUNTER.structureAs : cls] ?? 1;
+  const cls = cls0 === 'structure' ? COUNTER.structureAs : cls0;
+  // Rassen-Bonus (z. B. Kamikaze-Drohne gegen menschliche Fusstruppen und Zyrr), Bauwerke nie / race bonus (e.g. kamikaze drone vs human foot troops and Zyrr), never structures
+  const race = races && cls0 !== 'structure' ? races.find((r) => r.races.includes(hitRace(target)) && (!r.cls || r.cls === cls)) : undefined;
+  return (bonus?.[cls] ?? 1) * (race?.factor ?? 1);
+}
+
+// ---------- Meridon: zwei fuer einen / Meridon: two for one ----------
+
+/** Bildet Fraktion f diese Einheit doppelt aus (TWIN_TRAINING)? / does faction f train this unit twice (TWIN_TRAINING)? */
+export const twinTrained = (s: GameState, f: number, type: UnitTypeId): boolean => !!s.factions[f] && (TWIN_TRAINING.units[s.factions[f].id] ?? []).includes(type);
+
+/**
+ * Feld fuer die zweite Einheit beim Ausbilden in Stadt c: freies Nachbarfeld an Land (kein Vulkan, keine Lava, kein Wunder,
+ * keine Stellung, Berge nur mit Gebirgsausbildung), eigenes Gebiet zuerst, sonst null.
+ * Tile for the second unit when training in city c: a free adjacent land tile (no volcano, lava, wonder or emplacement,
+ * mountains only with mountain training), own territory first, else null.
+ */
+export function twinSpot(s: GameState, c: City): Pos | null {
+  const f = c.owner;
+  if (f === null) return null;
+  let best: Pos | null = null, bs = -Infinity;
+  for (const p of neighbors(s.size, c.x, c.y)) {
+    const t = tileAt(s, p.x, p.y)!;
+    // gleiche Feldregeln wie beim Rekrutieren: nicht das Artefakt, nicht das Mutterschiff, keine fremde Stadt / same tile rules as recruiting
+    const art = s.campaign?.artifact;
+    if (unitAt(s, p.x, p.y) || t.wonderOf || t.turret || t.temple || t.feature === 'mothership' || !isLand(t) || t.volcano || burning(s, t)) continue;
+    if ((art && art.x === p.x && art.y === p.y) || (t.cityId !== null && cityById(s, t.cityId)?.owner !== f)) continue;
+    if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining')) continue;
+    // eigenes Gebiet zuerst, dann neutrales, feindliches zuletzt / own territory first, then neutral, hostile last
+    const owner = territoryOwner(s, t);
+    const sc = (owner === f ? 2 : owner === null ? 1 : 0) - idx(s.size, p.x, p.y) * 1e-6;
+    if (sc > bs) { bs = sc; best = p; }
+  }
+  return best;
+}
+
+/**
+ * Zweite Einheit beim Ausbilden (Meridon): 'twin' = es kommen zwei, 'limit' = das Stadtlimit laesst nur eine zu,
+ * 'noRoom' = kein freies Nachbarfeld, null = gilt fuer diese Einheit nicht. Vor der Ausbildung abgefragt (die erste
+ * Einheit belegt dann einen Platz im Limit).
+ * Second unit when training (Meridon): 'twin' = two come, 'limit' = the city limit allows only one, 'noRoom' = no free
+ * adjacent tile, null = does not apply to this unit. Asked before training (the first unit then takes one slot of the limit).
+ */
+export function twinCheck(s: GameState, c: City, type: UnitTypeId): 'twin' | 'limit' | 'noRoom' | null {
+  if (c.owner === null || !twinTrained(s, c.owner, type)) return null;
+  if (supportedUnits(s, c) + 2 > unitLimit(s, c)) return 'limit';
+  return twinSpot(s, c) ? 'twin' : 'noRoom';
 }
 
 /** Sieht Fraktion f die Mine auf (x, y)? Besitzer immer, sonst nur mit eigener Einheit daneben / does faction f see the mine? */
@@ -2188,12 +2244,12 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
-    if (hp <= 0 || !near || has(u, 'shock')) return 0;
+    if (hp <= 0 || !near || has(u, 'shock') || has(u, 'kamikaze')) return 0;
     const df = G.defense * (hp / G.hp);
     const tt = attackForce + df;
     return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor) : 0;
   };
-  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) };
+  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) && !has(u, 'kamikaze') };
 }
 
 /**
