@@ -11,10 +11,10 @@ import { addCity, addUnit, blankGame, ok, revealAll } from './helpers';
 
 type Ground = 'own' | 'neutral' | 'foreign';
 
-/** Dravon-Panzer (5,5) gegen Alvenia-Infanterie (6,5) auf eigenem, neutralem oder fremdem Gebiet / Dravon tank vs Alvenia infantry on own, neutral or foreign ground */
+/** Meridon-Panzer (5,5) gegen Alvenia-Infanterie (6,5) auf eigenem, neutralem oder fremdem Gebiet; Meridon ohne Angriffsboni (Dravon hat Gezielter Schuss) / Meridon tank vs Alvenia infantry on own, neutral or foreign ground; Meridon without attack bonuses (Dravon has Aimed Shot) */
 function setup(ground: Ground, o: { defender?: FactionId; hitChance?: boolean } = {}) {
   const def = o.defender ?? 'alvenia';
-  const s: GameState = blankGame({ factions: ['dravon', def], size: 11, hitChance: o.hitChance ?? false });
+  const s: GameState = blankGame({ factions: ['meridon', def], size: 11, hitChance: o.hitChance ?? false });
   addCity(s, 1, 1, 0, { hq: true }); addCity(s, 9, 9, 1, { hq: true });
   // Stadt ohne Einheit daneben: nur ihr Gebiet zaehlt (Feld 6,5 ist kein Stadtfeld) / city next to it: only its territory counts (6,5 is no city tile)
   if (ground === 'own') addCity(s, 7, 5, 1, { radius: 1 });

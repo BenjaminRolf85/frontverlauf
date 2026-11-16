@@ -740,7 +740,23 @@ export function hitOdds(s: GameState, u: Unit, ranged = false): Record<HitKind, 
   if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
   // Wind trifft nur Fernkaempfer, Fernangriffe und Flieger / wind only affects ranged units, ranged attacks and fliers
   const windOk = ranged || UNITS[u.type].range >= 2 || has(u, 'fly');
-  return raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk, HIT.unit[u.type]);
+  return withFactionCrit(raceOdds(s, unitRace(s, u), u.hp / Math.max(1, u.maxHp), windOk, HIT.unit[u.type]), factionCrit(s, u));
+}
+
+/**
+ * Kritischer Fraktionsbonus einer Einheit (HIT.factionCrit, nach Besitzer, nur menschliche Einheiten), sonst 0.
+ * Faction crit bonus of a unit (HIT.factionCrit, by owner, human units only), otherwise 0.
+ */
+export function factionCrit(s: GameState, u: Unit): number {
+  const f = s.factions[u.owner]?.id;
+  return f && unitRace(s, u) === 'human' ? HIT.factionCrit[f] ?? 0 : 0;
+}
+
+/** Verschiebt einen Anteil von vollen zu kritischen Treffern / moves a share from full to critical hits */
+function withFactionCrit(o: Record<HitKind, number>, extra: number): Record<HitKind, number> {
+  if (extra <= 0) return o;
+  const d = Math.min(o.full, extra);
+  return { ...o, full: o.full - d, crit: o.crit + d };
 }
 
 /** Eigene Trefferchancen des Einheitentyps (HIT.unit), sonst null / own hit odds of the unit type (HIT.unit), else null */
@@ -755,8 +771,11 @@ export const expectedHitMult = (odds: Record<HitKind, number>): number => HIT_KI
  */
 export function unitLuckFactor(s: GameState, u: Unit): number {
   const own = HIT.unit[u.type];
-  if (!own || hitChanceOn(s)) return 1;
-  return expectedHitMult(own) / expectedHitMult(HIT.odds[unitRace(s, u)]);
+  const crit = factionCrit(s, u);
+  if ((!own && !crit) || hitChanceOn(s)) return 1;
+  const race = HIT.odds[unitRace(s, u)];
+  // Fraktionsbonus auf kritische Treffer zaehlt mit (Dravon) / the faction crit bonus counts too (Dravon)
+  return expectedHitMult(withFactionCrit(own ?? race, crit)) / expectedHitMult(race);
 }
 
 /**

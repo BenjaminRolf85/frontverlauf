@@ -614,6 +614,14 @@ export const HIT = {
     // Railgun-Schuetze: maschinengenau, kaum daneben, kaum kritisch; Erwartungswert 0,95 / railgun marksman: machine precision, hardly any misses or crits; expected 0.95
     railSniper: { miss: 0.02, graze: 0.04, partial: 0.14, full: 0.76, crit: 0.04 },
   } as Partial<Record<UnitTypeId, Record<HitKind, number>>>,
+  /**
+   * Fraktionsbonus auf kritische Treffer (nach Besitzer, nur menschliche Einheiten): dieser Anteil wandert von vollen zu
+   * kritischen Treffern. Dravon "Gezielter Schuss": +8 Punkte (10 % -> 18 %). Ohne Trefferglueck steigt der Schaden um den
+   * Erwartungswert (unitLuckFactor).
+   * Faction bonus on critical hits (by owner, human units only): this share moves from full to critical hits.
+   * Dravon "Aimed Shot": +8 points (10 % -> 18 %). Without hit luck, damage rises by the expected value (unitLuckFactor).
+   */
+  factionCrit: { dravon: 0.08 } as Partial<Record<FactionId, number>>,
 };
 
 /** Mech-Raketen: Fernangriff aufs uebernaechste Feld, begrenzte Munition / mech rockets: ranged attack two tiles away, limited ammo */
@@ -657,14 +665,14 @@ export const MOVE_FIRE = {
   /**
    * Fraktionsbonus nach Besitzer: all = Faktor fuer alle Einheiten, units = eigener Faktor je Einheitentyp.
    * Korvat "Steppensturm": alle 75 %, Steppenreiter 100 %. Ein bekehrter Steppenreiter verliert ihn (Besitzer zaehlt).
-   * Dravon "Feuer und Bewegung": alle 80 % (die am besten ausgebildeten Soldaten).
+   * Dravon "Feuer und Bewegung": alle 100 %, kein Abzug nach Bewegung (die am besten ausgebildeten Soldaten).
    * Faction bonus by owner: all = factor for all units, units = own factor per unit type.
    * Korvat "Steppe Storm": all 75 %, Steppe Riders 100 %. A converted Steppe Rider loses it (the owner counts).
-   * Dravon "Fire and Manoeuvre": all 80 % (the best-trained soldiers).
+   * Dravon "Fire and Manoeuvre": all 100 %, no penalty after moving (the best-trained soldiers).
    */
   bonus: {
     korvat: { all: 0.75, units: { steppeRider: 1 } },
-    dravon: { all: 0.8 },
+    dravon: { all: 1 },
   } as Partial<Record<FactionId, { all: number; units?: Partial<Record<UnitTypeId, number>> }>>,
 };
 
