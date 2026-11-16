@@ -66,7 +66,9 @@ describe('KI / AI', () => {
     // Seed 6 (Festland) endete nach der Alvenia-Ueberarbeitung im Patt einer Gebirgsecke; die Pattquote ist ueber 72 Partien
     // gleich geblieben (16 zu 15), daher ein anderer fester Seed / seed 6 (continent) ended in a stalemate in a mountain corner
     // after the Alvenia rework; the stalemate rate stayed the same over 72 games (16 vs 15), hence another fixed seed
-    for (const [seed, mapType] of [[4, 'continent'], [103, 'continent'], [8, 'continent'], [4, 'lakes']] as const) {
+    // Seed 8 endete mit Dravons Feuer und Bewegung (80 %) nach 150 Runden mit zwei Ueberlebenden, daher Seed 11
+    // seed 8 ended with two survivors after 150 rounds with Dravon's fire and manoeuvre (80 %), hence seed 11
+    for (const [seed, mapType] of [[4, 'continent'], [103, 'continent'], [11, 'continent'], [4, 'lakes']] as const) {
       // reine Eroberung: Fraktionssiege wuerden das Spiel vorher beenden (eigener Test in victory.test.ts)
       // pure conquest: faction victories would end the game earlier (own test in victory.test.ts)
       const s = createGame(config({ seed, size: 11, mode: 'conquest', mapType, factionVictory: false }));

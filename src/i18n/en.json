@@ -3310,10 +3310,12 @@
     "hintBonus": "After moving: {pct} % ({name})",
     "tagBonus": "Moved: {pct} % ({name})",
     "bonus": {
-      "korvat": "Steppe Storm"
+      "korvat": "Steppe Storm",
+      "dravon": "Fire and Manoeuvre"
     },
     "bonusDesc": {
-      "korvat": "After moving, all Korvat units attack with {pct} % instead of {base} % damage, Steppe Riders even with {rider} %. Hit luck still applies."
+      "korvat": "After moving, all Korvat units attack with {pct} % instead of {base} % damage, Steppe Riders even with {rider} %. Hit luck still applies.",
+      "dravon": "Dravon's soldiers are the best trained: after moving, all Dravon units attack with {pct} % instead of {base} % damage. Hit luck still applies."
     }
   },
   "homeDefense": {

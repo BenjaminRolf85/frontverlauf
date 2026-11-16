@@ -3310,10 +3310,12 @@
     "hintBonus": "Nach Bewegung: {pct} % ({name})",
     "tagBonus": "Gezogen: {pct} % ({name})",
     "bonus": {
-      "korvat": "Steppensturm"
+      "korvat": "Steppensturm",
+      "dravon": "Feuer und Bewegung"
     },
     "bonusDesc": {
-      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin."
+      "korvat": "Nach einer Bewegung greifen alle Korvat-Einheiten mit {pct} % statt {base} % Schaden an, Steppenreiter sogar mit {rider} %. Das Trefferglück gilt weiterhin.",
+      "dravon": "Dravons Soldaten sind die am besten ausgebildeten: Nach einer Bewegung greifen alle Dravon-Einheiten mit {pct} % statt {base} % Schaden an. Das Trefferglück gilt weiterhin."
     }
   },
   "homeDefense": {
