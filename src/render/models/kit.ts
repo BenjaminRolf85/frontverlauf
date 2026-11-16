@@ -247,10 +247,104 @@ export const geo = {
   },
 };
 
+// ---------- Drehtuerme / turrets ----------
+
+/**
+ * Drehturm in einer verschmolzenen Geometrie: Ecken [start, start + count) gehoeren zum Turm, pivot = Drehpunkt
+ * (Mitte des Turmkranzes) in Modellkoordinaten. Builder.build() legt alle Turmteile ans Ende der Geometrie
+ * und speichert die Bereiche in geometry.userData.turrets. So bleibt jede Modellfunktion bei EINER Geometrie
+ * (Zwischenspeicher, Vergroesserung, Helligkeitsverlauf, Leuchtmaske wirken auf alles), und erst das Brett
+ * teilt sie mit splitTurrets() in Wanne und Turm(e) auf.
+ * Turret inside a merged geometry: vertices [start, start + count) belong to the turret, pivot = rotation centre
+ * (centre of the turret ring) in model coordinates. Builder.build() puts all turret parts at the end of the geometry
+ * and stores the ranges in geometry.userData.turrets. Every model function thus stays at ONE geometry (cache,
+ * enlargement, value ramp, glow mask act on everything), and only the board splits it into hull and turret(s)
+ * with splitTurrets().
+ */
+export interface TurretRange {
+  start: number;
+  count: number;
+  pivot: [number, number, number];
+  /** Ruherichtung des Rohrs (rad um y, 0 = +z) / rest heading of the barrel (rad about y, 0 = +z) */
+  yaw: number;
+  /** groesste Drehung aus der Ruhestellung (rad), fehlt = rundum / largest turn away from rest (rad), absent = all round */
+  arc?: number;
+}
+
+/** Drehtuerme einer Geometrie (leer = keiner) / turrets of a geometry (empty = none) */
+export function turretsOf(g: THREE.BufferGeometry): TurretRange[] {
+  return (g.userData.turrets as TurretRange[] | undefined) ?? [];
+}
+
+/**
+ * Geometrie skalieren und die Drehpunkte der Tuerme mitnehmen / scale a geometry and carry the turret pivots along.
+ */
+export function scaleWithTurrets(g: THREE.BufferGeometry, sx: number, sy: number, sz: number): THREE.BufferGeometry {
+  g.scale(sx, sy, sz);
+  const t = g.userData.turrets as TurretRange[] | undefined;
+  if (t) g.userData.turrets = t.map((r) => ({ ...r, pivot: [r.pivot[0] * sx, r.pivot[1] * sy, r.pivot[2] * sz] }));
+  return g;
+}
+
+/** Wanne und Tuerme als eigene Geometrien / hull and turrets as separate geometries */
+export interface TurretSplit {
+  hull: THREE.BufferGeometry;
+  /**
+   * Turmgeometrie mit dem Drehpunkt im Ursprung und dem Rohr nach +z; yaw = Ruhestellung, arc = Schwenkgrenze.
+   * Turret geometry with its pivot at the origin and the barrel along +z; yaw = rest heading, arc = traverse limit.
+   */
+  turrets: { geometry: THREE.BufferGeometry; pivot: THREE.Vector3; yaw: number; arc?: number }[];
+}
+
+/** Ecken [start, start + count) aller Attribute kopieren / copy vertices [start, start + count) of all attributes */
+function sliceGeometry(g: THREE.BufferGeometry, start: number, count: number): THREE.BufferGeometry {
+  const out = new THREE.BufferGeometry();
+  for (const name of Object.keys(g.attributes)) {
+    const a = g.getAttribute(name) as THREE.BufferAttribute;
+    const n = a.itemSize;
+    const Arr = a.array.constructor as new (src: ArrayLike<number>) => THREE.TypedArray;
+    out.setAttribute(name, new THREE.BufferAttribute(new Arr(a.array.subarray(start * n, (start + count) * n)), n, a.normalized));
+  }
+  return out;
+}
+
+const splitCache = new WeakMap<THREE.BufferGeometry, TurretSplit | null>();
+/**
+ * Geometrie mit Drehtuermen in Wanne + Tuerme teilen (zwischengespeichert, Ergebnis nicht veraendern); null = keine Tuerme.
+ * Split a geometry with turrets into hull + turrets (cached, do not mutate the result); null = no turrets.
+ */
+export function splitTurrets(g: THREE.BufferGeometry): TurretSplit | null {
+  if (splitCache.has(g)) return splitCache.get(g) ?? null;
+  const ranges = turretsOf(g).filter((r) => r.count > 0);
+  let res: TurretSplit | null = null;
+  if (ranges.length) {
+    const hullCount = Math.min(...ranges.map((r) => r.start));
+    const hull = sliceGeometry(g, 0, hullCount);
+    hull.name = `${g.name}|hull`;
+    hull.userData = { ...g.userData, turrets: undefined };
+    hull.computeBoundingBox(); hull.computeBoundingSphere();
+    const turrets = ranges.map((r, i) => {
+      const geometry = sliceGeometry(g, r.start, r.count);
+      // Drehpunkt in den Ursprung, Rohr nach +z / pivot to the origin, barrel along +z
+      geometry.translate(-r.pivot[0], -r.pivot[1], -r.pivot[2]);
+      if (r.yaw) geometry.rotateY(-r.yaw);
+      geometry.name = `${g.name}|turret${i}`;
+      geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+      return { geometry, pivot: new THREE.Vector3(...r.pivot), yaw: r.yaw, ...(r.arc !== undefined ? { arc: r.arc } : {}) };
+    });
+    res = { hull, turrets };
+  }
+  splitCache.set(g, res);
+  return res;
+}
+
 // ---------- Builder ----------
 
 export class Builder {
   private parts: THREE.BufferGeometry[] = [];
+  /** Ziel neuer Teile: Wanne oder gerade gebauter Turm / target of new parts: hull or the turret being built */
+  private sink: THREE.BufferGeometry[] = this.parts;
+  private turretList: { pivot: THREE.Vector3; yaw: number; arc?: number; parts: THREE.BufferGeometry[] }[] = [];
   private stack: THREE.Matrix4[] = [new THREE.Matrix4()];
 
   private get top(): THREE.Matrix4 {
@@ -264,6 +358,35 @@ export class Builder {
       fn();
     } finally {
       this.stack.pop();
+    }
+    return this;
+  }
+
+  /**
+   * Drehturm: alle in fn gebauten Teile drehen spaeter gemeinsam um die senkrechte Achse durch pivot
+   * (Mitte des Turmkranzes, in der aktuellen lokalen Transformation). Rohr nach +z bauen wie bisher.
+   * Beispiel: b.turret([0, ty, tz], () => { b.add(geo.cyl(...), L.hull, { p: [0, ty + 0.04, tz] }); gun(b, 0, ty + 0.05, tz + 0.1, ...); });
+   * Turret: all parts built in fn later rotate together about the vertical axis through pivot
+   * (centre of the turret ring, in the current local transform). Build the barrel along +z as before.
+   * Example: see above. Several calls make several turrets (e.g. ship guns); calls do not nest.
+   * Die Ruherichtung folgt der aktuellen Transformation (z. B. Heckturm mit r: [0, PI, 0]); arc begrenzt den Schwenk.
+   * The rest heading follows the current transform (e.g. an aft turret with r: [0, PI, 0]); arc limits the traverse.
+   */
+  turret(pivot: V3, fn: () => void, opts: { arc?: number } = {}): this {
+    if (this.sink !== this.parts) throw new Error('Builder.turret: turrets do not nest');
+    const fwd = new THREE.Vector3(0, 0, 1).transformDirection(this.top);
+    const t = {
+      pivot: new THREE.Vector3(pivot[0], pivot[1], pivot[2]).applyMatrix4(this.top),
+      yaw: Math.abs(fwd.x) + Math.abs(fwd.z) > 1e-6 ? Math.atan2(fwd.x, fwd.z) : 0,
+      arc: opts.arc,
+      parts: [] as THREE.BufferGeometry[],
+    };
+    this.turretList.push(t);
+    this.sink = t.parts;
+    try {
+      fn();
+    } finally {
+      this.sink = this.parts;
     }
     return this;
   }
@@ -296,7 +419,7 @@ export class Builder {
       arr[i * 3 + 2] = cc.b;
     }
     g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-    this.parts.push(g);
+    this.sink.push(g);
     return this;
   }
 
@@ -308,7 +431,7 @@ export class Builder {
     if (m.determinant() < 0) flipWinding(g);
     g = dropDegenerate(g);
     g.computeVertexNormals();
-    this.parts.push(g);
+    this.sink.push(g);
     return this;
   }
 
@@ -326,7 +449,7 @@ export class Builder {
     g.applyMatrix4(m);
     if (m.determinant() < 0) flipWinding(g);
     g = dropDegenerate(g);
-    this.parts.push(g);
+    this.sink.push(g);
     return this;
   }
 
@@ -370,14 +493,33 @@ export class Builder {
   }
 
   triangles(): number {
-    return this.parts.reduce((s, g) => s + g.attributes.position.count / 3, 0);
+    const all = [...this.parts, ...this.turretList.flatMap((t) => t.parts)];
+    return all.reduce((s, g) => s + g.attributes.position.count / 3, 0);
   }
 
+  /**
+   * Alles zu einer Geometrie verschmelzen; Turmteile liegen am Ende (Bereiche in userData.turrets, siehe TurretRange).
+   * Merge everything into one geometry; turret parts come last (ranges in userData.turrets, see TurretRange).
+   */
   build(): THREE.BufferGeometry {
-    const g = this.parts.length ? mergeGeometries(this.parts, false) : new THREE.BufferGeometry();
+    const turrets = this.turretList.filter((t) => t.parts.length);
+    const all = [...this.parts, ...turrets.flatMap((t) => t.parts)];
+    const g = all.length ? mergeGeometries(all, false) : new THREE.BufferGeometry();
     if (!g) throw new Error('mergeGeometries failed');
-    for (const p of this.parts) p.dispose();
+    if (turrets.length) {
+      const verts = (list: THREE.BufferGeometry[]) => list.reduce((n, p) => n + p.attributes.position.count, 0);
+      let start = verts(this.parts);
+      g.userData.turrets = turrets.map((t): TurretRange => {
+        const count = verts(t.parts);
+        const r: TurretRange = { start, count, pivot: [t.pivot.x, t.pivot.y, t.pivot.z], yaw: t.yaw, ...(t.arc !== undefined ? { arc: t.arc } : {}) };
+        start += count;
+        return r;
+      });
+    }
+    for (const p of all) p.dispose();
     this.parts = [];
+    this.sink = this.parts;
+    this.turretList = [];
     g.computeBoundingBox();
     g.computeBoundingSphere();
     return g;

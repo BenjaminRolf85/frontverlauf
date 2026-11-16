@@ -16,7 +16,8 @@ import { WONDER_UNITS, type BuildingId, type FactionId, type GrandProjectId, typ
 import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
-import { memo, withDetail } from './kit';
+import { memo, scaleWithTurrets, withDetail } from './kit';
+export { splitTurrets, turretsOf, type TurretRange, type TurretSplit } from './kit';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
@@ -166,14 +167,14 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   if (wide) {
     g.computeBoundingBox();
     const bx = g.boundingBox!;
-    g.scale(Math.max(1, Math.min(wide, 0.45 / Math.max(-bx.min.x, bx.max.x))), 1, 1);
+    scaleWithTurrets(g, Math.max(1, Math.min(wide, 0.45 / Math.max(-bx.min.x, bx.max.x))), 1, 1);
   }
   g.computeBoundingBox();
   let bb = g.boundingBox!;
   const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
   const want = UNIT_SIZE[type] ?? 1;
   const s = Math.max(1, Math.min(want, 0.45 / ext, MAX_H / bb.max.y));
-  if (s > 1.001) { g.scale(s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
+  if (s > 1.001) { scaleWithTurrets(g, s, s, s); g.computeBoundingBox(); bb = g.boundingBox!; }
   // Vergroesserung merken: bewegliche Teile (techParts) sitzen in denselben Koordinaten / remember the enlargement: moving parts (techParts) use the same coordinates
   g.userData.finishScale = s;
   const H = Math.max(0.15, bb.max.y);
