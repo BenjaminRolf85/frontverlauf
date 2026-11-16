@@ -279,15 +279,15 @@
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
-    "sniper": "Fires from two tiles away but is fragile itself.",
+    "sniper": "Fires from two tiles away and picks off foot troops, but barely scratches armour. Fragile itself.",
     "jeep": "Fast scout: hit and run.",
     "pioneer": "Sturdy defender that builds tank barriers.",
     "mg": "Heavy firepower for the front line, strong on defence.",
     "medic": "Heals its neighbours and talks enemies into defecting.",
-    "artillery": "Shells targets from three tiles away but needs an escort.",
+    "artillery": "Shells targets from three tiles away (Korvat: four) but needs an escort.",
     "spy": "Invisible behind the lines, sparks uprisings in enemy cities.",
     "heli": "Flies over everything and strikes again after every kill, but needs fuel.",
-    "tank": "Steel fist: from the tank works, and as a city reward.",
+    "tank": "Steel fist: drives two tiles and fires from two tiles away. From the tank works, and as a city reward.",
     "landingBoat": "Ferries a land unit across water but cannot attack.",
     "submarine": "Hides underwater and torpedoes from two tiles away.",
     "destroyer": "Fast warship that keeps the coasts clear.",
@@ -325,11 +325,11 @@
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
     "scientist": "Does not fight, but wears a protective suit. Works right next to the Zyrr mothership, where the hull covers him (campaign).",
-    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. From the tank works, and as a city reward.",
+    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Drives two tiles and fires from two tiles away. From the tank works, and as a city reward.",
     "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
-    "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire.",
+    "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire. Deadly against foot troops, weak against armour.",
     "lightWarden": "Order marksmen with radiant scopes and long rifles: range 2 and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
-    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: range 2, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
+    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: drives two tiles, range 2, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
     "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence."
   },
   "abilities": {
@@ -677,7 +677,9 @@
     "needsTech": "Requires: {tech}",
     "hintPrompt": "Hold or hover over an action: this line says what it does.",
     "hintExpand": "Show the full explanation",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "unitLimitRule": "Unit limit: level + 1 = {lv}, plus {up} from upgrades (+{per} per upgrade).",
+    "unitLimitUpgrades": "(+{n} upgrades)"
   },
   "actions": {
     "confirmTitle": "Are you sure?",
@@ -773,7 +775,8 @@
     "notVisible": "The target tile is not revealed.",
     "relayLimit": "Velkar already owns a satellite relay.",
     "cannotCarry": "This unit cannot carry the war plans",
-    "buildingMissing": "Production site or prerequisite missing."
+    "buildingMissing": "Production site or prerequisite missing.",
+    "alreadyBought": "Already bought this round."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2619,7 +2622,8 @@
     "lockedHint": "More upgrades are unlocked by research ({n}).",
     "lockedHintLevel": "More upgrades at a higher city level ({n}).",
     "satRelay": "Satellite relay",
-    "satRelayDesc": "Velkar only, one at a time. Unlocks the orbital laser: every {cd} rounds {dmg} damage on a {w}×{h} tile area. Lost if the city falls."
+    "satRelayDesc": "Velkar only, one at a time. Unlocks the orbital laser: every {cd} rounds {dmg} damage on a {w}×{h} tile area. Lost if the city falls.",
+    "capacity": "Also +{n} unit limit."
   },
   "saves": {
     "deleteConfirm": "Really delete the save in slot {n}? This cannot be undone.",
@@ -3473,7 +3477,7 @@
     },
     "cities": {
       "title": "Cities & research",
-      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
     },
     "outposts": {
       "title": "Outposts",
@@ -3696,7 +3700,7 @@
       },
       "cities": {
         "title": "Cities & production",
-        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
       },
       "factions": {
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
@@ -3879,5 +3883,18 @@
     "shipbuilding": "Ship upgrades cost {pct} % less.",
     "forestry": "Artillery and Sun Lance (foundry) cost {pct} % less.",
     "ballistics": "Artillery and Sun Lance: range +{n}."
+  },
+  "buyLevel": {
+    "label": "Buy level",
+    "desc": "Raise the city to level {n} right away: +{income} stars per round, one more unit and a reward choice as with growth. Once per city and round.",
+    "once": "A level was already bought in this city this round."
+  },
+  "rangeBonus": {
+    "bonus": {
+      "korvat": "Long Barrels"
+    },
+    "bonusDesc": {
+      "korvat": "Korvat artillery fires {range} tiles instead of {base}. Rain and dust storms still shorten it by 1; the ballistics doctrine adds 1."
+    }
   }
 }

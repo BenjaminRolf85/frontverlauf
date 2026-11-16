@@ -8,7 +8,7 @@ import {
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
-  cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, techState,
+  cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, unitRange, techState,
   techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, usesSites, type GameConfig, type GameState, diplomacyLocked,
 } from '../core';
 import type { Controller } from '../game/controller';
@@ -727,7 +727,7 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
     html += `<h3 class="display">${esc(unitDisplayName(s, u))}</h3><p class="muted">${esc(unitName(u))} · ${esc(t(`factions.${s.factions[u.owner].id}.short`))}</p>
       <div class="kv"><span>${esc(t('stats.hp'))}</span><span>${u.hp} / ${u.maxHp}</span>
       <span>${esc(t('stats.attack'))}</span><span>${num(st.attack)}</span><span>${esc(t('stats.defense'))}</span><span>${num(st.defense)}</span>
-      <span>${esc(t('stats.move'))}</span><span>${num(st.move)}</span><span>${esc(t('stats.range'))}</span><span>${st.range ? num(st.range) : esc(t('stats.noRange'))}</span>
+      <span>${esc(t('stats.move'))}</span><span>${num(st.move)}</span><span>${esc(t('stats.range'))}</span><span>${unitRange(u.type, s.factions[u.owner].id) ? num(unitRange(u.type, s.factions[u.owner].id)) : esc(t('stats.noRange'))}</span>
       <span>${esc(t('stats.cost'))}</span><span>${unitCost(s, viewer >= 0 ? viewer : u.owner, u.type) ?? '-'}</span><span>${esc(t('stats.kills'))}</span><span>${u.kills}</span></div>
       <ul>${st.abilities.filter((a) => a !== 'carry').map((a) => `<li><strong>${esc(t(`abilities.${a}`))}:</strong> ${esc(t(`abilities.${a}Desc`))}</li>`).join('')}</ul>`;
   }

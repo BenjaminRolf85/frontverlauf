@@ -4,7 +4,7 @@
  */
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
-  dist, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
+  dist, effectiveRange, unitRange, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
   turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
@@ -64,9 +64,11 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
 function bestAttackFrom(ctx: Ctx, u: Unit, x: number, y: number): number {
   const st = UNITS[u.type];
   if (st.attack <= 0 || st.range <= 0) return 0;
+  // Reichweite inkl. Wetter und Fraktionsbonus (Korvat-Artillerie) / range incl. weather and faction bonus (Korvat artillery)
+  const range = effectiveRange(ctx.s, u);
   let best = 0;
   for (const e of ctx.enemies) {
-    if (dist(e, { x, y }) > st.range) continue;
+    if (dist(e, { x, y }) > range) continue;
     best = Math.max(best, attackValue(ctx, u, e, x, y));
   }
   return best;
@@ -385,8 +387,9 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   // Fernkampf: in Reichweite fuer die naechste Runde / ranged: in range for next round
   // Railgun-Schuetze: kein Sturm, also stellt er sich hier fuer den naechsten Zug auf und schiesst nie nach einer Bewegung (canAttackAfter)
   // railgun marksman: no dash, so it sets up here for the next turn and never fires after moving (canAttackAfter)
-  if (type === 'artillery' || type === 'sniper' || type === 'railSniper' || type === 'battleship' || type === 'protoWalker' || ALVENIA_UNITS.includes(type as AlveniaUnitId)) {
-    const range = UNITS[type].range;
+  // Panzer (Reichweite 2) stellen sich ebenso auf / tanks (range 2) set up the same way
+  if (type === 'artillery' || type === 'sniper' || type === 'railSniper' || type === 'battleship' || type === 'protoWalker' || type === 'tank' || type === 'teslaTank' || ALVENIA_UNITS.includes(type as AlveniaUnitId)) {
+    const range = unitRange(type, ctx.fa.id);
     if (ctx.enemies.some((e) => dist(e, { x, y }) <= range)) v += dmg > 0 ? 3 : 10;
     if (ctx.hostileCities.some((c) => dist(c, { x, y }) <= range)) v += 4;
   }

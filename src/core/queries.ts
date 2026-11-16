@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -126,7 +126,18 @@ export function unitLimit(s: GameState, c: City): number {
   if (supplyLines(s)) return (mainShaft(c) ? SUPPLY_LINE.mainShaftUnitLimit : SUPPLY_LINE.unitLimit) + extra;
   // Sendeturm: feste kleine Zahl / transmitter tower: small fixed number
   if (c.tower) return TOWER.unitLimit + extra;
-  return c.level + CITY.unitLimitExtra + extra;
+  return c.level + CITY.unitLimitExtra + extra + upgradeUnitLimit(s, c);
+}
+
+/**
+ * Zusaetzliches Einheitenlimit durch Stadt-Ausbauten (CITY.unitLimitPerUpgrade je Ausbau). Nur fuer gewoehnliche Staedte:
+ * Sendetuerme und Nachschublinien haben keine Ausbauten, eine Kult-Stadt nutzt eroberte Ausbauten nicht (keine Ausbauten).
+ * Extra unit limit from city upgrades (CITY.unitLimitPerUpgrade per upgrade). Only for ordinary cities: towers and supply
+ * lines have no upgrades, a cult city does not use captured upgrades (no upgrades).
+ */
+export function upgradeUnitLimit(s: GameState, c: City): number {
+  if (c.owner === null || c.tower || supplyLines(s) || isCultFaction(s, c.owner)) return 0;
+  return cityUpgrades(c).length * CITY.unitLimitPerUpgrade;
 }
 // Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
 export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
@@ -135,6 +146,25 @@ export function levelUpCost(s: GameState, c: City): number {
   let cost = CITY.levelUpCost(c.level);
   if (c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'boom') cost = Math.max(1, cost - PERKS.boomLevelReduction);
   return cost;
+}
+
+/** Sternepreis fuer den gekauften Aufstieg dieser Stadt (CITY.buyLevelCost) / star price for buying this city's next level */
+export const buyLevelCost = (c: City): number => CITY.buyLevelCost(c.level);
+
+export type BuyLevelCheck = 'ok' | 'notYourCity' | 'cannotBuild' | 'alreadyBought' | 'notEnoughStars';
+
+/**
+ * Darf Fraktion f die naechste Stufe der Stadt mit Sternen kaufen? Nicht fuer den Kult, Sendetuerme und Nachschublinien
+ * (sie wachsen nicht); hoechstens einmal je Stadt und Runde (City.levelBought).
+ * May faction f buy the city's next level with stars? Not for the cult, towers and supply lines (they do not grow);
+ * at most once per city and round (City.levelBought).
+ */
+export function buyLevelCheck(s: GameState, f: number, c: City): BuyLevelCheck {
+  if (c.owner !== f) return 'notYourCity';
+  if (supplyLines(s) || c.tower || isCultFaction(s, f)) return 'cannotBuild';
+  if (c.levelBought === s.round) return 'alreadyBought';
+  if (s.factions[f].stars < buyLevelCost(c)) return 'notEnoughStars';
+  return 'ok';
 }
 
 export function researchCost(s: GameState, f: number, tech: TechId): number {
@@ -1599,12 +1629,23 @@ export const meteorExposed = (s: GameState, u: Unit, x = u.x, y = u.y) =>
   unitClass(u.type) === 'foot' && !UNITS[u.type].abilities.includes('boss') && !meteorCover(s, x, y);
 export const weather = (s: GameState): WeatherId => weatherAt(s);
 
+/**
+ * Grundreichweite eines Einheitentyps fuer eine Fraktion (Besitzer): Wert aus UNITS plus Fraktionsbonus (RANGE_BONUS,
+ * Korvat-Artillerie), ohne Wetter und Doktrin. Auch fuer Texte (Ausbildungsliste, Einheitenfeld).
+ * Base range of a unit type for a faction (owner): the UNITS value plus the faction bonus (RANGE_BONUS, Korvat artillery),
+ * without weather and doctrine. Also used for texts (training list, unit panel).
+ */
+export function unitRange(type: UnitTypeId, faction?: FactionId): number {
+  const r = UNITS[type].range;
+  return r > 0 && faction ? r + (RANGE_BONUS.bonus[faction]?.[type] ?? 0) : r;
+}
+
 /** Reichweite inkl. Wetter / range including weather */
 export function effectiveRange(s: GameState, u: Unit): number {
   // unbewaffneter Waal: keine Reichweite, kein Gegenschlag / unarmed Waal: no range, no return fire
   if (u.type === 'waal' && !waalArmed(u)) return 0;
-  // Doktrin Ballistik: Artillerie weiter / ballistics doctrine: artillery reaches further
-  const base = UNITS[u.type].range + (DOCTRINE.ballisticsUnits.includes(u.type) && hasDoctrine(s, u.owner, 'ballistics') ? DOCTRINE.ballisticsRange : 0);
+  // Fraktionsbonus (Korvat-Artillerie) und Doktrin Ballistik: Artillerie weiter / faction bonus (Korvat artillery) and ballistics doctrine: artillery reaches further
+  const base = unitRange(u.type, s.factions[u.owner]?.id) + (DOCTRINE.ballisticsUnits.includes(u.type) && hasDoctrine(s, u.owner, 'ballistics') ? DOCTRINE.ballisticsRange : 0);
   if (base > 0 && weather(s) === 'rain' && WEATHER.rain.rangeUnits.includes(u.type)) return Math.max(1, base + WEATHER.rain.rangeDelta);
   // Sandsturm: Fernkaempfer sehen ihr Ziel schlechter / dust storm: ranged units see their target worse
   if (base >= WEATHER.dust.rangeFrom && weather(s) === 'dust') return Math.max(1, base + WEATHER.dust.rangeDelta);

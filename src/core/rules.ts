@@ -22,7 +22,7 @@ import {
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
-  rewardOptions, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
+  rewardOptions, buyLevelCheck, buyLevelCost, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
@@ -211,15 +211,20 @@ function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: 
   return null;
 }
 
+/** Aufstieg um eine Stufe mit Belohnungswahl (wie durch Bevoelkerung) / level-up by one with a reward choice (as by population) */
+function raiseLevel(s: GameState, c: City, ev: GameEvent[], bought = false) {
+  c.level++;
+  ev.push({ t: 'cityLevel', city: c.id, level: c.level, ...(bought ? { bought: true as const } : {}) });
+  if (c.owner !== null) s.pendingRewards.push({ cityId: c.id, level: c.level });
+}
+
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
   // Nachschublinien, Sendetuerme und Kult-Staedte wachsen nicht / supply lines, transmitter towers and cult cities do not grow
   if (supplyLines(s) || c.tower || (c.owner !== null && isCultFaction(s, c.owner))) return;
   c.pop += amount;
   while (c.pop >= levelUpCost(s, c)) {
     c.pop -= levelUpCost(s, c);
-    c.level++;
-    ev.push({ t: 'cityLevel', city: c.id, level: c.level });
-    if (c.owner !== null) s.pendingRewards.push({ cityId: c.id, level: c.level });
+    raiseLevel(s, c, ev);
   }
 }
 
@@ -1566,6 +1571,19 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       // Kraftwerk: drei weitere Felder werden unpassierbar / power plant: three more tiles become impassable
       for (const p of wonderFootprint(cmd.kind, cmd.x, cmd.y).slice(1)) tileAt(s, p.x, p.y)!.wonderOf = u.id;
       ev.push({ t: 'wonder', what: 'started', kind: cmd.kind, unit: u.id, faction: f, x: cmd.x, y: cmd.y, stage: 0 });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'buyLevel': {
+      // Stufe mit Sternen kaufen: Bevoelkerung bleibt, Belohnung wie beim normalen Aufstieg
+      // buy a level with stars: population stays, reward as with a normal level-up
+      const c = cityById(s, cmd.city);
+      if (!c) return fail('notYourCity');
+      const check = buyLevelCheck(s, f, c);
+      if (check !== 'ok') return fail(check);
+      fa.stars -= buyLevelCost(c);
+      c.levelBought = s.round;
+      raiseLevel(s, c, ev, true);
       res = { ok: true, events: ev };
       break;
     }
