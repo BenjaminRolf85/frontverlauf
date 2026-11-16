@@ -1443,7 +1443,15 @@ export const MAP_TYPES: Record<MapType, MapGenParams> = {
 export const MAP_SIZES: MapSize[] = [11, 14, 16, 18, 22, 26];
 
 export const MAPGEN = {
-  villagesPerTile: 1 / 13,
+  /** Siedlungen je Feld (vorher 1/13, leicht verringert) / villages per tile (before 1/13, slightly reduced) */
+  villagesPerTile: 1 / 15,
+  /** Mindestabstand neutraler Siedlungen zum Kartenrand in Feldern / minimum distance of neutral villages to the map edge in tiles */
+  villageEdge: 2,
+  /**
+   * Ausnahme Heimatsiedlung: hat die Startinsel kein Feld mit 2 Feldern Randabstand, reicht 1 (nie direkt am Rand), damit niemand ohne Wachstum startet.
+   * Exception home village: if the start island has no tile 2 tiles from the edge, 1 is enough (never right at the edge) so nobody starts without growth.
+   */
+  villageEdgeHome: 1,
   bunkersPerTile: 1 / 22,
   minCityDistance: 2,
   resourceChance: 0.28,
