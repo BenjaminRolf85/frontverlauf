@@ -109,6 +109,13 @@ describe('Kartengenerator / map generator', () => {
     expect(count).toBeGreaterThan(0);
   });
 
+  it('Heimatsiedlung: erst alle Abstaende mit vollem Randabstand, dann gelockert / home village: all distances with the full edge margin first, then relaxed', () => {
+    // Seed 126 (11x11, Festland): Die vierte Insel hat bei Abstand 2 und 3 kein Feld mit 2 Feldern Randabstand, wohl aber bei 4
+    // seed 126 (11x11, continent): the fourth island has no tile with a 2-tile edge margin at distance 2 or 3, but one at 4
+    const m = generateMap(126, 11, 'continent', ['korvat', 'dravon', 'alvenia', 'meridon']);
+    for (const v of m.villages.slice(0, m.starts.length)) expect(Math.min(v.x, v.y, 10 - v.x, 10 - v.y), `${v.x},${v.y}`).toBeGreaterThanOrEqual(MAPGEN.villageEdge);
+  });
+
   it('neutral settlements, abandoned bunkers and radar stations are placed', () => {
     for (const size of MAP_SIZES) {
       const s = createGame(defaultConfig({ seed: size, size }));
