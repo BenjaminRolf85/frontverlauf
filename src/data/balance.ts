@@ -1226,12 +1226,12 @@ export const PRODUCTION = {
    */
   hqSites: { dravon: ['motorPool'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
   /**
-   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) hat ueberall
-   * eine Kaserne; der Eroberer bekommt sie nicht.
-   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) has barracks
-   * everywhere; the conqueror does not get them.
+   * Eingebaut in jeder Stadt der Fraktion, solange sie ihr gehoert: Korvat (Massenmobilisierung, Volksarmee) und Dravon
+   * (Drill, auch in neu eroberten Staedten und Depots) haben ueberall eine Kaserne; der Eroberer bekommt sie nicht.
+   * Built into every city of the faction while it owns it: Korvat (mass mobilisation, people's army) and Dravon (drill,
+   * also in newly captured cities and depots) have barracks everywhere; the conqueror does not get them.
    */
-  citySites: { korvat: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
+  citySites: { korvat: ['trainingCamp'], dravon: ['trainingCamp'] } as Partial<Record<FactionId, ProductionSiteId[]>>,
   /**
    * Voraussetzung im Stadtgebiet beim Bau: eines dieser Gebaeude. Panzerwerk: Tagebau oder Tiefbauzeche (beide nur auf Erz),
    * Geschuetzgiesserei: Forstbetrieb (Holz fuer Lafetten), Trockendock: Marinestuetzpunkt. Geht die Voraussetzung spaeter
@@ -1481,7 +1481,15 @@ export const MAP_TYPES: Record<MapType, MapGenParams> = {
 export const MAP_SIZES: MapSize[] = [11, 14, 16, 18, 22, 26];
 
 export const MAPGEN = {
-  villagesPerTile: 1 / 13,
+  /** Siedlungen je Feld (vorher 1/13, leicht verringert) / villages per tile (before 1/13, slightly reduced) */
+  villagesPerTile: 1 / 15,
+  /** Mindestabstand neutraler Siedlungen zum Kartenrand in Feldern / minimum distance of neutral villages to the map edge in tiles */
+  villageEdge: 2,
+  /**
+   * Ausnahme Heimatsiedlung: hat die Startinsel kein Feld mit 2 Feldern Randabstand, reicht 1 (nie direkt am Rand), damit niemand ohne Wachstum startet.
+   * Exception home village: if the start island has no tile 2 tiles from the edge, 1 is enough (never right at the edge) so nobody starts without growth.
+   */
+  villageEdgeHome: 1,
   bunkersPerTile: 1 / 22,
   minCityDistance: 2,
   resourceChance: 0.28,

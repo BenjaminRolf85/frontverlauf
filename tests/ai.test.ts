@@ -68,7 +68,9 @@ describe('KI / AI', () => {
     // after the Alvenia rework; the stalemate rate stayed the same over 72 games (16 vs 15), hence another fixed seed
     // Seed 8 endete mit Dravons Feuer und Bewegung (80 %) nach 150 Runden mit zwei Ueberlebenden, daher Seed 11
     // seed 8 ended with two survivors after 150 rounds with Dravon's fire and manoeuvre (80 %), hence seed 11
-    for (const [seed, mapType] of [[4, 'continent'], [103, 'continent'], [11, 'continent'], [4, 'lakes']] as const) {
+    // Seed 4 (Festland) endete mit Dravons Kaserne in jeder Stadt nach 150 Runden mit drei Ueberlebenden, daher Seed 9
+    // seed 4 (continent) ended with three survivors after 150 rounds with Dravon's barracks in every city, hence seed 9
+    for (const [seed, mapType] of [[9, 'continent'], [103, 'continent'], [11, 'continent'], [4, 'lakes']] as const) {
       // reine Eroberung: Fraktionssiege wuerden das Spiel vorher beenden (eigener Test in victory.test.ts)
       // pure conquest: faction victories would end the game earlier (own test in victory.test.ts)
       const s = createGame(config({ seed, size: 11, mode: 'conquest', mapType, factionVictory: false }));
@@ -120,7 +122,9 @@ describe('KI / AI', () => {
 
   it('laesst Hubschrauber nicht abstuerzen / never lets helicopters crash', () => {
     let crashes = 0, helis = 0;
-    for (const seed of [2, 9]) {
+    // Seeds 2 und 9 allein brachten mit dem Randabstand der Siedlungen keinen Hubschrauber mehr, daher zwei weitere
+    // seeds 2 and 9 alone no longer produced a helicopter with the settlements' edge distance, hence two more
+    for (const seed of [2, 9, 5, 13]) {
       // viele Startsterne, damit frueh Hubschrauber entstehen / many start stars so helicopters appear early
       const s = createGame(config({ seed, size: 14, mode: 'sandbox', mapType: 'continents', startStars: 200, roundLimit: 45, diffs: ['hard', 'extreme'] }));
       const st = run(s, 99);

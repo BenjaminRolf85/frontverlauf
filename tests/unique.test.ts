@@ -10,7 +10,7 @@ import {
   rosterUnits, siteOf, techUnlocks, trainCheck, unitCost, upgradeCheck, visionRadius,
 } from '../src/core';
 import {
-  BARRIER, BUILDINGS, ECON, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, TECH_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
+  BARRIER, BUILDINGS, ECON, PRODUCTION, FACTION_IDS, FACTIONS, LAND_UNITS, PERKS2, TECH_IDS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, UNITS,
   type FactionId, type UnitTypeId,
 } from '../src/data/balance';
 import { createGame, defaultConfig } from '../src/core';
@@ -49,8 +49,8 @@ describe('Einzigartige Einheiten / unique units', () => {
       // eine Stadt ohne eingebaute Kaserne / a city without built-in barracks
       const c = addCity(s, 6, 2, 0, { level: 3 });
       expect(UNITS[type].tech).toBeNull();
-      // Korvat hat in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat has barracks built into every city
-      expect(trainCheck(s, c, type)).toBe(f === 'korvat' ? 'ok' : 'buildingMissing');
+      // Korvat und Dravon haben in jeder Stadt eine Kaserne eingebaut (PRODUCTION.citySites) / Korvat and Dravon have barracks built into every city
+      expect(trainCheck(s, c, type)).toBe(PRODUCTION.citySites[f]?.includes(site) ? 'ok' : 'buildingMissing');
       giveSites(c, site);
       expect(trainCheck(s, c, type)).toBe('ok');
       expect(rosterUnits(s, 0)).toContain(type);
@@ -363,7 +363,9 @@ describe('KI / AI', () => {
     // two games, because hit luck changes the course of a single game a lot
     const types = new Set<string>();
     const built = new Set<string | null>();
-    for (const seed of [7, 8]) {
+    // vier Partien seit Randabstand der Siedlungen und Dravon-Kaserne (Seeds 7 bis 11 brachten nur Ordenswachen)
+    // four games since the settlements' edge distance and the Dravon barracks (seeds 7 to 11 only brought Order Guards)
+    for (const seed of [7, 8, 10, 12]) {
       const s = createGame(defaultConfig({ seed, size: 14, mode: 'points', mapType: 'continent', factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' })) }));
       for (let i = 0; i < 4 * 20 && !s.over; i++) playAiTurn(s);
       for (const u of s.units) types.add(u.type);

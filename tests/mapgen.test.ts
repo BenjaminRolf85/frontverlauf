@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, defaultConfig, dist, generateMap, hqOf, cityTiles, area } from '../src/core';
-import { FACTION_IDS, MAP_SIZES, type FactionId, type MapType, type ResourceId, type TerrainId } from '../src/data/balance';
+import { FACTION_IDS, MAPGEN, MAP_SIZES, type FactionId, type MapType, type ResourceId, type TerrainId } from '../src/data/balance';
 
 const FAIR_MIN: Record<number, number[]> = { 11: [7, 6, 5, 4], 14: [8, 7, 6, 4], 16: [10, 9, 7, 5], 18: [12, 11, 8, 6], 22: [14, 13, 10, 8], 26: [17, 15, 12, 9] };
 const TYPES: MapType[] = ['continent', 'lakes', 'continents', 'islands', 'waterworld'];
@@ -90,6 +90,23 @@ describe('Kartengenerator / map generator', () => {
     // eine Einheit je Feld / one unit per tile
     const keys = s.units.map((u) => `${u.x},${u.y}`);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('Siedlungen nie direkt am Kartenrand, mindestens 2 Felder Abstand / settlements never at the edge, at least 2 tiles away', () => {
+    expect(MAPGEN.villageEdge).toBe(2);
+    let count = 0;
+    for (const type of TYPES) for (const size of MAP_SIZES) for (const seed of [1, 2, 3, 4]) {
+      const m = generateMap(seed * 31 + size, size, type, ['korvat', 'dravon', 'alvenia', 'meridon']);
+      m.villages.forEach((v, i) => {
+        const edge = Math.min(v.x, v.y, size - 1 - v.x, size - 1 - v.y);
+        // die ersten sind die Heimatsiedlungen (Ausnahme schmale Randinsel: 1 Feld) / the first ones are the home villages (exception narrow edge island: 1 tile)
+        const min = i < m.starts.length ? MAPGEN.villageEdgeHome : MAPGEN.villageEdge;
+        expect(edge, `${type} ${size} ${seed} ${v.x},${v.y}`).toBeGreaterThanOrEqual(min);
+        expect(edge).toBeGreaterThanOrEqual(1);
+      });
+      count += m.villages.length;
+    }
+    expect(count).toBeGreaterThan(0);
   });
 
   it('neutral settlements, abandoned bunkers and radar stations are placed', () => {

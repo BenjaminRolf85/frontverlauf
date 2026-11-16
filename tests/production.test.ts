@@ -55,8 +55,8 @@ describe('Produktionsstaetten / production sites', () => {
     it(`${f}: jede Staette schaltet genau ihre Einheiten frei, nur in ihrer Stadt / every site unlocks exactly its units, only in its city`, () => {
       const { s, hq, c } = game(f);
       const units = trainable(s, 0);
-      // Korvat hat in jeder Stadt eine Kaserne (PRODUCTION.citySites) / Korvat has barracks in every city
-      const free = (u: UnitTypeId) => f === 'korvat' && siteOf(u) === 'trainingCamp';
+      // Korvat und Dravon haben in jeder Stadt eine Kaserne (PRODUCTION.citySites) / Korvat and Dravon have barracks in every city
+      const free = (u: UnitTypeId) => !!PRODUCTION.citySites[f]?.includes('trainingCamp') && siteOf(u) === 'trainingCamp';
       // ohne Staette: nichts / without a site: nothing
       for (const u of units) expect(trainCheck(s, c, u), `${f} ${u}`).toBe(free(u) ? 'ok' : 'buildingMissing');
       for (const site of PRODUCTION.sites.filter((x) => x !== 'navalBase' && x !== 'dryDock')) {
@@ -223,17 +223,20 @@ describe('Produktionsstaetten / production sites', () => {
     }
   });
 
-  it('Fraktions-Extras: Dravon-Hauptquartier mit Fahrzeugwerk, Korvat-Staedte mit Kaserne / faction extras', () => {
+  it('Fraktions-Extras: Dravon-Hauptquartier mit Fahrzeugwerk, Korvat- und Dravon-Staedte mit Kaserne / faction extras', () => {
     const d = game('dravon', 'korvat');
     expect(citySites(d.s, d.hq)).toEqual(['trainingCamp', 'motorPool']);
     expect(trainCheck(d.s, d.hq, 'jeep')).toBe('ok');
     expect(trainCheck(d.s, d.c, 'jeep')).toBe('buildingMissing');
+    // Dravon: Kaserne auch in jeder weiteren Stadt (neu erobert oder gegruendet) / Dravon: barracks in every further city too (newly captured or founded)
+    expect(citySites(d.s, d.c)).toEqual(['trainingCamp']);
+    expect(trainCheck(d.s, d.c, 'infantry')).toBe('ok');
     const k = game('korvat', 'dravon');
     expect(citySites(k.s, k.c)).toEqual(['trainingCamp']);
     expect(trainCheck(k.s, k.c, 'infantry')).toBe('ok');
-    // erobert Dravon eine Korvat-Stadt, ist die Kaserne weg / if Dravon takes a Korvat city, the barracks is gone
+    // erobert Dravon eine Korvat-Stadt, gilt Dravons eigene Kaserne / if Dravon takes a Korvat city, Dravon's own barracks applies
     k.c.owner = 1;
-    expect(citySites(k.s, k.c)).toEqual([]);
+    expect(citySites(k.s, k.c)).toEqual(['trainingCamp']);
   });
 });
 

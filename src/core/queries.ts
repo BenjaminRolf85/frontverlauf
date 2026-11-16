@@ -1379,7 +1379,7 @@ export function builtInSite(s: GameState, c: City, site: ProductionSiteId): bool
   if (site === PRODUCTION.builtIn && (c.isHQ || c.tower || supplyLines(s))) return true;
   // Fraktions-Extra im eigenen Hauptquartier (Dravon: Fahrzeugwerk) / faction extra in the own HQ (Dravon: motor pool)
   if (c.isHQ && c.hqOf !== null && c.hqOf === c.owner && PRODUCTION.hqSites[s.factions[c.owner].id]?.includes(site)) return true;
-  // Fraktions-Extra in jeder eigenen Stadt (Korvat: Kaserne) / faction extra in every own city (Korvat: barracks)
+  // Fraktions-Extra in jeder eigenen Stadt (Korvat, Dravon: Kaserne) / faction extra in every own city (Korvat, Dravon: barracks)
   if (c.owner !== null && PRODUCTION.citySites[s.factions[c.owner].id]?.includes(site)) return true;
   return !!c.works?.includes(site);
 }
