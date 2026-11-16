@@ -198,6 +198,18 @@ export const primitives = {
     glowCrystal: '#7ad8ff',
     scorch900: '#1f1714',
     ash600: '#4d423d',
+    // Schlachtfeld: aufgewuehlte Erde, Asche, Schneematsch, verbrannter Sand, Stuempfe / battlefield: churned earth, ash, slush, burnt sand, stumps
+    mud500: '#7a6044',
+    mud700: '#4f3f31',
+    slush300: '#a9a49c',
+    slush500: '#77716b',
+    sandBurnt500: '#a8703f',
+    sandBurnt700: '#6b4630',
+    alienAsh600: '#4a3656',
+    grassBurnt500: '#7d6b38',
+    stump600: '#5a3f28',
+    stump300: '#c49a62',
+    brass400: '#d6a84a',
     alienBone: '#c9d6a8',
     verdanStone: '#8a8475',
     verdanStoneDark: '#5a5549',
@@ -537,6 +549,27 @@ export const semantic = {
   caveCrystal: c.glowCrystal,
   craterScorch: c.scorch900,
   craterAsh: c.ash600,
+  /**
+   * Schlachtfeld-Narben (board.ts, remains.ts): Zielfarben der Oberseite fuer mittlere (Churned) und schwere (Devastated)
+   * Kaempfe je Untergrund, dazu Stuempfe, verbranntes Gras, Rauch, Truemmer und Patronenhuelsen.
+   * Battlefield scars (board.ts, remains.ts): top target colours for medium (Churned) and heavy (Devastated) fighting per
+   * ground, plus stumps, burnt grass, smoke, debris and shell casings.
+   */
+  battleChurned: c.mud500,
+  battleDevastated: c.mud700,
+  battleSnowChurned: c.slush300,
+  battleSnowDevastated: c.slush500,
+  battleSandChurned: c.sandBurnt500,
+  battleSandDevastated: c.sandBurnt700,
+  battleAlienDevastated: c.alienAsh600,
+  battleCaveDevastated: c.ash600,
+  battleRockDevastated: c.ash600,
+  battleGrassBurnt: c.grassBurnt500,
+  battleStump: c.stump600,
+  battleStumpCut: c.stump300,
+  battleSmoke: c.smoke400,
+  battleSmokeDark: c.smoke700,
+  battleCasing: c.brass400,
   alienBone: c.alienBone,
   verdanStone: c.verdanStone,
   verdanStoneDark: c.verdanStoneDark,

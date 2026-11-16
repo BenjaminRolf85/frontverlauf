@@ -214,3 +214,191 @@ export function scorchGeometry(variant: number): THREE.BufferGeometry {
     return mergeGeometries(parts.map((p) => { if (p.getAttribute('uv')) p.deleteAttribute('uv'); return p; }))!;
   });
 }
+
+// ---------- Schlachtfeld-Narben (Tile.scar, siehe scars.ts) / battlefield scars (Tile.scar, see scars.ts) ----------
+
+const noUv = (list: THREE.BufferGeometry[]) => list.map((p) => { const q = p.index ? p.toNonIndexed() : p; if (q.getAttribute('uv')) q.deleteAttribute('uv'); return q; });
+
+/**
+ * Zerschossener Wald: Baumstuempfe mit gesplitterten, verkohlten Spitzen und umgestuerzte Staemme (schwere Stufe).
+ * Shot-up forest: tree stumps with splintered, charred tips and fallen trunks (heavy tier).
+ */
+export function stumpsGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`stumps-${variant}`, () => {
+    const r = rnd(variant * 5 + 101);
+    const parts: THREE.BufferGeometry[] = [];
+    const spots = [[-0.27, -0.24], [0.22, -0.3], [0.3, 0.12], [-0.05, 0.3], [-0.32, 0.14], [0.05, -0.05], [0.12, 0.34]];
+    spots.forEach(([x, z], i) => {
+      const px = x + (r() - 0.5) * 0.08, pz = z + (r() - 0.5) * 0.08;
+      const rad = 0.032 + r() * 0.018;
+      const h = i === 5 ? 0.09 : 0.1 + r() * 0.16;
+      parts.push(part(new THREE.CylinderGeometry(rad * 0.9, rad * 1.25, h, 6), semantic.battleStump, M(px, h / 2, pz, (r() - 0.5) * 0.25, r() * 3, (r() - 0.5) * 0.25)));
+      // gesplitterte Spitze: verkohlt oder heller Bruch / splintered tip: charred or a light break
+      const tip = r() < 0.55 ? semantic.char : semantic.battleStumpCut;
+      parts.push(part(new THREE.ConeGeometry(rad * 0.9, 0.05 + r() * 0.05, 5), tip, M(px, h + 0.02, pz, (r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5)));
+      if (r() < 0.5) parts.push(part(new THREE.BoxGeometry(0.012, 0.07, 0.012), semantic.battleStumpCut, M(px + rad * 0.6, h + 0.03, pz, 0, 0, -0.35)));
+    });
+    // umgestuerzte Staemme / fallen trunks
+    for (let i = 0; i < 2; i++) {
+      const a = r() * Math.PI, x = (r() - 0.5) * 0.4, z = (r() - 0.5) * 0.4;
+      parts.push(part(new THREE.CylinderGeometry(0.026, 0.032, 0.34, 6), semantic.battleStump, M(x, 0.03, z, Math.PI / 2, a, 0)));
+      parts.push(part(new THREE.ConeGeometry(0.03, 0.06, 5), semantic.char, M(x + Math.sin(a) * 0.19, 0.03, z + Math.cos(a) * 0.19, Math.PI / 2, a, 0)));
+    }
+    const g = mergeGeometries(noUv(parts))!;
+    g.name = `scar|stumps|${variant}`;
+    return g;
+  });
+}
+
+/**
+ * Verstreute Truemmer am Feldrand: Bretter, Steine, Blechteile, Patronenhuelsen; die Mitte bleibt frei (Einheiten, Symbole).
+ * Scattered debris at the tile edge: planks, stones, sheet metal, shell casings; the centre stays clear (units, icons).
+ */
+export function debrisGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`debris-${variant}`, () => {
+    const r = rnd(variant * 3 + 211);
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 9; i++) {
+      const a = r() * Math.PI * 2, d = 0.24 + r() * 0.18;
+      const x = Math.cos(a) * d, z = Math.sin(a) * d, rot = r() * 3;
+      switch (i % 4) {
+        case 0: parts.push(part(new THREE.BoxGeometry(0.12 + r() * 0.06, 0.012, 0.03), semantic.timber, M(x, 0.008, z, 0, rot, (r() - 0.5) * 0.3))); break;
+        case 1: parts.push(part(new THREE.DodecahedronGeometry(0.022 + r() * 0.014, 0), semantic.craterAsh, M(x, 0.014, z, r(), r(), r()))); break;
+        case 2: parts.push(part(new THREE.BoxGeometry(0.06, 0.006, 0.045), semantic.metal, M(x, 0.01, z, (r() - 0.5) * 0.6, rot, (r() - 0.5) * 0.6))); break;
+        default: parts.push(part(new THREE.CylinderGeometry(0.008, 0.008, 0.035, 5), semantic.battleCasing, M(x, 0.008, z, Math.PI / 2, rot, 0))); break;
+      }
+    }
+    const g = mergeGeometries(noUv(parts))!;
+    g.name = `scar|debris|${variant}`;
+    return g;
+  });
+}
+
+/**
+ * Kaputter Weidezaun entlang x (am Feldrand gesetzt): Pfosten, gebrochene und herabhaengende Latten.
+ * Broken pasture fence along x (placed at the tile edge): posts, broken and sagging rails.
+ */
+export function brokenFenceGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`fence-${variant}`, () => {
+    const r = rnd(variant * 7 + 307);
+    const parts: THREE.BufferGeometry[] = [];
+    const posts = [-0.33, -0.11, 0.11, 0.33];
+    posts.forEach((x, i) => {
+      // ein Pfosten liegt umgekippt / one post lies knocked over
+      if (i === 2 - (variant % 2)) parts.push(part(new THREE.BoxGeometry(0.025, 0.16, 0.025), semantic.timber, M(x, 0.014, 0.05, Math.PI / 2 - 0.1, 0, 0.3)));
+      else parts.push(part(new THREE.BoxGeometry(0.025, 0.14 + r() * 0.03, 0.025), semantic.timber, M(x, 0.07, 0, (r() - 0.5) * 0.25, 0, (r() - 0.5) * 0.3)));
+    });
+    // heile Latte, gebrochene Latte, herabhaengende Latte / intact rail, broken rail, sagging rail
+    parts.push(part(new THREE.BoxGeometry(0.24, 0.018, 0.012), semantic.timber, M(-0.22, 0.11, 0)));
+    parts.push(part(new THREE.BoxGeometry(0.2, 0.018, 0.012), semantic.timber, M(-0.2, 0.05, 0, 0, 0, 0.12)));
+    parts.push(part(new THREE.BoxGeometry(0.18, 0.018, 0.012), semantic.timber, M(0.24, 0.06, 0.01, 0, 0.2, -0.55)));
+    parts.push(part(new THREE.BoxGeometry(0.1, 0.016, 0.012), semantic.battleStumpCut, M(0.05, 0.01, 0.06, 0, 0.8, 0)));
+    const g = mergeGeometries(noUv(parts))!;
+    g.name = `scar|fence|${variant}`;
+    return g;
+  });
+}
+
+/**
+ * Granattrichter: drei kleine Krater mit aufgeworfenem Rand am Feldrand (flach, Bodenmarke).
+ * Shell holes: three small craters with a raised rim at the tile edge (flat, ground decal).
+ */
+export function shellHolesGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`shellholes-${variant}`, () => {
+    const r = rnd(variant * 11 + 401);
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2 + r() * 1.2, d = 0.27 + r() * 0.1, s = 0.75 + r() * 0.4;
+      const x = Math.cos(a) * d, z = Math.sin(a) * d;
+      parts.push(part(new THREE.CircleGeometry(0.085 * s, 10), semantic.char, M(x, 0.006, z, -Math.PI / 2, 0, 0)));
+      parts.push(part(new THREE.CircleGeometry(0.05 * s, 8), semantic.ink, M(x, 0.008, z, -Math.PI / 2, 0, 0)));
+      parts.push(part(new THREE.TorusGeometry(0.085 * s, 0.018, 4, 10).scale(1, 1, 0.5), semantic.battleChurned, M(x, 0.01, z, -Math.PI / 2, 0, 0)));
+    }
+    return mergeGeometries(noUv(parts))!;
+  });
+}
+
+/**
+ * Verbranntes Gras: niedrige, verdorrte Buesche statt gruener Halme (mittlere Stufe).
+ * Burnt grass: low, withered tufts instead of green blades (medium tier).
+ */
+export function burntGrassGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`burntgrass-${variant}`, () => {
+    const r = rnd(variant * 13 + 503);
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 7; i++) {
+      const x = (r() - 0.5) * 0.75, z = (r() - 0.5) * 0.75;
+      if (Math.hypot(x, z) < 0.16) continue;
+      parts.push(part(new THREE.ConeGeometry(0.03, 0.07 + r() * 0.04, 4), i % 3 ? semantic.battleGrassBurnt : semantic.char, M(x, 0.04, z, (r() - 0.5) * 0.5, r() * 3, (r() - 0.5) * 0.5)));
+    }
+    const g = mergeGeometries(noUv(parts))!;
+    g.name = `scar|grass|${variant}`;
+    return g;
+  });
+}
+
+/**
+ * Rauchfahne nach frischem schwerem Kampf: aufsteigende, schraeg treibende Comic-Wolken (wiegt im Wind).
+ * Smoke wisp after fresh heavy fighting: rising, slanting comic puffs (sways in the wind).
+ */
+export function smokeWispGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`smokewisp-${variant}`, () => {
+    const r = rnd(variant * 17 + 601);
+    const parts: THREE.BufferGeometry[] = [part(new THREE.IcosahedronGeometry(0.05, 0), semantic.char, M(0, 0.04, 0))];
+    for (let i = 0; i < 3; i++) {
+      const y = 0.14 + i * 0.15, rad = 0.06 + i * 0.03;
+      parts.push(part(new THREE.IcosahedronGeometry(rad, 0), i === 0 ? semantic.battleSmokeDark : semantic.battleSmoke, M(i * 0.05 + (r() - 0.5) * 0.03, y, -i * 0.02, r(), r(), r())));
+    }
+    const g = mergeGeometries(noUv(parts))!;
+    g.name = `scar|smoke|${variant}`;
+    return g;
+  });
+}
+
+/**
+ * Oelteppich mit Treibgut nach einer Seeschlacht (flach auf dem Wasser).
+ * Oil slick with flotsam after a sea battle (flat on the water).
+ */
+export function oilSlickGeometry(variant: number, big: boolean): THREE.BufferGeometry {
+  return memo(`oilslick-${variant}-${big}`, () => {
+    const r = rnd(variant * 19 + 701);
+    const shape = new THREE.Shape();
+    const n = 14, base = big ? 0.3 : 0.2;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      const rad = base * (0.75 + r() * 0.35);
+      const x = Math.cos(a) * rad, y = Math.sin(a) * rad * 0.8;
+      if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+    }
+    const parts: THREE.BufferGeometry[] = [part(new THREE.ShapeGeometry(shape), semantic.oil, M(0, 0.004, 0, -Math.PI / 2, 0, 0))];
+    parts.push(part(new THREE.RingGeometry(base * 0.55, base * 0.62, 12), semantic.battleSmokeDark, M(0.03, 0.006, -0.02, -Math.PI / 2, 0, 0)));
+    for (let i = 0; i < (big ? 4 : 2); i++) {
+      const a = r() * Math.PI * 2, d = base * (0.4 + r() * 0.6);
+      parts.push(part(new THREE.BoxGeometry(0.1, 0.014, 0.03), semantic.timber, M(Math.cos(a) * d, 0.01, Math.sin(a) * d, 0, r() * 3, 0)));
+    }
+    return mergeGeometries(noUv(parts))!;
+  });
+}
+
+/**
+ * Strassenschaden in der Feldmitte: Schlagloecher, Risse und losgebrochene Asphaltbrocken.
+ * Road damage in the tile centre: potholes, cracks and broken-off asphalt chunks.
+ */
+export function roadDamageGeometry(variant: number): THREE.BufferGeometry {
+  return memo(`roaddamage-${variant}`, () => {
+    const r = rnd(variant * 23 + 809);
+    const parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 3; i++) {
+      const a = r() * Math.PI * 2, d = r() * 0.1;
+      parts.push(part(new THREE.CircleGeometry(0.035 + r() * 0.025, 8), semantic.char, M(Math.cos(a) * d, 0.031, Math.sin(a) * d, -Math.PI / 2, 0, 0)));
+    }
+    for (let i = 0; i < 3; i++) {
+      parts.push(part(new THREE.BoxGeometry(0.006, 0.002, 0.12 + r() * 0.08), semantic.ink, M((r() - 0.5) * 0.18, 0.032, (r() - 0.5) * 0.18, 0, r() * 3, 0)));
+    }
+    for (let i = 0; i < 3; i++) {
+      const a = r() * Math.PI * 2, d = 0.18 + r() * 0.06;
+      parts.push(part(new THREE.BoxGeometry(0.04, 0.014, 0.03), semantic.asphalt, M(Math.cos(a) * d, 0.012, Math.sin(a) * d, (r() - 0.5) * 0.6, r() * 3, (r() - 0.5) * 0.6)));
+    }
+    return mergeGeometries(noUv(parts))!;
+  });
+}
