@@ -17,6 +17,7 @@ import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacemen
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
 import { seizeCheck, seizePlans } from './temple';
+import { canFace, faceTowards, facingTowards, spawnFacing } from './facing';
 import {
   recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, effectiveRange, mineCheck, mineTriggers,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
@@ -178,6 +179,8 @@ function spawnUnit(s: GameState, type: UnitTypeId, owner: number, x: number, y: 
     u.homeCity = null;
     if (type === 'waal') { u.hp = WONDERS.waalBuildHp; u.maxHp = WONDERS.waalBuildHp; }
   }
+  // Ausrichtung zur Kartenmitte (Bauwerke ohne) / facing towards the map centre (structures without)
+  spawnFacing(s.size, u);
   s.units.push(u);
   return u;
 }
@@ -916,6 +919,8 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   const retBase = left > 0 ? pre.ret(left) : 0;
   const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(raceOdds(s, G.race, left / G.hp, true), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
+  // Ausrichtung zum Geschuetz / facing towards the gun
+  faceTowards(u, { x, y });
   t.turret.hp = Math.max(0, left);
   if (!wasAwake && owner === undefined) {
     // Geschuetze desselben bewachten Punkts erwachen mit / guns of the same guarded point wake up as well
@@ -1068,7 +1073,10 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
       }
     }
   }
+  // Ausrichtung = Richtung des letzten Schritts / facing = direction of the last step
+  const prev = r.path.length > 1 ? r.path[r.path.length - 2] : { x: u.x, y: u.y };
   u.x = r.x; u.y = r.y;
+  if (canFace(u)) u.facing = facingTowards(prev, u) ?? u.facing;
   // Bewegung setzt den Erdkernbohrer zurueck / moving resets the earth-core drill
   if (u.type === 'coreDrill') u.stillRounds = 0;
   const bt = tileAt(s, u.x, u.y)!;
@@ -1140,6 +1148,12 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   const retBase = kills ? 0 : returnFire(s, u, target, target.hp - dealt);
   const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, { ...target, hp: target.hp - dealt }), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
+  // Ausrichtung erst nach der Vorschau (es zaehlt die Ausrichtung des Ziels vor dem Angriff): Angreifer zum Ziel,
+  // ein zurueckschlagendes Ziel (auch bei Fehlschuss) zum Angreifer
+  // facing only after the preview (the target's facing before the attack counts): attacker towards the target,
+  // a target that returns fire (a miss included) towards the attacker
+  faceTowards(u, target);
+  if (retBase > 0) faceTowards(target, u);
   const splash: { unit: number; dmg: number }[] = [];
   if (has(u, 'splash')) {
     const dmg = Math.round(dealt * COMBAT.splashFactor);
@@ -1251,6 +1265,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (check !== 'ok') return fail(check);
       const to = retreatTile(s, u, target)!;
       const dmg = retreatDamage(s, u, target);
+      // Rueckzug: Schuss zum Ziel, der Schritt zurueck behaelt die Ausrichtung (Front zum Feind)
+      // retreat: shot towards the target, the step back keeps the facing (front towards the enemy)
+      const foe = { x: target.x, y: target.y };
       target.hp -= dmg;
       spare(s, target);
       addMark(s, target.x, target.y, 'scorch');
@@ -1264,7 +1281,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       // er setzt keinen Bewegungsstatus zurueck, danach ist die Einheit erschoepft
       // step back as part of the retreat (also after a move), with the normal move logic (mines, barriers, vision);
       // it resets no movement state, afterwards the unit is exhausted
-      if (unitById(s, u.id)) doMove(s, u, to, ev, true);
+      if (unitById(s, u.id)) { doMove(s, u, to, ev, true); faceTowards(u, foe); }
       u.attacked = true; u.moved = true; u.moveDone = true; u.exhausted = true;
       u.retreatReady = s.round + RETREAT.cooldown + 1;
       res = { ok: true, events: ev };

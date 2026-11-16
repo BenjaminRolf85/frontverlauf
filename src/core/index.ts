@@ -2,6 +2,7 @@
 export * from './types';
 export * from './queries';
 export * from './emplacements';
+export * from './facing';
 export { applyCommand, createGame, cloneState, continueEndless, defaultConfig, replay } from './rules';
 export { generateMap } from './mapgen';
 export { hashSeed } from './rng';
