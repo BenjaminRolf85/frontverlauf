@@ -208,6 +208,8 @@ export class Board {
    * Aim of the turrets relative to the hull (absent = rest); render state only, not in the game state.
    */
   private turretAim = new Map<number, number>();
+  /** Partie, zu der facing/turretAim gehoeren (Kachel-Array als Kennung) / game that facing/turretAim belong to (tile array as id) */
+  private facingGame: GameState['tiles'] | null = null;
   /** Leerlauf, Gangarten, Rauch und Flammen der Einheiten / unit idle, gaits, smoke and flames */
   readonly life = new UnitLife();
   /** Bewegliche Teile der Velkar-Einheiten (Rotoren, Lichtboegen, Messdrohnen) / moving parts of Velkar units (rotors, arcs, survey drones) */
@@ -1046,6 +1048,14 @@ export class Board {
 
   /** Einheiten abgleichen / sync units */
   syncUnits(s: GameState, viewer: number) {
+    // neue Partie: gemerkte Ausrichtungen gelten nicht mehr / new game: remembered facings no longer apply
+    if (this.facingGame !== s.tiles) {
+      if (this.facingGame) {
+        this.facing.clear(); this.turretAim.clear();
+        for (const v of this.units.values()) { const m = v.group.getObjectByName('model'); if (m) { m.rotation.y = 0; aimTurrets(m, undefined); } }
+      }
+      this.facingGame = s.tiles;
+    }
     const seen = new Set<number>();
     for (const u of s.units) {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
