@@ -4,12 +4,13 @@
  */
 import {
   COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
-  MODES, MARTYR, ORBITAL, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
+  MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
 import { addHazards, burning, erupts } from './hazards';
+import { placeTowers, towerCountFor } from './towers';
 import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMission, spawnBlocked, swarmHolds } from './campaign';
 import { processRandomEvents } from './events';
@@ -111,6 +112,11 @@ export function createGame(cfg: GameConfig): GameState {
     }
   });
   addHazards(s, config.hazards ?? 'none');
+  // Freie Partie: Sendetuerme nach Kartengroesse (TOWER), nach Siedlungen, Starteinheiten und Gefahren, damit sie nichts
+  // verdraengen; die Kampagne setzt ihre eigenen (setupMission), die Hoehle hat keine, das Tutorial schaltet sie ab
+  // free game: transmitter towers by map size (TOWER), after villages, start units and hazards so they displace nothing;
+  // the campaign places its own (setupMission), the cavern has none, the tutorial turns them off
+  if (!config.campaign && config.theme !== 'cavern' && config.towers !== false) placeTowers(s, towerCountFor(s.size), undefined, [TOWER.hqDistance, TOWER.freeHqDistance]);
   for (const f of s.factions) {
     const hq = hqOf(s, f.index)!;
     reveal(s, f.index, hq.x, hq.y, hq.radius + VISION.cityExtra, []);
@@ -1803,6 +1809,7 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     events: partial.events ?? false,
     hitChance: partial.hitChance ?? true,
     factionVictory: partial.factionVictory ?? true,
+    ...(partial.towers === false ? { towers: false } : {}),
     ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }

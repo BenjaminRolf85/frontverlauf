@@ -61,6 +61,12 @@ export function revealArea(s: GameState, f: number, x: number, y: number, r: num
   }
 }
 
+/** Freies, flaches Land ohne Stadt, Merkmal, Geschuetz und Einheit / free flat land without city, feature, gun and unit */
+export function openLand(s: GameState, q: Pos): boolean {
+  const t = tileAt(s, q.x, q.y);
+  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !t.temple && !unitAt(s, q.x, q.y);
+}
+
 /** Neutrale Siedlung einer Fraktion geben (mit Stadtgebiet) / give a neutral settlement to a faction (with territory) */
 export function grantCity(s: GameState, c: City, owner: number) {
   c.owner = owner;

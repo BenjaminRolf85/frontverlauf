@@ -252,6 +252,13 @@ export interface GameConfig {
   factionVictory?: boolean;
   /** Kampagnenmission / campaign mission */
   campaign?: { mission: string };
+  /**
+   * Sendetuerme in freien Partien (fehlt = an; Anzahl nach Kartengroesse, TOWER); das Tutorial schaltet sie ab, die Kampagne
+   * setzt ihre eigenen (MissionDef.towers).
+   * Transmitter towers in free games (missing = on; count by map size, TOWER); the tutorial turns them off, the campaign
+   * places its own (MissionDef.towers).
+   */
+  towers?: boolean;
   /** Anteil neutraler Siedlungen (fehlt = 1, freie Partien); Kampagne siehe CAMPAIGN_SETTLEMENTS / share of neutral settlements (missing = 1, free games); campaign see CAMPAIGN_SETTLEMENTS */
   settlements?: number;
   /**

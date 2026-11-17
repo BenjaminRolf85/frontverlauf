@@ -64,6 +64,8 @@ export function cityNameSlots(s: GameState): Map<number, CityNameSlot> {
   const pools = new Map<FactionId, { c: City; d: number; hq: boolean }[]>();
   const rest: City[] = [];
   for (const c of [...s.cities].sort(byOrder)) {
+    // Sendetuerme heissen nach ihrer Art (cityNameOf) und belegen keinen Namen / transmitter towers are named by their kind (cityNameOf) and take no name
+    if (c.tower) continue;
     const fid = cityCulture(s, c);
     if (!fid) { rest.push(c); continue; }
     const hqs = s.cities.filter((h) => h.isHQ && h.hqOf !== null && s.factions[h.hqOf]?.id === fid);

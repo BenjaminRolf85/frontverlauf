@@ -7,7 +7,8 @@ import de from '../src/i18n/de.json';
 import en from '../src/i18n/en.json';
 import { addCity, addUnit, blankGame, ok } from './helpers';
 
-const names = (s: ReturnType<typeof createGame>) => s.cities.map((c) => cityNameOf(s, c.id));
+/** Namen aller Staedte ausser Sendetuermen (die heissen alle "Sendeturm") / names of all cities except transmitter towers (all called "transmitter tower") */
+const names = (s: ReturnType<typeof createGame>) => s.cities.filter((c) => !c.tower).map((c) => cityNameOf(s, c.id));
 
 function standard(seed: number, factions: FactionId[], size: 14 | 16 | 18 = 16) {
   return createGame(defaultConfig({
@@ -49,7 +50,7 @@ describe('Regionale Stadtnamen / regional city names', () => {
         expect(new Set(list).size).toBe(list.length);
       }
       // Staedte nahe einem Hauptquartier tragen Namen dieser Fraktion / cities near an HQ carry that faction's names
-      const regional = s.cities.filter((c) => cityNameSlots(s).get(c.id)!.list !== null);
+      const regional = s.cities.filter((c) => !c.tower && cityNameSlots(s).get(c.id)!.list !== null);
       expect(regional.length).toBeGreaterThan(s.factions.length);
     }
   });

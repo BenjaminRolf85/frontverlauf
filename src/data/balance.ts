@@ -1684,14 +1684,18 @@ export const MAPGEN = {
 export const CAMPAIGN_SETTLEMENTS = { surface: 0.5, alien: 0.5, desert: 0.3, cavern: 1 };
 
 /**
- * Sendetuerme der Kampagne (nicht in der Hoehle): neutrale Orte wie Nachschublinien, einnehmbar, bilden aus, wachsen
- * nicht, keine Ausbauten. Anzahl je Karte: Felder / perTiles, begrenzt auf min..max; MissionDef.towers ueberschreibt.
- * Abstand zu Hauptquartieren hqDistance, zu Staedten cityDistance, untereinander spacing.
- * Campaign transmitter towers (not in the cavern): neutral places like supply lines, capturable, they train, do not
- * grow, no upgrades. Count per map: tiles / perTiles, clamped to min..max; MissionDef.towers overrides.
- * Distance to HQs hqDistance, to cities cityDistance, to each other spacing.
+ * Sendetuerme der Kampagne (nicht in der Hoehle) und freier Partien (Spielerwunsch; nicht im Tutorial): neutrale Orte wie
+ * Nachschublinien, einnehmbar, bilden aus, wachsen nicht, keine Ausbauten. Anzahl je Karte: Felder / perTiles, begrenzt
+ * auf min..max (11x11: 2, 14x14: 3, ab 16x16: 4); MissionDef.towers ueberschreibt. Abstand zu Hauptquartieren
+ * hqDistance, zu Staedten cityDistance, untereinander spacing. Freie Partien: reicht der Platz nicht (viele Fraktionen
+ * auf kleiner Karte), duerfen die uebrigen Tuerme bis freeHqDistance an ein Hauptquartier heran.
+ * Transmitter towers of the campaign (not in the cavern) and of free games (player request; not in the tutorial):
+ * neutral places like supply lines, capturable, they train, do not grow, no upgrades. Count per map: tiles / perTiles,
+ * clamped to min..max (11x11: 2, 14x14: 3, from 16x16: 4); MissionDef.towers overrides. Distance to HQs hqDistance, to
+ * cities cityDistance, to each other spacing. Free games: if there is not enough room (many factions on a small map), the
+ * remaining towers may come as close as freeHqDistance to an HQ.
  */
-export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, cityDistance: 2, spacing: 4 };
+export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, freeHqDistance: 3, cityDistance: 2, spacing: 4 };
 
 /**
  * Turm-Ziel der Kampagne (m1 Funkenregen): alle Sendetuerme gleichzeitig m1Rounds Runden in Folge halten; m1Towers Tuerme
