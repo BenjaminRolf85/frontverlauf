@@ -776,6 +776,13 @@
   --c-orbital-badge-ink: #15131f;
   --c-orbital-warn: #f08a24;
   --c-orbital-aim: #ff3355;
+  --c-troop-card-width: 136px;
+  --c-troop-card-width-desktop: 124px;
+  --c-troop-card-bg: #f8f2dc;
+  --c-troop-card-locked-bg: #e2d4a6;
+  --c-troop-card-icon-size: 24px;
+  --c-troop-card-stat-icon: 14px;
+  --c-troop-card-stats-gap: 8px;
   --c-action-hint-bg: #e2d4a6;
   --c-action-hint-blocked: #f08a24;
   --c-action-hint-font-size: 12px;
@@ -783,6 +790,7 @@
   --c-layout-sheet-max-width: 760px;
   --c-layout-sheet-dock-width: 420px;
   --c-layout-sheet-dock-max-height: 44vh;
+  --c-layout-sheet-dock-max-height-troops: 74vh;
   --c-layout-dialog-wide: 980px;
   --c-layout-toast-offset: 56px;
   --c-layout-toast-width: 460px;

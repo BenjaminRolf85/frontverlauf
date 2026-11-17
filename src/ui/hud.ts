@@ -6,12 +6,12 @@ import {
   type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
-  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles, rosterUnits,
+  burning, isJungle, roundsToEruption, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
-  has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
+  has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, unitAt, unitById,
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
-  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier, twinCheck,
+  blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type City, type GameState, type Unit,
 } from '../core';
@@ -32,7 +32,8 @@ import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
-import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars, trainLockReason } from './production';
+import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
+import { troopCards, troopsHtml, type TroopCard } from './troops';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
@@ -328,6 +329,10 @@ export class Hud {
   private banner: HTMLElement;
   private bottom: HTMLElement;
   private actions: ActionItem[] = [];
+  /** Truppenkarten der gewaehlten Stadt (eigene Leiste statt Aktionsleiste) / troop cards of the selected city (own strip instead of the action bar) */
+  private cards: TroopCard[] = [];
+  /** Ueberschrift der Kartenleiste (Stadt oder Stuetzpunkt) und ob nur Schiffe / heading of the card strip (city or base) and whether ships only */
+  private troopsTitle = '';
   /** Kampfhinweis zur angebotenen Angriffsaktion (Hinweiszeile) / combat note on the offered attack action (hint line) */
   private combatNote = '';
   /** Infofeld auf dem Handy aufgeklappt? / info panel expanded on phones? */
@@ -359,7 +364,7 @@ export class Hud {
     root.append(this.top, this.controls, this.banner, this.bottom);
     root.addEventListener('click', (e) => this.onClick(e));
     // Hinweiszeile: Fokus, Mauszeiger und langes Druecken zeigen die Erklaerung / hint line: focus, hover and long-press show the explanation
-    const actOf = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.action[data-act]');
+    const actOf = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.action[data-act], .troop-card[data-act]');
     this.bottom.addEventListener('focusin', (e) => { const a = actOf(e); if (a) this.setHint(a.dataset.act!); });
     this.bottom.addEventListener('pointerover', (e) => { const a = actOf(e); if (a && e.pointerType === 'mouse') this.setHint(a.dataset.act!); });
     this.bottom.addEventListener('pointerdown', (e) => {
@@ -370,6 +375,24 @@ export class Hud {
     });
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) this.bottom.addEventListener(ev, () => this.clearPress());
     this.bottom.addEventListener('contextmenu', (e) => { if (actOf(e)) e.preventDefault(); });
+    // Kartenleiste: Pfeiltasten wandern zwischen den Karten / card strip: arrow keys move between the cards
+    this.bottom.addEventListener('keydown', (e) => {
+      const card = (e.target as HTMLElement).closest<HTMLElement>('.troop-card');
+      if (!card || (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End')) return;
+      const all = [...this.bottom.querySelectorAll<HTMLElement>('.troop-card')];
+      const i = all.indexOf(card);
+      const j = e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : i + (e.key === 'ArrowRight' ? 1 : -1);
+      if (j < 0 || j >= all.length) return;
+      e.preventDefault();
+      all[j].focus();
+      all[j].scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: this.game.view.board.animations ? 'smooth' : 'auto' });
+    });
+  }
+
+  /** Aktion oder Truppenkarte nach Kennung / action or troop card by id */
+  private findAct(id: string | null | undefined): ActionItem | undefined {
+    if (!id) return undefined;
+    return this.actions.find((x) => x.id === id) ?? this.cards.find((x) => x.id === id);
   }
 
   private clearPress() {
@@ -379,7 +402,7 @@ export class Hud {
 
   /** Text der Hinweiszeile / text of the hint line */
   private hintHtml(): string {
-    const a = this.hintId ? this.actions.find((x) => x.id === this.hintId) : undefined;
+    const a = this.findAct(this.hintId);
     // nach Bewegung: halber Schaden gleich sichtbar / after moving: half damage visible right away
     if (!a && this.combatNote) return `${icon('warning', 'icon-sm')}<span class="hint-text"><strong>${esc(this.combatNote)}</strong></span>`;
     if (!a) return `${icon('info', 'icon-sm')}<span class="hint-text muted">${esc(t('hud.hintPrompt'))}</span>`;
@@ -393,7 +416,7 @@ export class Hud {
     this.hintId = id;
     const n = this.bottom.querySelector<HTMLElement>('.action-hint');
     if (!n) return;
-    const a = this.actions.find((x) => x.id === id);
+    const a = this.findAct(id);
     n.innerHTML = this.hintHtml();
     n.classList.toggle('blocked', !!a && !a.enabled);
     if (flash) { n.classList.remove('flash'); void n.offsetWidth; n.classList.add('flash'); }
@@ -402,7 +425,8 @@ export class Hud {
   /** Aktuelle Aktionen (auch fuer XR-Panels) / current actions (also for XR panels) */
   currentActions(): ActionItem[] {
     // XR zeigt keine Zweitzeile: Vorschau wieder in den Namen / XR shows no second line: put the preview back into the label
-    return this.actions.map((a) => (a.id === 'attack' || a.id === 'rocket') && a.sub ? { ...a, label: `${a.label}: ${a.sub}` } : a);
+    // XR: Truppenkarten wie Aktionen hinten anhaengen / XR: append the troop cards like actions
+    return [...this.actions, ...this.cards].map((a) => (a.id === 'attack' || a.id === 'rocket') && a.sub ? { ...a, label: `${a.label}: ${a.sub}` } : a);
   }
 
   show(on: boolean) {
@@ -415,7 +439,7 @@ export class Hud {
     if (act && this.bottom.contains(act)) {
       // nach langem Druecken nur erklaeren, nicht ausfuehren / after a long-press only explain, do not run
       if (this.suppressClick) { this.suppressClick = false; return; }
-      const a = this.actions.find((x) => x.id === act.dataset.act);
+      const a = this.findAct(act.dataset.act);
       if (a) {
         // gesperrt: Grund in der Hinweiszeile statt nur im Tooltip / disabled: reason in the hint line instead of only a tooltip
         if (!a.enabled) { this.game.play('error'); this.setHint(a.id, true); }
@@ -453,6 +477,12 @@ export class Hud {
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
+      case 'troopsPrev': case 'troopsNext': {
+        const strip = this.bottom.querySelector<HTMLElement>('.troop-strip');
+        const dir = btn.dataset.action === 'troopsNext' ? 1 : -1;
+        strip?.scrollBy({ left: dir * strip.clientWidth * 0.8, behavior: this.game.view.board.animations ? 'smooth' : 'auto' });
+        break;
+      }
       case 'actionsMore': {
         const bar = this.bottom.querySelector<HTMLElement>('.action-bar');
         bar?.scrollBy({ left: bar.clientWidth * 0.7, behavior: this.game.view.board.animations ? 'smooth' : 'auto' });
@@ -525,10 +555,13 @@ export class Hud {
     } else this.banner.hidden = true;
 
     this.actions = [];
+    this.cards = [];
+    this.troopsTitle = '';
     this.combatNote = '';
     this.portraitFor = null;
     const prevKey = this.hintKey;
     const prevScroll = this.bottom.querySelector<HTMLElement>('.action-bar')?.scrollLeft ?? 0;
+    const prevStrip = this.bottom.querySelector<HTMLElement>('.troop-strip')?.scrollLeft ?? null;
     let sheet = '';
     if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
@@ -542,6 +575,7 @@ export class Hud {
         <button type="button" class="btn end" data-action="endTurn" ${humanTurn ? '' : 'disabled'}>${icon('endTurn')}<span>${esc(t('hud.endTurn'))}</span></button>
       </nav>`;
     this.mountActionBar(prevKey === this.hintKey ? prevScroll : 0);
+    this.mountTroops(prevKey === this.hintKey ? prevStrip : null);
     const pf = this.portraitFor as { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null;
     this.portrait.animate = this.game.view.board.animations;
     if (pf) this.portrait.attach(this.bottom.querySelector<HTMLElement>('[data-portrait]'), pf.type, pf.faction, pf.carried);
@@ -563,6 +597,36 @@ export class Hud {
     };
     bar.addEventListener('scroll', cue, { passive: true });
     cue();
+  }
+
+  /**
+   * Kartenleiste: Scroll-Position halten (gleiche Auswahl), Pfeile nur bei Ueberlauf; am Stuetzpunkt zu den Schiffen.
+   * Card strip: keep the scroll position (same selection), arrows only on overflow; at a naval base jump to the ships.
+   */
+  private mountTroops(scroll: number | null) {
+    const strip = this.bottom.querySelector<HTMLElement>('.troop-strip');
+    const sec = strip?.closest<HTMLElement>('.troops');
+    if (!strip || !sec) return;
+    if (scroll !== null) strip.scrollLeft = scroll;
+    const cue = () => {
+      const more = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 2;
+      const less = strip.scrollLeft > 2;
+      sec.classList.toggle('more-right', more);
+      sec.classList.toggle('more-left', less);
+      const prev = sec.querySelector<HTMLButtonElement>('.troops-nav.prev'), next = sec.querySelector<HTMLButtonElement>('.troops-nav:not(.prev)');
+      if (prev) prev.disabled = !less;
+      if (next) next.disabled = !more;
+      sec.classList.toggle('fits', !more && !less);
+    };
+    strip.addEventListener('scroll', cue, { passive: true });
+    cue();
+  }
+
+  /** Truppenkarten der Stadt c setzen (ships: nur Schiffe) / set the troop cards of city c (ships: ships only) */
+  private setTroops(s: GameState, c: City, ships = false) {
+    const g = this.game;
+    this.cards = troopCards(s, c, (type) => void g.exec({ type: 'train', city: c.id, unitType: type }), ships);
+    this.troopsTitle = ships ? t('troops.ships', { city: cityName(s, c.id) }) : t('troops.title');
   }
 
   private weatherChip(s: GameState): string {
@@ -646,6 +710,8 @@ export class Hud {
           <p class="muted sheet-more">${esc(t('cult.cityDesc', { n: city.level + CITY.unitLimitExtra, hq: CULT.hqSlots, shrine: CULT.shrineSlots }))}</p>`;
         body += lootTag(s, viewer, city);
         this.cityNote = '';
+        // Kult: Schiffe aus der Werft, Landtruppen gesperrt (Rekrutieren im Feld) / cult: ships from the shipyard, land troops locked (recruiting in the field)
+        if (myTurn && city.owner === s.current) this.setTroops(s, city);
       } else if (city.tower) {
         // Sendeturm: bildet aus, waechst nicht, festes Einkommen / transmitter tower: trains, does not grow, fixed income
         const fid = s.factions[city.owner].id;
@@ -692,7 +758,8 @@ export class Hud {
         }
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
-        if (this.cityNote) body += `<p class="muted">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
+        // Handy: Hinweis auf gesperrte Ausbauten unter "mehr" / phone: note on locked upgrades under "more"
+        if (this.cityNote) body += `<p class="muted sheet-more">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
       }
     } else if (explored && tile.feature === 'mothership') {
       // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress
@@ -765,18 +832,25 @@ export class Hud {
       if (tags.length) body += `<div class="row sheet-more">${tags.map((x) => `<span class="tag">${esc(x)}</span>`).join('')}</div>`;
       if (myTurn && owner === s.current) this.buildActions(s, x, y);
       if (myTurn) this.wonderActions(s, x, y);
+      // eigener Marinestuetzpunkt: Schiffskarten der Stadt, zu der er gehoert / own naval base: ship cards of the city it belongs to
+      const base = tile.building === 'navalBase' && tile.territory !== null ? cityById(s, tile.territory) : undefined;
+      if (myTurn && base && base.owner === s.current && owner === s.current) this.setTroops(s, base, true);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(k === 'city' && supplyLines(s) ? 'actions.shaftActions' : `actions.${k}Actions`))}</button>`).join('')}</div>` : '';
     // Aktionsleiste mit Scroll-Hinweis und einzeiliger Erklaerung darunter / action bar with scroll cue and a one-line explanation below
-    const blocked = this.hintId ? this.actions.find((a) => a.id === this.hintId)?.enabled === false : false;
-    const actionsHtml = this.actions.length ? `<div class="action-wrap"><div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>
-      <button type="button" class="action-more" data-action="actionsMore" aria-label="${esc(t('hud.moreActions'))}" title="${esc(t('hud.moreActions'))}" hidden>${icon('next', 'icon-sm')}</button></div>
+    const blocked = this.findAct(this.hintId)?.enabled === false;
+    // Truppenkarten ueber der Aktionsleiste, eine Hinweiszeile fuer beide / troop cards above the action bar, one hint line for both
+    const troops = this.cards.length && s.current >= 0 ? troopsHtml(this.cards, s.factions[s.current].id, this.troopsTitle) : '';
+    const bar = this.actions.length ? `<div class="action-wrap"><div class="action-bar" role="toolbar">${this.actions.map(actionButton).join('')}</div>
+      <button type="button" class="action-more" data-action="actionsMore" aria-label="${esc(t('hud.moreActions'))}" title="${esc(t('hud.moreActions'))}" hidden>${icon('next', 'icon-sm')}</button></div>` : '';
+    const actionsHtml = this.actions.length || this.cards.length ? `${troops}${bar}
       <button type="button" class="action-hint ${this.hintOpen ? 'open' : ''} ${blocked ? 'blocked' : ''}" data-action="hint" aria-expanded="${this.hintOpen}" aria-live="polite" title="${esc(t('hud.hintExpand'))}">${this.hintHtml()}</button>` : '';
     // Handy: Zusatzwerte eingeklappt, Knopf klappt sie auf / phone: extra values collapsed, a button expands them
     const more = body.includes('sheet-more')
       ? `<button type="button" class="icon-btn sheet-toggle" data-action="sheet-more" aria-expanded="${this.expanded}" aria-label="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}" title="${esc(t(this.expanded ? 'hud.lessInfo' : 'hud.moreInfo'))}">${icon(this.expanded ? 'chevronDown' : 'chevronUp')}</button>` : '';
-    return `<div class="sheet-head">${head}${more}${iconButton('info', t('actions.details'), 'details')}${iconButton('close', t('actions.close'), 'deselect')}</div>${body}${switcher}${actionsHtml}`;
+    // Desktop: Infoteil scrollt, Truppen und Aktionen bleiben sichtbar / desktop: the info part scrolls, troops and actions stay visible
+    return `<div class="sheet-head">${head}${more}${iconButton('info', t('actions.details'), 'details')}${iconButton('close', t('actions.close'), 'deselect')}</div><div class="sheet-info">${body}${switcher}</div>${actionsHtml}`;
   }
 
   private unitActions(s: GameState, u: Unit) {
@@ -1018,27 +1092,9 @@ export class Hud {
       this.actions.push({ id: 'terraform-city', icon: 'build', label: t('xeno.terraform'), cost: XENO.terraformCost, variant: 'primary', enabled: chk === 'ok',
         reason: chk === 'ok' ? t('xeno.cityNeedsTerraform') : this.err(chk), run: () => void g.exec({ type: 'terraform', x: c.x, y: c.y }) });
     }
-    // Kult bildet nicht aus, auch den Erdkernbohrer nicht (der Prophet ruft ihn) / the cult does not train, not even the earth-core drill (the prophet calls it up)
-    if (isCultFaction(s, c.owner!)) return;
-    // Menschen: gesperrte Einheiten (Produktionsstaette fehlt) mit Grund hinter den verfuegbaren / humans: locked units (site missing) with a reason after the available ones
-    const locked: ActionItem[] = [];
-    for (const type of rosterUnits(s, c.owner!)) {
-      const st = UNITS[type];
-      if (st.cost === null) continue;
-      if (st.tech && !s.factions[c.owner!].techs.includes(st.tech)) continue;
-      const chk = trainCheck(s, c, type);
-      // Meridon "Zwei fuer einen": 2x im Knopf, Grund, falls nur eine kommt / Meridon "Two for One": 2x on the button, reason if only one comes
-      const twin = twinCheck(s, c, type);
-      const twinNote = twin === 'twin' ? t('twin.desc', { unit: t(`units.${type}`) }) : twin ? t(`twin.${twin}`) : '';
-      const item: ActionItem = {
-        id: `train-${type}`, icon: UNIT_ICON[type], label: twin === 'twin' ? t('twin.label', { unit: t(`units.${type}`) }) : t(`units.${type}`), sub: unitNickname(s.factions[c.owner!].id, type), cost: unitCost(s, c.owner!, type)!,
-        desc: twinNote ? `${twinNote} ${unitStatsLine(type, s.factions[c.owner!].id)}` : unitStatsLine(type, s.factions[c.owner!].id),
-        enabled: chk === 'ok', reason: chk === 'ok' ? undefined : chk === 'computeMissing' ? t('nexus.computeNeed', { n: st.compute ?? 0 }) : chk === 'buildingMissing' ? trainLockReason(s, c, type) : this.err(chk),
-        run: () => void g.exec({ type: 'train', city: c.id, unitType: type }),
-      };
-      (chk === 'buildingMissing' ? locked : this.actions).push(item);
-    }
-    this.actions.push(...locked);
+    // Ausbildung: eigene Kartenleiste "Truppen" mit allen Gattungen statt Knoepfen in der Aktionsleiste
+    // training: own card strip "Troops" with all types instead of buttons in the action bar
+    this.setTroops(s, c);
   }
 
   /**

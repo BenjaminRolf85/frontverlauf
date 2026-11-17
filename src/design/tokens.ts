@@ -776,10 +776,17 @@ export const components = {
   action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px', subMaxWidthWide: '148px' },
   /** Orbitallaser-Knopf: Abklingzeit-Abzeichen, Warnung bei eigenen Treffern / orbital laser button: cooldown badge, warning on own hits */
   orbital: { ready: c.green500, wait: c.paper300, badgeInk: semantic.text, warn: semantic.warning, aim: semantic.orbitalAim },
+  /**
+   * Truppenkarten im Stadtfeld (waagerecht wischbare Leiste): Breite je Karte, auf dem Desktop etwas schmaler, damit drei
+   * ins angedockte Infofeld passen; gesperrte Karten auf eingesenkter Flaeche.
+   * Troop cards in the city panel (horizontally swipeable strip): width per card, a bit narrower on desktop so three fit
+   * into the docked info panel; locked cards on a sunken surface.
+   */
+  troopCard: { width: '136px', widthDesktop: '124px', bg: semantic.surfaceRaised, lockedBg: semantic.surfaceSunken, iconSize: primitives.size.icon, statIcon: '14px', statsGap: primitives.space[2] },
   /** Hinweiszeile unter der Aktionsleiste / hint line below the action bar */
   actionHint: { bg: semantic.surfaceSunken, blocked: semantic.warning, fontSize: primitives.fontSize.xs, accent: primitives.borderWidth.thick },
   layout: {
-    sheetMaxWidth: '760px', sheetDockWidth: '420px', sheetDockMaxHeight: '44vh', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
+    sheetMaxWidth: '760px', sheetDockWidth: '420px', sheetDockMaxHeight: '44vh', sheetDockMaxHeightTroops: '74vh', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',
   },
   fx: { burstSize: '120px', burstStroke: '3' },
