@@ -690,6 +690,7 @@
     "slowed": "Gebremst: nur 1 Feld",
     "perRoundUpkeep": "{net} pro Runde ({n} Einkommen, −{up} Sold)",
     "upkeepUnit": "Sold {n} pro Runde",
+    "upkeepUnitApprox": "Sold etwa {n} pro Runde",
     "upkeepFree": "Kein Sold (Stammtruppe)",
     "moreInfo": "Mehr Werte anzeigen",
     "lessInfo": "Weniger Werte anzeigen",
@@ -699,7 +700,8 @@
     "hintExpand": "Erklärung ganz anzeigen",
     "moreActions": "Weitere Aktionen",
     "unitLimitRule": "Einheitenlimit: Stufe + 1 = {lv}, dazu {up} durch Ausbauten (+{per} je Ausbau).",
-    "unitLimitUpgrades": "(+{n} Ausbauten)"
+    "unitLimitUpgrades": "(+{n} Ausbauten)",
+    "upkeepTotal": "Fraktion: {pct} % weniger Sold auf die Summe, einmal aufgerundet; zusammen {n} Sterne pro Runde."
   },
   "actions": {
     "confirmTitle": "Bist du sicher?",
