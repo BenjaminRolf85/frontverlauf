@@ -18,21 +18,21 @@ const HALF_PI = Math.PI / 2;
 const V = (a: V3) => new THREE.Vector3(a[0], a[1], a[2]);
 
 /** Gliedsegment als gefaster Quader / limb segment as chamfered box */
-function limb(b: Builder, a: V3, c: V3, w: number, d: number, col: ColorLike, lite: boolean) {
+export function limb(b: Builder, a: V3, c: V3, w: number, d: number, col: ColorLike, lite: boolean) {
   b.segment(V(a), V(c), (l) => (lite ? geo.box(w, l + 0.01, d) : geo.rbox(w, l + 0.01, d, Math.min(w, d) * 0.25)), col);
 }
 
-function joint(b: Builder, p: V3, r: number, lite: boolean, col: ColorLike = mat.gunmetal) {
+export function joint(b: Builder, p: V3, r: number, lite: boolean, col: ColorLike = mat.gunmetal) {
   b.add(geo.sphere(r, lite ? 6 : 10, lite ? 3 : 5), col, { p });
 }
 
 /** Sechseckpaneel auf einer Flaeche / hexagon panel on a face */
-function hexPanel(b: Builder, p: V3, r: number, col: ColorLike, rot: V3) {
+export function hexPanel(b: Builder, p: V3, r: number, col: ColorLike, rot: V3) {
   b.add(geo.cyl(r, r, 0.005, 6), col, { p, r: rot });
 }
 
 /** Leuchtspulen entlang +z / glowing coils along +z */
-function coils(b: Builder, x: number, y: number, z0: number, z1: number, n: number, r: number, square = false) {
+export function coils(b: Builder, x: number, y: number, z0: number, z1: number, n: number, r: number, square = false) {
   for (let i = 0; i < n; i++) {
     const z = z0 + ((i + 0.5) / n) * (z1 - z0);
     b.add(geo.torus(r, r * 0.16, 3, square ? 4 : 10), mat.cyanGlow, { p: [x, y, z], r: [0, 0, square ? Math.PI / 4 : 0] });

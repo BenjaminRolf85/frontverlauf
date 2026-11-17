@@ -57,7 +57,8 @@ describe('Panzersperre / tank barrier', () => {
     // eine Runde spaeter wieder normal / back to normal one round later
     ok(s, { type: 'move', unit: j.id, to: { x: 6, y: 6 } });
     endTurn(s); untilTurnOf(s, 0);
-    expect(Math.max(...reachable(s, j).map((p) => Math.max(Math.abs(p.x - 6), Math.abs(p.y - 6))))).toBe(2);
+    // wieder volle 3 Felder (Jeep) / back to the full 3 tiles (jeep)
+    expect(Math.max(...reachable(s, j).map((p) => Math.max(Math.abs(p.x - 6), Math.abs(p.y - 6))))).toBe(3);
   });
 
   it('eigene Fahrzeuge, Infanterie und Hubschrauber sind nicht betroffen / own vehicles, infantry and helicopters are unaffected', () => {

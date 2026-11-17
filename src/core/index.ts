@@ -10,6 +10,8 @@ export { dist, idx, inBounds, isLand, isWater, neighbors, tileAt, area } from '.
 export * from './hazards';
 export * from './history';
 export * from './orbital';
+// Schlachtfeld-Narben (optisch) / battlefield scars (visual)
+export * from './scars';
 // Kriegsplaene und Fanatiker-Tempel (m4) / war plans and Fanatic temple (m4)
 export * from './temple';
 export {

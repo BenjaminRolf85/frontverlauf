@@ -118,6 +118,8 @@ describe('Einheiten mit Turm / units with a turret', () => {
     const want: [UnitTypeId, FactionId, number][] = [
       ['antiAir', 'korvat', 1], ['antiAir', 'meridon', 1], ['antiAir', 'velkar', 1], ['reliquary', 'alvenia', 1], ['titan', 'nexus', 1],
       ['destroyer', 'dravon', 2], ['battleship', 'korvat', 3],
+      // Steppenkoloss (Korvat) und Flammenwerferpanzer (NEXUS) / Steppe Colossus (Korvat) and flamethrower tank (NEXUS)
+      ['steppeColossus', 'korvat', 1], ['flameTank', 'nexus', 1],
     ];
     for (const [type, f, n] of want) expect(turretsOf(unitGeometry(type, f, null)), `${type} ${f}`).toHaveLength(n);
     // ohne Turm: Infanterie, Tesla-Panzer (feste Spulen) / without a turret: infantry, Tesla tank (fixed coils)

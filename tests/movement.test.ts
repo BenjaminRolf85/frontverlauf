@@ -12,7 +12,8 @@ function mv() {
 const keys = (r: { x: number; y: number }[]) => r.map((p) => `${p.x},${p.y}`).sort();
 
 describe('Bewegung / movement', () => {
-  it('infantry moves 1 tile (8 neighbours), jeep 2', () => {
+  // Jeep: 3 Felder (Spielerwunsch, vorher 2) / jeep: 3 tiles (player request, before 2)
+  it('infantry moves 1 tile (8 neighbours), jeep 3', () => {
     const s = mv();
     const i = addUnit(s, 'infantry', 0, 5, 5);
     expect(reachable(s, i)).toHaveLength(8);
@@ -20,7 +21,8 @@ describe('Bewegung / movement', () => {
     const r = keys(reachable(s, j));
     expect(r).toContain('4,5');
     expect(r).not.toContain('5,5'); // eigene Einheit, kein Endfeld / own unit, no end tile
-    expect(r).not.toContain('2,8');
+    expect(r).toContain('2,8');
+    expect(r).not.toContain('2,9');
   });
 
   it('a unit moves once per turn', () => {
@@ -93,9 +95,13 @@ describe('Bewegung / movement', () => {
     revealAll(s2, 0);
     const j2 = addUnit(s2, 'jeep', 0, 3, 3);
     addUnit(s2, 'infantry', 1, 5, 3);
-    // jede Route zu (5,1) fuehrt durch (4,x) neben dem Gegner / every route to (5,1) passes next to the enemy... check 6,3 unreachable
-    expect(keys(reachable(s2, j2))).not.toContain('5,1');
-    expect(keys(reachable(s2, j2))).not.toContain('5,5');
+    // kein Weg fuehrt durch ein Feld neben dem Gegner hindurch (der Jeep faehrt 3 Felder und umfaehrt ihn)
+    // no path passes through a tile next to the enemy (the jeep drives 3 tiles and goes around it)
+    const r2 = reachable(s2, j2);
+    for (const q of r2) expect(q.path.slice(0, -1).every((p) => Math.max(Math.abs(p.x - 5), Math.abs(p.y - 3)) > 1), `${q.x},${q.y}`).toBe(true);
+    // hinter dem Gegner (6,3) nur mit Halt daneben, also nicht erreichbar / behind the enemy (6,3) only with a stop next to it, so unreachable
+    expect(keys(r2)).not.toContain('6,3');
+    expect(keys(r2)).not.toContain('7,3');
   });
 
   it('zone of control does not apply to factions at peace', () => {
@@ -123,7 +129,8 @@ describe('Bewegung / movement', () => {
     const j = addUnit(s, 'jeep', 0, 3, 5);
     s.factions[1].relations[0] = 'peace'; s.factions[0].relations[1] = 'peace'; // keine ZOC / no ZOC
     addUnit(s, 'infantry', 1, 4, 5);
-    expect(keys(reachable(s, j))).toEqual(['1,5', '2,5']);
+    // Jeep 3 Felder: nach links bis 0,5 / jeep 3 tiles: to the left up to 0,5
+    expect(keys(reachable(s, j))).toEqual(['0,5', '1,5', '2,5']);
   });
 
   it('fresh or exhausted units do not move', () => {

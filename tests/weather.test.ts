@@ -10,7 +10,8 @@ function roundWith(seed: number, w: string): number {
 }
 
 function g() {
-  const s = blankGame({ stars: 0, weather: true });
+  // Dravon zuerst: Korvat-Artillerie hat Reichweite 4 (RANGE_BONUS) / Dravon first: Korvat artillery has range 4 (RANGE_BONUS)
+  const s = blankGame({ stars: 0, weather: true, factions: ['dravon', 'korvat'] });
   addCity(s, 1, 1, 0, { hq: true }); addCity(s, 10, 10, 1, { hq: true });
   revealAll(s, 0); revealAll(s, 1);
   return s;

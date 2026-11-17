@@ -3,10 +3,10 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  unitClass, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
+  unitClass, twinCheck, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  unitCost, unitLimit, upgradeCheck, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
 } from '../core';
@@ -489,6 +489,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     tank: army >= 4 ? 0.14 : 0.05,
     teslaTank: army >= 4 ? 0.14 : 0.05,
     reliquary: army >= 4 ? 0.14 : 0.05,
+    steppeColossus: army >= 4 ? 0.2 : 0.08,
     // einzigartige Einheiten / unique units
     steppeRider: unexplored ? 0.18 : 0.1,
     stormbreaker: ctx.hostileCities.length || ctx.enemies.length ? 0.22 : 0.1,
@@ -498,7 +499,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   // Qualitaet je Typ / quality per type
   const quality: Partial<Record<UnitTypeId, number>> = {
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
-    lightWarden: 0.7, sunLance: 1, tank: 1.2, teslaTank: 1.2, reliquary: 1.2,
+    lightWarden: 0.7, sunLance: 1, tank: 1.2, teslaTank: 1.2, reliquary: 1.2, steppeColossus: 1.3,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
@@ -513,12 +514,14 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
-    let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
+    // Meridon: zwei zum Preis von einer, wenn beide passen / Meridon: two for the price of one if both fit
+    const twin = twinCheck(s, c, t) === 'twin' ? AI.twinValue : 1;
+    let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5 * twin;
     // Pioniere nur noch knapp vor der Infanterie: sie kommen jetzt aus jeder Kaserne / pioneers only just ahead of infantry: they now come from every barracks
     if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery' || t === 'sunLance')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
-    sc -= unitCost(s, f, t)! / 250;
+    sc -= unitCost(s, f, t)! / 250 / twin;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;
@@ -527,7 +530,10 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
 /** Kult und NEXUS: Armeemischung / cult and NEXUS: army mix */
 const ROSTER_SHARE: Partial<Record<UnitTypeId, number>> = {
   zealot: 0.4, torchbearer: 0.2, prophet: 0.1, doomBuggy: 0.12, rocketCart: 0.12, doomCrawler: 0.18,
-  android: 0.35, spider: 0.22, quadDrone: 0.12, railgun: 0.12, titan: 0.2,
+  android: 0.2, spider: 0.22, quadDrone: 0.12, railgun: 0.12, titan: 0.2,
+  // NEXUS: Cyborgs loesen Androiden ab, Flammenwerferpanzer gegen Fusstruppen, Kamikaze-Drohnen als billige Jaeger
+  // NEXUS: cyborgs take over from androids, flamethrower tanks against foot troops, kamikaze drones as cheap hunters
+  cyborg: 0.35, flameTank: 0.16, kamikazeDrone: 0.11,
 };
 function chooseRosterUnit(ctx: Ctx, urgent: boolean, only?: UnitTypeId[]): UnitTypeId | null {
   const { s, f } = ctx;
@@ -640,7 +646,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   const deficit = ctx.desiredArmy - ctx.my.length;
   // Sold: neue Einheiten nur, wenn das Netto-Einkommen sie traegt / upkeep: new units only if net income carries them
   const net = netIncome(s, f);
-  const upFor = (t: UnitTypeId) => (ctx.my.length >= UPKEEP.freeUnits ? UPKEEP.flat[t] ?? Math.ceil((UNITS[t].cost ?? 0) * UPKEEP.share) : 0);
+  // Korvat: Fraktionsfaktor auf den Sold (UPKEEP.faction) / Korvat: faction factor on upkeep (UPKEEP.faction)
+  const upFor = (t: UnitTypeId) => (ctx.my.length >= UPKEEP.freeUnits ? (UPKEEP.flat[t] ?? Math.ceil((UNITS[t].cost ?? 0) * UPKEEP.share)) * upkeepFactor(s, f) : 0);
   // Kult bildet in Staedten nicht aus / the cult does not train in cities
   for (const c of isCultFaction(s, f) ? [] : ctx.myCities) {
     if (unitAt(s, c.x, c.y) || supportedUnits(s, c) >= unitLimit(s, c)) continue;
@@ -651,7 +658,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     const mk = (t: UnitTypeId, factor: number) => {
       if (trainCheck(s, c, t) !== 'ok' && trainCheck(s, c, t) !== 'notEnoughStars') return;
       const cost = unitCost(s, f, t)!;
-      if (!urgent && net - upFor(t) < 0) return;
+      // zwei Einheiten kosten doppelten Sold / two units cost double upkeep
+      if (!urgent && net - upFor(t) * (twinCheck(s, c, t) === 'twin' ? 2 : 1) < 0) return;
       let value: number;
       if (urgent) value = cost * 3.5;
       else if (deficit > 0) value = cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW;
@@ -660,6 +668,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       // humans: train the first unit of a new production site (except the barracks) promptly, for a mixed army
       const site = usesSites(s, f) ? siteOf(t) : null;
       if (!urgent && s.round >= 3 && site && site !== 'trainingCamp' && !ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) value = Math.max(value, cost * 2.2);
+      // Meridon "Zwei fuer einen": doppelter Wert, wenn beide passen; sonst waere der zweite Platz verschenkt
+      // Meridon "Two for One": double value if both fit; otherwise the second slot would be wasted
+      if (twinCheck(s, c, t) === 'twin') value *= AI.twinValue;
       value = value * factor + cost * ctx.pf - front * 0.05;
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
@@ -882,6 +893,22 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       if (prof.difficulty === 'easy') value *= 0.5;
       buys.push({ cmd, cost, value, save: up !== 'bunker' || !front });
     }
+  }
+
+  // Stufe kaufen: so viel wert wie die Bevoelkerung, die der Aufstieg sonst braucht (popVal je Punkt), plus Platz fuer
+  // Einheiten, wenn die Stadt voll ist und Truppen fehlen. Der Preis ist gut doppelt so hoch, also kauft die KI erst, wenn
+  // sie reich ist (minRatio sinkt mit dem Vorrat); nicht in bedrohten Staedten.
+  // buy level: worth as much as the population the level-up would otherwise need (popVal per point), plus room for units
+  // when the city is full and troops are missing. The price is a good twice as high, so the AI only buys when rich
+  // (minRatio falls with the treasury); not in threatened cities.
+  for (const c of ctx.myCities) {
+    const chk = buyLevelCheck(s, f, c);
+    if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+    if (ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0)) continue;
+    let value = levelUpCost(s, c) * popVal * 0.9;
+    if (deficit > 0 && supportedUnits(s, c) >= unitLimit(s, c)) value += 15 * prof.militaryW;
+    if (prof.difficulty === 'easy') value *= 0.5;
+    buys.push({ cmd: { type: 'buyLevel', city: c.id }, cost: buyLevelCost(c), value, save: false });
   }
 
   // Botschaften / embassies

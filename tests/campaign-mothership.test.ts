@@ -149,7 +149,8 @@ describe('m2: Aufbau / setup', () => {
     const u = s.units.find((x) => x.owner === 0 && x.type === 'jeep')!;
     placeAt(s, u, spot(s));
     for (const r of reachable(s, u)) expect(shipDist(ship, r), `${r.x},${r.y}`).toBeGreaterThan(0);
-    const flyer = s.units.find((x) => x.owner === 0 && x.type === 'tank')!;
+    // Korvat: Steppenkoloss statt Panzer (VARIANTS) / Korvat: Steppe Colossus instead of the tank (VARIANTS)
+    const flyer = s.units.find((x) => x.owner === 0 && x.type === 'steppeColossus')!;
     Object.assign(flyer, { type: 'heli', fuel: 5 });
     placeAt(s, flyer, spot(s));
     for (const r of reachable(s, flyer)) expect(shipDist(ship, r)).toBeGreaterThan(0);

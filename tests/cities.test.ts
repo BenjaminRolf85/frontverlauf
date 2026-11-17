@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { captureKind, cityIncome, levelUpCost, rewardOptions, score, unitLimit, cityTiles, trainCheck } from '../src/core';
-import { CITY, SCORE, INCOME } from '../src/data/balance';
+import { CITY, SCORE, INCOME, UNITS } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, explored, fails, ok, setTerrain, tile, unit, untilTurnOf } from './helpers';
 
 function growGame() {
@@ -112,10 +112,11 @@ describe('Wachstum / growth', () => {
     expect(score(s, 0)).toBe(sc + SCORE.govQuarter);
     s.pendingRewards.push({ cityId: hq.id, level: 6 });
     ok(s, { type: 'reward', city: hq.id, choice: 'b' });
-    const tank = s.units.find((u) => u.type === 'tank')!;
+    // Korvat (Fraktion 0): Steppenkoloss statt Panzer (VARIANTS) / Korvat (faction 0): Steppe Colossus instead of the tank (VARIANTS)
+    const tank = s.units.find((u) => u.type === 'steppeColossus')!;
     expect(tank).toBeDefined();
     expect(tank.owner).toBe(0);
-    expect(tank.hp).toBe(40);
+    expect(tank.hp).toBe(UNITS.steppeColossus.hp);
   });
 
   it('no reward without pending level-up', () => {
@@ -158,7 +159,9 @@ describe('Einheitenlimit und Ausbildung / unit limit and training', () => {
     const c = addCity(s, 5, 5, 0, { hq: true });
     const e = addCity(s, 9, 9, 1, { hq: true });
     expect(trainCheck(s, c, 'jeep')).toBe('buildingMissing');
-    expect(trainCheck(s, c, 'tank')).toBe('buildingMissing');
+    // Korvat: Steppenkoloss statt Panzer, ebenfalls aus dem Panzerwerk / Korvat: Steppe Colossus instead of the tank, also from the tank works
+    expect(trainCheck(s, c, 'tank')).toBe('invalid');
+    expect(trainCheck(s, c, 'steppeColossus')).toBe('buildingMissing');
     expect(trainCheck(s, c, 'landingBoat')).toBe('invalid');
     fails(s, { type: 'train', city: e.id, unitType: 'infantry' }, 'notYourCity');
     s.factions[0].stars = 7;

@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, createGame, effectiveMove, effectiveRange, hasWeather, hitOdds, missionConfig, quakeFor, quakeLocked, reachable, unitClass,
+  applyCommand, createGame, effectiveMove, effectiveRange, hasWeather, hitOdds, missionConfig, quakeFor, quakeLocked, reachable, unitClass, unitRange,
   visionRadius, weather, weatherFor, MISSIONS, type GameState, type Unit,
 } from '../src/core';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
@@ -53,7 +53,8 @@ describe('Wetter je Welt / weather per world', () => {
     const art = addUnit(s, 'artillery', 0, 3, 3);
     const inf = addUnit(s, 'infantry', 0, 5, 5);
     const heli = addUnit(s, 'heli', 0, 7, 7);
-    expect(effectiveRange(s, art)).toBe(UNITS.artillery.range + WEATHER.dust.rangeDelta);
+    // Korvat-Artillerie: Reichweite 4 (RANGE_BONUS), der Sandsturm kuerzt weiter / Korvat artillery: range 4 (RANGE_BONUS), the dust storm still cuts
+    expect(effectiveRange(s, art)).toBe(unitRange('artillery', 'korvat') + WEATHER.dust.rangeDelta);
     expect(effectiveRange(s, inf)).toBe(UNITS.infantry.range);
     expect(effectiveMove(s, heli)).toBe(UNITS.heli.move + WEATHER.dust.moveDelta);
     const clear = withWeather('clear', 'desert');
