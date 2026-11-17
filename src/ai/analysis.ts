@@ -11,6 +11,7 @@ import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
 import { carrierGoal, plansGoals } from './temple';
+import type { OpSlot } from './operations';
 
 export type GoalKind =
   | 'village' | 'city' | 'bunker' | 'explore' | 'defend' | 'hunt' | 'stage' | 'refuel' | 'retreat' | 'home'
@@ -31,6 +32,8 @@ export interface Goal {
   targetId?: number;
   /** Kampagnen-Haltefeld: Artillerie haelt nicht / campaign hold tile: artillery does not hold */
   hold?: boolean;
+  /** Rolle in einer Operation (operations.ts) / role in an operation (operations.ts) */
+  op?: OpSlot;
 }
 
 export interface Ctx {
@@ -71,6 +74,10 @@ export interface Ctx {
   siegeCaution: number;
   /** Staedte, die gleich ausbilden koennen / cities that can train right away */
   trainable: Set<number>;
+  /** Rollen in Operationen je Einheit (leer ohne Taktik) / roles in operations per unit (empty without tactics) */
+  ops: Map<number, OpSlot>;
+  /** Angriffsreihenfolge abstimmen (Rueckenangriffe) / coordinate the attack order (rear attacks) */
+  coordinate: boolean;
 }
 
 // Feldcache je Zustand und Zug / field cache per state and turn
@@ -166,7 +173,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     s, f, fa, prof: profileFor(s, f), n, size, my, myCities, enemies, hostileCities, neutralCities, threat,
     points, conquest: !points, roundsLeft, pf,
     landOk, seaOk, landCost, seaCost, navalOwn, realLand, fields: fc.fields, goals: new Map(), navalNeed: false,
-    desiredArmy: 0, trainable: new Set(), siege: false, siegeCaution: 1,
+    desiredArmy: 0, trainable: new Set(), siege: false, siegeCaution: 1, ops: new Map(), coordinate: false,
   };
   const prof = ctx.prof;
   // Punktemodus: Wirtschaft vor Militaer / points mode: economy before military
