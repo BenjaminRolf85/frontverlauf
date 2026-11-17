@@ -78,9 +78,9 @@ describe('Ausrichtung / facing', () => {
 
   it('ohne Gegenschlag dreht sich das Ziel nicht / without return fire the target does not turn', () => {
     const s = game();
-    // Scharfschuetze auf Distanz 2: Infanterie kann nicht zurueckschiessen / sniper at range 2: infantry cannot return fire
+    // Scharfschuetze auf Distanz 2: der Panzer schiesst nur auf 1 Feld zurueck (UNITS.tank.returnRange) / sniper at range 2: the tank returns fire at 1 tile only
     const a = addUnit(s, 'sniper', 0, 3, 5);
-    const d = addUnit(s, 'infantry', 1, 5, 5);
+    const d = addUnit(s, 'tank', 1, 5, 5);
     d.facing = E;
     const r = ok(s, { type: 'attack', unit: a.id, target: d.id });
     expect((r.events.find((e) => e.t === 'attack') as { ret: number }).ret).toBe(0);

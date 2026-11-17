@@ -401,7 +401,9 @@ describe('NEXUS: neue Einheiten / NEXUS: new units', () => {
 describe('KI-Partien mit den neuen Einheiten / AI games with the new units', () => {
   it('Eroberung mit Korvat, Meridon und NEXUS: keine Fehlbefehle, Drohnen und Zwillinge im Einsatz / conquest with Korvat, Meridon and NEXUS: no failed commands, drones and twins in use', () => {
     const ids: FactionId[] = ['nexus', 'meridon', 'korvat', 'zyrr'];
-    const s = createGame(defaultConfig({ seed: 7, size: 14, mode: 'conquest', mapType: 'continent', factionVictory: false,
+    // Seed 7 setzte mit dem Angriff von hinten keine Kamikaze-Drohne mehr ein (NEXUS frueh ausgeschieden), daher Seed 10
+    // seed 7 no longer used a kamikaze drone with the attack from behind (NEXUS eliminated early), hence seed 10
+    const s = createGame(defaultConfig({ seed: 10, size: 14, mode: 'conquest', mapType: 'continent', factionVictory: false,
       factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
     let fails = 0, kamikaze = 0, twins = 0;
     const types = new Set<UnitTypeId>();
