@@ -3584,6 +3584,9 @@
   },
   "lore": {
     "button": "Story as a comic",
+    "buttonAudio": "Story as a comic and audio",
+    "listen": "Audio story",
+    "listenNote": "narrated in German, about {min} minutes",
     "title": "{name}: Story",
     "textToggle": "Text of the comic page",
     "text": {

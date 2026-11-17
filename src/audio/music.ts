@@ -51,6 +51,8 @@ const FADE_MS = 1800;
 const VOLUME = 0.55;
 /** Musik waehrend eines Stingers / music level during a stinger */
 const DUCK = 0.2;
+/** Musik waehrend einer gesprochenen Geschichte / music level during a narrated story */
+const NARRATION_DUCK = 0.12;
 
 export class MusicPlayer {
   /** Dateien spielbar? Wird beim ersten Fehler auf false gesetzt / files playable? set to false on the first error */
@@ -60,6 +62,8 @@ export class MusicPlayer {
   private faction: FactionId | null = null;
   private track = '';
   private duck = 1;
+  /** laeuft gerade eine gesprochene Geschichte? / is a narrated story playing? */
+  private narrating = false;
   private enabled = true;
   private unlocked = false;
   private counter = 0;
@@ -108,14 +112,27 @@ export class MusicPlayer {
 
   /** kurzer Stinger ueber der Musik (Stadt erobert/verloren) / short stinger over the music (city won/lost) */
   sting(kind: MusicSting) {
-    if (!this.ready()) return;
+    // keine Stinger ueber einer gesprochenen Geschichte / no stingers over a narrated story
+    if (!this.ready() || this.narrating) return;
     const list = STINGS[kind];
     const a = this.element(list[this.counter++ % list.length]);
     a.volume = VOLUME;
     this.duckTo(DUCK);
-    a.addEventListener('ended', () => this.duckTo(1), { once: true });
-    a.play().catch(() => this.duckTo(1));
+    a.addEventListener('ended', () => this.duckTo(this.rest()), { once: true });
+    a.play().catch(() => this.duckTo(this.rest()));
   }
+
+  /**
+   * Gesprochene Geschichte beginnt oder endet: die Musik wird leise gestellt und danach wieder lauter.
+   * A narrated story starts or ends: the music is turned down and afterwards up again.
+   */
+  narration(on: boolean) {
+    this.narrating = on;
+    this.duckTo(this.rest());
+  }
+
+  /** Grundpegel ohne Stinger / base level without stingers */
+  private rest() { return this.narrating ? NARRATION_DUCK : 1; }
 
   private ready() { return this.available && this.enabled && this.unlocked; }
 

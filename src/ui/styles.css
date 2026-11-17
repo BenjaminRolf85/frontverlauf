@@ -717,6 +717,10 @@ input[type="text"], select {
 .lore-page summary { cursor: pointer; min-height: var(--p-size-touch); display: flex; align-items: center; }
 @media (min-width: 900px) { .lore-page.zoomed img { width: 100%; } }
 .lore-actions { justify-content: flex-end; margin-top: var(--p-space-2); }
+.lore-audio { display: flex; flex-direction: column; gap: var(--p-space-2); padding: var(--p-space-2) var(--p-space-3); margin-bottom: var(--p-space-2); background: var(--s-surface-sunken); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md); }
+.lore-audio-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-2); font-weight: 700; color: var(--s-text); }
+.lore-audio-note { font-weight: 400; font-size: var(--p-font-size-sm); color: var(--s-text-muted); }
+.lore-audio audio { width: 100%; min-height: var(--p-size-touch); }
 /* Prolog: Bild begrenzen, damit "Zur Front" ohne Scrollen sichtbar bleibt / prologue: cap the image so the call to action stays visible */
 .prologue .lore-page:not(.zoomed) img { max-height: max(30vh, calc(100vh - 18rem)); max-height: max(30dvh, calc(100dvh - 18rem)); width: auto; max-width: 100%; align-self: center; }
 .overlay.above-screen { z-index: calc(var(--p-z-overlay) + 1); }

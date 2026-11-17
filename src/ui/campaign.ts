@@ -19,7 +19,7 @@ import {
 import { button, esc, factionBadge, factionChip, iconButton, openDialog, toast } from './components';
 import { icon } from './icons';
 import { leaderPortrait } from './leaders';
-import { openPrologue } from './lore';
+import { narrationHtml, openPrologue } from './lore';
 import { attachOverworld } from './overworld';
 import { raceList, truceLine } from './mothership';
 import { plansPanelText, plansTip } from './temple';
@@ -333,6 +333,7 @@ function finaleHtml(x: MissionCtx): string {
   const closings: Panel[] = ACTS.map((a) => ({ speaker: 'narration', text: fill(t(`campaign.acts.a${a}.closing`), textVars(x)) }));
   const twist: Panel[] = tList('campaign.twist').map((text) => ({ speaker: 'narration', text: fill(text, textVars(x)) }));
   return `<h3 class="display">${esc(t('campaign.epilogueTitle'))}</h3>
+    ${narrationHtml('epilog')}
     ${comicPanels(x, closings)}
     ${comicPanels(x, [{ speaker: 'hq', text: fill(t(`campaign.epilogue.${x.f}`), textVars(x)) }])}
     <h3 class="display twist-title">${esc(t('campaign.twistTitle'))}</h3>
