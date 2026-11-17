@@ -616,6 +616,33 @@ export const TWIN_TRAINING = {
   units: { meridon: ['infantry'] } as Partial<Record<FactionId, UnitTypeId[]>>,
 };
 
+/**
+ * Werft der Kuestenstaedte: eine Stadt mit Wasser im Gebiet oder direkt neben dem Stadtfeld kauft Schiffe. Das Schiff
+ * erscheint leer (ohne getragene Einheit) auf einem freien Wasserfeld an der Stadt; eine Landeinheit steigt ein, indem sie
+ * von einem Nachbarfeld auf das leere Schiff zieht (danach wie beim Einschiffen: LP der Einheit, erschoepft).
+ * Transportboote brauchen weder Marinestuetzpunkt noch Forschung (Menschen); Kult und NEXUS brauchen Kuestenwirtschaft
+ * wie beim Einschiffen, die Zyrr waten und haben keine Schiffe. Kriegsschiffe kosten ihren Preis aus UNITS und brauchen
+ * die Produktionsstaette (Menschen) bzw. die Forschung (andere) wie beim Aufruesten. Keine Zwillinge, keine Veteranen.
+ * Shipyard of coastal cities: a city with water in its territory or right next to the city tile buys ships. The ship
+ * appears empty (no carried unit) on a free water tile at the city; a land unit boards by moving from an adjacent tile
+ * onto the empty ship (then as when embarking: the unit's HP, exhausted). Transport boats need neither a naval base nor
+ * research (humans); the cult and NEXUS need coastal economy as for embarking, the Zyrr wade and have no ships. Warships
+ * cost their UNITS price and need the production site (humans) or the research (others) as for upgrading. No twins, no veterans.
+ */
+export const SHIPYARD = {
+  /** Kaufpreis des leeren Transportboots (UNITS.landingBoat.cost bleibt 0: Einschiffen am Stuetzpunkt ist frei) / price of the empty transport boat (UNITS.landingBoat.cost stays 0: embarking at a base is free) */
+  transportCost: 10,
+  /**
+   * Rumpf-LP eines leeren Schiffs (sonst kommen die LP von der getragenen Einheit). Steigt eine Einheit ein, gelten ihre LP.
+   * Hull HP of an empty ship (otherwise HP come from the carried unit). When a unit boards, its HP apply.
+   */
+  hullHp: { landingBoat: 6, submarine: 10, destroyer: 10, battleship: 12, privateer: 10 } as Partial<Record<UnitTypeId, number>>,
+  /** KI: hoechstens so viele leere Transportboote zugleich / AI: at most this many empty transport boats at once */
+  aiMaxEmpty: 2,
+  /** KI: ab dieser Runde Transportboote kaufen / AI: buy transport boats from this round */
+  aiFromRound: 3,
+};
+
 /** Terraformen und Xeno-Boden / terraforming and xeno ground */
 export const XENO = {
   faction: 'zyrr' as FactionId,
@@ -1368,7 +1395,8 @@ export const PRODUCTION = {
     tankWorks: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'protoWalker'],
     foundry: ['artillery', 'sunLance'],
     airfield: ['heli', 'octocopter'],
-    navalBase: ['landingBoat', 'destroyer', 'privateer'],
+    // Transportboote brauchen keine Staette (SHIPYARD); der Stuetzpunkt bleibt Einschiffungsort / transport boats need no site (SHIPYARD); the base stays the embarking point
+    navalBase: ['destroyer', 'privateer'],
     dryDock: ['submarine', 'battleship'],
   } as Record<ProductionSiteId, UnitTypeId[]>,
   /**

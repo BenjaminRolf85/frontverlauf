@@ -798,6 +798,8 @@
     "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
     "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen",
     "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt.",
+    "noCoast": "Kein Wasser an dieser Stadt: Schiffe brauchen eine Küstenstadt.",
+    "noWaterTile": "Kein freies Wasserfeld an der Stadt.",
     "alreadyBought": "In dieser Runde schon gekauft."
   },
   "events": {
@@ -982,7 +984,7 @@
     "s5": "Wähle die Infanterie und tippe auf Einnehmen. Die Siedlung wird zu deiner Stadt.",
     "s6": "Sterne sind die einzige Währung. Öffne die Forschung und erforsche eine Technologie.",
     "s7": "Tippe auf ein Feld in deinem Stadtgebiet und baue etwas. Gebäude bringen Bevölkerung, Städte wachsen. Produktionsstätten wie Rüstungswerk oder Fahrzeugwerk schalten in ihrer Stadt neue Einheiten frei.",
-    "s8": "Tippe auf dein Hauptquartier und bilde eine Einheit aus. Die eingebaute Kaserne bildet Infanterie aus; andere Einheiten brauchen ihre Produktionsstätte in der Stadt.",
+    "s8": "Tippe auf dein Hauptquartier und dann unter „Truppen“ auf eine Karte, um eine Einheit auszubilden. Die eingebaute Kaserne bildet Infanterie aus; gesperrte Karten zeigen, was fehlt, etwa die Produktionsstätte.",
     "s9": "Das war's! Erkunde die Karte, nimm Siedlungen ein und besiege den Gegner. Viel Erfolg!",
     "goal": "Das Ziel: Im Punktemodus gewinnt nach {rounds} Runden der höchste Punktestand (Medaille oben). In der Eroberung gewinnt, wer als Letzter Städte hält, so wie hier. Mit Fraktionssiegen kann jede Fraktion zusätzlich über ein eigenes Ziel gewinnen. Den Stand zeigt die Siegverfolgung im Menü.",
     "goalOpen": "Siegverfolgung öffnen",
@@ -3573,6 +3575,10 @@
       "title": "Produktionsstätten (Menschen)",
       "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier hat eine Kaserne eingebaut. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
     },
+    "ships": {
+      "title": "Schiffe und Werft",
+      "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Transportboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis: Menschen brauchen in der Stadt {base} bzw. {dock}, Kult und NEXUS die passende Forschung. Kult und NEXUS brauchen {tech} für Boote wie fürs Einschiffen; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
+    },
     "doctrines": {
       "title": "Doktrinen (Menschen)",
       "text": "Im Doktrinen-Baum schalten die Menschen-Fraktionen keine Einheiten frei, sondern Vorteile, Gebäude und Ausbauten. Kosten: (Stufe x Städte + 4) x 5 Sterne. Neue Wirkungen:"
@@ -3776,6 +3782,9 @@
       },
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
+      },
+      "ships": {
+        "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Transportboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis und brauchen in der Stadt {base} bzw. {dock}. Kult und NEXUS brauchen {tech} für Boote; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
       }
     },
     "orbital": {
@@ -3935,7 +3944,7 @@
   "sites": {
     "title": "Produktionsstätten",
     "builtIn": "eingebaut",
-    "none": "Keine Produktionsstätte: Diese Stadt bildet nichts aus. Baue eine Kaserne im Stadtgebiet.",
+    "none": "Keine Produktionsstätte: Diese Stadt bildet keine Landtruppen aus (Schiffe nur an der Küste). Baue eine Kaserne im Stadtgebiet.",
     "requires": "Benötigt {site}",
     "needs": "{site} braucht {needs} im Stadtgebiet",
     "or": " oder ",
@@ -3986,6 +3995,19 @@
     "limit": "Nur 1: das Stadtlimit lässt nur noch Platz für eine Einheit.",
     "noRoom": "Nur 1: kein freies Feld neben der Stadt für die zweite Einheit.",
     "trained": "Zwei für einen: 2x {unit} ausgebildet"
+  },
+  "troops": {
+    "title": "Truppen",
+    "ships": "Schiffe: {city}",
+    "available": "{n} von {max} verfügbar",
+    "prev": "Vorherige Truppen",
+    "next": "Weitere Truppen",
+    "land": "Land",
+    "air": "Luft",
+    "sea": "See",
+    "locked": "Gesperrt",
+    "boatNote": "Kommt leer aufs Wasser an der Stadt. Eine Landeinheit steigt von einem Nachbarfeld ein und wird übergesetzt.",
+    "shipNote": "Kommt leer (Rumpf-LP) aufs Wasser an der Stadt; eine Landeinheit kann von einem Nachbarfeld einsteigen."
   },
   "aiOps": {
     "storm": "{name} stürmt {city}!",

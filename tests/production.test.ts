@@ -382,8 +382,10 @@ describe('Alte Spielstaende / old saves', () => {
     // Velkar: Kaserne (Railgun-Schuetze, Sanitaeter), Panzerwerk (Prototyp-Laeufer); Trockendock nur mit Wasser
     // Velkar: barracks (railgun marksman, medic), tank works (prototype walker); dry dock only with water
     expect(citySites(m, city(hq.id))).toEqual(['trainingCamp', 'tankWorks']);
-    // Kuestenwirtschaft: Landungsboot (Marinestuetzpunkt), Tauchtechnik: U-Boot (Trockendock) / coastal economy: landing boat (naval base), diving: submarine (dry dock)
-    expect(citySites(m, city(c.id))).toEqual(['trainingCamp', 'tankWorks', 'navalBase', 'dryDock']);
+    // Tauchtechnik: U-Boot (Trockendock). Kuestenwirtschaft gibt keinen Stuetzpunkt mehr: Transportboote kauft jede
+    // Kuestenstadt ohne Staette (SHIPYARD) / diving: submarine (dry dock). Coastal economy no longer grants a naval base:
+    // every coastal city buys transport boats without a site (SHIPYARD)
+    expect(citySites(m, city(c.id))).toEqual(['trainingCamp', 'tankWorks', 'dryDock']);
     expect(trainCheck(m, city(c.id), 'protoWalker')).toBe('ok');
     expect(trainCheck(m, city(c.id), 'teslaTank')).toBe('ok');
     // Dravon: Jeep (Motorisierung), MG und Sturmbrecher (Ruestungsindustrie, Bergbau) / Dravon: jeep, MG and stormbreaker

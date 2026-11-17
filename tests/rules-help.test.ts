@@ -16,7 +16,8 @@ describe('Regeln / rules', () => {
       const html = rulesHtml();
       expect(html).not.toMatch(/\{\w+\}/);
       expect(html).not.toContain('rules.');
-      expect((html.match(/<details/g) ?? []).length).toBe(16);
+      // 17 Abschnitte: dazu Schiffe und Werft / 17 sections: plus ships and shipyard
+      expect((html.match(/<details/g) ?? []).length).toBe(17);
     });
     it(`${lang}: numbers come from balance.ts`, () => {
       setLanguage(lang);

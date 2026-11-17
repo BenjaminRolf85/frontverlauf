@@ -82,7 +82,7 @@ describe('Einzigartige Einheiten / unique units', () => {
     expect(LAND_UNITS.some((u) => UNIQUE_UNITS.includes(u as never))).toBe(false);
   });
 
-  it('privateer: only Meridon can upgrade a ship to it, it is never trained', () => {
+  it('privateer: only Meridon can upgrade a ship to it or buy it in a coastal city with a naval base', () => {
     for (const f of FACTION_IDS) {
       const s = blankGame({ factions: [f, f === 'korvat' ? 'dravon' : 'korvat'], stars: 100 });
       addCity(s, 2, 2, 0, { hq: true });
@@ -93,9 +93,12 @@ describe('Einzigartige Einheiten / unique units', () => {
       if (f === 'meridon') expect(upgradeCheck(s, boat, 'privateer')).toBe('buildingMissing');
       giveSites(s.cities[0], 'navalBase');
       expect(upgradeCheck(s, boat, 'privateer'), f).toBe(f === 'meridon' ? 'ok' : 'invalid');
+      // Werft (SHIPYARD): Kaperschiff nur fuer Meridon; das Boot belegt das einzige Wasserfeld / shipyard: privateer only for Meridon; the boat takes the only water tile
+      expect(trainCheck(s, s.cities[0], 'privateer'), f).toBe(f === 'meridon' ? 'noWaterTile' : 'invalid');
     }
+    // Stadt ohne Wasser: keine Werft / city without water: no shipyard
     const { s, hq } = duel('meridon');
-    expect(trainCheck(s, hq, 'privateer')).toBe('invalid');
+    expect(trainCheck(s, hq, 'privateer')).toBe('noCoast');
   });
 
   it('privateer: prize money of 10 stars per destroyed unit', () => {

@@ -247,7 +247,7 @@ export function planWonderUnits(ctx: Ctx, failed: Failed): Command | null {
         let best: { x: number; y: number } | null = null, bv = -Infinity;
         for (const r of reachable(s, u)) {
           const rt = s.tiles[idx(s.size, r.x, r.y)];
-          if (rt.cityId !== null || r.embark || r.disembark) continue;
+          if (rt.cityId !== null || r.embark || r.disembark || r.board) continue;
           let v = -expectedDamage(ctx, u, r.x, r.y) * 10 + (territoryOwner(s, rt) === f ? 20 : 0);
           let near = 99;
           for (const e of ctx.enemies) near = Math.min(near, dist(e, r));
@@ -299,7 +299,7 @@ export function cautionFor(ctx: Ctx, g: Goal, u?: Unit): number {
 }
 
 function canAttackAfter(u: Unit, r?: Reach): boolean {
-  if (r && (r.embark || r.disembark)) return false;
+  if (r && (r.embark || r.disembark || r.board)) return false;
   return has(u, 'dash') && !u.attacked && UNITS[u.type].attack > 0 && UNITS[u.type].range > 0;
 }
 
@@ -487,7 +487,8 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
       if (land.length) dests = land;
     }
     for (const r of dests) {
-      const nl = r.embark ? 1 : r.disembark ? 0 : layer;
+      // Einsteigen in ein leeres Schiff wie Einschiffen / boarding an empty ship like embarking
+      const nl = r.embark || r.board ? 1 : r.disembark ? 0 : layer;
       // Spion: Aufstand in feindlicher Stadt / spy: uprising in hostile city
       const v = spy ? spyTile(ctx, u, fld, r.x, r.y) : evalTile(ctx, u, g, fld, r.x, r.y, nl, r);
       const c: Command = { type: 'move', unit: u.id, to: { x: r.x, y: r.y } };

@@ -507,7 +507,16 @@ input[type="text"], select {
   .bottom > .sheet {
     position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2));
     width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2)); max-height: var(--c-layout-sheet-dock-max-height);
-    margin: 0; padding: var(--p-space-2) var(--p-space-3); overflow-y: auto; overscroll-behavior: contain;
+    margin: 0; padding: var(--p-space-2) var(--p-space-3); overflow: hidden; display: flex; flex-direction: column;
+  }
+  /* Infoteil scrollt, Kopf, Truppenkarten und Aktionen bleiben stehen / the info part scrolls, header, troop cards and actions stay put */
+  .bottom > .sheet > * { flex: none; }
+  .bottom > .sheet > .sheet-info { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* mit Truppenkarten darf das Infofeld hoeher werden (Karte bleibt rechts frei) / with troop cards the panel may grow taller (the map stays clear on the right) */
+  /* hoechstens bis unter die Lagekarte oben links / at most up to below the overview map at the top left */
+  .bottom > .sheet:has(.troops) {
+    max-height: min(var(--c-layout-sheet-dock-max-height-troops), calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--c-top-bar-height) - var(--c-top-bar-stripe)
+      - var(--c-minimap-size-desktop) - 2 * var(--p-border-width-thick) - 2 * var(--p-space-4) - var(--p-size-touch-lg) - 2 * var(--p-space-2)));
   }
   .sheet-head { margin-bottom: var(--p-space-1); gap: var(--p-space-1); }
   .sheet-head h3 { font-size: var(--p-font-size-md); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -628,6 +637,77 @@ input[type="text"], select {
 .action-hint.blocked { border-left-color: var(--c-action-hint-blocked); }
 .action-hint.flash { animation: hint-flash var(--p-duration-slow) ease-out; }
 @keyframes hint-flash { from { background: var(--c-action-hint-blocked); } to { background: var(--c-action-hint-bg); } }
+
+/* ---------- Truppenkarten im Stadtfeld / troop cards in the city panel ---------- */
+/* Leiste wischt waagerecht (nur sie, nie die Seite), Karten rasten ein / the strip swipes horizontally (only it, never the page), cards snap */
+.troops { position: relative; margin-top: var(--p-space-1); min-width: 0; }
+.troops-head { display: flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-size-touch); }
+.troops-title .icon-sm { flex: none; }
+.troops-title {
+  display: inline-flex; align-items: center; gap: var(--p-space-1); margin: 0;
+  font-family: var(--p-font-display); font-size: var(--p-font-size-md); letter-spacing: var(--p-letter-spacing-display); font-weight: var(--p-font-weight-regular);
+}
+.troops-count { flex: 1; min-width: 0; font-size: var(--p-font-size-xs); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.troops-nav {
+  flex: none; width: var(--p-size-touch); height: var(--p-size-touch); padding: 0; display: grid; place-items: center; cursor: pointer;
+  color: var(--s-text); background: var(--c-button-bg-secondary); border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-pill);
+}
+.troops-nav.prev .icon-sm { transform: scaleX(-1); }
+.troops-nav:disabled { opacity: 0.35; cursor: default; }
+.troops.fits .troops-nav { visibility: hidden; }
+.troop-strip {
+  display: flex; gap: var(--p-space-2); overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory; scroll-padding-inline: var(--p-space-1); padding: var(--p-space-1) var(--p-space-1) var(--p-space-2);
+  scrollbar-width: thin; touch-action: pan-x; -webkit-overflow-scrolling: touch;
+}
+.troop-item { flex: none; display: flex; scroll-snap-align: start; }
+.troop-card {
+  width: var(--c-troop-card-width); min-height: var(--p-size-touch); display: flex; flex-direction: column; align-items: stretch; gap: var(--p-space-half);
+  padding: var(--p-space-1) var(--p-space-2); text-align: left; cursor: pointer; touch-action: manipulation;
+  font: inherit; font-size: var(--p-font-size-xs); line-height: 1.2; color: var(--s-text); background: var(--c-troop-card-bg);
+  border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow-pressed);
+}
+.troop-card:active { transform: translate(var(--p-space-1), var(--p-space-1)); box-shadow: none; }
+.troop-card:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); outline-offset: var(--p-space-half); }
+.troop-card.locked { background: var(--c-troop-card-locked-bg); box-shadow: none; border-style: dashed; }
+.troop-card.locked .troop-icon, .troop-card.locked .troop-stats, .troop-card.locked .price { opacity: 0.55; }
+.troop-top { display: flex; align-items: center; gap: var(--p-space-1); min-width: 0; }
+.troop-icon { flex: none; display: inline-grid; place-items: center; }
+.troop-icon .icon { width: var(--c-troop-card-icon-size); height: var(--c-troop-card-icon-size); }
+/* Name und Spitzname einzeilig, voller Text im Tooltip und in der Hinweiszeile / name and nickname on one line, full text in the tooltip and the hint line */
+.troop-name, .troop-nick { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.troop-name { font-weight: var(--p-font-weight-bold); font-size: var(--p-font-size-sm); }
+.troop-nick { color: var(--s-text-muted); font-style: italic; }
+.troop-line { display: flex; align-items: center; gap: var(--p-space-1); min-width: 0; }
+.troop-line .price { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: var(--p-space-half); font-weight: var(--p-font-weight-bold); }
+.troop-stats { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0 var(--c-troop-card-stats-gap); }
+.troop-stat { display: inline-flex; align-items: center; gap: var(--p-space-half); white-space: nowrap; }
+.troop-stat .icon-sm { width: var(--c-troop-card-stat-icon); height: var(--c-troop-card-stat-icon); }
+.troop-tag {
+  justify-self: start; align-self: center; line-height: 1.2; padding: 0 var(--p-space-1); font-size: var(--p-font-size-xs); border: var(--p-border-width-thin) solid var(--s-outline);
+  border-radius: var(--p-radius-pill); background: var(--s-surface-sunken);
+}
+/* Sperrgrund auf der Karte, hoechstens zwei Zeilen (ganz in der Hinweiszeile) / lock reason on the card, at most two lines (in full in the hint line) */
+.troop-lock { display: flex; align-items: flex-start; gap: var(--p-space-half); font-weight: var(--p-font-weight-bold); }
+.troop-lock .icon-sm { flex: none; }
+.troop-lock-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+/* Scroll-Hinweis: Rand blendet aus, solange mehr Karten folgen / scroll cue: the edge fades while more cards follow */
+.troop-wrap { position: relative; }
+.troops.more-right .troop-wrap::after, .troops.more-left .troop-wrap::before {
+  content: ''; position: absolute; top: 0; bottom: 0; width: var(--p-space-5); pointer-events: none; z-index: 1;
+}
+.troops.more-right .troop-wrap::after { right: 0; background: linear-gradient(to right, transparent, var(--c-panel-bg)); }
+.troops.more-left .troop-wrap::before { left: 0; background: linear-gradient(to left, transparent, var(--c-panel-bg)); }
+@media (min-width: 900px) /* --p-breakpoint-lg */ {
+  .troop-card { width: var(--c-troop-card-width-desktop); }
+}
+/* Handy: wischen statt Pfeile, flache Kopfzeile / phone: swipe instead of arrows, flat header */
+@media (max-width: 560px) /* --p-breakpoint-sm */ {
+  .troops-head { min-height: 0; }
+  .troops-nav { display: none; }
+  .troop-strip { padding-top: var(--p-space-half); padding-bottom: var(--p-space-1); }
+}
+@media (prefers-reduced-motion: reduce) { .troop-strip { scroll-behavior: auto; } }
 
 /* ---------- Netto-Einkommen und Punkte in der Statusleiste / net income and points in the top bar ---------- */
 .res .net { display: none; font-size: var(--p-font-size-xs); color: var(--s-accent); }

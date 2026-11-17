@@ -798,6 +798,8 @@
     "relayLimit": "Velkar already owns a satellite relay.",
     "cannotCarry": "This unit cannot carry the war plans",
     "buildingMissing": "Production site or prerequisite missing.",
+    "noCoast": "No water at this city: ships need a coastal city.",
+    "noWaterTile": "No free water tile at the city.",
     "alreadyBought": "Already bought this round."
   },
   "events": {
@@ -982,7 +984,7 @@
     "s5": "Select the infantry and tap Capture. The settlement becomes your city.",
     "s6": "Stars are the only currency. Open research and research a technology.",
     "s7": "Tap a tile inside your city territory and build something. Buildings add population, cities grow. Production sites such as the armoury or the motor pool unlock new units in their city.",
-    "s8": "Tap your headquarters and train a unit. The built-in barracks trains infantry; other units need their production site in the city.",
+    "s8": "Tap your headquarters, then a card under “Troops” to train a unit. The built-in barracks trains infantry; locked cards show what is missing, such as a production site.",
     "s9": "That's it! Explore the map, capture settlements and defeat the enemy. Good luck!",
     "goal": "The goal: in points mode the highest score wins after {rounds} rounds (medal at the top). In conquest the last side holding cities wins, as here. With faction victories every faction can also win through its own goal. The victory tracker in the menu shows the standings.",
     "goalOpen": "Open victory tracker",
@@ -3573,6 +3575,10 @@
       "title": "Production sites (humans)",
       "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters has barracks built in. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
     },
+    "ships": {
+      "title": "Ships and shipyard",
+      "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price: humans need {base} or {dock} in the city, the cult and NEXUS the matching research. The cult and NEXUS need {tech} for boats as for embarking; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
+    },
     "doctrines": {
       "title": "Doctrines (humans)",
       "text": "In the doctrine tree the human factions unlock no units but advantages, buildings and upgrades. Cost: (tier x cities + 4) x 5 stars. New effects:"
@@ -3776,6 +3782,9 @@
       },
       "factions": {
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
+      },
+      "ships": {
+        "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price and need {base} or {dock} in the city. The cult and NEXUS need {tech} for boats; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
       }
     },
     "orbital": {
@@ -3935,7 +3944,7 @@
   "sites": {
     "title": "Production sites",
     "builtIn": "built in",
-    "none": "No production site: this city trains nothing. Build barracks in the city territory.",
+    "none": "No production site: this city trains no land troops (ships only on the coast). Build barracks in the city territory.",
     "requires": "Requires {site}",
     "needs": "{site} needs {needs} in the city territory",
     "or": " or ",
@@ -3986,6 +3995,19 @@
     "limit": "Only 1: the city limit has room for one more unit only.",
     "noRoom": "Only 1: no free tile next to the city for the second unit.",
     "trained": "Two for One: 2x {unit} trained"
+  },
+  "troops": {
+    "title": "Troops",
+    "ships": "Ships: {city}",
+    "available": "{n} of {max} available",
+    "prev": "Previous troops",
+    "next": "More troops",
+    "land": "Land",
+    "air": "Air",
+    "sea": "Sea",
+    "locked": "Locked",
+    "boatNote": "Launches empty on the water at the city. A land unit boards from an adjacent tile and is ferried across.",
+    "shipNote": "Launches empty (hull HP) on the water at the city; a land unit can board from an adjacent tile."
   },
   "aiOps": {
     "storm": "{name} storms {city}!",

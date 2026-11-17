@@ -162,7 +162,8 @@ describe('Einheitenlimit und Ausbildung / unit limit and training', () => {
     // Korvat: Steppenkoloss statt Panzer, ebenfalls aus dem Panzerwerk / Korvat: Steppe Colossus instead of the tank, also from the tank works
     expect(trainCheck(s, c, 'tank')).toBe('invalid');
     expect(trainCheck(s, c, 'steppeColossus')).toBe('buildingMissing');
-    expect(trainCheck(s, c, 'landingBoat')).toBe('invalid');
+    // Schiffe: Werft nur in Kuestenstaedten (SHIPYARD) / ships: shipyard only in coastal cities (SHIPYARD)
+    expect(trainCheck(s, c, 'landingBoat')).toBe('noCoast');
     fails(s, { type: 'train', city: e.id, unitType: 'infantry' }, 'notYourCity');
     s.factions[0].stars = 7;
     fails(s, { type: 'train', city: c.id, unitType: 'infantry' }, 'notEnoughStars');

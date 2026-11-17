@@ -6,7 +6,7 @@ import {
   BARRIER, CITY, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
   TOWER, VICTORY_TECH, WONDERS,
 } from '../data/balance';
-import { BUILDINGS, PRODUCTION, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { BUILDINGS, PRODUCTION, SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
 import { doctrineText, needsText } from './production';
 import { has, num, t } from '../i18n/i18n';
@@ -37,6 +37,8 @@ function sections(): Section[] {
       grow: CITY.growTiles, max: 2 * CITY.growMaxRadius + 1, towerInc: TOWER.income } },
     // Produktionsstaetten und Doktrinen der Menschen / human production sites and doctrines
     { id: 'sites', icon: 'build', extra: siteLines },
+    // Werft der Kuestenstaedte: Schiffe kaufen, Transportboot, Einsteigen / shipyard of coastal cities: buying ships, transport boat, boarding
+    { id: 'ships', icon: 'sail', params: { boat: SHIPYARD.transportCost, hull: SHIPYARD.hullHp.landingBoat ?? 0, base: t('buildings.navalBase'), dock: t('buildings.dryDock'), tech: t('techs.coastalEconomy') } },
     { id: 'doctrines', icon: 'lightning', extra: doctrineLines },
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     // Festungsbau der Dravon / Dravon fortress building

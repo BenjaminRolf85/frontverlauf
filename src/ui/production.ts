@@ -60,17 +60,19 @@ export function buildLockReason(b: BuildingId): string {
 
 /**
  * Zeile im Stadtfeld: Staetten der Stadt als Marken (eingebaute gekennzeichnet); leer mit Hinweis. Nur Menschen.
+ * Auf dem Handy unter "mehr" (sheet-more): die Truppenkarten nennen fehlende Staetten ohnehin.
  * Row in the city panel: the city's sites as tags (built-in ones marked); empty with a hint. Humans only.
+ * On phones under "more" (sheet-more): the troop cards name missing sites anyway.
  */
 export function citySitesHtml(s: GameState, c: City): string {
   if (c.owner === null || !usesSites(s, c.owner)) return '';
   const sites = citySites(s, c);
-  if (!sites.length) return `<div class="sites-row" aria-label="${esc(t('sites.title'))}"><span class="muted">${esc(t('sites.title'))}</span><span class="tag warn">${esc(t('sites.none'))}</span></div>`;
+  if (!sites.length) return `<div class="sites-row sheet-more" aria-label="${esc(t('sites.title'))}"><span class="muted">${esc(t('sites.title'))}</span><span class="tag warn">${esc(t('sites.none'))}</span></div>`;
   const tags = sites.map((site) => {
     const built = builtInSite(s, c, site) ? ` · ${t('sites.builtIn')}` : '';
     return `<span class="tag site-tag" title="${esc(siteUnits(site, s.factions[c.owner!].id).map((u) => t(`units.${u}`)).join(', '))}">${icon(SITE_ICON[site], 'icon-sm')}${esc(t(`buildings.${site}`) + built)}</span>`;
   });
-  return `<div class="sites-row" aria-label="${esc(t('sites.title'))}"><span class="muted">${esc(t('sites.title'))}</span>${tags.join('')}</div>`;
+  return `<div class="sites-row sheet-more" aria-label="${esc(t('sites.title'))}"><span class="muted">${esc(t('sites.title'))}</span>${tags.join('')}</div>`;
 }
 
 /** Platzhalter der Doktrin-Texte (Zahlen aus DOCTRINE) / placeholders of the doctrine texts (numbers from DOCTRINE) */

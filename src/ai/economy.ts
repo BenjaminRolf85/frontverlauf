@@ -8,11 +8,11 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
-  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
+  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { relayTechBonus, relayValue } from './orbital';
@@ -685,6 +685,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       }
     }
   }
+  transportBuys(ctx, buys, upFor, net);
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
   // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
   const horde = isCultFaction(s, f) ? hordeCount(s, f) : null;
@@ -730,7 +731,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
         } else if (b === 'navalBase') {
           const coastLand = neighbors(s.size, p.x, p.y).some((q) => territoryOwner(s, s.tiles[idx(s.size, q.x, q.y)]) === f && isLand(s.tiles[idx(s.size, q.x, q.y)]));
           if (!coastLand) continue;
-          const haveBase = ctx.navalOwn.some((v) => v === 1);
+          // nur echte Stuetzpunkte zaehlen, keine leeren Boote / only real bases count, not empty boats
+          const haveBase = ctx.navalOwn.some((v, k) => v === 1 && s.tiles[k].building === 'navalBase');
           value = popVal + (ctx.navalNeed && !haveBase ? 60 : 0);
         } else {
           const pop = popGain(s, f, b, p.x, p.y);
@@ -920,9 +922,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
 
-  // Schiffe aufruesten / upgrade ships
+  // Schiffe aufruesten (leere Boote warten auf Truppen) / upgrade ships (empty boats wait for troops)
   for (const u of ctx.my) {
-    if (!isShip(u) || u.fresh) continue;
+    if (!isShip(u) || u.fresh || u.carried === null) continue;
     const to = bestShip(ctx, u);
     if (!to) continue;
     const chk = upgradeCheck(s, u, to);
@@ -949,6 +951,41 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (prof.saving && b.save && !finalRound && ratio >= 1 && b.cost <= stars + inc * (b.horizon ?? 1.5)) return null;
   }
   return null;
+}
+
+/**
+ * Transportboote (Werft): liegen Ziele nur ueber See (navalNeed), kauft die KI leere Boote in der Kuestenstadt, an der die
+ * meisten eigenen Landtruppen stehen. Hoechstens SHIPYARD.aiMaxEmpty leere Boote zugleich (mit eigenem Stuetzpunkt eines),
+ * eines je drei Landkaempfer. Die Truppen finden die Boote ueber die Wegefelder (Einstiegspunkte wie Stuetzpunkte).
+ * Transport boats (shipyard): if goals lie only across the sea (navalNeed), the AI buys empty boats in the coastal city
+ * with the most own land troops nearby. At most SHIPYARD.aiMaxEmpty empty boats at once (one with an own base), one per
+ * three land fighters. The troops find the boats through the path fields (boarding points like bases).
+ */
+function transportBuys(ctx: Ctx, buys: Buy[], upFor: (t: UnitTypeId) => number, net: number) {
+  const { s, f, prof } = ctx;
+  if (!ctx.navalNeed || s.round < SHIPYARD.aiFromRound || !canEmbark(s, f)) return;
+  const empty = ctx.my.filter((u) => isShip(u) && u.carried === null).length;
+  const land = ctx.my.filter((u) => !isShip(u) && !has(u, 'fly') && !isWonder(u) && UNITS[u.type].attack > 0 && u.type !== 'artillery' && u.type !== 'sunLance');
+  const base = s.tiles.some((t) => t.building === 'navalBase' && territoryOwner(s, t) === f);
+  const want = Math.min(base ? 1 : SHIPYARD.aiMaxEmpty, Math.ceil(land.length / 3));
+  if (empty >= want) return;
+  if (net - upFor('landingBoat') < 0 && land.length < 2) return;
+  let best: City | null = null, bv = -Infinity;
+  for (const c of ctx.myCities) {
+    const chk = trainCheck(s, c, 'landingBoat');
+    if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+    // ein leeres Boot ist leichte Beute: nicht in Reichweite von Gegnern ablegen / an empty boat is easy prey: do not launch within enemy reach
+    const at = shipSpawnTile(s, c);
+    if (!at || ctx.threat[idx(s.size, at.x, at.y)].length) continue;
+    // Truppen direkt an der Stadt, die gleich einsteigen koennen / troops right at the city that can board soon
+    let v = 0;
+    for (const u of land) { const d = dist(u, at); if (d <= 2) v += 3 - d; }
+    if (v > bv || (v === bv && best && c.id < best.id)) { bv = v; best = c; }
+  }
+  if (!best || bv <= 0) return;
+  const cost = unitCost(s, f, 'landingBoat')!;
+  const value = cost * (2.2 + 0.25 * Math.min(land.length, 6)) * prof.militaryW;
+  buys.push({ cmd: { type: 'train', city: best.id, unitType: 'landingBoat' }, cost, value, save: false });
 }
 
 /**

@@ -475,7 +475,8 @@ export type GameEvent =
   | { t: 'mineHit'; unit: number; x: number; y: number; dmg: number; owner: number }
   | { t: 'aaFire'; unit: number; target: number; dmg: number }
   | { t: 'uprising'; city: number; faction: number; spawned: number }
-  | { t: 'embark'; unit: number }
+  // boat: leeres Schiff, auf das die Einheit stieg (danach entfernt) / boat: empty ship the unit boarded (removed afterwards)
+  | { t: 'embark'; unit: number; boat?: number }
   | { t: 'disembark'; unit: number }
   | { t: 'upgrade'; unit: number; to: UnitTypeId }
   | { t: 'peace'; a: number; b: number }
@@ -594,6 +595,8 @@ export type ErrorCode =
   | 'cannotCarry'
   // Produktionsstaette fehlt (Ausbilden) oder Voraussetzung fehlt (Bauen) / production site missing (training) or prerequisite missing (building)
   | 'buildingMissing'
+  // Werft: keine Kueste bzw. kein freies Wasserfeld an der Stadt / shipyard: no coast or no free water tile at the city
+  | 'noCoast' | 'noWaterTile'
   // Stufe kaufen: in dieser Runde schon gekauft / buy level: already bought this round
   | 'alreadyBought';
 

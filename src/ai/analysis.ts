@@ -139,6 +139,9 @@ export function buildCtx(s: GameState, f: number): Ctx {
   const landOk = new Uint8Array(n), seaOk = new Uint8Array(n), landCost = new Uint8Array(n), seaCost = new Uint8Array(n);
   const navalOwn = new Uint8Array(n), realLand = new Uint8Array(n);
   let structs = 0;
+  // eigene leere Schiffe (Werft) sind Einstiegspunkte wie ein Stuetzpunkt / own empty ships (shipyard) are boarding points like a base
+  const boats = new Set<number>();
+  if (hasCoastal) for (const u of my) if (isShip(u) && u.carried === null) { boats.add(idx(size, u.x, u.y)); structs += 7 * (idx(size, u.x, u.y) + 1); }
   for (let k = 0; k < n; k++) {
     const t = s.tiles[k];
     if (t.building === 'bridge' || t.building === 'navalBase') structs += k + 1;
@@ -163,7 +166,7 @@ export function buildCtx(s: GameState, f: number): Ctx {
     landCost[k] = t.road || t.cityId !== null || bridge ? 1 : isJungle(t) ? 5 : (t.terrain === 'forest' || t.terrain === 'mountain') ? 3 : water && wader ? 4 : 2;
     seaOk[k] = water && (t.terrain !== 'ocean' || hasDiving) ? 1 : 0;
     seaCost[k] = 1;
-    if (t.building === 'navalBase' && hasCoastal && territoryOwner(s, t) === f) navalOwn[k] = 1;
+    if ((t.building === 'navalBase' && hasCoastal && territoryOwner(s, t) === f) || boats.has(k)) navalOwn[k] = 1;
   }
   const key = `${s.round}:${f}:${structs}:${myCities.length}:${fa.techs.length}:${fa.relations.join('')}`;
   let fc = fieldCache.get(s);
@@ -617,7 +620,9 @@ function assignGoals(ctx: Ctx) {
   // Traeger der Kriegsplaene (m4): immer heim zum Hauptquartier / carrier of the war plans (m4): always home to the HQ
   const carrier = carrierGoal(ctx);
   if (carrier) builder.set(carrier.unit.id, carrier.goal);
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u);
+  // leeres Transportboot (Werft): wartet ohne Ziel, bis eine Landeinheit einsteigt / empty transport boat (shipyard): waits without a goal until a land unit boards
+  const ferry = (u: Unit) => u.type === 'landingBoat' && u.carried === null;
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u) || ferry(u);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -651,7 +656,7 @@ function assignGoals(ctx: Ctx) {
   // Rest: Sammeln an der Front oder Heimat / rest: stage at the front or home
   const front = frontGoal(ctx);
   for (const u of ctx.my) {
-    if (ctx.goals.has(u.id) || isWonder(u)) continue;
+    if (ctx.goals.has(u.id) || isWonder(u) || ferry(u)) continue;
     if (isBoss(u)) { ctx.goals.set(u.id, bossGoal(ctx, u)); continue; }
     // Wissenschaftler (m2): zum Arbeitsplatz am Mutterschiff / scientist (m2): to the work spot at the mothership
     if (isScientist(ctx, u)) { const g = scientistGoal(ctx, u); if (g) { ctx.goals.set(u.id, g); continue; } }
