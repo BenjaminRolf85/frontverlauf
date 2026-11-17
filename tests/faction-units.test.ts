@@ -54,10 +54,10 @@ describe('Steppenkoloss (Korvat) / Steppe Colossus (Korvat)', () => {
     expect(c.cost!).toBeGreaterThanOrEqual(UNITS.tank.cost!);
     expect(UPKEEP.flat.steppeColossus!).toBeGreaterThanOrEqual(UPKEEP.flat.tank!);
     expect(PRODUCTION.units.tankWorks).toContain('steppeColossus');
-    // Panzer fahren 2 Felder und schiessen 2 weit (Wunsch des Auftraggebers) / tanks move 2 tiles and fire 2 tiles (client request)
-    expect(c.move).toBe(2);
+    // Panzer fahren 3 Felder und schiessen 2 weit (Wunsch des Auftraggebers) / tanks move 3 tiles and fire 2 tiles (client request)
+    expect(c.move).toBe(3);
     expect(c.range).toBe(2);
-    expect(UNITS.flameTank.move).toBe(2);
+    expect(UNITS.flameTank.move).toBe(3);
   });
 
   it('ersetzt den Panzer in Liste, Ausbildung, Stadtbelohnung und Verstaerkung / replaces the tank in roster, training, city reward and reinforcements', () => {
@@ -263,7 +263,9 @@ describe('NEXUS: neue Einheiten / NEXUS: new units', () => {
     expect(c.attack).toBeGreaterThan(a.attack);
     expect(c.defense).toBeGreaterThan(a.defense);
     expect(c.cost!).toBeGreaterThan(a.cost!);
-    expect(c.move).toBe(1);
+    // Grundinfanterie: 2 Felder wie der Androide (Spielerwunsch) / basic infantry: 2 tiles like the android (player request)
+    expect(c.move).toBe(2);
+    expect(a.move).toBe(2);
   });
 
   it('Flammenwerferpanzer: Reichweite 1, Deckung zaehlt nicht, Bonus gegen Fusstruppen / flamethrower tank: range 1, cover does not count, bonus vs foot troops', () => {

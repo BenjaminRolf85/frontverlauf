@@ -21,11 +21,11 @@ describe('Schnee und Wind / snow and wind', () => {
     const s = blankGame({ weather: true });
     s.round = roundWith(s.config.seed, 'snow');
     const jeep = addUnit(s, 'jeep', 0, 5, 5), inf = addUnit(s, 'infantry', 0, 3, 3);
-    // Jeep 3 Felder, im Schnee 2 / jeep 3 tiles, 2 in snow
-    expect(effectiveMove(s, jeep)).toBe(2);
-    expect(effectiveMove(s, inf)).toBe(1);
-    s.round = roundWith(s.config.seed, 'clear');
+    // Jeep 4 Felder, im Schnee 3; Infanterie bleibt bei 2 / jeep 4 tiles, 3 in snow; infantry stays at 2
     expect(effectiveMove(s, jeep)).toBe(3);
+    expect(effectiveMove(s, inf)).toBe(2);
+    s.round = roundWith(s.config.seed, 'clear');
+    expect(effectiveMove(s, jeep)).toBe(4);
   });
   it('Wind: Hubschrauber verbrauchen 2 Sprit pro Runde / wind: helicopters burn 2 fuel', () => {
     const s = blankGame({ weather: true });

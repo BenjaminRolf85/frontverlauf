@@ -756,14 +756,20 @@ const genRear: Gen = (ctx, busy, _cfg, w) => {
   for (const e of ctx.enemies) {
     if (isWonder(e) || isBoss(e) || isShip(e) || has(e, 'fly') || e.facing === undefined) continue;
     if (ctx.s.tiles[idx(ctx.size, e.x, e.y)].cityId !== null) continue;
-    // Frontkaempfer: eigene Einheit, die e schon bindet / frontal fighter: an own unit already engaging e
-    let anvil: Unit | null = null;
+    // Frontkaempfer: eigene Einheit, die e schon bindet, nicht der Flankierer selbst; seit die Grundinfanterie 2 Felder zieht,
+    // zaehlt sie als schnell und kann Frontkaempfer und Flankierer sein
+    // frontal fighter: an own unit already engaging e, not the flanker itself; since basic infantry moves 2 tiles it counts as
+    // fast and can be both frontal fighter and flanker
+    const engaged: Unit[] = [];
     for (const o of ctx.my) {
-      if (fast.includes(o) || !isFighter(o)) continue;
-      if (dist(o, e) <= Math.max(1, effectiveRange(ctx.s, o)) && (!anvil || dist(o, e) < dist(anvil, e))) anvil = o;
+      if (!isFighter(o) || dist(o, e) > Math.max(1, effectiveRange(ctx.s, o))) continue;
+      engaged.push(o);
     }
-    if (!anvil) continue;
+    if (!engaged.length) continue;
+    engaged.sort((a, b) => dist(a, e) - dist(b, e) || a.id - b.id);
     for (const u of fast) {
+      const anvil = engaged.find((o) => o.id !== u.id);
+      if (!anvil) continue;
       if (dist(u, e) > UNITS[u.type].move + T.reach) continue;
       const slot = rearSlot(ctx, e, u, anvil);
       if (!slot) continue;

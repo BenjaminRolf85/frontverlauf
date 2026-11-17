@@ -223,22 +223,31 @@ export const VICTORY_TECH: Record<FactionId, VictoryTechId> = {
 };
 export const WONDER_UNITS: WonderUnitId[] = ['portal', 'hackRelay', 'fusionPlant', 'waal', 'coreDrill'];
 
+/**
+ * Bewegung (Spielerwunsch, Einheiten waren zu langsam): Grundinfanterie aller Fraktionen (Infanterie, Graue, Eiferer,
+ * Androiden, Cyborgs) sowie Scharfschuetzen, Lichtschuetzen, Railgun-Schuetzen und Sanitaeter ziehen 2 Felder, alle
+ * anderen Fusstruppen (MG, Pioniere, Panzerabwehr usw.) bleiben bei 1; Panzer (auch Tesla-Panzer, Reliquiar,
+ * Steppenkoloss, Flammenwerferpanzer) fahren 3, der Jeep 4.
+ * Movement (player request, units were too slow): basic infantry of every faction (infantry, Greys, zealots, androids,
+ * cyborgs) plus snipers, Light Wardens, railgun marksmen and medics move 2 tiles, all other foot troops (MG, pioneers,
+ * anti-tank etc.) stay at 1; tanks (also Tesla tank, Reliquary, Steppe Colossus, flamethrower tank) drive 3, the jeep 4.
+ */
 export const UNITS: Record<UnitTypeId, UnitStats> = {
-  infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
+  infantry: { cost: 10, hp: 10, attack: 2, defense: 2, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
   // Scharfschuetze: toedlich gegen Fusstruppen (+90 %: 7 bis 10 Schaden), gegen Panzerung bleibt es bei 2 bis 3 (siehe COUNTER)
   // sniper: deadly against foot troops (+90 %: 7 to 10 damage), against armour it stays at 2 to 3 (see COUNTER)
-  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 1, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, bonusVs: { foot: 1.9 } },
-  // Jeep: 3 Felder (Spielerwunsch, vorher 2); Schnee und Panzersperre bremsen wie bei allen Fahrzeuge / jeep: 3 tiles (player request, before 2); snow and barriers slow it like all vehicles
-  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
+  sniper: { cost: 15, hp: 10, attack: 2, defense: 1, move: 2, range: 2, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, bonusVs: { foot: 1.9 } },
+  // Jeep: 4 Felder (Spielerwunsch, vorher 3, davor 2); Schnee und Panzersperre bremsen wie bei allen Fahrzeugen / jeep: 4 tiles (player request, before 3, earlier 2); snow and barriers slow it like all vehicles
+  jeep: { cost: 15, hp: 10, attack: 2, defense: 1, move: 4, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: null, ship: false },
   pioneer: { cost: 15, hp: 15, attack: 1, defense: 3, move: 1, range: 1, vision: 1, abilities: ['fortify'], tech: null, ship: false },
   mg: { cost: 25, hp: 15, attack: 3, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false },
-  medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 1, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: null, ship: false },
+  medic: { cost: 25, hp: 10, attack: 0, defense: 1, move: 2, range: 1, vision: 1, abilities: ['heal', 'convert'], tech: null, ship: false },
   artillery: { cost: 40, hp: 10, attack: 4, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false },
   spy: { cost: 40, hp: 5, attack: 0, defense: 0.5, move: 2, range: 0, vision: 1, abilities: ['invisible', 'uprising'], tech: null, ship: false },
   heli: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false },
-  // Panzer: faehrt 2 Felder und schiesst 2 Felder weit (Schnee und Panzersperre bremsen auf 1), Gegenschlag nur auf 1 Feld
-  // tank: drives 2 tiles and fires 2 tiles (snow and barriers slow it to 1), return fire only at 1 tile
-  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, returnRange: 1 },
+  // Panzer: faehrt 3 Felder und schiesst 2 Felder weit (Schnee bremst auf 2, eine Panzersperre auf BARRIER.slowedMove), Gegenschlag nur auf 1 Feld
+  // tank: drives 3 tiles and fires 2 tiles (snow slows it to 2, a barrier to BARRIER.slowedMove), return fire only at 1 tile
+  tank: { cost: 60, hp: 40, attack: 5, defense: 4, move: 3, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, returnRange: 1 },
   // Schiffe: LP kommen von der getragenen Einheit; cost = Aufruestpreis.
   // Ships: HP come from the carried unit; cost = upgrade price.
   landingBoat: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry'], tech: 'coastalEconomy', ship: true },
@@ -246,30 +255,30 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   destroyer: { cost: 25, hp: 0, attack: 3, defense: 3, move: 3, range: 1, vision: 1, abilities: ['carry', 'dash'], tech: 'shipbuilding', ship: true },
   battleship: { cost: 75, hp: 0, attack: 3, defense: 2, move: 2, range: 3, vision: 1, abilities: ['carry', 'splash'], tech: 'navalArtillery', ship: true },
   // Ausserirdische: keine Forschung, dafuer teurer / aliens: no research, but more expensive
-  grey: { cost: 15, hp: 10, attack: 2.5, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
+  grey: { cost: 15, hp: 10, attack: 2.5, defense: 1.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   terraformer: { cost: 20, hp: 10, attack: 0, defense: 2, move: 1, range: 0, vision: 1, abilities: ['terraform', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   skimmer: { cost: 40, hp: 12, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'zyrr' },
   mech: { cost: 45, hp: 30, attack: 4, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker', 'wade'], tech: null, ship: false, faction: 'zyrr' },
   // Kult: Masse statt Klasse, etwa 20 % weniger LP und Angriff als vergleichbare Einheiten, dafuer billiger (CULT)
   // cult: mass over class, about 20 % less HP and attack than comparable units, but cheaper (CULT)
-  zealot: { cost: 7, hp: 7, attack: 1.6, defense: 1.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
+  zealot: { cost: 7, hp: 7, attack: 1.6, defense: 1.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'preach'], tech: null, ship: false, faction: 'vesper' },
   torchbearer: { cost: 14, hp: 7, attack: 2.8, defense: 1, move: 1, range: 1, vision: 1, abilities: ['dash', 'burn', 'preach'], tech: 'forestry', ship: false, faction: 'vesper' },
   prophet: { cost: 22, hp: 7, attack: 0, defense: 1.5, move: 1, range: 1, vision: 2, abilities: ['heal', 'convert', 'preach'], tech: 'camouflage', ship: false, faction: 'vesper' },
   doomBuggy: { cost: 13, hp: 7, attack: 2, defense: 1, move: 2, range: 1, vision: 1, abilities: ['dash', 'escape'], tech: 'motorization', ship: false, faction: 'vesper' },
   rocketCart: { cost: 30, hp: 7, attack: 3.2, defense: 0, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: 'ballistics', ship: false, faction: 'vesper' },
   doomCrawler: { cost: 40, hp: 21, attack: 3.2, defense: 3, move: 1, range: 1, vision: 1, abilities: ['dash', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper' },
-  android: { cost: 12, hp: 10, attack: 2, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
+  android: { cost: 12, hp: 10, attack: 2, defense: 2, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
   spider: { cost: 25, hp: 12, attack: 3, defense: 2, move: 1, range: 1, vision: 1, abilities: ['dash', 'walker'], tech: null, ship: false, faction: 'nexus', compute: 1 },
   quadDrone: { cost: 35, hp: 10, attack: 3, defense: 1, move: 3, range: 1, vision: 2, abilities: ['dash', 'fly'], tech: null, ship: false, faction: 'nexus', compute: 2 },
   railgun: { cost: 45, hp: 10, attack: 4.5, defense: 0.5, move: 1, range: 3, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'nexus', compute: 3 },
   titan: { cost: 60, hp: 35, attack: 4.5, defense: 3.5, move: 1, range: 1, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'nexus', compute: 4 },
   // Cyborg-Infanterie: robuster und staerker als der Androide, teurer, von Beginn an (Rechenleistung 0 wie der Androide)
   // cyborg infantry: sturdier and stronger than the android, more expensive, from the start (compute 0 like the android)
-  cyborg: { cost: 18, hp: 15, attack: 2.8, defense: 2.5, move: 1, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
+  cyborg: { cost: 18, hp: 15, attack: 2.8, defense: 2.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify'], tech: null, ship: false, faction: 'nexus', compute: 0 },
   // Flammenwerferpanzer: Reichweite 1, Flammen ignorieren Deckung (burn: Wald, Stadt, Aussenposten), stark gegen Fusstruppen;
-  // Bewegung 2 wie die Panzer der Menschen
-  // flamethrower tank: range 1, flames ignore cover (burn: forest, city, outposts), strong against foot troops; move 2 like the human tanks
-  flameTank: { cost: 40, hp: 26, attack: 4, defense: 2.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'burn'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { foot: 1.5 } },
+  // Bewegung 3 wie die Panzer der Menschen
+  // flamethrower tank: range 1, flames ignore cover (burn: forest, city, outposts), strong against foot troops; move 3 like the human tanks
+  flameTank: { cost: 40, hp: 26, attack: 4, defense: 2.5, move: 3, range: 1, vision: 1, abilities: ['dash', 'burn'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { foot: 1.5 } },
   // Kamikaze-Laufdrohne: 3 Felder, explodiert beim Angriff (KAMIKAZE), stark gegen menschliche Fusstruppen und Zyrr
   // kamikaze walker drone: 3 tiles, explodes when attacking (KAMIKAZE), strong against human foot troops and Zyrr
   kamikazeDrone: { cost: 12, hp: 6, attack: 4.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'walker', 'kamikaze'], tech: null, ship: false, faction: 'nexus', compute: 1,
@@ -300,26 +309,26 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   protoWalker: { cost: 60, hp: 25, attack: 4, defense: 2.5, move: 1, range: 2, vision: 2, abilities: ['splash', 'walker'], tech: null, ship: false, faction: 'velkar' },
   // Velkar-Varianten (siehe VARIANTS, Treffsicherheit HIT.unit) / Velkar variants (see VARIANTS, accuracy HIT.unit)
   // Tesla-Panzer: wie der Panzer, aber Angriff +40 % und eigene Trefferchancen (oft daneben) / Tesla tank: like the tank, but attack +40 % and own hit odds (often misses)
-  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar', returnRange: 1 },
+  teslaTank: { cost: 60, hp: 40, attack: 7, defense: 4, move: 3, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'velkar', returnRange: 1 },
   // Oktokopter: Werte des Kampfhubschraubers / octocopter: the attack helicopter's values
   octocopter: { cost: 50, hp: 10, attack: 3.5, defense: 1, move: 3, range: 1, vision: 1, abilities: ['dash', 'persist', 'fly', 'fuel'], tech: null, ship: false, faction: 'velkar' },
   // Railgun-Schuetze: Reichweite 3, schiesst nur aus dem Stand (kein Sturm), praezise; wie der Scharfschuetze stark gegen
   // Fusstruppen (+30 %) und schwach gegen Panzerung (-35 %), etwas weniger ausgepraegt, weil Angriff und Reichweite hoeher sind
   // railgun marksman: range 3, fires only from a standstill (no dash), precise; like the sniper strong against foot troops
   // (+30 %) and weak against armour (-35 %), a little less pronounced because attack and range are higher
-  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 1, range: 3, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'velkar', bonusVs: { foot: 1.3, vehicle: 0.65 } },
+  railSniper: { cost: 20, hp: 10, attack: 2.5, defense: 1, move: 2, range: 3, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'velkar', bonusVs: { foot: 1.3, vehicle: 0.65 } },
   // Alvenia-Varianten (siehe VARIANTS): Fernkampf aus dem Stand, starke Verteidigung / Alvenia variants (see VARIANTS): ranged from a standstill, strong defence
   // Lichtschuetzen: Reichweite 2, schiessen nur aus dem Stand (kein Sturm), gute Verteidigung, schwacher Angriff / Light Wardens: range 2, fire only from a standstill (no dash), good defence, weak attack
-  lightWarden: { cost: 12, hp: 10, attack: 1.6, defense: 2.5, move: 1, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
-  // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, faehrt 2 Felder, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, drives 2 tiles, fires only from a standstill
-  reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 2, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
+  lightWarden: { cost: 12, hp: 10, attack: 1.6, defense: 2.5, move: 2, range: 2, vision: 1, abilities: ['fortify'], tech: null, ship: false, faction: 'alvenia' },
+  // Reliquiar: Panzer mit Reichweite 2 und schwerer Panzerung, faehrt 3 Felder, schiesst nur aus dem Stand / Reliquary: tank with range 2 and heavy armour, drives 3 tiles, fires only from a standstill
+  reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 3, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
   sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'alvenia' },
-  // Korvat: Steppenkoloss statt Panzer: die meisten LP und der staerkste Angriff aller Panzer; Preis, Sold, Bewegung 2 und
+  // Korvat: Steppenkoloss statt Panzer: die meisten LP und der staerkste Angriff aller Panzer; Preis, Sold, Bewegung 3 und
   // Reichweite 2 wie der Panzer (gemessen, siehe BALANCING.md)
-  // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 2 and
+  // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 3 and
   // range 2 like the tank (measured, see BALANCING.md)
-  steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 2, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat', returnRange: 1 },
+  steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 3, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat', returnRange: 1 },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },

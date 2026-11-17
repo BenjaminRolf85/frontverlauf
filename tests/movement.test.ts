@@ -12,17 +12,20 @@ function mv() {
 const keys = (r: { x: number; y: number }[]) => r.map((p) => `${p.x},${p.y}`).sort();
 
 describe('Bewegung / movement', () => {
-  // Jeep: 3 Felder (Spielerwunsch, vorher 2) / jeep: 3 tiles (player request, before 2)
-  it('infantry moves 1 tile (8 neighbours), jeep 3', () => {
+  // Infanterie 2 Felder, Jeep 4 (Spielerwunsch, vorher 1 und 3) / infantry 2 tiles, jeep 4 (player request, before 1 and 3)
+  it('infantry moves 2 tiles (24 tiles around), jeep 4', () => {
     const s = mv();
     const i = addUnit(s, 'infantry', 0, 5, 5);
-    expect(reachable(s, i)).toHaveLength(8);
+    expect(reachable(s, i)).toHaveLength(24);
+    // schwere Fusstruppen bleiben bei 1 Feld (8 Nachbarn) / heavy foot troops stay at 1 tile (8 neighbours)
+    const m = addUnit(s, 'mg', 0, 8, 2);
+    expect(reachable(s, m)).toHaveLength(8);
     const j = addUnit(s, 'jeep', 0, 2, 5);
     const r = keys(reachable(s, j));
     expect(r).toContain('4,5');
     expect(r).not.toContain('5,5'); // eigene Einheit, kein Endfeld / own unit, no end tile
-    expect(r).toContain('2,8');
-    expect(r).not.toContain('2,9');
+    expect(r).toContain('2,9');
+    expect(r).not.toContain('2,10');
   });
 
   it('a unit moves once per turn', () => {
@@ -35,16 +38,14 @@ describe('Bewegung / movement', () => {
   it('entering forest or mountain ends the movement, except on a road', () => {
     const s = mv();
     s.factions[0].techs.push('mountainTraining');
-    setTerrain(s, 5, 5, 'forest');
-    setTerrain(s, 5, 4, 'forest');
-    setTerrain(s, 5, 6, 'forest');
+    // Wand aus fuenf Feldern, damit der Jeep (4 Felder) nicht aussen herum faehrt / wall of five tiles so the jeep (4 tiles) cannot drive around
+    for (const y of [3, 4, 5, 6, 7]) setTerrain(s, 5, y, 'forest');
     const j = addUnit(s, 'jeep', 0, 4, 5);
     const r = keys(reachable(s, j));
     expect(r).toContain('5,5');
     // hinter dem Wald nur ueber freie Felder / behind forest only via open tiles
     expect(r).not.toContain('6,5');
-    setTerrain(s, 5, 4, 'mountain');
-    setTerrain(s, 5, 6, 'mountain');
+    for (const y of [3, 4, 6, 7]) setTerrain(s, 5, y, 'mountain');
     expect(keys(reachable(s, j))).not.toContain('6,5');
     // Strasse im Wald: kein Halt / road in forest: no stop
     setTerrain(s, 5, 5, 'forest', { road: true });
@@ -58,7 +59,9 @@ describe('Bewegung / movement', () => {
     const r = reachable(s, i);
     expect(r.find((p) => p.x === 5 && p.y === 5)?.cost).toBe(1);
     expect(r.find((p) => p.x === 4 && p.y === 5)?.cost).toBe(0.5);
-    expect(keys(r)).not.toContain('6,5');
+    // Infanterie (2 Felder): nach der Strasse noch ein freies Feld / infantry (2 tiles): one more open tile after the road
+    expect(r.find((p) => p.x === 6 && p.y === 5)?.cost).toBe(2);
+    expect(keys(r)).not.toContain('7,5');
     ok(s, { type: 'move', unit: i.id, to: { x: 5, y: 5 } });
   });
 

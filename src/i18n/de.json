@@ -290,14 +290,14 @@
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
     "sniper": "Schießt aus zwei Feldern Entfernung und schaltet Fußtruppen aus, kratzt Panzerung aber kaum an. Selbst zerbrechlich.",
-    "jeep": "Schneller Aufklärer, fährt 3 Felder: zuschlagen und wieder abhauen.",
+    "jeep": "Schneller Aufklärer, fährt 4 Felder: zuschlagen und wieder abhauen.",
     "pioneer": "Zäher Verteidiger, der Panzersperren baut.",
     "mg": "Schwere Feuerkraft für die Front, stark in der Verteidigung.",
     "medic": "Heilt seine Nachbarn und überredet Feinde zum Überlaufen.",
     "artillery": "Beschießt Ziele aus drei Feldern Entfernung (Korvat: vier), braucht aber Begleitschutz.",
     "spy": "Unsichtbar hinter den Linien, zettelt Aufstände in Feindstädten an.",
     "heli": "Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, braucht aber Sprit.",
-    "tank": "Stählerne Faust: fährt zwei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "tank": "Stählerne Faust: fährt drei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "landingBoat": "Bringt eine Landeinheit übers Wasser, kann aber nicht angreifen.",
     "submarine": "Taucht unsichtbar ab und torpediert aus zwei Feldern Entfernung.",
     "destroyer": "Schnelles Kampfschiff, das die Küsten sauber hält.",
@@ -335,11 +335,11 @@
     "coreDrill": "Siegeinheit des Kults, von einem Propheten gerufen: bohrt sich im Stillstand zum Erdkern.",
     "swarmMother": "Xyl'Tharra selbst: schwebt, schießt aus der Distanz, heilt auf Xeno-Boden, brütet Graue und trifft Nachbarn mit einem psychischen Schrei.",
     "scientist": "Kämpft nicht, trägt aber einen Schutzanzug. Arbeitet direkt neben dem Mutterschiff der Zyrr, dort deckt ihn die Hülle (Kampagne).",
-    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Fährt zwei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "teslaTank": "Prototyp aus dem Polarlabor: Tesla-Spulen statt Kanone, ein Blitz statt einer Granate. Trifft die Entladung, trifft sie hart, aber oft geht sie daneben. Fährt drei Felder und schießt aus zwei Feldern Entfernung. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "octocopter": "Große Drohne mit acht Rotoren und Sensorkapsel. Fliegt über alles hinweg und greift nach jedem Abschuss erneut an, ihr Generator braucht aber Sprit.",
     "railSniper": "Magnetschiene statt Gewehr: große Reichweite, maschinengenau, kaum ein Fehlschuss. Schießt nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern. Tödlich gegen Fußtruppen, schwach gegen Panzerung.",
     "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite 2 und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
-    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: fährt zwei Felder, Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: fährt drei Felder, Reichweite 2, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung.",
     "steppeColossus": "Der schwerste Panzer der Volksliga: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "cyborg": "Maschinensoldat mit Panzerplatten und Servo-Gliedern: robuster und schlagkräftiger als der Kampfandroide, dafür teurer. Ab dem ersten Zug verfügbar.",
@@ -977,7 +977,7 @@
     "done": "Los geht's!",
     "s1": "Willkommen bei Frontverlauf! Du führst den Volksbund Korvat. Das ist dein Hauptquartier.",
     "s2": "Tippe auf deine Infanterie, um sie auszuwählen. Grüne Ringe zeigen, wohin sie ziehen kann.",
-    "s3": "Ziehe die Infanterie zur neutralen Siedlung mit dem gelben Ring. Sie zieht ein Feld pro Zug, beende dazwischen jeweils den Zug.",
+    "s3": "Ziehe die Infanterie zur neutralen Siedlung mit dem gelben Ring. Sie zieht zwei Felder pro Zug; ist die Siedlung weiter weg, beende dazwischen den Zug.",
     "s4": "Gut! Beende jetzt den Zug. Einnehmen geht erst zu Beginn deines nächsten Zuges.",
     "s5": "Wähle die Infanterie und tippe auf Einnehmen. Die Siedlung wird zu deiner Stadt.",
     "s6": "Sterne sind die einzige Währung. Öffne die Forschung und erforsche eine Technologie.",
@@ -3530,7 +3530,7 @@
     },
     "combat": {
       "title": "Kampf & Trefferglück",
-      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Panzer fahren 2 Felder und schießen 2 Felder weit, schlagen aber nur auf 1 Feld zurück. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
+      "text": "Wähle eine Einheit, dann einen Gegner in Reichweite. Der Angriffsknopf zeigt die Vorschau: erwarteter Schaden mit Spanne, etwa „≈4 Schaden (0–6)“, die Vernichtungschance und den Gegenschlag. Ein überlebender Verteidiger schlägt zurück, wenn er den Angreifer erreicht. Panzer fahren 3 Felder und schießen 2 Felder weit, schlagen aber nur auf 1 Feld zurück. Trefferglück (abschaltbar) bestimmt den Schaden: daneben {miss} %, Streifschuss {graze} %, Teiltreffer {partial} %, voller Treffer {full} %, kritisch {crit} %. Jede Rasse hat eigene Chancen, das Wetter verschiebt sie. Konter-Einheiten machen gegen bestimmte Klassen mehr Schaden. Feuern nach Bewegung: Wer im selben Zug erst zieht und dann angreift, macht nur {move} % Schaden, erst danach würfelt das Trefferglück. Das gilt für Nahkampf, Fernkampf, Raketen, Geschütze und Flächenschaden. Wer stehen bleibt, schießt voll, und der Gegenschlag des Verteidigers bleibt unverändert."
     },
     "cover": {
       "title": "Deckung",
