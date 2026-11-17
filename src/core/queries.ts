@@ -1555,12 +1555,41 @@ export function shipUpgradeCost(s: GameState, f: number, to: UnitTypeId): number
   return hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base;
 }
 
+/**
+ * Zielradius der Grenzerweiterung: ein ganzer Ring weiter, mindestens CITY.expandedRadius (5x5), hoechstens
+ * CITY.growMaxRadius (7x7); nie kleiner als der jetzige Radius.
+ * Target radius of the border expansion: one full ring further, at least CITY.expandedRadius (5x5), at most
+ * CITY.growMaxRadius (7x7); never smaller than the current radius.
+ */
+export function expandRadius(c: City): number {
+  return Math.max(c.radius, Math.min(CITY.growMaxRadius, Math.max(CITY.expandedRadius, c.radius + 1)));
+}
+
+/**
+ * Freie Felder im Ring radius um die Stadt (Chebyshev-Abstand genau radius): ohne Gebiet und ohne fremde Stadt, die
+ * naechsten zuerst (euklidisch, Gleichstand nach Feldindex). Grundlage des Wachstums je Stufe (CITY.growTiles).
+ * Free tiles in the ring at radius around the city (Chebyshev distance exactly radius): without territory and without
+ * another city, nearest first (euclidean, ties by tile index). Basis of the growth per level (CITY.growTiles).
+ */
+export function freeRingTiles(s: GameState, c: City, radius: number): Pos[] {
+  const out: Pos[] = [];
+  for (const p of area(s.size, c.x, c.y, radius)) {
+    if (dist(c, p) !== radius) continue;
+    const t = tileAt(s, p.x, p.y)!;
+    if (t.territory === null && (t.cityId === null || t.cityId === c.id)) out.push(p);
+  }
+  const d2 = (p: Pos) => (p.x - c.x) ** 2 + (p.y - c.y) ** 2;
+  return out.sort((a, b) => d2(a) - d2(b) || (a.y * s.size + a.x) - (b.y * s.size + b.x));
+}
+
 /** Belohnungsoptionen beim Stadtaufstieg / reward options when a city levels up */
 export type RewardId = 'factory' | 'drone' | 'bunkerRing' | 'stars' | 'expand' | 'population' | 'govQuarter' | 'tank';
 export function rewardOptions(c: City, level: number): [RewardId, RewardId] {
   if (level === 2) return ['factory', 'drone'];
   if (level === 3) return ['bunkerRing', 'stars'];
-  if (level === 4) return ['expand', 'population'];
+  // Grenzerweiterung nur, solange das Gebiet noch wachsen kann; schon 7x7: Sterne statt einer leeren Wahl
+  // border expansion only while the territory can still grow; already 7x7: stars instead of an empty choice
+  if (level === 4) return [c.radius < CITY.growMaxRadius ? 'expand' : 'stars', 'population'];
   return [c.govQuarter ? 'stars' : 'govQuarter', 'tank'];
 }
 

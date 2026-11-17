@@ -644,7 +644,7 @@
     "stars": "Sterne",
     "starsDesc": "15 Sterne sofort",
     "expand": "Grenzerweiterung",
-    "expandDesc": "Stadtgebiet wächst auf 5 x 5 Felder",
+    "expandDesc": "Stadtgebiet wächst um einen ganzen Ring: mindestens auf 5 x 5, höchstens auf 7 x 7 Felder",
     "population": "Zuzug",
     "populationDesc": "3 Bevölkerungspunkte sofort",
     "govQuarter": "Regierungsviertel",
@@ -3542,7 +3542,7 @@
     },
     "cities": {
       "title": "Städte & Forschung",
-      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
     },
     "outposts": {
       "title": "Außenposten",
@@ -3769,7 +3769,7 @@
       },
       "cities": {
         "title": "Städte & Produktion",
-        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
       },
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."

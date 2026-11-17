@@ -1138,7 +1138,23 @@ export const CITY = {
   buyLevelBase: 25,
   buyLevelCost: (level: number) => CITY.buyLevelBase * (level + 1),
   baseRadius: 1, // 3x3
+  /**
+   * Belohnung Grenzerweiterung (Stufe 4): ganzer Ring bis max(expandedRadius, radius + 1), hoechstens growMaxRadius.
+   * Border expansion reward (level 4): a full ring up to max(expandedRadius, radius + 1), at most growMaxRadius.
+   */
   expandedRadius: 2, // 5x5
+  /**
+   * Wachstum je Stufe (Spielerwunsch): jeder Aufstieg (auch gekauft) nimmt bis zu growTiles freie Felder im naechsten Ring
+   * (Chebyshev-Abstand radius + 1), die naechsten zuerst (euklidisch, Gleichstand nach Feldindex); nur Felder ohne Gebiet und
+   * ohne fremde Stadt. Ist der Ring voll (kein freies Feld mehr), wird er zum Radius und der Rest waechst im naechsten Ring
+   * weiter, hoechstens bis growMaxRadius (7x7). Kult, Sendetuerme und Nachschublinien wachsen nicht.
+   * Growth per level (player request): every level-up (bought ones too) takes up to growTiles free tiles in the next ring
+   * (Chebyshev distance radius + 1), nearest first (euclidean, ties by tile index); only tiles without territory and without
+   * another city. Once the ring is full (no free tile left) it becomes the radius and the rest grows on into the next ring,
+   * at most up to growMaxRadius (7x7). Cult, transmitter towers and supply lines do not grow.
+   */
+  growTiles: 4,
+  growMaxRadius: 3, // 7x7
   unitLimitExtra: 1, // Stufe + 1 / level + 1
   /** jeder Stadt-Ausbau (CITY_UPGRADES) traegt eine Einheit mehr / every city upgrade (CITY_UPGRADES) supports one more unit */
   unitLimitPerUpgrade: 1,

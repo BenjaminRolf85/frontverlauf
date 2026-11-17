@@ -25,7 +25,7 @@ import {
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
-  rewardOptions, buyLevelCheck, buyLevelCost, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
+  rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
@@ -225,7 +225,34 @@ function freeNeighbor(s: GameState, x: number, y: number, water: boolean): { x: 
 function raiseLevel(s: GameState, c: City, ev: GameEvent[], bought = false) {
   c.level++;
   ev.push({ t: 'cityLevel', city: c.id, level: c.level, ...(bought ? { bought: true as const } : {}) });
+  growTerritory(s, c, ev);
   if (c.owner !== null) s.pendingRewards.push({ cityId: c.id, level: c.level });
+}
+
+/**
+ * Wachstum je Stufe (CITY.growTiles): bis zu growTiles freie Felder im naechsten Ring, die naechsten zuerst; ein voller Ring
+ * wird zum Radius, der Rest waechst im naechsten weiter, hoechstens bis CITY.growMaxRadius. Fremde Felder bleiben fremd.
+ * Neue Felder werden fuer den Besitzer aufgedeckt (wie bei der Grenzerweiterung).
+ * Growth per level (CITY.growTiles): up to growTiles free tiles in the next ring, nearest first; a full ring becomes the
+ * radius, the rest grows on in the next one, at most up to CITY.growMaxRadius. Foreign tiles stay foreign. New tiles are
+ * revealed for the owner (as with the border expansion).
+ */
+function growTerritory(s: GameState, c: City, ev: GameEvent[]) {
+  const f = c.owner;
+  // Kult, Sendetuerme und Nachschublinien wachsen nicht / cult, transmitter towers and supply lines do not grow
+  if (f === null || c.tower || supplyLines(s) || isCultFaction(s, f)) return;
+  let left = CITY.growTiles;
+  while (left > 0 && c.radius < CITY.growMaxRadius) {
+    const ring = c.radius + 1;
+    const free = freeRingTiles(s, c, ring);
+    for (const p of free.slice(0, left)) {
+      tileAt(s, p.x, p.y)!.territory = c.id;
+      reveal(s, f, p.x, p.y, VISION.cityExtra, ev);
+    }
+    if (free.length > left) break;
+    left -= free.length;
+    c.radius = ring;
+  }
 }
 
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
@@ -1069,7 +1096,8 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
     case 'drone': reveal(s, f, c.x, c.y, VISION.droneRadius, ev); break;
     case 'bunkerRing': c.bunkerRing = true; break;
     case 'stars': s.factions[f].stars += CITY.rewardStars; break;
-    case 'expand': claimTerritory(s, c, CITY.expandedRadius); reveal(s, f, c.x, c.y, c.radius + VISION.cityExtra, ev); break;
+    // ganzer Ring bis expandRadius (mindestens 5x5, hoechstens 7x7) / a full ring up to expandRadius (at least 5x5, at most 7x7)
+    case 'expand': claimTerritory(s, c, expandRadius(c)); reveal(s, f, c.x, c.y, c.radius + VISION.cityExtra, ev); break;
     case 'population': addPop(s, c, CITY.rewardPopulation, ev); break;
     case 'govQuarter': c.govQuarter = true; break;
     case 'tank': {

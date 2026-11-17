@@ -644,7 +644,7 @@
     "stars": "Stars",
     "starsDesc": "15 stars right away",
     "expand": "Border expansion",
-    "expandDesc": "City territory grows to 5 x 5 tiles",
+    "expandDesc": "City territory grows by a full ring: at least to 5 x 5, at most to 7 x 7 tiles",
     "population": "Influx",
     "populationDesc": "3 population points right away",
     "govQuarter": "Government quarter",
@@ -3542,7 +3542,7 @@
     },
     "cities": {
       "title": "Cities & research",
-      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
     },
     "outposts": {
       "title": "Outposts",
@@ -3769,7 +3769,7 @@
       },
       "cities": {
         "title": "Cities & production",
-        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
       },
       "factions": {
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
