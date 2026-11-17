@@ -3584,6 +3584,9 @@
   },
   "lore": {
     "button": "Geschichte als Comic",
+    "buttonAudio": "Geschichte als Comic und Hörgeschichte",
+    "listen": "Hörgeschichte",
+    "listenNote": "gesprochen, etwa {min} Minuten",
     "title": "{name}: Geschichte",
     "textToggle": "Text der Comic-Seite",
     "text": {
