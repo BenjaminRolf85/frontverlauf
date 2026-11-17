@@ -831,7 +831,7 @@ const genFeint: Gen = (ctx, busy, _cfg, w) => {
     const tmp = newOp(ctx, 'feint', T.rounds, b, { zone: z });
     let best: Pos | null = null, bv = -Infinity, bc = 0;
     for (const r of reachable(s, b)) {
-      if (r.embark || r.disembark) continue;
+      if (r.embark || r.disembark || r.board) continue;
       const gain = dist(r, pursuer) - dist(b, pursuer);
       if (gain <= 0) continue;
       const cover = zoneCover(tmp, r);
@@ -911,7 +911,7 @@ const genAmbush: Gen = (ctx, busy, _cfg, w) => {
   for (const u of cands) {
     const reach = ranged(u) && !fullMover(s, u) ? effectiveRange(s, u) : UNITS[u.type].move + effectiveRange(s, u);
     const tiles: Pos[] = [{ x: u.x, y: u.y }];
-    if (canMove(u)) for (const r of reachable(s, u)) if (!r.embark && !r.disembark) tiles.push({ x: r.x, y: r.y });
+    if (canMove(u)) for (const r of reachable(s, u)) if (!r.embark && !r.disembark && !r.board) tiles.push({ x: r.x, y: r.y });
     let best: Pos | null = null, bv = 0;
     for (const p of tiles) {
       const k = p.y * size + p.x;
