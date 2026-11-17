@@ -798,6 +798,8 @@
     "relayLimit": "Velkar already owns a satellite relay.",
     "cannotCarry": "This unit cannot carry the war plans",
     "buildingMissing": "Production site or prerequisite missing.",
+    "noCoast": "No water at this city: ships need a coastal city.",
+    "noWaterTile": "No free water tile at the city.",
     "alreadyBought": "Already bought this round."
   },
   "events": {

@@ -798,6 +798,8 @@
     "relayLimit": "Velkar besitzt bereits ein Satelliten-Relay.",
     "cannotCarry": "Diese Einheit kann die Kriegspläne nicht tragen",
     "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt.",
+    "noCoast": "Kein Wasser an dieser Stadt: Schiffe brauchen eine Küstenstadt.",
+    "noWaterTile": "Kein freies Wasserfeld an der Stadt.",
     "alreadyBought": "In dieser Runde schon gekauft."
   },
   "events": {

@@ -93,7 +93,8 @@ export const LEGACY_UNIT_TECH: Partial<Record<UnitTypeId, TechId>> = {
   spy: 'intelligence', heli: 'armyAviation', antiTank: 'armsIndustry', antiAir: 'aerodynamics', mineLayer: 'fortification',
   steppeRider: 'livestock', stormbreaker: 'mining', peacekeeper: 'fortification', privateer: 'coastalEconomy', protoWalker: 'cybernetics',
   octocopter: 'armyAviation', railSniper: 'camouflage', sunLance: 'ballistics',
-  landingBoat: 'coastalEconomy', submarine: 'diving', destroyer: 'shipbuilding', battleship: 'navalArtillery',
+  // Landungsboot fehlt: Transportboote braucht keine Staette mehr (SHIPYARD) / landing boat omitted: transport boats need no site any more (SHIPYARD)
+  submarine: 'diving', destroyer: 'shipbuilding', battleship: 'navalArtillery',
 };
 
 /**

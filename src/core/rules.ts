@@ -5,7 +5,7 @@
 import {
   COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
-  type WonderUnitId,
+  type WonderUnitId, SHIPYARD,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -29,7 +29,7 @@ import {
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
-  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked,
+  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -731,7 +731,7 @@ function cutAtMine(s: GameState, u: Unit, r: Reach): { reach: Reach; mine: boole
     const probe = isShipUnit(u) && i === last && r.disembark && u.carried ? { ...u, type: u.carried } : u;
     if (!mineTriggers(s, probe, p.x, p.y)) continue;
     if (i < last && unitAt(s, p.x, p.y)) continue;
-    return { reach: { ...r, x: p.x, y: p.y, path: r.path.slice(0, i + 1), embark: false, disembark: i === last ? r.disembark : false }, mine: true };
+    return { reach: { ...r, x: p.x, y: p.y, path: r.path.slice(0, i + 1), embark: false, board: false, disembark: i === last ? r.disembark : false }, mine: true };
   }
   return { reach: r, mine: false };
 }
@@ -1135,6 +1135,8 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
   }
   // Ausrichtung = Richtung des letzten Schritts / facing = direction of the last step
   const prev = r.path.length > 1 ? r.path[r.path.length - 2] : { x: u.x, y: u.y };
+  // leeres eigenes Schiff am Ziel (Einsteigen), vor dem Umsetzen merken / own empty ship at the target (boarding), remember before moving
+  const boat = r.board && !mine ? emptyShipAt(s, f, r.x, r.y) : undefined;
   u.x = r.x; u.y = r.y;
   if (canFace(u)) u.facing = facingTowards(prev, u) ?? u.facing;
   // wer zieht, verlaesst seine Stellung (ENTRENCH) / whoever moves leaves its position (ENTRENCH)
@@ -1151,7 +1153,13 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
   for (const p of r.path) reveal(s, f, p.x, p.y, visionRadiusAt(s, u, p.x, p.y), ev);
   if (hadAttacked) u.exhausted = true;
   const t = tileAt(s, u.x, u.y)!;
-  if (r.embark) {
+  if (boat) {
+    // Einsteigen: das leere Schiff nimmt die Einheit auf (Kennung, LP und Erfahrung der Einheit bleiben) / boarding: the empty ship takes the unit in (the unit's id, HP and experience stay)
+    s.units = s.units.filter((o) => o.id !== boat.id);
+    u.carried = u.type; u.type = boat.type; u.exhausted = true;
+    if (canFace(u)) u.facing = boat.facing ?? u.facing;
+    ev.push({ t: 'embark', unit: u.id, boat: boat.id });
+  } else if (r.embark) {
     u.carried = u.type; u.type = 'landingBoat'; u.exhausted = true;
     ev.push({ t: 'embark', unit: u.id });
   } else if (r.disembark) {
@@ -1455,6 +1463,17 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = trainCheck(s, c, cmd.unitType);
       if (check !== 'ok') return fail(check);
       fa.stars -= unitCost(s, f, cmd.unitType)!;
+      // Werft: leeres Schiff auf freiem Wasserfeld an der Stadt, Rumpf-LP; keine Zwillinge, keine Veteranen (SHIPYARD)
+      // shipyard: empty ship on a free water tile at the city, hull HP; no twins, no veterans (SHIPYARD)
+      if (UNITS[cmd.unitType].ship) {
+        const at = shipSpawnTile(s, c)!;
+        // Kult: die Horde gehoert keiner Stadt / cult: the horde belongs to no city
+        const ship = spawnUnit(s, cmd.unitType, f, at.x, at.y, isCultFaction(s, f) ? null : c.id);
+        ship.hp = ship.maxHp = SHIPYARD.hullHp[cmd.unitType] ?? 1;
+        ev.push({ t: 'train', unit: ship.id, city: c.id });
+        res = { ok: true, events: ev };
+        break;
+      }
       // Meridon "Zwei fuer einen": vor der Ausbildung pruefen, die erste Einheit belegt dann einen Platz / check before training, the first unit then takes a slot
       const twin = twinCheck(s, c, cmd.unitType);
       const twinAt = twin === 'twin' ? twinSpot(s, c) : null;
@@ -1636,6 +1655,12 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = upgradeCheck(s, u, cmd.to);
       if (check !== 'ok') return fail(check);
       fa.stars -= shipUpgradeCost(s, f, cmd.to);
+      // leeres Schiff: Rumpf-LP des neuen Typs, Schaden bleibt / empty ship: hull HP of the new type, damage stays
+      if (!u.carried) {
+        const lost = u.maxHp - u.hp;
+        u.maxHp = SHIPYARD.hullHp[cmd.to] ?? u.maxHp;
+        u.hp = Math.max(1, u.maxHp - lost);
+      }
       u.type = cmd.to;
       ev.push({ t: 'upgrade', unit: u.id, to: cmd.to });
       res = { ok: true, events: ev };

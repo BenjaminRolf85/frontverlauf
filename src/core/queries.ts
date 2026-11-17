@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -108,7 +108,8 @@ export function canSeeUnit(s: GameState, f: number, u: Unit): boolean {
 }
 
 export function unitCost(s: GameState, f: number, type: UnitTypeId): number | null {
-  const base = UNITS[type].cost;
+  // leeres Transportboot aus der Werft: eigener Kaufpreis (Einschiffen bleibt frei) / empty transport boat from the shipyard: own price (embarking stays free)
+  const base = type === 'landingBoat' ? SHIPYARD.transportCost : UNITS[type].cost;
   if (base === null) return null;
   const fs = FACTIONS[s.factions[f].id];
   let cost = fs.discountUnit === type ? Math.ceil(base * (1 - fs.discount)) : base;
@@ -354,7 +355,8 @@ export function income(s: GameState, f: number): number {
 }
 
 /** Sold eines Einheitentyps (pauschal oder Anteil am Preis) / upkeep of a unit type (flat or share of the price) */
-const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil((UNITS[type].cost ?? 0) * UPKEEP.share);
+// leeres Transportboot: Anteil am Kaufpreis (SHIPYARD) / empty transport boat: share of its price (SHIPYARD)
+const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil(((type === 'landingBoat' ? SHIPYARD.transportCost : UNITS[type].cost) ?? 0) * UPKEEP.share);
 
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
@@ -401,6 +403,8 @@ export function unitScore(u: Unit): number {
   if (isWonder(u)) return 0;
   if (isRewardTank(u.type)) return SCORE.tankUnit;
   if (u.carried) return (isRewardTank(u.carried) ? SCORE.tankUnit : UNITS[u.carried].cost ?? 0) + (UNITS[u.type].cost ?? 0);
+  // leeres Transportboot: sein Kaufpreis / empty transport boat: its price
+  if (u.type === 'landingBoat') return SHIPYARD.transportCost;
   return UNITS[u.type].cost ?? 0;
 }
 
@@ -432,7 +436,18 @@ function isBridge(t: Tile) { return t.building === 'bridge'; }
 function walkable(t: Tile) { return isLand(t) || isBridge(t); }
 function roadLike(t: Tile) { return t.road || t.cityId !== null || isBridge(t); }
 
-export interface Reach { x: number; y: number; cost: number; path: Pos[]; embark?: boolean; disembark?: boolean }
+/**
+ * Erreichbares Feld. embark: an einem Marinestuetzpunkt einschiffen; disembark: an Land gehen; board: auf ein eigenes
+ * leeres Schiff steigen (das Zielfeld ist dann besetzt).
+ * Reachable tile. embark: embark at a naval base; disembark: go ashore; board: board an own empty ship (the target tile is then occupied).
+ */
+export interface Reach { x: number; y: number; cost: number; path: Pos[]; embark?: boolean; disembark?: boolean; board?: boolean }
+
+/** Eigenes leeres Schiff auf (x, y), auf das eine Landeinheit von f steigen kann / own empty ship on (x, y) a land unit of f can board */
+export function emptyShipAt(s: GameState, f: number, x: number, y: number): Unit | undefined {
+  const o = unitAt(s, x, y);
+  return o && o.owner === f && UNITS[o.type].ship && o.carried === null ? o : undefined;
+}
 
 /** Kann sich die Einheit noch bewegen? / can the unit still move? */
 export function canMove(u: Unit): boolean {
@@ -490,12 +505,15 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       let stop = false;
       let embark = false;
       let disembark = false;
+      let board = false;
       if (fly) {
         // fliegt ueber alles / flies over everything
       } else if (ship) {
         if (isWater(t)) {
           if (t.terrain === 'ocean' && !hasTech(s, f, 'diving')) continue;
         } else {
+          // leeres Schiff (Werft) kann nicht anlanden / an empty ship (shipyard) cannot go ashore
+          if (!u.carried) continue;
           if (t.terrain === 'mountain' && !hasTech(s, f, 'mountainTraining') && !has(u, 'walker')) continue;
           disembark = true; stop = true;
         }
@@ -505,7 +523,10 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
         if (has(u, 'wade') && !walkable(t)) {
           stop = true;
         } else if (!walkable(t)) {
-          if (t.building === 'navalBase' && territoryOwner(s, t) === f && canEmbark(s, f) && !has(u, 'wonder')) {
+          // eigenes leeres Schiff: einsteigen (wie Einschiffen: Kuestenwirtschaft fuer Nicht-Menschen) / own empty ship: board (as embarking: coastal economy for non-humans)
+          if (emptyShipAt(s, f, n.x, n.y) && canEmbark(s, f) && !has(u, 'wonder') && !isBoss(u)) {
+            board = true; stop = true;
+          } else if (t.building === 'navalBase' && territoryOwner(s, t) === f && canEmbark(s, f) && !has(u, 'wonder')) {
             embark = true; stop = true;
           } else continue;
         } else {
@@ -546,7 +567,7 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       const prev = best.get(key);
       if (prev && prev.cost <= total) continue;
       const path = [...cur.path, { x: n.x, y: n.y }];
-      const r: Reach = { x: n.x, y: n.y, cost: total, path, embark, disembark };
+      const r: Reach = { x: n.x, y: n.y, cost: total, path, embark, disembark, ...(board ? { board } : {}) };
       best.set(key, r);
       open.push({ key, x: n.x, y: n.y, cost: total, stop, path });
     }
@@ -554,7 +575,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
   for (const [key, r] of best) {
     if (key === startKey) continue;
     const occupant = unitAt(s, r.x, r.y);
-    if (occupant) continue; // kann nicht auf besetztem Feld enden / cannot end on occupied tile
+    // kann nicht auf besetztem Feld enden, ausser beim Einsteigen / cannot end on an occupied tile, except when boarding
+    if (occupant && !r.board) continue;
     results.push(r);
   }
   return results;
@@ -1495,12 +1517,105 @@ export function mineDamage(s: GameState, owner: number, type: UnitTypeId): numbe
   return base + (hasDoctrine(s, owner, 'fortification') ? DOCTRINE.fortificationMine : 0);
 }
 
-export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing';
+// ---------- Werft der Kuestenstaedte / shipyard of coastal cities ----------
+
+/**
+ * Schiffe, die Fraktion f in einer Kuestenstadt kaufen kann (SHIPYARD): Transportboot, Kriegsschiffe, eigenes Fraktionsschiff
+ * (Meridon: Kaperschiff). Die Zyrr waten und haben keine Schiffe.
+ * Ships faction f can buy in a coastal city (SHIPYARD): transport boat, warships, own faction ship (Meridon: privateer).
+ * The Zyrr wade and have no ships.
+ */
+export function rosterShips(s: GameState, f: number): UnitTypeId[] {
+  const id = s.factions[f]?.id;
+  if (!id || id === XENO.faction) return [];
+  const own = uniqueUnitOf(id);
+  const extra = own && UNITS[own].ship ? [own] : [];
+  return ['landingBoat', ...SHIP_UPGRADES.filter((t) => t === 'destroyer'), ...extra, ...SHIP_UPGRADES.filter((t) => t !== 'destroyer')];
+}
+
+/** Wasserfelder der Werft: Nachbarn des Stadtfelds und Wasser im Stadtgebiet / water tiles of the shipyard: neighbours of the city tile and water in the city territory */
+function shipyardWater(s: GameState, c: City): Pos[] {
+  const out = new Map<number, Pos>();
+  for (const p of [...neighbors(s.size, c.x, c.y), ...cityTiles(s, c)]) {
+    if (isWater(tileAt(s, p.x, p.y)!)) out.set(idx(s.size, p.x, p.y), p);
+  }
+  return [...out.values()];
+}
+
+/** Hat die Stadt Wasser im Gebiet oder am Stadtfeld (Werft moeglich)? / does the city have water in its territory or next to the city tile (shipyard possible)? */
+export const isCoastalCity = (s: GameState, c: City): boolean => shipyardWater(s, c).length > 0;
+
+/**
+ * Feld fuer ein neues Schiff der Stadt: freies Wasserfeld direkt an der Stadt (Flachwasser zuerst), sonst das naechste freie
+ * im Stadtgebiet. Ozean nur mit Tauchen (sonst saesse das Schiff fest). Kein Feld frei: null.
+ * Tile for a new ship of the city: a free water tile right next to the city (shallow first), otherwise the nearest free one
+ * in the city territory. Ocean only with diving (otherwise the ship would be stuck). No tile free: null.
+ */
+export function shipSpawnTile(s: GameState, c: City): Pos | null {
+  const diving = c.owner !== null && hasTech(s, c.owner, 'diving');
+  const ok = (p: Pos) => {
+    const t = tileAt(s, p.x, p.y)!;
+    if (!isWater(t) || (t.terrain === 'ocean' && !diving)) return false;
+    if (t.wonderOf || t.turret || t.feature === 'mothership' || t.temple || t.volcano) return false;
+    return !unitAt(s, p.x, p.y);
+  };
+  const shallowFirst = (a: Pos, b: Pos) => (tileAt(s, a.x, a.y)!.terrain === 'shallow' ? 0 : 1) - (tileAt(s, b.x, b.y)!.terrain === 'shallow' ? 0 : 1);
+  const near = neighbors(s.size, c.x, c.y).filter(ok).sort(shallowFirst);
+  if (near.length) return near[0];
+  const d2 = (p: Pos) => (p.x - c.x) ** 2 + (p.y - c.y) ** 2;
+  const far = cityTiles(s, c).filter(ok)
+    .sort((a, b) => dist(a, c) - dist(b, c) || shallowFirst(a, b) || d2(a) - d2(b) || idx(s.size, a.x, a.y) - idx(s.size, b.x, b.y));
+  return far[0] ?? null;
+}
+
+/**
+ * Forschung, die beim Kauf dieses Typs fehlt (fuer Sperrgruende), sonst null. Schiffe: Kuestenwirtschaft wie beim Einschiffen,
+ * dann (ausser Menschen) die Schiffsforschung.
+ * Research missing to buy this type (for lock reasons), otherwise null. Ships: coastal economy as for embarking, then
+ * (except humans) the ship's research.
+ */
+export function trainTechNeed(s: GameState, f: number, type: UnitTypeId): TechId | null {
+  const st = UNITS[type];
+  if (st.ship) {
+    if (!canEmbark(s, f)) return 'coastalEconomy';
+    if (type === 'landingBoat' || usesSites(s, f)) return null;
+  }
+  return st.tech && !hasTech(s, f, st.tech) ? st.tech : null;
+}
+
+/**
+ * Kauf eines Schiffs in Stadt c (SHIPYARD). Reihenfolge der Gruende: kein Wasser, Forschung bzw. Produktionsstaette,
+ * kein freies Wasserfeld, Limit (Kult: Horde), Sterne.
+ * Buying a ship in city c (SHIPYARD). Order of reasons: no water, research or production site, no free water tile,
+ * limit (cult: horde), stars.
+ */
+function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
+  const f = c.owner!;
+  if (!rosterShips(s, f).includes(type)) return 'invalid';
+  if (!isCoastalCity(s, c)) return 'noCoast';
+  if (trainTechNeed(s, f, type)) return 'techMissing';
+  // Menschen: Kriegsschiffe aus Marinestuetzpunkt bzw. Trockendock der Stadt / humans: warships from the city's naval base or dry dock
+  if (usesSites(s, f)) {
+    const site = siteOf(type);
+    if (site && !cityHasSite(s, c, site)) return 'buildingMissing';
+  }
+  if (!shipSpawnTile(s, c)) return 'noWaterTile';
+  if (isCultFaction(s, f)) {
+    const h = hordeCount(s, f);
+    if (h.units >= h.cap) return 'unitLimit';
+  } else if (supportedUnits(s, c) >= unitLimit(s, c)) return 'unitLimit';
+  if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
+  return 'ok';
+}
+
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile';
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
   const st = UNITS[type];
-  if (st.ship || st.cost === null) return 'invalid';
+  // Schiffe: Werft der Kuestenstadt / ships: shipyard of the coastal city
+  if (st.ship) return shipTrainCheck(s, c, type);
+  if (st.cost === null) return 'invalid';
   // Fraktionseinheiten / faction units
   const alien = isAlienFaction(s, c.owner);
   const roster = ROSTERS[s.factions[c.owner].id];
