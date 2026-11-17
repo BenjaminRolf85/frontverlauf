@@ -10,7 +10,7 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, trainCheck, unitAt, unitById,
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
+  supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier, twinCheck,
   emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
   type City, type GameState, type Unit,
@@ -198,8 +198,9 @@ function memorialHint(s: GameState, u: Unit, key: 'Hint' | 'Tag' = 'Hint'): stri
 }
 
 /** Kampfhinweise einer Vorschau, durch " · " getrennt / combat notes of a preview, separated by " · " */
-function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; judgement?: number; blessing?: number; memorial?: number; entrenched?: number }, u: Unit, target: Unit | null): string {
-  return [hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
+function combatNotes(s: GameState, p: { moveFire: boolean; homeDefense?: number; judgement?: number; blessing?: number; memorial?: number; entrenched?: number; rear?: number }, u: Unit, target: Unit | null): string {
+  // Angriff von hinten zuerst: der wichtigste Grund fuer hoehere Zahlen / attack from behind first: the main reason for higher numbers
+  return [p.rear ? t('rear.hint', { pct: Math.round(p.rear * 100) }) : '', hitProfileHint(s, u), stationaryOnly(u.type) ? t('stationary.tag') : '', p.moveFire ? moveFireHint(s, u) : '',
     // Kamikaze: die Drohne ist danach zerstoert / kamikaze: the drone is destroyed afterwards
     has(u, 'kamikaze') ? t('kamikaze.note') : '',
     // Strafgericht gegen Suender, Segen des Ziels / judgement against sinners, blessing of the target
@@ -826,7 +827,7 @@ export class Hud {
             const wait = (u.retreatReady ?? 0) - s.round;
             // Schuss vor dem Schritt: nach einer Bewegung ebenfalls verringert, ebenso gegen ein Bollwerk
             // shot before the step: also reduced after a move, likewise against a bulwark
-            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target), judgement: judgementAt(s, u, target), blessing: blessingOf(s, target), memorial: memorialMult(s, u), entrenched: entrenchMiss(s, target) }, u, target);
+            const retreatNotes = combatNotes(s, { moveFire: movedThisTurn(u), homeDefense: homeDefenseAt(s, target), judgement: judgementAt(s, u, target), blessing: blessingOf(s, target), memorial: memorialMult(s, u), entrenched: entrenchMiss(s, target), rear: rearAttackBonus(u, target) }, u, target);
             const retreatDesc = retreatNotes ? `${t('retreat.desc')} ${retreatNotes}.` : t('retreat.desc');
             this.actions.push({
               id: 'retreat', icon: 'move', enabled: rc === 'ok',

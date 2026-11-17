@@ -155,6 +155,13 @@ export interface Unit {
   blessed?: number;
   /** Endgegner: Runden, ab denen Schrei und Brut wieder bereit sind / boss: rounds from which scream and brood are ready again */
   boss?: { scream: number; brood: number; hp?: number };
+  /**
+   * Ausrichtung 0-7 (0 = Norden, im Uhrzeigersinn, siehe core/facing.ts): Richtung des letzten Schritts, beim Angriff zum
+   * Ziel, beim Gegenschlag zum Angreifer. Fehlt = unbekannt (alte Spielstaende, Bauwerke): nie von hinten angreifbar.
+   * Facing 0-7 (0 = north, clockwise, see core/facing.ts): direction of the last step, on attack towards the target, on
+   * return fire towards the attacker. Missing = unknown (old saves, structures): never attackable from behind.
+   */
+  facing?: number;
   moved: boolean;
   attacked: boolean;
   /** Bewegung beendet (z. B. durch Wald) / movement finished */

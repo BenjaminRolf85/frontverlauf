@@ -632,6 +632,11 @@ export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pionee
 export const COMBAT = {
   damageFactor: 4.5,
   splashFactor: 0.5, // Kriegsschiff: Anteil des Schadens auf Nachbarfelder / share of damage on neighbours
+  /**
+   * Angriff von hinten (Angreifer im Rueckenbereich des Ziels, siehe core/facing.ts): +50 % Schaden, nicht fuer den Gegenschlag.
+   * Attack from behind (attacker in the target's rear arc, see core/facing.ts): +50 % damage, not for return fire.
+   */
+  rearAttack: 0.5,
 };
 
 /** Trefferart eines Angriffs / hit kind of an attack */

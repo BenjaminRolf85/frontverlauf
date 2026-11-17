@@ -5,7 +5,7 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, effectiveRange, unitRange, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, facingTowards, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
 import { scientistAttackBonus, truceExposure, workSpotPenalty } from './mothership';
@@ -351,9 +351,12 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
     } else if (capturer && c.owner === null) v += 22;
     else if (capturer) v += 14 * prof.aggression;
   }
-  // Gefahr / danger
+  // Gefahr / danger; Ausrichtung nach dem Zug = Richtung des letzten Schritts (offener Ruecken zaehlt mehr)
+  // facing after the move = direction of the last step (an exposed rear counts more)
   const asShip = layer === 1;
-  const dmg = expectedDamage(ctx, u, x, y, asShip);
+  const prev = r && r.path.length > 1 ? r.path[r.path.length - 2] : { x: u.x, y: u.y };
+  const facing = r && r.path.length ? facingTowards(prev, { x, y }) ?? u.facing : x === u.x && y === u.y ? u.facing : undefined;
+  const dmg = expectedDamage(ctx, u, x, y, asShip, facing);
   if (dmg > 0) {
     const w = worth(u);
     let pen = dmg >= u.hp ? (w + 12) * 1.4 : (dmg / u.hp) * w * 1.1;

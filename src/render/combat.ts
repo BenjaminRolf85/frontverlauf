@@ -830,6 +830,13 @@ export interface AttackInfo {
   retaliate: boolean;
   /** weitere Einheiten im Explosionsradius / further units in the blast radius */
   splash?: number[];
+  /**
+   * Wannenwinkel nach dem Kampf laut Spielstand (Unit.facing, 8 Richtungen); fehlt = zum Ziel bzw. Wanne bleibt (Turm).
+   * Hull heading after the fight according to the game state (Unit.facing, 8 directions); missing = towards the target
+   * or the hull stays (turret).
+   */
+  attackerHull?: number;
+  targetHull?: number;
   onFire?: () => void;
   onImpact?: () => void;
   onReturnFire?: () => void;
@@ -851,8 +858,10 @@ export interface FxHost {
 }
 
 /**
- * Drehung einer Einheit zum Ziel: mit Turm dreht nur der Turm (Wanne bleibt), sonst die ganze Einheit.
- * Turning a unit towards its target: with a turret only the turret turns (hull stays), otherwise the whole unit.
+ * Drehung einer Einheit zum Ziel: die Wanne in ihre Ausrichtung laut Spielstand (hull, sonst ohne Turm zum Ziel, mit Turm
+ * bleibt sie), der Turm zielt genau auf das Ziel.
+ * Turning a unit towards its target: the hull into its facing from the game state (hull, else without a turret towards
+ * the target, with a turret it stays), the turret aims exactly at the target.
  */
 interface Swing {
   /** Wannenwinkel waehrend der Drehung / hull heading during the turn */
@@ -870,25 +879,32 @@ interface Swing {
 /** Drehdauer fuer einen Winkel / turn duration for an angle */
 const turnMs = (d: number) => Math.min(130, (Math.abs(d) / Math.PI) * 170);
 
-function swing(model: THREE.Object3D | undefined, facing: number, target: number): Swing {
+function swing(model: THREE.Object3D | undefined, facing: number, target: number, hull?: number): Swing {
   const turrets = turretsIn(model);
   const h0 = model ? model.rotation.y : facing;
   if (!model || !turrets.length) {
+    const to = hull ?? target;
     return {
-      hull: h0, aim: target, pivot: null, ms: turnMs(angleDelta(h0, target)),
-      apply: (k) => { if (model) model.rotation.y = k >= 1 ? target : lerpAngle(h0, target, k); },
-      commit: (host, id) => host.setFacing(id, target),
+      hull: h0, aim: to, pivot: null, ms: turnMs(angleDelta(h0, to)),
+      apply: (k) => { if (model) model.rotation.y = k >= 1 ? to : lerpAngle(h0, to, k); },
+      commit: (host, id) => host.setFacing(id, to),
     };
   }
-  const rel = angleDelta(h0, target);
+  // Wanne dreht in die Ausrichtung, der Turm gleicht den Rest aus / the hull turns into the facing, the turret makes up the rest
+  const h1 = hull ?? h0;
+  const rel = angleDelta(h1, target);
   const turns = turrets.map((t) => turretTurn(t, rel));
   const main = turrets[0];
   // Drehpunkt im Einheitenrahmen: Modellversatz + Turmposition * Modellmassstab / pivot in the unit frame
   const pivot = main.position.clone().multiply(model.scale).add(model.position);
+  const hullTurn = angleDelta(h0, h1);
   return {
-    hull: h0, aim: h0 + turns[0].to, pivot, ms: turnMs(turns[0].span),
-    apply: (k) => turrets.forEach((t, i) => { t.rotation.y = turns[i].at(k); }),
-    commit: (host, id) => host.setTurretAim?.(id, rel),
+    hull: h1, aim: h1 + turns[0].to, pivot, ms: Math.max(turnMs(turns[0].span), turnMs(hullTurn)),
+    apply: (k) => {
+      if (hullTurn) model.rotation.y = k >= 1 ? h1 : lerpAngle(h0, h1, k);
+      turrets.forEach((t, i) => { t.rotation.y = turns[i].at(k); });
+    },
+    commit: (host, id) => { if (hull !== undefined) host.setFacing(id, h1); host.setTurretAim?.(id, rel); },
   };
 }
 
@@ -915,7 +931,7 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const aw = info ? weaponOf(info.attacker) : 'none';
   const a1 = headingOf(flat.x, flat.z);
   // Mit Turm: die Wanne bleibt stehen, nur der Turm dreht sich / with a turret: the hull stays, only the turret turns
-  const aSwing = swing(aModel, host.facing(attackerId), a1);
+  const aSwing = swing(aModel, host.facing(attackerId), a1, info?.attackerHull);
   const turnA = aSwing.ms;
 
   const muzzle = (o: THREE.Vector3, type: UnitTypeId | undefined, sw: Swing) => {
@@ -943,7 +959,7 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const ret = !!info?.retaliate;
   const dw = info ? weaponOf(info.target) : 'none';
   const d1 = headingOf(-flat.x, -flat.z);
-  const dSwing = swing(dModel, host.facing(targetId), d1);
+  const dSwing = swing(dModel, host.facing(targetId), d1, info?.targetHull);
   const retFireAt = impactAt + RETURN_GAP;
   let retImpactAt = retFireAt;
   if (ret && info) {

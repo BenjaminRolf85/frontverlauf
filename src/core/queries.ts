@@ -9,6 +9,7 @@ import {
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
+import { rearAttackBonus } from './facing';
 import type { City, Faction, GameConfig, GameState, Memorial, Pos, Tile, Unit } from './types';
 
 export const fac = (s: GameState, i: number): Faction => s.factions[i];
@@ -608,6 +609,8 @@ export interface CombatPreview {
   blessing: number;
   /** Mahnmal unter dem Angreifer: Schadensfaktor (1 = keins, mehr = Kult, weniger = Furcht) / memorial under the attacker: damage factor (1 = none) */
   memorial: number;
+  /** Angriff von hinten: Zusatzschaden (0 = keiner, sonst COMBAT.rearAttack) / attack from behind: extra damage (0 = none, else COMBAT.rearAttack) */
+  rear: number;
   /** Ziel verschanzt (Korvat): zusaetzliche Fehlschusschance (0 = nein) / target entrenched (Korvat): extra miss chance (0 = no) */
   entrenched: number;
 }
@@ -1012,7 +1015,10 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   const judgement = judgementAt(s, att, def);
   // verschanztes Ziel (Korvat): ohne Trefferglueck um den Erwartungswert weniger / entrenched target (Korvat): less by the expected value without hit luck
   const trench = entrenchFactor(s, baseHitOdds(s, att), def);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench) : 0;
+  // Angriff von hinten: Ausrichtung des Ziels vor dem Angriff, nur eigener Angriff (der Gegenschlag rechnet in returnFire)
+  // attack from behind: the target's facing before the attack, own attack only (return fire is computed in returnFire)
+  const rear = rearAttackBonus(att, def);
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench * (1 + rear)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -1033,7 +1039,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg }, false, att);
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
-  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial, entrenched: entrenchMiss(s, def) };
+  return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial, entrenched: entrenchMiss(s, def), rear };
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */

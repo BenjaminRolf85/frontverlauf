@@ -5,6 +5,7 @@
 import { CITY, FUEL, UNITS, type UnitTypeId } from '../data/balance';
 import { area, dist, idx, isLand, isWater, tileAt } from './grid';
 import { unitAt } from './queries';
+import { spawnFacing } from './facing';
 import type { City, GameState, Pos, Unit } from './types';
 
 /**
@@ -19,6 +20,8 @@ export function placeUnit(s: GameState, type: UnitTypeId, owner: number, x: numb
     moved: false, attacked: false, moveDone: false, exhausted: !ready, fresh: !ready,
     fuel: st.abilities.includes('fuel') ? FUEL.tank : null, revealed: false, startX: x, startY: y,
   };
+  // Ausrichtung zur Kartenmitte / facing towards the map centre
+  spawnFacing(s.size, u);
   s.units.push(u);
   return u;
 }

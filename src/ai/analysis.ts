@@ -5,7 +5,7 @@
 import {
   counterFactor, unitRange, entrenchFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, type Pos } from '../core';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, rearAttackBonus, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
@@ -367,7 +367,13 @@ export function defBonusAt(ctx: Ctx, u: Unit, x: number, y: number, asShip = isS
 }
 
 /** Erwarteter Schaden durch sichtbare Gegner an Position / expected damage from visible enemies at position */
-export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip = isShip(u)): number {
+/**
+ * facing = Ausrichtung der Einheit auf (x, y) (fehlt = unbekannt, z. B. fremdes Feld ohne Weg): Gegner im Rueckenbereich
+ * treffen mit COMBAT.rearAttack mehr (Stand der Gegner als Naeherung fuer die Seite, von der sie kommen).
+ * facing = the unit's facing on (x, y) (missing = unknown, e.g. another tile without a path): enemies in the rear arc
+ * hit COMBAT.rearAttack harder (the enemies' position as an approximation of the side they come from).
+ */
+export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip = isShip(u), facing = x === u.x && y === u.y ? u.facing : undefined): number {
   const list = ctx.threat[y * ctx.size + x];
   if (!list.length) return 0;
   const type = asShip === isShip(u) ? u.type : (u.carried ?? u.type);
@@ -384,7 +390,9 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
     const moveFire = dist(e, { x, y }) > unitRange(e.type, ctx.s.factions[e.owner]?.id) ? moveFireMult(ctx.s, e) : 1;
     // Strafgericht: Alvenia trifft Suender haerter / judgement: Alvenia hits sinners harder
     const judge = judges(ctx.s, e.owner) && isSinner(ctx.s, ctx.f) ? 1 + SIN.judgement : 1;
-    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire * judge;
+    // offener Ruecken / exposed rear
+    const rear = 1 + rearAttackBonus(e, { type, x, y, facing });
+    total += (A / (A + d || 1)) * a * 4.5 * counterFactor(e.type, type) * moveFire * judge * rear;
   }
   // verschanzt (Korvat) und bleibt stehen: weniger erwarteter Schaden wie in combatPreview (menschliche Schuetzen als Mass)
   // entrenched (Korvat) and staying put: less expected damage as in combatPreview (human shooters as the yardstick)

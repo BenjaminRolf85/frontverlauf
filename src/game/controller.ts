@@ -13,7 +13,7 @@ import { planNextCommand } from '../ai/ai';
 import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
-import type { HighlightKind } from '../render/board';
+import { coreHeading, type HighlightKind } from '../render/board';
 import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
@@ -207,8 +207,11 @@ export class Controller {
   updateHighlights() {
     const s = this.state;
     if (!s) return;
-    const list: { x: number; y: number; kind: HighlightKind }[] = [];
-    if (this.selected) list.push({ ...this.selected, kind: 'select' });
+    const list: { x: number; y: number; kind: HighlightKind; facing?: number }[] = [];
+    // Ausrichtung der gewaehlten Einheit und des Ziels als Pfeil am Ring (Angriff von hinten) / facing of the selected unit and the target as an arrow on the ring (attack from behind)
+    const facingOf = (o: Unit | undefined) => (o && coreHeading(o) !== undefined ? o.facing : undefined);
+    const sel = this.selected ? unitAt(s, this.selected.x, this.selected.y) : undefined;
+    if (this.selected) list.push({ ...this.selected, kind: 'select', facing: sel && (this.viewer < 0 || canSeeUnit(s, this.viewer, sel)) ? facingOf(sel) : undefined });
     if (this.terraformUnit !== null && this.isHumanTurn) {
       const tu = unitById(s, this.terraformUnit);
       if (tu) for (const p of terraformTargets(s, tu)) list.push({ ...p, kind: 'build' });
@@ -229,8 +232,8 @@ export class Controller {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
         list.push({ x: r.x, y: r.y, kind });
       }
-      for (const t of attackTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
-      for (const t of rocketTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack' });
+      for (const t of attackTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack', ...(t.id === this.pendingTarget ? { facing: facingOf(t) } : {}) });
+      for (const t of rocketTargets(s, u)) list.push({ x: t.x, y: t.y, kind: t.id === this.pendingTarget ? 'target' : 'attack', ...(t.id === this.pendingTarget ? { facing: facingOf(t) } : {}) });
       for (const t of convertTargets(s, u)) list.push({ x: t.x, y: t.y, kind: 'attack' });
       // Kampagne m2: Arbeitsplaetze am Mutterschiff fuer den Wissenschaftler / campaign m2: work spots at the mothership for the scientist
       if (isSampler(s, u)) for (const p of workSpots(s)) if (!unitAt(s, p.x, p.y)) list.push({ ...p, kind: 'build' });
@@ -521,6 +524,8 @@ export class Controller {
               await board.animateAttack(e.unit, e.target, {
                 attacker: ab.type, target: tb.type, attackerFaction: fid(ab.owner), targetFaction: fid(tb.owner),
                 attackerWater: water(ab), targetWater: water(tb), retaliate: retaliates, splash: (e.splash ?? []).map((sp) => sp.unit),
+                // Wanne nach der Ausrichtung im Spielstand / hull from the facing in the game state
+                attackerHull: coreHeading(unitById(s, e.unit)), targetHull: retaliates ? coreHeading(unitById(s, e.target)) : undefined,
                 onFire: fire,
                 onImpact: () => { hit(); this.view.shake(shake); },
                 onReturnFire: returnFire,
@@ -645,6 +650,7 @@ export class Controller {
             if (animate && board.unitObject(e.unit)) {
               await board.animateTurret(s, { x: e.x, y: e.y }, e.unit, false, {
                 unitType: ab.type, unitFaction: fid(ab.owner), retaliate: e.ret > 0 || e.retHit === 'miss', ...(e.owner !== undefined ? { gunFaction: fid(e.owner) } : {}),
+                unitHull: coreHeading(unitById(s, e.unit)),
                 onImpact: () => { hit(); this.view.shake(e.destroyed ? SHAKE.wreck : impactShake(weaponOf(ab.type))); },
                 onReturnFire: () => audio.weapon('tank'),
                 onReturnImpact: back,
