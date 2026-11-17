@@ -455,6 +455,11 @@ describe('KI und Wunder / AI and wonders', () => {
     addCity(s, 2, 7, 0);
     addUnit(s, 'prophet', 0, 2, 3);
     addUnit(s, 'zealot', 0, 1, 1);
+    // zweite Stadt des Gegners in der Ecke: der Eiferer zieht jetzt 2 Felder und nimmt das HQ ein, ohne sie waere die Partie
+    // vorbei, bevor der Bohrer lange genug steht
+    // a second hostile city in the corner: the zealot now moves 2 tiles and takes the HQ, without it the game would be over
+    // before the drill has stood long enough
+    addCity(s, 10, 0, 1);
     let called = 0, moved = 0;
     for (let i = 0; i < 7; i++) {
       untilTurnOf(s, 0);

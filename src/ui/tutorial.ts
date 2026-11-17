@@ -8,9 +8,14 @@ import { icon } from './icons';
 import { techT } from './terms';
 import { victoryTrackerDialog } from './victory';
 
-/** Fraktionssiege aus: ein KI-Wunder darf das Tutorial nicht beenden; Trefferglueck bleibt an / faction victories off: an AI wonder must not end the tutorial; hit luck stays on */
+/**
+ * Fraktionssiege aus: ein KI-Wunder darf das Tutorial nicht beenden; Trefferglueck bleibt an; keine Sendetuerme (der
+ * Schritt zur Siedlung soll eindeutig bleiben).
+ * Faction victories off: an AI wonder must not end the tutorial; hit luck stays on; no transmitter towers (the step to
+ * the settlement should stay unambiguous).
+ */
 export const TUTORIAL_CONFIG: GameConfig = defaultConfig({
-  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true,
+  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true, towers: false,
   factions: [{ id: 'korvat', human: true, difficulty: 'easy' }, { id: 'dravon', human: false, difficulty: 'easy' }],
 });
 /** Fraktion des Tutorials (Wortwahl der Texte) / faction of the tutorial (wording of the texts) */
@@ -42,7 +47,7 @@ export class Tutorial {
     root.appendChild(this.node);
     const village = (s: GameState) => {
       const hq = s.cities.find((c) => c.isHQ && c.hqOf === 0)!;
-      const vs = s.cities.filter((c) => c.owner === null).sort((a, b) => Math.max(Math.abs(a.x - hq.x), Math.abs(a.y - hq.y)) - Math.max(Math.abs(b.x - hq.x), Math.abs(b.y - hq.y)));
+      const vs = s.cities.filter((c) => c.owner === null && !c.tower).sort((a, b) => Math.max(Math.abs(a.x - hq.x), Math.abs(a.y - hq.y)) - Math.max(Math.abs(b.x - hq.x), Math.abs(b.y - hq.y)));
       return vs[0] ?? null;
     };
     this.steps = [

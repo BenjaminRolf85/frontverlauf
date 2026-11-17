@@ -6,7 +6,7 @@ import {
   unitClass, twinCheck, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  unitCost, unitLimit, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked,
 } from '../core';
@@ -35,15 +35,13 @@ export function chooseReward(ctx: Ctx, c: City, level: number): 'a' | 'b' {
     // bunker ring only when threatened, in conquest only for the HQ (avoids trench stalemates)
     case 3: return threatened && (!ctx.conquest || c.isHQ) ? 'a' : 'b';
     case 4: {
+      // schon 7x7: Sterne oder Bevoelkerung, Bevoelkerung waechst weiter / already 7x7: stars or population, population keeps growing
+      if (rewardOptions(c, level)[0] !== 'expand') return 'b';
       // Velkar mit Kernfusion: Platz fuer das 2x2-Kraftwerk / Velkar with fusion: room for the 2x2 power plant
       if (ctx.fa.id === 'velkar' && factionVictoryOn(s) && !wondersOf(s, ctx.f).length && !wonderSites(s, ctx.f, 'fusionPlant', true).length) return 'a';
-      // Ausdehnung, wenn genug neue Felder / expand if enough new tiles
+      // Ausdehnung, wenn genug neue Felder bis zum Zielradius / expand if enough new tiles up to the target radius
       let free = 0;
-      for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
-        const x = c.x + dx, y = c.y + dy;
-        if (x < 0 || y < 0 || x >= s.size || y >= s.size) continue;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) === 2 && s.tiles[idx(s.size, x, y)].territory === null) free++;
-      }
+      for (let r = c.radius + 1; r <= expandRadius(c); r++) free += freeRingTiles(s, c, r).length;
       return free >= 4 ? 'a' : 'b';
     }
     default: {

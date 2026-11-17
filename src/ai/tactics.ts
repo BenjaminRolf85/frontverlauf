@@ -387,10 +387,12 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   // awake Verdan guns fire at the start of the round; only worth it for fighters close enough to strike
   const guns = knownGuns(ctx).length ? gunDanger(ctx, x, y) : 0;
   if (guns) v -= guns * worth(u) * 0.35 * prof.caution * (UNITS[type].attack > 0 ? 0.6 : 1.4);
-  // feindliche Stellungen: schwache oder angeschlagene Einheiten bleiben draussen, starke duerfen heran
-  // hostile emplacements: weak or battered units stay out, strong ones may close in
+  // feindliche Stellungen: schwache oder angeschlagene Einheiten bleiben draussen, starke duerfen heran; Faktor 3 statt 1,5,
+  // seit Sanitaeter und Infanterie 2 Felder ziehen (doppelter Weggewinn je Zug)
+  // hostile emplacements: weak or battered units stay out, strong ones may close in; factor 3 instead of 1.5 since medics
+  // and infantry move 2 tiles (twice the progress per turn)
   const emp = knownGuns(ctx).length ? emplacementDanger(ctx, x, y) : 0;
-  if (emp) v -= emp * worth(u) * 0.3 * prof.caution * (UNITS[type].attack <= 1 || u.hp < u.maxHp * 0.5 ? 1.5 : 0);
+  if (emp) v -= emp * worth(u) * 0.3 * prof.caution * (UNITS[type].attack <= 1 || u.hp < u.maxHp * 0.5 ? 3 : 0);
   // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
   for (const p of area(size, x, y, 1)) {
     const vt = s.tiles[idx(size, p.x, p.y)];

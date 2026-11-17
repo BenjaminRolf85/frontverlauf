@@ -1,6 +1,6 @@
 /**
- * Panzer fahren 2 Felder und schiessen 2 Felder weit; Korvat-Artillerie schiesst 4 Felder weit.
- * Tanks drive 2 tiles and fire 2 tiles; Korvat artillery fires 4 tiles.
+ * Panzer fahren 3 Felder (Spielerwunsch, vorher 2) und schiessen 2 Felder weit; Korvat-Artillerie schiesst 4 Felder weit.
+ * Tanks drive 3 tiles (player request, before 2) and fire 2 tiles; Korvat artillery fires 4 tiles.
  */
 import { describe, expect, it } from 'vitest';
 import { attackTargets, combatPreview, effectiveMove, effectiveRange, reachable, unitRange, weatherFor } from '../src/core';
@@ -11,36 +11,39 @@ import { addCity, addUnit, blankGame, endTurn, ok, revealAll, tile, untilTurnOf 
 const roundWith = (seed: number, w: string) => { for (let r = 2; r < 400; r++) if (weatherFor(seed, r) === w) return r; throw new Error('none'); };
 const far = (s: ReturnType<typeof blankGame>, u: ReturnType<typeof addUnit>) => Math.max(...reachable(s, u).map((p) => Math.max(Math.abs(p.x - u.x), Math.abs(p.y - u.y))));
 
-describe('Panzer: Bewegung 2 / tanks: move 2', () => {
-  it('Panzer, Tesla-Panzer und Reliquiar fahren 2 Felder / tank, Tesla tank and reliquary drive 2 tiles', () => {
-    for (const t of ['tank', 'teslaTank', 'reliquary'] as const) {
-      expect(UNITS[t].move, t).toBe(2);
-      const s = blankGame({ factions: [t === 'teslaTank' ? 'velkar' : t === 'reliquary' ? 'alvenia' : 'korvat', 'dravon'] });
+describe('Panzer: Bewegung 3 / tanks: move 3', () => {
+  it('Panzer, Tesla-Panzer, Reliquiar, Steppenkoloss und Flammenwerferpanzer fahren 3 Felder / tank, Tesla tank, reliquary, Steppe Colossus and flamethrower tank drive 3 tiles', () => {
+    const owner = { tank: 'dravon', teslaTank: 'velkar', reliquary: 'alvenia', steppeColossus: 'korvat', flameTank: 'nexus' } as const;
+    for (const t of ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'flameTank'] as const) {
+      expect(UNITS[t].move, t).toBe(3);
+      const s = blankGame({ factions: [owner[t], owner[t] === 'dravon' ? 'korvat' : 'dravon'] });
       const u = addUnit(s, t, 0, 5, 5);
-      expect(far(s, u), t).toBe(2);
+      expect(far(s, u), t).toBe(3);
     }
     // NEXUS-Titan und Kult-Kriecher bleiben schwere Laeufer mit 1 Feld / NEXUS titan and cult crawler stay at 1 tile
     expect(UNITS.titan.move).toBe(1);
     expect(UNITS.doomCrawler.move).toBe(1);
   });
 
-  it('Schnee bremst auf 1 Feld / snow slows to 1 tile', () => {
+  it('Schnee bremst auf 2 Felder / snow slows to 2 tiles', () => {
     const s = blankGame({ weather: true });
     const u = addUnit(s, 'tank', 0, 5, 5);
     s.round = roundWith(s.config.seed, 'snow');
     expect(WEATHER.snow.moveUnits).toContain('tank');
-    expect(effectiveMove(s, u)).toBe(1);
-    expect(far(s, u)).toBe(1);
-    s.round = roundWith(s.config.seed, 'clear');
     expect(effectiveMove(s, u)).toBe(2);
+    expect(far(s, u)).toBe(2);
+    s.round = roundWith(s.config.seed, 'clear');
+    expect(effectiveMove(s, u)).toBe(3);
   });
 
-  it('Strassen: 4 Felder auf der Strasse / roads: 4 tiles on a road', () => {
-    const s = blankGame();
-    for (let x = 1; x <= 9; x++) tile(s, x, 5).road = true;
-    const u = addUnit(s, 'tank', 0, 5, 5);
-    expect(reachable(s, u).some((r) => r.x === 9 && r.y === 5)).toBe(true);
-    expect(reachable(s, u).some((r) => r.x === 1 && r.y === 5)).toBe(true);
+  it('Strassen: 6 Felder auf der Strasse / roads: 6 tiles on a road', () => {
+    // Strasse halbiert die Kosten: 3 Felder Bewegung reichen 6 Felder weit / a road halves the cost: 3 tiles of movement reach 6 tiles
+    const s = blankGame({ size: 14 });
+    for (let x = 0; x < 14; x++) tile(s, x, 5).road = true;
+    const u = addUnit(s, 'tank', 0, 6, 5);
+    expect(reachable(s, u).some((r) => r.x === 12 && r.y === 5)).toBe(true);
+    expect(reachable(s, u).some((r) => r.x === 0 && r.y === 5)).toBe(true);
+    expect(reachable(s, u).some((r) => r.x === 13 && r.y === 5)).toBe(false);
   });
 
   it('Panzersperre: Halt und naechste Runde nur 1 Feld / barrier: stop and only 1 tile next round', () => {
@@ -57,18 +60,18 @@ describe('Panzer: Bewegung 2 / tanks: move 2', () => {
   });
 });
 
-describe('Jeep: Bewegung 3 / jeep: move 3', () => {
-  it('3 Felder, im Schnee 2, nach der Panzersperre 1 / 3 tiles, 2 in snow, 1 after a barrier', () => {
-    expect(UNITS.jeep.move).toBe(3);
+describe('Jeep: Bewegung 4 / jeep: move 4', () => {
+  it('4 Felder, im Schnee 3, nach der Panzersperre 1 / 4 tiles, 3 in snow, 1 after a barrier', () => {
+    expect(UNITS.jeep.move).toBe(4);
     // Kult-Buggy bleibt bei 2 (eigene Bauart) / the cult buggy stays at 2 (own design)
     expect(UNITS.doomBuggy.move).toBe(2);
     const s = blankGame({ weather: true, size: 14 });
     addCity(s, 1, 1, 0, { hq: true }); addCity(s, 12, 12, 1, { hq: true });
     const j = addUnit(s, 'jeep', 0, 6, 6);
     s.round = roundWith(s.config.seed, 'clear');
-    expect(far(s, j)).toBe(3);
+    expect(far(s, j)).toBe(4);
     s.round = roundWith(s.config.seed, 'snow');
-    expect(far(s, j)).toBe(2);
+    expect(far(s, j)).toBe(3);
     j.slowed = true;
     expect(far(s, j)).toBe(1);
   });

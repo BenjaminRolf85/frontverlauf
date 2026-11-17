@@ -1,8 +1,10 @@
 /**
- * Sendetuerme der Kampagne: Platzierung (deterministisch, verteilt, nicht in der Hoehle, nicht in freien Partien),
- * Einnahme, Ausbildung, kein Wachstum, keine Ausbauten, festes Einkommen, Zaehlung als Ort, KI ohne Fehlbefehle.
- * Campaign transmitter towers: placement (deterministic, spread out, not in the cavern, not in free games), capture,
- * training, no growth, no upgrades, fixed income, counted as a place, AI without failed commands.
+ * Sendetuerme der Kampagne: Platzierung (deterministisch, verteilt, nicht in der Hoehle; freie Partien siehe
+ * city-growth.test.ts), Einnahme, Ausbildung, kein Wachstum, keine Ausbauten, festes Einkommen, Zaehlung als Ort, KI ohne
+ * Fehlbefehle.
+ * Campaign transmitter towers: placement (deterministic, spread out, not in the cavern; free games see
+ * city-growth.test.ts), capture, training, no growth, no upgrades, fixed income, counted as a place, AI without failed
+ * commands.
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
@@ -22,7 +24,7 @@ function placeAt(s: GameState, u: Unit, p: { x: number; y: number }) {
 }
 
 describe('Sendetuerme / transmitter towers', () => {
-  it('Platzierung: deterministisch, verteilt, fern der Hauptquartiere; nicht in der Hoehle und nicht in freien Partien / placement: deterministic, spread, away from HQs; not in the cavern, not in free games', () => {
+  it('Platzierung: deterministisch, verteilt, fern der Hauptquartiere; nicht in der Hoehle, in freien Partien nach Kartengroesse / placement: deterministic, spread, away from HQs; not in the cavern, in free games by map size', () => {
     for (const m of MISSIONS) for (const f of ['korvat', 'meridon'] as const) {
       const s = createGame(missionConfig(m.id, f));
       const list = towers(s);
@@ -41,7 +43,11 @@ describe('Sendetuerme / transmitter towers', () => {
       expect(JSON.stringify(towers(createGame(missionConfig(m.id, f)))), tag).toBe(JSON.stringify(list));
     }
     const free = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
-    expect(towers(free)).toHaveLength(0);
+    // freie Partien haben jetzt auch Sendetuerme (Spielerwunsch): 16x16 = 4 / free games now have towers too (player request): 16x16 = 4
+    expect(towers(free)).toHaveLength(4);
+    // das Tutorial schaltet sie ab / the tutorial turns them off
+    const tut = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', towers: false, factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
+    expect(towers(tut)).toHaveLength(0);
   });
 
   it('Einnahme, Ausbildung, festes Einkommen, kein Wachstum, keine Ausbauten / capture, training, fixed income, no growth, no upgrades', () => {

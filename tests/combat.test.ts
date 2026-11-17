@@ -314,18 +314,19 @@ describe('Einheitenwerte / unit stats (section 5)', () => {
   it('land units and helicopter match the spec table', async () => {
     const { UNITS } = await import('../src/data/balance');
     const table: [string, number | null, number, number, number, number, number, string[], string | null][] = [
-      ['infantry', 10, 10, 2, 2, 1, 1, ['dash', 'fortify'], 'trainingCamp'],
-      ['sniper', 15, 10, 2, 1, 1, 2, ['dash', 'fortify'], 'trainingCamp'],
-      // Jeep: Bewegung 3 (Spielerwunsch) / jeep: move 3 (player request)
-      ['jeep', 15, 10, 2, 1, 3, 1, ['dash', 'escape'], 'motorPool'],
+      // Infanterie, Scharfschuetze und Sanitaeter: Bewegung 2 (Spielerwunsch) / infantry, sniper and medic: move 2 (player request)
+      ['infantry', 10, 10, 2, 2, 2, 1, ['dash', 'fortify'], 'trainingCamp'],
+      ['sniper', 15, 10, 2, 1, 2, 2, ['dash', 'fortify'], 'trainingCamp'],
+      // Jeep: Bewegung 4 (Spielerwunsch) / jeep: move 4 (player request)
+      ['jeep', 15, 10, 2, 1, 4, 1, ['dash', 'escape'], 'motorPool'],
       ['pioneer', 15, 15, 1, 3, 1, 1, ['fortify'], 'trainingCamp'],
       ['mg', 25, 15, 3, 3, 1, 1, ['dash', 'fortify'], 'armory'],
-      ['medic', 25, 10, 0, 1, 1, 1, ['heal', 'convert'], 'trainingCamp'],
+      ['medic', 25, 10, 0, 1, 2, 1, ['heal', 'convert'], 'trainingCamp'],
       ['artillery', 40, 10, 4, 0, 1, 3, ['noRetaliate', 'ignoreOutpost'], 'foundry'],
       ['spy', 40, 5, 0, 0.5, 2, 0, ['invisible', 'uprising'], 'trainingCamp'],
       ['heli', 50, 10, 3.5, 1, 3, 1, ['dash', 'persist', 'fly', 'fuel'], 'airfield'],
-      // Panzer: Bewegung 2 und Reichweite 2 (Spielerwunsch) / tank: move 2 and range 2 (player request)
-      ['tank', 60, 40, 5, 4, 2, 2, ['dash'], 'tankWorks'],
+      // Panzer: Bewegung 3 und Reichweite 2 (Spielerwunsch) / tank: move 3 and range 2 (player request)
+      ['tank', 60, 40, 5, 4, 3, 2, ['dash'], 'tankWorks'],
     ];
     for (const [id, cost, hp, att, def, move, range, abilities, site] of table) {
       const st = UNITS[id as keyof typeof UNITS];

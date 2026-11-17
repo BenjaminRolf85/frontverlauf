@@ -26,12 +26,13 @@
  * "achieve" objectives must be met before the round limit.
  */
 import {
-  BUILDINGS, CAMPAIGN_SETTLEMENTS, CITY, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER, TOWER_HOLD, VERDAN, type CityUpgradeId, type ProductionSiteId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
+  BUILDINGS, CAMPAIGN_SETTLEMENTS, FACTION_IDS, M2, ROSTERS, RUINS, SWARM_MOTHER, TEMPLE_PLANS, TOWER_HOLD, VERDAN, type CityUpgradeId, type ProductionSiteId, type Difficulty, type FactionId, type HazardLevel, type MapSize, type MapType, type UnitTypeId,
 } from '../data/balance';
 import { dist, isLand, neighbors, tileAt } from './grid';
 import { cityAt, cityHasSite, cityTiles, factionVariant, hqOf, isHostile, ownCities, score, unitAt } from './queries';
 import { centreShip, placeShip, scientistOf, shipDist, updateRace } from './mothership';
-import { freeFor, grantCity, nearestTile, placeUnit, revealArea } from './spawn';
+import { freeFor, grantCity, nearestTile, openLand, placeUnit, revealArea } from './spawn';
+import { placeTowers as placeTowersOn, towerCountFor } from './towers';
 import { chooseTempleSite, placeTemple, runPursuit, templeDist, templeRing, updatePlans } from './temple';
 import type { CampaignState, City, GameConfig, GameEvent, GameState, ObjectiveStatus, Pos, RaceState, Unit } from './types';
 import { WORLDS, worldOf } from './worlds';
@@ -867,11 +868,6 @@ function kit(s: GameState, c: CampaignState, m: MissionDef): SetupKit {
   };
 }
 
-/** Freies, flaches Land ohne Stadt, Merkmal, Geschuetz und Einheit / free flat land without city, feature, gun and unit */
-function openLand(s: GameState, q: Pos): boolean {
-  const t = tileAt(s, q.x, q.y);
-  return !!t && isLand(t) && t.cityId === null && t.terrain !== 'mountain' && !t.volcano && !t.feature && !t.turret && !t.wonderOf && !t.temple && !unitAt(s, q.x, q.y);
-}
 
 /**
  * Ruinenstaette (m13) nahe near: Abstand zu Staedten und anderen Staetten (RUINS), Feld wird geraeumte Ebene; daneben
@@ -932,44 +928,24 @@ function placeCaveMouth(s: GameState, from: Pos): Pos {
 export function towerCount(m: MissionDef): number {
   if (m.towers !== undefined) return m.towers;
   if (m.theme === 'cavern') return 0;
-  return Math.max(TOWER.min, Math.min(TOWER.max, Math.round((m.size * m.size) / TOWER.perTiles)));
+  return towerCountFor(m.size);
 }
 
 /**
- * Sendetuerme verteilen: freies, flaches Land fern von Hauptquartieren, Staedten und einander; jeweils das Feld mit dem
- * groessten Mindestabstand zu Hauptquartieren und schon gesetzten Tuermen (bei Gleichstand der kleinste Index).
- * Rein deterministisch aus dem Spielstand.
- * Place transmitter towers: free flat land far from HQs, cities and each other; each time the tile with the largest
- * minimum distance to HQs and already placed towers (ties: lowest index). Purely deterministic from the state.
+ * Sendetuerme der Mission verteilen (gemeinsame Regel in towers.ts), dazu die Ausnahmen der Kampagne: Staetten, Hoehle,
+ * Portal, Mutterschiff und Tempel bleiben frei.
+ * Place the mission's transmitter towers (shared rule in towers.ts), plus the campaign exclusions: sites, cave, portal,
+ * mothership and temple stay free.
  */
 function placeTowers(s: GameState, count: number) {
-  const hqs = s.cities.filter((x) => x.isHQ);
-  const placed: Pos[] = [];
-  for (let i = 0; i < count; i++) {
-    let best: Pos | null = null, bestD = -1;
-    for (let y = 1; y < s.size - 1; y++) for (let x = 1; x < s.size - 1; x++) {
-      const q = { x, y };
-      const t = tileAt(s, x, y)!;
-      if (!openLand(s, q) || t.terrain !== 'plain' || t.turret) continue;
-      if (hqs.some((h) => dist(h, q) < TOWER.hqDistance) || s.cities.some((c) => dist(c, q) < TOWER.cityDistance)) continue;
-      if (placed.some((p) => dist(p, q) < TOWER.spacing)) continue;
-      if (s.campaign?.sites?.some((p) => dist(p, q) < 2) || (s.campaign?.cave && dist(s.campaign.cave, q) < 2)) continue;
-      if (s.campaign?.portal && dist(s.campaign.portal, q) < 2) continue;
-      // Mutterschiff (m2): Arbeitsplaetze und Anmarsch bleiben frei / mothership (m2): work spots and the approach stay free
-      if (s.campaign?.ship && shipDist(s.campaign.ship, q) < 3) continue;
-      if (s.campaign?.temple && templeDist(s.campaign.temple, q) < TEMPLE_PLANS.cityGap + 1) continue;
-      const d = Math.min(...hqs.map((h) => dist(h, q)), ...placed.map((p) => dist(p, q) * 1.5));
-      if (d > bestD) { bestD = d; best = q; }
-    }
-    if (!best) break;
-    placed.push(best);
-    const c: City = {
-      id: s.nextId++, x: best.x, y: best.y, owner: null, level: 1, pop: 0, radius: CITY.baseRadius, isHQ: false, hqOf: null, factory: false,
-      bunkerRing: false, govQuarter: false, connected: false, noIncomeNext: false, nameIndex: s.cities.length, tower: true,
-    };
-    s.cities.push(c);
-    Object.assign(tileAt(s, best.x, best.y)!, { cityId: c.id, resource: null, feature: null, road: false, building: null });
-  }
+  const c = s.campaign;
+  placeTowersOn(s, count, (q) => {
+    if (c?.sites?.some((p) => dist(p, q) < 2) || (c?.cave && dist(c.cave, q) < 2)) return true;
+    if (c?.portal && dist(c.portal, q) < 2) return true;
+    // Mutterschiff (m2): Arbeitsplaetze und Anmarsch bleiben frei / mothership (m2): work spots and the approach stay free
+    if (c?.ship && shipDist(c.ship, q) < 3) return true;
+    return !!c?.temple && templeDist(c.temple, q) < TEMPLE_PLANS.cityGap + 1;
+  });
 }
 
 /** Artefakt: freies Landfeld nahe der Kartenmitte / artifact: free land tile near the map centre */

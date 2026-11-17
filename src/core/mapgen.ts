@@ -215,7 +215,8 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     }
     if (pick) villages.push(pick);
   }
-  // Kampagne: weniger Siedlungen je nach Welt (settlements < 1); freie Partien unveraendert / campaign: fewer settlements per world (settlements < 1); free games unchanged
+  // Kampagne: weniger Siedlungen je nach Welt (settlements < 1), freie Partien 1 / campaign: fewer settlements per world (settlements < 1), free games 1
+  const homes = villages.length;
   const target = Math.round(n * MAPGEN.villagesPerTile * settlements);
   const all: Pos[] = [];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) all.push({ x, y });
@@ -224,6 +225,9 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     if (villages.length >= target) break;
     if (cityOk(p) && starts.every((s) => dist(s, p) >= 3)) villages.push(p);
   }
+  // 30 % weniger (MAPGEN.villageShare): die zuletzt gesetzten fallen weg, Heimatsiedlungen (vorn) bleiben immer
+  // 30 % fewer (MAPGEN.villageShare): the last placed ones are dropped, home villages (at the front) always stay
+  villages.length = Math.max(homes, Math.round(villages.length * MAPGEN.villageShare));
   for (const v of villages) {
     const t = tiles[idx(size, v.x, v.y)];
     t.resource = null;

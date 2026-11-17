@@ -80,8 +80,9 @@ describe('KI-Taktiken: Lehrbuchlagen / AI tactics: textbook situations', () => {
     const target = addCity(s, 11, 7, 1, { hq: true });
     addCity(s, 12, 1, 1);
     addUnit(s, 'mg', 1, 11, 7);
-    for (const [x, y] of [[7, 6], [7, 7], [7, 8], [6, 7]]) addUnit(s, 'infantry', 0, x, y);
-    addUnit(s, 'tank', 0, 6, 6);
+    // Infanterie (2 Felder) und Panzer (3 Felder) stehen 5 bis 6 Felder vor der Stadt / infantry (2 tiles) and tank (3 tiles) stand 5 to 6 tiles from the city
+    for (const [x, y] of [[6, 6], [6, 7], [6, 8], [5, 7]]) addUnit(s, 'infantry', 0, x, y);
+    addUnit(s, 'tank', 0, 5, 6);
     turn(s, 0);
     const storm = opsOf(s, 0, 'storm');
     expect(storm.length).toBe(1);
@@ -92,7 +93,8 @@ describe('KI-Taktiken: Lehrbuchlagen / AI tactics: textbook situations', () => {
   it('Einkreisen: ein isolierter Gegner wird von zwei Seiten gefasst und von hinten getroffen / encirclement: an isolated enemy is caught from two sides and hit from behind', () => {
     const s = board(['korvat', 'dravon']);
     addCity(s, 1, 5, 0, { hq: true });
-    addCity(s, 9, 9, 1, { hq: true });
+    // feindliches HQ ausser Sturmreichweite (Infanterie zieht 2 Felder, sonst lohnt der Sturm) / hostile HQ out of storm reach (infantry moves 2 tiles, else the storm pays)
+    addCity(s, 10, 1, 1, { hq: true });
     const e = addUnit(s, 'mg', 1, 5, 5); e.facing = 6;
     addUnit(s, 'infantry', 0, 3, 5);
     addUnit(s, 'infantry', 0, 3, 3);

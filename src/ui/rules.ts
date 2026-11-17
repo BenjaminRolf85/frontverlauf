@@ -4,7 +4,7 @@
  */
 import {
   BARRIER, CITY, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
-  VICTORY_TECH, WONDERS,
+  TOWER, VICTORY_TECH, WONDERS,
 } from '../data/balance';
 import { BUILDINGS, PRODUCTION, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
@@ -33,7 +33,8 @@ function sections(): Section[] {
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots,
-      cap: CITY.unitLimitPerUpgrade, buy: CITY.buyLevelBase, ex2: CITY.buyLevelCost(1), ex3: CITY.buyLevelCost(2), ex4: CITY.buyLevelCost(3) } },
+      cap: CITY.unitLimitPerUpgrade, buy: CITY.buyLevelBase, ex2: CITY.buyLevelCost(1), ex3: CITY.buyLevelCost(2), ex4: CITY.buyLevelCost(3),
+      grow: CITY.growTiles, max: 2 * CITY.growMaxRadius + 1, towerInc: TOWER.income } },
     // Produktionsstaetten und Doktrinen der Menschen / human production sites and doctrines
     { id: 'sites', icon: 'build', extra: siteLines },
     { id: 'doctrines', icon: 'lightning', extra: doctrineLines },
