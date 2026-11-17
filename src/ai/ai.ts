@@ -13,7 +13,10 @@ import {
 } from './economy';
 import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
+import { applyOps } from './operations';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
+
+export { activeOps, opRoleOf, setAiTactics, tacticStats, takeOpNews, type OpNews } from './operations';
 
 const END: Command = { type: 'endTurn' };
 
@@ -63,6 +66,8 @@ function finishCommand(s: GameState, f: number, failed: Set<string>): Command {
 
 function plan(s: GameState, f: number, failed: Set<string>): Command {
   const ctx = buildCtx(s, f);
+  // operative Ebene: Plaene ueber mehrere Zuege (Sturm, Ablenkung, Einkreisen, ...) / operational layer: plans over several turns
+  applyOps(ctx);
   return planRewards(ctx, failed)
     ?? planPeaceResponses(ctx, failed)
     ?? planGrandProject(ctx, failed)

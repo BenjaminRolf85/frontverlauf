@@ -3983,5 +3983,10 @@
     "limit": "Only 1: the city limit has room for one more unit only.",
     "noRoom": "Only 1: no free tile next to the city for the second unit.",
     "trained": "Two for One: 2x {unit} trained"
+  },
+  "aiOps": {
+    "storm": "{name} storms {city}!",
+    "diversion": "Flank attack! {name} advances on {city}.",
+    "encircle": "Encirclement! {name} surrounds one of your units ({unit})."
   }
 }

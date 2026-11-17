@@ -1853,6 +1853,98 @@ export const AI = {
   colossusWorks: 24,
 };
 
+/** Benannte Taktiken der KI (operative Ebene, src/ai/operations.ts) / named AI tactics (operational layer, src/ai/operations.ts) */
+export type TacticKind = 'ambush' | 'encircle' | 'rear' | 'feint' | 'storm' | 'diversion';
+export const TACTIC_KINDS: TacticKind[] = ['storm', 'diversion', 'encircle', 'rear', 'feint', 'ambush'];
+
+/**
+ * Operative Ebene der KI: Taktiken ueber mehrere Zuege mit Plaenen im KI-Gedaechtnis (nicht im Spielstand).
+ * Operational AI layer: tactics over several turns with plans in the AI memory (not in the save).
+ */
+export const AI_TACTICS = {
+  /**
+   * Je Schwierigkeit: erlaubte Taktiken, gleichzeitige Operationen, Anteil der genutzten Gelegenheiten (deterministisches
+   * Rauschen), Abstimmung der Angriffsreihenfolge (Frontalangriff dreht das Ziel, dann von hinten) und Mitglieder je Operation.
+   * Per difficulty: allowed tactics, concurrent operations, share of opportunities taken (deterministic noise),
+   * coordination of the attack order (a frontal attack turns the target, then from behind) and members per operation.
+   */
+  difficulty: {
+    easy: { kinds: ['storm', 'ambush', 'encircle'] as TacticKind[], maxOps: 1, chance: 0.35, coordinate: false, maxMembers: 3 },
+    normal: { kinds: TACTIC_KINDS, maxOps: 2, chance: 0.75, coordinate: true, maxMembers: 5 },
+    hard: { kinds: TACTIC_KINDS, maxOps: 3, chance: 1, coordinate: true, maxMembers: 7 },
+    extreme: { kinds: TACTIC_KINDS, maxOps: 4, chance: 1, coordinate: true, maxMembers: 8 },
+  } as Record<Difficulty, { kinds: TacticKind[]; maxOps: number; chance: number; coordinate: boolean; maxMembers: number }>,
+  /**
+   * Vorlieben je Fraktion (Faktor auf den Wert einer Gelegenheit; unter 0,5 wird sie nur bei sehr guter Lage gewaehlt).
+   * Korvat: verschanzen, Rueckzug in die Feuerzone; Dravon: Sturm und Rueckenangriffe mit Jeeps; Velkar: Hinterhalte mit
+   * Fernkaempfern; Alvenia: Hinterhalt und Rueckzug ins eigene Gebiet; Meridon: Ablenkung zur Kueste; Zyrr: Wellen und
+   * Ueberfaelle; Kult: Schwaerme kreisen ein; NEXUS: Kamikaze-Drohnen eroeffnen Hinterhalte und Stuerme.
+   * Preferences per faction (factor on the value of an opportunity; below 0.5 it is only chosen when the situation is very good).
+   * Korvat: entrench, retreat into the fire zone; Dravon: storm and rear attacks with jeeps; Velkar: ambushes with ranged
+   * units; Alvenia: ambush and retreat into own territory; Meridon: diversions along the coast; Zyrr: waves and raids;
+   * cult: swarms encircle; NEXUS: kamikaze drones open ambushes and storms.
+   */
+  weights: {
+    korvat: { storm: 0.9, diversion: 0.8, encircle: 0.9, rear: 1.1, feint: 1.6, ambush: 1.2 },
+    dravon: { storm: 1.4, diversion: 1.1, encircle: 1, rear: 1.5, feint: 0.6, ambush: 0.8 },
+    alvenia: { storm: 0.8, diversion: 0.7, encircle: 0.8, rear: 0.8, feint: 1.4, ambush: 1.3 },
+    meridon: { storm: 1, diversion: 1.5, encircle: 0.9, rear: 1, feint: 0.9, ambush: 1 },
+    velkar: { storm: 0.9, diversion: 0.9, encircle: 0.9, rear: 0.8, feint: 1.1, ambush: 1.6 },
+    zyrr: { storm: 1.4, diversion: 1.4, encircle: 1, rear: 1.2, feint: 0.4, ambush: 0.6 },
+    vesper: { storm: 1.3, diversion: 0.9, encircle: 1.6, rear: 0.9, feint: 0.3, ambush: 0.6 },
+    nexus: { storm: 1.3, diversion: 1, encircle: 1, rear: 1, feint: 0.8, ambush: 1.3 },
+  } as Record<FactionId, Record<TacticKind, number>>,
+  /**
+   * Sturmangriff: Kraeftevergleich im Umkreis (eigene Einheiten bis radius Felder, Gegner bis 3 Felder um die Stadt plus
+   * Stadtzuschlag), Mindestverhaeltnis und Mindestzahl; Sammeln hoechstens gatherTurns Zuege ausserhalb der Gefahr, dann
+   * Sturm (alle Einheiten in einem Zug: Fernkampf und Kamikaze zuerst, dann schwere Einheiten, dann Infanterie zum Einnehmen).
+   * Storm assault: force ratio in the area (own units within radius tiles, enemies within 3 tiles of the city plus a city
+   * surcharge), minimum ratio and minimum count; gather at most gatherTurns turns outside the danger, then storm (all units
+   * in one turn: ranged and kamikaze first, then heavy units, then infantry to capture).
+   */
+  storm: { radius: 6, maxTurns: 4, ratio: 1.5, minUnits: 3, gatherTurns: 3, strikeTurns: 3, cityOpp: 12, bunkerOpp: 30, readyShare: 0.6, strikeCaution: 0.2, gatherPenalty: 18, ringBonus: 6, order: { opener: 30, ranged: 20, heavy: 10 }, strikeBonus: 2, attackRelax: 4 },
+  /**
+   * Ablenkung: eine kleine schnelle Gruppe nimmt eine entlegene, schwach verteidigte Stadt oder Siedlung (mindestens
+   * remote Felder von der Hauptfront), waehrend die Hauptmacht dort sichtbar angreift.
+   * Diversion: a small fast group takes a remote, weakly defended city or village (at least remote tiles away from the main
+   * front) while the main force attacks visibly there.
+   */
+  diversion: { remote: 5, maxTurns: 4, maxOpp: 16, raiders: 2, pins: 2, routeCaution: 1.4, nearCaution: 0.5, pinCaution: 0.6, rounds: 6 },
+  /**
+   * Einkreisen: isoliertes Ziel (Unterstuetzung im Umkreis 2 unter isolated x Wert), 2+ Einheiten auf verschiedene
+   * Nachbarfelder, bevorzugt Rueckenfelder und Fluchtfelder Richtung Heimat; slotBonus fuer das zugeteilte Feld.
+   * Encirclement: isolated target (support within 2 below isolated x worth), 2+ units on different neighbour tiles,
+   * preferably rear tiles and escape tiles towards its home; slotBonus for the assigned tile.
+   */
+  encircle: { reach: 4, isolated: 0.6, ratio: 1.2, slotBonus: 10, adjBonus: 3, caution: 0.5, rounds: 4, attackBonus: 2 },
+  /**
+   * Rueckenangriff: schnelle Einheit (mindestens 2 Felder Bewegung, Sturm) auf ein Feld im Rueckenbereich eines Gegners,
+   * der schon Kontakt mit eigenen Truppen hat (der Frontalangriff dreht ihn zusaetzlich zum Angreifer).
+   * Rear attack: a fast unit (at least 2 tiles of movement, dash) onto a tile in the rear arc of an enemy already in
+   * contact with own troops (the frontal attack also turns it towards the attacker).
+   */
+  rear: { reach: 2, tileBonus: 12, rounds: 3 },
+  /**
+   * Vorgetaeuschter Rueckzug: ein Koeder im Kontakt zieht sich auf ein Feld zurueck, dessen Nachbarfelder von der Feuerzone
+   * (Fernkaempfer, verschanzte Einheiten, Geschuetzstellungen, verteidigte Staedte) bestrichen werden; die Feuerzone haelt
+   * die Stellung und schlaegt in der naechsten Runde zu.
+   * Feigned retreat: a bait in contact pulls back onto a tile whose neighbours are covered by the kill zone (ranged units,
+   * entrenched units, gun emplacements, defended cities); the kill zone holds its position and strikes next round.
+   */
+  feint: { minCover: 2, coverBonus: 6, tileBonus: 14, holdBonus: 14, retreatBonus: 8, strikeBonus: 3, rounds: 2 },
+  /**
+   * Hinterhalt: Fernkaempfer und Einheiten ohne Abzug fuer Feuern nach Bewegung warten ausserhalb der gegnerischen
+   * Reichweite (bevorzugt Wald und vom Gegner unerkundete Felder) neben dem vermuteten Anmarschweg und schlagen zu, sobald
+   * Gegner in Reichweite ziehen. approach = Gegner so nah an eigenen Staedten (bzw. Einheiten) gilt als anrueckend.
+   * Ambush: ranged units and units without a move-fire penalty wait outside enemy reach (preferably forest and tiles the
+   * enemy has not explored) next to the presumed approach path and strike once enemies move into range.
+   * approach = an enemy this close to own cities (or units) counts as approaching.
+   */
+  ambush: { approach: 6, approachUnit: 5, maxUnits: 3, slotBonus: 15, cover: 4, hidden: 6, rearArc: 5, holdBonus: 10, attackBonus: 3, caution: 1.5, rounds: 3 },
+  /** Abstimmung: Gewicht des Gewinns eines Folgeangriffs von hinten / coordination: weight of a follow-up attack's gain from behind */
+  coordinate: { gain: 0.8 },
+};
+
 export const PLAYER_LIMITS = { min: 2, max: 5 };
 
 /**

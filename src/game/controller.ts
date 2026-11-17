@@ -9,7 +9,7 @@ import {
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
-import { planNextCommand } from '../ai/ai';
+import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
 import { ORBITAL, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
@@ -35,6 +35,8 @@ export interface UiHooks {
   afterCommand?(events: GameEvent[]): void;
   unitSelected?(u: Unit): void;
   turnStarted?(): void;
+  /** KI beginnt eine grosse Operation (Sturm, Ablenkung, Einkreisen) / the AI launches a big operation (storm, diversion, encirclement) */
+  aiOperation?(n: OpNews, s: GameState): void;
 }
 
 const AI_DELAY: Record<string, number> = { slow: 420, normal: 220, fast: 60, instant: 0 };
@@ -808,6 +810,8 @@ export class Controller {
         let guard = 0;
         while (!s.over && s.current === faction && guard++ < 500) {
           const cmd = planNextCommand(s, faction);
+          // Meldungen der operativen Ebene (die Oberflaeche zeigt nur Sichtbares) / notices of the operational layer (the UI only shows what is visible)
+          for (const n of takeOpNews(s)) this.ui.aiOperation?.(n, s);
           const fast = this.aiSpeed === 'instant' || this.speedUp || !this.view.board.animations;
           let res: CommandResult;
           if (fast) {

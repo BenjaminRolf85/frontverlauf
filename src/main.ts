@@ -29,6 +29,7 @@ import { shipWorkToast, truceHeadline } from './ui/mothership';
 import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
 import { plansToast } from './ui/temple';
 import { showRandomEvent } from './ui/events';
+import { opNotice } from './ui/aiOps';
 
 function boot() {
   const app = document.getElementById('app')!;
@@ -269,6 +270,14 @@ function boot() {
     afterCommand(events) { if (game.state) barks.onEvents(game.state, events, game.viewer, new Map()); },
     unitSelected(u) { if (game.state) { audio.unitVoice(u.type, game.state.factions[u.owner].id); barks.say(game.state, u, barks.situation(game.state, u) ?? 'select'); } },
     turnStarted() { if (game.state) { barks.onTurnStart(game.state, game.viewer); dispatches.turnStart(game.state, game.viewer); } },
+    // grosse KI-Operation gegen den Betrachter, nur wenn er beteiligte Einheiten sieht / big AI operation against the viewer, only if they see units involved
+    aiOperation(n, s) {
+      const o = opNotice(n, s, game.viewer);
+      if (!o) return;
+      const name = t(`factions.${s.factions[o.faction].id}.short`);
+      const target = s.units.find((u) => u.id === o.unit);
+      toast(root, t(`aiOps.${o.key}`, { name, city: o.city !== undefined ? cityName(s, o.city) : '', unit: target ? t(`units.${target.type}`) : '' }), 'warning');
+    },
     handover: (f) => handoverScreen(host, f),
     confirm: (text, ok) => confirmDialog(host, text, ok),
     gameOver: () => { if (game.state?.campaign) campaignResult(host); else gameOverScreen(host); clearSave(); },
