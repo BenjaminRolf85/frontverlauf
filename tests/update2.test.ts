@@ -11,7 +11,8 @@ describe('Grosse Karten / big maps', () => {
     for (const size of [22, 26] as const) {
       const s = createGame(defaultConfig({ seed: 4, size, mapType: 'continents' }));
       expect(s.tiles.length).toBe(size * size);
-      expect(s.cities.length).toBeGreaterThan(20);
+      // 30 % weniger Siedlungen (MAPGEN.villageShare, vorher mehr als 20) / 30 % fewer settlements (MAPGEN.villageShare, before more than 20)
+      expect(s.cities.length).toBeGreaterThan(14);
     }
   });
 });

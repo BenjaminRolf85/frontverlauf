@@ -1624,8 +1624,20 @@ export const MAP_TYPES: Record<MapType, MapGenParams> = {
 export const MAP_SIZES: MapSize[] = [11, 14, 16, 18, 22, 26];
 
 export const MAPGEN = {
-  /** Siedlungen je Feld (vorher 1/13, leicht verringert) / villages per tile (before 1/13, slightly reduced) */
+  /** Siedlungen je Feld, Obergrenze (vorher 1/13) / villages per tile, upper bound (before 1/13) */
   villagesPerTile: 1 / 15,
+  /**
+   * Anteil der platzierten Siedlungen, der bleibt: 30 % weniger (Spielerwunsch, Staedte wachsen dafuer je Stufe,
+   * CITY.growTiles). Gilt fuer alle neutralen Siedlungen einer Karte (Heimatsiedlungen eingeschlossen), nachdem Dichte
+   * (villagesPerTile) und Abstaende sie begrenzt haben; auf 14x14 und 16x16 begrenzen meist die Abstaende, nicht die Dichte,
+   * deshalb wirkt der Anteil auf das Ergebnis. Heimatsiedlungen bleiben immer. Die Kampagne skaliert zusaetzlich mit
+   * CAMPAIGN_SETTLEMENTS.
+   * Share of the placed villages that stays: 30 % fewer (player request, cities grow per level instead, CITY.growTiles).
+   * Applies to all neutral villages of a map (home villages included) after density (villagesPerTile) and spacing have
+   * limited them; on 14x14 and 16x16 spacing rather than density is usually the limit, which is why the share acts on the
+   * result. Home villages always stay. The campaign additionally scales with CAMPAIGN_SETTLEMENTS.
+   */
+  villageShare: 0.7,
   /** Mindestabstand neutraler Siedlungen zum Kartenrand in Feldern / minimum distance of neutral villages to the map edge in tiles */
   villageEdge: 2,
   /**
