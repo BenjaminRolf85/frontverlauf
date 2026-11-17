@@ -3983,5 +3983,10 @@
     "limit": "Nur 1: das Stadtlimit lässt nur noch Platz für eine Einheit.",
     "noRoom": "Nur 1: kein freies Feld neben der Stadt für die zweite Einheit.",
     "trained": "Zwei für einen: 2x {unit} ausgebildet"
+  },
+  "aiOps": {
+    "storm": "{name} stürmt {city}!",
+    "diversion": "Flankenangriff! {name} rückt auf {city} vor.",
+    "encircle": "Einkreisung! {name} umzingelt eine eurer Einheiten ({unit})."
   }
 }

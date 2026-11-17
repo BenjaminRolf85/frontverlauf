@@ -16,7 +16,7 @@ import { planOrbital } from './orbital';
 import { applyOps } from './operations';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
-export { activeOps, opRoleOf, setAiTactics, tacticStats, takeOpNews } from './operations';
+export { activeOps, opRoleOf, setAiTactics, tacticStats, takeOpNews, type OpNews } from './operations';
 
 const END: Command = { type: 'endTurn' };
 

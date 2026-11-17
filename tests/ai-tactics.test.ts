@@ -5,7 +5,10 @@
 import { describe, expect, it } from 'vitest';
 import { applyCommand, combatPreview, createGame, defaultConfig, dist, inRearArc, unitById, type Command, type GameState } from '../src/core';
 import { AI, AI_TACTICS, TACTIC_KINDS, type Difficulty, type FactionId } from '../src/data/balance';
-import { activeOps, aiDebug, opRoleOf, planNextCommand, setAiTactics, tacticStats } from '../src/ai/ai';
+import { activeOps, aiDebug, opRoleOf, planNextCommand, setAiTactics, tacticStats, takeOpNews } from '../src/ai/ai';
+import { opNotice } from '../src/ui/aiOps';
+import de from '../src/i18n/de.json';
+import en from '../src/i18n/en.json';
 import { addCity, addUnit, blankGame, revealAll, setTerrain } from './helpers';
 
 /** Leeres Feld fuer KI-Fraktionen auf "schwer" (jede Gelegenheit wird genutzt) / empty board for AI factions on "hard" (every opportunity is taken) */
@@ -251,6 +254,48 @@ describe('KI-Taktiken: Lehrbuchlagen / AI tactics: textbook situations', () => {
     expect(AI_TACTICS.difficulty.easy.kinds).not.toContain('diversion');
     expect(AI_TACTICS.difficulty.easy.coordinate).toBe(false);
     expect(AI_TACTICS.difficulty.hard.kinds.length).toBe(TACTIC_KINDS.length);
+  });
+});
+
+describe('KI-Taktiken: Meldungen / AI tactics: notices', () => {
+  /** Mensch (0) gegen KI (1), die eine Stadt des Menschen stuermt / human (0) vs AI (1) storming a city of the human */
+  function stormOnHuman(seeAttackers: boolean) {
+    const s = board(['korvat', 'dravon']);
+    s.factions[0].human = true;
+    const city = addCity(s, 7, 5, 0, { hq: true });
+    addCity(s, 1, 5, 1, { hq: true });
+    addUnit(s, 'mg', 0, 7, 5);
+    for (const [t, x, y] of [['artillery', 4, 5], ['tank', 5, 4], ['infantry', 5, 6], ['infantry', 5, 5]] as const) addUnit(s, t, 1, x, y);
+    if (!seeAttackers) s.factions[0].explored = s.factions[0].explored.map((_, k) => (k % s.size >= 6 ? 1 : 0));
+    pass(s);
+    // die Oberflaeche holt die Meldungen gleich nach dem ersten Befehl ab (vor den Zuegen) / the UI takes the notices right after the first command (before the moves)
+    const first = planNextCommand(s, 1);
+    const news = takeOpNews(s);
+    const notices = news.map((n) => ({ n, human: opNotice(n, s, 0), ai: opNotice(n, s, 1) }));
+    expect(applyCommand(s, first).ok).toBe(true);
+    turn(s, 1);
+    return { s, city, notices };
+  }
+
+  it('meldet einen sichtbaren Sturm auf die eigene Stadt (DE+EN) / reports a visible storm on an own city (DE+EN)', () => {
+    const { s, city, notices } = stormOnHuman(true);
+    const n = notices.find((x) => x.n.kind === 'storm');
+    expect(n).toBeDefined();
+    expect(n!.human).toEqual({ key: 'storm', faction: 1, city: city.id });
+    // die KI selbst bekommt nichts / the AI itself gets nothing
+    expect(n!.ai).toBeNull();
+    expect(de.aiOps.storm).toContain('{city}');
+    expect(en.aiOps.storm).toContain('{city}');
+    expect(Object.keys(de.aiOps).sort()).toEqual(Object.keys(en.aiOps).sort());
+    // einmal abgeholt ist die Liste leer / once taken the list is empty
+    expect(takeOpNews(s)).toEqual([]);
+  });
+
+  it('verraet nichts aus dem Nebel / reveals nothing from the fog', () => {
+    const { notices } = stormOnHuman(false);
+    const n = notices.find((x) => x.n.kind === 'storm');
+    expect(n).toBeDefined();
+    expect(n!.human).toBeNull();
   });
 });
 

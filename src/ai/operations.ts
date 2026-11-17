@@ -68,7 +68,7 @@ export interface TacticStats {
 }
 
 /** Meldung fuer die Oberflaeche (grosse Operation beginnt) / notice for the UI (a big operation begins) */
-export interface OpNews { round: number; faction: number; kind: TacticKind; x: number; y: number; city?: number; target?: number }
+export interface OpNews { round: number; faction: number; kind: TacticKind; x: number; y: number; city?: number; target?: number; units: number[] }
 
 interface Memory {
   on: boolean;
@@ -416,7 +416,10 @@ function refresh(ctx: Ctx, m: Memory, cfg: Cfg) {
 }
 
 function news(ctx: Ctx, m: Memory, op: Op) {
-  m.news.push({ round: ctx.s.round, faction: ctx.f, kind: op.kind, x: op.x, y: op.y, ...(op.city !== undefined ? { city: op.city } : {}), ...(op.unit !== undefined ? { target: op.unit } : {}) });
+  m.news.push({
+    round: ctx.s.round, faction: ctx.f, kind: op.kind, x: op.x, y: op.y, units: op.members.map((mb) => mb.id),
+    ...(op.city !== undefined ? { city: op.city } : {}), ...(op.unit !== undefined ? { target: op.unit } : {}),
+  });
   if (m.news.length > 20) m.news.splice(0, m.news.length - 20);
 }
 
