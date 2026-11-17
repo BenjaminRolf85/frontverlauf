@@ -53,6 +53,10 @@ describe('KI-Orbitallaser / AI orbital laser', () => {
       // two more runs: with the settlements' edge distance only 2 of 6 built the relay
       [7, 'points', ['velkar', 'alvenia', 'korvat'], 16],
       [8, 'conquest', ['velkar', 'meridon', 'dravon'], 14],
+      // zwei weitere Laeufe: mit schnelleren Einheiten, Stadtwachstum und Sendetuermen bauten nur noch 2 von 8 das Relay
+      // two more runs: with faster units, city growth and transmitter towers only 2 of 8 built the relay
+      [9, 'points', ['velkar', 'dravon', 'meridon'], 16],
+      [10, 'conquest', ['velkar', 'korvat', 'zyrr'], 16],
     ];
     for (const [seed, mode, ids, size] of cases) runs.push({ seed, mode, ...play(seed, mode, ids, size, 45) });
     for (const r of runs) expect(r.fails, `seed ${r.seed} ${r.mode}`).toBe(0);
