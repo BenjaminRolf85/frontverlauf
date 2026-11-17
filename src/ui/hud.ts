@@ -608,7 +608,17 @@ export class Hud {
           ${(() => { const r = unitRange(vUnit.type, fid); return `<span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${r ? num(r) : esc(t('stats.noRange'))}</span>`; })()}
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
-          ${(() => { const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id); return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 }))}">${icon('star', 'icon-sm')}${esc(paid ? t('hud.upkeepUnit', { n: num(Math.round(unitUpkeep(vUnit) * upkeepFactor(s, vUnit.owner) * 10) / 10) }) : isCultFaction(s, vUnit.owner) ? t('cult.noUpkeep') : t('hud.upkeepFree'))}</span>`; })()}
+          ${(() => {
+            const paid = paidUnits(s, vUnit.owner).some((p) => p.id === vUnit.id);
+            // Fraktionsfaktor (Korvat): Anteil der Einheit ist ungefaehr, gerundet wird erst die Summe; die Summe steht im Tooltip
+            // faction factor (Korvat): the unit's share is approximate, only the total is rounded; the total is in the tooltip
+            const k = upkeepFactor(s, vUnit.owner);
+            const rule = t('hud.upkeepRule', { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100), tank: UPKEEP.flat.tank ?? 0 });
+            const tip = k !== 1 ? `${rule} ${t('hud.upkeepTotal', { pct: Math.round((1 - k) * 100), n: upkeep(s, vUnit.owner) })}` : rule;
+            const share = num(Math.round(unitUpkeep(vUnit) * k * 10) / 10);
+            const label = paid ? t(k !== 1 ? 'hud.upkeepUnitApprox' : 'hud.upkeepUnit', { n: share }) : isCultFaction(s, vUnit.owner) ? t('cult.noUpkeep') : t('hud.upkeepFree');
+            return `<span class="stat ${paid ? '' : 'muted'}" title="${esc(tip)}">${icon('star', 'icon-sm')}${esc(label)}</span>`;
+          })()}
           ${vUnit.kills ? `<span class="stat">${icon('medal', 'icon-sm')}${esc(t('stats.kills'))} ${vUnit.kills}</span>` : ''}
           ${accuracyStat(s, vUnit)}
           ${ROCKETS.units.includes(vUnit.type) ? `<span class="stat ${rocketsLeft(vUnit) === 0 ? 'tag warn' : ''}" title="${esc(t('rockets.desc'))}">${icon('lightning', 'icon-sm')}${esc(t('rockets.left', { n: rocketsLeft(vUnit), max: ROCKETS.max }))}</span>` : ''}

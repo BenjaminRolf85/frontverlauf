@@ -690,6 +690,7 @@
     "slowed": "Slowed: 1 tile only",
     "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
     "upkeepUnit": "Upkeep {n} per round",
+    "upkeepUnitApprox": "Upkeep about {n} per round",
     "upkeepFree": "No upkeep (core troop)",
     "moreInfo": "Show more values",
     "lessInfo": "Show fewer values",
@@ -699,7 +700,8 @@
     "hintExpand": "Show the full explanation",
     "moreActions": "More actions",
     "unitLimitRule": "Unit limit: level + 1 = {lv}, plus {up} from upgrades (+{per} per upgrade).",
-    "unitLimitUpgrades": "(+{n} upgrades)"
+    "unitLimitUpgrades": "(+{n} upgrades)",
+    "upkeepTotal": "Faction: {pct} % less upkeep on the total, rounded up once; {n} stars per round in all."
   },
   "actions": {
     "confirmTitle": "Are you sure?",
