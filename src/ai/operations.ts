@@ -212,7 +212,12 @@ function goalFor(ctx: Ctx, o: OpSlot, u: Unit): Goal | null {
       const c = op.city !== undefined ? cityById(ctx.s, op.city) : undefined;
       return at(c && c.owner === null ? 'village' : 'city', op, op.city);
     }
-    case 'pin': return op.front ? at('stage', op.front) : null;
+    case 'pin': {
+      if (!op.front) return null;
+      // Bindegruppe: sichtbarer Angriff auf die Hauptfront / pinning group: visible attack on the main front
+      const fc = ctx.s.tiles[idx(ctx.size, op.front.x, op.front.y)].cityId;
+      return capturer(u) && fc !== null ? at('city', op.front, fc) : at('stage', op.front);
+    }
     case 'hammer': return at('hunt', o.slot ?? op, op.unit);
     case 'flanker': return at('hunt', o.slot ?? op, op.unit);
     case 'bait': return o.slot ? at('stage', o.slot) : null;
