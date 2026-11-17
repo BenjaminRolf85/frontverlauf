@@ -158,8 +158,10 @@ const ranged = (u: Unit) => UNITS[u.type].range >= 2;
 const GENERIC = new Set<Goal['kind']>(['city', 'village', 'hunt', 'stage', 'explore', 'home', 'defend']);
 
 /** Freie Einheit fuer Operationen? / free unit for operations? */
-function free(ctx: Ctx, u: Unit, busy: Set<number>, allowDefend: boolean): boolean {
+function free(ctx: Ctx, u: Unit, busy: Set<number>, allowDefend: boolean, garrison = !allowDefend): boolean {
   if (busy.has(u.id) || !isFighter(u) || isShip(u) || u.fuel !== null || u.carried) return false;
+  // Besatzung einer eigenen Stadt bleibt fuer oertliche Taktiken drin / the garrison of an own city stays in for local tactics
+  if (!garrison) { const c = ctx.s.tiles[idx(ctx.size, u.x, u.y)].cityId; if (c !== null && ctx.myCities.some((m) => m.id === c)) return false; }
   if (u.type === 'medic' || u.type === 'spy' || has(u, 'mines') || has(u, 'wonder')) return false;
   const g = ctx.goals.get(u.id);
   if (!g || !GENERIC.has(g.kind) || g.hold) return false;
@@ -325,15 +327,16 @@ export function opAttackValue(ctx: Ctx, u: Unit, t: Unit): number {
   const T = AI_TACTICS;
   switch (o.role) {
     case 'striker': {
-      if (op.stage !== 'strike' || dist(t, op) > 1) return 0;
-      // Fernkampf und Kamikaze eroeffnen, dann schwere Einheiten, die Infanterie nimmt zuletzt ein
-      // ranged and kamikaze open, then heavy units, the infantry captures last
-      const st = UNITS[u.type];
-      const order = has(u, 'kamikaze') ? T.storm.order.opener : st.range >= 2 && !has(u, 'dash') ? T.storm.order.ranged
-        : st.range >= 2 || st.attack >= 4 ? T.storm.order.heavy : 0;
-      return T.storm.strikeBonus + T.storm.attackRelax + order;
+      if (op.stage === 'strike') return dist(t, op) <= 1 ? T.storm.strikeBonus + T.storm.attackRelax : 0;
+      const g = ctx.goals.get(u.id);
+      return u.moved && g && opHoldsFire(ctx, u, g) ? -8 : 0;
     }
-    case 'hammer': case 'flanker': return t.id === op.unit ? T.encircle.attackBonus : 0;
+    case 'hammer': case 'flanker': {
+      // Sammelphase: kein Angriff nach Bewegung mit halbem Schaden / gathering: no half-damage attack after moving
+      const g = ctx.goals.get(u.id);
+      if (u.moved && g && opHoldsFire(ctx, u, g)) return -8;
+      return t.id === op.unit ? T.encircle.attackBonus : 0;
+    }
     case 'ambusher': return T.ambush.attackBonus;
     case 'bait': case 'killzone': return op.stage === 'strike' ? T.feint.strikeBonus : 0;
     case 'raider': return t.x === op.x && t.y === op.y ? 2 : -3;
@@ -341,10 +344,26 @@ export function opAttackValue(ctx: Ctx, u: Unit, t: Unit): number {
   }
 }
 
+/**
+ * Rang im Sturm (nur fuer die Reihenfolge): Kamikaze und Fernkampf eroeffnen, dann schwere Einheiten, die Infanterie
+ * greift zuletzt an und nimmt ein.
+ * Rank in a storm (order only): kamikaze and ranged units open, then heavy units, the infantry attacks last and captures.
+ */
+export function opAttackOrder(ctx: Ctx, u: Unit, t: Unit): number {
+  const o = ctx.ops.get(u.id);
+  if (!o || o.role !== 'striker' || o.op.stage !== 'strike' || dist(t, o.op) > 1) return 0;
+  const T = AI_TACTICS.storm.order;
+  const st = UNITS[u.type];
+  return has(u, 'kamikaze') ? T.opener : st.range >= 2 && !has(u, 'dash') ? T.ranged : st.range >= 2 || st.attack >= 4 ? T.heavy : 0;
+}
+
 /** Geordneter Rueckzug des Koeders in die Feuerzone / the bait's orderly retreat into the kill zone */
 export function opRetreatValue(ctx: Ctx, u: Unit, t: Unit): number {
   const o = ctx.ops.get(u.id);
-  if (!o || o.role !== 'bait' || o.op.stage !== 'gather') return 0;
+  if (!o) return 0;
+  // Einkreisen und Sturm: gesunde Mitglieder halten ihre Felder statt auszuweichen / encirclement and storm: healthy members hold their tiles instead of backing off
+  if ((o.role === 'hammer' || o.role === 'striker' || o.role === 'flanker') && u.hp >= u.maxHp * 0.45) return -100;
+  if (o.role !== 'bait' || o.op.stage !== 'gather') return 0;
   const to = retreatTile(ctx.s, u, t);
   return to && zoneCover(o.op, to) > 0 ? AI_TACTICS.feint.retreatBonus : 0;
 }
@@ -368,29 +387,31 @@ function refresh(ctx: Ctx, m: Memory, cfg: Cfg) {
   // 2. neue Gelegenheiten / new opportunities
   const busy = new Set<number>();
   for (const op of m.ops) for (const mb of op.members) busy.add(mb.id);
-  const cands: Cand[] = [];
-  TACTIC_KINDS.forEach((kind, ki) => {
-    if (!cfg.kinds.includes(kind)) return;
-    // Schwierigkeit: nur ein Teil der Gelegenheiten wird genutzt / difficulty: only a share of the opportunities is taken
-    if (cfg.chance < 1 && hashNoise(ctx.s.round, ctx.f, ki, 31) >= cfg.chance) return;
-    const w = weightOf(ctx, kind);
-    for (const c of GEN[kind](ctx, busy, cfg, w)) cands.push(c);
-  });
-  cands.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
   const targets = new Set(m.ops.map((o) => `${o.kind}:${o.x},${o.y}`));
-  for (const c of cands) {
-    if (m.ops.length >= cfg.maxOps) break;
-    if (c.score <= 0) break;
-    const op = c.make();
-    const tk = `${op.kind}:${op.x},${op.y}`;
-    if (targets.has(tk) || op.members.some((mb) => busy.has(mb.id)) || !op.members.length) continue;
-    op.id = m.nextId++;
-    m.ops.push(op);
-    targets.add(tk);
-    for (const mb of op.members) busy.add(mb.id);
-    m.stats.started[op.kind]++;
-    if (op.kind === 'storm' && op.stage === 'strike') news(ctx, m, op);
-    else if (op.kind === 'diversion' || op.kind === 'encircle') news(ctx, m, op);
+  // Schwierigkeit: nur ein Teil der Gelegenheiten wird genutzt / difficulty: only a share of the opportunities is taken
+  let kinds = TACTIC_KINDS.filter((kind, ki) => cfg.kinds.includes(kind) && (cfg.chance >= 1 || hashNoise(ctx.s.round, ctx.f, ki, 31) < cfg.chance));
+  // zweiter Durchgang fuer Taktiken, deren Einheiten eine bessere Operation schon gebunden hat
+  // second pass for tactics whose units a better operation has already taken
+  for (let pass = 0; pass < 2 && kinds.length && m.ops.length < cfg.maxOps; pass++) {
+    const cands: Cand[] = [];
+    for (const kind of kinds) for (const c of GEN[kind](ctx, busy, cfg, weightOf(ctx, kind))) cands.push(c);
+    cands.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+    const retry = new Set<TacticKind>();
+    for (const c of cands) {
+      if (m.ops.length >= cfg.maxOps || c.score <= 0) break;
+      const op = c.make();
+      const tk = `${op.kind}:${op.x},${op.y}`;
+      if (targets.has(tk) || !op.members.length) continue;
+      if (op.members.some((mb) => busy.has(mb.id))) { retry.add(c.kind); continue; }
+      op.id = m.nextId++;
+      m.ops.push(op);
+      targets.add(tk);
+      for (const mb of op.members) busy.add(mb.id);
+      m.stats.started[op.kind]++;
+      if (op.kind === 'storm' && op.stage === 'strike') news(ctx, m, op);
+      else if (op.kind === 'diversion' || op.kind === 'encircle') news(ctx, m, op);
+    }
+    kinds = kinds.filter((k) => retry.has(k));
   }
 }
 
@@ -462,7 +483,11 @@ function check(ctx: Ctx, m: Memory, op: Op): 'keep' | 'done' | 'fail' {
       if (units.every((u) => dist(u, e) > 6)) return 'fail';
       op.x = e.x; op.y = e.y;
       // Felder neu verteilen (das Ziel kann gezogen sein) / re-distribute the tiles (the target may have moved)
-      if (op.kind === 'encircle') assignRing(ctx, e, units, op.members);
+      if (op.kind === 'encircle') {
+        assignRing(ctx, e, units, op.members);
+        // zuschlagen, sobald zwei Mitglieder angreifen koennen (oder nach zwei Zuegen) / strike once two members can attack (or after two turns)
+        if (op.stage === 'gather' && (inContact(ctx, e, units) >= 2 || s.round - op.start >= 2)) op.stage = 'strike';
+      }
       else for (const mb of op.members) { const u = units.find((x) => x.id === mb.id); if (u) mb.slot = rearSlot(ctx, e, u, null) ?? undefined; }
       return 'keep';
     }
@@ -519,7 +544,7 @@ const genStorm: Gen = (ctx, busy, cfg, w) => {
       const d = dist(u, c);
       if (d > T.radius) continue;
       const turns = fieldAt(ctx, fld, u.x, u.y, 0) / speedOf(u);
-      if (!(turns <= 3)) continue;
+      if (!(turns <= T.maxTurns)) continue;
       list.push({ u, d });
       own += strength(u);
     }
@@ -562,8 +587,11 @@ const genDiversion: Gen = (ctx, busy, _cfg, w) => {
   const front = mainFront(ctx);
   if (!front) return [];
   const pool = ctx.my.filter((u) => free(ctx, u, busy, false));
-  const pins = pool.filter((u) => dist(u, front) <= 4).sort((a, b) => dist(a, front) - dist(b, front) || a.id - b.id);
-  if (pins.length < T.pins) return [];
+  // ein Sturm auf die Front bindet den Gegner schon; sonst binden freie Einheiten an der Front
+  // a storm on the front already pins the enemy; otherwise free units at the front pin it
+  const storm = mem(ctx.s, ctx.f).ops.some((o) => o.kind === 'storm' && o.city === front.id);
+  const pins = storm ? [] : pool.filter((u) => dist(u, front) <= 4).sort((a, b) => dist(a, front) - dist(b, front) || a.id - b.id);
+  if (!storm && pins.length < T.pins) return [];
   // schnelle Einnehmer zuerst, sonst Fusstruppen in der Naehe / fast capturers first, else foot troops nearby
   const raiders = pool.filter((u) => capturer(u) && !pins.slice(0, T.pins).includes(u));
   if (!raiders.length) return [];
@@ -643,6 +671,25 @@ function assignRing(ctx: Ctx, e: Unit, units: Unit[], members: OpMember[]) {
   }
 }
 
+/** Mitglieder, die e ohne Bewegung angreifen koennen / members able to attack e without moving */
+function inContact(ctx: Ctx, e: Unit, units: Unit[]): number {
+  let n = 0;
+  for (const u of units) if (dist(u, e) <= Math.max(1, effectiveRange(ctx.s, u))) n++;
+  return n;
+}
+
+/**
+ * Feuer zurueckhalten: Mitglieder in der Sammelphase greifen nicht nach einer Bewegung an (halber Schaden), ausser
+ * Einheiten ohne Abzug (Dravon, Steppenreiter, Kamikaze); sie beziehen erst ihre Felder.
+ * Hold fire: members in the gathering stage do not attack after moving (half damage), except units without the penalty
+ * (Dravon, Steppe Riders, kamikaze); they take their tiles first.
+ */
+export function opHoldsFire(ctx: Ctx, u: Unit, g: Goal): boolean {
+  const o = g.op;
+  if (!o || o.op.stage !== 'gather' || fullMover(ctx.s, u)) return false;
+  return o.role === 'hammer' || o.role === 'striker';
+}
+
 /** Einkreisen eines isolierten Gegners / encirclement of an isolated enemy */
 const genEncircle: Gen = (ctx, busy, cfg, w) => {
   const T = AI_TACTICS.encircle;
@@ -667,7 +714,7 @@ const genEncircle: Gen = (ctx, busy, cfg, w) => {
       make: () => {
         const members: OpMember[] = near.map((u) => ({ id: u.id, role: 'hammer' as OpRole }));
         assignRing(ctx, e, near, members);
-        return newOp(ctx, 'encircle', T.rounds, e, { unit: e.id, members });
+        return newOp(ctx, 'encircle', T.rounds, e, { unit: e.id, members, stage: inContact(ctx, e, near) >= 2 ? 'strike' : 'gather' });
       },
     });
   }
@@ -788,7 +835,7 @@ const genFeint: Gen = (ctx, busy, _cfg, w) => {
         for (const q of z) {
           if (q.id === undefined || busy.has(q.id) || members.length > 4) continue;
           const u = ctx.my.find((x) => x.id === q.id);
-          if (u && free(ctx, u, busy, true)) members.push({ id: q.id, role: 'killzone', slot: { x: q.x, y: q.y } });
+          if (u && free(ctx, u, busy, true, true)) members.push({ id: q.id, role: 'killzone', slot: { x: q.x, y: q.y } });
         }
         return newOp(ctx, 'feint', T.rounds, p, { zone: z.map(({ x, y, r, w: zw }) => ({ x, y, r, w: zw })), members });
       },
@@ -804,11 +851,15 @@ const genFeint: Gen = (ctx, busy, _cfg, w) => {
 function predictStep(ctx: Ctx, e: Unit, home: Float32Array): { p: Pos; facing: number | undefined } {
   let cur: Pos = { x: e.x, y: e.y };
   let facing = e.facing;
+  // Gleichstand (Schachbrettmass): Richtung der naechsten eigenen Stadt / tie (chessboard metric): towards the nearest own city
+  let goal: Pos = cur, gd = Infinity;
+  for (const c of ctx.myCities) { const d = dist(c, e); if (d < gd) { gd = d; goal = c; } }
+  const tie = (p: Pos) => ((p.x - goal.x) ** 2 + (p.y - goal.y) ** 2) * 1e-3;
   for (let i = 0; i < UNITS[e.type].move; i++) {
     const here = fieldAt(ctx, home, cur.x, cur.y, 0);
-    let next: Pos | null = null, nv = here;
+    let next: Pos | null = null, nv = here + tie(cur);
     for (const n of neighbors(ctx.size, cur.x, cur.y)) {
-      const v = fieldAt(ctx, home, n.x, n.y, 0);
+      const v = fieldAt(ctx, home, n.x, n.y, 0) + tie(n);
       const o = unitAt(ctx.s, n.x, n.y);
       if (v < nv && (!o || o.id === e.id)) { nv = v; next = n; }
     }
@@ -816,7 +867,7 @@ function predictStep(ctx: Ctx, e: Unit, home: Float32Array): { p: Pos; facing: n
     facing = facingTowards(cur, next) ?? facing;
     cur = next;
     const t = ctx.s.tiles[idx(ctx.size, cur.x, cur.y)];
-    if (t.terrain === 'forest' || t.terrain === 'mountain' || nv === 0) break;
+    if (t.terrain === 'forest' || t.terrain === 'mountain' || fieldAt(ctx, home, cur.x, cur.y, 0) === 0) break;
   }
   return { p: cur, facing };
 }

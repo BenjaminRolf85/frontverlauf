@@ -15,7 +15,7 @@ import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
 import { hashNoise } from './profile';
-import { coordinationValue, opAttackValue, opCaution, opRetreatValue, opTileValue } from './operations';
+import { coordinationValue, opAttackOrder, opAttackValue, opHoldsFire, opCaution, opRetreatValue, opTileValue } from './operations';
 // Endgegner der Kampagne / campaign boss
 import { isBoss } from '../core';
 import { SWARM_MOTHER } from '../data/balance';
@@ -127,15 +127,19 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
       let v = attackValue(ctx, u, t);
       // Kamikaze nur, wenn es sich lohnt (der Wert der Drohne ist schon abgezogen) / kamikaze only when worth it (the drone's worth is already subtracted)
       if (has(u, 'kamikaze') && v < AI.kamikazeMin) continue;
+      const raw = v;
       // operative Ebene: Rolle in einer Operation und Reihenfolge fuer Rueckenangriffe / operational layer: role in an operation and order for rear attacks
       if (ctx.ops.size) v += opAttackValue(ctx, u, t);
       if (ctx.coordinate) v += coordinationValue(ctx, u, t, (a, d) => attackValue(ctx, a, d), () => { const p = combatPreview(s, u, t); return p.retFull > 0 ? 1 - p.killChance : 0; });
       // Fernkampf ohne Gegenschlag zuerst / ranged first (no retaliation)
       if (UNITS[u.type].range > 1) v += 1;
+      // Sturm: Reihenfolge nur unter lohnenden Angriffen (die Schwelle gilt fuer den Wert ohne Rang)
+      // storm: order only among worthwhile attacks (the threshold applies to the value without the rank)
+      const rank = ctx.ops.size && v >= prof.attackMin ? v + opAttackOrder(ctx, u, t) : v;
       const c: Command = { type: 'attack', unit: u.id, target: t.id };
-      if (v > bv && ok(failed, c)) { bv = v; best = c; }
+      if (rank > bv && ok(failed, c)) { bv = rank; best = c; }
       // Menschen: geordneter Rueckzug, wenn angeschlagen oder der Angriff sich nicht lohnt / humans: orderly retreat when battered or the attack is not worth it
-      if ((u.hp < u.maxHp * 0.45 || v < 0) && retreatCheck(s, u, t) === 'ok') {
+      if ((u.hp < u.maxHp * 0.45 || raw + (UNITS[u.type].range > 1 ? 1 : 0) < 0) && retreatCheck(s, u, t) === 'ok') {
         const rv = (retreatDamage(s, u, t) / t.hp) * worth(t) * 0.6 + (u.hp < u.maxHp * 0.45 ? 4 : 1) + (ctx.ops.size ? opRetreatValue(ctx, u, t) : 0);
         const rc: Command = { type: 'retreat', unit: u.id, target: t.id };
         if (rv > bv && ok(failed, rc)) { bv = rv; best = rc; }
@@ -398,7 +402,8 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   for (const p of area(size, x, y, vr)) if (!ctx.fa.explored[idx(size, p.x, p.y)]) fresh++;
   v += fresh * (g.kind === 'explore' ? 4 : 1);
   // Angriffsgelegenheit / attack opportunity
-  if (r && canAttackAfter(u, r)) v += Math.max(0, bestAttackFrom(ctx, u, x, y)) * 0.8;
+  // Operation in der Sammelphase: Feuer zurueckhalten (kein Angriff nach Bewegung) / operation gathering: hold fire (no attack after moving)
+  if (r && canAttackAfter(u, r) && !(g.op && opHoldsFire(ctx, u, g))) v += Math.max(0, bestAttackFrom(ctx, u, x, y)) * 0.8;
   else if (!r && canAttackNow(u)) v += Math.max(0, bestAttackFrom(ctx, u, x, y)) * 0.8;
   // Fernkampf: in Reichweite fuer die naechste Runde / ranged: in range for next round
   // Railgun-Schuetze: kein Sturm, also stellt er sich hier fuer den naechsten Zug auf und schiesst nie nach einer Bewegung (canAttackAfter)

@@ -1902,7 +1902,7 @@ export const AI_TACTICS = {
    * surcharge), minimum ratio and minimum count; gather at most gatherTurns turns outside the danger, then storm (all units
    * in one turn: ranged and kamikaze first, then heavy units, then infantry to capture).
    */
-  storm: { radius: 6, ratio: 1.5, minUnits: 3, gatherTurns: 2, strikeTurns: 3, cityOpp: 12, bunkerOpp: 30, readyShare: 0.6, strikeCaution: 0.2, gatherPenalty: 18, ringBonus: 6, order: { opener: 6, ranged: 4.5, heavy: 2.5 }, strikeBonus: 2, attackRelax: 4 },
+  storm: { radius: 6, maxTurns: 4, ratio: 1.5, minUnits: 3, gatherTurns: 3, strikeTurns: 3, cityOpp: 12, bunkerOpp: 30, readyShare: 0.6, strikeCaution: 0.2, gatherPenalty: 18, ringBonus: 6, order: { opener: 30, ranged: 20, heavy: 10 }, strikeBonus: 2, attackRelax: 4 },
   /**
    * Ablenkung: eine kleine schnelle Gruppe nimmt eine entlegene, schwach verteidigte Stadt oder Siedlung (mindestens
    * remote Felder von der Hauptfront), waehrend die Hauptmacht dort sichtbar angreift.
