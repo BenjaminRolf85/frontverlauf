@@ -1,6 +1,7 @@
 /** Zweisprachigkeit: alle sichtbaren Texte stehen in de.json / en.json. Bilingual: all visible texts live in the JSON files. */
 import de from './de.json';
 import en from './en.json';
+import { BALANCE_VARS } from './balanceVars';
 
 export type Lang = 'de' | 'en';
 type Dict = Record<string, unknown>;
@@ -51,12 +52,15 @@ function lookup(d: Dict, key: string): unknown {
   return cur;
 }
 
-/** Text holen und Platzhalter {name} ersetzen / get text and replace {name} placeholders */
+/**
+ * Text holen und Platzhalter {name} ersetzen; fehlt ein Name in vars, gilt die Zahl aus balance.ts (BALANCE_VARS).
+ * Get text and replace {name} placeholders; a name missing from vars falls back to the number from balance.ts (BALANCE_VARS).
+ */
 export function t(key: string, vars: Record<string, string | number> = {}): string {
   let v = lookup(dicts[lang], key);
   if (v === undefined) v = lookup(dicts.de, key);
   if (typeof v !== 'string') return key;
-  return v.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+  return v.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : Object.hasOwn(BALANCE_VARS, k) ? num(BALANCE_VARS[k]) : `{${k}}`));
 }
 
 export function tList(key: string): string[] {
