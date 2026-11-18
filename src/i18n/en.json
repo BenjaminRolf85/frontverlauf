@@ -172,7 +172,7 @@
       "perk2": "Engineer corps",
       "perk2Desc": "Tank barriers cost {engineerBarrierCost} instead of {barrierCost} stars.",
       "feature": "Lab in the field",
-      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss}% misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
+      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss} % misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -213,14 +213,14 @@
       "short": "NEXUS",
       "alignment": "machine",
       "perk": "Hive computing",
-      "perkDesc": "No research tree: units need compute. Each data center backed by its own power plant gives 1 compute.",
+      "perkDesc": "No research tree: units need compute. Each data centre backed by its own power plant gives 1 compute.",
       "discount": "no discount",
       "home": "ore highlands",
       "leader": "KERN-0",
       "leaderTitle": "Prime Instance of the Collective",
       "quote": "Calculation complete. Result: your defeat.",
-      "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data center with a power plant makes the collective smarter and its machines deadlier.",
-      "style": "robots, data centers, cyan light",
+      "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data centre with a power plant makes the collective smarter and its machines deadlier.",
+      "style": "robots, data centres, cyan light",
       "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly.",
       "perk2": "Sensor net",
       "perk2Desc": "All units see {sensorNetVision} tile further.",
@@ -288,7 +288,7 @@
     "kamikazeDrone": "Kamikaze walker drone"
   },
   "unitDesc": {
-    "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
+    "infantry": "Cheap backbone of every army: holds cities and outposts.",
     "sniper": "Fires from {sniperRange} tiles away and picks off foot troops, but barely scratches armour. Fragile itself.",
     "jeep": "Fast scout, drives {jeepMove} tiles: hit and run.",
     "pioneer": "Sturdy defender that builds tank barriers.",
@@ -353,7 +353,7 @@
     "escapeDesc": "May still move after attacking if it has not moved before.",
     "persist": "Follow-up",
     "persistDesc": "May attack again immediately after each destroyed enemy.",
-    "fortify": "Dig in",
+    "fortify": "Garrison",
     "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers, pioneers, Light Wardens and railgun marksmen receive the outpost bonus.",
     "heal": "Heal",
     "healDesc": "Restores {medicHeal} HP to all adjacent own units.",
@@ -470,8 +470,8 @@
     "xenoHive": "Brood hive",
     "xenoHarvester": "Xeno harvester",
     "shrine": "Shrine",
-    "dataCenter": "Data center",
-    "powerPlant": "Fusion plant",
+    "dataCenter": "Data centre",
+    "powerPlant": "Power plant",
     "kolkhoz": "Kolkhoz",
     "mercenaryBarracks": "Mercenary barracks",
     "embassyPalace": "Cathedral of Light",
@@ -514,7 +514,7 @@
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "+{slots} slots for the horde, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
-    "powerPlant": "1 population, powers one data center, NEXUS only",
+    "powerPlant": "1 population, powers one data centre, NEXUS only",
     "kolkhoz": "1 population, plus +{kolkhozPop} population for the city in every round divisible by {kolkhozInterval}, one per city, Korvat only",
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
     "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction with a sinful deed (at most {maxSinners}). One per faction, Alvenia only",
@@ -775,7 +775,7 @@
     "notTerraformed": "Terraform the city tile first.",
     "wrongFaction": "Your faction cannot do that.",
     "notPreacher": "This unit cannot recruit.",
-    "computeMissing": "Not enough compute. Build data centers and power plants.",
+    "computeMissing": "Not enough compute. Build data centres and power plants.",
     "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
     "cityLevel": "The city needs a higher level.",
     "mineLimit": "At most {n} mines per faction.",
@@ -1088,7 +1088,7 @@
       "work": "Let the scientist work on the mothership for {n} rounds, by round {rounds}",
       "workPanel": "Let the scientist work on the mothership for {n} rounds ({have}/{n})",
       "scientist": "The scientist must not fall",
-      "scientistHp": "The scientist never drops below {share}% of his HP",
+      "scientistHp": "The scientist never drops below {share} % of his HP",
       "plans": "Seize the war plans from the Fanatic temple and bring them to your HQ by round {rounds}",
       "plansKept": "The carrier never loses the war plans",
       "plansTemple": "War plans: in the temple",
@@ -2723,9 +2723,9 @@
   "nexus": {
     "compute": "Compute",
     "computeNeed": "Needs {n} compute",
-    "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
-    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)",
-    "computeStateDepot": "Compute {have} ({dc} data centers, {pp} power plants, {dn} depot nodes)"
+    "noResearch": "NEXUS does not research. Build data centres and power plants for more compute.",
+    "computeState": "Compute {have} ({dc} data centres, {pp} power plants)",
+    "computeStateDepot": "Compute {have} ({dc} data centres, {pp} power plants, {dn} depot nodes)"
   },
   "hazards": {
     "title": "Map features",
@@ -2771,7 +2771,7 @@
     "perk2": "Second bonus",
     "unit": "Signature unit",
     "discount": "Discount",
-    "discountValue": "{unit} −{pct}%",
+    "discountValue": "{unit} −{pct} %",
     "building": "Own building",
     "resource": "Resource building",
     "leader": "Leader",
@@ -3353,12 +3353,12 @@
     "worn": "damaged: less accurate",
     "hintLuck": "Hit luck: the result ranges from a miss to a critical hit.",
     "unit": {
-      "teslaTank": "Tesla: high damage, {miss}% miss",
-      "railSniper": "Railgun: precise, {miss}% miss"
+      "teslaTank": "Tesla: high damage, {miss} % miss",
+      "railSniper": "Railgun: precise, {miss} % miss"
     },
     "unitDesc": {
-      "teslaTank": "Own hit odds: often misses ({miss}%), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit}%).",
-      "railSniper": "Own hit odds: machine precision, only {miss}% misses and {crit}% critical hits."
+      "teslaTank": "Own hit odds: often misses ({miss} %), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit} %).",
+      "railSniper": "Own hit odds: machine precision, only {miss} % misses and {crit} % critical hits."
     },
     "unitRule": "Own hit odds of single units:",
     "factionCrit": {
@@ -3536,7 +3536,7 @@
     },
     "cover": {
       "title": "Cover",
-      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+      "text": "Units with “Garrison” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
     },
     "abilities": {
       "title": "Abilities (retreat, repair, rockets)",
@@ -3565,7 +3565,7 @@
     },
     "cult": {
       "title": "Cult: plunder & horde",
-      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half}% the second time, {quarter}% after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round and {titheRival} per rival faction), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
+      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half} % the second time, {quarter} % after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and doom crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round and {titheRival} per rival faction), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
     },
     "judgement": {
       "title": "Sin and Judgement",
@@ -3577,7 +3577,7 @@
     },
     "ships": {
       "title": "Ships and shipyard",
-      "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price: humans need {base} or {dock} in the city, the cult and NEXUS the matching research. The cult and NEXUS need {tech} for boats as for embarking; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
+      "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The landing boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price: humans need {base} or {dock} in the city, the cult and NEXUS the matching research. The cult and NEXUS need {tech} for boats as for embarking; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
     },
     "doctrines": {
       "title": "Doctrines (humans)",
@@ -3774,7 +3774,7 @@
         "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production sites, doctrines and upgrades. You start with {start} stars."
       },
       "cover": {
-        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+        "text": "Units with “Garrison” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
       },
       "cities": {
         "title": "Cities & production",
@@ -3784,7 +3784,7 @@
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
       },
       "ships": {
-        "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price and need {base} or {dock} in the city. The cult and NEXUS need {tech} for boats; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
+        "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The landing boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price and need {base} or {dock} in the city. The cult and NEXUS need {tech} for boats; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
       }
     },
     "orbital": {
@@ -3983,7 +3983,7 @@
     "tag": "Entrenched",
     "tagDesc": "Has not moved for a whole turn: attacks on it miss {pct} percentage points more often. Lost with the next move.",
     "hint": "Target entrenched: +{pct} % miss chance",
-    "desc": "Korvat ground units that do not move for a whole own turn dig in: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
+    "desc": "Korvat ground units that do not move for a whole own turn entrench: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
   },
   "kamikaze": {
     "note": "Explodes: the drone is destroyed afterwards, no return fire",

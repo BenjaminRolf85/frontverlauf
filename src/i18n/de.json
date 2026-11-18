@@ -288,7 +288,7 @@
     "kamikazeDrone": "Kamikaze-Laufdrohne"
   },
   "unitDesc": {
-    "infantry": "Billiges Rückgrat jeder Armee: verschanzt sich in Städten und Außenposten.",
+    "infantry": "Billiges Rückgrat jeder Armee: hält Städte und Außenposten.",
     "sniper": "Schießt aus {sniperRange} Feldern Entfernung und schaltet Fußtruppen aus, kratzt Panzerung aber kaum an. Selbst zerbrechlich.",
     "jeep": "Schneller Aufklärer, fährt {jeepMove} Felder: zuschlagen und wieder abhauen.",
     "pioneer": "Zäher Verteidiger, der Panzersperren baut.",
@@ -341,7 +341,7 @@
     "lightWarden": "Ordensschützen mit Lichtvisier und langem Gewehr: Reichweite {wardenRange} und gute Verteidigung, aber schwach im Angriff. Schießen nur aus dem Stand: Wer in diesem Zug gezogen ist, kann nicht feuern.",
     "reliquary": "Schwer gepanzerter Schrein auf Ketten mit Buntglasfenstern und langem Lichtgeschütz: fährt {reliquaryMove} Felder, Reichweite {reliquaryRange}, sehr hohe Verteidigung, schießt nur aus dem Stand. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "sunLance": "Sonnenlanzen-Batterie: bündelt das Licht zu einem goldenen Strahl und trifft weiter als jede Artillerie. Kein Gegenschlag, ignoriert Außenposten, kaum Verteidigung.",
-    "steppeColossus": "Der schwerste Panzer der Volksliga: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
+    "steppeColossus": "Der schwerste Panzer des Volksbunds: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "cyborg": "Maschinensoldat mit Panzerplatten und Servo-Gliedern: robuster und schlagkräftiger als der Kampfandroide, dafür teurer. Ab dem ersten Zug verfügbar.",
     "flameTank": "Kettenfahrzeug mit Brennstofftanks und Flammenwerfer: Reichweite 1, die Flammen ignorieren jede Deckung (Wald, Stadt, Außenposten), besonders stark gegen Fußtruppen.",
     "kamikazeDrone": "Kleine Laufdrohne mit Sprengladung: läuft {droneMove} Felder pro Zug und explodiert beim Angriff. Das Ziel schlägt nicht zurück, die Drohne ist danach zerstört. Besonders verheerend gegen menschliche Fußtruppen und Zyrr."
@@ -353,7 +353,7 @@
     "escapeDesc": "Darf nach dem Angriff noch ziehen, wenn sie vorher nicht gezogen ist.",
     "persist": "Folgeangriff",
     "persistDesc": "Darf nach jedem vernichteten Gegner sofort erneut angreifen.",
-    "fortify": "Verschanzen",
+    "fortify": "Garnison",
     "fortifyDesc": "Erhält den Verteidigungsbonus in eigenen Städten. Den Außenposten-Bonus bekommen nur Infanterie, MG-Infanterie, Scharfschützen, Pioniere, Lichtschützen und Railgun-Schützen.",
     "heal": "Heilen",
     "healDesc": "Stellt bei allen angrenzenden eigenen Einheiten {medicHeal} LP wieder her.",
@@ -471,7 +471,7 @@
     "xenoHarvester": "Xeno-Ernter",
     "shrine": "Schrein",
     "dataCenter": "Rechenzentrum",
-    "powerPlant": "Fusionskraftwerk",
+    "powerPlant": "Kraftwerk",
     "kolkhoz": "Kolchose",
     "mercenaryBarracks": "Söldnerkaserne",
     "embassyPalace": "Lichtdom",
@@ -1137,7 +1137,7 @@
         "title": "Das Portal",
         "tagline": "Schlage die Garnison und halte das Dimensionsportal zwei Runden",
         "brief": [
-          "Kommandant, das müssen Sie sehen! Während wir mit Kult und NEXUS beschäftigt waren, haben die Zyrr aus Chitin und Licht ein Tor gebaut. Dahinter: ein violetter Himmel mit zwei Monden. Und aus dem Tor kommt Nachschub.",
+          "Kommandant, das musst du sehen! Während wir mit Kult und NEXUS beschäftigt waren, haben die Zyrr aus Chitin und Licht ein Tor gebaut. Dahinter: ein violetter Himmel mit zwei Monden. Und aus dem Tor kommt Nachschub.",
           "Kkt. Das Tor gehört dem Schwarm. Es führt nach Hause. Erdlinge, die hindurchschauen, sehen ihr Ende.",
           "{leader} hier. Die Erde ist sicher, jetzt holen wir uns das Tor. Wir schlagen die Wache und halten das Portal zwei Runden. Wer das Tor hat, bestimmt, wer hindurchgeht. Und das sind wir."
         ],
@@ -3536,7 +3536,7 @@
     },
     "cover": {
       "title": "Deckung",
-      "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Forschung verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+      "text": "Einheiten mit „Garnison“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Forschung verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
     },
     "abilities": {
       "title": "Fähigkeiten (Rückzug, Reparatur, Raketen)",
@@ -3565,7 +3565,7 @@
     },
     "cult": {
       "title": "Kult: Plündern & Horde",
-      "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute, beim zweiten Mal {half} %, danach {quarter} %. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde und {titheRival} je gegnerische Fraktion), jeder erbeutete Stern zählt {score} Punkte ({scoreDuel} im Zweikampf, mehr je mehr Gegner). Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
+      "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute, beim zweiten Mal {half} %, danach {quarter} %. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Weltenwalzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde und {titheRival} je gegnerische Fraktion), jeder erbeutete Stern zählt {score} Punkte ({scoreDuel} im Zweikampf, mehr je mehr Gegner). Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
     },
     "judgement": {
       "title": "Sünde und Strafgericht",
@@ -3577,7 +3577,7 @@
     },
     "ships": {
       "title": "Schiffe und Werft",
-      "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Transportboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis: Menschen brauchen in der Stadt {base} bzw. {dock}, Kult und NEXUS die passende Forschung. Kult und NEXUS brauchen {tech} für Boote wie fürs Einschiffen; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
+      "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Landungsboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis: Menschen brauchen in der Stadt {base} bzw. {dock}, Kult und NEXUS die passende Forschung. Kult und NEXUS brauchen {tech} für Boote wie fürs Einschiffen; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
     },
     "doctrines": {
       "title": "Doktrinen (Menschen)",
@@ -3774,7 +3774,7 @@
         "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Produktionsstätten, Doktrinen und Ausbauten. Du startest mit {start} Sternen."
       },
       "cover": {
-        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Doktrin verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+        "text": "Einheiten mit „Garnison“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Doktrin verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
       },
       "cities": {
         "title": "Städte & Produktion",
@@ -3784,7 +3784,7 @@
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
       },
       "ships": {
-        "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Transportboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis und brauchen in der Stadt {base} bzw. {dock}. Kult und NEXUS brauchen {tech} für Boote; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
+        "text": "Jede Stadt mit Wasser im Gebiet oder direkt am Stadtfeld kauft unter „Truppen“ Schiffe; sie erscheinen leer auf einem freien Wasserfeld an der Stadt (Flachwasser zuerst, Ozean nur mit Tauchen). Das Landungsboot kostet {boat} Sterne und braucht keinen Stützpunkt: Eine Landeinheit zieht von einem Nachbarfeld darauf, steigt ein und wird übergesetzt. Ein leeres Schiff hat Rumpf-LP ({hull} beim Boot) und kann nicht anlanden; das leere Boot greift nicht an. Kriegsschiffe kosten ihren Aufrüstpreis und brauchen in der Stadt {base} bzw. {dock}. Kult und NEXUS brauchen {tech} für Boote; die Zyrr waten und haben keine Schiffe. Weiterhin gilt: Am eigenen {base} wird eine Landeinheit kostenlos zum Landungsboot, Schiffe rüsten im eigenen Gebiet auf, und wer an Land zieht, wird wieder die getragene Einheit."
       }
     },
     "orbital": {
@@ -4012,6 +4012,6 @@
   "aiOps": {
     "storm": "{name} stürmt {city}!",
     "diversion": "Flankenangriff! {name} rückt auf {city} vor.",
-    "encircle": "Einkreisung! {name} umzingelt eine eurer Einheiten ({unit})."
+    "encircle": "Einkreisung! {name} umzingelt eine deiner Einheiten ({unit})."
   }
 }
