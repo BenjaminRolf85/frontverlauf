@@ -771,12 +771,12 @@ export class Hud {
         body += lootTag(s, viewer, city);
         if (isRobotFaction(s, city.owner)) {
           const cs = computeStats(s, city.owner);
-          body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</p>`;
+          body += `<p class="muted icon-line">${icon('lightning', 'icon-sm')}<span>${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</span></p>`;
         }
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
         // Handy: Hinweis auf gesperrte Ausbauten unter "mehr" / phone: note on locked upgrades under "more"
-        if (this.cityNote) body += `<p class="muted sheet-more">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
+        if (this.cityNote) body += `<p class="muted sheet-more icon-line">${icon('research', 'icon-sm')}<span>${esc(this.cityNote)}</span></p>`;
       }
     } else if (explored && tile.feature === 'mothership') {
       // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress

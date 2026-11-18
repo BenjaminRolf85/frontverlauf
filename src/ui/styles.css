@@ -139,6 +139,9 @@ h1, h2, h3, .display {
 .row { display: flex; align-items: center; gap: var(--p-space-2); flex-wrap: wrap; }
 .col { display: flex; flex-direction: column; gap: var(--p-space-2); }
 .grow { flex: 1; }
+/* Absatz mit Symbol davor: Symbol neben statt ueber dem Text / paragraph with a leading icon: icon beside, not above the text */
+.icon-line { display: flex; align-items: flex-start; gap: var(--p-space-1); }
+.icon-line > .icon-sm { margin-top: var(--p-space-half); }
 
 /* ---------- Statusleiste / top bar ---------- */
 .top-bar {
