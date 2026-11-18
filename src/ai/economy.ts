@@ -8,7 +8,7 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, nextCorruption,
 } from '../core';
 import {
   AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -938,7 +938,12 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
   buys.sort((a, b) => b.value / Math.max(1, b.cost) - a.value / Math.max(1, a.cost) || (cmdKey(a.cmd) < cmdKey(b.cmd) ? -1 : 1));
   // Reichtum senkt die Schwelle / wealth lowers the threshold
-  const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars));
+  // Korruption zu Beginn des naechsten eigenen Zuges (Meridon, CORRUPTION): nicht ansparen und die Schwelle senken, damit die
+  // Sterne vorher ausgegeben werden / corruption at the start of the next own turn (Meridon, CORRUPTION): no saving and a lower
+  // threshold, so the stars are spent beforehand
+  const graft = nextCorruption(s, f);
+  const spendNow = graft !== null && graft.turns === 1 && graft.stars > 0;
+  const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars)) * (spendNow ? AI.corruptionRatio : 1);
   // Meridon mit Monopol und vollem Speicher: nur noch Dringendes kaufen / Meridon with the monopoly and a full treasury: only urgent buys
   const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= meridonNeed(s) * WONDERS.aiMeridonHoardShare;
   for (const b of buys) {
@@ -948,7 +953,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (ratio < minRatio) break;
     if (b.cost <= stars) return b.cmd;
     // sparen fuer Lohnendes / save for something worthwhile
-    if (prof.saving && b.save && !finalRound && ratio >= 1 && b.cost <= stars + inc * (b.horizon ?? 1.5)) return null;
+    if (prof.saving && b.save && !finalRound && !spendNow && ratio >= 1 && b.cost <= stars + inc * (b.horizon ?? 1.5)) return null;
   }
   return null;
 }
