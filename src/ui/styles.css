@@ -556,13 +556,13 @@ input[type="text"], select {
 /* ---------- Fraktionsmerkmale / faction traits ---------- */
 .trait-list { list-style: none; margin: var(--p-space-1) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--p-space-1); }
 .trait {
-  display: inline-flex; align-items: flex-start; gap: var(--p-space-1); max-width: 100%;
+  display: inline-flex; align-items: flex-start; gap: var(--p-space-1); max-width: 100%; min-width: 0;
   padding: var(--p-space-1) var(--p-space-2); border-radius: var(--p-radius-sm);
   border: var(--p-border-width-thin) solid var(--s-outline); border-left: var(--p-border-width-thick) solid var(--trait-accent, var(--s-accent));
   background: var(--s-surface-sunken); font-size: var(--p-font-size-sm); line-height: 1.3;
 }
 .trait .icon { flex: none; margin-top: 0.1em; color: var(--s-text); }
-.trait-text { display: flex; flex-wrap: wrap; column-gap: var(--p-space-1); min-width: 0; }
+.trait-text { display: flex; flex-wrap: wrap; column-gap: var(--p-space-1); min-width: 0; overflow-wrap: anywhere; hyphens: auto; }
 .trait-label { color: var(--s-text-muted); }
 .trait-desc { flex-basis: 100%; color: var(--s-text-muted); }
 .faction-details .trait-list { flex-direction: column; align-items: stretch; }
@@ -775,7 +775,8 @@ input[type="text"], select {
 .adv-toggle .label { font-family: var(--p-font-display); font-size: var(--p-font-size-lg); letter-spacing: var(--p-letter-spacing-display); }
 .adv-summary { font-size: var(--p-font-size-xs); }
 .adv-body { display: flex; flex-direction: column; gap: var(--p-space-4); padding-top: var(--p-space-2); }
-.trait-list.compact { flex-wrap: nowrap; overflow: hidden; max-width: 100%; }
+/* kompakte Merkmale brechen um statt abgeschnitten zu werden / compact traits wrap instead of being cut off */
+.trait-list.compact { flex-wrap: wrap; max-width: 100%; }
 .player-row.slot { grid-template-columns: minmax(0, 1fr); }
 .slot-pick, .slot-pick .col { min-width: 0; }
 /* Kompakte Merkmale als eigene, volle Zeile unter Portraet und Name / compact traits as their own full row below portrait and name */
@@ -786,7 +787,7 @@ input[type="text"], select {
   .slot-pick .slot-cta { order: 4; }
 }
 .trait-list.compact .trait { min-width: 0; flex: 0 1 auto; }
-.trait-list.compact .trait-text { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.trait-list.compact .trait-text { display: block; min-width: 0; }
 /* ---------- Einsatzplanung mit Fraktionskarten / game setup with faction cards ---------- */
 /* breitere Form fuer das Gegnerraster / wider form for the opponent grid */
 .form.setup-form { width: min(100%, var(--c-setup-width)); }
