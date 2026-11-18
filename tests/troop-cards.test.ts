@@ -104,4 +104,22 @@ describe('Truppenkarten / troop cards', () => {
     expect(ships.map((x) => x.type).sort()).toEqual([...rosterShips(s, 0)].sort());
     expect(troopsHtml(ships, 'korvat', t('troops.ships', { city: 'X' }))).toContain(t('troops.ships', { city: 'X' }));
   });
+
+  // schmale Karte: ohne Reichweite ein Strich statt des Worts (vorgelesen wird das Wort), keine offenen Platzhalter
+  // narrow card: without range a dash instead of the word (screen readers get the word), no open placeholders
+  it('shows a dash for no range and leaves no placeholder open, in DE and EN', () => {
+    for (const lang of ['de', 'en'] as const) {
+      setLanguage(lang);
+      const { s, c } = coastal();
+      const cards = troopCards(s, c, noop);
+      const html = troopsHtml(cards, 'korvat');
+      expect(html).not.toMatch(/\{\w+\}/);
+      const boat = html.split('<div role="listitem"').find((x) => x.includes('data-act="train-landingBoat"'))!;
+      const visible = boat.replace(/<span class="sr-only">[^<]*<\/span>/g, '').replace(/<[^>]+>/g, ' ');
+      expect(visible).not.toContain(` ${t('stats.noRange')} `);
+      expect(boat).toContain('&ndash;');
+      expect(boat).toContain(`${t('stats.range')} ${t('stats.noRange')}`);
+    }
+    setLanguage('en');
+  });
 });
