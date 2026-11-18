@@ -4,7 +4,7 @@
  * Screens and dialogs.
  */
 import {
-  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, PLAYER_LIMITS, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH, VERDAN,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH, VERDAN,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
@@ -31,6 +31,10 @@ import { factionIdOf, techIcon, techT } from './terms';
 import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
 import { doctrineText } from './production';
+import {
+  MAX_OPPONENTS, addOpponent, addRandomOpponent, availableFactions, canAddOpponent, canStart, initialPlayers, missingOpponents, opponentCount,
+  removeOpponent, setDifficulty, setFaction, setHuman, type SetupPlayer,
+} from './setupPlayers';
 
 export interface ScreenHost {
   root: HTMLElement;
@@ -155,6 +159,14 @@ export function tutorialPrompt(host: ScreenHost, toSetup: () => void) {
 }
 
 // ---------- Partie einrichten / game setup ----------
+/**
+ * Einsatzplanung mit Fraktionskarten: Es startet nur die eigene Fraktion (Mensch, zuletzt gewaehlt, sonst Korvat).
+ * Gegner kommen ueber die Hinzufuegen-Karte (Auswahl freier Fraktionskarten) oder als Zufallsgegner dazu; jede Gegnerkarte
+ * hat Entfernen, Mensch/KI (Hotseat), Schwierigkeit, Tauschen (Antippen) und Details. Gestartet wird ab PLAYER_LIMITS.min.
+ * Game setup with faction cards: only the own faction starts (human, last chosen, otherwise Korvat). Opponents are added
+ * via the add card (picker of free faction cards) or as a random opponent; each opponent card has remove, human/AI
+ * (hotseat), difficulty, swap (tap) and details. The game can start from PLAYER_LIMITS.min.
+ */
 export function setupScreen(host: ScreenHost): HTMLElement {
   const n = document.createElement('div');
   n.className = 'screen';
@@ -168,13 +180,9 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     hazards: 'normal' as HazardLevel,
     mode: 'points' as GameMode, size: 14 as MapSize, mapType: 'continents' as MapType, startStars: START.stars,
     seed: String(Math.floor(Math.random() * 1e6)),
-    players: [
-      { id: 'korvat' as FactionId, human: true, difficulty: 'normal' as Difficulty },
-      { id: 'dravon' as FactionId, human: false, difficulty: 'normal' as Difficulty },
-      { id: 'alvenia' as FactionId, human: false, difficulty: 'normal' as Difficulty },
-      { id: 'meridon' as FactionId, human: false, difficulty: 'normal' as Difficulty },
-    ],
+    players: initialPlayers(host.settings.lastFaction),
   };
+  const fname = (f: FactionId) => t(`factions.${f}.name`);
   // Kurzfassung der erweiterten Optionen (eingeklappt) / summary of the advanced options (collapsed)
   const onOff = (v: boolean) => t(v ? 'settings.on' : 'settings.off');
   const advancedSummary = () => [
@@ -182,11 +190,57 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     `${t('hit.title')}: ${onOff(cfg.hitChance)}`, `${t('victory.setupTitle')}: ${onOff(cfg.factionVictory)}`,
     ...(cfg.mode === 'sandbox' ? [`${t('setup.startStars')}: ${cfg.startStars}`] : []), `${t('setup.seed')}: ${cfg.seed}`,
   ].join(' · ');
+  // eigene Fraktion: grosse Karte, Antippen wechselt die Fraktion / own faction: large card, tapping changes the faction
+  const ownCard = () => {
+    const p = cfg.players[0];
+    return `<div class="player-row slot own-card" style="--setup-accent:var(--faction-${p.id}-primary)">
+      <div class="slot-head"><span class="tag">${icon('people', 'icon-sm')}${esc(t('setup.human'))}</span>${detailsLink(p.id)}</div>
+      <button type="button" class="slot-pick" data-action="pick-0" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(fname(p.id))}">
+        ${leaderPortrait(p.id, 'md')}
+        <span class="col grow"><strong class="slot-faction">${esc(fname(p.id))}</strong>
+          <span class="slot-leader">${esc(t(`factions.${p.id}.leaderTitle`))} <strong>${esc(t(`factions.${p.id}.leader`))}</strong>${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span></span>
+        <span class="slot-traits">${traitChips(p.id, { compact: true })}</span>
+        <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
+      </button>
+    </div>`;
+  };
+  // kompakte Gegnerkarte / compact opponent card
+  const opponentCard = (p: SetupPlayer, i: number) => `
+    <article class="opp-card" role="listitem" style="--setup-accent:var(--faction-${p.id}-primary)" aria-label="${esc(fname(p.id))}">
+      <div class="opp-top">
+        <button type="button" class="opp-pick" data-action="pick-${i}" aria-label="${esc(t('setup.swapFor', { name: fname(p.id) }))}">
+          ${leaderPortrait(p.id, 'sm')}
+          <span class="col grow"><strong class="opp-name">${esc(fname(p.id))}</strong>
+            <span class="opp-leader">${esc(t(`factions.${p.id}.leader`))}${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span>
+            <span class="opp-swap">${icon('next', 'icon-sm')}${esc(t('setup.swap'))}</span></span>
+        </button>
+        ${iconButton('trash', t('setup.removeOpponent', { name: fname(p.id) }), `remove-${i}`)}
+      </div>
+      ${traitChips(p.id, { compact: true })}
+      ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
+      ${!p.human ? `<div class="opp-diff" aria-label="${esc(t('setup.difficulty'))}">${segmented(`diff-${i}`, (['easy', 'normal', 'hard', 'extreme'] as Difficulty[]).map((d) => ({ value: d, label: t(`difficulty.${d}`) })), p.difficulty)}</div>` : ''}
+      ${detailsLink(p.id)}
+    </article>`;
+  // Hinzufuegen-Karte oder Hinweis auf die Hoechstzahl / add card or a note on the maximum
+  const addCard = () => canAddOpponent(cfg.players)
+    ? `<div class="opp-add" role="listitem">
+        <button type="button" class="opp-add-main" data-action="add">
+          <span class="opp-add-icon">${icon('plus')}</span><strong>${esc(t('setup.addPlayer'))}</strong><span class="muted">${esc(t('setup.addFactionHint'))}</span></button>
+        ${button(t('setup.addRandom'), { icon: 'dice', action: 'add-random', variant: 'secondary', block: true })}
+      </div>`
+    : `<div class="opp-max muted" role="listitem">${icon('info', 'icon-sm')}<span>${esc(t('setup.maxReached', { max: MAX_OPPONENTS }))}</span></div>`;
   const render = () => {
     const sandbox = cfg.mode === 'sandbox';
+    const ready = canStart(cfg.players);
+    const missing = missingOpponents(cfg.players);
     n.innerHTML = `
-      <div class="panel form">
+      <div class="panel form setup-form">
         <div class="panel-title"><h2 class="display">${esc(t('setup.title'))}</h2>${iconButton('close', t('menu.back'), 'back')}</div>
+        <div class="field"><span class="label">${esc(t('setup.yourFaction'))}</span>${ownCard()}</div>
+        <div class="field"><span class="label" id="setup-opponents">${esc(t('setup.opponentCount', { n: opponentCount(cfg.players), max: MAX_OPPONENTS }))}</span>
+          <span class="muted">${esc(t('setup.hotseatHint'))}</span>
+          <div class="opp-grid" role="list" aria-labelledby="setup-opponents">${cfg.players.slice(1).map((p, j) => opponentCard(p, j + 1)).join('')}${addCard()}</div>
+        </div>
         <div class="field"><span class="label">${esc(t('setup.mode'))}</span>
           ${segmented('mode', (['points', 'conquest', 'endless', 'sandbox'] as GameMode[]).map((m) => ({ value: m, label: t(`modes.${m}`) })), cfg.mode)}
           <span class="muted">${esc(t(`modes.${cfg.mode}Desc`, { rounds: MODES.pointsRounds }))}</span></div>
@@ -194,24 +248,6 @@ export function setupScreen(host: ScreenHost): HTMLElement {
           ${segmented('size', MAP_SIZES.map((sz) => ({ value: String(sz), label: t('setup.tiles', { n: sz }) })), String(cfg.size))}</div>
         <div class="field"><span class="label">${esc(t('setup.mapType'))}</span>
           ${segmented('mapType', (Object.keys(MAP_TYPES) as MapType[]).map((m) => ({ value: m, label: t(`mapTypes.${m}`) })), cfg.mapType)}</div>
-        <div class="field"><span class="label">${esc(t('setup.players'))} (${cfg.players.length})</span>
-          <span class="muted">${esc(t('setup.hotseatHint'))}</span>
-          ${cfg.players.map((p, i) => `
-            <div class="player-row slot">
-              <div class="slot-head"><span class="slot-no display">${esc(t('setup.slot', { n: i + 1 }))}</span>
-                <span class="row">${detailsLink(p.id)}${cfg.players.length > PLAYER_LIMITS.min ? iconButton('minus', t('setup.removePlayer'), `remove-${i}`) : ''}</span></div>
-              <button type="button" class="slot-pick" data-action="pick-${i}" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(t(`factions.${p.id}.name`))}">
-                ${leaderPortrait(p.id, 'md')}
-                <span class="col grow"><strong class="slot-faction">${esc(t(`factions.${p.id}.name`))}</strong>
-                  <span class="slot-leader">${esc(t(`factions.${p.id}.leaderTitle`))} <strong>${esc(t(`factions.${p.id}.leader`))}</strong>${ROSTERS[p.id] ? ` <span class="tag">${esc(t('setup.special'))}</span>` : ''}</span></span>
-                <span class="slot-traits">${traitChips(p.id, { compact: true })}</span>
-                <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
-              </button>
-              ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
-              ${!p.human ? segmented(`diff-${i}`, (['easy', 'normal', 'hard', 'extreme'] as Difficulty[]).map((d) => ({ value: d, label: t(`difficulty.${d}`) })), p.difficulty) : ''}
-            </div>`).join('')}
-          ${cfg.players.length < PLAYER_LIMITS.max ? button(t('setup.addPlayer'), { icon: 'plus', action: 'add', variant: 'secondary' }) : ''}
-        </div>
         <div class="field advanced ${cfg.advanced ? 'open' : ''}">
           <button type="button" class="adv-toggle" data-action="advanced" aria-expanded="${cfg.advanced}" aria-controls="setup-advanced">
             <span class="label">${esc(t('setup.advanced'))}</span>${icon(cfg.advanced ? 'chevronUp' : 'chevronDown', 'icon-sm')}</button>
@@ -231,57 +267,77 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               <span class="muted">${esc(t('hit.setupHint'))}</span></div>
             <div class="field"><span class="label">${esc(t('victory.setupTitle'))}</span>
               ${segmented('factionVictory', [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], cfg.factionVictory ? 'on' : 'off')}
-              <span class="muted">${esc(techT('victory.setupHint', cfg.players.find((x) => x.human)?.id))}</span></div>
+              <span class="muted">${esc(techT('victory.setupHint', cfg.players[0].id))}</span></div>
             ${sandbox ? `<div class="field"><span class="label">${esc(t('setup.startStars'))}</span>
               ${segmented('stars', SANDBOX.startStarsOptions.map((v) => ({ value: String(v), label: String(v) })), String(cfg.startStars))}</div>` : ''}
             <div class="field"><label for="seed">${esc(t('setup.seed'))}</label>
               <div class="row"><input id="seed" type="text" value="${esc(cfg.seed)}" class="grow" inputmode="numeric">${button(t('setup.randomSeed'), { action: 'seed', variant: 'secondary' })}</div></div>
           </div>
         </div>
-        ${button(t('setup.start'), { icon: 'play', action: 'start', block: true })}
+        ${ready ? '' : `<p class="setup-hint" role="status" id="setup-start-hint">${icon('warning', 'icon-sm')}<span>${esc(missing === 1 ? t('setup.needOpponent') : t('setup.needOpponents', { n: missing }))}</span></p>`}
+        ${button(t('setup.start'), { icon: 'play', action: 'start', block: true, disabled: !ready })}
       </div>`;
+    if (!ready) n.querySelector('[data-action="start"]')?.setAttribute('aria-describedby', 'setup-start-hint');
   };
-  // Fraktionsauswahl fuer einen Slot / faction picker for a slot
-  const pickFaction = (slot: number) => {
-    const html = `${dialogTitle(t('setup.chooseTitle', { n: slot + 1 }))}
-      <p class="muted">${esc(t('setup.swapHint'))}</p>
-      <div class="faction-grid">${FACTION_IDS.map((f) => {
-        const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
-        const current = cfg.players[slot].id === f;
-        return `<div class="faction-card" ${current ? 'aria-current="true"' : ''}>
+  // nach dem Neuaufbau den Fokus auf ein sinnvolles Element setzen / after re-rendering, move focus to a sensible element
+  const focusFirst = (...selectors: string[]) => {
+    for (const s of selectors) { const el = n.querySelector<HTMLElement>(s); if (el) { el.focus({ preventScroll: true }); return; } }
+  };
+  /**
+   * Fraktionskarten-Auswahl: 'add' zeigt nur freie Fraktionen (Antippen fuegt einen KI-Gegner hinzu), eine Zahl wechselt
+   * die Fraktion dieses Platzes (0 = eigene Fraktion); eine belegte Fraktion wird getauscht.
+   * Faction card picker: 'add' shows only free factions (tapping adds an AI opponent), a number changes that slot's
+   * faction (0 = own faction); a taken faction is swapped.
+   */
+  const openPicker = (target: 'add' | number) => {
+    const add = target === 'add';
+    const slot = add ? -1 : target;
+    const list = add ? availableFactions(cfg.players) : FACTION_IDS;
+    const title = add ? t('setup.addTitle') : slot === 0 ? t('setup.ownTitle') : t('setup.swapTitle');
+    const hint = add ? t('setup.addPickHint') : slot === 0 ? t('setup.ownPickHint') : t('setup.swapPickHint');
+    const html = `${dialogTitle(title)}
+      <div class="pick-intro"><p class="muted">${esc(hint)}</p>
+        ${add ? `<button type="button" class="btn secondary" data-pick="random">${icon('dice')}<span>${esc(t('setup.addRandom'))}</span></button>` : ''}</div>
+      <div class="pick-grid">${list.map((f) => {
+        const at = cfg.players.findIndex((p) => p.id === f);
+        const current = !add && at === slot;
+        const tag = current ? t('setup.current') : at === 0 ? t('setup.yours') : at > 0 ? t('setup.inGame') : '';
+        return `<div class="pick-card" ${current ? 'aria-current="true"' : ''} style="--setup-accent:var(--faction-${f}-primary)">
           <button type="button" class="faction-pick" data-pick="${f}" aria-pressed="${current}">
             ${leaderPortrait(f, 'md')}
-            <span class="col grow"><strong>${esc(t(`factions.${f}.name`))}</strong>
-              <span>${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
+            <span class="col grow"><strong class="pick-name">${esc(fname(f))}</strong>
+              <span class="pick-leader">${esc(t(`factions.${f}.leaderTitle`))} <strong>${esc(t(`factions.${f}.leader`))}</strong></span>
               <q class="leader-quote">${esc(t(`factions.${f}.quote`))}</q>
-              ${traitChips(f)}
-              <span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}
-                ${current ? `<span class="tag">${esc(t('setup.current'))}</span>` : other >= 0 ? `<span class="tag warn">${esc(t('setup.takenBy', { n: other + 1 }))}</span>` : ''}</span></span>
+              ${ROSTERS[f] || tag ? `<span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}${tag ? `<span class="tag ${current ? '' : 'warn'}">${esc(tag)}</span>` : ''}</span>` : ''}</span>
+            <span class="pick-traits">${traitChips(f, { compact: true })}</span>
           </button>
           ${detailsLink(f)}
         </div>`;
       }).join('')}</div>`;
-    const d = openDialog(n, html, { wide: true });
+    // an der UI-Wurzel statt im scrollbaren Bildschirm, sonst laege der Dialog nach dem Scrollen ausserhalb der Sicht
+    // at the UI root instead of inside the scrollable screen, otherwise the dialog would be out of view after scrolling
+    const d = openDialog(host.root, html, { wide: true });
     d.node.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).closest('[data-action="close"]')) { d.close(); return; }
-      // Details oeffnet der Klick-Handler des Einrichtungsbildschirms (der Dialog liegt darin) / details are opened by the setup screen's handler (the dialog lives inside it)
-      if ((e.target as HTMLElement).closest('[data-details]')) return;
+      const det = (e.target as HTMLElement).closest<HTMLElement>('[data-details]');
+      if (det) { factionDialog(host.root, det.dataset.details as FactionId); return; }
       const card = (e.target as HTMLElement).closest<HTMLElement>('[data-pick]');
       if (!card) return;
-      const f = card.dataset.pick as FactionId;
-      const other = cfg.players.findIndex((p, j) => p.id === f && j !== slot);
-      // belegte Fraktion tauschen / swap a taken faction
-      if (other >= 0) cfg.players[other].id = cfg.players[slot].id;
-      cfg.players[slot].id = f;
+      const f = card.dataset.pick!;
+      if (f === 'random') cfg.players = addRandomOpponent(cfg.players);
+      else if (add) cfg.players = addOpponent(cfg.players, f as FactionId);
+      else cfg.players = setFaction(cfg.players, slot, f as FactionId);
       d.close();
       render();
+      if (add) focusFirst('[data-action="add"]', '[data-action="start"]:not([disabled])');
+      else focusFirst(`[data-action="pick-${slot}"]`);
     });
   };
   render();
   n.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     const det = target.closest<HTMLElement>('[data-details]');
-    if (det) { factionDialog(n, det.dataset.details as FactionId); return; }
+    if (det) { factionDialog(host.root, det.dataset.details as FactionId); return; }
     const seg = target.closest<HTMLElement>('[data-seg]');
     if (seg) {
       const key = seg.dataset.seg!, v = seg.dataset.value!;
@@ -294,10 +350,12 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       else if (key === 'events') cfg.events = v === 'on';
       else if (key === 'hitChance') cfg.hitChance = v === 'on';
       else if (key === 'factionVictory') cfg.factionVictory = v === 'on';
-      else if (key.startsWith('human-')) cfg.players[Number(key.slice(6))].human = v === 'human';
-      else if (key.startsWith('diff-')) cfg.players[Number(key.slice(5))].difficulty = v as Difficulty;
+      else if (key.startsWith('human-')) cfg.players = setHuman(cfg.players, Number(key.slice(6)), v === 'human');
+      else if (key.startsWith('diff-')) cfg.players = setDifficulty(cfg.players, Number(key.slice(5)), v as Difficulty);
       cfg.seed = (n.querySelector<HTMLInputElement>('#seed')?.value ?? cfg.seed);
       render();
+      // Fokus auf dem gewaehlten Segment halten / keep focus on the chosen segment
+      focusFirst(`[data-seg="${key}"][data-value="${v}"]`);
       return;
     }
     const b = target.closest<HTMLElement>('[data-action]');
@@ -307,14 +365,15 @@ export function setupScreen(host: ScreenHost): HTMLElement {
     if (a === 'back') { n.remove(); host.showMenu(); }
     else if (a === 'advanced') { cfg.advanced = !cfg.advanced; render(); n.querySelector<HTMLElement>('[data-action="advanced"]')?.focus(); }
     else if (a === 'seed') { cfg.seed = String(Math.floor(Math.random() * 1e6)); render(); }
-    else if (a === 'add') {
-      const free = FACTION_IDS.find((f) => !cfg.players.some((p) => p.id === f));
-      if (free) cfg.players.push({ id: free, human: false, difficulty: 'normal' });
-      render();
-    } else if (a.startsWith('pick-')) {
-      pickFaction(Number(a.slice(5)));
-    } else if (a.startsWith('remove-')) { cfg.players.splice(Number(a.slice(7)), 1); render(); }
+    else if (a === 'add') openPicker('add');
+    else if (a === 'add-random') { cfg.players = addRandomOpponent(cfg.players); render(); focusFirst('[data-action="add-random"]', '[data-action="start"]:not([disabled])'); }
+    else if (a.startsWith('pick-')) openPicker(Number(a.slice(5)));
+    else if (a.startsWith('remove-')) { cfg.players = removeOpponent(cfg.players, Number(a.slice(7))); render(); focusFirst('[data-action="add"]'); }
     else if (a === 'start') {
+      if (!canStart(cfg.players)) return;
+      // eigene Fraktion fuer die naechste Einsatzplanung merken / remember the own faction for the next game setup
+      host.settings.lastFaction = cfg.players[0].id;
+      host.applySettings();
       const seedNum = /^-?\d+$/.test(cfg.seed.trim()) ? Number(cfg.seed.trim()) | 0 : hashSeed(cfg.seed);
       const config = defaultConfig({
         seed: seedNum, size: cfg.size, mapType: cfg.mapType, mode: cfg.mode,

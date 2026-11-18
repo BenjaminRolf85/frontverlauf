@@ -787,6 +787,95 @@ input[type="text"], select {
 }
 .trait-list.compact .trait { min-width: 0; flex: 0 1 auto; }
 .trait-list.compact .trait-text { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* ---------- Einsatzplanung mit Fraktionskarten / game setup with faction cards ---------- */
+/* breitere Form fuer das Gegnerraster / wider form for the opponent grid */
+.form.setup-form { width: min(100%, var(--c-setup-width)); }
+/* eigene Fraktion: Farbstreifen links / own faction: colour stripe on the left */
+.player-row.own-card { border-left: var(--c-setup-stripe) solid var(--setup-accent, var(--s-outline)); background: var(--c-setup-card-bg); }
+.own-card .slot-head .tag { font-weight: 700; }
+/* Gegnerraster: 1 Spalte auf dem Handy, 2-3 auf dem Desktop / opponent grid: 1 column on phones, 2-3 on desktop */
+.opp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--c-setup-card-min)), 1fr)); gap: var(--p-space-3); align-items: stretch; }
+.opp-card {
+  position: relative; display: flex; flex-direction: column; gap: var(--p-space-2); min-width: 0; overflow: hidden;
+  padding: calc(var(--p-space-2) + var(--c-setup-stripe)) var(--p-space-2) var(--p-space-1);
+  background: var(--c-setup-card-bg); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md);
+  box-shadow: var(--c-button-shadow-pressed);
+}
+.opp-card::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: var(--c-setup-stripe); background: var(--setup-accent, var(--s-accent));
+}
+.opp-top { display: flex; align-items: flex-start; gap: var(--p-space-1); }
+.opp-top > .icon-btn { flex: none; }
+.opp-pick {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--p-space-2); min-height: var(--p-size-touch); padding: var(--p-space-1);
+  font: inherit; color: var(--s-text); text-align: left; cursor: pointer; background: none; border: none; border-radius: var(--p-radius-sm);
+}
+.opp-pick:hover { background: var(--s-surface); }
+.opp-pick:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); }
+.opp-pick .col { gap: 0; min-width: 0; }
+.opp-name { font-size: var(--p-font-size-md); line-height: 1.15; overflow-wrap: anywhere; }
+.opp-leader { font-size: var(--p-font-size-sm); color: var(--s-text-muted); }
+.opp-swap { display: inline-flex; align-items: center; gap: var(--p-space-1); margin-top: var(--p-space-1); font-size: var(--p-font-size-sm); font-weight: 700; text-decoration: underline; text-underline-offset: 0.2em; }
+.opp-card .seg { gap: var(--p-space-1); }
+.opp-card .seg button { flex: 1 1 auto; padding: 0 var(--p-space-2); }
+/* Schwierigkeit: vier gleich breite Felder in einer Zeile / difficulty: four equal cells in one row */
+.opp-diff .seg { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.opp-diff .seg button { padding: 0 var(--p-space-1); font-size: var(--p-font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 360px) { .opp-diff .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.opp-card > .details-link { align-self: flex-start; margin-top: auto; }
+/* Hinzufuegen-Karte (gestrichelt) / add card (dashed) */
+.opp-add {
+  display: flex; flex-direction: column; gap: var(--p-space-2); min-width: 0; padding: var(--p-space-2);
+  background: var(--c-setup-add-bg); border: var(--p-border-width-thick) dashed var(--c-setup-add-border); border-radius: var(--p-radius-md);
+}
+.opp-add-main {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--p-space-1);
+  min-height: calc(var(--p-size-touch-lg) * 2.4); padding: var(--p-space-2); font: inherit; color: var(--s-text); text-align: center; cursor: pointer;
+  background: none; border: none; border-radius: var(--p-radius-sm);
+}
+.opp-add-main:hover { background: var(--s-surface-raised); }
+.opp-add-main:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); }
+.opp-add-main strong { font-family: var(--p-font-display); font-size: var(--p-font-size-lg); letter-spacing: var(--p-letter-spacing-display); }
+.opp-add-icon {
+  display: grid; place-items: center; width: var(--p-size-touch-lg); height: var(--p-size-touch-lg); border-radius: var(--p-radius-pill);
+  background: var(--c-button-bg); color: var(--c-button-text); border: var(--p-border-width-thick) solid var(--s-outline); box-shadow: var(--c-button-shadow);
+}
+.opp-add-main:hover .opp-add-icon { background: var(--c-button-bg-hover); }
+.opp-max {
+  display: flex; align-items: center; justify-content: center; gap: var(--p-space-2); padding: var(--p-space-3); text-align: center;
+  border: var(--p-border-width-thick) dashed var(--c-setup-add-border); border-radius: var(--p-radius-md);
+}
+/* Hinweis, solange der Start gesperrt ist / hint while the start is blocked */
+.setup-hint {
+  display: flex; align-items: center; gap: var(--p-space-2); margin: 0; padding: var(--p-space-2) var(--p-space-3); font-weight: 700;
+  background: var(--c-setup-hint-bg); border-left: var(--c-setup-stripe) solid var(--c-setup-hint-accent); border-radius: var(--p-radius-sm);
+}
+/* Auswahl der Fraktionskarten / faction card picker */
+.pick-intro { display: flex; align-items: center; justify-content: space-between; gap: var(--p-space-2); flex-wrap: wrap; margin-bottom: var(--p-space-3); }
+.pick-intro p { margin: 0; flex: 1 1 16em; }
+.pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--c-setup-pick-min)), 1fr)); gap: var(--p-space-3); }
+.pick-card {
+  position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  background: var(--c-setup-card-bg); border: var(--p-border-width-thick) solid var(--s-outline); border-radius: var(--p-radius-md);
+  box-shadow: var(--c-button-shadow-pressed);
+}
+.pick-card::before { content: ''; position: absolute; inset: 0 0 auto 0; height: var(--c-setup-stripe); background: var(--setup-accent, var(--s-accent)); }
+.pick-card[aria-current="true"] { border-color: var(--s-accent-strong); box-shadow: inset 0 0 0 var(--p-border-width-thick) var(--s-accent); }
+/* die Karte traegt Rahmen und Streifen, der Knopf darin ist flach / the card carries border and stripe, the button inside is flat */
+.pick-card .faction-pick {
+  flex: 1; flex-wrap: wrap; align-content: flex-start; border: none; border-radius: 0; background: none;
+  padding-top: calc(var(--p-space-2) + var(--c-setup-stripe)); padding-bottom: 0;
+}
+.pick-card:hover { background: var(--s-surface); }
+.pick-card .faction-pick:hover { background: none; }
+.pick-card .faction-pick[aria-pressed="true"] { box-shadow: none; }
+.pick-card .faction-pick .col { flex: 1 1 10em; }
+.pick-card > .details-link { align-self: flex-end; }
+@media (max-width: 560px) /* --p-breakpoint-sm */ { .pick-card .leader-quote { display: none; } }
+.pick-name { font-size: var(--p-font-size-md); line-height: 1.15; }
+.pick-leader { font-size: var(--p-font-size-sm); }
+.pick-traits { flex-basis: 100%; min-width: 0; }
+.pick-traits .trait-list { margin-top: 0; }
 /* ---------- Comic-Seiten der Fraktionen / faction comic pages ---------- */
 .lore-btn { align-self: flex-start; }
 .lore-page { margin: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }

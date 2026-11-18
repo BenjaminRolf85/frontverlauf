@@ -1,7 +1,7 @@
 /** Spielstand als JSON im localStorage (immer in try/catch) und als Datei / save game as JSON in localStorage and as a file */
 import { citySites, cityTiles, isWater, replacedFor, tileAt, usesSites, type GameState } from '../core';
 import { outdatedCampaign, staleTempleSave } from '../core/campaign';
-import { PRODUCTION, UNITS, type ProductionSiteId, type TechId, type UnitTypeId } from '../data/balance';
+import { PRODUCTION, UNITS, type FactionId, type ProductionSiteId, type TechId, type UnitTypeId } from '../data/balance';
 import type { Lang } from '../i18n/i18n';
 
 const SAVE_KEY = 'frontverlauf.save.v1';
@@ -24,6 +24,8 @@ export interface Settings {
   dispatches: boolean;
   /** Atmosphaere: Wetter, Voegel, ferner Gefechtslaerm / ambience: weather, birds, distant battle */
   ambience: boolean;
+  /** Zuletzt gewaehlte eigene Fraktion in der Einsatzplanung / last own faction chosen in the game setup */
+  lastFaction?: FactionId;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
