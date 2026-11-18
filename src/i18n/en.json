@@ -92,7 +92,7 @@
       "quote": "One people, one step, one victory.",
       "lore": "The Korvat People's League grew out of a hundred farming cooperatives on the endless steppe. Every ploughman is a soldier, every village kitchen feeds a regiment. Grand Marshal Brodnik, once a tractor driver, leads with iron fatherliness: nobody is left behind, and nobody retreats.",
       "style": "mass armies, red banners, choirs",
-      "aiStyle": "Builds large armies of cheap infantry and advances on a broad front.",
+      "aiStyle": "Builds large armies of cheap infantry, advances on a broad front and lures enemies into its fire zone with feigned retreats.",
       "perk2": "Earthworks",
       "perk2Desc": "Outposts cost {earthworksCost} instead of {outpostCost} stars.",
       "feature": "Steppe Colossus",
@@ -168,7 +168,7 @@
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
       "style": "production, labs, prototypes, cold",
-      "aiStyle": "Unlocks production first and digs in with pioneers.",
+      "aiStyle": "Unlocks production first, secures itself with pioneers and sets ambushes with ranged units.",
       "perk2": "Engineer corps",
       "perk2Desc": "Tank barriers cost {engineerBarrierCost} instead of {barrierCost} stars.",
       "feature": "Lab in the field",
@@ -350,11 +350,11 @@
     "dash": "Assault",
     "dashDesc": "May attack after moving in the same turn, but with less damage (usually half).",
     "escape": "Retreat",
-    "escapeDesc": "May keep moving after attacking.",
+    "escapeDesc": "May still move after attacking if it has not moved before.",
     "persist": "Follow-up",
     "persistDesc": "May attack again immediately after each destroyed enemy.",
     "fortify": "Dig in",
-    "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers and pioneers receive the outpost bonus.",
+    "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers, pioneers, Light Wardens and railgun marksmen receive the outpost bonus.",
     "heal": "Heal",
     "healDesc": "Restores {medicHeal} HP to all adjacent own units.",
     "convert": "Defect",
@@ -508,8 +508,8 @@
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
     "researchCenter": "1 population point; {rcBase} points, {rcStep} more every {rcInterval} rounds, at most {rcMax}",
-    "outpost": "Defence bonus ×{outpostDef} for infantry, MG infantry, snipers and pioneers, refuel point for helicopters. Own units heal there as in own territory. If it borders own territory, the territory grows by the free tiles around it.",
-    "barrier": "Hostile tanks, jeeps, artillery, flak tanks and mine layers stop and move only 1 tile next round",
+    "outpost": "Defence bonus ×{outpostDef} for infantry, MG infantry, snipers, pioneers, Light Wardens and railgun marksmen, refuel point for helicopters. Own units heal there as in own territory. If it borders own territory, the territory grows by the free tiles around it.",
+    "barrier": "Hostile vehicles (walkers and mechs too) stop and move only {slowedMove} tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "+{slots} slots for the horde, one per city, cult only",
@@ -528,7 +528,7 @@
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only",
-    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters has one built in.",
+    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters and transmitter tower has one built in, and for Korvat and Dravon every own city.",
     "armory": "Trains in this city: {units}. One per city.",
     "motorPool": "Trains in this city: {units}. One per city.",
     "tankWorks": "Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
@@ -773,7 +773,7 @@
     "generic": "Something went wrong.",
     "noResearch": "Your faction does not research.",
     "notTerraformed": "Terraform the city tile first.",
-    "wrongFaction": "Only the Zyrr can do that.",
+    "wrongFaction": "Your faction cannot do that.",
     "notPreacher": "This unit cannot recruit.",
     "computeMissing": "Not enough compute. Build data centers and power plants.",
     "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
@@ -788,7 +788,7 @@
     "noRockets": "No rockets left. Reload in an own city with a depot.",
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
-    "quake": "Earthquake: vehicles and mechs cannot move this round.",
+    "quake": "Earthquake: only foot troops can move this round.",
     "emplacementSpacing": "Too close to another own gun emplacement.",
     "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "recruitCooldown": "Recruiting is not ready again yet.",
@@ -807,7 +807,7 @@
     "capture": "{name} captures {city}",
     "levelUp": "{city} grows to level {level}",
     "research": "{tech} researched",
-    "veteran": "A {unit} becomes a veteran: +{hp} max HP, fully healed",
+    "veteran": "{unit} becomes a veteran: +{hp} max HP, fully healed",
     "bunkerStars": "Bunker searched: {n} stars",
     "bunkerTech": "Bunker searched: free technology",
     "bunkerPopulation": "Bunker searched: {pop} population points for the HQ",
@@ -840,7 +840,7 @@
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
     "verdanActive": "Verdan defence line activated!",
-    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into outposts and bunkers!",
+    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!",
     "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
   },
   "fx": {
@@ -1221,7 +1221,7 @@
         "title": "Hold Your Ground",
         "tagline": "Hold the headquarters and smash the onslaught",
         "brief": [
-          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters and shoot ten machines to scrap, then the onslaught collapses!",
+          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters and shoot five machines to scrap, then the onslaught collapses!",
           "RESISTANCE CALCULATED. RESULT: BRIEF. PLEASE REMAIN IN YOUR SEATS.",
           "Spiders, drones, railguns, and at the end comes a titan. The bunker holds. Hopefully."
         ],
@@ -1293,7 +1293,7 @@
           "Kkt ... Mother? Mother is silent. The rift ate us and spat us out here. No matter. The swarm builds a new nest, and you are the food.",
           "KERN-0: LOCATION UNKNOWN. SUN TOO SMALL. TWO MOONS. RECALCULATING ... OBJECTIVE UNCHANGED: THE ARTIFACT.",
           "You see? This is the Final Hour! The world has already burned, and we are its ashes. Brothers, sisters, take whatever still stands.",
-          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then two more outposts, before the others contest the sand."
+          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then three more outposts, before the others contest the sand."
         ],
         "won": "The outpost is ours. Above the gate the Verdan emblem still hangs, red and white, with wings. What were they looking for here?",
         "lost": "The sand has swallowed us. One day someone will find our helmets among the giant bones.",
@@ -1427,7 +1427,7 @@
     "region": "Area around tile {x}, {y}",
     "storm": {
       "title": "Storm front!",
-      "body": "A storm rages over the troops of {name}: {n} units move only 1 tile this round."
+      "body": "A storm rages over the troops of {name}: {n} units move only {slowedMove} tile this round."
     },
     "epidemic": {
       "title": "Epidemic in {city}!",
@@ -2208,19 +2208,19 @@
     "snow": "Snow",
     "wind": "Wind",
     "clearDesc": "no effects",
-    "rainDesc": "Artillery range -1, helicopter movement -1; with hit luck, more misses and grazes",
-    "snowDesc": "Jeeps, tanks, artillery, flak tanks and mine layers move 1 tile less; with hit luck, more misses (aliens freeze most)",
+    "rainDesc": "Artillery and Sun Lance range -1, helicopter and octocopter movement -1; with hit luck, more misses and grazes",
+    "snowDesc": "All vehicles (walkers and mechs too) move 1 tile less, at least 1; with hit luck, more misses (aliens freeze most)",
     "windDesc": "Helicopters burn {windFuel} fuel per round; with hit luck, ranged units and flyers miss more often",
     "forecast": "from round {round}: {weather}",
     "setupHint": "Changes every {weatherCycle} rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely).",
     "dust": "Dust storm",
     "dustDesc": "Vision 1 tile less, units with range 2 or more lose 1 range, helicopters move 1 tile less; with hit luck, clearly more misses",
     "meteor": "Meteor shower",
-    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside outposts and bunkers, never lethal",
+    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside cities and bunkers, never lethal",
     "acid": "Acid rain",
     "acidDesc": "At the start of each round 1 to 2 damage to every unit that is not Zyrr, outside cities and bunkers, never lethal; with hit luck more misses and grazes, as in rain",
     "quake": "Earthquake",
-    "quakeDesc": "Vehicles, mechs, walkers and machines cannot move this round; foot troops move, attacks and Verdan guns carry on",
+    "quakeDesc": "Only foot troops can move this round, vehicles, walkers, flyers and ships stand still; attacks and Verdan guns carry on",
     "calm": "Calm",
     "calmDesc": "The cavern is calm, no effects"
   },
@@ -3536,7 +3536,7 @@
     },
     "cover": {
       "title": "Cover",
-      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
     },
     "abilities": {
       "title": "Abilities (retreat, repair, rockets)",
@@ -3548,7 +3548,7 @@
     },
     "outposts": {
       "title": "Outposts",
-      "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
+      "text": "With {tech}, infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) build an outpost on their tile for {cost} stars and defend ×{def} on it. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
     },
     "diplomacy": {
       "title": "Diplomacy",
@@ -3565,7 +3565,7 @@
     },
     "cult": {
       "title": "Cult: plunder & horde",
-      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half}% the second time, {quarter}% after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
+      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half}% the second time, {quarter}% after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round and {titheRival} per rival faction), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
     },
     "judgement": {
       "title": "Sin and Judgement",
@@ -3573,7 +3573,7 @@
     },
     "sites": {
       "title": "Production sites (humans)",
-      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters has barracks built in. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
+      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters and transmitter tower has barracks built in, Korvat and Dravon have them in every own city, and Dravon's headquarters also has a motor pool. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
     },
     "ships": {
       "title": "Ships and shipyard",
@@ -3774,7 +3774,7 @@
         "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production sites, doctrines and upgrades. You start with {start} stars."
       },
       "cover": {
-        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
       },
       "cities": {
         "title": "Cities & production",

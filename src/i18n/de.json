@@ -92,7 +92,7 @@
       "quote": "Ein Volk, ein Schritt, ein Sieg.",
       "lore": "Der Volksbund Korvat entstand aus hundert Bauerngenossenschaften der endlosen Steppe. Jeder Pflüger ist auch Soldat, jede Dorfküche versorgt ein Regiment. Großmarschall Brodnik, einst Traktorist, führt mit eiserner Väterlichkeit: Niemand bleibt zurück, aber niemand weicht.",
       "style": "Massenheere, rote Banner, Chorgesang",
-      "aiStyle": "Baut große Heere aus billiger Infanterie und rückt in breiter Front vor.",
+      "aiStyle": "Baut große Heere aus billiger Infanterie, rückt in breiter Front vor und lockt Gegner mit vorgetäuschtem Rückzug in die Feuerzone.",
       "perk2": "Erdwälle",
       "perk2Desc": "Außenposten kosten {earthworksCost} statt {outpostCost} Sterne.",
       "feature": "Steppenkoloss",
@@ -168,7 +168,7 @@
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
       "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
       "style": "Produktion, Labore, Prototypen, Kälte",
-      "aiStyle": "Schaltet zuerst Produktion frei und verschanzt sich mit Pionieren.",
+      "aiStyle": "Schaltet zuerst Produktion frei, sichert sich mit Pionieren und legt Hinterhalte mit Fernkämpfern.",
       "perk2": "Ingenieurkorps",
       "perk2Desc": "Panzersperren kosten {engineerBarrierCost} statt {barrierCost} Sterne.",
       "feature": "Labor im Feld",
@@ -350,11 +350,11 @@
     "dash": "Sturm",
     "dashDesc": "Darf nach der Bewegung im selben Zug angreifen, dann aber mit weniger Schaden (meist der Hälfte).",
     "escape": "Rückzug",
-    "escapeDesc": "Darf sich nach dem Angriff weiterbewegen.",
+    "escapeDesc": "Darf nach dem Angriff noch ziehen, wenn sie vorher nicht gezogen ist.",
     "persist": "Folgeangriff",
     "persistDesc": "Darf nach jedem vernichteten Gegner sofort erneut angreifen.",
     "fortify": "Verschanzen",
-    "fortifyDesc": "Erhält den Verteidigungsbonus in eigenen Städten. Den Außenposten-Bonus bekommen nur Infanterie, MG-Infanterie, Scharfschützen und Pioniere.",
+    "fortifyDesc": "Erhält den Verteidigungsbonus in eigenen Städten. Den Außenposten-Bonus bekommen nur Infanterie, MG-Infanterie, Scharfschützen, Pioniere, Lichtschützen und Railgun-Schützen.",
     "heal": "Heilen",
     "healDesc": "Stellt bei allen angrenzenden eigenen Einheiten {medicHeal} LP wieder her.",
     "convert": "Überlaufen",
@@ -508,8 +508,8 @@
     "road": "halbe Bewegungskosten, Stadtverbindung",
     "bridge": "verbindet zwei Landfelder über ein Wasserfeld",
     "researchCenter": "1 Bevölkerungspunkt; {rcBase} Punkte, alle {rcInterval} Runden {rcStep} mehr, höchstens {rcMax}",
-    "outpost": "Verteidigungsbonus ×{outpostDef} für Infanterie, MG-Infanterie, Scharfschützen und Pioniere, Tankpunkt für Hubschrauber. Eigene Einheiten heilen dort wie im eigenen Gebiet. Grenzt er an eigenes Gebiet, wächst das Gebiet um die freien Felder rundherum.",
-    "barrier": "Feindliche Panzer, Jeeps, Artillerie, Flakpanzer und Minenleger halten an und fahren in der nächsten Runde nur 1 Feld",
+    "outpost": "Verteidigungsbonus ×{outpostDef} für Infanterie, MG-Infanterie, Scharfschützen, Pioniere, Lichtschützen und Railgun-Schützen, Tankpunkt für Hubschrauber. Eigene Einheiten heilen dort wie im eigenen Gebiet. Grenzt er an eigenes Gebiet, wächst das Gebiet um die freien Felder rundherum.",
+    "barrier": "Feindliche Fahrzeuge (auch Läufer und Mechs) halten an und fahren in der nächsten Runde nur {slowedMove} Feld",
     "xenoHive": "2 Bevölkerungspunkte, nur auf Xeno-Boden ohne Ressource",
     "xenoHarvester": "2 Bevölkerungspunkte, nur auf Xeno-Boden mit Ressource",
     "shrine": "+{slots} Plätze für die Horde, einer je Stadt, nur Kult",
@@ -528,7 +528,7 @@
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
     "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS",
-    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier hat eine eingebaut.",
+    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier und jeder Sendeturm hat eine eingebaut, bei Korvat und Dravon jede eigene Stadt.",
     "armory": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
     "motorPool": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
     "tankWorks": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt.",
@@ -773,7 +773,7 @@
     "generic": "Etwas ist schiefgelaufen.",
     "noResearch": "Deine Fraktion forscht nicht.",
     "notTerraformed": "Erst das Stadtfeld terraformen.",
-    "wrongFaction": "Nur die Zyrr können das.",
+    "wrongFaction": "Deine Fraktion kann das nicht.",
     "notPreacher": "Diese Einheit kann nicht rekrutieren.",
     "computeMissing": "Zu wenig Rechenleistung. Baue Rechenzentren und Kraftwerke.",
     "cultRecruit": "Der Kult bildet nicht in Städten aus. Seine Truppen rekrutieren im Feld.",
@@ -788,7 +788,7 @@
     "noRockets": "Keine Raketen mehr. Nachladen in einer eigenen Stadt mit Depot.",
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
-    "quake": "Erdbeben: Fahrzeuge und Mechs können sich diese Runde nicht bewegen.",
+    "quake": "Erdbeben: Nur Fußtruppen können sich diese Runde bewegen.",
     "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
     "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit.",
@@ -807,7 +807,7 @@
     "capture": "{name} nimmt {city} ein",
     "levelUp": "{city} wächst auf Stufe {level}",
     "research": "{tech} erforscht",
-    "veteran": "Ein {unit} wird zum Veteranen: +{hp} max. LP, voll geheilt",
+    "veteran": "{unit} wird zum Veteranen: +{hp} max. LP, voll geheilt",
     "bunkerStars": "Bunker durchsucht: {n} Sterne",
     "bunkerTech": "Bunker durchsucht: kostenlose Technologie",
     "bunkerPopulation": "Bunker durchsucht: {pop} Bevölkerungspunkte für das Hauptquartier",
@@ -840,7 +840,7 @@
     "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
     "deserted": "Sold nicht bezahlt: {unit} desertiert",
     "verdanActive": "Verteidigungslinie der Verdan aktiviert!",
-    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Außenposten und Bunker!",
+    "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!",
     "acid": "Säureregen! {n} Einheiten verätzt, davon {own} eigene. In Städte und Bunker!"
   },
   "fx": {
@@ -1221,7 +1221,7 @@
         "title": "Stellung halten",
         "tagline": "Halte das Hauptquartier und zerschlage den Ansturm",
         "brief": [
-          "{leader} an alle: NEXUS greift mit allem an, was rollt und fliegt. Hauptquartier halten und zehn Maschinen zu Schrott schießen, dann bricht der Ansturm zusammen!",
+          "{leader} an alle: NEXUS greift mit allem an, was rollt und fliegt. Hauptquartier halten und fünf Maschinen zu Schrott schießen, dann bricht der Ansturm zusammen!",
           "WIDERSTAND BERECHNET. ERGEBNIS: KURZ. BITTE BLEIBEN SIE AN IHREM PLATZ.",
           "Spinnen, Drohnen, Schienenkanonen, und am Ende kommt ein Titan. Der Bunker hält. Hoffentlich."
         ],
@@ -1293,7 +1293,7 @@
           "Kkt ... Mutter? Mutter schweigt. Der Riss hat uns gefressen und hier ausgespuckt. Egal. Der Schwarm baut ein neues Nest, und ihr seid das Futter.",
           "KERN-0: STANDORT UNBEKANNT. SONNE ZU KLEIN. ZWEI MONDE. NEUBERECHNUNG ... ZIEL BLEIBT: DAS ARTEFAKT.",
           "Seht ihr? Das ist die Letzte Stunde! Die Welt ist schon verbrannt, und wir sind ihre Asche. Brüder, Schwestern, nehmt euch, was noch steht.",
-          "{leader} hier. Die Späher haben eine Ruine mit rot-weißen Flügeln gesehen, einen Außenposten der Verdan, verlassen seit Generationen. Sammelt euch dort und besetzt ihn, das wird unsere Basis. Dann noch zwei Außenposten, bevor uns die anderen den Sand streitig machen."
+          "{leader} hier. Die Späher haben eine Ruine mit rot-weißen Flügeln gesehen, einen Außenposten der Verdan, verlassen seit Generationen. Sammelt euch dort und besetzt ihn, das wird unsere Basis. Dann noch drei Außenposten, bevor uns die anderen den Sand streitig machen."
         ],
         "won": "Der Außenposten gehört uns. Über dem Tor hängt noch das Wappen der Verdan, rot und weiß, mit Flügeln. Was haben die hier gesucht?",
         "lost": "Der Sand hat uns geschluckt. Irgendwann findet jemand unsere Helme zwischen den Riesenknochen.",
@@ -1427,7 +1427,7 @@
     "region": "Gebiet um Feld {x}, {y}",
     "storm": {
       "title": "Sturmfront!",
-      "body": "Ein Unwetter tobt über den Truppen von {name}: {n} Einheiten kommen diese Runde nur 1 Feld weit."
+      "body": "Ein Unwetter tobt über den Truppen von {name}: {n} Einheiten kommen diese Runde nur {slowedMove} Feld weit."
     },
     "epidemic": {
       "title": "Seuche in {city}!",
@@ -2208,19 +2208,19 @@
     "snow": "Schnee",
     "wind": "Wind",
     "clearDesc": "keine Auswirkungen",
-    "rainDesc": "Artillerie 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung; mit Trefferglück mehr Fehl- und Streifschüsse",
-    "snowDesc": "Jeeps, Panzer, Artillerie, Flakpanzer und Minenleger 1 Feld weniger Bewegung; mit Trefferglück mehr Fehlschüsse (Außerirdische frieren besonders)",
+    "rainDesc": "Artillerie und Sonnenlanze 1 Feld weniger Reichweite, Hubschrauber und Oktokopter 1 Feld weniger Bewegung; mit Trefferglück mehr Fehl- und Streifschüsse",
+    "snowDesc": "Alle Fahrzeuge (auch Läufer und Mechs) 1 Feld weniger Bewegung, mindestens 1; mit Trefferglück mehr Fehlschüsse (Außerirdische frieren besonders)",
     "windDesc": "Hubschrauber verbrauchen {windFuel} Tankfüllungen pro Runde; mit Trefferglück treffen Fernkämpfer und Flieger öfter daneben",
     "forecast": "ab Runde {round}: {weather}",
     "setupHint": "Wechselt alle {weatherCycle} Runden. Regen, Schnee und Wind bremsen bestimmte Einheiten und erhöhen mit Trefferglück die Fehlschusschance (Wind nur für Fernkämpfer und Flieger, Roboter kaum).",
     "dust": "Sandsturm",
     "dustDesc": "Sicht 1 Feld weniger, Einheiten ab Reichweite 2 haben 1 Feld weniger Reichweite, Hubschrauber 1 Feld weniger Bewegung; mit Trefferglück deutlich mehr Fehlschüsse",
     "meteor": "Meteorschauer",
-    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Außenposten und Bunkern, nie tödlich",
+    "meteorDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder ungepanzerten Einheit (Fußtruppen) außerhalb von Städten und Bunkern, nie tödlich",
     "acid": "Säureregen",
     "acidDesc": "Zu Rundenbeginn 1 bis 2 Schaden an jeder Einheit, die nicht zu den Zyrr gehört, außerhalb von Städten und Bunkern, nie tödlich; mit Trefferglück mehr Fehl- und Streifschüsse wie bei Regen",
     "quake": "Erdbeben",
-    "quakeDesc": "Fahrzeuge, Mechs, Läufer und Maschinen können sich diese Runde nicht bewegen; Fußtruppen ziehen, Angriffe und Verdan-Geschütze gehen weiter",
+    "quakeDesc": "Nur Fußtruppen können sich diese Runde bewegen, Fahrzeuge, Läufer, Flieger und Schiffe stehen still; Angriffe und Verdan-Geschütze gehen weiter",
     "calm": "Ruhig",
     "calmDesc": "Die Höhle ist ruhig, keine Auswirkungen"
   },
@@ -3536,7 +3536,7 @@
     },
     "cover": {
       "title": "Deckung",
-      "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Forschung verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+      "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Forschung verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
     },
     "abilities": {
       "title": "Fähigkeiten (Rückzug, Reparatur, Raketen)",
@@ -3548,7 +3548,7 @@
     },
     "outposts": {
       "title": "Außenposten",
-      "text": "Mit {tech} bauen Fußtruppen für {cost} Sterne einen Außenposten auf ihrem Feld. Fußtruppen darauf verteidigen ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
+      "text": "Mit {tech} bauen Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) für {cost} Sterne einen Außenposten auf ihrem Feld und verteidigen darauf ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
     },
     "diplomacy": {
       "title": "Diplomatie",
@@ -3565,7 +3565,7 @@
     },
     "cult": {
       "title": "Kult: Plündern & Horde",
-      "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute, beim zweiten Mal {half} %, danach {quarter} %. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde), jeder erbeutete Stern zählt {score} Punkte ({scoreDuel} im Zweikampf, mehr je mehr Gegner). Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
+      "text": "Der Kult der Letzten Stunde spielt anders: Nimmt er eine Siedlung oder Stadt ein, plündert er sie für {base} Sterne plus {level} je Stadtstufe ({hq} mehr für ein Hauptquartier); dieselbe Stadt bringt erst nach {again} Runden wieder Beute, beim zweiten Mal {half} %, danach {quarter} %. Kult-Städte bringen kein Einkommen, wachsen nicht und bilden nicht aus. Sie stellen nur Plätze für die Horde (Stufe + 1, eigenes Hauptquartier +{hqSlots}, Schrein +{shrine}), dazu {cap} Grundplätze. Neue Einheiten rufen Eiferer, Flammenjünger, Panzerfaust-Eiferer, Propheten und Walzen gegen Sterne auf ein freies Nachbarfeld, danach {cooldown} Runden Abklingzeit; der Prophet ruft auch den Erdkernbohrer. Der Kult zahlt keinen Sold, die Horde bringt einen Zehnt ({tithe} Sterne je Einheit, höchstens {titheMax} pro Runde und {titheRival} je gegnerische Fraktion), jeder erbeutete Stern zählt {score} Punkte ({scoreDuel} im Zweikampf, mehr je mehr Gegner). Hat der Kult keine Einheit mehr, scheidet er aus und seine Städte werden neutral."
     },
     "judgement": {
       "title": "Sünde und Strafgericht",
@@ -3573,7 +3573,7 @@
     },
     "sites": {
       "title": "Produktionsstätten (Menschen)",
-      "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier hat eine Kaserne eingebaut. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
+      "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier und jeder Sendeturm hat eine Kaserne eingebaut, Korvat und Dravon haben sie in jeder eigenen Stadt, Dravon im Hauptquartier dazu ein Fahrzeugwerk. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
     },
     "ships": {
       "title": "Schiffe und Werft",
@@ -3774,7 +3774,7 @@
         "text": "Alle Fraktionen ziehen nacheinander; eine Runde endet, wenn alle gezogen haben. Zu Beginn deines Zuges kommen Sterne in die Kasse: {city} je Stadtstufe, {hq} extra für das Hauptquartier, dazu Boni aus Gebäuden, Belohnungen und Botschaften. Sterne sind die einzige Währung für Einheiten, Gebäude, Produktionsstätten, Doktrinen und Ausbauten. Du startest mit {start} Sternen."
       },
       "cover": {
-        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Fußtruppen auf einem eigenen Außenposten verteidigen ×{outpost}. Mit der passenden Doktrin verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
+        "text": "Einheiten mit „Verschanzen“ verteidigen in eigenen Städten ×{city}, mit {ring} ×{bunker}. Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) verteidigen auf einem eigenen Außenposten ×{outpost}. Mit der passenden Doktrin verteidigen Wald, Berg und (für Schiffe) Küste ×{terrain}. Truppen und Panzer in Wald oder Stadt verteidigen sich gegen Fernangriffe aus zwei und mehr Feldern zusätzlich ×{ranged}. Flieger bekommen keine Deckung. Das Feld-Infofeld zeigt die Deckung an."
       },
       "cities": {
         "title": "Städte & Produktion",
