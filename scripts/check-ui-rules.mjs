@@ -1,5 +1,5 @@
-// Prueft die Abnahmeregeln: keine festen Farben in UI-Komponenten, keine Emojis, alle Sprachschluessel in DE und EN.
-// Checks acceptance rules: no hard-coded colours in UI components, no emojis, all language keys in DE and EN.
+// Prueft die Abnahmeregeln: keine festen Farben in UI-Komponenten, keine Emojis, alle Sprachschluessel in DE und EN mit gleichen Platzhaltern.
+// Checks acceptance rules: no hard-coded colours in UI components, no emojis, all language keys in DE and EN with the same placeholders.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 const root = new URL('..', import.meta.url).pathname;
@@ -17,10 +17,21 @@ for (const f of files(join(root, 'src'))) {
     });
   }
 }
-const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? flat(v, `${p}${k}.`) : [`${p}${k}`]));
-const de = new Set(flat(JSON.parse(readFileSync(join(root, 'src/i18n/de.json'), 'utf8'))));
-const en = new Set(flat(JSON.parse(readFileSync(join(root, 'src/i18n/en.json'), 'utf8'))));
+const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? flat(v, `${p}${k}.`) : [[`${p}${k}`, v]]));
+const deMap = new Map(flat(JSON.parse(readFileSync(join(root, 'src/i18n/de.json'), 'utf8'))));
+const enMap = new Map(flat(JSON.parse(readFileSync(join(root, 'src/i18n/en.json'), 'utf8'))));
+const de = new Set(deMap.keys());
+const en = new Set(enMap.keys());
 for (const k of de) if (!en.has(k)) { console.error('Fehlt in EN / missing in EN:', k); errors++; }
 for (const k of en) if (!de.has(k)) { console.error('Fehlt in DE / missing in DE:', k); errors++; }
+// Gleiche Platzhalter und gleiche Listenlaenge in DE und EN, damit keine Zahl nur in einer Sprache steht
+// same placeholders and same list length in DE and EN, so no number shows in one language only
+const placeholders = (v) => [...new Set((Array.isArray(v) ? v : [v]).flatMap((s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1])))].sort().join(', ');
+for (const [k, dv] of deMap) {
+  if (!enMap.has(k)) continue;
+  const ev = enMap.get(k);
+  if (Array.isArray(dv) !== Array.isArray(ev) || (Array.isArray(dv) && dv.length !== ev.length)) { console.error(`Listenform weicht ab / list shape differs: ${k}`); errors++; continue; }
+  if (placeholders(dv) !== placeholders(ev)) { console.error(`Platzhalter weichen ab / placeholders differ: ${k} DE {${placeholders(dv)}} EN {${placeholders(ev)}}`); errors++; }
+}
 console.log(errors ? `${errors} Verstoesse / violations` : `OK: ${de.size} Sprachschluessel, keine Emojis, keine festen Farben / OK`);
 process.exit(errors ? 1 : 0);
