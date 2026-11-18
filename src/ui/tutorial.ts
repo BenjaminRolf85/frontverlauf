@@ -24,7 +24,8 @@ export const TUTORIAL_FACTION = TUTORIAL_CONFIG.factions[0].id;
 /** Platzhalter der Tutorialtexte (Zahlen aus balance.ts) / placeholders of the tutorial texts (numbers from balance.ts) */
 const TUTORIAL_PARAMS: Record<string, Record<string, number>> = {
   goal: { rounds: MODES.pointsRounds },
-  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100), move: Math.round(MOVE_FIRE.damage * 100) },
+  // Feuern nach Bewegung fuer die Tutorial-Fraktion (Korvat: Steppensturm) / firing after moving for the tutorial faction (Korvat: Steppe Storm)
+  attack: { min: Math.round(HIT.mult.miss * 100), max: Math.round(HIT.mult.crit * 100), move: Math.round((MOVE_FIRE.bonus[TUTORIAL_FACTION]?.all ?? MOVE_FIRE.damage) * 100) },
   upkeep: { free: UPKEEP.freeUnits, pct: Math.round(UPKEEP.share * 100) },
 };
 

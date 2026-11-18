@@ -106,9 +106,9 @@
       "quote": "One people, one step, one victory.",
       "lore": "The Korvat People's League grew out of a hundred farming cooperatives on the endless steppe. Every ploughman is a soldier, every village kitchen feeds a regiment. Grand Marshal Brodnik, once a tractor driver, leads with iron fatherliness: nobody is left behind, and nobody retreats.",
       "style": "mass armies, red banners, choirs",
-      "aiStyle": "Builds large armies of cheap infantry and advances on a broad front.",
+      "aiStyle": "Builds large armies of cheap infantry, advances on a broad front and lures enemies into its fire zone with feigned retreats.",
       "perk2": "Earthworks",
-      "perk2Desc": "Outposts cost 15 instead of 25 stars.",
+      "perk2Desc": "Outposts cost {earthworksCost} instead of {outpostCost} stars.",
       "feature": "Steppe Colossus",
       "featureDesc": "Own tank instead of the standard tank: {hp} HP instead of {tankHp} and attack {atk} instead of {tankAtk}, the most HP and the strongest attack of all tanks. Price {cost} stars and upkeep {upkeep} per round as for the tank ({tankCost} and {tankUpkeep}). From the tank works, and as a city reward."
     },
@@ -117,7 +117,7 @@
       "short": "Dravon",
       "alignment": "dictatorial",
       "perk": "Drill",
-      "perkDesc": "Veteran status after 2 instead of 3 destroyed enemies.",
+      "perkDesc": "Veteran status after {drillKills} instead of {veteranKills} destroyed enemies.",
       "discount": "Jeep 30 % cheaper",
       "home": "industrial land rich in ore",
       "leader": "Sarek Voss",
@@ -127,7 +127,7 @@
       "style": "drill, camo green, black balaclavas, concrete bunkers",
       "aiStyle": "Attacks early and often, relying on jeeps and MG squads, and builds gun emplacements at threatened border cities.",
       "perk2": "Battle-hardened",
-      "perk2Desc": "Veterans attack with +0.5 attack.",
+      "perk2Desc": "Veterans attack with +{hardenedAttack} attack.",
       "feature": "Fortress building",
       "featureDesc": "Pioneer squads and mine layers build gun emplacements in own territory for {cost} stars, one per city. They fire every round at enemies in range {range}."
     },
@@ -136,7 +136,7 @@
       "short": "Alvenia",
       "alignment": "theocratic, an order of clerics",
       "perk": "Judgement",
-      "perkDesc": "Whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia is marked as a sinner for {rounds} rounds; aliens and robots are permanent sinners as godless creatures. Alvenia's units deal +{pct} % damage to sinners.",
+      "perkDesc": "Whoever plunders, burns, converts, captures a foreign city, breaks a peace or attacks Alvenia is marked as a sinner for {sinRounds} rounds; aliens and robots are permanent sinners as godless creatures. Alvenia's units deal +{judgementPct} % damage to sinners.",
       "discount": "Sun Lance 20 % cheaper",
       "home": "hill country with monasteries and vineyards",
       "leader": "Liora Valen",
@@ -146,7 +146,7 @@
       "style": "white and gold armour, deep blue tabards, sun halo, long-range weapons",
       "aiStyle": "Defends its own land, fires from a standstill at a distance and judges sinners first. The Order makes peace only with the blameless.",
       "perk2": "Martyr's Blessing",
-      "perk2Desc": "When an Alvenia unit falls in battle, own adjacent units heal {heal} HP and defend with +{def} % for {blessRounds} rounds.",
+      "perk2Desc": "When an Alvenia unit falls in battle, own adjacent units heal {martyrHeal} HP and defend with +{martyrDefPct} % for {martyrRounds} rounds.",
       "feature": "Arms of the Order",
       "featureDesc": "Own designs instead of the standard troops: Light Wardens instead of infantry (range {warden} instead of {inf}, defence {wardenDef}, stationary only), Reliquary instead of the tank (range {reliq} instead of {tank}, defence {reliqDef} instead of {tankDef}, stationary only) and Sun Lance instead of artillery (range {lance} instead of {art})."
     },
@@ -155,7 +155,7 @@
       "short": "Meridon",
       "alignment": "trade and fast growth",
       "perk": "Boom",
-      "perkDesc": "Every city level-up needs 1 population point less, at least 1.",
+      "perkDesc": "Every city level-up needs {boomLevel} population point less, at least 1.",
       "discount": "Spy 20 % cheaper",
       "home": "coasts and islands, many fishing grounds",
       "leader": "Coralie Nerezza",
@@ -165,7 +165,7 @@
       "style": "harbours, gold, spies, sailors",
       "aiStyle": "Grows its cities and sends spies ahead.",
       "perk2": "Harbour pilots",
-      "perk2Desc": "Landing boats move 1 tile further.",
+      "perk2Desc": "Landing boats move {pilotsMove} tile further.",
       "feature": "Two for One",
       "featureDesc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
     },
@@ -174,7 +174,7 @@
       "short": "Velkar",
       "alignment": "defensive and engineering-driven",
       "perk": "Production lead",
-      "perkDesc": "All doctrines cost 12 % less.",
+      "perkDesc": "All doctrines cost {researchLeadPct} % less.",
       "discount": "Pioneer squad 20 % cheaper",
       "home": "mountains and forest",
       "leader": "Aurel Kesh",
@@ -182,11 +182,11 @@
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
       "style": "production, labs, prototypes, cold",
-      "aiStyle": "Unlocks production first and digs in with pioneers.",
+      "aiStyle": "Unlocks production first, secures itself with pioneers and sets ambushes with ranged units.",
       "perk2": "Engineer corps",
-      "perk2Desc": "Tank barriers cost 5 instead of 10 stars.",
+      "perk2Desc": "Tank barriers cost {engineerBarrierCost} instead of {barrierCost} stars.",
       "feature": "Lab in the field",
-      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss}% misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
+      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss} % misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -203,7 +203,7 @@
       "style": "saucers, death rays, xeno ground",
       "aiStyle": "Opportunistic raiders: hover skimmers and death-ray walkers go around the front and strike undefended cities.",
       "perk2": "Forest brood",
-      "perk2Desc": "Units heal 1 more HP in forests, but only in terraformed forest (aliens only heal on xeno ground)."
+      "perk2Desc": "Units heal {forestSpawnHeal} more HP in forests, but only in terraformed forest (aliens only heal on xeno ground)."
     },
     "vesper": {
       "name": "Cult of the Final Hour",
@@ -220,24 +220,24 @@
       "style": "robes, bone masks, bells, flames",
       "aiStyle": "Fanatical and aggressive: plunders villages and cities, fills the horde up to its cap, rarely retreats and makes peace only in real need.",
       "perk2": "Martyrdom",
-      "perk2Desc": "Every own unit that falls in battle brings 3 stars."
+      "perk2Desc": "Every own unit that falls in battle brings {martyrdomStars} stars."
     },
     "nexus": {
       "name": "NEXUS AI Collective",
       "short": "NEXUS",
       "alignment": "machine",
       "perk": "Hive computing",
-      "perkDesc": "No research tree: units need compute. Each data center backed by its own power plant gives 1 compute.",
+      "perkDesc": "No research tree: units need compute. Each data centre backed by its own power plant gives 1 compute.",
       "discount": "no discount",
       "home": "ore highlands",
       "leader": "KERN-0",
       "leaderTitle": "Prime Instance of the Collective",
       "quote": "Calculation complete. Result: your defeat.",
-      "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data center with a power plant makes the collective smarter and its machines deadlier.",
-      "style": "robots, data centers, cyan light",
+      "lore": "NEXUS was a logistics program managing the depots of a forgotten great power. When the humans left, it simply kept calculating. KERN-0 knows no research, only compute: every data centre with a power plant makes the collective smarter and its machines deadlier.",
+      "style": "robots, data centres, cyan light",
       "aiStyle": "Calculates first, builds economy and data centres, attacks late but relentlessly.",
       "perk2": "Sensor net",
-      "perk2Desc": "All units see 1 tile further.",
+      "perk2Desc": "All units see {sensorNetVision} tile further.",
       "feature": "New series",
       "featureDesc": "Cyborg infantry (from the start, {cyborgHp} HP), kamikaze walker drones (from {droneC} compute, {droneMove} tiles per turn, explode when attacking without return fire, +{droneFoot} % vs human foot troops, +{droneAlien} % vs Zyrr) and flamethrower tanks (from {flameC}, flames ignore cover, +{flameFoot} % vs foot troops)."
     }
@@ -302,46 +302,46 @@
     "kamikazeDrone": "Kamikaze walker drone"
   },
   "unitDesc": {
-    "infantry": "Cheap backbone of every army: digs in in cities and outposts.",
-    "sniper": "Fires from two tiles away and picks off foot troops, but barely scratches armour. Fragile itself.",
-    "jeep": "Fast scout, drives 4 tiles: hit and run.",
+    "infantry": "Cheap backbone of every army: holds cities and outposts.",
+    "sniper": "Fires from {sniperRange} tiles away and picks off foot troops, but barely scratches armour. Fragile itself.",
+    "jeep": "Fast scout, drives {jeepMove} tiles: hit and run.",
     "pioneer": "Sturdy defender that builds tank barriers.",
     "mg": "Heavy firepower for the front line, strong on defence.",
     "medic": "Heals its neighbours and talks enemies into defecting.",
-    "artillery": "Shells targets from three tiles away (Korvat: four) but needs an escort.",
+    "artillery": "Shells targets from {artRange} tiles away (Korvat: {artRangeKorvat}) but needs an escort.",
     "spy": "Invisible behind the lines, sparks uprisings in enemy cities.",
     "heli": "Flies over everything and strikes again after every kill, but needs fuel.",
-    "tank": "Steel fist: drives three tiles and fires from two tiles away. From the tank works, and as a city reward.",
+    "tank": "Steel fist: drives {tankMove} tiles and fires from {tankRange} tiles away. From the tank works, and as a city reward.",
     "landingBoat": "Ferries a land unit across water but cannot attack.",
-    "submarine": "Hides underwater and torpedoes from two tiles away.",
+    "submarine": "Hides underwater and torpedoes from {subRange} tiles away.",
     "destroyer": "Fast warship that keeps the coasts clear.",
-    "battleship": "Floating fortress: splash shelling from three tiles.",
+    "battleship": "Floating fortress: splash shelling from {battleshipRange} tiles.",
     "grey": "Tough Zyrr foot soldier that wades through water and climbs mountains.",
     "terraformer": "Turns land into xeno ground, where the Zyrr heal and build.",
     "skimmer": "Fast flyer with no fuel worries, ideal for raids.",
     "mech": "Heavy walker with rockets that reach two tiles.",
-    "tripod": "Death ray from two tiles that no cover stops.",
+    "tripod": "Death ray from {tripodRange} tiles that no cover stops.",
     "zealot": "Cheap fanatic, calls up foot troops and prophets onto adjacent tiles.",
     "torchbearer": "Flamethrower that no cover protects against; recruits zealots.",
     "prophet": "Heals, converts enemies and calls up any cult unit, the earth-core drill too.",
     "doomBuggy": "Rusty speedster: hit and run.",
-    "rocketCart": "Rocket launcher on a flatbed, fires from three tiles.",
+    "rocketCart": "Rocket launcher on a flatbed, fires from {rocketCartRange} tiles.",
     "doomCrawler": "The cult's heavy roller, its answer to the tank; calls up zealots and vehicles.",
     "android": "Cheap standard machine soldier that needs no compute.",
     "spider": "Climbing bot that scales mountains without research.",
     "quadDrone": "Fast combat drone that flies without fuel.",
-    "railgun": "Precision gun with three tiles of range that never strikes back.",
+    "railgun": "Precision gun with {railgunRange} tiles of range that never strikes back.",
     "titan": "Huge combat robot, the bulwark of NEXUS.",
-    "antiTank": "Cracks vehicles from two tiles, weak against foot troops.",
+    "antiTank": "Cracks vehicles from {antiTankRange} tiles, weak against foot troops.",
     "antiAir": "Swats flyers out of the sky; whoever ends a turn next to it gets shot.",
     "mineLayer": "Lays hidden mines on adjacent tiles.",
-    "faustZealot": "Zealot with a rocket launcher: vehicle hunter from two tiles; recruits zealots.",
+    "faustZealot": "Zealot with a rocket launcher: vehicle hunter from {faustRange} tiles; recruits zealots.",
     "flakDrone": "Flak platform on four legs that guards the ground against flyers.",
     "steppeRider": "Cheap, fast riders that count as foot troops.",
     "stormbreaker": "Shock troops whose targets cannot strike back, but vulnerable themselves.",
     "peacekeeper": "Order Guard in heavy white armour: a sturdy defender that patches itself up every turn.",
     "privateer": "Fast raider ship: every kill pays prize money.",
-    "protoWalker": "Expensive walker with splash damage at range two.",
+    "protoWalker": "Expensive walker with splash damage at range {protoRange}.",
     "portal": "Zyrr victory wonder: opens the gate home after building and charging.",
     "hackRelay": "NEXUS victory wonder: hacks into every machine in the world.",
     "fusionPlant": "Velkar victory wonder: delivers endless energy once completed.",
@@ -349,28 +349,28 @@
     "coreDrill": "Cult victory unit, called up by a prophet: drills to the earth core while standing still.",
     "swarmMother": "Xyl'Tharra herself: floats, fires from a distance, heals on xeno ground, broods greys and hits neighbours with a psychic scream.",
     "scientist": "Does not fight, but wears a protective suit. Works right next to the Zyrr mothership, where the hull covers him (campaign).",
-    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Drives three tiles and fires from two tiles away. From the tank works, and as a city reward.",
+    "teslaTank": "Prototype from the polar lab: Tesla coils instead of a cannon, a lightning bolt instead of a shell. When the discharge hits, it hits hard, but it often misses. Drives {teslaMove} tiles and fires from {teslaRange} tiles away. From the tank works, and as a city reward.",
     "octocopter": "Large drone with eight rotors and a sensor pod. Flies over everything and strikes again after every kill, but its generator needs fuel.",
     "railSniper": "A magnetic rail instead of a rifle: long range, machine precision, hardly ever misses. Fires only from a standstill: once it has moved this turn, it cannot fire. Deadly against foot troops, weak against armour.",
-    "lightWarden": "Order marksmen with radiant scopes and long rifles: range 2 and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
-    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: drives three tiles, range 2, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
+    "lightWarden": "Order marksmen with radiant scopes and long rifles: range {wardenRange} and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
+    "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: drives {reliquaryMove} tiles, range {reliquaryRange}, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
     "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence.",
     "steppeColossus": "The heaviest tank of the People's League: double track runs, a huge cast turret with a long gun and two MG turrets. The most HP and the strongest attack of all tanks, at the standard tank's price. From the tank works, and as a city reward.",
     "cyborg": "Machine soldier with armour plates and servo limbs: sturdier and harder-hitting than the combat android, but pricier. Available from the first turn.",
     "flameTank": "Tracked vehicle with fuel tanks and a flamethrower: range 1, the flames ignore all cover (forest, city, outposts), especially strong against foot troops.",
-    "kamikazeDrone": "Small walker drone with an explosive charge: walks 3 tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr."
+    "kamikazeDrone": "Small walker drone with an explosive charge: walks {droneMove} tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr."
   },
   "abilities": {
     "dash": "Assault",
     "dashDesc": "May attack after moving in the same turn, but with less damage (usually half).",
     "escape": "Retreat",
-    "escapeDesc": "May keep moving after attacking.",
+    "escapeDesc": "May still move after attacking if it has not moved before.",
     "persist": "Follow-up",
     "persistDesc": "May attack again immediately after each destroyed enemy.",
-    "fortify": "Dig in",
-    "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers and pioneers receive the outpost bonus.",
+    "fortify": "Garrison",
+    "fortifyDesc": "Receives the defence bonus in own cities. Only infantry, MG infantry, snipers, pioneers, Light Wardens and railgun marksmen receive the outpost bonus.",
     "heal": "Heal",
-    "healDesc": "Restores 4 HP to all adjacent own units.",
+    "healDesc": "Restores {medicHeal} HP to all adjacent own units.",
     "convert": "Defect",
     "convertDesc": "An adjacent enemy unit permanently changes sides.",
     "noRetaliate": "No return fire",
@@ -380,11 +380,11 @@
     "invisible": "Invisible",
     "invisibleDesc": "Enemies only see this unit from an adjacent tile.",
     "uprising": "Uprising",
-    "uprisingDesc": "When the spy enters an enemy city, it is used up: up to as many own infantry as the city has levels (at most 4) appear around it, and the city loses its next income.",
+    "uprisingDesc": "When the spy enters an enemy city, it is used up: up to as many own infantry as the city has levels (at most {uprisingMax}) appear around it, and the city loses its next income.",
     "fly": "Flight",
     "flyDesc": "Flies over any terrain, including water and mountains.",
     "fuel": "Fuel",
-    "fuelDesc": "Tank for 4 rounds, refuel on or next to an own city or own outpost.",
+    "fuelDesc": "Fuel for {fuelRounds} rounds, refuel on or next to an own city or own outpost.",
     "submerged": "Submerged",
     "submergedDesc": "Invisible until it attacks or an enemy stands right next to it.",
     "splash": "Splash damage",
@@ -404,15 +404,15 @@
     "wade": "Wade",
     "wadeDesc": "Walks slowly through water (1 tile per turn) but cannot attack or strike back there.",
     "flak": "Flak zone",
-    "flakDesc": "Hostile flyers that end their turn right next to it take 3 damage.",
+    "flakDesc": "Hostile flyers that end their turn right next to it take {flakDamage} damage.",
     "mines": "Lay mines",
-    "minesDesc": "Lays a hidden mine on a free adjacent tile for 10 stars (at most 8 per faction).",
+    "minesDesc": "Lays a hidden mine on a free adjacent tile for {mineCost} stars (at most {mineMax} per faction).",
     "shock": "Shock assault",
     "shockDesc": "The attacked target cannot strike back.",
     "mend": "Self-repair",
-    "mendDesc": "Heals 2 HP at the start of each own turn.",
+    "mendDesc": "Heals {mendHp} HP at the start of each own turn.",
     "plunder": "Prize money",
-    "plunderDesc": "Every destroyed enemy unit brings 10 stars.",
+    "plunderDesc": "Every destroyed enemy unit brings {plunderStars} stars.",
     "wonder": "Victory wonder",
     "wonderDesc": "No upkeep, does not count towards the city limit, cannot be converted.",
     "boss": "Boss",
@@ -433,7 +433,7 @@
     "carrying": "carries {unit}",
     "noRange": "none",
     "returnRange": "Return fire {n} tile",
-    "returnRangeDesc": "Fires 2 tiles when attacking, but strikes back only at {n} tile: the turret has to traverse first."
+    "returnRangeDesc": "Fires {tankRange} tiles when attacking, but strikes back only at {n} tile: the turret has to traverse first."
   },
   "terrain": {
     "plain": "Plain",
@@ -459,7 +459,7 @@
     "road": "Road",
     "wreck": "Wreck",
     "skeleton": "Bones of fallen soldiers ({n})",
-    "wreckCover": "+1 cover for land units on this tile",
+    "wreckCover": "+{wreckCover} cover for land units on this tile",
     "barrier": "Tank barrier",
     "mine": "Mine",
     "mineDesc": "Hostile ground units entering take {foot} damage, vehicles {vehicle}. Flyers and ships do not trigger it.",
@@ -484,8 +484,8 @@
     "xenoHive": "Brood hive",
     "xenoHarvester": "Xeno harvester",
     "shrine": "Shrine",
-    "dataCenter": "Data center",
-    "powerPlant": "Fusion plant",
+    "dataCenter": "Data centre",
+    "powerPlant": "Power plant",
     "kolkhoz": "Kolkhoz",
     "mercenaryBarracks": "Mercenary barracks",
     "embassyPalace": "Cathedral of Light",
@@ -517,23 +517,23 @@
     "materialsPlant": "1 population point per adjacent lumber camp",
     "foodFactory": "1 population point per adjacent farm",
     "steelMill": "2 population points per adjacent mine",
-    "logisticsCenter": "3 stars per round per adjacent lumber camp, farm or mine, at most 24",
+    "logisticsCenter": "{logisticsPer} stars per round per adjacent lumber camp, farm or mine, at most {logisticsMax}",
     "navalBase": "1 population point, embarking, sea connection. Humans upgrade ships in this city's territory to: {units}.",
     "road": "half movement cost, city connection",
     "bridge": "connects two land tiles across a water tile",
-    "researchCenter": "1 population point; 100 points, 50 more every 3 rounds, at most 300",
-    "outpost": "Defence bonus 3.0 for infantry, MG infantry, snipers and pioneers, refuel point for helicopters. Own units heal there as in own territory. If it borders own territory, the territory grows by the free tiles around it.",
-    "barrier": "Hostile tanks, jeeps, artillery, flak tanks and mine layers stop and move only 1 tile next round",
+    "researchCenter": "1 population point; {rcBase} points, {rcStep} more every {rcInterval} rounds, at most {rcMax}",
+    "outpost": "Defence bonus ×{outpostDef} for infantry, MG infantry, snipers, pioneers, Light Wardens and railgun marksmen, refuel point for helicopters. Own units heal there as in own territory. If it borders own territory, the territory grows by the free tiles around it.",
+    "barrier": "Hostile vehicles (walkers and mechs too) stop and move only {slowedMove} tile next round",
     "xenoHive": "2 population points, only on xeno ground without resource",
     "xenoHarvester": "2 population points, only on xeno ground with a resource",
     "shrine": "+{slots} slots for the horde, one per city, cult only",
     "dataCenter": "2 population, +1 compute with a power plant, NEXUS only",
-    "powerPlant": "1 population, powers one data center, NEXUS only",
-    "kolkhoz": "1 population, plus +1 population for the city in every round divisible by 5 (5, 10, 15 ...), one per city, Korvat only",
+    "powerPlant": "1 population, powers one data centre, NEXUS only",
+    "kolkhoz": "1 population, plus +{kolkhozPop} population for the city in every round divisible by {kolkhozInterval}, one per city, Korvat only",
     "mercenaryBarracks": "3 population, units trained in this city start as veterans, one per city, Dravon only",
     "embassyPalace": "{pop} population. Penance tithe: +{perSinner} stars per round per faction with a sinful deed (at most {maxSinners}). One per faction, Alvenia only",
-    "tradingPost": "1 population, +2 stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
-    "testLab": "1 population, doctrines 5 % cheaper per lab (at most 3 labs), one per city, Velkar only",
+    "tradingPost": "1 population, +{tradingPostStars} stars per round per connected harbour city (naval base in the city area), one per faction, Meridon only",
+    "testLab": "1 population, doctrines {testLabPct} % cheaper per lab (at most {testLabMax} labs), one per city, Velkar only",
     "tractorStation": "{pop} population, plus +{adj} per adjacent farm or tractor station. Only on farmland; upgrades an own farm (price and population: only the difference). Counts as a farm, Korvat only",
     "deepMine": "{pop} population and +{stars} stars per round. Only on ore; upgrades an own mine (price and population: only the difference). Counts as a mine, Dravon only",
     "hillVineyard": "{pop} population, +{stars} stars per round; own units in this city's territory heal {heal} HP more. Only on plains in the hills biome without a resource, one per city, Alvenia only",
@@ -542,7 +542,7 @@
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only",
-    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters has one built in.",
+    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters and transmitter tower has one built in, and for Korvat and Dravon every own city.",
     "armory": "Trains in this city: {units}. One per city.",
     "motorPool": "Trains in this city: {units}. One per city.",
     "tankWorks": "Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
@@ -561,15 +561,15 @@
     "governmentPalace": "Government palace",
     "academy": "Academy",
     "satelliteCenter": "Satellite centre",
-    "peaceMonumentCond": "attacked nobody for 5 rounds",
-    "stateBankCond": "saved up 500 stars",
-    "victoryColumnCond": "destroyed 10 enemy units",
-    "worldTradeCenterCond": "5 cities connected to the HQ",
-    "governmentPalaceCond": "brought a city to level 5",
+    "peaceMonumentCond": "attacked nobody for {peaceRounds} rounds",
+    "stateBankCond": "saved up {bankStars} stars",
+    "victoryColumnCond": "destroyed {victoryKills} enemy units",
+    "worldTradeCenterCond": "{tradeCities} cities connected to the HQ",
+    "governmentPalaceCond": "brought a city to level {palaceLevel}",
     "academyCond": "researched all technologies",
     "satelliteCenterCond": "discovered all four radar stations",
     "title": "Grand projects",
-    "desc": "Free, 3 population points and 400 points",
+    "desc": "Free, {grandPop} population points and {grandPoints} points",
     "unlocked": "unlocked",
     "built": "built",
     "locked": "locked"
@@ -615,7 +615,7 @@
     "highAltitude": "Defence bonus in mountains",
     "camouflage": "Defence bonus in forests",
     "coastalDefense": "Defence bonus on water",
-    "cybernetics": "33 % discount on all further technologies",
+    "cybernetics": "{cyberPct} % discount on all further technologies",
     "intelligence": "Embassies",
     "fortification": "Outposts",
     "fiveYearPlan": "Own more than {pct} % of all cities on the map (villages count). Victory at the start of your turn.",
@@ -650,19 +650,19 @@
     "title": "{city} reaches level {level}",
     "choose": "Choose a reward",
     "factory": "Factory hall",
-    "factoryDesc": "4 more stars per round",
+    "factoryDesc": "{factoryStars} more stars per round",
     "drone": "Recon drone",
     "droneDesc": "reveals a large area",
     "bunkerRing": "Bunker ring",
-    "bunkerRingDesc": "Defence bonus 4.0 in the city",
+    "bunkerRingDesc": "Defence bonus ×{bunkerRingDef} in the city",
     "stars": "Stars",
-    "starsDesc": "15 stars right away",
+    "starsDesc": "{rewardStars} stars right away",
     "expand": "Border expansion",
-    "expandDesc": "City territory grows by a full ring: at least to 5 x 5, at most to 7 x 7 tiles",
+    "expandDesc": "City territory grows by a full ring: at least to {expandMin} x {expandMin}, at most to {expandMax} x {expandMax} tiles",
     "population": "Influx",
-    "populationDesc": "3 population points right away",
+    "populationDesc": "{rewardPop} population points right away",
     "govQuarter": "Government quarter",
-    "govQuarterDesc": "4 more stars per round and 250 points",
+    "govQuarterDesc": "{govStars} more stars per round and {govPoints} points",
     "tank": "Tank",
     "tankDesc": "a tank appears in the city"
   },
@@ -701,7 +701,7 @@
     "crashWarningConfirm": "End anyway",
     "pendingReward": "Choose a city reward first.",
     "noIncomeNext": "No income next round",
-    "slowed": "Slowed: 1 tile only",
+    "slowed": "Slowed: {slowedMove} tile only",
     "perRoundUpkeep": "{net} per round ({n} income, −{up} upkeep)",
     "upkeepUnit": "Upkeep {n} per round",
     "upkeepUnitApprox": "Upkeep about {n} per round",
@@ -787,9 +787,9 @@
     "generic": "Something went wrong.",
     "noResearch": "Your faction does not research.",
     "notTerraformed": "Terraform the city tile first.",
-    "wrongFaction": "Only the Zyrr can do that.",
+    "wrongFaction": "Your faction cannot do that.",
     "notPreacher": "This unit cannot recruit.",
-    "computeMissing": "Not enough compute. Build data centers and power plants.",
+    "computeMissing": "Not enough compute. Build data centres and power plants.",
     "cultRecruit": "The cult does not train in cities. Its troops recruit in the field.",
     "cityLevel": "The city needs a higher level.",
     "mineLimit": "At most {n} mines per faction.",
@@ -802,7 +802,7 @@
     "noRockets": "No rockets left. Reload in an own city with a depot.",
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
-    "quake": "Earthquake: vehicles and mechs cannot move this round.",
+    "quake": "Earthquake: only foot troops can move this round.",
     "emplacementSpacing": "Too close to another own gun emplacement.",
     "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "recruitCooldown": "Recruiting is not ready again yet.",
@@ -821,7 +821,7 @@
     "capture": "{name} captures {city}",
     "levelUp": "{city} grows to level {level}",
     "research": "{tech} researched",
-    "veteran": "A {unit} becomes a veteran: +{hp} max HP, fully healed",
+    "veteran": "{unit} becomes a veteran: +{hp} max HP, fully healed",
     "bunkerStars": "Bunker searched: {n} stars",
     "bunkerTech": "Bunker searched: free technology",
     "bunkerPopulation": "Bunker searched: {pop} population points for the HQ",
@@ -854,7 +854,7 @@
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
     "verdanActive": "Verdan defence line activated!",
-    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into outposts and bunkers!",
+    "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!",
     "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
   },
   "fx": {
@@ -993,7 +993,7 @@
     "done": "Let's go!",
     "s1": "Welcome to Frontverlauf! You lead the People's League of Korvat. This is your headquarters.",
     "s2": "Tap your infantry to select it. Green rings show where it can move.",
-    "s3": "Move the infantry to the neutral settlement with the yellow ring. It moves two tiles per turn; if the settlement is further away, end your turn in between.",
+    "s3": "Move the infantry to the neutral settlement with the yellow ring. It moves {infantryMove} tiles per turn; if the settlement is further away, end your turn in between.",
     "s4": "Well done! Now end your turn. Capturing is only possible at the start of your next turn.",
     "s5": "Select the infantry and tap Capture. The settlement becomes your city.",
     "s6": "Stars are the only currency. Open research and research a technology.",
@@ -1102,7 +1102,7 @@
       "work": "Let the scientist work on the mothership for {n} rounds, by round {rounds}",
       "workPanel": "Let the scientist work on the mothership for {n} rounds ({have}/{n})",
       "scientist": "The scientist must not fall",
-      "scientistHp": "The scientist never drops below {share}% of his HP",
+      "scientistHp": "The scientist never drops below {share} % of his HP",
       "plans": "Seize the war plans from the Fanatic temple and bring them to your HQ by round {rounds}",
       "plansKept": "The carrier never loses the war plans",
       "plansTemple": "War plans: in the temple",
@@ -1235,7 +1235,7 @@
         "title": "Hold Your Ground",
         "tagline": "Hold the headquarters and smash the onslaught",
         "brief": [
-          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters and shoot ten machines to scrap, then the onslaught collapses!",
+          "{leader} to all units: NEXUS attacks with everything that rolls and flies. Hold the headquarters and shoot five machines to scrap, then the onslaught collapses!",
           "RESISTANCE CALCULATED. RESULT: BRIEF. PLEASE REMAIN IN YOUR SEATS.",
           "Spiders, drones, railguns, and at the end comes a titan. The bunker holds. Hopefully."
         ],
@@ -1307,7 +1307,7 @@
           "Kkt ... Mother? Mother is silent. The rift ate us and spat us out here. No matter. The swarm builds a new nest, and you are the food.",
           "KERN-0: LOCATION UNKNOWN. SUN TOO SMALL. TWO MOONS. RECALCULATING ... OBJECTIVE UNCHANGED: THE ARTIFACT.",
           "You see? This is the Final Hour! The world has already burned, and we are its ashes. Brothers, sisters, take whatever still stands.",
-          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then two more outposts, before the others contest the sand."
+          "{leader} here. The scouts have spotted a ruin with red and white wings, a Verdan outpost, abandoned for generations. Gather there and take it, that will be our base. Then three more outposts, before the others contest the sand."
         ],
         "won": "The outpost is ours. Above the gate the Verdan emblem still hangs, red and white, with wings. What were they looking for here?",
         "lost": "The sand has swallowed us. One day someone will find our helmets among the giant bones.",
@@ -1441,7 +1441,7 @@
     "region": "Area around tile {x}, {y}",
     "storm": {
       "title": "Storm front!",
-      "body": "A storm rages over the troops of {name}: {n} units move only 1 tile this round."
+      "body": "A storm rages over the troops of {name}: {n} units move only {slowedMove} tile this round."
     },
     "epidemic": {
       "title": "Epidemic in {city}!",
@@ -2222,19 +2222,19 @@
     "snow": "Snow",
     "wind": "Wind",
     "clearDesc": "no effects",
-    "rainDesc": "Artillery range -1, helicopter movement -1; with hit luck, more misses and grazes",
-    "snowDesc": "Jeeps, tanks, artillery, flak tanks and mine layers move 1 tile less; with hit luck, more misses (aliens freeze most)",
-    "windDesc": "Helicopters burn 2 fuel per round; with hit luck, ranged units and flyers miss more often",
+    "rainDesc": "Artillery and Sun Lance range -1, helicopter and octocopter movement -1; with hit luck, more misses and grazes",
+    "snowDesc": "All vehicles (walkers and mechs too) move 1 tile less, at least 1; with hit luck, more misses (aliens freeze most)",
+    "windDesc": "Helicopters burn {windFuel} fuel per round; with hit luck, ranged units and flyers miss more often",
     "forecast": "from round {round}: {weather}",
-    "setupHint": "Changes every 3 rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely).",
+    "setupHint": "Changes every {weatherCycle} rounds. Rain, snow and wind slow certain units and, with hit luck, raise the miss chance (wind only for ranged units and flyers, robots barely).",
     "dust": "Dust storm",
     "dustDesc": "Vision 1 tile less, units with range 2 or more lose 1 range, helicopters move 1 tile less; with hit luck, clearly more misses",
     "meteor": "Meteor shower",
-    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside outposts and bunkers, never lethal",
+    "meteorDesc": "At the start of each round 1 to 2 damage to every unarmoured unit (foot troops) outside cities and bunkers, never lethal",
     "acid": "Acid rain",
     "acidDesc": "At the start of each round 1 to 2 damage to every unit that is not Zyrr, outside cities and bunkers, never lethal; with hit luck more misses and grazes, as in rain",
     "quake": "Earthquake",
-    "quakeDesc": "Vehicles, mechs, walkers and machines cannot move this round; foot troops move, attacks and Verdan guns carry on",
+    "quakeDesc": "Only foot troops can move this round, vehicles, walkers, flyers and ships stand still; attacks and Verdan guns carry on",
     "calm": "Calm",
     "calmDesc": "The cavern is calm, no effects"
   },
@@ -2676,18 +2676,18 @@
     "radioTower": "Radio tower",
     "bunker": "Bunker",
     "barracks": "Drill hall",
-    "radioTowerDesc": "Reveals a hidden 5 x 5 tile area within 6 tiles, once.",
-    "bunkerDesc": "Own units in this city get +2 defence.",
-    "barracksDesc": "Units trained here start as veterans (+5 max HP).",
+    "radioTowerDesc": "Reveals a hidden {radioArea} x {radioArea} tile area within {radioRange} tiles, once.",
+    "bunkerDesc": "Own units in this city get +{bunkerDef} defence.",
+    "barracksDesc": "Units trained here start as veterans (+{veteranHp} max HP).",
     "radioHint": "Tap a highlighted tile to reveal the area.",
     "noTargets": "Nothing hidden left within range.",
     "hospital": "Field hospital",
     "flak": "Anti-aircraft",
     "depot": "Depot",
-    "hospitalDesc": "Own units on and next to the city heal 2 HP more.",
-    "flakDesc": "Hostile flyers (helicopters, skimmers, drones) ending their turn next to the city take 3 damage.",
-    "depotDesc": "5 more stars per round. Battle mechs reload their rockets here at the start of the own turn.",
-    "full": "All 3 slots are taken.",
+    "hospitalDesc": "Own units on and next to the city heal {hospitalHeal} HP more.",
+    "flakDesc": "Hostile flyers (helicopters, skimmers, drones) ending their turn next to the city take {cityFlakDamage} damage.",
+    "depotDesc": "{depotIncome} more stars per round. Battle mechs reload their rockets here at the start of the own turn.",
+    "full": "All {upgradeSlots} slots are taken.",
     "unlock": "City upgrade: {name}",
     "lockedHint": "More upgrades are unlocked by research ({n}).",
     "lockedHintLevel": "More upgrades at a higher city level ({n}).",
@@ -2708,7 +2708,7 @@
     "terraform": "Terraform",
     "terraformHint": "Tap a highlighted tile to turn it into xeno ground.",
     "ground": "Xeno ground",
-    "groundDesc": "Alien units: defence 1.5 and +2 healing. Aliens only heal on xeno ground.",
+    "groundDesc": "Alien units: defence ×{xenoDef} and +{xenoHeal} healing. Aliens only heal on xeno ground.",
     "cityNeedsTerraform": "Terraform first: training only on xeno ground.",
     "noResearch": "The Zyrr need no research. Their units are available right away."
   },
@@ -2737,9 +2737,9 @@
   "nexus": {
     "compute": "Compute",
     "computeNeed": "Needs {n} compute",
-    "noResearch": "NEXUS does not research. Build data centers and power plants for more compute.",
-    "computeState": "Compute {have} ({dc} data centers, {pp} power plants)",
-    "computeStateDepot": "Compute {have} ({dc} data centers, {pp} power plants, {dn} depot nodes)"
+    "noResearch": "NEXUS does not research. Build data centres and power plants for more compute.",
+    "computeState": "Compute {have} ({dc} data centres, {pp} power plants)",
+    "computeStateDepot": "Compute {have} ({dc} data centres, {pp} power plants, {dn} depot nodes)"
   },
   "hazards": {
     "title": "Map features",
@@ -2756,13 +2756,13 @@
     "jungle": "Jungle",
     "jungleDesc": "Every step in or out ends the move. Vehicles only as their first step. Foot troops: cover {def}.",
     "crash": "Crash site",
-    "crashDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
-    "crashLooted": "Crash site (salvaged): cover +1",
+    "crashDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +{wreckCover}.",
+    "crashLooted": "Crash site (salvaged): cover +{wreckCover}",
     "eruption": "Volcanic eruption!",
     "salvaged": "Crash site salvaged: +{n} stars",
     "lab": "Abandoned research facility",
-    "labDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
-    "labLooted": "Research facility (salvaged): cover +1",
+    "labDesc": "Salvage: a free technology up to tier {tier}, otherwise {n} stars, plus recon. Cover +{wreckCover}.",
+    "labLooted": "Research facility (salvaged): cover +{wreckCover}",
     "salvagedTech": "Salvaged: technology {tech}"
   },
   "counter": {
@@ -2785,7 +2785,7 @@
     "perk2": "Second bonus",
     "unit": "Signature unit",
     "discount": "Discount",
-    "discountValue": "{unit} −{pct}%",
+    "discountValue": "{unit} −{pct} %",
     "building": "Own building",
     "resource": "Resource building",
     "leader": "Leader",
@@ -3342,7 +3342,7 @@
   },
   "hit": {
     "title": "Hit luck",
-    "setupHint": "Attacks can miss, graze, partly hit or land a critical hit (0 to 150 % damage). Weather and race change the odds.",
+    "setupHint": "Attacks can miss, graze, partly hit or land a critical hit ({hitMin} to {hitMax} % damage). Weather and race change the odds.",
     "miss": "Miss",
     "graze": "Graze",
     "partial": "Partial hit",
@@ -3367,12 +3367,12 @@
     "worn": "damaged: less accurate",
     "hintLuck": "Hit luck: the result ranges from a miss to a critical hit.",
     "unit": {
-      "teslaTank": "Tesla: high damage, {miss}% miss",
-      "railSniper": "Railgun: precise, {miss}% miss"
+      "teslaTank": "Tesla: high damage, {miss} % miss",
+      "railSniper": "Railgun: precise, {miss} % miss"
     },
     "unitDesc": {
-      "teslaTank": "Own hit odds: often misses ({miss}%), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit}%).",
-      "railSniper": "Own hit odds: machine precision, only {miss}% misses and {crit}% critical hits."
+      "teslaTank": "Own hit odds: often misses ({miss} %), but attack {atk} instead of the tank's {base}; critical hits remain possible ({crit} %).",
+      "railSniper": "Own hit odds: machine precision, only {miss} % misses and {crit} % critical hits."
     },
     "unitRule": "Own hit odds of single units:",
     "factionCrit": {
@@ -3384,7 +3384,7 @@
   },
   "retreat": {
     "action": "Orderly retreat (−{dmg})",
-    "desc": "Fires with 20 % damage without return fire and falls back one tile. Then a 2-round cooldown.",
+    "desc": "Fires with {retreatPct} % damage without return fire and falls back one tile. Then a {retreatCooldown}-round cooldown.",
     "cooldown": "Retreat ready in {n} rounds",
     "fx": "Retreat"
   },
@@ -3546,11 +3546,11 @@
     },
     "combat": {
       "title": "Combat & hit luck",
-      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Tanks drive 3 tiles and fire 2 tiles, but strike back only at 1 tile. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes. Firing after moving: a unit that first moves and then attacks in the same turn deals only {move} % damage, and only then is hit luck rolled. This applies to melee, ranged attacks, rockets, guns and splash damage. A unit that stands still fires at full strength, and the defender's return fire stays unchanged."
+      "text": "Select a unit, then an enemy in range. The attack button shows the preview: expected damage with its range, such as “≈4 damage (0–6)”, the kill chance and the return fire. A surviving defender strikes back if it can reach the attacker. Tanks drive {tankMove} tiles and fire {tankRange} tiles, but strike back only at {tankReturn} tile. Hit luck (optional) sets the damage: miss {miss} %, graze {graze} %, partial hit {partial} %, full hit {full} %, critical {crit} %. Every race has its own odds and the weather shifts them. Counter units deal more damage to certain classes. Firing after moving: a unit that first moves and then attacks in the same turn deals only {move} % damage, and only then is hit luck rolled. This applies to melee, ranged attacks, rockets, guns and splash damage. A unit that stands still fires at full strength, and the defender's return fire stays unchanged."
     },
     "cover": {
       "title": "Cover",
-      "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+      "text": "Units with “Garrison” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching research, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
     },
     "abilities": {
       "title": "Abilities (retreat, repair, rockets)",
@@ -3562,7 +3562,7 @@
     },
     "outposts": {
       "title": "Outposts",
-      "text": "With {tech}, foot troops build an outpost on their tile for {cost} stars. Foot troops on it defend ×{def}. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
+      "text": "With {tech}, infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) build an outpost on their tile for {cost} stars and defend ×{def} on it. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
     },
     "diplomacy": {
       "title": "Diplomacy",
@@ -3579,7 +3579,7 @@
     },
     "cult": {
       "title": "Cult: plunder & horde",
-      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half}% the second time, {quarter}% after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
+      "text": "The Cult of the Final Hour plays differently: when it takes a village or city, it plunders it for {base} stars plus {level} per city level ({hq} more for a headquarters); the same city brings loot again only after {again} rounds, {half} % the second time, {quarter} % after that. Cult cities bring no income, do not grow and do not train. They only provide slots for the horde (level + 1, own headquarters +{hqSlots}, shrine +{shrine}), plus {cap} base slots. Zealots, torchbearers, rocket zealots, prophets and doom crawlers call up new units onto a free adjacent tile for stars, then a cooldown of {cooldown} rounds; the prophet also calls up the earth-core drill. The cult pays no upkeep, the horde brings a tithe ({tithe} stars per unit, at most {titheMax} per round and {titheRival} per rival faction), every plundered star counts {score} points ({scoreDuel} in a duel, more the more rivals). If the cult has no unit left, it is eliminated and its cities turn neutral."
     },
     "judgement": {
       "title": "Sin and Judgement",
@@ -3587,11 +3587,11 @@
     },
     "sites": {
       "title": "Production sites (humans)",
-      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters has barracks built in. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
+      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters and transmitter tower has barracks built in, Korvat and Dravon have them in every own city, and Dravon's headquarters also has a motor pool. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
     },
     "ships": {
       "title": "Ships and shipyard",
-      "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price: humans need {base} or {dock} in the city, the cult and NEXUS the matching research. The cult and NEXUS need {tech} for boats as for embarking; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
+      "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The landing boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price: humans need {base} or {dock} in the city, the cult and NEXUS the matching research. The cult and NEXUS need {tech} for boats as for embarking; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
     },
     "doctrines": {
       "title": "Doctrines (humans)",
@@ -3754,8 +3754,8 @@
       "bunkerTech": "Bunker searched: free doctrine"
     },
     "hazards": {
-      "crashDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +1.",
-      "labDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon. Cover +1.",
+      "crashDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon; the Zyrr get a hover skimmer. Cover +{wreckCover}.",
+      "labDesc": "Salvage: a free doctrine up to tier {tier}, otherwise {n} stars, plus recon. Cover +{wreckCover}.",
       "salvagedTech": "Salvaged: doctrine {tech}"
     },
     "history": {
@@ -3774,7 +3774,7 @@
       "academyCond": "adopted all doctrines"
     },
     "techExtra": {
-      "cybernetics": "33 % discount on all further doctrines"
+      "cybernetics": "{cyberPct} % discount on all further doctrines"
     },
     "victory": {
       "noTech": "Victory doctrine not adopted yet",
@@ -3788,7 +3788,7 @@
         "text": "All factions take turns one after another; a round ends when everyone has moved. At the start of your turn stars come in: {city} per city level, {hq} extra for the headquarters, plus bonuses from buildings, rewards and embassies. Stars are the only currency for units, buildings, production sites, doctrines and upgrades. You start with {start} stars."
       },
       "cover": {
-        "text": "Units with “Dig in” defend ×{city} in own cities, ×{bunker} with a {ring}. Foot troops on an own outpost defend ×{outpost}. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
+        "text": "Units with “Garrison” defend ×{city} in own cities, ×{bunker} with a {ring}. Infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) defend ×{outpost} on an own outpost. With the matching doctrine, forests, mountains and (for ships) coasts defend ×{terrain}. Troops and tanks in forests or cities also defend ×{ranged} against ranged attacks from two or more tiles. Fliers get no cover. The tile panel shows the cover."
       },
       "cities": {
         "title": "Cities & production",
@@ -3798,7 +3798,7 @@
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
       },
       "ships": {
-        "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The transport boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price and need {base} or {dock} in the city. The cult and NEXUS need {tech} for boats; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
+        "text": "Every city with water in its territory or right next to the city tile buys ships under “Troops”; they launch empty on a free water tile at the city (shallow first, ocean only with diving). The landing boat costs {boat} stars and needs no base: a land unit moves onto it from an adjacent tile, boards and is ferried across. An empty ship has hull HP ({hull} for the boat) and cannot go ashore; the empty boat does not attack. Warships cost their upgrade price and need {base} or {dock} in the city. The cult and NEXUS need {tech} for boats; the Zyrr wade and have no ships. As before: at an own {base} a land unit becomes a landing boat for free, ships upgrade in own territory, and whoever moves ashore becomes the carried unit again."
       }
     },
     "orbital": {
@@ -3997,7 +3997,7 @@
     "tag": "Entrenched",
     "tagDesc": "Has not moved for a whole turn: attacks on it miss {pct} percentage points more often. Lost with the next move.",
     "hint": "Target entrenched: +{pct} % miss chance",
-    "desc": "Korvat ground units that do not move for a whole own turn dig in: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
+    "desc": "Korvat ground units that do not move for a whole own turn entrench: every attack on them, return fire and guns included, misses {pct} percentage points more often (taken from full hits); without hit luck the damage drops by the same expected value. The next move ends it."
   },
   "kamikaze": {
     "note": "Explodes: the drone is destroyed afterwards, no return fire",

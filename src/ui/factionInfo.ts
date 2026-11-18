@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { CULT, EMPLACEMENT, FACTIONS, HIT, ENTRENCH, HOME_DEFENSE, MARTYR, MOVE_FIRE, RANGE_BONUS, RESOURCE, SIN, UNITS, type BuildingId, type FactionId, type UnitTypeId, UPKEEP } from '../data/balance';
+import { CULT, EMPLACEMENT, FACTIONS, HIT, ENTRENCH, HOME_DEFENSE, MOVE_FIRE, RANGE_BONUS, RESOURCE, UNITS, type BuildingId, type FactionId, type UnitTypeId, UPKEEP } from '../data/balance';
 import { factionRace } from '../core';
 import { has, num, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -99,18 +99,11 @@ export function featureParams(f: FactionId): Record<string, string | number> {
   return { cost: EMPLACEMENT.cost, range: EMPLACEMENT.range };
 }
 
-/**
- * Zahlen fuer die Merkmalstexte aus balance.ts (Alvenia: Strafgericht und Maertyrer-Segen).
- * Numbers for the trait texts from balance.ts (Alvenia: Judgement and Martyr's Blessing).
- */
-export function perkParams(): Record<string, number> {
-  return { pct: Math.round(SIN.judgement * 100), rounds: SIN.rounds, heal: MARTYR.heal, def: Math.round(MARTYR.defense * 100), blessRounds: MARTYR.rounds };
-}
-
 /** Merkmale einer Fraktion / traits of a faction */
 export function factionTraits(f: FactionId): FactionTrait[] {
   const out: FactionTrait[] = [];
-  const k = (s: string) => t(`factions.${f}.${s}`, perkParams());
+  // Zahlen der Merkmalstexte kommen aus BALANCE_VARS (i18n) / numbers of the trait texts come from BALANCE_VARS (i18n)
+  const k = (s: string) => t(`factions.${f}.${s}`);
   out.push({ kind: 'perk', icon: 'star', label: t('traits.perk'), value: k('perk'), desc: k('perkDesc') });
   if (has(`factions.${f}.perk2`)) out.push({ kind: 'perk2', icon: 'star', label: t('traits.perk2'), value: k('perk2'), desc: has(`factions.${f}.perk2Desc`) ? k('perk2Desc') : '' });
   // Fraktionsmerkmal (Dravon: Festungsbau), Zahlen aus balance.ts / faction feature (Dravon: fortress building), numbers from balance.ts
