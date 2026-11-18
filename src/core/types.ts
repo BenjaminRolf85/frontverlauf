@@ -65,7 +65,21 @@ export interface Tile {
    * Gun of the old Verdan defence line (neutral, impassable); active = awake and firing.
    * With owner: gun emplacement of that faction (fortification, EMPLACEMENT), always active; missing = neutral (old saves).
    */
-  turret?: { hp: number; active: boolean; owner?: number } | null;
+  turret?: { hp: number; active: boolean; owner?: number;
+    /**
+     * Art des Bauwerks: fehlt = Geschuetz (Verdan oder Stellung); 'silo' = Raketensilo (Meridon, SILO), feuert nie von selbst;
+     * ready = Runde, ab der das Silo wieder starten kann.
+     * Kind of structure: missing = gun (Verdan or emplacement); 'silo' = rocket silo (Meridon, SILO), never fires on its own;
+     * ready = round from which the silo can launch again.
+     */
+    kind?: 'silo'; ready?: number } | null;
+  /**
+   * Brand nach einem Raketeneinschlag (SILO): brennt bis einschliesslich Runde until; owner = Fraktion des Silos (Abschuesse).
+   * Fehlt = brennt nicht (auch alte Spielstaende).
+   * Fire after a rocket impact (SILO): burns until and including round until; owner = faction of the silo (kills).
+   * Missing = not burning (old saves too).
+   */
+  fire?: { until: number; owner: number } | null;
   /** Truemmer eines zerstoerten Geschuetzes (optisch) / rubble of a destroyed gun (visual) */
   turretRuin?: boolean;
   /** Fraktion der zerstoerten Stellung (nur Optik der Truemmer) / faction of the destroyed emplacement (rubble look only) */
@@ -184,6 +198,17 @@ export interface Unit {
    * the next move (missing = no).
    */
   entrenched?: boolean;
+  /**
+   * Absetzen (WITHDRAW, Meridon): nach dem eigenen Angriff ohne vorherige Bewegung darf die Einheit noch zurueckweichen
+   * (fehlt = nein). Faellt mit der Bewegung und zu Beginn des naechsten eigenen Zuges.
+   * Withdraw (WITHDRAW, Meridon): after its own attack without a prior move the unit may still fall back (missing = no).
+   * Falls with the move and at the start of the next own turn.
+   */
+  withdraw?: boolean;
+  /** Sabotage wieder moeglich ab dieser Runde (fehlt = sofort) / sabotage possible again from this round (missing = now) */
+  sabotageReady?: number;
+  /** Radarimpuls wieder moeglich ab dieser Runde (fehlt = sofort) / radar sweep possible again from this round (missing = now) */
+  sweepReady?: number;
   /** stand zu Beginn des Zuges hier (fuer Einnahme) / stood here at turn start (for capture) */
   startX: number;
   startY: number;
@@ -229,6 +254,15 @@ export interface Faction {
   plunder?: number;
   /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
   orbitalReady?: number;
+  /**
+   * Sichtungen (SIGHTING: Aufklaerungsdrohne, Funkturm): im Umkreis r um (x, y) sieht die Fraktion bis einschliesslich Runde
+   * until alle feindlichen Einheiten (fehlt = keine, auch alte Spielstaende).
+   * Sightings (SIGHTING: recon drone, radio tower): within radius r of (x, y) the faction sees all hostile units until and
+   * including round until (missing = none, old saves too).
+   * Radarimpuls (RADAR): unit = Radarwagen, (x, y) folgt ihm; faellt er, endet der Impuls.
+   * Radar sweep (RADAR): unit = Radar Truck, (x, y) follows it; if it falls, the sweep ends.
+   */
+  sightings?: { x: number; y: number; r: number; until: number; unit?: number }[];
 }
 
 export interface PendingReward {
@@ -517,7 +551,7 @@ export type GameEvent =
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
   | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number; kamikaze?: boolean }
   /** Geschuetzstellung gebaut / gun emplacement built */
-  | { t: 'emplacement'; x: number; y: number; faction: number }
+  | { t: 'emplacement'; x: number; y: number; faction: number; kind?: 'silo' }
   /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */
   | { t: 'emplacementLost'; x: number; y: number; faction: number; reason: 'territory' | 'eliminated' }
   /**
@@ -540,6 +574,16 @@ export type GameEvent =
    * Campaign m4, war plans: seized, picked up, dropped, taken back by the cult, delivered (x, y = spot).
    */
   | { t: 'plans'; what: 'seized' | 'picked' | 'dropped' | 'returned' | 'delivered'; faction: number; unit?: number; x: number; y: number }
+  /**
+   * Schattenflotte (Meridon): Sabotage (what = zerstoerte Sache, victim = Fraktion), Radarimpuls, Raketenstart (from = Silo,
+   * x, y = linke obere Ecke der Flaeche), Brandschaden zu Rundenbeginn.
+   * Shadow fleet (Meridon): sabotage (what = destroyed thing, victim = faction), radar sweep, rocket launch (from = silo,
+   * x, y = top-left corner of the area), fire damage at the start of the round.
+   */
+  | { t: 'sabotage'; unit: number; x: number; y: number; what: 'outpost' | 'building' | 'road'; building?: BuildingId; faction: number; victim: number }
+  | { t: 'radarSweep'; unit: number; x: number; y: number; radius: number; until: number; faction: number }
+  | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
+  | { t: 'fireHit'; hits: { unit: number; dmg: number; x: number; y: number }[] }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 /** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
@@ -586,6 +630,12 @@ export type Command =
   | { type: 'workShip'; unit: number }
   /** Kampagne m4: Kriegsplaene am Tempel bergen oder fallen gelassene aufheben / campaign m4: seize the war plans at the temple or pick up dropped ones */
   | { type: 'seizePlans'; unit: number }
+  /** Schattenkommando: Sabotage auf (x, y) / Shadow Commando: sabotage on (x, y) */
+  | { type: 'sabotage'; unit: number; x: number; y: number }
+  /** Radarwagen: Radarimpuls / Radar Truck: radar sweep */
+  | { type: 'radarSweep'; unit: number }
+  /** Raketensilo auf (x, y) startet auf das Zielfeld (tx, ty) / rocket silo at (x, y) launches at the target tile (tx, ty) */
+  | { type: 'siloLaunch'; x: number; y: number; tx: number; ty: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -605,7 +655,9 @@ export type ErrorCode =
   // Werft: keine Kueste bzw. kein freies Wasserfeld an der Stadt / shipyard: no coast or no free water tile at the city
   | 'noCoast' | 'noWaterTile'
   // Stufe kaufen: in dieser Runde schon gekauft / buy level: already bought this round
-  | 'alreadyBought';
+  | 'alreadyBought'
+  // Schattenflotte: Silo, Sabotage und Radar noch gesperrt, kein Ziel / shadow fleet: silo, sabotage and radar still locked, no target
+  | 'siloCooldown' | 'sabotageCooldown' | 'radarCooldown' | 'noTarget' | 'siloLimit';
 
 export interface CommandResult {
   ok: boolean;

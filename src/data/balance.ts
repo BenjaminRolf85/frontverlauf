@@ -49,7 +49,15 @@ export type AlveniaUnitId = 'lightWarden' | 'reliquary' | 'sunLance';
  * Korvat faction variant: Steppe Colossus instead of the tank (see VARIANTS).
  */
 export type KorvatUnitId = 'steppeColossus';
-export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId | KorvatUnitId;
+/**
+ * Schattenflotte der Handelsliga Meridon: Schattenkommando statt MG, Lenkflugkoerper statt Artillerie (und statt des Panzers,
+ * den Meridon nicht baut), Nebelkutter statt Transportboot, dazu der Radarwagen (siehe VARIANTS, ROSTER_EXTRA, SHADOW_FLEET).
+ * Shadow fleet of the Meridon Trade League: Shadow Commando instead of the MG, Guided Missile instead of artillery (and
+ * instead of the tank Meridon does not build), Fog Cutter instead of the transport boat, plus the Radar Truck (see VARIANTS,
+ * ROSTER_EXTRA, SHADOW_FLEET).
+ */
+export type MeridonUnitId = 'shadowCommando' | 'fogCutter' | 'guidedMissile' | 'radarTruck';
+export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId | KorvatUnitId | MeridonUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
   | 'invisible' | 'uprising' | 'fly' | 'fuel' | 'submerged' | 'splash' | 'carry' | 'terraform' | 'deathRay' | 'walker' | 'preach' | 'burn' | 'wade'
@@ -61,6 +69,9 @@ export type Ability =
   // Kamikaze (NEXUS-Laufdrohne): der Angriff ist die Explosion, kein Gegenschlag, die Einheit ist danach zerstoert (KAMIKAZE)
   // kamikaze (NEXUS walker drone): the attack is the explosion, no return fire, the unit is destroyed afterwards (KAMIKAZE)
   | 'kamikaze'
+  // Meridon: Tarnung (unsichtbar ohne Nachbarn, siehe CAMO), Sabotage (SABOTAGE), Radarimpuls (RADAR)
+  // Meridon: camouflage (invisible without neighbours, see CAMO), sabotage (SABOTAGE), radar sweep (RADAR)
+  | 'camo' | 'sabotage' | 'radar'
   // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
   | 'wonder'
   // Endgegner: kein Sold, nicht bekehrbar, nimmt nichts ein, Faehigkeiten siehe SWARM_MOTHER / boss: no upkeep, not convertible, captures nothing, abilities see SWARM_MOTHER
@@ -329,6 +340,19 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 3 and
   // range 2 like the tank (measured, see BALANCING.md)
   steppeColossus: { cost: 60, hp: 55, attack: 7.5, defense: 4.5, move: 3, range: 2, vision: 1, abilities: ['dash'], tech: null, ship: false, faction: 'korvat', returnRange: 1 },
+  // Meridon-Schattenflotte (siehe SHADOW_FLEET) / Meridon shadow fleet (see SHADOW_FLEET)
+  // Schattenkommando statt MG: leicht, 2 Felder, getarnt (CAMO), schwacher Angriff, sabotiert Strassen, Aussenposten und Gebaeude
+  // Shadow Commando instead of the MG: light, 2 tiles, camouflaged (CAMO), weak attack, sabotages roads, outposts and buildings
+  shadowCommando: { cost: 20, hp: 8, attack: 2, defense: 1.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'camo', 'sabotage'], tech: null, ship: false, faction: 'meridon' },
+  // Nebelkutter statt Transportboot: getarnt, traegt eine Einheit (Kaufpreis SHIPYARD.fogCutterCost, cost = Aufruestpreis 0 wie beim Landungsboot)
+  // Fog Cutter instead of the transport boat: camouflaged, carries one unit (price SHIPYARD.fogCutterCost, cost = upgrade price 0 as for the landing boat)
+  fogCutter: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry', 'camo'], tech: null, ship: true, faction: 'meridon' },
+  // Lenkflugkoerper statt Artillerie: fliegt 5 Felder, explodiert beim Angriff (Kamikaze, ein Ziel), keine Rassen-Boni
+  // Guided Missile instead of artillery: flies 5 tiles, explodes when attacking (kamikaze, one target), no race bonuses
+  guidedMissile: { cost: 20, hp: 4, attack: 3.2, defense: 0.5, move: 5, range: 1, vision: 1, abilities: ['dash', 'fly', 'kamikaze'], tech: null, ship: false, faction: 'meridon' },
+  // Radarwagen: unbewaffnet, Radarimpuls (RADAR) zeigt feindliche Einheiten im Umkreis auch unter den Wolken
+  // Radar Truck: unarmed, radar sweep (RADAR) shows hostile units in the radius even under the clouds
+  radarTruck: { cost: 25, hp: 10, attack: 0, defense: 1.5, move: 2, range: 0, vision: 2, abilities: ['radar'], tech: null, ship: false, faction: 'meridon' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -386,6 +410,7 @@ export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', '
 export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
 export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance'];
 export const KORVAT_UNITS: KorvatUnitId[] = ['steppeColossus'];
+export const MERIDON_UNITS: MeridonUnitId[] = ['shadowCommando', 'fogCutter', 'guidedMissile', 'radarTruck'];
 
 /**
  * Fraktionsvarianten: die eigene Bauart ersetzt eine Grundeinheit in Liste, Stadtbelohnung und Kampagnen-Verstaerkung.
@@ -400,6 +425,21 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
   alvenia: { infantry: 'lightWarden', tank: 'reliquary', artillery: 'sunLance' },
   // Korvat: Steppenkoloss statt Panzer / Korvat: Steppe Colossus instead of the tank
   korvat: { tank: 'steppeColossus' },
+  // Meridon: Schattenkommando statt MG, Lenkflugkoerper statt Artillerie; Meridon baut keine Panzer, an ihrer Stelle stehen
+  // das Raketensilo (Bauwerk, SILO) und fuer Stadtbelohnung und Kampagnen-Verstaerkung ebenfalls ein Lenkflugkoerper
+  // Meridon: Shadow Commando instead of the MG, Guided Missile instead of artillery; Meridon builds no tanks, their place
+  // is taken by the rocket silo (structure, SILO) and, for the city reward and campaign reinforcements, a Guided Missile too
+  meridon: { mg: 'shadowCommando', artillery: 'guidedMissile', tank: 'guidedMissile' },
+};
+
+/**
+ * Zusaetzliche Landeinheiten einer Fraktion in der Kaufliste (nach den Grundtypen, vor der einzigartigen Einheit).
+ * Meridon: Radarwagen (eigene Einheit statt eines Ersatzes, damit die Konter-Einheiten bleiben).
+ * Extra land units of a faction in the shop list (after the base types, before the unique unit).
+ * Meridon: Radar Truck (an own unit rather than a replacement so the counter units stay).
+ */
+export const ROSTER_EXTRA: Partial<Record<FactionId, UnitTypeId[]>> = {
+  meridon: ['radarTruck'],
 };
 
 /**
@@ -411,7 +451,7 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
 export const VEHICLE_UNITS: UnitTypeId[] = [
   'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
   'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank', 'reliquary', 'sunLance',
-  'steppeColossus', 'flameTank',
+  'steppeColossus', 'flameTank', 'radarTruck',
 ];
 /** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
 export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
@@ -617,6 +657,158 @@ export const TWIN_TRAINING = {
 };
 
 /**
+ * Schattenflotte der Handelsliga Meridon: Tarnung, Absetzen, schwaechere Feuerkraft, Seemacht, Sabotage, Radar und
+ * Raketensilo. Alle Zahlen hier; Entscheidungen in ANNAHMEN.md (Schattenflotte), Werte in BALANCING.md.
+ * Shadow fleet of the Meridon Trade League: camouflage, withdrawal, weaker firepower, sea power, sabotage, radar and rocket
+ * silo. All numbers here; decisions in ANNAHMEN.md (shadow fleet), values in BALANCING.md.
+ */
+export const SHADOW_FLEET = { faction: 'meridon' as FactionId };
+
+/**
+ * Tarnung (Faehigkeit 'camo', nur Schattenkommando und Nebelkutter): fuer Gegner unsichtbar, solange keine ihrer Einheiten,
+ * Staedte oder Bauwerke (Geschuetz, Silo) direkt daneben stehen; ein eigener Angriff oder eine Sabotage enttarnt die Einheit
+ * bis zu ihrem naechsten eigenen Zug (wie das aufgetauchte U-Boot, Unit.revealed), also durch alle gegnerischen Zuege.
+ * Radarimpuls (RADAR) sowie Aufklaerungsdrohne und Funkturm (Sichtung SIGHTING) zeigen getarnte Einheiten ebenfalls.
+ * Camouflage (ability 'camo', only the Shadow Commando and the Fog Cutter): invisible to enemies while none of their units,
+ * cities or structures (gun, silo) stand right next to it; an own attack or sabotage reveals the unit until its next own
+ * turn (like the surfaced submarine, Unit.revealed), i.e. through all enemy turns. The radar sweep (RADAR) as well as the
+ * recon drone and the radio tower (sighting, SIGHTING) show camouflaged units too.
+ */
+export const CAMO = {
+  /** Abstand, ab dem ein Nachbar die Tarnung bricht / distance at which a neighbour breaks the camouflage */
+  revealRange: 1,
+};
+
+/**
+ * Sichtung durch Aufklaerungsdrohne (Stadtbelohnung) und Funkturm (Stadt-Ausbau): zusaetzlich zum Aufdecken der Felder sieht
+ * die Fraktion im selben Umkreis bis zum Ende der Runde alle feindlichen Einheiten, auch getarnte, getauchte und Spione.
+ * Sighting by the recon drone (city reward) and the radio tower (city upgrade): on top of revealing the tiles the faction
+ * sees all hostile units within the same radius until the end of the round, camouflaged, submerged ones and spies too.
+ */
+export const SIGHTING = {
+  /** Runden der Sichtung (1 = nur diese Runde) / rounds of the sighting (1 = this round only) */
+  rounds: 1,
+};
+
+/**
+ * Absetzen (Meridon, Hit and Run): nach dem eigenen Angriff darf eine Landeinheit, die in diesem Zug noch nicht gezogen
+ * ist, bis zu tiles Bewegungspunkte zurueckweichen (normale Kosten, Wald und Kontrollzonen halten an), danach kein Angriff
+ * mehr. Nicht beim Gegenschlag. Ausgenommen: Flieger (Treibstoff, Folgeangriff), Schiffe, Bauwerke; Einheiten mit eigenem
+ * Rueckzug nach dem Angriff (Jeep, 'escape') behalten ihre volle Bewegung.
+ * Withdraw (Meridon, hit and run): after its own attack a land unit that has not moved this turn may fall back up to tiles
+ * movement points (normal costs, forests and control zones stop it), no attack afterwards. Not on return fire. Excluded:
+ * flyers (fuel, follow-up attack), ships, structures; units with their own move after attacking (jeep, 'escape') keep
+ * their full movement.
+ */
+export const WITHDRAW = {
+  factions: ['meridon'] as FactionId[],
+  tiles: 2,
+};
+
+/**
+ * Feuerkraft je Fraktion (Faktor auf den Schaden von Angriff und Gegenschlag, wie die anderen Fraktionsfaktoren vor dem
+ * Trefferglueck). Meridon: Landeinheiten -15 %; Schiffe, Lenkflugkoerper (exempt) und das Raketensilo (Bauwerk) nicht.
+ * Firepower per faction (factor on the damage of attack and return fire, like the other faction factors before hit luck).
+ * Meridon: land units -15 %; ships, Guided Missiles (exempt) and the rocket silo (structure) are not affected.
+ */
+export const FIREPOWER = {
+  land: { meridon: 0.85 } as Partial<Record<FactionId, number>>,
+  exempt: ['guidedMissile'] as UnitTypeId[],
+};
+
+/**
+ * Seemacht: Rabatt der Fraktion auf alle Schiffe (Kauf in der Werft, Aufruesten, auch Kaperschiff und Nebelkutter) und
+ * auf die Gebaeude in buildings. Meridon: 20 %, Marinestuetzpunkt.
+ * Sea power: the faction's discount on all ships (shipyard purchase, upgrades, privateer and Fog Cutter too) and on the
+ * buildings in buildings. Meridon: 20 %, naval base.
+ */
+export const SEA_POWER = {
+  discount: { meridon: 0.2 } as Partial<Record<FactionId, number>>,
+  buildings: ['navalBase'] as BuildingId[],
+};
+
+/**
+ * Sabotage (Faehigkeit 'sabotage', Schattenkommando): zerstoert auf dem eigenen Feld oder einem Nachbarfeld einen
+ * feindlichen Aussenposten, sonst ein Gebaeude im feindlichen Gebiet, sonst eine feindliche Strasse (in dieser Reihenfolge,
+ * eins je Sabotage). Nie Staedte, Grossprojekte, Wunder oder Geschuetze. Nur gegen Fraktionen im Krieg; kostet die Aktion
+ * (erschoepft), enttarnt die Einheit und ist erst nach cooldown Runden wieder moeglich.
+ * Sabotage (ability 'sabotage', Shadow Commando): destroys on the own tile or an adjacent one a hostile outpost, otherwise a
+ * building in hostile territory, otherwise a hostile road (in this order, one per sabotage). Never cities, grand projects,
+ * wonders or guns. Only against factions at war; costs the action (exhausted), reveals the unit and is possible again only
+ * after cooldown rounds.
+ */
+export const SABOTAGE = {
+  cooldown: 2,
+  /** KI: Wert je Art (Sterne-Gegenwert) / AI: value per kind (star equivalent) */
+  ai: { outpost: 22, building: 16, site: 30, road: 7, connectBonus: 8, minValue: 8 },
+};
+
+/**
+ * Radarimpuls (Faehigkeit 'radar', Radarwagen): fuer rounds Runden (diese und die naechste) sieht die Fraktion alle
+ * feindlichen Einheiten im Umkreis radius um den Radarwagen (folgt ihm), auch getarnte, getauchte und Spione und auch unter
+ * den Wolken; die Felder selbst bleiben unerkundet. Kostet die Aktion, danach cooldown Runden Pause.
+ * Radar sweep (ability 'radar', Radar Truck): for rounds rounds (this one and the next) the faction sees all hostile units
+ * within radius of the Radar Truck (follows it), camouflaged, submerged ones and spies too, and also under the clouds; the
+ * tiles themselves stay unexplored. Costs the action, then a cooldown of cooldown rounds.
+ */
+export const RADAR = {
+  radius: 6,
+  rounds: 2,
+  cooldown: 4,
+  /** KI: Impuls, wenn so viele Gegner in enemyRange erwartet werden / AI: sweep when this many enemies are expected within enemyRange */
+  ai: { nearEnemies: 2, enemyRange: 8 },
+};
+
+/**
+ * Raketensilo (Meridon, statt Panzer): Bauwerk wie die Geschuetzstellung (Tile.turret mit owner und kind 'silo'): Pioniere
+ * bauen es auf ein freies Nachbarfeld im eigenen Gebiet, hoechstens perCity je eigener Stadt und max insgesamt, Mindestabstand
+ * minSpacing; unpassierbar, angreifbar (kein Gegenschlag, feuert nie von selbst), geschleift bei Gebietsverlust.
+ * Start: ein Zielfeld in Reichweite launchRange (Schachbrett-Abstand vom Silo, aufgedeckt); die Rakete trifft die 2x2-Flaeche
+ * aus Zielfeld, rechts, unten und diagonal (am Kartenrand nach innen geschoben, wie der Orbitallaser) mit damage an JEDER
+ * Einheit (auch eigene, ohne Wurf; Einheiten im Frieden sperren den Start wie beim Orbitallaser) und an Geschuetzen; Staedte
+ * und Gebaeude bleiben. Landfelder brennen danach fireRounds Runden: zu Beginn jeder dieser Runden verliert jede Einheit auf
+ * einem brennenden Feld fireDamage LP. Nach dem Start ist das Silo cooldown Runden gesperrt (nach dem Bau charge Runden).
+ * Rocket silo (Meridon, instead of tanks): a structure like the gun emplacement (Tile.turret with owner and kind 'silo'):
+ * pioneers build it on a free adjacent tile in own territory, at most perCity per own city and max in total, minimum
+ * spacing minSpacing; impassable, attackable (no return fire, never fires on its own), razed on loss of territory.
+ * Launch: a target tile within launchRange (Chebyshev distance from the silo, explored); the rocket hits the 2x2 area of
+ * target tile, right, below and diagonal (shifted inwards at the map edge, like the orbital laser) for damage on EVERY unit
+ * (own ones too, no roll; units at peace block the launch as for the orbital laser) and on guns; cities and buildings stay.
+ * Land tiles then burn for fireRounds rounds: at the start of each of those rounds every unit on a burning tile loses
+ * fireDamage HP. After a launch the silo is locked for cooldown rounds (after building, charge rounds).
+ */
+export const SILO = {
+  factions: ['meridon'] as FactionId[],
+  builders: ['pioneer'] as UnitTypeId[],
+  cost: 60,
+  hp: 20,
+  attack: 0,
+  defense: 2.5,
+  /** kein Gegenschlag: Schussweite des Bauwerks 0 / no return fire: the structure's firing range is 0 */
+  range: 0,
+  race: 'human' as HitRace,
+  terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+  perCity: 1,
+  max: 3,
+  minSpacing: 3,
+  /** Raketenreichweite in Feldern / rocket range in tiles */
+  launchRange: 12,
+  area: { w: 2, h: 2 },
+  damage: 9,
+  fireRounds: 3,
+  fireDamage: 2,
+  cooldown: 3,
+  charge: 1,
+  /**
+   * KI: Start ab Nettowert minValue (wie ORBITAL.ai), eigene Einheiten ownWeight-fach negativ; Bau erst ab minCities Staedten
+   * und mit reserve Sternen Polster und armyShare der Wunscharmee.
+   * AI: launch from net value minValue (as ORBITAL.ai), own units count ownWeight times negative; build only from minCities
+   * cities, with a reserve star cushion and armyShare of the desired army.
+   */
+  ai: { minValue: 6, ownWeight: 2.5, killBonus: 1, damageWeight: 1.5, fireWeight: 0.5, gunWorth: 40, wonderInterrupt: 25, minCities: 2, reserve: 15, armyShare: 0.7 },
+};
+
+/**
  * Werft der Kuestenstaedte: eine Stadt mit Wasser im Gebiet oder direkt neben dem Stadtfeld kauft Schiffe. Das Schiff
  * erscheint leer (ohne getragene Einheit) auf einem freien Wasserfeld an der Stadt; eine Landeinheit steigt ein, indem sie
  * von einem Nachbarfeld auf das leere Schiff zieht (danach wie beim Einschiffen: LP der Einheit, erschoepft).
@@ -633,10 +825,17 @@ export const SHIPYARD = {
   /** Kaufpreis des leeren Transportboots (UNITS.landingBoat.cost bleibt 0: Einschiffen am Stuetzpunkt ist frei) / price of the empty transport boat (UNITS.landingBoat.cost stays 0: embarking at a base is free) */
   transportCost: 10,
   /**
+   * Meridon: Nebelkutter statt Transportboot (getarnt, CAMO); Kaufpreis vor dem Flottenrabatt (SEA_POWER).
+   * Meridon: Fog Cutter instead of the transport boat (camouflaged, CAMO); price before the fleet discount (SEA_POWER).
+   */
+  fogCutterCost: 14,
+  /** Transportboot je Fraktion (fehlt = Landungsboot) / transport boat per faction (missing = landing boat) */
+  transport: { meridon: 'fogCutter' } as Partial<Record<FactionId, UnitTypeId>>,
+  /**
    * Rumpf-LP eines leeren Schiffs (sonst kommen die LP von der getragenen Einheit). Steigt eine Einheit ein, gelten ihre LP.
    * Hull HP of an empty ship (otherwise HP come from the carried unit). When a unit boards, its HP apply.
    */
-  hullHp: { landingBoat: 6, submarine: 10, destroyer: 10, battleship: 12, privateer: 10 } as Partial<Record<UnitTypeId, number>>,
+  hullHp: { landingBoat: 6, submarine: 10, destroyer: 10, battleship: 12, privateer: 10, fogCutter: 6 } as Partial<Record<UnitTypeId, number>>,
   /** KI: hoechstens so viele leere Transportboote zugleich / AI: at most this many empty transport boats at once */
   aiMaxEmpty: 2,
   /** KI: ab dieser Runde Transportboote kaufen / AI: buy transport boats from this round */
@@ -663,7 +862,7 @@ export const XENO = {
 export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 export const SHIP_UPGRADES: ShipId[] = ['submarine', 'destroyer', 'battleship'];
 /** Infanterietypen fuer Aussenposten / infantry types for outposts */
-export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper', 'lightWarden'];
+export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper', 'lightWarden', 'shadowCommando'];
 
 export const COMBAT = {
   damageFactor: 4.5,
@@ -897,7 +1096,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -1063,7 +1262,7 @@ export const CITY_UPGRADES = {
 
 /** Kriegsspuren (optisch): Krater von schweren Waffen, Brandflecken von allen anderen / war marks (visual) */
 export const WAR_MARKS = {
-  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone'] as UnitTypeId[],
+  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone', 'guidedMissile'] as UnitTypeId[],
   maxPerTile: 4,
   /**
    * Schlachtfeld (optisch, Tile.scar): Kampfintensitaet je Feld in Punkten. Jeder Treffer, jeder Tod und jede Explosion
@@ -1390,10 +1589,10 @@ export const PRODUCTION = {
    */
   units: {
     trainingCamp: ['infantry', 'pioneer', 'medic', 'sniper', 'spy', 'steppeRider', 'peacekeeper', 'lightWarden', 'railSniper'],
-    armory: ['mg', 'antiTank', 'mineLayer', 'antiAir', 'stormbreaker'],
-    motorPool: ['jeep'],
+    armory: ['mg', 'antiTank', 'mineLayer', 'antiAir', 'stormbreaker', 'shadowCommando'],
+    motorPool: ['jeep', 'radarTruck'],
     tankWorks: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'protoWalker'],
-    foundry: ['artillery', 'sunLance'],
+    foundry: ['artillery', 'sunLance', 'guidedMissile'],
     airfield: ['heli', 'octocopter'],
     // Transportboote brauchen keine Staette (SHIPYARD); der Stuetzpunkt bleibt Einschiffungsort / transport boats need no site (SHIPYARD); the base stays the embarking point
     navalBase: ['destroyer', 'privateer'],
@@ -1575,7 +1774,7 @@ export const TERRAIN_DEFENSE_TECH: Partial<Record<TerrainId, TechId>> = {
 export type Perk2Id = 'earthworks' | 'battleHardened' | 'martyrBlessing' | 'harbourPilots' | 'engineerCorps' | 'forestSpawn' | 'martyrdom' | 'sensorNet';
 
 export interface FactionStats {
-  perk: 'massMobilization' | 'drill' | 'judgement' | 'boom' | 'researchLead' | 'xenotech' | 'zealotry' | 'hivemind';
+  perk: 'massMobilization' | 'drill' | 'judgement' | 'shadowBank' | 'researchLead' | 'xenotech' | 'zealotry' | 'hivemind';
   /** zweites Merkmal (kleiner Dauerbonus) / second trait (small passive bonus) */
   perk2: Perk2Id;
   discountUnit: UnitTypeId;
@@ -1595,7 +1794,7 @@ export const FACTIONS: Record<FactionId, FactionStats> = {
   korvat: { perk: 'massMobilization', perk2: 'earthworks', discountUnit: 'infantry', discount: 0.2, startTech: 'livestock', home: { plain: 0.7, forest: 0.15, mountain: 0.05, water: 0.1, res: { farmland: 0.3, livestock: 0.15, supplies: 0.1 } } },
   dravon: { perk: 'drill', perk2: 'battleHardened', discountUnit: 'jeep', discount: 0.3, startTech: 'motorization', extraTechs: ['mountainTraining'], home: { plain: 0.45, forest: 0.15, mountain: 0.3, water: 0.1, res: { ore: 0.35, supplies: 0.1 } } },
   alvenia: { perk: 'judgement', perk2: 'martyrBlessing', discountUnit: 'sunLance', discount: 0.2, startTech: 'supply', home: { plain: 0.45, forest: 0.25, mountain: 0.2, water: 0.1, res: { supplies: 0.15, livestock: 0.15, farmland: 0.1, ore: 0.1 } } },
-  meridon: { perk: 'boom', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.2, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
+  meridon: { perk: 'shadowBank', perk2: 'harbourPilots', discountUnit: 'spy', discount: 0.3, startTech: 'coastalEconomy', home: { plain: 0.4, forest: 0.15, mountain: 0.05, water: 0.4, res: { fish: 0.3, supplies: 0.1 } } },
   zyrr: { perk: 'xenotech', perk2: 'forestSpawn', discountUnit: 'grey', discount: 0, startTech: null, home: { plain: 0.45, forest: 0.2, mountain: 0.25, water: 0.1, res: { ore: 0.2, supplies: 0.15 } } },
   vesper: { perk: 'zealotry', perk2: 'martyrdom', discountUnit: 'zealot', discount: 0, startTech: 'livestock', home: { plain: 0.5, forest: 0.25, mountain: 0.15, water: 0.1, res: { livestock: 0.2, supplies: 0.15 } } },
   nexus: { perk: 'hivemind', perk2: 'sensorNet', discountUnit: 'android', discount: 0, startTech: 'coastalEconomy', extraTechs: ['diving', 'shipbuilding'], home: { plain: 0.55, forest: 0.1, mountain: 0.25, water: 0.1, res: { ore: 0.3, supplies: 0.1 } } },
@@ -1605,7 +1804,13 @@ export const FACTIONS: Record<FactionId, FactionStats> = {
 export const PERKS = {
   massMobilizationExtraUnits: 1,
   drillKills: 2,
-  boomLevelReduction: 1,
+  /**
+   * Meridon "Schattenbank" (vorher "Boom", schnelleres Stadtwachstum): Sterne aus verdeckten Geschaeften je eigener
+   * Kuestenstadt (Wasser im Gebiet oder am Stadtfeld, wie die Werft; keine Sendetuerme) und Runde.
+   * Meridon "Shadow Bank" (formerly "Boom", faster city growth): stars from covert business per own coastal city (water in
+   * the territory or next to the city tile, as for the shipyard; no transmitter towers) and round.
+   */
+  shadowBankPerCoastalCity: 2,
   researchLeadDiscount: 0.12,
 };
 
@@ -1615,7 +1820,7 @@ export const PERKS2 = {
   earthworksOutpostCost: 15,
   /** Dravon, kampferprobt: Angriff der Veteranen / battle-hardened: veteran attack bonus */
   battleHardenedAttack: 0.5,
-  /** Meridon, Lotsenwesen: Landungsboote fahren weiter / harbour pilots: landing boats move further */
+  /** Meridon, Lotsenwesen: Landungsboote und Nebelkutter fahren weiter / harbour pilots: landing boats and Fog Cutters move further */
   harbourPilotsMove: 1,
   /** Velkar, Ingenieurkorps: Panzersperren-Preis / engineer corps: tank barrier price */
   engineerCorpsBarrierCost: 5,
@@ -1988,18 +2193,18 @@ export const AI_TACTICS = {
   /**
    * Vorlieben je Fraktion (Faktor auf den Wert einer Gelegenheit; unter 0,5 wird sie nur bei sehr guter Lage gewaehlt).
    * Korvat: verschanzen, Rueckzug in die Feuerzone; Dravon: Sturm und Rueckenangriffe mit Jeeps; Velkar: Hinterhalte mit
-   * Fernkaempfern; Alvenia: Hinterhalt und Rueckzug ins eigene Gebiet; Meridon: Ablenkung zur Kueste; Zyrr: Wellen und
+   * Fernkaempfern; Alvenia: Hinterhalt und Rueckzug ins eigene Gebiet; Meridon: Ablenkung zur Kueste und Hinterhalte (Schattenflotte); Zyrr: Wellen und
    * Ueberfaelle; Kult: Schwaerme kreisen ein; NEXUS: Kamikaze-Drohnen eroeffnen Hinterhalte und Stuerme.
    * Preferences per faction (factor on the value of an opportunity; below 0.5 it is only chosen when the situation is very good).
    * Korvat: entrench, retreat into the fire zone; Dravon: storm and rear attacks with jeeps; Velkar: ambushes with ranged
-   * units; Alvenia: ambush and retreat into own territory; Meridon: diversions along the coast; Zyrr: waves and raids;
+   * units; Alvenia: ambush and retreat into own territory; Meridon: diversions along the coast and ambushes (shadow fleet); Zyrr: waves and raids;
    * cult: swarms encircle; NEXUS: kamikaze drones open ambushes and storms.
    */
   weights: {
     korvat: { storm: 0.9, diversion: 0.8, encircle: 0.9, rear: 1.1, feint: 1.6, ambush: 1.2 },
     dravon: { storm: 1.4, diversion: 1.1, encircle: 1, rear: 1.5, feint: 0.6, ambush: 0.8 },
     alvenia: { storm: 0.8, diversion: 0.7, encircle: 0.8, rear: 0.8, feint: 1.4, ambush: 1.3 },
-    meridon: { storm: 1, diversion: 1.5, encircle: 0.9, rear: 1, feint: 0.9, ambush: 1 },
+    meridon: { storm: 1, diversion: 1.5, encircle: 0.9, rear: 1, feint: 0.9, ambush: 1.4 },
     velkar: { storm: 0.9, diversion: 0.9, encircle: 0.9, rear: 0.8, feint: 1.1, ambush: 1.6 },
     zyrr: { storm: 1.4, diversion: 1.4, encircle: 1, rear: 1.2, feint: 0.4, ambush: 0.6 },
     vesper: { storm: 1.3, diversion: 0.9, encircle: 1.6, rear: 0.9, feint: 0.3, ambush: 0.6 },

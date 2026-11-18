@@ -5,7 +5,7 @@
 import {
   COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
-  type WonderUnitId, SHIPYARD,
+  type WonderUnitId, SHIPYARD, SIGHTING,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -16,6 +16,7 @@ import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMi
 import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
+import { addSighting, applyRadar, applySabotage, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloCheck, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
@@ -29,7 +30,7 @@ import {
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
-  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile,
+  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile, canWithdrawAfterAttack,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -275,6 +276,8 @@ function spare(s: GameState, u: Unit | undefined) {
 
 function killUnit(s: GameState, u: Unit, by: number | null, ev: GameEvent[], leaveRemains = true) {
   s.units = s.units.filter((o) => o.id !== u.id);
+  // Radarimpuls endet mit dem Radarwagen / the radar sweep ends with the Radar Truck
+  if (has(u, 'radar')) dropSightings(s, u.id);
   if (leaveRemains) noteDeath(s, u); // Statistik / statistics
   const t = tileAt(s, u.x, u.y)!;
   let kind: 'wreck' | 'skeleton' | null = null;
@@ -597,6 +600,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
   }
   // Korruption (Meridon): Zufallsereignis nach dem Einkommen (CORRUPTION) / corruption (Meridon): random event after income (CORRUPTION)
   processCorruption(s, f, ev);
+  // abgelaufene Sichtungen und Radarimpulse / expired sightings and radar sweeps
+  pruneSightings(fa, s.round);
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
   // Erdkernbohrer, die im letzten eigenen Zug stillstanden / earth-core drills that stood still during the last own turn
   const stillDrills = new Set(s.units.filter((u) => u.owner === f && u.type === 'coreDrill' && !u.moved).map((u) => u.id));
@@ -616,6 +621,7 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     }
     u.moved = false; u.attacked = false; u.moveDone = false; u.exhausted = false; u.fresh = false;
     u.startX = u.x; u.startY = u.y; u.revealed = false;
+    if (u.withdraw) delete u.withdraw;
     u.slowed = !!u.slowedNext; u.slowedNext = false;
     if (u.fuel !== null && isRefuelSpot(s, f, u.x, u.y)) u.fuel = FUEL.tank;
     // Raketen nachladen nur in eigener Stadt mit Depot / reload rockets only in an own city with a depot
@@ -805,7 +811,7 @@ function advance(s: GameState, ev: GameEvent[]) {
   }
   // Rundenende fuer die Statistik festhalten / record the round end for statistics
   if (wrapped) {
-    recordRound(s); s.round++; expireMemorials(s); healScars(s); processVolcanoes(s, ev); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
+    recordRound(s); s.round++; expireMemorials(s); healScars(s); processVolcanoes(s, ev); processFires(s, ev, shadowKit(s)); processMeteors(s, ev); processTurrets(s, ev); processRandomEvents(s, ev);
     // Vulkane und Geschuetze koennen den Kult ausscheiden lassen / volcanoes and guns can eliminate the cult
     checkElimination(s, ev, true);
     if (s.over) return;
@@ -914,7 +920,8 @@ function wakeTurrets(s: GameState, ev: GameEvent[]) {
  */
 function processTurrets(s: GameState, ev: GameEvent[]) {
   for (const p of turretList(s)) {
-    if (!p.active) continue;
+    // Raketensilos feuern nur auf Befehl / rocket silos only fire on command
+    if (!p.active || p.kind === 'silo') continue;
     const G = gunStats(p);
     const u = p.owner !== undefined ? emplacementTarget(s, p) : turretTarget(s, p);
     if (!u) continue;
@@ -992,13 +999,16 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
   ev.push({ t: 'turretHit', unit: u.id, x, y, dmg: dealt, ret, destroyed, ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}), ...(owner !== undefined ? { owner } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
-  if (has(u, 'submerged')) u.revealed = true;
+  if (has(u, 'submerged') || has(u, 'camo')) u.revealed = true;
+  // Absetzen (Meridon): vor dem Setzen von attacked pruefen / withdrawal (Meridon): check before attacked is set
+  const withdraw = canWithdrawAfterAttack(s, u);
   // Geschuetze zaehlen nie als Abschuss (Punkte, Statistik, Bonusziele) / guns never count as kills (score, stats, bonus objectives)
   if (u.hp <= 0) { killUnit(s, u, null, ev); return { ok: true, events: ev }; }
   // Kamikaze: auch am Geschuetz explodiert die Drohne / kamikaze: the drone explodes at a gun too
   if (has(u, 'kamikaze')) { killUnit(s, u, null, ev, false); return { ok: true, events: ev }; }
   u.attacked = true;
-  if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
+  if (withdraw) u.withdraw = true;
+  else if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
   if (u.moved && u.attacked) u.exhausted = true;
   return { ok: true, events: ev };
 }
@@ -1095,7 +1105,8 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
   const f = c.owner!;
   switch (opt) {
     case 'factory': c.factory = true; break;
-    case 'drone': reveal(s, f, c.x, c.y, VISION.droneRadius, ev); break;
+    // Aufklaerungsdrohne: Felder aufdecken und alle Einheiten im Umkreis bis Rundenende sehen (SIGHTING) / recon drone: reveal tiles and see all units in the radius until the end of the round (SIGHTING)
+    case 'drone': reveal(s, f, c.x, c.y, VISION.droneRadius, ev); addSighting(s, f, c.x, c.y, VISION.droneRadius, SIGHTING.rounds); break;
     case 'bunkerRing': c.bunkerRing = true; break;
     case 'stars': s.factions[f].stars += CITY.rewardStars; break;
     // ganzer Ring bis expandRadius (mindestens 5x5, hoechstens 7x7) / a full ring up to expandRadius (at least 5x5, at most 7x7)
@@ -1151,6 +1162,10 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     ev.push({ t: 'barrierHit', unit: u.id, x: u.x, y: u.y });
   }
   u.moved = true;
+  // Absetzen verbraucht (hadAttacked erschoepft unten) / withdrawal used up (hadAttacked exhausts below)
+  if (u.withdraw) delete u.withdraw;
+  // Radarimpuls folgt dem Wagen / the radar sweep follows the truck
+  if (has(u, 'radar')) followSightings(s, u);
   ev.push({ t: 'move', unit: u.id, path: r.path });
   for (const p of r.path) reveal(s, f, p.x, p.y, visionRadiusAt(s, u, p.x, p.y), ev);
   if (hadAttacked) u.exhausted = true;
@@ -1256,7 +1271,9 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   // sin: burning (burn attack) or sacrilege (attack on the judging faction), only after the hit
   if (has(u, 'burn')) markSin(s, u.owner, 'burn', ev);
   else if (judges(s, target.owner)) markSin(s, u.owner, 'sacrilege', ev);
-  if (has(u, 'submerged')) u.revealed = true;
+  if (has(u, 'submerged') || has(u, 'camo')) u.revealed = true;
+  // Absetzen (Meridon): vor dem Setzen von attacked pruefen / withdrawal (Meridon): check before attacked is set
+  const withdraw = canWithdrawAfterAttack(s, u);
   let killed = false;
   if (target.hp <= 0) { killUnit(s, target, u.id, ev); gainKill(s, u, ev); killed = true; }
   for (const sp of splash) {
@@ -1280,6 +1297,9 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
     u.attacked = false; // Folgeangriff / follow-up attack
     // ohne Rueckzug keine Bewegung nach dem Angriff / no movement after attacking without escape
     if (!has(u, 'escape')) u.moveDone = true;
+  } else if (withdraw) {
+    // Absetzen: bis zu WITHDRAW.tiles zurueck, danach kein Angriff mehr (attacked bleibt) / withdraw: up to WITHDRAW.tiles back, no attack afterwards (attacked stays)
+    u.withdraw = true;
   } else if (!(has(u, 'escape') && !u.moved)) {
     u.exhausted = true;
   }
@@ -1363,6 +1383,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       // it resets no movement state, afterwards the unit is exhausted
       if (unitById(s, u.id)) { doMove(s, u, to, ev, true); faceTowards(u, foe); }
       u.attacked = true; u.moved = true; u.moveDone = true; u.exhausted = true;
+      if (has(u, 'camo')) u.revealed = true;
       u.retreatReady = s.round + RETREAT.cooldown + 1;
       res = { ok: true, events: ev };
       break;
@@ -1417,6 +1438,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (typeof u === 'string') return fail(u);
       const target = unitById(s, cmd.target);
       if (!target || !convertTargets(s, u).some((o) => o.id === target.id)) return fail('invalidTarget');
+      if (has(target, 'radar')) dropSightings(s, target.id);
       target.owner = f; target.homeCity = null; target.exhausted = true; target.fresh = true;
       if (target.entrenched) target.entrenched = false;
       u.exhausted = true;
@@ -1566,7 +1588,11 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (check !== 'ok') return fail(check === 'noSlot' ? 'onePerCity' : check);
       fa.stars -= CITY_UPGRADES.cost[cmd.upgrade];
       c.upgrades = [...cityUpgrades(c), cmd.upgrade];
-      if (cmd.upgrade === 'radioTower' && cmd.target) reveal(s, f, cmd.target.x, cmd.target.y, CITY_UPGRADES.radioRadius, ev);
+      if (cmd.upgrade === 'radioTower' && cmd.target) {
+        reveal(s, f, cmd.target.x, cmd.target.y, CITY_UPGRADES.radioRadius, ev);
+        // Funkturm: auch getarnte Einheiten im Umkreis bis Rundenende (SIGHTING) / radio tower: camouflaged units in the radius too until the end of the round (SIGHTING)
+        addSighting(s, f, cmd.target.x, cmd.target.y, CITY_UPGRADES.radioRadius, SIGHTING.rounds);
+      }
       if (cmd.upgrade === ORBITAL.relay) relayBuilt(s, f);
       ev.push({ t: 'cityUpgrade', city: c.id, upgrade: cmd.upgrade, faction: f, target: cmd.target });
       res = { ok: true, events: ev };
@@ -1812,6 +1838,33 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    // Schattenflotte (Meridon): eigene Datei shadowFleet.ts / shadow fleet (Meridon): own file shadowFleet.ts
+    case 'sabotage': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = sabotageCheck(s, u, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      applySabotage(s, u, cmd.x, cmd.y, ev, shadowKit(s));
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'radarSweep': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = radarCheck(s, u);
+      if (check !== 'ok') return fail(check);
+      applyRadar(s, u, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'siloLaunch': {
+      const check = siloCheck(s, f, cmd.x, cmd.y, cmd.tx, cmd.ty);
+      if (check !== 'ok') return fail(check);
+      fireSilo(s, f, cmd.x, cmd.y, cmd.tx, cmd.ty, ev, shadowKit(s));
+      checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'endTurn': {
       if (s.pendingRewards.some((p) => cityById(s, p.cityId)?.owner === f)) return fail('pendingReward');
       endTurnProcessing(s, ev);
@@ -1835,6 +1888,19 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
   return res;
+}
+
+/** Interne Helfer fuer die Schattenflotte (shadowFleet.ts) / internal helpers for the shadow fleet (shadowFleet.ts) */
+function shadowKit(s: GameState): ShadowKit {
+  return {
+    kill: (u, e) => killUnit(s, u, null, e),
+    spare: (u) => spare(s, u),
+    interrupt: (u, e) => interruptWonder(s, u, e),
+    mark: (x, y) => addMark(s, x, y, 'crater', WAR_MARKS.scar.blast),
+    releaseOutpost: (t) => releaseOutpost(s, t),
+    connections: (g, e) => updateConnections(s, g, e),
+    wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: s.current }); },
+  };
 }
 
 function makePeace(s: GameState, a: number, b: number, ev: GameEvent[]) {

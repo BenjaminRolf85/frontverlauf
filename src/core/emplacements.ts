@@ -15,8 +15,13 @@
  *   allies); lethal hits first, then the one closest to an own city, then the weakest.
  * - not a unit: does not count towards limits, upkeep, score, kills or diplomacy.
  * - territory lost (city captured, territory neutral) or owner eliminated: the emplacement is razed (rubble).
+ * Raketensilo (Meridon, SILO): derselbe Bau ueber den Befehl 'emplacement' (Pioniere), aber mit kind 'silo': feuert nie von
+ * selbst, sondern startet Raketen auf Befehl (shadowFleet.ts), eigene Grenzen (SILO.perCity, SILO.max, SILO.minSpacing).
+ * Rocket silo (Meridon, SILO): the same construction through the 'emplacement' command (pioneers), but with kind 'silo':
+ * never fires on its own, launches rockets on command instead (shadowFleet.ts), own limits (SILO.perCity, SILO.max,
+ * SILO.minSpacing).
  */
-import { EMPLACEMENT } from '../data/balance';
+import { EMPLACEMENT, SILO } from '../data/balance';
 import { dist, inBounds, tileAt } from './grid';
 import { burning } from './hazards';
 import {
@@ -24,16 +29,28 @@ import {
 } from './queries';
 import type { ErrorCode, GameEvent, GameState, Pos, Tile, Unit } from './types';
 
-/** Hat die Fraktion Festungsbau? / does the faction have fortification? */
+/** Hat die Fraktion Festungsbau (Geschuetzstellungen, Dravon)? / does the faction have fortification (gun emplacements, Dravon)? */
 export const hasFortification = (s: GameState, f: number) => !!s.factions[f] && EMPLACEMENT.factions.includes(s.factions[f].id);
-/** Kann diese Einheit Stellungen bauen (Typ und Fraktion)? / can this unit build emplacements (type and faction)? */
-export const isEmplacementBuilder = (s: GameState, u: Unit) => hasFortification(s, u.owner) && EMPLACEMENT.builders.includes(u.type);
-/** Lebende Stellungen der Fraktion f / living emplacements of faction f */
-export const emplacementsOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f);
-/** Hoechstzahl Stellungen: je eigener Stadt eine / maximum number of emplacements: one per own city */
-export const emplacementLimit = (s: GameState, f: number) => ownCities(s, f).length * EMPLACEMENT.perCity;
-/** Ist das Feld eine Geschuetzstellung (nicht Verdan)? / is the tile a gun emplacement (not Verdan)? */
+/** Baut die Fraktion Raketensilos (Meridon)? / does the faction build rocket silos (Meridon)? */
+export const buildsSilos = (s: GameState, f: number) => !!s.factions[f] && SILO.factions.includes(s.factions[f].id);
+/** Bauwerk der Fraktion: Geschuetzstellung oder Raketensilo / structure of the faction: gun emplacement or rocket silo */
+const specOf = (s: GameState, f: number) => (buildsSilos(s, f) ? SILO : EMPLACEMENT);
+/** Kann diese Einheit Stellungen oder Silos bauen (Typ und Fraktion)? / can this unit build emplacements or silos (type and faction)? */
+export const isEmplacementBuilder = (s: GameState, u: Unit) =>
+  (hasFortification(s, u.owner) && EMPLACEMENT.builders.includes(u.type)) || (buildsSilos(s, u.owner) && SILO.builders.includes(u.type));
+/** Lebende Geschuetzstellungen der Fraktion f (ohne Silos) / living gun emplacements of faction f (without silos) */
+export const emplacementsOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f && p.kind !== 'silo');
+/** Lebende Raketensilos der Fraktion f / living rocket silos of faction f */
+export const silosOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f && p.kind === 'silo');
+/** Eigene Bauwerke der Bauart der Fraktion (Stellungen oder Silos) / own structures of the faction's kind (emplacements or silos) */
+export const structuresOf = (s: GameState, f: number) => (buildsSilos(s, f) ? silosOf(s, f) : emplacementsOf(s, f));
+/** Hoechstzahl: je eigener Stadt eine (Silos zusaetzlich hoechstens SILO.max) / maximum: one per own city (silos also at most SILO.max) */
+export const emplacementLimit = (s: GameState, f: number) =>
+  buildsSilos(s, f) ? Math.min(SILO.max, ownCities(s, f).length * SILO.perCity) : ownCities(s, f).length * EMPLACEMENT.perCity;
+/** Ist das Feld eine Geschuetzstellung oder ein Silo (nicht Verdan)? / is the tile a gun emplacement or a silo (not Verdan)? */
 export const isEmplacementTile = (t: Tile | undefined) => !!t?.turret && t.turret.hp > 0 && t.turret.owner !== undefined;
+/** Ist das Feld ein lebendes Raketensilo? / is the tile a living rocket silo? */
+export const isSiloTile = (t: Tile | undefined) => !!t?.turret && t.turret.hp > 0 && t.turret.kind === 'silo';
 
 export type EmplacementCheck = 'ok' | Extract<ErrorCode,
   'wrongFaction' | 'cannotBuild' | 'unitExhausted' | 'outOfRange' | 'invalidTile' | 'occupied' | 'notInTerritory' | 'emplacementLimit' | 'emplacementSpacing' | 'notEnoughStars'>;
@@ -45,24 +62,25 @@ export type EmplacementCheck = 'ok' | Extract<ErrorCode,
  * wonder, volcano or lava. Wrecks, roads and rubble do not matter (wrecks are cleared).
  */
 function siteFree(s: GameState, t: Tile, f: number): boolean {
-  return EMPLACEMENT.terrain.includes(t.terrain) && t.cityId === null && !t.building && !t.resource && !t.feature && !t.outpost &&
+  return specOf(s, f).terrain.includes(t.terrain) && t.cityId === null && !t.building && !t.resource && !t.feature && !t.outpost &&
     !t.grandProject && !t.barrier && t.mine?.owner !== f && !t.turret && !t.wonderOf && !t.temple && !t.volcano && !burning(s, t);
 }
 
 /** Kann u eine Stellung auf (x, y) bauen? / can u build an emplacement on (x, y)? */
 export function emplacementCheck(s: GameState, u: Unit, x: number, y: number): EmplacementCheck {
-  if (!hasFortification(s, u.owner)) return 'wrongFaction';
-  if (!EMPLACEMENT.builders.includes(u.type)) return 'cannotBuild';
+  if (!hasFortification(s, u.owner) && !buildsSilos(s, u.owner)) return 'wrongFaction';
+  const spec = specOf(s, u.owner);
+  if (!spec.builders.includes(u.type)) return 'cannotBuild';
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
   if (!siteFree(s, t, u.owner)) return 'invalidTile';
   if (unitAt(s, x, y)) return 'occupied';
   if (territoryOwner(s, t) !== u.owner) return 'notInTerritory';
-  const own = emplacementsOf(s, u.owner);
+  const own = structuresOf(s, u.owner);
   if (own.length >= emplacementLimit(s, u.owner)) return 'emplacementLimit';
-  if (own.some((p) => dist(p, { x, y }) < EMPLACEMENT.minSpacing)) return 'emplacementSpacing';
-  if (s.factions[u.owner].stars < EMPLACEMENT.cost) return 'notEnoughStars';
+  if (own.some((p) => dist(p, { x, y }) < spec.minSpacing)) return 'emplacementSpacing';
+  if (s.factions[u.owner].stars < spec.cost) return 'notEnoughStars';
   return 'ok';
 }
 
@@ -98,15 +116,17 @@ export function buildEmplacement(s: GameState, u: Unit, x: number, y: number, ev
   if (check !== 'ok') return check;
   const f = u.owner;
   const t = tileAt(s, x, y)!;
-  s.factions[f].stars -= EMPLACEMENT.cost;
-  t.turret = { hp: EMPLACEMENT.hp, active: true, owner: f };
+  const silo = buildsSilos(s, f);
+  s.factions[f].stars -= specOf(s, f).cost;
+  // Silo: erster Start nach der Aufladezeit / silo: first launch after the charge time
+  t.turret = silo ? { hp: SILO.hp, active: true, owner: f, kind: 'silo', ready: s.round + SILO.charge } : { hp: EMPLACEMENT.hp, active: true, owner: f };
   // Truemmer, Wrack und fremde Mine raeumen die Pioniere weg / the pioneers clear rubble, wreck and a foreign mine
   t.turretRuin = false;
   delete t.turretRuinOwner;
   t.remains = null;
   t.mine = null;
   u.exhausted = true;
-  ev.push({ t: 'emplacement', x, y, faction: f });
+  ev.push({ t: 'emplacement', x, y, faction: f, ...(silo ? { kind: 'silo' as const } : {}) });
   return null;
 }
 
@@ -116,9 +136,10 @@ export function buildEmplacement(s: GameState, u: Unit, x: number, y: number, ev
  * Target of an emplacement: visible units at war with the owner in range (no wonders, no submerged submarines).
  * Order: a full hit destroys it, then distance to the nearest own city, then HP, then id (deterministic).
  */
-export function emplacementTarget(s: GameState, p: Pos & { hp: number; owner?: number }): Unit | null {
+export function emplacementTarget(s: GameState, p: Pos & { hp: number; owner?: number; kind?: 'silo' }): Unit | null {
   const f = p.owner;
-  if (f === undefined) return null;
+  // Silos feuern nie von selbst / silos never fire on their own
+  if (f === undefined || p.kind === 'silo') return null;
   const cities = ownCities(s, f);
   let best: Unit | null = null, bestKey = Infinity;
   for (const u of s.units) {

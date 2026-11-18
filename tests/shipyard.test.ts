@@ -6,12 +6,13 @@ import { describe, expect, it } from 'vitest';
 import {
   attackTargets, isCoastalCity, reachable, rosterShips, score, shipSpawnTile, supportedUnits, trainCheck, unitUpkeep,
 } from '../src/core';
-import { SHIPYARD, UNITS, type FactionId } from '../src/data/balance';
+import { SEA_POWER, SHIPYARD, UNITS, type FactionId } from '../src/data/balance';
 import { isValidState, migrateState } from '../src/save/save';
 import { addCity, addUnit, blankGame, fails, giveSites, ok, setTerrain, unit } from './helpers';
 
 /** Kueste: Land x<=4, Flachwasser x=5..7, Ozean x>=8; Stadt auf (4, 5) / coast: land x<=4, shallow 5..7, ocean >=8; city on (4, 5) */
-function coast(factions: FactionId[] = ['meridon', 'dravon']) {
+// Standard: Dravon (Meridon kauft Nebelkutter statt Transportboote, siehe shadow-fleet.test.ts) / default: Dravon (Meridon buys Fog Cutters instead of transport boats, see shadow-fleet.test.ts)
+function coast(factions: FactionId[] = ['dravon', 'korvat']) {
   const s = blankGame({ factions, stars: 500 });
   for (let y = 0; y < 11; y++) for (let x = 5; x < 11; x++) setTerrain(s, x, y, x <= 7 ? 'shallow' : 'ocean');
   setTerrain(s, 10, 0, 'plain');
@@ -63,7 +64,7 @@ describe('Werft / shipyard', () => {
   });
 
   it('warships need the naval base (destroyer, privateer) or the dry dock (submarine, battleship) of the city', () => {
-    const { s, hq } = coast();
+    const { s, hq } = coast(['meridon', 'dravon']);
     expect(trainCheck(s, hq, 'destroyer')).toBe('buildingMissing');
     expect(trainCheck(s, hq, 'privateer')).toBe('buildingMissing');
     expect(trainCheck(s, hq, 'battleship')).toBe('buildingMissing');
@@ -76,8 +77,8 @@ describe('Werft / shipyard', () => {
     const b = unit(s, (r.events.find((e) => e.t === 'train') as { unit: number }).unit)!;
     expect(b.type).toBe('battleship');
     expect(b.hp).toBe(SHIPYARD.hullHp.battleship);
-    // Preis = Preis aus UNITS (keine Doktrin) / price = UNITS price (no doctrine)
-    expect(s.factions[0].stars).toBe(500 - UNITS.battleship.cost!);
+    // Preis = Preis aus UNITS (keine Doktrin), fuer Meridon mit Seemacht-Rabatt (SEA_POWER) / price = UNITS price (no doctrine), for Meridon with the sea power discount (SEA_POWER)
+    expect(s.factions[0].stars).toBe(500 - Math.ceil(UNITS.battleship.cost! * (1 - SEA_POWER.discount.meridon!)));
     // Kriegsschiff ohne Besatzung schiesst trotzdem / warship without crew still fires
     expect(UNITS.battleship.attack).toBeGreaterThan(0);
   });

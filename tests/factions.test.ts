@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { embassyCost, embassyIncome, levelUpCost, researchCost, siteOf, unitCost, unitLimit, veteranKills } from '../src/core';
-import { FACTIONS, FACTION_IDS, UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
+import { embassyCost, embassyIncome, income, levelUpCost, researchCost, shadowBankIncome, siteOf, unitCost, unitLimit, veteranKills } from '../src/core';
+import { FACTIONS, FACTION_IDS, PERKS, UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { addCity, addUnit, blankGame, ok, revealAll, unit } from './helpers';
 
 function game(f: FactionId, other: FactionId = f === 'korvat' ? 'dravon' : 'korvat') {
@@ -23,14 +23,15 @@ describe('Fraktionen / factions', () => {
     expect(FACTIONS.velkar.startTech).toBe('mountainTraining');
   });
 
-  describe('20 % unit discounts (Dravon 30 %) / Einheitenrabatte (Dravon 30 %)', () => {
+  describe('20 % unit discounts (Dravon and Meridon 30 %) / Einheitenrabatte (Dravon und Meridon 30 %)', () => {
     const cases: [FactionId, UnitTypeId, number, number, string | null][] = [
       ['korvat', 'infantry', 8, 10, null],
       // Dravon startet mit der Doktrin Motorisierung: 15*0.7=10.5 -> 11, dann Fahrzeuge -15 % -> 10
       // Dravon starts with the motorization doctrine: 15*0.7=10.5 -> 11, then vehicles -15 % -> 10
       ['dravon', 'jeep', 10, 15, 'motorization'],
       ['alvenia', 'sunLance', 36, 45, 'ballistics'],
-      ['meridon', 'spy', 32, 40, 'intelligence'],
+      // Meridon: Spione 30 % billiger (Schattenflotte, vorher 20 %): 40*0.7 = 28 / Meridon: spies 30 % cheaper (shadow fleet, formerly 20 %): 40*0.7 = 28
+      ['meridon', 'spy', 28, 40, 'intelligence'],
       ['velkar', 'pioneer', 12, 15, 'fortification'],
     ];
     for (const [f, type, price, full, tech] of cases) {
@@ -93,19 +94,24 @@ describe('Fraktionen / factions', () => {
     expect(embassyIncome(s, 1)).toBe(6);
   });
 
-  it('Meridon (boom): each level-up needs one population point less, at least 1', () => {
+  it('Meridon (Shadow Bank, formerly Boom): normal growth, but stars per own coastal city', () => {
+    // Schattenbank statt Boom: Stadtaufstieg wie bei allen / Shadow Bank instead of Boom: level-ups as for everyone
     const { s, hq } = game('meridon');
-    expect(levelUpCost(s, hq)).toBe(1); // 2-1
+    expect(levelUpCost(s, hq)).toBe(2);
     hq.level = 4;
-    expect(levelUpCost(s, hq)).toBe(4); // 5-1
+    expect(levelUpCost(s, hq)).toBe(5);
+    expect(FACTIONS.meridon.perk).toBe('shadowBank');
+    // ohne Wasser keine Schattenbank, mit Wasser am Stadtfeld PERKS.shadowBankPerCoastalCity je Stadt
+    // without water no Shadow Bank, with water next to the city tile PERKS.shadowBankPerCoastalCity per city
+    const dry = income(s, 0);
+    expect(shadowBankIncome(s, 0)).toBe(0);
+    s.tiles[3 * s.size + 3].terrain = 'shallow';
+    expect(shadowBankIncome(s, 0)).toBe(PERKS.shadowBankPerCoastalCity);
+    expect(income(s, 0)).toBe(dry + PERKS.shadowBankPerCoastalCity);
+    // andere Fraktionen: keine Schattenbank / other factions: no Shadow Bank
     const k = game('korvat');
-    expect(levelUpCost(k.s, k.hq)).toBe(2);
-    // praktisch: 1 Punkt reicht fuer Stufe 2 / in practice: 1 point is enough for level 2
-    const m = game('meridon');
-    m.s.factions[0].techs.push('supply');
-    m.s.tiles[1 * m.s.size + 1].resource = 'supplies';
-    ok(m.s, { type: 'build', building: 'storehouse', x: 1, y: 1 });
-    expect(m.hq.level).toBe(2);
+    k.s.tiles[3 * k.s.size + 3].terrain = 'shallow';
+    expect(shadowBankIncome(k.s, 0)).toBe(0);
   });
 
   it('Velkar (research lead): all technologies cost 12 % less', () => {

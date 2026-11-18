@@ -24,3 +24,4 @@ export {
 export { WORLDS, worldOf, type WorldId } from './worlds';
 export * from './mothership';
 export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRandomEvent } from './events';
+export * from './shadowFleet';
