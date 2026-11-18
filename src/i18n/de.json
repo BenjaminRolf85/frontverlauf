@@ -683,7 +683,7 @@
     "govQuarterDesc": "{govStars} Sterne mehr pro Runde und {govPoints} Punkte",
     "tank": "Panzer",
     "tankDesc": "ein Panzer erscheint in der Stadt",
-    "tankMissiles": "{rewardMissiles} × Lenkflugkörper",
+    "tankMissiles": "{rewardMissiles} Lenkflugkörper",
     "tankMissilesDesc": "{rewardMissiles} Lenkflugkörper erscheinen in der Stadt und auf freien Feldern daneben"
   },
   "hud": {

@@ -683,7 +683,7 @@
     "govQuarterDesc": "{govStars} more stars per round and {govPoints} points",
     "tank": "Tank",
     "tankDesc": "a tank appears in the city",
-    "tankMissiles": "{rewardMissiles} × Guided Missile",
+    "tankMissiles": "{rewardMissiles} Guided Missiles",
     "tankMissilesDesc": "{rewardMissiles} Guided Missiles appear in the city and on free tiles next to it"
   },
   "hud": {

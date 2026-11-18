@@ -135,8 +135,9 @@ export function siloSheet(s: GameState, g: Controller, err: (code: string) => st
     { id: 'siloFire', icon: 'missile', variant: 'danger', label: t('shadow.silo.fire'), enabled: ok, desc: t('shadow.silo.desc', { name: t(`factions.${s.factions[s.current].id}.short`) }), reason: status, run: () => void g.fireSilo() },
     { id: 'siloCancel', icon: 'close', label: t('actions.cancel'), enabled: true, run: () => g.cancelSilo() },
   ];
+  // Brandsymbol in einer .stat-Gruppe: .icon-sm ist ein Block und braeche die Zeile sonst um / fire icon inside a .stat group: .icon-sm is a block and would otherwise break the line
   const head = `<div class="sheet-head"><span class="unit-badge orbital-head">${icon('silo')}</span><div class="grow"><h3 class="display">${esc(t('shadow.silo.title'))}</h3>
-    <div class="muted unit-sub">${esc(t('stats.range'))} ${SILO.launchRange} · ${SILO.area.w}×${SILO.area.h} · -${SILO.damage} · ${icon('fire', 'icon-sm')}${SILO.fireRounds} × -${SILO.fireDamage}</div></div>${iconButton('close', t('actions.cancel'), 'siloCancel')}</div>`;
+    <div class="muted unit-sub">${esc(t('stats.range'))} ${SILO.launchRange} · ${SILO.area.w}×${SILO.area.h} · -${SILO.damage} · <span class="stat">${icon('fire', 'icon-sm')}${SILO.fireRounds} × -${SILO.fireDamage}</span></div></div>${iconButton('close', t('actions.cancel'), 'siloCancel')}</div>`;
   const body = `<p class="orbital-status ${cls}" role="status" aria-live="polite">${cls ? icon('warning', 'icon-sm') : icon('info', 'icon-sm')}<span>${esc(status)}</span></p>`;
   const bar = `<div class="action-wrap"><div class="action-bar" role="toolbar">${actions.map(actionButton).join('')}</div></div>`;
   return { html: `${head}${body}${bar}`, actions };
