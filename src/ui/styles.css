@@ -184,6 +184,17 @@ h1, h2, h3, .display {
 }
 .bottom > * { pointer-events: auto; }
 .sheet { max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; padding: var(--p-space-3); }
+/*
+ * Infofeld nie hoeher als der Platz zwischen Statusleiste und Leiste unten: sonst rutschten Kopf und Schliessen-Knopf
+ * unter die Statusleiste bzw. aus dem Bildschirm (Stadt mit Truppenkarten); der Rest scrollt im Feld.
+ * The info panel is never taller than the room between the top bar and the bottom bar: otherwise the header and the close
+ * button slid under the top bar or off the screen (city with troop cards); the rest scrolls inside the panel.
+ */
+.bottom > .sheet {
+  --sheet-room: calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--p-size-touch-lg) + 4 * var(--p-space-2));
+  max-height: calc(100vh - var(--sheet-room)); max-height: calc(100dvh - var(--sheet-room));
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+}
 .sheet-head { display: flex; align-items: center; gap: var(--p-space-2); margin-bottom: var(--p-space-2); }
 .sheet-head h3 { font-size: var(--p-font-size-lg); }
 .action-bar {
@@ -519,7 +530,7 @@ input[type="text"], select {
   .bottom > .sheet {
     position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2));
     width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2)); max-height: var(--c-layout-sheet-dock-max-height);
-    margin: 0; padding: var(--p-space-2) var(--p-space-3); overflow: hidden; display: flex; flex-direction: column;
+    margin: 0; padding: var(--p-space-2) var(--p-space-3); display: flex; flex-direction: column;
   }
   /* Infoteil scrollt, Kopf, Truppenkarten und Aktionen bleiben stehen / the info part scrolls, header, troop cards and actions stay put */
   .bottom > .sheet > * { flex: none; }
@@ -548,6 +559,22 @@ input[type="text"], select {
   .sheet { padding: var(--p-space-2); }
   .nav-bar .btn { min-height: var(--p-size-touch); }
   .logo { font-size: var(--p-font-size-xxl); margin-top: 0; }
+  /*
+   * Handy quer: Infofeld links andocken wie am Desktop, damit rechts Karte und Kartensteuerung frei bleiben; es nimmt die
+   * ganze Hoehe zwischen den Leisten und scrollt als Ganzes (Truppenkarten und Aktionen sind hoeher als der Platz).
+   * Phone in landscape: dock the info panel on the left as on desktop so the map and the map controls stay clear on the
+   * right; it takes the full height between the bars and scrolls as a whole (troop cards and actions are taller than the room).
+   */
+  .bottom > .sheet, .bottom > .sheet:has(.troops) {
+    --sheet-room: calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--p-size-touch) + 4 * var(--p-space-2));
+    position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2)); margin: 0;
+    width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2) - var(--c-icon-button-size) - 2 * var(--p-space-2));
+    max-height: calc(100vh - var(--sheet-room)); max-height: calc(100dvh - var(--sheet-room));
+    display: block; overflow-x: hidden; overflow-y: auto;
+  }
+  .bottom > .sheet > .sheet-info { overflow: visible; }
+  /* die Lagekarte oben links weicht dem Infofeld / the overview map at the top left makes way for the info panel */
+  body:has(.bottom > .sheet) .minimap { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: var(--p-duration-instant) !important; transition-duration: var(--p-duration-instant) !important; }
