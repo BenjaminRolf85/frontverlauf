@@ -233,16 +233,16 @@ describe('Absetzen / withdraw', () => {
 });
 
 describe('Feuerkraft / firepower', () => {
-  it('Meridon-Landeinheiten -15 %, Schiffe und Lenkflugkoerper nicht / Meridon land units -15 %, ships and guided missiles not', () => {
+  it('Meridon-Landeinheiten -10 %, Schiffe und Lenkflugkoerper nicht / Meridon land units -10 %, ships and guided missiles not', () => {
     const { s } = duel();
     const m = addUnit(s, 'infantry', 0, 6, 6);
     const ship = addUnit(s, 'destroyer', 0, 1, 1);
     const missile = addUnit(s, 'guidedMissile', 0, 1, 2);
-    expect(firepowerFactor(s, m)).toBe(0.85);
+    expect(firepowerFactor(s, m)).toBe(0.9);
     expect(firepowerFactor(s, ship)).toBe(1);
     expect(firepowerFactor(s, missile)).toBe(1);
-    expect(FIREPOWER.land.meridon).toBe(0.85);
-    // gleiche Lage mit Korvat: Schaden x 0,85 (gerundet) / same situation with Korvat: damage x 0.85 (rounded)
+    expect(FIREPOWER.land.meridon).toBe(0.9);
+    // gleiche Lage mit Korvat: Schaden x 0,9 (gerundet) / same situation with Korvat: damage x 0.9 (rounded)
     const target = addUnit(s, 'mg', 1, 7, 6);
     const pm = combatPreview(s, m, target);
     const o = duel({ factions: ['korvat', 'dravon'] });
@@ -250,7 +250,7 @@ describe('Feuerkraft / firepower', () => {
     const ot = addUnit(o.s, 'mg', 1, 7, 6);
     const po = combatPreview(o.s, om, ot);
     expect(pm.toDefender).toBeLessThan(po.toDefender);
-    expect(Math.abs(pm.toDefender - po.toDefender * 0.85)).toBeLessThanOrEqual(1);
+    expect(Math.abs(pm.toDefender - po.toDefender * FIREPOWER.land.meridon!)).toBeLessThanOrEqual(1);
     // Gegenschlag eines Meridon-Verteidigers ebenso schwaecher / return fire of a Meridon defender weaker as well
     s.current = 1;
     const pr = combatPreview(s, target, m);

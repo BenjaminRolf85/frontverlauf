@@ -719,12 +719,12 @@ export const WITHDRAW = {
 
 /**
  * Feuerkraft je Fraktion (Faktor auf den Schaden von Angriff und Gegenschlag, wie die anderen Fraktionsfaktoren vor dem
- * Trefferglueck). Meridon: Landeinheiten -15 %; Schiffe, Lenkflugkoerper (exempt) und das Raketensilo (Bauwerk) nicht.
+ * Trefferglueck). Meridon: Landeinheiten -10 % (Tuning 3, vorher -15 %); Schiffe, Lenkflugkoerper (exempt) und das Raketensilo (Bauwerk) nicht.
  * Firepower per faction (factor on the damage of attack and return fire, like the other faction factors before hit luck).
- * Meridon: land units -15 %; ships, Guided Missiles (exempt) and the rocket silo (structure) are not affected.
+ * Meridon: land units -10 % (tuning 3, before -15 %); ships, Guided Missiles (exempt) and the rocket silo (structure) are not affected.
  */
 export const FIREPOWER = {
-  land: { meridon: 0.85 } as Partial<Record<FactionId, number>>,
+  land: { meridon: 0.9 } as Partial<Record<FactionId, number>>,
   exempt: ['guidedMissile'] as UnitTypeId[],
 };
 

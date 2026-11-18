@@ -1127,9 +1127,9 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
 
 /**
  * Feuerkraft der Fraktion (FIREPOWER): Faktor auf den Schaden von Landeinheiten (Angriff und Gegenschlag); Schiffe, Bauwerke
- * und ausgenommene Typen (Lenkflugkoerper) 1. Meridon 0,85.
+ * und ausgenommene Typen (Lenkflugkoerper) 1. Meridon 0,9.
  * The faction's firepower (FIREPOWER): factor on the damage of land units (attack and return fire); ships, structures and
- * exempt types (Guided Missile) 1. Meridon 0.85.
+ * exempt types (Guided Missile) 1. Meridon 0.9.
  */
 export function firepowerFactor(s: GameState, u: Unit): number {
   const id = s.factions[u.owner]?.id;
