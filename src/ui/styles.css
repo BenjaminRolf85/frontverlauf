@@ -246,8 +246,10 @@ h1, h2, h3, .display {
   border: var(--p-border-width-thin) solid var(--s-outline); background: var(--s-surface-sunken); font-size: var(--p-font-size-xs);
 }
 .tag.warn { background: var(--s-warning); }
+/* Knoepfe neben der Beschreibung, wenn Platz ist (leere Plaetze einzeilig), sonst darunter rechts / buttons next to the description when there is room (empty slots on one line), otherwise below on the right */
 .slot-row { flex-wrap: wrap; }
-.slot-row > .row { width: 100%; justify-content: flex-end; }
+.slot-row > .grow { flex: 1 1 calc(var(--p-size-touch-lg) * 4); min-width: 0; }
+.slot-row > .row { flex: 1 0 auto; justify-content: flex-end; }
 .slots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-2); margin-top: var(--p-space-2); }
 .slot { display: inline-flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-space-6); padding: 0 var(--p-space-2);
   border-radius: var(--p-radius-sm); font-size: var(--p-font-size-xs); }
@@ -409,6 +411,8 @@ h1, h2, h3, .display {
 }
 .menu-list { width: min(100%, var(--c-layout-menu-width)); display: flex; flex-direction: column; gap: var(--p-space-3); }
 .menu-list .btn { min-height: var(--p-size-touch-lg); }
+/* halbe Knoepfe nebeneinander: weniger Innenabstand, sonst passt 'Einstellungen' auf dem Handy nicht hinein / half-width buttons side by side: less padding, otherwise 'Einstellungen' does not fit on phones */
+.menu-list .row .btn { padding: 0 var(--p-space-2); }
 /* Pausenmenue im Dialog: mittig und kompakter, damit alle Knoepfe ohne Scrollen sichtbar sind
    pause menu inside a dialog: centred and more compact so every button is visible without scrolling */
 .dialog .menu-list { margin-inline: auto; gap: var(--p-space-2); }
@@ -418,7 +422,7 @@ h1, h2, h3, .display {
 .field > label, .field > .label { font-family: var(--p-font-display); font-size: var(--p-font-size-lg); letter-spacing: var(--p-letter-spacing-display); }
 .seg { display: flex; flex-wrap: wrap; gap: var(--p-space-2); }
 .seg button {
-  min-height: var(--p-size-touch); padding: 0 var(--p-space-3); border: var(--p-border-width-thick) solid var(--s-outline);
+  min-height: var(--p-size-touch); min-width: var(--p-size-touch); padding: 0 var(--p-space-3); border: var(--p-border-width-thick) solid var(--s-outline);
   border-radius: var(--p-radius-pill); background: var(--s-surface-raised); color: var(--s-text); font: inherit; cursor: pointer;
 }
 .seg button[aria-pressed="true"] { background: var(--s-accent); box-shadow: var(--c-button-shadow-pressed); }
@@ -453,6 +457,15 @@ input[type="text"], select {
 }
 .score-list { display: flex; flex-direction: column; gap: var(--p-space-2); }
 .score-row { display: flex; align-items: center; gap: var(--p-space-2); padding: var(--p-space-2); border-radius: var(--p-radius-md); background: var(--s-surface); border: var(--p-border-width-thin) solid var(--s-outline); }
+/* Einstellungen ab Tablet-Breite: Bezeichnung links, Auswahl rechts, damit alles ohne Scrollen passt / settings from tablet width: label left, choice right so everything fits without scrolling */
+@media (min-width: 560px) /* --p-breakpoint-sm */ {
+  .settings-form { gap: var(--p-space-3); }
+  .settings-form .field { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p-space-2) var(--p-space-3); }
+  .settings-form .field > .label { flex: 1 1 0; min-width: 0; font-size: var(--p-font-size-md); }
+}
+/* Mitwirkende: Absatzabstand nur ueber die Spalte, nicht doppelt / credits: paragraph spacing only via the column, not twice */
+.credits-list { gap: var(--p-space-3); }
+.credits-list p { margin: 0; line-height: 1.3; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: var(--p-space-1) var(--p-space-3); font-size: var(--p-font-size-sm); }
 
 /* ---------- Forschungsbaum / research tree ---------- */
