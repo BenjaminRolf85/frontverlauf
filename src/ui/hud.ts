@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SILO, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, corruptionRule, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
@@ -12,7 +12,7 @@ import {
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
-  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder,
+  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
   type City, type GameState, type Unit,
 } from '../core';
 import { emplacementCount, emplacementDesc, emplacementName, emplacementStats } from './emplacement';
@@ -30,6 +30,7 @@ import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
+import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
@@ -56,6 +57,8 @@ export const UNIT_ICON: Record<string, string> = {
   steppeColossus: 'heavyTank',
   // NEXUS: Cyborg, Flammenwerferpanzer, Kamikaze-Drohne / NEXUS: cyborg, flamethrower tank, kamikaze drone
   cyborg: 'cyborg', flameTank: 'flame', kamikazeDrone: 'kamikaze',
+  // Meridon-Schattenflotte / Meridon shadow fleet
+  shadowCommando: 'commando', fogCutter: 'fogCutter', guidedMissile: 'missile', radarTruck: 'radar',
   // Wunder der Siegbedingungen / victory wonders
   portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
 };
@@ -474,6 +477,8 @@ export class Hud {
       // Orbitallaser (Velkar) / orbital laser (Velkar)
       case 'orbital': if (this.game.orbitalMode) this.game.cancelOrbital(); else this.game.startOrbital(); break;
       case 'orbitalCancel': this.game.cancelOrbital(); break;
+      // Raketensilo (Meridon) / rocket silo (Meridon)
+      case 'siloCancel': this.game.cancelSilo(); break;
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
@@ -567,6 +572,7 @@ export class Hud {
     const prevStrip = this.bottom.querySelector<HTMLElement>('.troop-strip')?.scrollLeft ?? null;
     let sheet = '';
     if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    else if (g.siloFrom && g.isHumanTurn) { const o = siloSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
@@ -684,7 +690,7 @@ export class Hud {
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${plansUnitTag(s, vUnit)}
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -789,6 +795,12 @@ export class Hud {
       const ts = templeSheet(s, x, y)!;
       head = ts.head;
       body += ts.body;
+    } else if (explored && siloTile(s, x, y, viewer, g)) {
+      // Raketensilo (Meridon): Ladezustand und Start / rocket silo (Meridon): charge state and launch
+      const st = siloTile(s, x, y, viewer, g)!;
+      head = st.head;
+      body += st.body;
+      this.actions.push(...st.actions);
     } else if (explored && turretAt(s, x, y)?.owner !== undefined) {
       // Geschuetzstellung: Besitzer, Panzerung, Reichweite, feuert jede Runde / gun emplacement: owner, armour, range, fires every round
       const gun = turretAt(s, x, y)!;
@@ -882,11 +894,14 @@ export class Hud {
       const kill = pre.toTurret >= gun.hp;
       // Geschuetzstellung: eigener Name und Text / gun emplacement: own name and text
       const owned = gun.owner !== undefined;
-      const sub = kill ? t(owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
-      const about = owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
+      // Raketensilo: eigener Name, kein Gegenschlag / rocket silo: own name, no return fire
+      const isSilo = gun.kind === 'silo';
+      const sub = kill ? t(isSilo ? 'shadow.silo.previewKill' : owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      const about = isSilo ? `${t('shadow.silo.nameOf', { name: t(`factions.${s.factions[gun.owner!].id}.short`) })}: ${t('shadow.silo.stats', { hp: gun.hp, max: SILO.hp, range: SILO.launchRange, dmg: SILO.damage })}`
+        : owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
       if (pre.moveFire) this.combatNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(isSilo ? 'shadow.silo.attack' : owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
@@ -1030,17 +1045,23 @@ export class Hud {
     }
     // Festungsbau (Dravon): Geschuetzstellung auf ein Nachbarfeld, mit Limit und Grund / fortification (Dravon): gun emplacement on an adjacent tile, with limit and reason
     if (isEmplacementBuilder(s, u)) {
+      // Meridon baut statt Geschuetzstellungen Raketensilos (gleicher Befehl, eigene Texte) / Meridon builds rocket silos instead of gun emplacements (same command, own texts)
+      const silo = buildsSilos(s, u.owner);
+      const k = silo ? 'shadow.silo' : 'emplacement';
       const ok = emplacementTargets(s, u).length > 0;
       const block = emplacementBlock(s, u);
-      const count = emplacementCount(s, u.owner);
-      const reason = ok ? `${t('emplacement.hint')} ${count}.`
-        : block === 'emplacementLimit' ? t('emplacement.limitReason', { n: emplacementsOf(s, u.owner).length, max: emplacementLimit(s, u.owner) })
-        : block === 'emplacementSpacing' ? t('emplacement.spacingReason', { n: EMPLACEMENT.minSpacing })
-        : block === 'notInTerritory' ? t('emplacement.territoryReason') : this.err(block === 'occupied' ? 'invalidTile' : block);
-      this.actions.push({ id: 'emplacement', icon: 'range', label: g.emplacementMode ? t('actions.cancel') : t('emplacement.build'), sub: g.emplacementMode ? undefined : count,
-        cost: g.emplacementMode ? undefined : EMPLACEMENT.cost, variant: 'primary', enabled: ok || g.emplacementMode, reason, desc: `${reason} ${emplacementDesc(s, u.owner)}`,
-        run: () => { if (g.emplacementMode) { g.emplacementMode = false; g.updateHighlights(); this.render(); } else { g.startEmplacement(); g.ui.toast(t('emplacement.hint'), 'range'); } } });
+      const count = silo ? t('shadow.silo.count', { n: silosOf(s, u.owner).length, max: emplacementLimit(s, u.owner) }) : emplacementCount(s, u.owner);
+      const reason = ok ? `${t(`${k}.hint`)} ${count}.`
+        : block === 'emplacementLimit' ? t(`${k}.limitReason`, { n: (silo ? silosOf(s, u.owner) : emplacementsOf(s, u.owner)).length, max: emplacementLimit(s, u.owner) })
+        : block === 'emplacementSpacing' ? t(`${k}.spacingReason`, { n: silo ? SILO.minSpacing : EMPLACEMENT.minSpacing })
+        : block === 'notInTerritory' ? t(`${k}.territoryReason`) : this.err(block === 'occupied' ? 'invalidTile' : block);
+      const about = silo ? t('shadow.silo.desc', { name: t(`factions.${s.factions[u.owner].id}.short`) }) : emplacementDesc(s, u.owner);
+      this.actions.push({ id: 'emplacement', icon: silo ? 'silo' : 'range', label: g.emplacementMode ? t('actions.cancel') : t(`${k}.build`), sub: g.emplacementMode ? undefined : count,
+        cost: g.emplacementMode ? undefined : silo ? SILO.cost : EMPLACEMENT.cost, variant: 'primary', enabled: ok || g.emplacementMode, reason, desc: `${reason} ${about}`,
+        run: () => { if (g.emplacementMode) { g.emplacementMode = false; g.updateHighlights(); this.render(); } else { g.startEmplacement(); g.ui.toast(t(`${k}.hint`), silo ? 'silo' : 'range'); } } });
     }
+    // Schattenflotte: Sabotage und Radarimpuls / shadow fleet: sabotage and radar sweep
+    for (const a of shadowUnitActions(s, u, g, (c) => this.err(c), () => this.render())) this.actions.push(a);
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);
       this.actions.push({ id: 'outpost', icon: 'outpost', label: t('actions.outpost'), cost: outpostCost(s, u.owner), enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk === 'cannotCapture' ? 'unitExhausted' : chk), run: () => void g.exec({ type: 'outpost', unit: u.id }) });

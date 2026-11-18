@@ -2,7 +2,7 @@
  * Kurzprofil einer Fraktion als gut lesbare Marken: Bonus, Spezialeinheit, eigenes Gebaeude, zweiter Bonus.
  * Short faction profile as easy-to-read chips: bonus, signature unit, own building, second bonus.
  */
-import { CULT, EMPLACEMENT, FACTIONS, HIT, ENTRENCH, HOME_DEFENSE, MOVE_FIRE, RANGE_BONUS, RESOURCE, UNITS, type BuildingId, type FactionId, type UnitTypeId, UPKEEP } from '../data/balance';
+import { CULT, EMPLACEMENT, FACTIONS, FIREPOWER, HIT, ENTRENCH, HOME_DEFENSE, MOVE_FIRE, RANGE_BONUS, RESOURCE, SEA_POWER, UNITS, WITHDRAW, type BuildingId, type FactionId, type UnitTypeId, UPKEEP } from '../data/balance';
 import { factionRace } from '../core';
 import { has, num, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -14,7 +14,9 @@ import { victoryGoalText, victoryShortText } from './victory';
 
 /** Kennzeichnende Einheit je Fraktion / signature unit per faction */
 const SIGNATURE_UNIT: Partial<Record<FactionId, UnitTypeId>> = {
-  korvat: 'steppeRider', dravon: 'stormbreaker', alvenia: 'peacekeeper', meridon: 'privateer', velkar: 'protoWalker',
+  // Meridon: das Schattenkommando steht fuer die Schattenflotte (das Kaperschiff bleibt die einzigartige Einheit)
+  // Meridon: the Shadow Commando stands for the shadow fleet (the privateer stays the unique unit)
+  korvat: 'steppeRider', dravon: 'stormbreaker', alvenia: 'peacekeeper', meridon: 'shadowCommando', velkar: 'protoWalker',
   zyrr: 'tripod', vesper: 'zealot', nexus: 'titan',
 };
 /** Eigenes Gebaeude je Fraktion / own building per faction */
@@ -24,7 +26,9 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 };
 
 /** Symbol des Fraktionsmerkmals / icon of the faction feature */
-const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'people', nexus: 'kamikaze' };
+const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'silo', nexus: 'kamikaze' };
+/** Symbol des zweiten Fraktionsmerkmals (Meridon: Zwei fuer einen) / icon of the second faction feature (Meridon: Two for One) */
+const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'people' };
 
 export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'upkeep' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'drawback' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
@@ -60,6 +64,9 @@ export function combatBonusTexts(f: FactionId): { name: string; desc: string; ic
   if (h) out.push({ icon: 'shield', name: t(`homeDefense.bonus.${f}`), desc: t(`homeDefense.bonusDesc.${f}`, { pct: pct(h) }) });
   // Kult: Mahnmal (zur Schau gestellte Gefallene) / cult: memorial (the fallen put on display)
   if (f === CULT.faction) out.push({ icon: 'emblemDoom', name: t('memorial.name'), desc: memorialText() });
+  // Meridon: Absetzen nach dem Angriff und leichte Bewaffnung (WITHDRAW, FIREPOWER) / Meridon: withdrawing after the attack and light armament (WITHDRAW, FIREPOWER)
+  if (WITHDRAW.factions.includes(f)) out.push({ icon: 'withdraw', name: t('shadow.withdraw.name'), desc: t('shadow.withdraw.desc') });
+  if (FIREPOWER.land[f] !== undefined) out.push({ icon: 'warning', name: t('shadow.firepower.name'), desc: t('shadow.firepower.desc', { firepowerPct: pct(1 - FIREPOWER.land[f]!) }) });
   return out;
 }
 
@@ -108,6 +115,8 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   if (has(`factions.${f}.perk2`)) out.push({ kind: 'perk2', icon: 'star', label: t('traits.perk2'), value: k('perk2'), desc: has(`factions.${f}.perk2Desc`) ? k('perk2Desc') : '' });
   // Fraktionsmerkmal (Dravon: Festungsbau), Zahlen aus balance.ts / faction feature (Dravon: fortress building), numbers from balance.ts
   if (has(`factions.${f}.feature`)) out.push({ kind: 'feature', icon: FEATURE_ICON[f] ?? 'range', label: t('traits.feature'), value: k('feature'), desc: t(`factions.${f}.featureDesc`, featureParams(f)) });
+  // zweites Merkmal (Meridon: Zwei fuer einen) / second feature (Meridon: Two for One)
+  if (has(`factions.${f}.feature2`)) out.push({ kind: 'feature', icon: FEATURE2_ICON[f] ?? 'range', label: t('traits.feature'), value: k('feature2'), desc: k('feature2Desc') });
   // Nachteil (Meridon: Korruption), Zahlen aus CORRUPTION ueber BALANCE_VARS / drawback (Meridon: corruption), numbers from CORRUPTION via BALANCE_VARS
   if (has(`factions.${f}.drawback`)) out.push({ kind: 'drawback', icon: 'warning', label: t('traits.drawback'), value: k('drawback'), desc: k('drawbackDesc') });
   const unit = SIGNATURE_UNIT[f];
@@ -117,6 +126,9 @@ export function factionTraits(f: FactionId): FactionTrait[] {
     out.push({ kind: 'discount', icon: UNIT_ICON[fs.discountUnit] ?? 'helmet', label: t('traits.discount'),
       value: t('traits.discountValue', { unit: t(`units.${fs.discountUnit}`), pct: Math.round(fs.discount * 100) }), desc: '' });
   }
+  // Seemacht (Meridon): Schiffe und Marinestuetzpunkt billiger / sea power (Meridon): ships and naval base cheaper
+  const sea = SEA_POWER.discount[f];
+  if (sea) out.push({ kind: 'discount', icon: 'sail', label: t('traits.discount'), value: t('shadow.seaPower.value', { seaPct: Math.round(sea * 100) }), desc: t('shadow.seaPower.desc', { seaPct: Math.round(sea * 100) }) });
   const b = SIGNATURE_BUILDING[f];
   if (b) out.push({ kind: 'building', icon: BUILD_ICON[b] ?? 'build', label: t('traits.building'), value: t(`buildings.${b}`), desc: has(`buildingDesc.${b}`) ? buildingDescText(b) : '' });
   // Ressourcengebaeude zum Rohstoff-Thema der Comics / resource building on the comics' resource theme

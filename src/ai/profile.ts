@@ -75,7 +75,7 @@ export function profileFor(s: GameState, f: number): Profile {
     // Heiliges Alvenia: defensiv, haelt das eigene Gebiet, Frieden nur mit Nicht-Suendern, setzt auf Reichweite
     // Holy Alvenia: defensive, holds its territory, peace only with non-sinners, relies on range
     case 'alvenia': p.peacemaker = s.config.mode !== 'conquest'; p.pref = { lightWarden: 1.2, sunLance: 1.4, peacekeeper: 1.3 }; break;
-    case 'meridon': p.buildW += 0.25; p.pref = { spy: 1.5 }; break; // Wachstum, Kueste / boom, coast
+    case 'meridon': p.buildW += 0.25; p.pref = { spy: 1.5 }; break; // Schattenbank, Kueste / shadow bank, coast
     case 'velkar': p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung (Rabatt genuegt, kein Zusatzgewicht) / research lead (the discount suffices, no extra weight)
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte
     // Zyrr: opportunistic raiders, skimmers and tripods go around the front and look for undefended cities

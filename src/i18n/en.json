@@ -153,23 +153,25 @@
     "meridon": {
       "name": "Meridon Trade League",
       "short": "Meridon",
-      "alignment": "trade and fast growth",
-      "perk": "Boom",
-      "perkDesc": "Every city level-up needs {boomLevel} population point less, at least 1.",
-      "discount": "Spy 20 % cheaper",
+      "alignment": "shadow trade and sea power",
+      "perk": "Shadow Bank",
+      "perkDesc": "Covert business instead of growth: +{shadowBankStars} stars per round per own coastal city (water in the city territory or next to the city tile).",
+      "discount": "Spy {spyPct} % cheaper",
       "home": "coasts and islands, many fishing grounds",
       "leader": "Coralie Nerezza",
       "leaderTitle": "Admiral of the Trade League",
-      "quote": "Every harbour has its price. I pay in cash.",
-      "lore": "The Meridon Trade League is a union of rich port cities whose fleets know every coast. Admiral Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her cities grow faster than any others, and her spies know everything before it happens.",
-      "style": "harbours, gold, spies, sailors",
-      "aiStyle": "Grows its cities and sends spies ahead.",
+      "quote": "The world banished us to the sea. Now it buys from us without knowing.",
+      "lore": "Before the Great Standstill Meridon was the leading nation of the world: culture, economy, stock exchanges and finance all ran through its harbours. Its speculation helped to trigger the collapse. Then came the New Order and the shooting down of the spaceship; the elite fled to the sea, bought whole fleets with its money and dug in there. Today the Trade League works in secret. Admiral Coralie Nerezza commands a shadow fleet of Fog Cutters, commandos and rockets, and her spies know everything before it happens. The counting houses of the old League once gave rise to the Verdan empire as well.",
+      "style": "harbours, gold, fog, spies, shadow fleet",
+      "aiStyle": "Strikes from hiding and falls back again, creates diversions by sea, sabotages roads and outposts and fires rockets from the hinterland.",
       "perk2": "Harbour pilots",
-      "perk2Desc": "Landing boats move {pilotsMove} tile further.",
+      "perk2Desc": "Landing boats and Fog Cutters move {pilotsMove} tile further.",
       "drawback": "Corruption",
       "drawbackDesc": "Random event: at the start of the turn officials siphon off {corruptionPct} % of the stars with a {corruptionChance} % chance (rounded down, min. {corruptionMin}, at most {corruptionMax}), at most {corruptionCap} times in {corruptionWindow} rounds. Only with random events. Spending loses less.",
-      "feature": "Two for One",
-      "featureDesc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
+      "feature": "Shadow Fleet",
+      "featureDesc": "Only the Shadow Commando (instead of the MG) and the Fog Cutter (instead of the landing boat) are camouflaged. After an own attack without moving first, land units withdraw up to {withdrawTiles} tiles. Instead of tanks Meridon builds rocket silos ({siloCost} stars): a rocket at {siloRange} tiles, {siloDamage} damage to everything in 2×2 tiles, then {siloFireRounds} rounds of fire dealing {siloFireDamage} damage per round, one launch every {siloCooldown} rounds. The Guided Missile flies instead of artillery, the Radar Truck sees under the clouds too. In return land units deal {firepowerPct} % less damage.",
+      "feature2": "Two for One",
+      "feature2Desc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -301,7 +303,11 @@
     "steppeColossus": "Steppe Colossus",
     "cyborg": "Cyborg infantry",
     "flameTank": "Flamethrower tank",
-    "kamikazeDrone": "Kamikaze walker drone"
+    "kamikazeDrone": "Kamikaze walker drone",
+    "shadowCommando": "Shadow Commando",
+    "fogCutter": "Fog Cutter",
+    "guidedMissile": "Guided Missile",
+    "radarTruck": "Radar Truck"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: holds cities and outposts.",
@@ -360,7 +366,11 @@
     "steppeColossus": "The heaviest tank of the People's League: double track runs, a huge cast turret with a long gun and two MG turrets. The most HP and the strongest attack of all tanks, at the standard tank's price. From the tank works, and as a city reward.",
     "cyborg": "Machine soldier with armour plates and servo limbs: sturdier and harder-hitting than the combat android, but pricier. Available from the first turn.",
     "flameTank": "Tracked vehicle with fuel tanks and a flamethrower: range 1, the flames ignore all cover (forest, city, outposts), especially strong against foot troops.",
-    "kamikazeDrone": "Small walker drone with an explosive charge: walks {droneMove} tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr."
+    "kamikazeDrone": "Small walker drone with an explosive charge: walks {droneMove} tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr.",
+    "shadowCommando": "Light foot troop of the shadow fleet instead of the MG: moves {commandoMove} tiles and is camouflaged. Enemies only see the commando when one of their units, cities or structures stands right next to it; after an attack or a sabotage it stays revealed until your next turn. Weak attack, but sabotage: destroys a hostile outpost, building or road on its own tile or next to it, then a pause of {sabotageCooldown} rounds. Comes from the armoury.",
+    "fogCutter": "Camouflaged transport boat of Meridon instead of the landing boat: bought empty in any coastal city, a land unit boards from an adjacent tile. Enemies only see the cutter with their own unit, city or structure next to it. Moves {pilotsMove} tile further with harbour pilots. Does not attack.",
+    "guidedMissile": "Single-use rocket instead of artillery and tanks: flies {missileMove} tiles over land and water and explodes when attacking a single target. The target does not strike back, there is no penalty after moving, and the missile is spent afterwards. Flak brings it down. Comes from the gun foundry.",
+    "radarTruck": "Unarmed truck with a radar dish. Radar sweep: for {radarRounds} rounds you see every hostile unit within radius {radarRadius} of the truck, camouflaged, submerged ones and spies too, even under the clouds; the tiles themselves stay unexplored. Then a pause of {radarCooldown} rounds. Comes from the motor pool."
   },
   "abilities": {
     "dash": "Assault",
@@ -420,7 +430,13 @@
     "boss": "Boss",
     "bossDesc": "Heals on xeno ground, broods greys on adjacent tiles and hits every hostile neighbour with a psychic scream. Cannot be converted, no upkeep.",
     "kamikaze": "Kamikaze",
-    "kamikazeDesc": "The attack is the explosion: only the target takes damage, it cannot strike back, and the drone is destroyed afterwards. No penalty for attacking after moving."
+    "kamikazeDesc": "The attack is the explosion: only the target takes damage, it cannot strike back, and the drone is destroyed afterwards. No penalty for attacking after moving.",
+    "camo": "Camouflage",
+    "camoDesc": "Invisible to enemies while none of their units, cities or structures stand right next to it. An own attack or a sabotage reveals it until the next own turn. Radar, the recon drone and the radio tower find camouflaged units.",
+    "sabotage": "Sabotage",
+    "sabotageDesc": "Destroys a hostile outpost, building or road on its own tile or next to it; never cities. Costs the action, then a pause of {sabotageCooldown} rounds.",
+    "radar": "Radar sweep",
+    "radarDesc": "See every hostile unit within radius {radarRadius} for {radarRounds} rounds, even under the clouds; then a pause of {radarCooldown} rounds."
   },
   "stats": {
     "cost": "Cost",
@@ -817,7 +833,12 @@
     "buildingMissing": "Production site or prerequisite missing.",
     "noCoast": "No water at this city: ships need a coastal city.",
     "noWaterTile": "No free water tile at the city.",
-    "alreadyBought": "Already bought this round."
+    "alreadyBought": "Already bought this round.",
+    "siloCooldown": "The silo is still reloading.",
+    "sabotageCooldown": "Sabotage is not ready again yet.",
+    "radarCooldown": "The radar is not ready again yet.",
+    "noTarget": "There is nothing to sabotage there.",
+    "siloLimit": "No further silos possible."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1793,7 +1814,11 @@
       "steppeColossus": "Father Steel",
       "cyborg": "Tin Grenadier",
       "flameTank": "Fire Thresher",
-      "kamikazeDrone": "Bang Beetle"
+      "kamikazeDrone": "Bang Beetle",
+      "shadowCommando": "Potato Shadows",
+      "fogCutter": "Fog Ferry",
+      "guidedMissile": "Kolkhoz Rocket",
+      "radarTruck": "Listening Tractor"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1852,7 +1877,11 @@
       "steppeColossus": "Steppe Fortress",
       "cyborg": "Drill Cyborg",
       "flameTank": "Burner Tank",
-      "kamikazeDrone": "Blast Runner"
+      "kamikazeDrone": "Blast Runner",
+      "shadowCommando": "Shadow Squad",
+      "fogCutter": "Fog Boat",
+      "guidedMissile": "One-Way Shell",
+      "radarTruck": "Listening-Post Truck"
     },
     "alvenia": {
       "infantry": "Parish Guard",
@@ -1911,7 +1940,11 @@
       "steppeColossus": "Red Moloch",
       "cyborg": "Unsouled One",
       "flameTank": "Hellmouth",
-      "kamikazeDrone": "Devil's Spark"
+      "kamikazeDrone": "Devil's Spark",
+      "shadowCommando": "Wayward Shadows",
+      "fogCutter": "Fog Barque",
+      "guidedMissile": "Falling Spark",
+      "radarTruck": "Watchful Ear"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -1970,7 +2003,11 @@
       "steppeColossus": "Heavy-Haul Colossus",
       "cyborg": "Hired Machine",
       "flameTank": "Fire Damage",
-      "kamikazeDrone": "Disposable Drone"
+      "kamikazeDrone": "Disposable Drone",
+      "shadowCommando": "Silent Shareholders",
+      "fogCutter": "Fog Cutter",
+      "guidedMissile": "Wire Transfer",
+      "radarTruck": "Market Listener"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -2029,7 +2066,11 @@
       "steppeColossus": "Super-Heavy Prototype",
       "cyborg": "Man-Machine Sample",
       "flameTank": "Thermal Trial",
-      "kamikazeDrone": "One-Way Probe"
+      "kamikazeDrone": "One-Way Probe",
+      "shadowCommando": "Stealth Sample",
+      "fogCutter": "Haze Cutter",
+      "guidedMissile": "Guided Projectile V",
+      "radarTruck": "Bearing Truck"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -2088,7 +2129,11 @@
       "steppeColossus": "Giant Shell",
       "cyborg": "Mixed Specimen",
       "flameTank": "Ember Shell",
-      "kamikazeDrone": "Pop Beetle"
+      "kamikazeDrone": "Pop Beetle",
+      "shadowCommando": "Shadow Skin",
+      "fogCutter": "Fog Swimmer",
+      "guidedMissile": "Flying Spore",
+      "radarTruck": "Listening Node"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -2147,7 +2192,11 @@
       "steppeColossus": "Iron Colossus",
       "cyborg": "Fallen Flesh",
       "flameTank": "Purgatory Wagon",
-      "kamikazeDrone": "Suicide Imp"
+      "kamikazeDrone": "Suicide Imp",
+      "shadowCommando": "Shadow Penitents",
+      "fogCutter": "Fog Raft",
+      "guidedMissile": "Fire Herald",
+      "radarTruck": "Ear of the End"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -2206,7 +2255,11 @@
       "steppeColossus": "Unit T-12 Heavy Chassis",
       "cyborg": "Unit C-9 Cyborg Infantry",
       "flameTank": "Unit F-5 Burner Platform",
-      "kamikazeDrone": "Unit X-1 One-Way Walker"
+      "kamikazeDrone": "Unit X-1 One-Way Walker",
+      "shadowCommando": "Unit S-0 Covert",
+      "fogCutter": "Unit N-2 Fog",
+      "guidedMissile": "Unit G-5 Guidance",
+      "radarTruck": "Unit R-6 Radar"
     }
   },
   "identity": {
@@ -3608,6 +3661,10 @@
     "factionUnits": {
       "title": "Faction designs",
       "text": "Some factions have their own units or their own way of training. The numbers are also shown in the faction profile."
+    },
+    "shadowFleet": {
+      "title": "Shadow fleet (Meridon)",
+      "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. Radar sweeps, the recon drone and the radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and does not attack again. Meridon builds no tanks but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. On command the silo launches a rocket at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The Guided Missile replaces artillery, the Radar Truck shows every hostile unit within radius {radius} for {rr} rounds, even under the clouds ({rcd} rounds of pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds of pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
     }
   },
   "lore": {
@@ -3625,7 +3682,7 @@
       "nexus": "AI Collective NEXUS, machines. Primary Instance KERN-0. Robots, data centres, research, cyan light. Once NEXUS was only the logistics program of a mighty great power, built to coordinate supply chains, production and research. But when the humans left, it did not shut down. NEXUS simply kept calculating, optimising, learning and expanding. The former program became the AI Collective NEXUS. Led by KERN-0 it now coordinates research, production and expansion, efficient, logical, tireless. For NEXUS there are no coincidences, no dogmas and no nations, only data, resources and the most efficient solution for a stable future.",
       "alvenia": "Holy Alvenia, humans. High Priestess Liora Valen. An order of clerics, the sun halo, Light Wardens, Judgement. In the green hill valleys an order sings beneath the sun halo. Valen was a field doctor. She has seen what front lines do and believes in the redemption of the fallen. Whoever plunders, burns or converts will meet her Judgement. The Order is the counterweight to the cult.",
       "velkar": "Technocracy of Velkar, humans. Director Aurel Kesh. Production, labs, pioneers, cold. In the icy north the empire's old polar laboratory survived the Standstill. Kesh proclaimed the technocracy: the formula decides, not the people. Velkar's pioneers build fortresses where others freeze. Their dream: endless energy. Whoever ends scarcity, the world will follow.",
-      "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, spies, sailors. Rich harbour cities buy each other's debts until a league is born. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. Her cities grow faster than all others. Meridon does not want to conquer the world, but to buy it."
+      "meridon": "Trade League of Meridon, humans. Admiral Coralie Nerezza. Harbours, gold, fog, spies, shadow fleet. Rich harbour cities buy each other's debts until a league is born, before the Great Standstill the leading nation in culture, economy, stock exchanges and finance. Its speculation helped to trigger the collapse. After the New Order and the shooting down of the spaceship the elite fled to the sea and bought whole fleets. Nerezza bought her first cruiser with smuggled gold and has not lost a bet since. Her spies know everything before it happens. The League works in secret; its old counting houses once gave rise to the Verdan empire. Meridon does not want to conquer the world, but to buy it."
     },
     "menu": "Story",
     "prologueTitle": "Prologue: The Starfall",
@@ -4035,5 +4092,87 @@
     "storm": "{name} storms {city}!",
     "diversion": "Flank attack! {name} advances on {city}.",
     "encircle": "Encirclement! {name} surrounds one of your units ({unit})."
+  },
+  "shadow": {
+    "silo": {
+      "name": "Rocket Silo",
+      "nameOf": "{name} Rocket Silo",
+      "stats": "Armour {hp} / {max} · rocket range {range} · {dmg} damage on 2×2 tiles",
+      "desc": "Fixed structure of {name} instead of tanks, not a unit, impassable, no return fire and never fires on its own. On command it launches a rocket at a tile within range {siloRange}: {siloDamage} damage to every unit in 2×2 tiles, own ones too, then the land tiles burn for {siloFireRounds} rounds dealing {siloFireDamage} damage per round. One launch every {siloCooldown} rounds. If the territory is lost, the silo is razed.",
+      "ready": "ready to launch",
+      "wait": "ready in {n} rounds",
+      "wait1": "ready in 1 round",
+      "build": "Build rocket silo",
+      "count": "{n}/{max} silos",
+      "hint": "Pick a free adjacent tile in your own territory for the silo.",
+      "limitReason": "Limit reached: {n}/{max} silos. More cities allow more silos (at most {siloMax}).",
+      "spacingReason": "Too close to an own silo: at least {n} tiles apart.",
+      "territoryReason": "Only on a free adjacent tile in your own territory.",
+      "launch": "Launch rocket",
+      "title": "Rocket silo: pick a target",
+      "pick": "Tap a tile within range {range}: it becomes the top-left corner of the 2×2 area.",
+      "confirm": "Tap again or press Launch! Esc cancels.",
+      "fire": "Launch!",
+      "hits": "{n} hits, {kills} destroyed",
+      "hits1": "1 hit, {kills} destroyed",
+      "noHits": "No visible targets in the area",
+      "own": "Warning: {n} own units in the target",
+      "own1": "Warning: 1 own unit in the target",
+      "blocked": "Units of a faction you are at peace with stand in the target.",
+      "outOfRange": "Target out of range ({range} tiles).",
+      "tag": "-{dmg}",
+      "tagKill": "-{dmg} KO",
+      "fireTag": "fire",
+      "toast": "Rocket launch by {name}!",
+      "attack": "Attack silo",
+      "previewKill": "Destroys the silo",
+      "lost": "Rocket silo razed: the territory is lost.",
+      "ruin": "Rubble of a rocket silo",
+      "burning": "Fire: {n} more rounds, {dmg} damage per round at the start of the round",
+      "fireHit": "Fire: {own} of your units lose {dmg} HP each",
+      "every": "launches on command"
+    },
+    "camo": {
+      "hidden": "Camouflaged: enemies only see the unit with a unit, city or structure next to it.",
+      "revealed": "Revealed until your next turn.",
+      "tag": "camouflaged",
+      "tagRevealed": "revealed"
+    },
+    "withdraw": {
+      "name": "Withdraw",
+      "desc": "After an own attack without moving first, a land unit falls back up to {withdrawTiles} tiles (normal movement costs) and does not attack again. Not on return fire, not for flyers and ships; the jeep keeps its full movement.",
+      "hint": "Withdraw: fall back up to {withdrawTiles} tiles, no further attack.",
+      "tag": "can withdraw"
+    },
+    "firepower": {
+      "name": "Light armament",
+      "desc": "Land units deal {firepowerPct} % less damage, when attacking and on return fire. Ships, Guided Missiles and rocket silos are not affected.",
+      "note": "Light armament: −{firepowerPct} %"
+    },
+    "seaPower": {
+      "name": "Sea power",
+      "value": "Ships {seaPct} % cheaper",
+      "desc": "All ships (shipyard and upgrades, the privateer and the Fog Cutter too) and the naval base cost {seaPct} % less."
+    },
+    "sabotage": {
+      "action": "Sabotage",
+      "hint": "Pick a target on your tile or next to it.",
+      "cooldown": "Sabotage ready in {n} rounds",
+      "none": "No sabotage target on the tile or next to it.",
+      "done": "Sabotage: {what} destroyed",
+      "victim": "Sabotage! {name} destroyed {what}.",
+      "outpost": "an outpost",
+      "road": "a road",
+      "building": "{building}"
+    },
+    "radar": {
+      "action": "Radar sweep",
+      "active": "Radar active until round {n}",
+      "cooldown": "Radar ready in {n} rounds",
+      "toast": "Radar sweep: {n} contacts in range",
+      "toast1": "Radar sweep: 1 contact in range",
+      "toast0": "Radar sweep: no contacts in range",
+      "echo": "Radar contact"
+    }
   }
 }

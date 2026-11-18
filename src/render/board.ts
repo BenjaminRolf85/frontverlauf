@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import type { BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL, M2, WAR_MARKS } from '../data/balance';
-import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, type GameState, type Unit } from '../core';
+import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
@@ -15,6 +15,7 @@ import * as models from './models';
 import { WeatherFx } from './weather';
 import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
+import { ROCKET_FX, RocketFx } from './fx/rocket';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
@@ -131,6 +132,8 @@ const SHIP_TURN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1
 const DONE_OPACITY = 0.5;
 /** Eintauchtiefe watender Einheiten / sink depth of wading units */
 const WADE_SINK = 0.14;
+/** Radarkontakt unter den Wolken: so weit ueber der Wolkendecke (Radarimpuls, RADAR) / radar contact under the clouds: this far above the cloud deck (radar sweep, RADAR) */
+const RADAR_ECHO_LIFT = 0.26;
 const xenoDecoration = (v: number) => safe(models.xenoDecoration, null, v);
 const cloudGeometry = (v: number) => safe(models.cloudGeometry, semantic.cloud, v)!;
 const caveCloudGeometry = (v: number) => safe(models.caveCloudGeometry, semantic.caveFog, v)!;
@@ -142,6 +145,8 @@ const supplyLineGeometry = (f: FactionId | null, hq: boolean) => safe(models.sup
 const verdanTurretGeometry = (active: boolean) => safe(models.verdanTurretGeometry, semantic.verdanStone, active);
 const verdanRuinGeometry = () => safe(models.verdanRuinGeometry, semantic.verdanStoneDark);
 const emplacementGeometry = (f: FactionId) => safe(models.emplacementGeometry, factionTokens[f].primary, f);
+/** Raketensilo der Meridon / Meridon rocket silo */
+const siloGeometry = (f: FactionId) => safe(models.siloGeometry, factionTokens[f].primary, f);
 const emplacementRuinGeometry = (f: FactionId | null) => safe(models.emplacementRuinGeometry, semantic.neutralDark, f);
 const craterCracks = (ring: number, v: number) => safe(models.craterCracks, null, ring, v);
 const craterDebris = (v: number) => safe(models.craterDebris, null, v);
@@ -251,6 +256,8 @@ export class Board {
   readonly rift = new RiftFx();
   /** Orbitallaser: Zielvorschau, Strahl, Uplink-Licht der Relays / orbital laser: target preview, beam, relay uplink light */
   readonly orbital = new OrbitalFx();
+  /** Raketenstart der Raketensilos / launch of the rocket silos */
+  readonly rocket = new RocketFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -262,7 +269,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group, this.rocket.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -656,8 +663,8 @@ export class Board {
           // umkaempfte Wiese: verbranntes Gras (mittel) oder nackte Erde (schwer) / fought-over meadow: burnt grass (medium) or bare earth (heavy)
           if (scar === 2) addDeco(burntGrassGeometry((x * 7 + y * 13) % 2), at());
         } else if (!occ && (!hasStructure || t.building === 'road') && !(alien && t.resource === 'fish')) addDeco(decorationGeometry(t.terrain, t.resource, variant), at(), plant);
-        // brennende Lava nach einem Ausbruch / burning lava after an eruption
-        if (burning(s, t)) {
+        // brennende Lava nach einem Ausbruch, Raketenbrand (Schattenflotte) mit denselben Flammen / burning lava after an eruption, rocket fire (shadow fleet) with the same flames
+        if (burning(s, t) || onFire(s, t)) {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
@@ -729,7 +736,12 @@ export class Board {
           addDeco(desert && rg ? sandify(rg, `res${t.terrain}${t.resource}${variant}`) : rg, at());
         }
         // Verdan-Geschuetz, zum Artefakt gedreht; Truemmer nach der Zerstoerung / Verdan gun facing the artifact; rubble after destruction
-        if (t.turret && t.turret.hp > 0 && t.turret.owner !== undefined) {
+        if (t.turret && t.turret.hp > 0 && t.turret.kind === 'silo') {
+          // Raketensilo (Meridon): Deckel offen, Rakete sichtbar / rocket silo (Meridon): hatch open, rocket visible
+          const sf = s.factions[t.turret.owner ?? 0]?.id ?? 'meridon';
+          const sg = siloGeometry(sf);
+          addDeco(desert && sg ? sandify(sg, `silo${sf}`) : sg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1.1, 1.1, 1.1)), false, 'built');
+        } else if (t.turret && t.turret.hp > 0 && t.turret.owner !== undefined) {
           // Geschuetzstellung: Rohr weg von der naechsten eigenen Stadt (zur Grenze) / gun emplacement: barrel away from the nearest own city (towards the border)
           const ef = s.factions[t.turret.owner]?.id ?? 'dravon';
           let home: { x: number; y: number } | null = null, hd = Infinity;
@@ -1195,8 +1207,13 @@ export class Board {
       const model = v.group.getObjectByName('model')!;
       model.position.y = (u.type === 'heli' || u.type === 'octocopter' ? 0.1 : 0) + BASE_H;
       const submerged = u.type === 'submarine' && !u.revealed;
+      // Radarkontakt unter den Wolken: ueber der Wolkendecke, halb durchsichtig; eigene Getarnte halb durchsichtig
+      // radar contact under the clouds: above the cloud deck, half transparent; own camouflaged units half transparent
+      const echo = viewer >= 0 && radarEcho(s, viewer, u);
+      const hidden = submerged || echo || (camouflaged(u) && (viewer < 0 || u.owner === viewer));
+      if (echo && !this.isAnimating(u.id)) v.group.position.y = CLOUD_Y + RADAR_ECHO_LIFT;
       this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
-      const opts = submerged ? { transparent: true, opacity: 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
+      const opts = hidden ? { transparent: true, opacity: echo ? 0.7 : 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
       const mat = unitMaterial(opts);
       // leuchtende Teile behalten ihr Leuchtmaterial / glowing parts keep their glow material
       const glowMat = unitGlowMaterial(opts);
@@ -1664,9 +1681,36 @@ export class Board {
     });
   }
 
+  /**
+   * Raketenstart: Bogen vom Silo zur Flaeche, onImpact beim Einschlag. Ohne Animationen: stiller Einschlag.
+   * Rocket launch: arc from the silo to the area, onImpact at the moment of impact. Without animations: still impact.
+   */
+  animateSilo(s: GameState, from: { x: number; y: number }, tiles: { x: number; y: number }[], faction: FactionId | null, animate: boolean, onImpact: () => void): Promise<void> {
+    this.orbital.clearPreview();
+    const c = tiles.reduce((a: THREE.Vector3, p) => a.add(this.tileCenter(s, p.x, p.y)), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, tiles.length));
+    const r = 1.15;
+    if (!animate || !this.animations) {
+      this.rocket.still(c, r, faction);
+      onImpact();
+      this.rocket.endLater(1100, () => { this.dirty = true; });
+      this.dirty = true;
+      return Promise.resolve();
+    }
+    const start = this.tileCenter(s, from.x, from.y);
+    start.y += 0.3;
+    this.rocket.begin(start, c, r, faction);
+    let hit = false;
+    return this.addAnim(ROCKET_FX.ms, (t) => {
+      this.rocket.frame(t);
+      if (!hit && t >= ROCKET_FX.impact) { hit = true; onImpact(); }
+      if (t >= 1) this.rocket.end();
+    });
+  }
+
   finishAnimations() {
     this.combat.clear();
     this.orbital.end();
+    this.rocket.end();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;
