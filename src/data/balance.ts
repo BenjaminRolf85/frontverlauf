@@ -803,11 +803,13 @@ export const SILO = {
   charge: 1,
   /**
    * KI: Start ab Nettowert minValue (wie ORBITAL.ai), eigene Einheiten ownWeight-fach negativ; Bau erst ab minCities Staedten
-   * und mit reserve Sternen Polster und armyShare der Wunscharmee.
+   * und armyShare der Wunscharmee, direkt mit reserve Sternen Polster, sonst als Sparziel (Wert buyValue x Preis, bis zu
+   * saveRounds Runden Einkommen).
    * AI: launch from net value minValue (as ORBITAL.ai), own units count ownWeight times negative; build only from minCities
-   * cities, with a reserve star cushion and armyShare of the desired army.
+   * cities and armyShare of the desired army, directly with a reserve star cushion, otherwise as a savings goal (value
+   * buyValue x price, up to saveRounds rounds of income).
    */
-  ai: { minValue: 6, ownWeight: 2.5, killBonus: 1, damageWeight: 1.5, fireWeight: 0.5, gunWorth: 40, wonderInterrupt: 25, minCities: 2, reserve: 15, armyShare: 0.7 },
+  ai: { minValue: 6, ownWeight: 2.5, killBonus: 1, damageWeight: 1.5, fireWeight: 0.5, gunWorth: 40, wonderInterrupt: 25, minCities: 2, reserve: 15, armyShare: 0.5, buyValue: 1.6, saveRounds: 4 },
 };
 
 /**

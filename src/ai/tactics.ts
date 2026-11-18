@@ -5,9 +5,10 @@
 import {
   canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, effectiveRange, unitRange, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
-  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, facingTowards, type Command, type Reach, type Unit, type Pos,
+  turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, facingTowards, onFire, sabotageThing, type Command, type Reach, type Unit, type Pos,
 } from '../core';
 import { emplacementOption } from './emplacements';
+import { sabotageValue, siloOption } from './shadowFleet';
 import { scientistAttackBonus, truceExposure, workSpotPenalty } from './mothership';
 import { carrierAttackBonus, planSeize } from './temple';
 import { AI, ALVENIA_UNITS, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type AlveniaUnitId, type WonderUnitId } from '../data/balance';
@@ -22,6 +23,8 @@ import { SWARM_MOTHER } from '../data/balance';
 import { bossHome } from './analysis';
 
 type Failed = Set<string>;
+/** Absetzen: zusaetzliche Vorsicht nach dem Angriff (Faktor auf den erwarteten Schaden) / withdrawal: extra caution after the attack (factor on the expected damage) */
+const AI_WITHDRAW_CAUTION = 1.2;
 export const cmdKey = (c: Command) => JSON.stringify(c);
 const ok = (failed: Failed, c: Command) => !failed.has(cmdKey(c));
 
@@ -171,7 +174,7 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
 
 // ---------- Verdan-Geschuetze / Verdan guns ----------
 
-const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean; owner?: number })[]>();
+const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[]>();
 /**
  * Bekannte (aufgedeckte) feindliche Geschuetze: Verdan und Stellungen von Kriegsgegnern (eigene und befreundete nicht).
  * Known (explored) hostile guns: Verdan and emplacements of enemies at war (not own or friendly ones).
@@ -199,8 +202,10 @@ function gunAttackValue(ctx: Ctx, u: Unit, p: Pos): number {
   }
   // Stellungen: eigener Preis, mehr wenn sie eigene Einheiten oder Staedte bedrohen / emplacements: own prize, more when they threaten own units or cities
   const own = gun.owner !== undefined;
-  const near = own ? ctx.my.filter((o) => dist(o, p) <= EMPLACEMENT.range).length + ctx.myCities.filter((c) => dist(c, p) <= EMPLACEMENT.range + 1).length * 2 : 0;
-  const prize = own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
+  const gr = gunStats(gun).range;
+  const near = own ? ctx.my.filter((o) => dist(o, p) <= gr).length + ctx.myCities.filter((c) => dist(c, p) <= gr + 1).length * 2 : 0;
+  // Raketensilo: wertvolles Ziel ohne Gegenschlag / rocket silo: a valuable target without return fire
+  const prize = gun.kind === 'silo' ? EMPLACEMENT.ai.prize + 20 : own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
   let v = (expected / gunStats(gun).hp) * prize + kill * prize;
   v -= ret >= u.hp ? worth(u) + 6 : (ret / u.hp) * worth(u) * 0.7;
   // Kamikaze: die Drohne ist danach verbraucht / kamikaze: the drone is spent afterwards
@@ -217,7 +222,7 @@ function gunDanger(ctx: Ctx, x: number, y: number): number {
 /** Feindliche Geschuetzstellungen in Schussweite von (x, y) / hostile gun emplacements within range of (x, y) */
 function emplacementDanger(ctx: Ctx, x: number, y: number): number {
   let n = 0;
-  for (const g of knownGuns(ctx)) if (g.owner !== undefined && dist(g, { x, y }) <= EMPLACEMENT.range) n++;
+  for (const g of knownGuns(ctx)) if (g.owner !== undefined && g.kind !== 'silo' && dist(g, { x, y }) <= EMPLACEMENT.range) n++;
   return n;
 }
 
@@ -393,6 +398,16 @@ export function evalTile(ctx: Ctx, u: Unit, g: Goal, fld: Float32Array, x: numbe
   // and infantry move 2 tiles (twice the progress per turn)
   const emp = knownGuns(ctx).length ? emplacementDanger(ctx, x, y) : 0;
   if (emp) v -= emp * worth(u) * 0.3 * prof.caution * (UNITS[type].attack <= 1 || u.hp < u.maxHp * 0.5 ? 3 : 0);
+  // Raketenbrand (Schattenflotte): brennt das Feld zu Beginn der naechsten Runde, kostet es LP / rocket fire (shadow fleet): if the tile burns at the start of the next round it costs HP
+  if (t.fire && t.fire.until > s.round && onFire(s, t)) v -= 10 + (worth(u) * 2) / Math.max(1, u.hp);
+  // Absetzen nach dem Angriff (Hit and Run): aus der Reichweite der Gegner / withdrawing after the attack (hit and run): out of enemy reach
+  if (u.withdraw && u.attacked && dmg > 0) v -= (dmg / Math.max(1, u.hp)) * worth(u) * AI_WITHDRAW_CAUTION;
+  // Schattenkommando: neben einem lohnenden Sabotageziel stehen / Shadow Commando: stand next to a worthwhile sabotage target
+  if (has(u, 'sabotage') && layer === 0 && !u.attacked) {
+    let sab = 0;
+    for (const p of area(size, x, y, 1)) if (sabotageThing(s, f, p.x, p.y)) sab = Math.max(sab, sabotageValue(ctx, p.x, p.y));
+    v += sab * 0.5;
+  }
   // naechste Runde bricht ein Vulkan daneben aus: wegbleiben / a volcano next to it erupts next round: stay away
   for (const p of area(size, x, y, 1)) {
     const vt = s.tiles[idx(size, p.x, p.y)];
@@ -529,8 +544,9 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
       const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
       if (stay + mo.v > bestV && ok(failed, c)) { bestV = stay + mo.v; bestCmd = c; }
     }
-    // Festungsbau: Geschuetzstellung an bedrohter Stadt / fortification: gun emplacement at a threatened city
-    const eo = emplacementOption(ctx, u);
+    // Festungsbau: Geschuetzstellung an bedrohter Stadt; Meridon: Raketensilo an sicherem Platz
+    // fortification: gun emplacement at a threatened city; Meridon: rocket silo at a safe site
+    const eo = emplacementOption(ctx, u) ?? siloOption(ctx, u);
     if (eo) {
       const c: Command = { type: 'emplacement', unit: u.id, x: eo.x, y: eo.y };
       if (stay + eo.v > bestV && ok(failed, c)) { bestV = stay + eo.v; bestCmd = c; }
@@ -565,7 +581,7 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
       const c: Command = { type: 'mine', unit: u.id, x: mo.x, y: mo.y };
       if (ok(failed, c)) return c;
     }
-    const eo = emplacementOption(ctx, u);
+    const eo = emplacementOption(ctx, u) ?? siloOption(ctx, u);
     if (eo) {
       const c: Command = { type: 'emplacement', unit: u.id, x: eo.x, y: eo.y };
       if (ok(failed, c)) return c;

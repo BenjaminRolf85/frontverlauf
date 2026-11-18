@@ -13,6 +13,7 @@ import {
 } from './economy';
 import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
+import { planRadar, planSabotage, planSilo } from './shadowFleet';
 import { applyOps } from './operations';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
@@ -41,7 +42,7 @@ const now = () => (typeof performance !== 'undefined' ? performance.now() : Date
 /** Fingerabdruck des fuer die Fraktion relevanten Zustands / fingerprint of the faction-relevant state */
 function fingerprint(s: GameState, f: number): string {
   const fa = s.factions[f];
-  const parts: (string | number)[] = [fa.stars, fa.techs.length, s.pendingRewards.length, s.nextId, fa.embassies.length, s.units.length, s.current, s.round, fa.orbitalReady ?? -1];
+  const parts: (string | number)[] = [fa.stars, fa.techs.length, s.pendingRewards.length, s.nextId, fa.embassies.length, s.units.length, s.current, s.round, fa.orbitalReady ?? -1, fa.sightings?.length ?? 0];
   for (const g of s.factions) parts.push(g.peaceOffers.length, g.relations.join(''));
   for (const u of s.units) {
     if (u.owner !== f) continue;
@@ -75,7 +76,11 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planMothership(ctx, failed)
     ?? planConvert(ctx, failed)
     ?? planOrbital(ctx, failed)
+    // Schattenflotte (Meridon): Radar vor den Angriffen, Silo-Start, Sabotage nach den Angriffen / shadow fleet (Meridon): radar before the attacks, silo launch, sabotage after the attacks
+    ?? planRadar(ctx, failed)
+    ?? planSilo(ctx, failed)
     ?? planAttack(ctx, failed)
+    ?? planSabotage(ctx, failed)
     ?? planWonderUnits(ctx, failed)
     ?? planUnitMoves(ctx, failed)
     ?? planPurchase(ctx, failed)

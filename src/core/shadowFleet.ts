@@ -10,7 +10,7 @@
  */
 import { RADAR, SABOTAGE, SIGHTING, SILO, type BuildingId } from '../data/balance';
 import { dist, inBounds, isLand, tileAt } from './grid';
-import { canActStill, canSeeUnit, has, isExplored, isHostile, territoryOwner, unitAt, unitById } from './queries';
+import { canActStill, canSeeUnit, has, isExplored, isHostile, sightedBy, territoryOwner, unitAt, unitById } from './queries';
 import type { ErrorCode, Faction, GameEvent, GameState, OrbitalHit, Pos, Tile, Unit } from './types';
 
 /** Interne Helfer aus rules.ts / internal helpers from rules.ts */
@@ -230,8 +230,9 @@ export function siloCheck(s: GameState, f: number, x: number, y: number, tx: num
   if ((siloWait(s, x, y) ?? 0) > 0) return 'siloCooldown';
   if (!inBounds(s.size, tx, ty)) return 'invalidTile';
   if (dist({ x, y }, { x: tx, y: ty }) > SILO.launchRange) return 'outOfRange';
-  // das Zielfeld muss aufgedeckt sein, der Rest der Flaeche trifft auch im Nebel / the target tile must be revealed, the rest of the area hits in fog too
-  if (!isExplored(s, f, tx, ty)) return 'notVisible';
+  // das Zielfeld muss aufgedeckt sein oder im Radarimpuls liegen (Zieldaten), der Rest der Flaeche trifft auch im Nebel
+  // the target tile must be revealed or inside a radar sweep (targeting data), the rest of the area hits in fog too
+  if (!isExplored(s, f, tx, ty) && !sightedBy(s, f, { x: tx, y: ty })) return 'notVisible';
   if (struck(s, f, siloArea(s, tx, ty)).blocked) return 'peace';
   return 'ok';
 }

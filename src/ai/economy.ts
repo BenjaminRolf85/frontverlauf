@@ -8,10 +8,10 @@ import {
   income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
   unitCost, unitLimit, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
-  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile,
+  baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, factionVariant, rosterShips,
 } from '../core';
 import {
-  AI, CULT, UPKEEP, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -19,6 +19,7 @@ import { relayTechBonus, relayValue } from './orbital';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
+import { siloBuy, siloPioneerShare } from './shadowFleet';
 import { materialBonus, productionBuys, siteFor } from './production';
 
 type Failed = Set<string>;
@@ -98,7 +99,8 @@ export function strength(ctx: Ctx, g: number): number {
   for (const u of s.units) {
     if (u.owner !== g || isWonder(u)) continue;
     // nur sichtbare Einheiten / only visible units
-    if (ctx.enemies.includes(u) || (ctx.fa.explored[idx(s.size, u.x, u.y)] && !UNITS[u.type].abilities.includes('invisible') && !UNITS[u.type].abilities.includes('submerged'))) v += worth(u) * 1.3;
+    // getarnte Einheiten (Schattenkommando, Nebelkutter) zaehlen nur, wenn sichtbar / camouflaged units (Shadow Commando, Fog Cutter) only count when visible
+    if (ctx.enemies.includes(u) || (ctx.fa.explored[idx(s.size, u.x, u.y)] && !UNITS[u.type].abilities.includes('invisible') && !UNITS[u.type].abilities.includes('submerged') && !UNITS[u.type].abilities.includes('camo'))) v += worth(u) * 1.3;
   }
   return Math.max(v, 30);
 }
@@ -463,8 +465,10 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   const ct = counterShares(ctx);
   const soft = 1 - 0.5 * Math.min(1, ct.vehRatio + ct.airRatio);
   // Zielanteile der Armee / target shares of the army
+  // Bauart des MG (Meridon: Schattenkommando) / design of the MG (Meridon: Shadow Commando)
+  const mgType = factionVariant(s, f, 'mg');
   const share: Partial<Record<UnitTypeId, number>> = {
-    infantry: (avail('mg') ? 0.15 : 0.45) * soft,
+    infantry: (avail(mgType) ? 0.15 : 0.45) * soft,
     mg: 0.35 * soft,
     antiTank: ct.antiVehicle,
     antiAir: ct.antiAir,
@@ -475,9 +479,14 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     railSniper: 0.07,
     // Alvenia: Lichtschuetzen als Kern der Armee, Sonnenlanzen gegen Staedte und zur Verteidigung / Alvenia: Light Wardens as the core of the army, Sun Lances against cities and for defence
     lightWarden: (avail('mg') ? 0.3 : 0.55) * soft,
+    // Meridon-Schattenflotte: Kommandos statt MG (leichter, getarnt), Lenkflugkoerper gegen wertvolle Ziele, ein Radarwagen
+    // Meridon shadow fleet: commandos instead of the MG (lighter, camouflaged), Guided Missiles against valuable targets, one Radar Truck
+    shadowCommando: 0.3 * soft,
+    guidedMissile: ctx.enemies.length || ctx.hostileCities.length ? 0.12 : 0.04,
+    radarTruck: army >= 5 && !count('radarTruck') ? 0.08 : 0,
     sunLance: ctx.hostileCities.length ? 0.16 : 0.08,
     // Festungsbau: Pionier, solange Stellungsplaetze frei sind / fortification: a pioneer while emplacement slots are free
-    pioneer: 0.05 + emplacementPioneerShare(ctx),
+    pioneer: 0.05 + emplacementPioneerShare(ctx) + siloPioneerShare(ctx),
     artillery: ctx.hostileCities.length ? 0.16 : 0.04,
     medic: army >= 4 ? 0.08 : 0,
     spy: ctx.hostileCities.length && army >= 4 ? 0.06 : 0,
@@ -499,6 +508,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
     lightWarden: 0.7, sunLance: 1, tank: 1.2, teslaTank: 1.2, reliquary: 1.2, steppeColossus: 1.3,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
+    shadowCommando: 0.85, guidedMissile: 0.8, radarTruck: 0.5,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
   // Bedrohung der Stadt: Fahrzeuge oder Flieger in der Naehe / threat to the city: vehicles or flyers nearby
@@ -509,14 +519,14 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   for (const t of list) {
     if (!avail(t)) continue;
     const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker'].includes(t) && !counterUrgent) continue;
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker', 'shadowCommando'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
     // Meridon: zwei zum Preis von einer, wenn beide passen / Meridon: two for the price of one if both fit
     const twin = twinCheck(s, c, t) === 'twin' ? AI.twinValue : 1;
     let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5 * twin;
     // Pioniere nur noch knapp vor der Infanterie: sie kommen jetzt aus jeder Kaserne / pioneers only just ahead of infantry: they now come from every barracks
-    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' || t === 'shadowCommando' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery' || t === 'sunLance')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
     sc -= unitCost(s, f, t)! / 250 / twin;
@@ -686,6 +696,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
   transportBuys(ctx, buys, upFor, net);
+  // Meridon: Raketensilo als Sparziel, sobald ein Pionier am Bauplatz steht / Meridon: rocket silo as a savings goal once a pioneer stands at the site
+  const silo = siloBuy(ctx);
+  if (silo) buys.push({ ...silo, save: true, horizon: SILO.ai.saveRounds });
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
   // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
   const horde = isCultFaction(s, f) ? hordeCount(s, f) : null;
@@ -969,10 +982,12 @@ function transportBuys(ctx: Ctx, buys: Buy[], upFor: (t: UnitTypeId) => number, 
   const base = s.tiles.some((t) => t.building === 'navalBase' && territoryOwner(s, t) === f);
   const want = Math.min(base ? 1 : SHIPYARD.aiMaxEmpty, Math.ceil(land.length / 3));
   if (empty >= want) return;
-  if (net - upFor('landingBoat') < 0 && land.length < 2) return;
+  // Transportboot der Fraktion (Meridon: Nebelkutter) / the faction's transport boat (Meridon: Fog Cutter)
+  const boat = rosterShips(s, f)[0] ?? 'landingBoat';
+  if (net - upFor(boat) < 0 && land.length < 2) return;
   let best: City | null = null, bv = -Infinity;
   for (const c of ctx.myCities) {
-    const chk = trainCheck(s, c, 'landingBoat');
+    const chk = trainCheck(s, c, boat);
     if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
     // ein leeres Boot ist leichte Beute: nicht in Reichweite von Gegnern ablegen / an empty boat is easy prey: do not launch within enemy reach
     const at = shipSpawnTile(s, c);
@@ -983,9 +998,9 @@ function transportBuys(ctx: Ctx, buys: Buy[], upFor: (t: UnitTypeId) => number, 
     if (v > bv || (v === bv && best && c.id < best.id)) { bv = v; best = c; }
   }
   if (!best || bv <= 0) return;
-  const cost = unitCost(s, f, 'landingBoat')!;
+  const cost = unitCost(s, f, boat)!;
   const value = cost * (2.2 + 0.25 * Math.min(land.length, 6)) * prof.militaryW;
-  buys.push({ cmd: { type: 'train', city: best.id, unitType: 'landingBoat' }, cost, value, save: false });
+  buys.push({ cmd: { type: 'train', city: best.id, unitType: boat }, cost, value, save: false });
 }
 
 /**
@@ -1050,7 +1065,7 @@ function bestShip(ctx: Ctx, u: Unit): UnitTypeId | null {
   const { s, f } = ctx;
   // Meridon: Kaperschiff vor Zerstoerer / Meridon: privateer before destroyer
   const order: UnitTypeId[] = UNIQUE.units[ctx.fa.id] === 'privateer' ? ['battleship', 'privateer', 'destroyer', 'submarine'] : ['battleship', 'destroyer', 'submarine'];
-  const rank = (t: UnitTypeId) => (t === 'landingBoat' ? 0 : order.length - order.indexOf(t));
+  const rank = (t: UnitTypeId) => (t === 'landingBoat' || t === 'fogCutter' ? 0 : order.length - order.indexOf(t));
   for (const t of order) {
     // Menschen: Staette im Gebiet unter dem Schiff; sonst Forschung / humans: site in the territory under the ship; otherwise research
     if (usesSites(s, f)) {
