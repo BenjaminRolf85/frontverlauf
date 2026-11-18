@@ -682,7 +682,9 @@
     "govQuarter": "Regierungsviertel",
     "govQuarterDesc": "{govStars} Sterne mehr pro Runde und {govPoints} Punkte",
     "tank": "Panzer",
-    "tankDesc": "ein Panzer erscheint in der Stadt"
+    "tankDesc": "ein Panzer erscheint in der Stadt",
+    "tankMany": "{n} × {unit}",
+    "tankManyDesc": "{n} × {unit} erscheinen in der Stadt und auf freien Feldern daneben"
   },
   "hud": {
     "mapLabel": "Spielkarte",
@@ -3664,7 +3666,7 @@
     },
     "shadowFleet": {
       "title": "Schattenflotte (Meridon)",
-      "text": "Getarnt sind nur das Schattenkommando und der Nebelkutter: Gegner sehen sie erst, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht, und nach einem eigenen Angriff oder einer Sabotage bis zum nächsten eigenen Zug. Radarimpuls, Aufklärungsdrohne und Funkturm finden sie. Absetzen: Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdraw} Felder zurück und greift danach nicht mehr an. Meridon baut keine Panzer, sondern Raketensilos: Pioniere bauen eins für {cost} Sterne auf ein freies Nachbarfeld im eigenen Gebiet, höchstens {per} je Stadt und {max} insgesamt, {spacing} Felder Abstand. Das Silo startet auf Befehl eine Rakete auf ein aufgedecktes Feld (oder ein Feld im Radarimpuls) in {range} Feldern Abstand: {dmg} Schaden an jeder Einheit in der 2×2-Fläche aus Zielfeld, rechts, unten und diagonal, auch an eigenen; Städte und Gebäude bleiben. Die Landfelder ohne Stadt brennen danach {fire} Runden: Zu Beginn jeder Runde verliert jede Einheit darauf {burn} LP. Danach {cd} Runden Nachladen. Der Lenkflugkörper ersetzt die Artillerie, der Radarwagen zeigt {rr} Runden lang alle feindlichen Einheiten im Umkreis {radius}, auch unter den Wolken ({rcd} Runden Pause). Das Schattenkommando sabotiert einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben ({scd} Runden Pause). Dafür machen Meridon-Landeinheiten {weak} % weniger Schaden; Schiffe und der Marinestützpunkt kosten {sea} % weniger."
+      "text": "Getarnt sind nur das Schattenkommando und der Nebelkutter: Gegner sehen sie erst, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht, und nach einem eigenen Angriff oder einer Sabotage bis zum nächsten eigenen Zug. Radarimpuls, Aufklärungsdrohne und Funkturm finden sie. Absetzen: Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdraw} Felder zurück und greift danach nicht mehr an. Meridon baut keine Panzer, sondern Raketensilos: Pioniere bauen eins für {cost} Sterne auf ein freies Nachbarfeld im eigenen Gebiet, höchstens {per} je Stadt und {max} insgesamt, {spacing} Felder Abstand. Das Silo startet auf Befehl eine Rakete auf ein aufgedecktes Feld (oder ein Feld im Radarimpuls) in {range} Feldern Abstand: {dmg} Schaden an jeder Einheit in der 2×2-Fläche aus Zielfeld, rechts, unten und diagonal, auch an eigenen; Städte und Gebäude bleiben. Die Landfelder ohne Stadt brennen danach {fire} Runden: Zu Beginn jeder Runde verliert jede Einheit darauf {burn} LP. Danach {cd} Runden Nachladen. Der Lenkflugkörper ersetzt die Artillerie (die Stadtbelohnung „Panzer“ bringt {missiles} Lenkflugkörper), der Radarwagen zeigt {rr} Runden lang alle feindlichen Einheiten im Umkreis {radius}, auch unter den Wolken ({rcd} Runden Pause). Das Schattenkommando sabotiert einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben ({scd} Runden Pause). Dafür machen Meridon-Landeinheiten {weak} % weniger Schaden; Schiffe und der Marinestützpunkt kosten {sea} % weniger."
     }
   },
   "lore": {

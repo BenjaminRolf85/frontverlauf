@@ -682,7 +682,9 @@
     "govQuarter": "Government quarter",
     "govQuarterDesc": "{govStars} more stars per round and {govPoints} points",
     "tank": "Tank",
-    "tankDesc": "a tank appears in the city"
+    "tankDesc": "a tank appears in the city",
+    "tankMany": "{n} × {unit}",
+    "tankManyDesc": "{n} × {unit} appear in the city and on free tiles next to it"
   },
   "hud": {
     "mapLabel": "Game map",
@@ -3664,7 +3666,7 @@
     },
     "shadowFleet": {
       "title": "Shadow fleet (Meridon)",
-      "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. Radar sweeps, the recon drone and the radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and does not attack again. Meridon builds no tanks but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. On command the silo launches a rocket at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The Guided Missile replaces artillery, the Radar Truck shows every hostile unit within radius {radius} for {rr} rounds, even under the clouds ({rcd} rounds of pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds of pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
+      "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. Radar sweeps, the recon drone and the radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and does not attack again. Meridon builds no tanks but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. On command the silo launches a rocket at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The Guided Missile replaces artillery (the “Tank” city reward brings {missiles} Guided Missiles), the Radar Truck shows every hostile unit within radius {radius} for {rr} rounds, even under the clouds ({rcd} rounds of pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds of pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
     }
   },
   "lore": {

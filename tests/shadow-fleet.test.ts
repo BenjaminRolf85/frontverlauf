@@ -10,7 +10,7 @@ import {
   radarCheck, rosterShips, rosterUnits, sabotageTargets, siloArea, siloCheck, siloPreview, siloWait, trainCheck, unitCost,
   buildCheck, shipUpgradeCost, radarEcho, onFire, type GameState,
 } from '../src/core';
-import { BUILDINGS, FACTIONS, FIREPOWER, RADAR, SABOTAGE, SEA_POWER, SHIPYARD, SILO, UNITS, VISION, WITHDRAW, type FactionId } from '../src/data/balance';
+import { BUILDINGS, FACTIONS, FIREPOWER, RADAR, REWARD_HEAVY, SABOTAGE, SEA_POWER, SHIPYARD, SILO, UNITS, VISION, WITHDRAW, type FactionId } from '../src/data/balance';
 import { isValidState, migrateState } from '../src/save/save';
 import { addCity, addUnit, blankGame, endTurn, fails, giveSites, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
 
@@ -40,6 +40,31 @@ describe('Liste der Einheiten / unit roster', () => {
     expect(k).toContain('mg');
     expect(k).not.toContain('shadowCommando');
     expect(trainCheck(s, s.cities[1], 'shadowCommando')).toBe('invalid');
+  });
+
+  it('Stadtbelohnung "Panzer": Meridon bekommt 3 Lenkflugkoerper, andere weiter einen Panzer / city reward "tank": Meridon gets 3 Guided Missiles, others still one tank', () => {
+    expect(REWARD_HEAVY.count.meridon).toBe(3);
+    const { s, hq } = duel();
+    hq.level = 5;
+    // Stufe 5: Wahl b = Panzer (rewardOptions) / level 5: choice b = tank (rewardOptions)
+    s.pendingRewards = [{ cityId: hq.id, level: 5 }];
+    ok(s, { type: 'reward', city: hq.id, choice: 'b' });
+    const missiles = s.units.filter((u) => u.owner === 0 && u.type === 'guidedMissile');
+    expect(missiles).toHaveLength(REWARD_HEAVY.count.meridon!);
+    // der erste in der Stadt mit Stadtbindung, die weiteren daneben ohne / the first in the city with a home city, the others next to it without
+    expect(missiles.filter((u) => u.x === hq.x && u.y === hq.y && u.homeCity === hq.id)).toHaveLength(1);
+    for (const u of missiles.filter((m) => m.x !== hq.x || m.y !== hq.y)) {
+      expect(Math.max(Math.abs(u.x - hq.x), Math.abs(u.y - hq.y))).toBe(1);
+      expect(u.homeCity).toBeNull();
+    }
+    expect(s.units.some((u) => u.owner === 0 && u.type === 'tank')).toBe(false);
+    // Korvat: eine eigene Bauart, nur eine / Korvat: its own design, just one
+    const k = s.cities[1];
+    k.level = 5;
+    s.current = 1;
+    s.pendingRewards = [{ cityId: k.id, level: 5 }];
+    ok(s, { type: 'reward', city: k.id, choice: 'b' });
+    expect(s.units.filter((u) => u.owner === 1)).toHaveLength(1);
   });
 
   it('Werft: Nebelkutter statt Transportboot, Kaperschiff bleibt, alles 20 % billiger; Marinestuetzpunkt auch', () => {

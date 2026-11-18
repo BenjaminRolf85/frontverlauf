@@ -4,7 +4,7 @@
  */
 import {
   BARRIER, CITY, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
-  TOWER, VICTORY_TECH, WONDERS, SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER,
+  TOWER, VICTORY_TECH, WONDERS, SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, REWARD_HEAVY,
 } from '../data/balance';
 import { BUILDINGS, PRODUCTION, SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
@@ -46,7 +46,7 @@ function sections(): Section[] {
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
     // Schattenflotte der Meridon: Tarnung, Absetzen, Raketensilo, Lenkflugkoerper, Radar, Sabotage / Meridon shadow fleet
     { id: 'shadowFleet', icon: 'silo', params: { withdraw: WITHDRAW.tiles, cost: SILO.cost, per: SILO.perCity, max: SILO.max, spacing: SILO.minSpacing, range: SILO.launchRange,
-      dmg: SILO.damage, fire: SILO.fireRounds, burn: SILO.fireDamage, cd: SILO.cooldown, rr: RADAR.rounds, radius: RADAR.radius, rcd: RADAR.cooldown, scd: SABOTAGE.cooldown,
+      dmg: SILO.damage, fire: SILO.fireRounds, burn: SILO.fireDamage, cd: SILO.cooldown, rr: RADAR.rounds, radius: RADAR.radius, rcd: RADAR.cooldown, scd: SABOTAGE.cooldown, missiles: REWARD_HEAVY.count.meridon ?? 1,
       weak: pct(1 - (FIREPOWER.land.meridon ?? 1)), sea: pct(SEA_POWER.discount.meridon ?? 0) } },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
