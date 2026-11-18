@@ -82,7 +82,7 @@ export function mainMenu(host: ScreenHost): HTMLElement {
     n.innerHTML = `
       <h1 class="logo">${esc(t('app.title'))}</h1>
       <div class="logo-sub">${esc(t('app.subtitle'))}</div>
-      <div class="row">${FACTION_IDS.map((f) => factionBadge(f)).join('')}</div>
+      <div class="row center">${FACTION_IDS.map((f) => factionBadge(f)).join('')}</div>
       <nav class="menu-list">
         ${host.hasSave() ? button(t('menu.continue'), { icon: 'play', action: 'continue', block: true }) : ''}
         ${button(t('menu.newGame'), { icon: 'plus', action: 'new', block: true, variant: host.hasSave() ? 'secondary' : 'primary' })}
@@ -398,7 +398,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
   const s = host.settings;
   const onOff = (k: string, v: boolean) => segmented(k, [{ value: 'on', label: t('settings.on') }, { value: 'off', label: t('settings.off') }], v ? 'on' : 'off');
   const html = () => `${dialogTitle(t('settings.title'))}
-    <div class="form">
+    <div class="form settings-form">
       <div class="field"><span class="label">${esc(t('settings.language'))}</span>${segmented('lang', [{ value: 'de', label: 'Deutsch' }, { value: 'en', label: 'English' }], getLanguage())}</div>
       <div class="field"><span class="label">${esc(t('settings.music'))}</span>${onOff('music', s.music)}</div>
       <div class="field"><span class="label">${esc(t('settings.effects'))}</span>${onOff('effects', s.effects)}</div>
@@ -427,7 +427,7 @@ export function settingsDialog(host: ScreenHost, onChange?: () => void) {
 
 export function creditsDialog(host: ScreenHost) {
   const d = openDialog(host.root, `${dialogTitle(t('credits.title'))}
-    <div class="col">
+    <div class="col credits-list">
       ${['game', 'models', 'sound', 'music', 'fontBlackOps', 'fontBangers', 'fontComicNeue', 'three', 'vite'].map((k) => `<p>${esc(t(`credits.${k}`))}</p>`).join('')}
       <p class="muted">${esc(t('credits.disclaimer'))}</p>
     </div>`);

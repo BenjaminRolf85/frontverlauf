@@ -139,6 +139,9 @@ h1, h2, h3, .display {
 .row { display: flex; align-items: center; gap: var(--p-space-2); flex-wrap: wrap; }
 .col { display: flex; flex-direction: column; gap: var(--p-space-2); }
 .grow { flex: 1; }
+/* Absatz mit Symbol davor: Symbol neben statt ueber dem Text / paragraph with a leading icon: icon beside, not above the text */
+.icon-line { display: flex; align-items: flex-start; gap: var(--p-space-1); }
+.icon-line > .icon-sm { margin-top: var(--p-space-half); }
 
 /* ---------- Statusleiste / top bar ---------- */
 .top-bar {
@@ -184,6 +187,17 @@ h1, h2, h3, .display {
 }
 .bottom > * { pointer-events: auto; }
 .sheet { max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; padding: var(--p-space-3); }
+/*
+ * Infofeld nie hoeher als der Platz zwischen Statusleiste und Leiste unten: sonst rutschten Kopf und Schliessen-Knopf
+ * unter die Statusleiste bzw. aus dem Bildschirm (Stadt mit Truppenkarten); der Rest scrollt im Feld.
+ * The info panel is never taller than the room between the top bar and the bottom bar: otherwise the header and the close
+ * button slid under the top bar or off the screen (city with troop cards); the rest scrolls inside the panel.
+ */
+.bottom > .sheet {
+  --sheet-room: calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--p-size-touch-lg) + 4 * var(--p-space-2));
+  max-height: calc(100vh - var(--sheet-room)); max-height: calc(100dvh - var(--sheet-room));
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+}
 .sheet-head { display: flex; align-items: center; gap: var(--p-space-2); margin-bottom: var(--p-space-2); }
 .sheet-head h3 { font-size: var(--p-font-size-lg); }
 .action-bar {
@@ -232,8 +246,10 @@ h1, h2, h3, .display {
   border: var(--p-border-width-thin) solid var(--s-outline); background: var(--s-surface-sunken); font-size: var(--p-font-size-xs);
 }
 .tag.warn { background: var(--s-warning); }
+/* Knoepfe neben der Beschreibung, wenn Platz ist (leere Plaetze einzeilig), sonst darunter rechts / buttons next to the description when there is room (empty slots on one line), otherwise below on the right */
 .slot-row { flex-wrap: wrap; }
-.slot-row > .row { width: 100%; justify-content: flex-end; }
+.slot-row > .grow { flex: 1 1 calc(var(--p-size-touch-lg) * 4); min-width: 0; }
+.slot-row > .row { flex: 1 0 auto; justify-content: flex-end; }
 .slots { display: flex; flex-wrap: wrap; align-items: center; gap: var(--p-space-2); margin-top: var(--p-space-2); }
 .slot { display: inline-flex; align-items: center; gap: var(--p-space-1); min-height: var(--p-space-6); padding: 0 var(--p-space-2);
   border-radius: var(--p-radius-sm); font-size: var(--p-font-size-xs); }
@@ -395,6 +411,16 @@ h1, h2, h3, .display {
 }
 .menu-list { width: min(100%, var(--c-layout-menu-width)); display: flex; flex-direction: column; gap: var(--p-space-3); }
 .menu-list .btn { min-height: var(--p-size-touch-lg); }
+/*
+ * Handy: Knoepfe nebeneinander nur, wenn beide Beschriftungen passen, sonst untereinander ('Einstellungen' lief ueber den Knopf)
+ * phone: buttons side by side only when both labels fit, otherwise stacked ('Einstellungen' overflowed its button)
+ */
+.menu-list .row .btn { padding: 0 var(--p-space-2); }
+@media (max-width: 480px) /* --p-breakpoint-narrow */ {
+  .menu-list .row .btn.grow { flex: 1 1 auto; }
+}
+/* Sprachwahl mittig unter den Knoepfen / language choice centred below the buttons */
+.menu-list > .seg { justify-content: center; }
 /* Pausenmenue im Dialog: mittig und kompakter, damit alle Knoepfe ohne Scrollen sichtbar sind
    pause menu inside a dialog: centred and more compact so every button is visible without scrolling */
 .dialog .menu-list { margin-inline: auto; gap: var(--p-space-2); }
@@ -404,7 +430,7 @@ h1, h2, h3, .display {
 .field > label, .field > .label { font-family: var(--p-font-display); font-size: var(--p-font-size-lg); letter-spacing: var(--p-letter-spacing-display); }
 .seg { display: flex; flex-wrap: wrap; gap: var(--p-space-2); }
 .seg button {
-  min-height: var(--p-size-touch); padding: 0 var(--p-space-3); border: var(--p-border-width-thick) solid var(--s-outline);
+  min-height: var(--p-size-touch); min-width: var(--p-size-touch); padding: 0 var(--p-space-3); border: var(--p-border-width-thick) solid var(--s-outline);
   border-radius: var(--p-radius-pill); background: var(--s-surface-raised); color: var(--s-text); font: inherit; cursor: pointer;
 }
 .seg button[aria-pressed="true"] { background: var(--s-accent); box-shadow: var(--c-button-shadow-pressed); }
@@ -439,6 +465,15 @@ input[type="text"], select {
 }
 .score-list { display: flex; flex-direction: column; gap: var(--p-space-2); }
 .score-row { display: flex; align-items: center; gap: var(--p-space-2); padding: var(--p-space-2); border-radius: var(--p-radius-md); background: var(--s-surface); border: var(--p-border-width-thin) solid var(--s-outline); }
+/* Einstellungen ab Tablet-Breite: Bezeichnung links, Auswahl rechts, damit alles ohne Scrollen passt / settings from tablet width: label left, choice right so everything fits without scrolling */
+@media (min-width: 560px) /* --p-breakpoint-sm */ {
+  .settings-form { gap: var(--p-space-3); }
+  .settings-form .field { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--p-space-2) var(--p-space-3); }
+  .settings-form .field > .label { flex: 1 1 0; min-width: 0; font-size: var(--p-font-size-md); }
+}
+/* Mitwirkende: Absatzabstand nur ueber die Spalte, nicht doppelt / credits: paragraph spacing only via the column, not twice */
+.credits-list { gap: var(--p-space-3); }
+.credits-list p { margin: 0; line-height: 1.3; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: var(--p-space-1) var(--p-space-3); font-size: var(--p-font-size-sm); }
 
 /* ---------- Forschungsbaum / research tree ---------- */
@@ -493,7 +528,19 @@ input[type="text"], select {
   .top-bar:has(.res[data-res="people"]) .faction-btn .faction-chip { display: none; }
   .nav-bar .btn:not(.end) span { display: none; }
   .nav-bar .btn:not(.end) { flex: none; width: var(--p-size-touch-lg); padding: 0; }
+  /*
+   * "Zug beenden" passt einzeilig in den Rest der Leiste (sonst lief der Text ueber den Bildschirmrand);
+   * auf sehr schmalen Geraeten bricht er lieber um, als abgeschnitten zu werden.
+   * "End turn" fits on one line in the rest of the bar (the text used to run past the screen edge);
+   * on very narrow devices it wraps instead of being cut off.
+   */
+  .nav-bar .btn.end { min-width: 0; padding: 0 var(--p-space-1); gap: var(--p-space-1); font-size: var(--p-font-size-md); }
+  .nav-bar .btn.end span { white-space: normal; line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
+  /* Statusleiste: das Portraet mit Fraktionsrand zeigt die Fraktion, der Menueknopf bleibt rund / top bar: the portrait with its faction rim shows the faction, the menu button stays round */
+  .top-bar .faction-btn .faction-chip { display: none; }
 }
+/* Menueknopf der Statusleiste nie zusammendruecken / never squeeze the top bar's menu button */
+.top-bar > .icon-btn, .top-bar > .faction-btn { flex: none; }
 .tabs { display: flex; gap: var(--p-space-2); margin-top: var(--p-space-1); }
 .tabs button { min-height: var(--p-size-touch); }
 
@@ -507,7 +554,7 @@ input[type="text"], select {
   .bottom > .sheet {
     position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2));
     width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2)); max-height: var(--c-layout-sheet-dock-max-height);
-    margin: 0; padding: var(--p-space-2) var(--p-space-3); overflow: hidden; display: flex; flex-direction: column;
+    margin: 0; padding: var(--p-space-2) var(--p-space-3); display: flex; flex-direction: column;
   }
   /* Infoteil scrollt, Kopf, Truppenkarten und Aktionen bleiben stehen / the info part scrolls, header, troop cards and actions stay put */
   .bottom > .sheet > * { flex: none; }
@@ -528,7 +575,9 @@ input[type="text"], select {
   .sheet .tabs button { min-height: var(--p-size-touch); padding: 0 var(--p-space-2); font-size: var(--p-font-size-sm); }
   .sheet .action-bar { padding-bottom: var(--p-space-1); }
   .action { min-width: var(--c-action-min-size-compact); min-height: var(--c-action-height-compact); }
-  /* Standard-Hinweis nur zeigen, wenn eine Aktion erklaert wird (Maus zeigt Tooltips) / show the hint only when an action is explained (mouse shows tooltips) */
+}
+/* Standard-Hinweis nur zeigen, wenn eine Aktion erklaert wird (Maus zeigt Tooltips; Tablets quer brauchen ihn) / show the hint only when an action is explained (mouse shows tooltips; tablets in landscape need it) */
+@media (min-width: 900px) and (hover: hover) /* --p-breakpoint-lg */ {
   .action-hint:has(.hint-text.muted):not(.open) { display: none; }
 }
 @media (orientation: landscape) and (max-height: 520px) /* --p-breakpoint-compact-height */ {
@@ -536,6 +585,22 @@ input[type="text"], select {
   .sheet { padding: var(--p-space-2); }
   .nav-bar .btn { min-height: var(--p-size-touch); }
   .logo { font-size: var(--p-font-size-xxl); margin-top: 0; }
+  /*
+   * Handy quer: Infofeld links andocken wie am Desktop, damit rechts Karte und Kartensteuerung frei bleiben; es nimmt die
+   * ganze Hoehe zwischen den Leisten und scrollt als Ganzes (Truppenkarten und Aktionen sind hoeher als der Platz).
+   * Phone in landscape: dock the info panel on the left as on desktop so the map and the map controls stay clear on the
+   * right; it takes the full height between the bars and scrolls as a whole (troop cards and actions are taller than the room).
+   */
+  .bottom > .sheet, .bottom > .sheet:has(.troops) {
+    --sheet-room: calc(env(safe-area-inset-top) + env(safe-area-inset-bottom) + var(--c-top-bar-height) + var(--c-top-bar-stripe) + var(--p-size-touch) + 4 * var(--p-space-2));
+    position: absolute; left: calc(env(safe-area-inset-left) + var(--p-space-2)); bottom: calc(100% + var(--p-space-2)); margin: 0;
+    width: var(--c-layout-sheet-dock-width); max-width: calc(100vw - 2 * var(--p-space-2) - var(--c-icon-button-size) - 2 * var(--p-space-2));
+    max-height: calc(100vh - var(--sheet-room)); max-height: calc(100dvh - var(--sheet-room));
+    display: block; overflow-x: hidden; overflow-y: auto;
+  }
+  .bottom > .sheet > .sheet-info { overflow: visible; }
+  /* die Lagekarte oben links weicht dem Infofeld / the overview map at the top left makes way for the info panel */
+  body:has(.bottom > .sheet) .minimap { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: var(--p-duration-instant) !important; transition-duration: var(--p-duration-instant) !important; }
@@ -631,6 +696,10 @@ input[type="text"], select {
   background: var(--c-action-hint-bg); border: var(--p-border-width-thin) solid var(--s-outline);
   border-left: var(--c-action-hint-accent) solid var(--s-info); border-radius: var(--p-radius-sm);
 }
+/* Finger: Hinweiszeile in voller Tippgroesse / touch: hint line at full touch size */
+@media (pointer: coarse) {
+  .action-hint { min-height: var(--p-size-touch); }
+}
 .action-hint .hint-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .action-hint .hint-text.muted { color: var(--s-text-muted); }
 .action-hint.open .hint-text { white-space: normal; }
@@ -690,7 +759,7 @@ input[type="text"], select {
 /* Sperrgrund auf der Karte, hoechstens zwei Zeilen (ganz in der Hinweiszeile) / lock reason on the card, at most two lines (in full in the hint line) */
 .troop-lock { display: flex; align-items: flex-start; gap: var(--p-space-half); font-weight: var(--p-font-weight-bold); }
 .troop-lock .icon-sm { flex: none; }
-.troop-lock-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.troop-lock-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; }
 /* Scroll-Hinweis: Rand blendet aus, solange mehr Karten folgen / scroll cue: the edge fades while more cards follow */
 .troop-wrap { position: relative; }
 .troops.more-right .troop-wrap::after, .troops.more-left .troop-wrap::before {

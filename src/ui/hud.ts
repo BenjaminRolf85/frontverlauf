@@ -576,6 +576,7 @@ export class Hud {
       </nav>`;
     this.mountActionBar(prevKey === this.hintKey ? prevScroll : 0);
     this.mountTroops(prevKey === this.hintKey ? prevStrip : null);
+    this.fitControls();
     const pf = this.portraitFor as { type: UnitTypeId; faction: FactionId; carried: UnitTypeId | null } | null;
     this.portrait.animate = this.game.view.board.animations;
     if (pf) this.portrait.attach(this.bottom.querySelector<HTMLElement>('[data-portrait]'), pf.type, pf.faction, pf.carried);
@@ -620,6 +621,22 @@ export class Hud {
     };
     strip.addEventListener('scroll', cue, { passive: true });
     cue();
+  }
+
+  /**
+   * Kartensteuerung: Knoepfe, die ins Infofeld ragen wuerden, ausblenden (Handy hochkant mit hohem Stadtfeld); sonst
+   * laegen sie ueber dessen Kopf und Schliessen-Knopf. Zoomen geht dann per Fingergeste.
+   * Map controls: hide the buttons that would reach into the info panel (phone in portrait with a tall city panel);
+   * otherwise they sat on top of its header and close button. Zooming then works with the pinch gesture.
+   */
+  private fitControls() {
+    const sheet = this.bottom.querySelector<HTMLElement>(':scope > .sheet');
+    if (!sheet) return;
+    const sr = sheet.getBoundingClientRect(), cr = this.controls.getBoundingClientRect();
+    // angedockt (Desktop, Handy quer): keine Ueberschneidung / docked (desktop, phone in landscape): no overlap
+    if (!sr.height || cr.left >= sr.right || cr.right <= sr.left) return;
+    const gap = parseFloat(getComputedStyle(this.controls).rowGap) || 0;
+    for (const b of this.controls.children) if (b instanceof HTMLElement && b.getBoundingClientRect().bottom > sr.top - gap) b.hidden = true;
   }
 
   /** Truppenkarten der Stadt c setzen (ships: nur Schiffe) / set the troop cards of city c (ships: ships only) */
@@ -754,12 +771,12 @@ export class Hud {
         body += lootTag(s, viewer, city);
         if (isRobotFaction(s, city.owner)) {
           const cs = computeStats(s, city.owner);
-          body += `<p class="muted">${icon('lightning', 'icon-sm')} ${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</p>`;
+          body += `<p class="muted icon-line">${icon('lightning', 'icon-sm')}<span>${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</span></p>`;
         }
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);
         // Handy: Hinweis auf gesperrte Ausbauten unter "mehr" / phone: note on locked upgrades under "more"
-        if (this.cityNote) body += `<p class="muted sheet-more">${icon('research', 'icon-sm')} ${esc(this.cityNote)}</p>`;
+        if (this.cityNote) body += `<p class="muted sheet-more icon-line">${icon('research', 'icon-sm')}<span>${esc(this.cityNote)}</span></p>`;
       }
     } else if (explored && tile.feature === 'mothership') {
       // Kampagne m2: Mutterschiff mit Arbeitsfortschritt / campaign m2: mothership with the work progress
