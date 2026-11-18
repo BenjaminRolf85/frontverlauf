@@ -493,7 +493,19 @@ input[type="text"], select {
   .top-bar:has(.res[data-res="people"]) .faction-btn .faction-chip { display: none; }
   .nav-bar .btn:not(.end) span { display: none; }
   .nav-bar .btn:not(.end) { flex: none; width: var(--p-size-touch-lg); padding: 0; }
+  /*
+   * "Zug beenden" passt einzeilig in den Rest der Leiste (sonst lief der Text ueber den Bildschirmrand);
+   * auf sehr schmalen Geraeten bricht er lieber um, als abgeschnitten zu werden.
+   * "End turn" fits on one line in the rest of the bar (the text used to run past the screen edge);
+   * on very narrow devices it wraps instead of being cut off.
+   */
+  .nav-bar .btn.end { min-width: 0; padding: 0 var(--p-space-1); gap: var(--p-space-1); font-size: var(--p-font-size-md); }
+  .nav-bar .btn.end span { white-space: normal; line-height: 1.05; text-align: center; overflow-wrap: anywhere; }
+  /* Statusleiste: das Portraet mit Fraktionsrand zeigt die Fraktion, der Menueknopf bleibt rund / top bar: the portrait with its faction rim shows the faction, the menu button stays round */
+  .top-bar .faction-btn .faction-chip { display: none; }
 }
+/* Menueknopf der Statusleiste nie zusammendruecken / never squeeze the top bar's menu button */
+.top-bar > .icon-btn, .top-bar > .faction-btn { flex: none; }
 .tabs { display: flex; gap: var(--p-space-2); margin-top: var(--p-space-1); }
 .tabs button { min-height: var(--p-size-touch); }
 
