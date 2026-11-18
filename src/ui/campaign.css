@@ -72,7 +72,8 @@
 .brief-objectives .icon-sm { margin-top: var(--p-space-half); }
 .brief-objectives .done { color: var(--c-campaign-done-ink); }
 .brief-objectives .failed { color: var(--c-campaign-failed-ink); }
-.result-title { margin: var(--p-space-2) 0; }
+/* im Dialog etwas kleiner, damit lange Titel ('Mission accomplished!') auf dem Handy nicht ueber den Rand laufen / a bit smaller in the dialog so long titles do not run past the edge on phones */
+.logo.result-title { margin: var(--p-space-2) 0; font-size: clamp(var(--p-font-size-xl), 8vw, var(--p-font-size-hero)); }
 .result-title.lost { color: var(--s-danger-bright); }
 
 /* ---------- Ziel-Panel im Spiel / in-game objective panel ---------- */
@@ -184,7 +185,8 @@
   border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow);
 }
 .campaign-faction .col, .comic-speaker .col { display: flex; flex-direction: column; gap: var(--p-space-half); min-width: 0; }
-.campaign-faction .grow { flex: 1; }
+/* Mindestbreite fuer Name und Titel, sonst quetschte der Knopf sie auf eine Wortbreite (Handy, Englisch) / minimum width for name and title, otherwise the button squeezed them to one word (phone, English) */
+.campaign-faction .grow { flex: 1 1 calc(var(--p-size-touch-lg) * 3); }
 .campaign-faction strong { font-family: var(--p-font-display); font-weight: var(--p-font-weight-regular); letter-spacing: var(--p-letter-spacing-display); }
 .campaign-picker {
   display: flex; flex-direction: column; gap: var(--p-space-2); padding: var(--p-space-3);
