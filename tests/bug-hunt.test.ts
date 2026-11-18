@@ -7,7 +7,7 @@ import {
   applyCommand, barrierCheck, continueEndless, income, mineCheck, triggerRandomEvent, upkeep, type GameEvent, type GameState,
 } from '../src/core';
 import { randInt } from '../src/core/rng';
-import { BUNKER_REWARDS, UNITS, VICTORY_TECH, type FactionId } from '../src/data/balance';
+import { BUNKER_REWARDS, CORRUPTION, UNITS, VICTORY_TECH, type FactionId } from '../src/data/balance';
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, tile } from './helpers';
 
 function game(a: FactionId, b: FactionId = 'korvat', stars = 500): GameState {
@@ -21,6 +21,9 @@ function game(a: FactionId, b: FactionId = 'korvat', stars = 500): GameState {
 describe('Endlos nach Sieg / endless after victory (B1)', () => {
   it('nach einem Fraktionssieg startet der Zug nicht doppelt / no second turn start after a faction victory', () => {
     const s = game('meridon', 'korvat');
+    // Meridons naechster Zug liegt nicht in einer Korruptionsrunde (CORRUPTION), sonst fehlten die abgezweigten Sterne
+    // Meridon's next turn is not in a corruption round (CORRUPTION), otherwise the siphoned stars would be missing
+    s.round = CORRUPTION.faction.meridon!.interval;
     s.factions[0].techs.push(VICTORY_TECH.meridon);
     s.factions[0].stars = 2000;
     endTurn(s); // f1

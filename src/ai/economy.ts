@@ -938,12 +938,13 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
 
   buys.sort((a, b) => b.value / Math.max(1, b.cost) - a.value / Math.max(1, a.cost) || (cmdKey(a.cmd) < cmdKey(b.cmd) ? -1 : 1));
   // Reichtum senkt die Schwelle / wealth lowers the threshold
-  // Korruption zu Beginn des naechsten eigenen Zuges (Meridon, CORRUPTION): nicht ansparen und die Schwelle senken, damit die
-  // Sterne vorher ausgegeben werden / corruption at the start of the next own turn (Meridon, CORRUPTION): no saving and a lower
-  // threshold, so the stars are spent beforehand
+  const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars));
+  // Korruption zu Beginn des naechsten eigenen Zuges (Meridon, CORRUPTION): nicht ansparen, sondern kaufen, was sich lohnt; eine
+  // zusaetzlich gesenkte Kaufschwelle (Faktor 0,6) machte Meridon in der Messung eher staerker (ANNAHMEN.md, Korruption)
+  // corruption at the start of the next own turn (Meridon, CORRUPTION): no saving, buy what is worthwhile; an extra lowered
+  // purchase threshold (factor 0.6) rather made Meridon stronger in the measurement (ANNAHMEN.md, corruption)
   const graft = nextCorruption(s, f);
   const spendNow = graft !== null && graft.turns === 1 && graft.stars > 0;
-  const minRatio = finalRound ? 0.01 : 0.45 * Math.min(1, 150 / Math.max(1, stars)) * (spendNow ? AI.corruptionRatio : 1);
   // Meridon mit Monopol und vollem Speicher: nur noch Dringendes kaufen / Meridon with the monopoly and a full treasury: only urgent buys
   const hoard = fa.id === 'meridon' && factionVictoryOn(s) && hasTech(s, f, victoryTechOf(s, f)) && stars >= meridonNeed(s) * WONDERS.aiMeridonHoardShare;
   for (const b of buys) {

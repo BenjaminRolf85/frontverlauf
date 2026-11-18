@@ -1654,7 +1654,7 @@ export interface CorruptionRule {
  */
 export const CORRUPTION = {
   faction: {
-    meridon: { interval: 4, share: 0.2, min: 3, max: 50 },
+    meridon: { interval: 3, share: 0.4, min: 15, max: 50 },
   } as Partial<Record<FactionId, CorruptionRule>>,
 };
 
@@ -1886,11 +1886,6 @@ export const AI = {
   intelRound: 30,
   maxMillis: 2000,
   maxCommandsPerTurn: 400,
-  /**
-   * Korruption steht zu Beginn des naechsten eigenen Zuges an (CORRUPTION): Faktor auf die Kaufschwelle, und die KI spart nicht.
-   * Corruption is due at the start of the next own turn (CORRUPTION): factor on the purchase threshold, and the AI does not save.
-   */
-  corruptionRatio: 0.6,
   /** Kult: Zielwert je Beutestern einer Stadt oder Siedlung / cult: goal value per loot star of a city or village */
   cultPlunderValue: 1.5,
   /** Kult: Wunschgroesse der Horde = normale Wunschgroesse x Faktor + Zuschlag (hoechstens das Limit) / cult: desired horde = normal desired size x factor + extra (at most the cap) */
