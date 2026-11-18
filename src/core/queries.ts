@@ -2398,8 +2398,6 @@ export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit)
 
 /** Korruptionsregel der Fraktion f (CORRUPTION) oder null / corruption rule of faction f (CORRUPTION) or null */
 export const corruptionRule = (s: GameState, f: number): CorruptionRule | null => CORRUPTION.faction[s.factions[f].id] ?? null;
-/** Ist die Runde eine Korruptionsrunde? Nie die erste / is the round a corruption round? Never the first */
-export const corruptionRound = (rule: CorruptionRule, round: number) => round > 1 && round % rule.interval === 0;
 /**
  * Verlust durch Korruption bei so vielen Sternen: Anteil abgerundet, mindestens min, hoechstens max, nie mehr als vorhanden.
  * Loss to corruption at this many stars: share rounded down, at least min, at most max, never more than there is.
@@ -2409,20 +2407,11 @@ export function corruptionLoss(rule: CorruptionRule, stars: number): number {
   return Math.min(stars, rule.max, Math.max(rule.min, Math.floor(stars * rule.share)));
 }
 /**
- * Naechste Korruption der Fraktion f: in wie vielen eigenen Zuegen (1 = zu Beginn des naechsten eigenen Zuges) und etwa wie
- * viele Sterne beim heutigen Stand; null ohne Korruptionsregel. Die Fraktion f hat ihren Zug in dieser Runde schon begonnen,
- * wenn s.current >= f ist (Zugfolge nach Index).
- * Next corruption of faction f: in how many own turns (1 = at the start of the next own turn) and roughly how many stars at
- * the current treasury; null without a corruption rule. Faction f has already started its turn this round when
- * s.current >= f (turn order by index).
+ * Darf die Korruption in dieser Runde noch zuschlagen? Hoechstens cap Faelle in den letzten window Runden (diese eingeschlossen).
+ * May corruption still strike this round? At most cap hits in the last window rounds (this one included).
  */
-export function nextCorruption(s: GameState, f: number): { turns: number; stars: number } | null {
-  const rule = corruptionRule(s, f);
-  if (!rule) return null;
-  const first = s.current >= f ? s.round + 1 : s.round;
-  let r = first;
-  while (!corruptionRound(rule, r)) r++;
-  return { turns: r - first + 1, stars: corruptionLoss(rule, s.factions[f].stars) };
+export function corruptionWindowOpen(rule: CorruptionRule, hits: readonly number[] | undefined, round: number): boolean {
+  return (hits ?? []).filter((r) => r > round - rule.window).length < rule.cap;
 }
 
 /** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */

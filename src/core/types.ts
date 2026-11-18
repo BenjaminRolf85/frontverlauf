@@ -220,6 +220,11 @@ export interface Faction {
   sin?: { deed: SinDeed; until: number };
   /** Alvenia, Grosses Strafgericht: vernichtete Einheiten von Suendern (fehlt = 0) / Great Judgement: destroyed units of sinners (missing = 0) */
   judged?: number;
+  /**
+   * Korruption (CORRUPTION): Runden der letzten Faelle im Fenster; fehlt = keine (auch alte Spielstaende).
+   * Corruption (CORRUPTION): rounds of the last hits within the window; missing = none (old saves too).
+   */
+  corruptionHits?: number[];
   /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
   plunder?: number;
   /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */

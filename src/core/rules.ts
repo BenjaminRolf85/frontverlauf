@@ -13,7 +13,7 @@ import { addHazards, burning, erupts } from './hazards';
 import { placeTowers, towerCountFor } from './towers';
 import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMission, spawnBlocked, swarmHolds } from './campaign';
-import { processRandomEvents } from './events';
+import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
@@ -29,7 +29,7 @@ import {
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
-  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile, corruptionRule, corruptionRound, corruptionLoss,
+  medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile,
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
@@ -595,13 +595,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     inc = gross - upkeep(s, f);
     fa.stars = Math.max(0, fa.stars + inc);
   }
-  // Korruption (Meridon): alle paar Runden ein Anteil der Sterne, nach dem Einkommen, ohne Wurf (CORRUPTION)
-  // corruption (Meridon): a share of the stars every few rounds, after income, without a roll (CORRUPTION)
-  const graft = corruptionRule(s, f);
-  if (graft && corruptionRound(graft, s.round)) {
-    const lost = corruptionLoss(graft, fa.stars);
-    if (lost > 0) { fa.stars -= lost; ev.push({ t: 'corruption', faction: f, stars: lost }); }
-  }
+  // Korruption (Meridon): Zufallsereignis nach dem Einkommen (CORRUPTION) / corruption (Meridon): random event after income (CORRUPTION)
+  processCorruption(s, f, ev);
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
   // Erdkernbohrer, die im letzten eigenen Zug stillstanden / earth-core drills that stood still during the last own turn
   const stillDrills = new Set(s.units.filter((u) => u.owner === f && u.type === 'coreDrill' && !u.moved).map((u) => u.id));

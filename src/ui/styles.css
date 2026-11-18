@@ -784,8 +784,6 @@ input[type="text"], select {
 /* ---------- Netto-Einkommen und Punkte in der Statusleiste / net income and points in the top bar ---------- */
 .res .net { display: none; font-size: var(--p-font-size-xs); color: var(--s-accent); }
 .res .net.neg { color: var(--s-warning); }
-/* Korruption beim naechsten Zug: kleines Warnzeichen neben den Sternen / corruption next turn: small warning mark next to the stars */
-.res .corrupt { display: inline-flex; color: var(--s-warning); }
 @media (max-width: 480px) /* --p-breakpoint-narrow */ {
   .res .net { display: inline; }
 }

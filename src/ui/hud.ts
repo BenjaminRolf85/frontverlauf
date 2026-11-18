@@ -6,7 +6,7 @@ import {
   type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
-  burning, isJungle, roundsToEruption, nextCorruption, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
+  burning, isJungle, roundsToEruption, corruptionRule, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, unitAt, unitById,
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
@@ -531,16 +531,14 @@ export class Hud {
     // Netto-Einkommen: auf dem Handy kompakt neben den Sternen / net income: compact next to the stars on phones
     const net = inc - up;
     const netTxt = `${net >= 0 ? '+' : ''}${net}`;
-    // Korruption (Meridon): Vorschau im Tooltip der Sterne, Warnzeichen vor dem Zug, in dem sie anfaellt
-    // corruption (Meridon): preview in the stars tooltip, warning mark before the turn in which it hits
-    const graft = s.over ? null : nextCorruption(s, viewerIdx);
-    const graftNote = graft ? (graft.turns === 1 ? t('hud.corruptionNext', { n: graft.stars }) : t('hud.corruptionIn', { k: graft.turns, n: graft.stars })) : '';
-    const graftMark = graft?.turns === 1 && graft.stars > 0 ? `<span class="corrupt" aria-hidden="true">${icon('warning', 'icon-sm')}</span>` : '';
+    // Korruption (Meridon, Zufallsereignis): Erklaerung im Tooltip der Sterne, nur mit Zufallsereignissen
+    // corruption (Meridon, random event): explanation in the stars tooltip, only with random events
+    const graftNote = s.config.events && corruptionRule(s, viewerIdx) ? t('hud.corruptionRisk') : '';
     this.top.innerHTML = `
       <button type="button" class="faction-btn" data-action="faction" aria-label="${esc(t('leaders.title'))}: ${esc(t(`factions.${f.id}.name`))}">${leaderPortrait(f.id, 'xs')}${factionChip(f.id, t(`factions.${f.id}.short`))}</button>
       ${resource('medal', score(s, viewerIdx), t('hud.points'), t('hud.points'))}
       ${resource('star', f.stars, up > 0 ? t('hud.perRoundUpkeep', { n: inc, up, net: netTxt }) : t('hud.perRound', { n: inc }), t('hud.stars'),
-        `<span class="net ${net < 0 ? 'neg' : ''}" aria-hidden="true">${esc(netTxt)}</span>${graftMark}`, graftNote)}
+        `<span class="net ${net < 0 ? 'neg' : ''}" aria-hidden="true">${esc(netTxt)}</span>`, graftNote)}
       ${isCultFaction(s, viewerIdx) ? resource('people', `${cultUnits(s, viewerIdx).length}/${cultCap(s, viewerIdx)}`, '', t('cult.hordeTitle')) : ''}
       ${resource('hourglass', limit ? `${Math.min(s.round, limit)}/${limit}` : s.round, '', t('hud.round'))}
       ${this.weatherChip(s)}

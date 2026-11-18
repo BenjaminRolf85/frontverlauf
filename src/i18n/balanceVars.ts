@@ -15,7 +15,7 @@ const pct = (x: number) => Math.round(x * 100);
 const move = (u: UnitTypeId) => UNITS[u].move;
 const range = (u: UnitTypeId) => UNITS[u].range;
 /** Korruption der Meridon (CORRUPTION) / Meridon's corruption (CORRUPTION) */
-const graft = CORRUPTION.faction.meridon ?? { interval: 0, share: 0, min: 0, max: 0 };
+const graft = CORRUPTION.faction.meridon ?? { chance: 0, share: 0, min: 0, max: 0, cap: 0, window: 0 };
 
 /** Platzhaltername -> Zahl (Kommazahlen setzt t() in der Spielsprache) / placeholder name -> number (t() formats decimals in the game language) */
 export const BALANCE_VARS: Readonly<Record<string, number>> = {
@@ -71,10 +71,12 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   forestSpawnHeal: PERKS2.forestSpawnHeal,
   martyrdomStars: PERKS2.martyrdomStars,
   sensorNetVision: PERKS2.sensorNetVision,
-  corruptionRounds: graft.interval,
+  corruptionChance: pct(graft.chance),
   corruptionPct: pct(graft.share),
   corruptionMin: graft.min,
   corruptionMax: graft.max,
+  corruptionCap: graft.cap,
+  corruptionWindow: graft.window,
   sinRounds: SIN.rounds,
   judgementPct: pct(SIN.judgement),
   martyrHeal: MARTYR.heal,

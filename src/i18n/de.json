@@ -167,7 +167,7 @@
       "perk2": "Lotsenwesen",
       "perk2Desc": "Landungsboote fahren {pilotsMove} Feld weiter.",
       "drawback": "Korruption",
-      "drawbackDesc": "Alle {corruptionRounds} Runden zweigen Beamte zu Beginn des Zuges {corruptionPct} % der Sterne ab (abgerundet), mindestens {corruptionMin}, höchstens {corruptionMax}. Wer vorher ausgibt, verliert weniger.",
+      "drawbackDesc": "Zufallsereignis: Zu Beginn des Zuges zweigen Beamte mit {corruptionChance} % Chance {corruptionPct} % der Sterne ab (abgerundet, mind. {corruptionMin}, höchstens {corruptionMax}), höchstens {corruptionCap}-mal in {corruptionWindow} Runden. Nur mit Zufallsereignissen. Wer ausgibt, verliert weniger.",
       "feature": "Zwei für einen",
       "featureDesc": "Bildet eine Stadt Infanterie aus, kommen zwei Soldaten zum Preis von einem; der zweite erscheint auf einem freien Nachbarfeld (eigenes Gebiet zuerst). Beide kosten Sold und belegen das Stadtlimit. Passt nur einer, kommt nur einer."
     },
@@ -673,8 +673,7 @@
     "points": "Punkte",
     "stars": "Sterne",
     "perRound": "+{n} pro Runde",
-    "corruptionNext": "Korruption beim nächsten Zug: etwa −{n} Sterne",
-    "corruptionIn": "Korruption in {k} Runden: etwa −{n} Sterne",
+    "corruptionRisk": "Korruption kann zufällig zuschlagen: {corruptionPct} % der Sterne (mind. {corruptionMin}, höchstens {corruptionMax}), höchstens {corruptionCap}-mal in {corruptionWindow} Runden",
     "round": "Runde",
     "roundOf": "Runde {n} von {max}",
     "endTurn": "Zug beenden",
@@ -857,7 +856,6 @@
     "wonderInterrupted": "{wonder} ({name}) wurde unterbrochen!",
     "wonderDestroyed": "{wonder} ({name}) wurde zerstört!",
     "deserted": "Sold nicht bezahlt: {unit} desertiert",
-    "corruption": "Korruption: Beamte zweigen {n} Sterne ab.",
     "verdanActive": "Verteidigungslinie der Verdan aktiviert!",
     "meteor": "Meteorschauer! {n} Einheiten getroffen, davon {own} eigene. Fußtruppen in Städte und Bunker!",
     "acid": "Säureregen! {n} Einheiten verätzt, davon {own} eigene. In Städte und Bunker!"
@@ -1441,7 +1439,7 @@
   },
   "randomEvents": {
     "title": "Ereignisse",
-    "setupHint": "Etwa alle 6 bis 10 Runden: Sturm, Seuche, Rebellen, Nachschub, Überläufer, Glücksfund oder Dürre.",
+    "setupHint": "Etwa alle 6 bis 10 Runden: Sturm, Seuche, Rebellen, Nachschub, Überläufer, Glücksfund oder Dürre; bei Meridon dazu Korruption.",
     "kicker": "Extrablatt",
     "region": "Gebiet um Feld {x}, {y}",
     "storm": {
@@ -1474,6 +1472,10 @@
       "title": "Dürre!",
       "body": "Die Höfe von {name} verdorren: -{n} Sterne, auch nächste Runde.",
       "ongoing": "Die Dürre hält an: {name} verliert {n} Sterne."
+    },
+    "corruption": {
+      "title": "Korruptionsskandal!",
+      "body": "Beamte von {name} zweigen {n} Sterne aus der Kasse ab."
     }
   },
   "cityNames": [
