@@ -343,7 +343,7 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Meridon-Schattenflotte (siehe SHADOW_FLEET) / Meridon shadow fleet (see SHADOW_FLEET)
   // Schattenkommando statt MG: leicht, 2 Felder, getarnt (CAMO), schwacher Angriff, sabotiert Strassen, Aussenposten und Gebaeude
   // Shadow Commando instead of the MG: light, 2 tiles, camouflaged (CAMO), weak attack, sabotages roads, outposts and buildings
-  shadowCommando: { cost: 20, hp: 8, attack: 2, defense: 1.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'camo', 'sabotage'], tech: null, ship: false, faction: 'meridon' },
+  shadowCommando: { cost: 20, hp: 10, attack: 2.5, defense: 2.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'camo', 'sabotage'], tech: null, ship: false, faction: 'meridon' },
   // Nebelkutter statt Transportboot: getarnt, traegt eine Einheit (Kaufpreis SHIPYARD.fogCutterCost, cost = Aufruestpreis 0 wie beim Landungsboot)
   // Fog Cutter instead of the transport boat: camouflaged, carries one unit (price SHIPYARD.fogCutterCost, cost = upgrade price 0 as for the landing boat)
   fogCutter: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry', 'camo'], tech: null, ship: true, faction: 'meridon' },
@@ -1814,7 +1814,7 @@ export const PERKS = {
    * Meridon "Shadow Bank" (formerly "Boom", faster city growth): stars from covert business per own coastal city (water in
    * the territory or next to the city tile, as for the shipyard; no transmitter towers) and round.
    */
-  shadowBankPerCoastalCity: 2,
+  shadowBankPerCoastalCity: 3,
   researchLeadDiscount: 0.12,
 };
 
