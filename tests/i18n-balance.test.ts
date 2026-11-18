@@ -23,7 +23,7 @@ describe('Balance-Platzhalter / balance placeholders', () => {
       setLanguage(lang);
       const d = de as unknown as Record<string, Record<string, unknown>>;
       for (const key of keysOf(d, '').filter(PLAIN)) expect(t(key), key).not.toMatch(/\{\w+\}/);
-      for (const f of Object.keys(d.factions)) for (const k of ['perkDesc', 'perk2Desc']) expect(t(`factions.${f}.${k}`), `${f}.${k}`).not.toMatch(/\{\w+\}/);
+      for (const f of Object.keys(d.factions)) for (const k of ['perkDesc', 'perk2Desc', 'drawbackDesc']) expect(t(`factions.${f}.${k}`), `${f}.${k}`).not.toMatch(/\{\w+\}/);
     });
   }
   it('texts follow balance.ts', () => {

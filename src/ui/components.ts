@@ -35,8 +35,9 @@ export function price(n: number): string {
 
 /** Ressourcenanzeige / resource display */
 /** extra: zusaetzliches Markup nach dem Wert (z. B. Netto-Einkommen) / extra markup after the value (e.g. net income) */
-export function resource(iconName: string, value: string | number, sub = '', label = '', extra = ''): string {
-  const aria = label ? `${label}: ${value} ${sub}`.trim() : '';
+/** note: nur im Tooltip und fuer Screenreader, nicht sichtbar / note: tooltip and screen readers only, not visible */
+export function resource(iconName: string, value: string | number, sub = '', label = '', extra = '', note = ''): string {
+  const aria = label ? `${label}: ${value} ${sub}${note ? `. ${note}` : ''}`.trim() : '';
   return `<span class="res" data-res="${esc(iconName)}" ${aria ? `role="img" aria-label="${esc(aria)}" title="${esc(aria)}"` : ''}><span class="${iconName === 'star' ? 'star' : ''}">${icon(iconName)}</span><span class="val">${esc(value)}</span>${extra}${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>`;
 }
 

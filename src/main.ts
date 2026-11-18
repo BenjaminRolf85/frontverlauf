@@ -195,6 +195,8 @@ function boot() {
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
         // Sold nicht bezahlt: Einheit desertiert / upkeep unpaid: unit deserts
         case 'deserted': if (e.faction === viewer) toast(root, t('events.deserted', { unit: t(`units.${e.unitType}`) }), 'warning'); break;
+        // Korruption (Meridon): nur fuer die betroffene Fraktion / corruption (Meridon): only for the affected faction
+        case 'corruption': if (e.faction === viewer) toast(root, t('events.corruption', { n: e.stars }), 'warning'); break;
         case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {

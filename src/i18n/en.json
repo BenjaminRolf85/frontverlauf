@@ -166,6 +166,8 @@
       "aiStyle": "Grows its cities and sends spies ahead.",
       "perk2": "Harbour pilots",
       "perk2Desc": "Landing boats move {pilotsMove} tile further.",
+      "drawback": "Corruption",
+      "drawbackDesc": "Every {corruptionRounds} rounds officials siphon off {corruptionPct} % of the stars at the start of the turn (rounded down), at least {corruptionMin}, at most {corruptionMax}. Spending beforehand loses less.",
       "feature": "Two for One",
       "featureDesc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
     },
@@ -671,6 +673,8 @@
     "points": "Points",
     "stars": "Stars",
     "perRound": "+{n} per round",
+    "corruptionNext": "Corruption next turn: about −{n} stars",
+    "corruptionIn": "Corruption in {k} rounds: about −{n} stars",
     "round": "Round",
     "roundOf": "Round {n} of {max}",
     "endTurn": "End turn",
@@ -853,6 +857,7 @@
     "wonderInterrupted": "{wonder} ({name}) was interrupted!",
     "wonderDestroyed": "{wonder} ({name}) was destroyed!",
     "deserted": "Upkeep unpaid: {unit} deserted",
+    "corruption": "Corruption: officials siphon off {n} stars.",
     "verdanActive": "Verdan defence line activated!",
     "meteor": "Meteor shower! {n} units hit, {own} of them yours. Foot troops into cities and bunkers!",
     "acid": "Acid rain! {n} units corroded, {own} of them yours. Into cities and bunkers!"
@@ -2786,6 +2791,7 @@
     "unit": "Signature unit",
     "discount": "Discount",
     "discountValue": "{unit} −{pct} %",
+    "drawback": "Drawback",
     "building": "Own building",
     "resource": "Resource building",
     "leader": "Leader",
