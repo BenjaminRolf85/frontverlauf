@@ -155,7 +155,7 @@
       "short": "Meridon",
       "alignment": "Schattenhandel und Seemacht",
       "perk": "Schattenbank",
-      "perkDesc": "Verdeckte Geschäfte statt Wachstum: +{shadowBankStars} Sterne pro Runde je eigener Küstenstadt (Wasser im Stadtgebiet oder am Stadtfeld).",
+      "perkDesc": "Verdeckte Investitionen in die eigenen Städte: Jeder Stadtaufstieg braucht {shadowBankLevel} Bevölkerungspunkt weniger, mindestens 1.",
       "discount": "Spion {spyPct} % günstiger",
       "home": "Küsten und Inseln, viele Fischgründe",
       "leader": "Coralie Nerezza",

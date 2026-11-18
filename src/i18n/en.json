@@ -155,7 +155,7 @@
       "short": "Meridon",
       "alignment": "shadow trade and sea power",
       "perk": "Shadow Bank",
-      "perkDesc": "Covert business instead of growth: +{shadowBankStars} stars per round per own coastal city (water in the city territory or next to the city tile).",
+      "perkDesc": "Covert investment in its own cities: every city level-up needs {shadowBankLevel} population point less, at least 1.",
       "discount": "Spy {spyPct} % cheaper",
       "home": "coasts and islands, many fishing grounds",
       "leader": "Coralie Nerezza",

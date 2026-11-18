@@ -1819,12 +1819,12 @@ export const PERKS = {
   massMobilizationExtraUnits: 1,
   drillKills: 2,
   /**
-   * Meridon "Schattenbank" (vorher "Boom", schnelleres Stadtwachstum): Sterne aus verdeckten Geschaeften je eigener
-   * Kuestenstadt (Wasser im Gebiet oder am Stadtfeld, wie die Werft; keine Sendetuerme) und Runde.
-   * Meridon "Shadow Bank" (formerly "Boom", faster city growth): stars from covert business per own coastal city (water in
-   * the territory or next to the city tile, as for the shipyard; no transmitter towers) and round.
+   * Meridon "Schattenbank" (vorher "Boom"): verdeckte Investitionen in die eigenen Staedte, jeder Stadtaufstieg braucht so
+   * viele Bevoelkerungspunkte weniger, mindestens 1 (Wirkung wie Boom; Tuning 2, vorher 3 Sterne je Kuestenstadt).
+   * Meridon "Shadow Bank" (formerly "Boom"): covert investment in its own cities, every city level-up needs this many
+   * population points less, at least 1 (same effect as Boom; tuning 2, before 3 stars per coastal city).
    */
-  shadowBankPerCoastalCity: 3,
+  shadowBankLevelReduction: 1,
   researchLeadDiscount: 0.12,
 };
 

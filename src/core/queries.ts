@@ -192,7 +192,10 @@ export function upgradeUnitLimit(s: GameState, c: City): number {
 export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
 
 export function levelUpCost(s: GameState, c: City): number {
-  return CITY.levelUpCost(c.level);
+  const cost = CITY.levelUpCost(c.level);
+  // Schattenbank (Meridon): verdeckte Investitionen, Aufstieg billiger / Shadow Bank (Meridon): covert investment, cheaper level-up
+  if (c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'shadowBank') return Math.max(1, cost - PERKS.shadowBankLevelReduction);
+  return cost;
 }
 
 /** Sternepreis fuer den gekauften Aufstieg dieser Stadt (CITY.buyLevelCost) / star price for buying this city's next level */
@@ -387,20 +390,11 @@ export function uniqueBuildingIncome(s: GameState, f: number): number {
   return inc;
 }
 
-/** Meridon "Schattenbank": Sterne je eigener Kuestenstadt (PERKS.shadowBankPerCoastalCity) / Meridon "Shadow Bank": stars per own coastal city */
-export function shadowBankIncome(s: GameState, f: number): number {
-  if (!s.factions[f] || FACTIONS[s.factions[f].id].perk !== 'shadowBank') return 0;
-  let n = 0;
-  for (const c of ownCities(s, f)) if (!c.tower && isCoastalCity(s, c)) n++;
-  return n * PERKS.shadowBankPerCoastalCity;
-}
-
 export function income(s: GameState, f: number): number {
   let inc = 0;
   for (const c of ownCities(s, f)) inc += cityIncome(s, c);
   inc += embassyIncome(s, f);
   inc += uniqueBuildingIncome(s, f);
-  inc += shadowBankIncome(s, f);
   // Kult: Zehnt der Horde / cult: tithe of the horde
   if (isCultFaction(s, f)) inc += cultTithe(s, f);
   const fa = s.factions[f];

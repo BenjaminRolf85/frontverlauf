@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { embassyCost, embassyIncome, income, levelUpCost, researchCost, shadowBankIncome, siteOf, unitCost, unitLimit, veteranKills } from '../src/core';
+import { embassyCost, embassyIncome, income, levelUpCost, researchCost, siteOf, unitCost, unitLimit, veteranKills } from '../src/core';
 import { FACTIONS, FACTION_IDS, PERKS, UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { addCity, addUnit, blankGame, ok, revealAll, unit } from './helpers';
 
@@ -94,24 +94,22 @@ describe('Fraktionen / factions', () => {
     expect(embassyIncome(s, 1)).toBe(6);
   });
 
-  it('Meridon (Shadow Bank, formerly Boom): normal growth, but stars per own coastal city', () => {
-    // Schattenbank statt Boom: Stadtaufstieg wie bei allen / Shadow Bank instead of Boom: level-ups as for everyone
+  it('Meridon (Shadow Bank, formerly Boom): each level-up needs one population point less, at least 1, no extra stars', () => {
+    // Schattenbank: verdeckte Investitionen, Wirkung wie Boom / Shadow Bank: covert investment, same effect as Boom
     const { s, hq } = game('meridon');
-    expect(levelUpCost(s, hq)).toBe(2);
-    hq.level = 4;
-    expect(levelUpCost(s, hq)).toBe(5);
     expect(FACTIONS.meridon.perk).toBe('shadowBank');
-    // ohne Wasser keine Schattenbank, mit Wasser am Stadtfeld PERKS.shadowBankPerCoastalCity je Stadt
-    // without water no Shadow Bank, with water next to the city tile PERKS.shadowBankPerCoastalCity per city
+    expect(PERKS.shadowBankLevelReduction).toBe(1);
+    expect(levelUpCost(s, hq)).toBe(1); // 2-1
+    hq.level = 4;
+    expect(levelUpCost(s, hq)).toBe(4); // 5-1
+    // keine Sterne mehr je Kuestenstadt: Wasser am Stadtfeld aendert das Einkommen nicht
+    // no more stars per coastal city: water next to the city tile does not change the income
     const dry = income(s, 0);
-    expect(shadowBankIncome(s, 0)).toBe(0);
     s.tiles[3 * s.size + 3].terrain = 'shallow';
-    expect(shadowBankIncome(s, 0)).toBe(PERKS.shadowBankPerCoastalCity);
-    expect(income(s, 0)).toBe(dry + PERKS.shadowBankPerCoastalCity);
-    // andere Fraktionen: keine Schattenbank / other factions: no Shadow Bank
+    expect(income(s, 0)).toBe(dry);
+    // andere Fraktionen: normaler Aufstieg / other factions: normal level-up
     const k = game('korvat');
-    k.s.tiles[3 * k.s.size + 3].terrain = 'shallow';
-    expect(shadowBankIncome(k.s, 0)).toBe(0);
+    expect(levelUpCost(k.s, k.hq)).toBe(2);
   });
 
   it('Velkar (research lead): all technologies cost 12 % less', () => {

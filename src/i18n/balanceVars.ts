@@ -64,7 +64,7 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   veteranKills: VETERAN.kills,
   drillKills: VETERAN.killsDravon,
   hardenedAttack: PERKS2.battleHardenedAttack,
-  shadowBankStars: PERKS.shadowBankPerCoastalCity,
+  shadowBankLevel: PERKS.shadowBankLevelReduction,
   // Schattenflotte (Meridon) / shadow fleet (Meridon)
   spyPct: pct(FACTIONS.meridon.discount),
   siloCost: SILO.cost,
