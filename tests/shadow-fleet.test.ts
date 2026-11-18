@@ -12,6 +12,8 @@ import {
 } from '../src/core';
 import { BUILDINGS, FACTIONS, FIREPOWER, RADAR, REWARD_HEAVY, SABOTAGE, SEA_POWER, SHIPYARD, SILO, UNITS, VISION, WITHDRAW, type FactionId } from '../src/data/balance';
 import { isValidState, migrateState } from '../src/save/save';
+import { setLanguage } from '../src/i18n/i18n';
+import { rewardText } from '../src/ui/terms';
 import { addCity, addUnit, blankGame, endTurn, fails, giveSites, ok, revealAll, tile, unit, untilTurnOf } from './helpers';
 
 /** Meridon (0) gegen Korvat (1) auf leerer Ebene / Meridon (0) against Korvat (1) on an empty plain */
@@ -58,11 +60,20 @@ describe('Liste der Einheiten / unit roster', () => {
       expect(u.homeCity).toBeNull();
     }
     expect(s.units.some((u) => u.owner === 0 && u.type === 'tank')).toBe(false);
+    // Belohnungstext nennt Zahl und Bauart, beide Sprachen / reward text names number and design, both languages
+    for (const lang of ['de', 'en'] as const) {
+      setLanguage(lang);
+      expect(rewardText(s, 'tank', false)).toMatch(new RegExp(`^${REWARD_HEAVY.count.meridon} `));
+      expect(rewardText(s, 'tank', true)).not.toMatch(/[{}]/);
+    }
+    setLanguage('de');
+    expect(rewardText(s, 'tank', false)).toContain('Lenkflugkörper');
     // Korvat: eine eigene Bauart, nur eine / Korvat: its own design, just one
     const k = s.cities[1];
     k.level = 5;
     s.current = 1;
     s.pendingRewards = [{ cityId: k.id, level: 5 }];
+    expect(rewardText(s, 'tank', false)).toBe('Panzer');
     ok(s, { type: 'reward', city: k.id, choice: 'b' });
     expect(s.units.filter((u) => u.owner === 1)).toHaveLength(1);
   });

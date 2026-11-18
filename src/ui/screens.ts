@@ -4,12 +4,12 @@
  * Screens and dialogs.
  */
 import {
-  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, REWARD_HEAVY, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH, VERDAN,
+  CITY_UPGRADES, CITY_UPGRADE_IDS, ECON, INCOME, ROSTERS, FACTION_IDS, GRAND_PROJECT_IDS, MAP_SIZES, MAP_TYPES, MODES, SANDBOX, START, TECHS, TECH_IDS, UNITS, VICTORY_TECH, VERDAN,
   type HazardLevel, type Difficulty, type FactionId, type GameMode, type MapSize, type MapType, type TechId,
 } from '../data/balance';
 import {
   cityById, embassyCost, grandProjectConditionMet, hqOf, inContact, isExplored, researchCost, rewardOptions, score, unitRange, techState,
-  techUnlocks, unitAt, cityAt, canSeeUnit, factionVariant, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, usesSites, type GameConfig, type GameState, diplomacyLocked,
+  techUnlocks, unitAt, cityAt, canSeeUnit, defaultConfig, hashSeed, canResearch, techVisible, unitCost, factionVictoryOn, supplyLines, isDesert, isAlienWorld, turretAt, usesSites, type GameConfig, type GameState, diplomacyLocked,
 } from '../core';
 import type { Controller } from '../game/controller';
 import { getLanguage, has as hasText, locale, num, setLanguage, t } from '../i18n/i18n';
@@ -27,7 +27,7 @@ import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
-import { factionIdOf, techIcon, techT } from './terms';
+import { factionIdOf, rewardText, techIcon, techT } from './terms';
 import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
 import { doctrineText } from './production';
@@ -757,19 +757,11 @@ export function rewardDialog(host: ScreenHost, onDone: () => void) {
   if (!p) { onDone(); return; }
   const c = cityById(s, p.cityId)!;
   const [a, b] = rewardOptions(c, p.level);
-  // "Panzer" mit mehreren Einheiten (REWARD_HEAVY, Meridon: Lenkflugkoerper) / "tank" with several units (REWARD_HEAVY, Meridon: Guided Missiles)
-  const fid = s.factions[s.current].id;
-  const many = REWARD_HEAVY.count[fid] ?? 1;
-  const label = (o: string, desc: boolean): string => {
-    if (o !== 'tank' || many <= 1) return t(`rewards.${o}${desc ? 'Desc' : ''}`);
-    const unit = t(`units.${ROSTERS[fid]?.tank ?? factionVariant(s, s.current, 'tank')}`);
-    return t(desc ? 'rewards.tankManyDesc' : 'rewards.tankMany', { n: many, unit });
-  };
   const d = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t('rewards.title', { city: cityName(s, c.id), level: p.level }))}</h2></div>
     <p>${esc(t('rewards.choose'))}</p>
     <div class="choice-grid">
-      <button type="button" class="choice" data-choice="a"><strong>${esc(label(a, false))}</strong><span>${esc(label(a, true))}</span></button>
-      <button type="button" class="choice" data-choice="b"><strong>${esc(label(b, false))}</strong><span>${esc(label(b, true))}</span></button>
+      <button type="button" class="choice" data-choice="a"><strong>${esc(rewardText(s, a, false))}</strong><span>${esc(rewardText(s, a, true))}</span></button>
+      <button type="button" class="choice" data-choice="b"><strong>${esc(rewardText(s, b, false))}</strong><span>${esc(rewardText(s, b, true))}</span></button>
     </div>`, { dismissable: false });
   d.node.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-choice]');

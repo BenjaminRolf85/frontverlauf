@@ -4,8 +4,9 @@ import { DEFENSE_BONUS, ECON, INFANTRY_TYPES, type UnitTypeId } from '../src/dat
 import { addCity, addUnit, blankGame, endTurn, fails, ok, revealAll, setTerrain, tile, unit, untilTurnOf } from './helpers';
 
 function og() {
-  // Meridon statt Korvat: Korvat baut Aussenposten billiger (Erdwaelle) / Meridon instead of Korvat: Korvat builds outposts cheaper (earthworks)
-  const s = blankGame({ stars: 100, factions: ['meridon', 'dravon'] });
+  // Velkar statt Korvat: Korvat baut Aussenposten billiger (Erdwaelle); auch nicht Meridon: schwaechere Feuerkraft der Schattenflotte
+  // Velkar instead of Korvat: Korvat builds outposts cheaper (earthworks); not Meridon either: the shadow fleet's weaker firepower
+  const s = blankGame({ stars: 100, factions: ['velkar', 'dravon'] });
   addCity(s, 1, 1, 0, { hq: true });
   addCity(s, 9, 9, 1, { hq: true });
   s.factions[0].techs.push('fortification');
@@ -15,8 +16,8 @@ function og() {
 }
 
 describe('Aussenposten bauen / building outposts', () => {
-  it('infantry types are infantry, MG, sniper and pioneer (plus the Velkar railgun marksman and the Alvenia Light Wardens)', () => {
-    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'lightWarden', 'mg', 'pioneer', 'railSniper', 'sniper']);
+  it('infantry types are infantry, MG, sniper and pioneer (plus the Velkar railgun marksman, the Alvenia Light Wardens and the Meridon Shadow Commando)', () => {
+    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'lightWarden', 'mg', 'pioneer', 'railSniper', 'shadowCommando', 'sniper']);
   });
 
   it('every infantry type builds it for 25 stars on its own tile, also outside own borders', () => {

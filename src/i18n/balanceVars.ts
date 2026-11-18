@@ -9,7 +9,7 @@
 import {
   CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
-  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS,
+  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY,
 } from '../data/balance';
 
 const pct = (x: number) => Math.round(x * 100);
@@ -65,6 +65,7 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   drillKills: VETERAN.killsDravon,
   hardenedAttack: PERKS2.battleHardenedAttack,
   shadowBankLevel: PERKS.shadowBankLevelReduction,
+  rewardMissiles: REWARD_HEAVY.count.meridon ?? 1,
   // Schattenflotte (Meridon) / shadow fleet (Meridon)
   spyPct: pct(FACTIONS.meridon.discount),
   siloCost: SILO.cost,

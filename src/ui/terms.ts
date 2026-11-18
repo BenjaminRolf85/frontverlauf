@@ -8,9 +8,21 @@
  * only the texts differ. The human variant lives under production.<key> in de.json/en.json; without one the normal
  * key applies.
  */
-import { factionRace, type GameState } from '../core';
-import type { FactionId } from '../data/balance';
+import { factionRace, factionVariant, type GameState } from '../core';
+import { REWARD_HEAVY, type FactionId } from '../data/balance';
 import { has, t } from '../i18n/i18n';
+
+/**
+ * Titel (desc false) oder Beschreibung einer Stadtbelohnung fuer die Fraktion am Zug; "Panzer" mit mehreren Lenkflugkoerpern
+ * (REWARD_HEAVY, Meridon) hat eigene Texte mit der Zahl.
+ * Title (desc false) or description of a city reward for the faction to move; "tank" with several Guided Missiles
+ * (REWARD_HEAVY, Meridon) has its own texts with the number.
+ */
+export function rewardText(s: GameState, option: string, desc: boolean): string {
+  const f = s.current;
+  const missiles = option === 'tank' && (REWARD_HEAVY.count[s.factions[f].id] ?? 1) > 1 && factionVariant(s, f, 'tank') === 'guidedMissile';
+  return t(`rewards.${missiles ? 'tankMissiles' : option}${desc ? 'Desc' : ''}`);
+}
 
 /** Spricht die Fraktion von Produktion statt Forschung? (Menschen) / does the faction say production instead of research? (humans) */
 export const usesProduction = (f: FactionId | null | undefined): boolean => !!f && factionRace(f) === 'human';
