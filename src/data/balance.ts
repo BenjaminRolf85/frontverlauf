@@ -347,9 +347,11 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Nebelkutter statt Transportboot: getarnt, traegt eine Einheit (Kaufpreis SHIPYARD.fogCutterCost, cost = Aufruestpreis 0 wie beim Landungsboot)
   // Fog Cutter instead of the transport boat: camouflaged, carries one unit (price SHIPYARD.fogCutterCost, cost = upgrade price 0 as for the landing boat)
   fogCutter: { cost: 0, hp: 0, attack: 0, defense: 1, move: 2, range: 0, vision: 1, abilities: ['carry', 'camo'], tech: null, ship: true, faction: 'meridon' },
-  // Lenkflugkoerper statt Artillerie: fliegt 5 Felder, explodiert beim Angriff (Kamikaze, ein Ziel), keine Rassen-Boni
-  // Guided Missile instead of artillery: flies 5 tiles, explodes when attacking (kamikaze, one target), no race bonuses
-  guidedMissile: { cost: 20, hp: 4, attack: 3.2, defense: 0.5, move: 5, range: 1, vision: 1, abilities: ['dash', 'fly', 'kamikaze'], tech: null, ship: false, faction: 'meridon' },
+  // Lenkflugkoerper statt Artillerie: fliegt 5 Felder, explodiert beim Angriff (Kamikaze, ein Ziel), keine Rassen-Boni;
+  // 3 LP: die Flak (COUNTER.flak, CITY_UPGRADES.flakDamage) holt ihn mit einem Treffer herunter
+  // Guided Missile instead of artillery: flies 5 tiles, explodes when attacking (kamikaze, one target), no race bonuses;
+  // 3 HP: flak (COUNTER.flak, CITY_UPGRADES.flakDamage) brings it down with one hit
+  guidedMissile: { cost: 20, hp: 3, attack: 3.2, defense: 0.5, move: 5, range: 1, vision: 1, abilities: ['dash', 'fly', 'kamikaze'], tech: null, ship: false, faction: 'meridon' },
   // Radarwagen: unbewaffnet, Radarimpuls (RADAR) zeigt feindliche Einheiten im Umkreis auch unter den Wolken
   // Radar Truck: unarmed, radar sweep (RADAR) shows hostile units in the radius even under the clouds
   radarTruck: { cost: 25, hp: 10, attack: 0, defense: 1.5, move: 2, range: 0, vision: 2, abilities: ['radar'], tech: null, ship: false, faction: 'meridon' },
