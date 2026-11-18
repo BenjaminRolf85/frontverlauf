@@ -1627,6 +1627,37 @@ export const PERKS2 = {
   sensorNetVision: 1,
 };
 
+/** Regel eines Korruptions-Nachteils / rule of a corruption drawback */
+export interface CorruptionRule {
+  /** alle so viele Runden (Runde ist ein Vielfaches davon) / every this many rounds (the round is a multiple of it) */
+  interval: number;
+  /** Anteil der Sterne, abgerundet / share of the stars, rounded down */
+  share: number;
+  /** mindestens so viele Sterne (hat die Fraktion weniger, alle) / at least this many stars (all, if the faction has fewer) */
+  min: number;
+  /** hoechstens so viele Sterne je Mal / at most this many stars each time */
+  max: number;
+}
+
+/**
+ * Korruption, Nachteil der Handelsliga Meridon: alle `interval` Runden verliert die Fraktion zu Beginn ihres Zuges, nach
+ * Einkommen und Sold, `share` ihrer Sterne (abgerundet), mindestens `min` (hat sie weniger, alle), hoechstens `max`; die
+ * Kasse faellt nie unter 0. Feste Rundenzahl ohne Wurf (wie die Kolchose), damit keine Zufallsfolge verschoben wird. Gilt
+ * in freien Partien und in der Kampagne. Die Obergrenze haelt den Handelsmonopol-Sieg (Sterne in der Kasse) erreichbar.
+ * Je Fraktion angelegt, damit spaeter weitere Fraktionen einen solchen Nachteil bekommen koennen. Werte aus der
+ * Eroberungsmessung (BALANCING.md, Korruption).
+ * Corruption, drawback of the Meridon Trade League: every `interval` rounds, at the start of its turn after income and
+ * upkeep, the faction loses `share` of its stars (rounded down), at least `min` (all, if it has fewer), at most `max`; the
+ * treasury never drops below 0. Fixed rounds without a roll (like the kolkhoz), so no random sequence shifts. Applies in
+ * free games and in the campaign. The cap keeps the Trade Monopoly victory (stars in the treasury) reachable. Keyed per
+ * faction so other factions can get such a drawback later. Values from the conquest measurement (BALANCING.md, corruption).
+ */
+export const CORRUPTION = {
+  faction: {
+    meridon: { interval: 4, share: 0.2, min: 3, max: 50 },
+  } as Partial<Record<FactionId, CorruptionRule>>,
+};
+
 export const SCORE = {
   revealedTile: 5,
   territoryTile: 20,

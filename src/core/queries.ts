@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -2395,6 +2395,35 @@ export function meridonNeedFor(roundLimit: number | null): number {
   return Math.min(WONDERS.meridonStars, Math.max(WONDERS.meridonStarsMin, Math.round(roundLimit * WONDERS.meridonStarsPerRound)));
 }
 export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit);
+
+/** Korruptionsregel der Fraktion f (CORRUPTION) oder null / corruption rule of faction f (CORRUPTION) or null */
+export const corruptionRule = (s: GameState, f: number): CorruptionRule | null => CORRUPTION.faction[s.factions[f].id] ?? null;
+/** Ist die Runde eine Korruptionsrunde? Nie die erste / is the round a corruption round? Never the first */
+export const corruptionRound = (rule: CorruptionRule, round: number) => round > 1 && round % rule.interval === 0;
+/**
+ * Verlust durch Korruption bei so vielen Sternen: Anteil abgerundet, mindestens min, hoechstens max, nie mehr als vorhanden.
+ * Loss to corruption at this many stars: share rounded down, at least min, at most max, never more than there is.
+ */
+export function corruptionLoss(rule: CorruptionRule, stars: number): number {
+  if (stars <= 0) return 0;
+  return Math.min(stars, rule.max, Math.max(rule.min, Math.floor(stars * rule.share)));
+}
+/**
+ * Naechste Korruption der Fraktion f: in wie vielen eigenen Zuegen (1 = zu Beginn des naechsten eigenen Zuges) und etwa wie
+ * viele Sterne beim heutigen Stand; null ohne Korruptionsregel. Die Fraktion f hat ihren Zug in dieser Runde schon begonnen,
+ * wenn s.current >= f ist (Zugfolge nach Index).
+ * Next corruption of faction f: in how many own turns (1 = at the start of the next own turn) and roughly how many stars at
+ * the current treasury; null without a corruption rule. Faction f has already started its turn this round when
+ * s.current >= f (turn order by index).
+ */
+export function nextCorruption(s: GameState, f: number): { turns: number; stars: number } | null {
+  const rule = corruptionRule(s, f);
+  if (!rule) return null;
+  const first = s.current >= f ? s.round + 1 : s.round;
+  let r = first;
+  while (!corruptionRound(rule, r)) r++;
+  return { turns: r - first + 1, stars: corruptionLoss(rule, s.factions[f].stars) };
+}
 
 /** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */
 export const knows = (s: GameState, a: number, b: number) => s.factions[a].contacts.includes(b) || s.factions[b].contacts.includes(a);

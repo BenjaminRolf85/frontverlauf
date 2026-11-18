@@ -466,6 +466,8 @@ export type GameEvent =
   | { t: 'crash'; unit: number }
   /** Sold nicht bezahlt: die Einheit desertiert (vorher als 'killed' entfernt) / upkeep unpaid: the unit deserts (removed as 'killed' before) */
   | { t: 'deserted'; unit: number; unitType: UnitTypeId; faction: number; x: number; y: number }
+  /** Korruption (Meridon): Sterne abgezweigt / corruption (Meridon): stars siphoned off */
+  | { t: 'corruption'; faction: number; stars: number }
   | { t: 'flak'; city: number; unit: number; dmg: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
