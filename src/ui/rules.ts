@@ -27,7 +27,8 @@ interface Section { id: string; icon: string; params?: Record<string, string | n
 function sections(): Section[] {
   return [
     { id: 'goal', icon: 'medal', params: { rounds: MODES.pointsRounds, tile: SCORE.revealedTile, territory: SCORE.territoryTile, level: SCORE.cityLevel, tech: SCORE.techPerTier } },
-    { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq } },
+    // Einkommen; Nachteile wie die Korruption der Meridon / income; drawbacks such as Meridon's corruption
+    { id: 'turn', icon: 'star', params: { start: START.stars, city: INCOME.perCityLevel, hq: INCOME.hq }, extra: drawbackLines },
     { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0, korvat: Math.round((1 - (UPKEEP.faction.korvat ?? 1)) * 100) } },
     { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => rearLine() + combatBonusLines() + unitHitLines() },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
@@ -96,6 +97,11 @@ function unitHitLines(): string {
     return `<li><strong>${esc(t(`units.${u}`))}${f ? ` (${esc(t(`factions.${f}.short`))})` : ''}:</strong> ${esc(odds)}</li>`;
   });
   return rows.length ? `<p>${esc(t('hit.unitRule'))}</p><ul>${rows.join('')}</ul>` : '';
+}
+
+/** Eine Zeile je Fraktionsnachteil (Meridon: Korruption, Zahlen aus balance.ts) / one line per faction drawback (Meridon: corruption, numbers from balance.ts) */
+function drawbackLines(): string {
+  return FACTION_IDS.filter((f) => has(`factions.${f}.drawback`)).map((f) => `<p><strong>${esc(t(`factions.${f}.drawback`))} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(t(`factions.${f}.drawbackDesc`))}</p>`).join('');
 }
 
 /** Eine Zeile je Fraktionsmerkmal (eigene Bauarten, Zahlen aus balance.ts) / one line per faction feature (own designs, numbers from balance.ts) */

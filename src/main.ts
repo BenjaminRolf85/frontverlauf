@@ -28,7 +28,7 @@ import { XrSession } from './xr/xr';
 import { shipWorkToast, truceHeadline } from './ui/mothership';
 import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, waveToast } from './ui/campaign';
 import { plansToast } from './ui/temple';
-import { showRandomEvent } from './ui/events';
+import { showCorruption, showRandomEvent } from './ui/events';
 import { opNotice } from './ui/aiOps';
 
 function boot() {
@@ -195,6 +195,8 @@ function boot() {
         case 'crash': toast(root, t('events.crash'), 'warning'); break;
         // Sold nicht bezahlt: Einheit desertiert / upkeep unpaid: unit deserts
         case 'deserted': if (e.faction === viewer) toast(root, t('events.deserted', { unit: t(`units.${e.unitType}`) }), 'warning'); break;
+        // Korruption (Meridon, Zufallsereignis): Schlagzeile nur fuer die betroffene Fraktion / corruption (Meridon, random event): headline only for the affected faction
+        case 'corruption': showCorruption(root, e, s, viewer); break;
         case 'flak': toast(root, t('events.flak', { dmg: e.dmg }), 'attack'); break;
         case 'cityUpgrade': if (e.faction === viewer) toast(root, t('events.cityUpgrade', { name: t(`cityUpgrades.${e.upgrade}`), city: cityName(s, e.city) }), 'city'); break;
         case 'turn': {

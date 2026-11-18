@@ -13,7 +13,7 @@ import { addHazards, burning, erupts } from './hazards';
 import { placeTowers, towerCountFor } from './towers';
 import { noteCapture, noteDeath, recordRound } from './history';
 import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMission, spawnBlocked, swarmHolds } from './campaign';
-import { processRandomEvents } from './events';
+import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { doWork, workCheck } from './mothership';
@@ -595,6 +595,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     inc = gross - upkeep(s, f);
     fa.stars = Math.max(0, fa.stars + inc);
   }
+  // Korruption (Meridon): Zufallsereignis nach dem Einkommen (CORRUPTION) / corruption (Meridon): random event after income (CORRUPTION)
+  processCorruption(s, f, ev);
   for (const c of ownCities(s, f)) c.noIncomeNext = false;
   // Erdkernbohrer, die im letzten eigenen Zug stillstanden / earth-core drills that stood still during the last own turn
   const stillDrills = new Set(s.units.filter((u) => u.owner === f && u.type === 'coreDrill' && !u.moved).map((u) => u.id));

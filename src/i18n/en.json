@@ -166,6 +166,8 @@
       "aiStyle": "Grows its cities and sends spies ahead.",
       "perk2": "Harbour pilots",
       "perk2Desc": "Landing boats move {pilotsMove} tile further.",
+      "drawback": "Corruption",
+      "drawbackDesc": "Random event: at the start of the turn officials siphon off {corruptionPct} % of the stars with a {corruptionChance} % chance (rounded down, min. {corruptionMin}, at most {corruptionMax}), at most {corruptionCap} times in {corruptionWindow} rounds. Only with random events. Spending loses less.",
       "feature": "Two for One",
       "featureDesc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
     },
@@ -671,6 +673,7 @@
     "points": "Points",
     "stars": "Stars",
     "perRound": "+{n} per round",
+    "corruptionRisk": "Corruption can strike at random: {corruptionPct} % of the stars (min. {corruptionMin}, at most {corruptionMax}), at most {corruptionCap} times in {corruptionWindow} rounds",
     "round": "Round",
     "roundOf": "Round {n} of {max}",
     "endTurn": "End turn",
@@ -1436,7 +1439,7 @@
   },
   "randomEvents": {
     "title": "Events",
-    "setupHint": "Roughly every 6 to 10 rounds: storm, epidemic, rebels, supplies, defector, lucky find or drought.",
+    "setupHint": "Roughly every 6 to 10 rounds: storm, epidemic, rebels, supplies, defector, lucky find or drought; for Meridon also corruption.",
     "kicker": "Breaking news",
     "region": "Area around tile {x}, {y}",
     "storm": {
@@ -1469,6 +1472,10 @@
       "title": "Drought!",
       "body": "The farms of {name} wither: -{n} stars, next round too.",
       "ongoing": "The drought goes on: {name} loses {n} stars."
+    },
+    "corruption": {
+      "title": "Corruption scandal!",
+      "body": "Officials of {name} siphon {n} stars out of the treasury."
     }
   },
   "cityNames": [
@@ -2786,6 +2793,7 @@
     "unit": "Signature unit",
     "discount": "Discount",
     "discountValue": "{unit} −{pct} %",
+    "drawback": "Drawback",
     "building": "Own building",
     "resource": "Resource building",
     "leader": "Leader",

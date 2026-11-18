@@ -1627,6 +1627,48 @@ export const PERKS2 = {
   sensorNetVision: 1,
 };
 
+/** Regel eines Korruptions-Nachteils / rule of a corruption drawback */
+export interface CorruptionRule {
+  /** Chance je Runde zu Beginn des eigenen Zuges / chance per round at the start of the own turn */
+  chance: number;
+  /** Anteil der Sterne, abgerundet / share of the stars, rounded down */
+  share: number;
+  /** mindestens so viele Sterne (hat die Fraktion weniger, alle) / at least this many stars (all, if the faction has fewer) */
+  min: number;
+  /** hoechstens so viele Sterne je Mal / at most this many stars each time */
+  max: number;
+  /** hoechstens so viele Faelle ... / at most this many hits ... */
+  cap: number;
+  /** ... in so vielen aufeinanderfolgenden Runden (gleitendes Fenster) / ... in this many consecutive rounds (sliding window) */
+  window: number;
+}
+
+/**
+ * Korruption, Nachteil der Handelsliga Meridon, als Zufallsereignis: Zu Beginn jedes eigenen Zuges (nicht in Runde 1) schlaegt
+ * sie mit `chance` zu; dann verliert die Fraktion nach Einkommen und Sold `share` ihrer Sterne (abgerundet), mindestens `min`
+ * (hat sie weniger, alle), hoechstens `max`; die Kasse faellt nie unter 0. Nie oefter als `cap`-mal in `window`
+ * aufeinanderfolgenden Runden (gleitendes Fenster ueber die Runden der letzten Faelle, Faction.corruptionHits). Nur mit
+ * eingeschalteten Zufallsereignissen (cfg.events), auch in der Kampagne. Der Wurf kommt wie bei den anderen Ereignissen aus
+ * Seed, Runde und Fraktion (eventHash mit Schluessel `salt` + Fraktionsindex), nicht aus dem Hauptstrom s.rng. Die Obergrenze
+ * `max` haelt den Handelsmonopol-Sieg (Sterne in der Kasse) erreichbar. Je Fraktion angelegt, damit spaeter weitere
+ * Fraktionen einen solchen Nachteil bekommen koennen. Messung in BALANCING.md und ANNAHMEN.md (Korruption).
+ * Corruption, drawback of the Meridon Trade League, as a random event: at the start of each own turn (not in round 1) it
+ * strikes with `chance`; the faction then loses, after income and upkeep, `share` of its stars (rounded down), at least `min`
+ * (all, if it has fewer), at most `max`; the treasury never drops below 0. Never more often than `cap` times in `window`
+ * consecutive rounds (sliding window over the rounds of the last hits, Faction.corruptionHits). Only with random events on
+ * (cfg.events), in the campaign too. The roll comes, as for the other events, from seed, round and faction (eventHash with key
+ * `salt` + faction index), not from the main stream s.rng. The cap `max` keeps the Trade Monopoly victory (stars in the
+ * treasury) reachable. Keyed per faction so other factions can get such a drawback later. Measurement in BALANCING.md and
+ * ANNAHMEN.md (corruption).
+ */
+export const CORRUPTION = {
+  /** Schluessel des Wurfs (eventHash), plus Fraktionsindex / key of the roll (eventHash), plus faction index */
+  salt: 100,
+  faction: {
+    meridon: { chance: 0.25, share: 0.25, min: 5, max: 50, cap: 3, window: 10 },
+  } as Partial<Record<FactionId, CorruptionRule>>,
+};
+
 export const SCORE = {
   revealedTile: 5,
   territoryTile: 20,

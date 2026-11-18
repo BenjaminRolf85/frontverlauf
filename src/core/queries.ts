@@ -5,7 +5,7 @@
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -2395,6 +2395,24 @@ export function meridonNeedFor(roundLimit: number | null): number {
   return Math.min(WONDERS.meridonStars, Math.max(WONDERS.meridonStarsMin, Math.round(roundLimit * WONDERS.meridonStarsPerRound)));
 }
 export const meridonNeed = (s: GameState) => meridonNeedFor(s.config.roundLimit);
+
+/** Korruptionsregel der Fraktion f (CORRUPTION) oder null / corruption rule of faction f (CORRUPTION) or null */
+export const corruptionRule = (s: GameState, f: number): CorruptionRule | null => CORRUPTION.faction[s.factions[f].id] ?? null;
+/**
+ * Verlust durch Korruption bei so vielen Sternen: Anteil abgerundet, mindestens min, hoechstens max, nie mehr als vorhanden.
+ * Loss to corruption at this many stars: share rounded down, at least min, at most max, never more than there is.
+ */
+export function corruptionLoss(rule: CorruptionRule, stars: number): number {
+  if (stars <= 0) return 0;
+  return Math.min(stars, rule.max, Math.max(rule.min, Math.floor(stars * rule.share)));
+}
+/**
+ * Darf die Korruption in dieser Runde noch zuschlagen? Hoechstens cap Faelle in den letzten window Runden (diese eingeschlossen).
+ * May corruption still strike this round? At most cap hits in the last window rounds (this one included).
+ */
+export function corruptionWindowOpen(rule: CorruptionRule, hits: readonly number[] | undefined, round: number): boolean {
+  return (hits ?? []).filter((r) => r > round - rule.window).length < rule.cap;
+}
 
 /** Kennen sich a und b? Kontakt in einer Richtung genuegt / do a and b know each other? contact in either direction counts */
 export const knows = (s: GameState, a: number, b: number) => s.factions[a].contacts.includes(b) || s.factions[b].contacts.includes(a);

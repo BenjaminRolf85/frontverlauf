@@ -99,3 +99,16 @@ export function showRandomEvent(root: HTMLElement, e: RandomEvent, s: GameState,
   playSound(e, viewer);
   showHeadline(root, { kicker: t('randomEvents.kicker'), round: s.round, icon: EVENT_ICON[e.kind], title, body, bad: badFor(e, viewer) });
 }
+
+/**
+ * Korruption (Meridon, CORRUPTION) als Schlagzeile der Zufallsereignisse, nur fuer die betroffene Fraktion: Sie kann bis zu
+ * dreimal in zehn Runden kommen, fuer alle anderen waere das zu viel Laerm (wie die fortgesetzte Duerre).
+ * Corruption (Meridon, CORRUPTION) as a random-event headline, only for the affected faction: it can come up to three times in
+ * ten rounds, which would be too much noise for everyone else (like the ongoing drought).
+ */
+export function showCorruption(root: HTMLElement, e: Extract<GameEvent, { t: 'corruption' }>, s: GameState, viewer: number) {
+  if (e.faction !== viewer) return;
+  audio.play('error');
+  showHeadline(root, { kicker: t('randomEvents.kicker'), round: s.round, icon: 'scale', title: t('randomEvents.corruption.title'),
+    body: t('randomEvents.corruption.body', { name: t(`factions.${s.factions[e.faction].id}.short`), n: e.stars }), bad: true });
+}

@@ -6,9 +6,9 @@
  * weather), the target from the game state. The main random stream (s.rng) is not used, so games with
  * and without events run identically until the first event.
  */
-import { ROSTERS, TECHS, TECH_IDS, UNITS, type TechId } from '../data/balance';
+import { CORRUPTION, ROSTERS, TECHS, TECH_IDS, UNITS, type TechId } from '../data/balance';
 import { dist, neighbors, tileAt } from './grid';
-import { baseBuilding, factionVariant, has, hqOf, isBoss, isHostile, ownCities, score } from './queries';
+import { baseBuilding, corruptionLoss, corruptionRule, corruptionWindowOpen, factionVariant, has, hqOf, isBoss, isHostile, ownCities, score } from './queries';
 import { freeFor, placeUnit } from './spawn';
 import type { GameEvent, GameState, RandomEventKind, Unit } from './types';
 
@@ -216,4 +216,26 @@ export function processRandomEvents(s: GameState, ev: GameEvent[]) {
   const kind = randomEventFor(s.config.seed, s.round);
   if (!kind) return;
   if (!triggerRandomEvent(s, kind, ev) && kind !== 'convoy') triggerRandomEvent(s, 'convoy', ev);
+}
+
+/**
+ * Korruption (Meridon, CORRUPTION) zu Beginn des eigenen Zuges, nach Einkommen und Sold: nur mit Zufallsereignissen, nicht in
+ * Runde 1, hoechstens cap-mal in window Runden; Wurf aus Seed, Runde und Fraktion (eventHash), der Hauptstrom bleibt unberuehrt.
+ * Eine leere Kasse zaehlt nicht als Fall.
+ * Corruption (Meridon, CORRUPTION) at the start of the own turn, after income and upkeep: only with random events, not in
+ * round 1, at most cap times in window rounds; roll from seed, round and faction (eventHash), the main stream stays untouched.
+ * An empty treasury does not count as a hit.
+ */
+export function processCorruption(s: GameState, f: number, ev: GameEvent[]) {
+  const rule = corruptionRule(s, f);
+  if (!rule || !s.config.events || s.round <= 1) return;
+  const fa = s.factions[f];
+  if (!corruptionWindowOpen(rule, fa.corruptionHits, s.round)) return;
+  if (eventHash(s.config.seed, s.round, CORRUPTION.salt + f) >= rule.chance) return;
+  const lost = corruptionLoss(rule, fa.stars);
+  if (lost <= 0) return;
+  fa.stars -= lost;
+  // nur die Faelle im Fenster aufheben / keep only the hits within the window
+  fa.corruptionHits = [...(fa.corruptionHits ?? []).filter((r) => r > s.round - rule.window), s.round];
+  ev.push({ t: 'corruption', faction: f, stars: lost });
 }

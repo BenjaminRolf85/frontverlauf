@@ -220,6 +220,11 @@ export interface Faction {
   sin?: { deed: SinDeed; until: number };
   /** Alvenia, Grosses Strafgericht: vernichtete Einheiten von Suendern (fehlt = 0) / Great Judgement: destroyed units of sinners (missing = 0) */
   judged?: number;
+  /**
+   * Korruption (CORRUPTION): Runden der letzten Faelle im Fenster; fehlt = keine (auch alte Spielstaende).
+   * Corruption (CORRUPTION): rounds of the last hits within the window; missing = none (old saves too).
+   */
+  corruptionHits?: number[];
   /** Kult: insgesamt erbeutete Sterne (Punkte) / cult: total plundered stars (points) */
   plunder?: number;
   /** Orbitallaser (Velkar): bereit ab dieser Runde (fehlt = kein Relay gebaut) / orbital laser (Velkar): ready from this round (missing = no relay built) */
@@ -466,6 +471,8 @@ export type GameEvent =
   | { t: 'crash'; unit: number }
   /** Sold nicht bezahlt: die Einheit desertiert (vorher als 'killed' entfernt) / upkeep unpaid: the unit deserts (removed as 'killed' before) */
   | { t: 'deserted'; unit: number; unitType: UnitTypeId; faction: number; x: number; y: number }
+  /** Korruption (Meridon): Sterne abgezweigt / corruption (Meridon): stars siphoned off */
+  | { t: 'corruption'; faction: number; stars: number }
   | { t: 'flak'; city: number; unit: number; dmg: number }
   | { t: 'barrier'; x: number; y: number; faction: number }
   | { t: 'cityUpgrade'; city: number; upgrade: CityUpgradeId; faction: number; target?: Pos }
