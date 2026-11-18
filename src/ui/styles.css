@@ -411,8 +411,16 @@ h1, h2, h3, .display {
 }
 .menu-list { width: min(100%, var(--c-layout-menu-width)); display: flex; flex-direction: column; gap: var(--p-space-3); }
 .menu-list .btn { min-height: var(--p-size-touch-lg); }
-/* halbe Knoepfe nebeneinander: weniger Innenabstand, sonst passt 'Einstellungen' auf dem Handy nicht hinein / half-width buttons side by side: less padding, otherwise 'Einstellungen' does not fit on phones */
+/*
+ * Handy: Knoepfe nebeneinander nur, wenn beide Beschriftungen passen, sonst untereinander ('Einstellungen' lief ueber den Knopf)
+ * phone: buttons side by side only when both labels fit, otherwise stacked ('Einstellungen' overflowed its button)
+ */
 .menu-list .row .btn { padding: 0 var(--p-space-2); }
+@media (max-width: 480px) /* --p-breakpoint-narrow */ {
+  .menu-list .row .btn.grow { flex: 1 1 auto; }
+}
+/* Sprachwahl mittig unter den Knoepfen / language choice centred below the buttons */
+.menu-list > .seg { justify-content: center; }
 /* Pausenmenue im Dialog: mittig und kompakter, damit alle Knoepfe ohne Scrollen sichtbar sind
    pause menu inside a dialog: centred and more compact so every button is visible without scrolling */
 .dialog .menu-list { margin-inline: auto; gap: var(--p-space-2); }
