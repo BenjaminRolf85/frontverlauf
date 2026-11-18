@@ -551,8 +551,14 @@ input[type="text"], select {
   .sheet .tabs button { min-height: var(--p-size-touch); padding: 0 var(--p-space-2); font-size: var(--p-font-size-sm); }
   .sheet .action-bar { padding-bottom: var(--p-space-1); }
   .action { min-width: var(--c-action-min-size-compact); min-height: var(--c-action-height-compact); }
-  /* Standard-Hinweis nur zeigen, wenn eine Aktion erklaert wird (Maus zeigt Tooltips) / show the hint only when an action is explained (mouse shows tooltips) */
+}
+/* Standard-Hinweis nur zeigen, wenn eine Aktion erklaert wird (Maus zeigt Tooltips; Tablets quer brauchen ihn) / show the hint only when an action is explained (mouse shows tooltips; tablets in landscape need it) */
+@media (min-width: 900px) and (hover: hover) /* --p-breakpoint-lg */ {
   .action-hint:has(.hint-text.muted):not(.open) { display: none; }
+}
+/* Finger: Hinweiszeile in voller Tippgroesse / touch: hint line at full touch size */
+@media (pointer: coarse) {
+  .action-hint { min-height: var(--p-size-touch); }
 }
 @media (orientation: landscape) and (max-height: 520px) /* --p-breakpoint-compact-height */ {
   .action { min-width: var(--c-action-min-size-compact); min-height: var(--c-action-height-compact); }
@@ -729,7 +735,7 @@ input[type="text"], select {
 /* Sperrgrund auf der Karte, hoechstens zwei Zeilen (ganz in der Hinweiszeile) / lock reason on the card, at most two lines (in full in the hint line) */
 .troop-lock { display: flex; align-items: flex-start; gap: var(--p-space-half); font-weight: var(--p-font-weight-bold); }
 .troop-lock .icon-sm { flex: none; }
-.troop-lock-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.troop-lock-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; }
 /* Scroll-Hinweis: Rand blendet aus, solange mehr Karten folgen / scroll cue: the edge fades while more cards follow */
 .troop-wrap { position: relative; }
 .troops.more-right .troop-wrap::after, .troops.more-left .troop-wrap::before {

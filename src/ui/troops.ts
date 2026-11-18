@@ -93,12 +93,15 @@ function statsHtml(type: UnitTypeId, fid: FactionId): string {
   const st = UNITS[type];
   const range = unitRange(type, fid);
   const stat = (ic: string, label: string, v: string) => `<span class="troop-stat" title="${esc(label)}">${icon(ic, 'icon-sm')}<span class="sr-only">${esc(label)} </span>${esc(v)}</span>`;
+  // ohne Reichweite ein Strich statt des Worts (das Wort sprengte die schmale Karte), vorgelesen wird das Wort
+  // without range a dash instead of the word (the word overflowed the narrow card); screen readers get the word
+  const none = `<span class="troop-stat" title="${esc(t('stats.range'))}: ${esc(t('stats.noRange'))}">${icon('range', 'icon-sm')}<span class="sr-only">${esc(t('stats.range'))} ${esc(t('stats.noRange'))}</span><span aria-hidden="true">&ndash;</span></span>`;
   return [
     stat('hp', t('stats.hp'), num(cardHp(type))),
     stat('sword', t('stats.attack'), num(st.attack)),
     stat('shield', t('stats.defense'), num(st.defense)),
     stat('boot', t('stats.move'), num(st.move)),
-    stat('range', t('stats.range'), range ? num(range) : t('stats.noRange')),
+    range ? stat('range', t('stats.range'), num(range)) : none,
   ].join('');
 }
 
