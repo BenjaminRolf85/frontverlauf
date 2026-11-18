@@ -5,7 +5,7 @@
 import {
   COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
-  type WonderUnitId, SHIPYARD, SIGHTING,
+  type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { generateMap } from './mapgen';
@@ -1118,7 +1118,14 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
       // volle Stadt: der Panzer gehoert zu keiner Stadt (wie ein Ueberlaeufer) / full city: the tank belongs to no city (like a defector)
       const home = supportedUnits(s, c) < unitLimit(s, c) ? c.id : null;
       // Velkar: Tesla-Panzer (VARIANTS) / Velkar: Tesla tank (VARIANTS)
-      if (p) spawnUnit(s, ROSTERS[s.factions[f].id]?.tank ?? factionVariant(s, f, 'tank'), f, p.x, p.y, home);
+      const heavy = ROSTERS[s.factions[f].id]?.tank ?? factionVariant(s, f, 'tank');
+      if (p) spawnUnit(s, heavy, f, p.x, p.y, home);
+      // Meridon: statt eines Panzers mehrere Lenkflugkoerper (REWARD_HEAVY), weitere auf freien Nachbarfeldern ohne Stadtbindung
+      // Meridon: several Guided Missiles instead of one tank (REWARD_HEAVY), further ones on free adjacent tiles without a home city
+      for (let i = 1; p && i < (REWARD_HEAVY.count[s.factions[f].id] ?? 1); i++) {
+        const q = freeNeighbor(s, c.x, c.y, false);
+        if (q) spawnUnit(s, heavy, f, q.x, q.y, null);
+      }
       break;
     }
   }

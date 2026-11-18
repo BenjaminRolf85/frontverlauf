@@ -667,6 +667,16 @@ export const TWIN_TRAINING = {
 export const SHADOW_FLEET = { faction: 'meridon' as FactionId };
 
 /**
+ * Stadtbelohnung "Panzer" (ab Stufe 5): so viele Einheiten der Bauart (fehlt = 1). Meridon baut keine Panzer, seine Bauart ist
+ * der Lenkflugkoerper (20 statt 60 Sterne), deshalb kommen mehrere; die weiteren auf freie Nachbarfelder, ohne Stadtbindung.
+ * City reward "tank" (from level 5): this many units of the design (missing = 1). Meridon builds no tanks, its design is the
+ * Guided Missile (20 instead of 60 stars), hence several; the further ones on free adjacent tiles, without a home city.
+ */
+export const REWARD_HEAVY = {
+  count: { meridon: 3 } as Partial<Record<FactionId, number>>,
+};
+
+/**
  * Tarnung (Faehigkeit 'camo', nur Schattenkommando und Nebelkutter): fuer Gegner unsichtbar, solange keine ihrer Einheiten,
  * Staedte oder Bauwerke (Geschuetz, Silo) direkt daneben stehen; ein eigener Angriff oder eine Sabotage enttarnt die Einheit
  * bis zu ihrem naechsten eigenen Zug (wie das aufgetauchte U-Boot, Unit.revealed), also durch alle gegnerischen Zuege.

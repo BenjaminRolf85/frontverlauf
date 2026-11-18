@@ -5,8 +5,8 @@
  * worthwhile targets, withdrawal after attacking, respect for camouflage and whole AI games without failed commands.
  */
 import { describe, expect, it } from 'vitest';
-import { applyCommand, createGame, defaultConfig, siloArea, type FactionId, type GameState } from '../src/core';
-import { AI, SILO } from '../src/data/balance';
+import { applyCommand, createGame, defaultConfig, siloArea, type GameState } from '../src/core';
+import { AI, SILO, type FactionId } from '../src/data/balance';
 import { aiDebug, planNextCommand } from '../src/ai/ai';
 import { buildCtx } from '../src/ai/analysis';
 import { planRadar, planSabotage, planSilo } from '../src/ai/shadowFleet';
