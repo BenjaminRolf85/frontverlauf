@@ -785,6 +785,16 @@ export const components = {
   troopCard: { width: '136px', widthDesktop: '124px', bg: semantic.surfaceRaised, lockedBg: semantic.surfaceSunken, iconSize: primitives.size.icon, statIcon: '14px', statsGap: primitives.space[2] },
   /** Hinweiszeile unter der Aktionsleiste / hint line below the action bar */
   actionHint: { bg: semantic.surfaceSunken, blocked: semantic.warning, fontSize: primitives.fontSize.xs, accent: primitives.borderWidth.thick },
+  /**
+   * Einsatzplanung mit Fraktionskarten: breitere Form fuer das Gegnerraster (1 Spalte auf dem Handy, bis 3 auf dem Desktop),
+   * Mindestbreite je Gegner- und Auswahlkarte, Farbstreifen der Fraktion, gestrichelte Hinzufuegen-Karte.
+   * Game setup with faction cards: a wider form for the opponent grid (1 column on phones, up to 3 on desktop),
+   * minimum width per opponent and picker card, faction colour stripe, dashed add card.
+   */
+  setup: {
+    width: '940px', cardMin: '260px', pickMin: '280px', stripe: '6px', cardBg: semantic.surfaceRaised, addBg: semantic.surface,
+    addBorder: semantic.textMuted, hintBg: semantic.surfaceSunken, hintAccent: semantic.warning,
+  },
   layout: {
     sheetMaxWidth: '760px', sheetDockWidth: '420px', sheetDockMaxHeight: '44vh', sheetDockMaxHeightTroops: '74vh', dialogWide: '980px', toastOffset: '56px', toastWidth: '460px', bubbleWidth: '520px',
     menuWidth: '380px', formWidth: '640px', techMaxWidth: '860px', progressMinWidth: '80px', badgeIcon: '32px',

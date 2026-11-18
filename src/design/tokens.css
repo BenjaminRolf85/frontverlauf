@@ -787,6 +787,15 @@
   --c-action-hint-blocked: #f08a24;
   --c-action-hint-font-size: 12px;
   --c-action-hint-accent: 3px;
+  --c-setup-width: 940px;
+  --c-setup-card-min: 260px;
+  --c-setup-pick-min: 280px;
+  --c-setup-stripe: 6px;
+  --c-setup-card-bg: #f8f2dc;
+  --c-setup-add-bg: #efe6c6;
+  --c-setup-add-border: #3a3647;
+  --c-setup-hint-bg: #e2d4a6;
+  --c-setup-hint-accent: #f08a24;
   --c-layout-sheet-max-width: 760px;
   --c-layout-sheet-dock-width: 420px;
   --c-layout-sheet-dock-max-height: 44vh;
