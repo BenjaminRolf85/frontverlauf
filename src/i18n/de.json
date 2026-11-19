@@ -824,6 +824,7 @@
     "enemyTerritory": "Nicht im Gebiet einer anderen Fraktion.",
     "cannotBuild": "Diese Einheit kann das nicht bauen.",
     "quake": "Erdbeben: Nur Fußtruppen können sich diese Runde bewegen.",
+    "outpostSpacing": "Zu nah an einem anderen Außenposten: mindestens {outpostSpacing} Felder Abstand.",
     "emplacementSpacing": "Zu nah an einer anderen eigenen Geschützstellung.",
     "emplacementLimit": "Stellungslimit erreicht: Mehr Städte erlauben mehr Geschützstellungen.",
     "recruitCooldown": "Rekrutieren ist noch nicht wieder bereit.",
@@ -3625,7 +3626,7 @@
     },
     "outposts": {
       "title": "Außenposten",
-      "text": "Mit {tech} bauen Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) für {cost} Sterne einen Außenposten auf ihrem Feld und verteidigen darauf ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
+      "text": "Mit {tech} bauen Infanterie, MG, Scharfschützen und Pioniere (auch Lichtschützen und Railgun-Schützen) für {cost} Sterne einen Außenposten auf ihrem Feld und verteidigen darauf ×{def}. Grenzt er an eigenes Gebiet, wächst das Gebiet der nächsten Stadt um die freien Felder rundherum. Zwei Außenposten liegen mindestens {outpostSpacing} Felder auseinander, auch die verschiedener Fraktionen. Gegner können Außenposten einnehmen. Pioniere bauen außerdem Panzersperren ({barrier} Sterne), die Fahrzeuge bremsen."
     },
     "diplomacy": {
       "title": "Diplomatie",

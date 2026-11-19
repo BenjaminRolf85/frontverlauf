@@ -1489,6 +1489,8 @@ export const ECON = {
   embassyBaseCost: 25,
   embassyStep: 25,
   outpostCost: 25,
+  /** Mindestabstand zwischen zwei Aussenposten (jeder Fraktion) in Feldern, Spielerwunsch / minimum distance between two outposts (any faction) in tiles, player request */
+  outpostSpacing: 4,
   firstContactPer1000: 15,
   firstContactMax: 60,
   cyberneticsDiscount: 0.33,
@@ -1942,7 +1944,14 @@ export const MAPGEN = {
    * limited them; on 14x14 and 16x16 spacing rather than density is usually the limit, which is why the share acts on the
    * result. Home villages always stay. The campaign additionally scales with CAMPAIGN_SETTLEMENTS.
    */
-  villageShare: 0.7,
+  villageShare: 1,
+  /**
+   * Mindestabstand zwischen zwei neutralen Siedlungen (Heimatsiedlungen eingeschlossen) in Feldern, Schachbrett-Abstand
+   * (Spielerwunsch). Nur wenn eine Startinsel sonst keine Heimatsiedlung bekaeme, gilt fuer sie minCityDistance.
+   * Minimum distance between two neutral villages (home villages included) in tiles, Chebyshev distance (player request).
+   * Only if a start island would otherwise get no home village does minCityDistance apply to it.
+   */
+  villageSpacing: 4,
   /** Mindestabstand neutraler Siedlungen zum Kartenrand in Feldern / minimum distance of neutral villages to the map edge in tiles */
   villageEdge: 2,
   /**
