@@ -7,7 +7,7 @@ import { factionRace } from '../core';
 import { has, num, t } from '../i18n/i18n';
 import { esc } from './components';
 import { leaderPortrait } from './leaders';
-import { loreButton } from './lore';
+import { loreButton, narrationHtml, storyButton } from './lore';
 import { BUILD_ICON, UNIT_ICON, buildingDescText } from './hud';
 import { icon } from './icons';
 import { victoryGoalText, victoryShortText } from './victory';
@@ -157,6 +157,14 @@ export function traitChips(f: FactionId, opts: { desc?: boolean; compact?: boole
       <span class="trait-text">${opts.compact ? `<span class="sr-only">${esc(tr.label)}:</span>` : `<span class="trait-label">${esc(tr.label)}</span>`} <strong>${esc(tr.value)}</strong>${opts.desc && tr.desc ? `<span class="trait-desc">${esc(tr.desc)}</span>` : ''}</span></span>`).join('')}</span>`;
 }
 
+/**
+ * Fusszeile einer Fraktionskarte: Hoergeschichte direkt abspielen (wenn es eine gibt) und Link zu den Details.
+ * Footer of a faction card: play the audio story right there (if there is one) and the link to the details.
+ */
+export function cardLinks(f: FactionId): string {
+  return `<span class="card-links">${storyButton(f)}${detailsLink(f)}</span>`;
+}
+
 /** Link zur ausfuehrlichen Ansicht / link to the detailed view */
 export function detailsLink(f: FactionId): string {
   return `<button type="button" class="details-link" data-details="${f}" aria-label="${esc(t('traits.detailsFor', { name: t(`factions.${f}.name`) }))}">${icon('info', 'icon-sm')}<span>${esc(t('traits.details'))}</span></button>`;
@@ -172,6 +180,7 @@ export function factionDetails(f: FactionId): string {
       <strong class="display">${k('name')}</strong>
       <span><span class="muted">${esc(t('leaders.leader'))}:</span> ${k('leaderTitle')} <strong>${k('leader')}</strong></span>
       <q class="leader-quote">${k('quote')}</q>
+      ${narrationHtml(f)}
       ${traitChips(f, { desc: true })}
       <p>${k('lore')}</p>
       ${loreButton(f)}

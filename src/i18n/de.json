@@ -3675,6 +3675,10 @@
     "buttonAudio": "Geschichte als Comic und Hörgeschichte",
     "listen": "Hörgeschichte",
     "listenNote": "gesprochen, etwa {min} Minuten",
+    "play": "Geschichte anhören",
+    "pause": "Geschichte anhalten",
+    "minutes": "{min} Min.",
+    "seek": "Stelle in der Geschichte",
     "title": "{name}: Geschichte",
     "textToggle": "Text der Comic-Seite",
     "text": {

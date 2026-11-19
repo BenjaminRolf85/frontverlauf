@@ -3675,6 +3675,10 @@
     "buttonAudio": "Story as a comic and audio",
     "listen": "Audio story",
     "listenNote": "narrated in German, about {min} minutes",
+    "play": "Listen to the story",
+    "pause": "Pause the story",
+    "minutes": "{min} min",
+    "seek": "Position in the story",
     "title": "{name}: Story",
     "textToggle": "Text of the comic page",
     "text": {
