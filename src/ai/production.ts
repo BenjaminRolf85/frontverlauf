@@ -9,7 +9,7 @@
  * lumber camp for the foundry.
  */
 import {
-  buildCheck, citySites, cityTiles, factionVariant, siteNeed, siteOf, supportedUnits, unitLimit, usesSites, type City, type Command, type GameState,
+  buildCheck, citySites, cityTiles, factionVariant, rosterUnits, siteNeed, siteOf, supportedUnits, unitLimit, usesSites, type City, type Command, type GameState,
 } from '../core';
 import { AI, BUILDINGS, PRODUCTION, type BuildingId, type ProductionSiteId, type UnitTypeId } from '../data/balance';
 import type { Ctx } from './analysis';
@@ -40,6 +40,8 @@ function siteWorth(ctx: Ctx, site: ProductionSiteId, counters: { antiVehicle: nu
   const n = siteCount(ctx, site);
   const cities = ctx.myCities.length;
   const r = s.round;
+  // keine eigene Einheit aus dieser Staette (Meridon: kein Panzerwerk) / no own unit from this site (Meridon: no tank works)
+  if (site !== 'navalBase' && site !== 'dryDock' && !rosterUnits(s, ctx.f).some((t) => PRODUCTION.units[site].includes(t))) return 0;
   switch (site) {
     // erste Staette jeder Art: etwa so wertvoll wie ein Wirtschaftsgebaeude, ab Runde 2 / first site of each kind: about as worth as an economy building, from round 2
     case 'armory': return n === 0 ? (r >= 2 ? 40 : 0) + (counters.antiVehicle + counters.antiAir) * 40 : cities >= 4 && n < 2 ? 8 : 0;

@@ -5,12 +5,12 @@
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
-  orbitalPreview, orbitalWait,
+  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
 import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
-import { ORBITAL, UNITS, type HitKind } from '../data/balance';
+import { ORBITAL, SILO, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { audio, type Sfx } from '../audio/audio';
 import { coreHeading, type HighlightKind } from '../render/board';
@@ -18,6 +18,7 @@ import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
 import { ORBITAL_FX } from '../render/fx/orbital';
+import { ROCKET_FX } from '../render/fx/rocket';
 import { saveGame } from '../save/save';
 
 export type Tab = 'unit' | 'city' | 'tile';
@@ -68,6 +69,11 @@ export class Controller {
   /** Zielauswahl des Orbitallasers und angepeilte Ecke / orbital laser targeting and the aimed corner */
   orbitalMode = false;
   orbitalAim: { x: number; y: number } | null = null;
+  /** Zielauswahl des Raketensilos: Silo und angepeilte Ecke / rocket silo targeting: silo and the aimed corner */
+  siloFrom: { x: number; y: number } | null = null;
+  siloAim: { x: number; y: number } | null = null;
+  /** Zielauswahl fuer die Sabotage des Schattenkommandos / target selection for the Shadow Commando's sabotage */
+  sabotageMode = false;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -138,6 +144,59 @@ export class Controller {
     this.ui.update();
   }
 
+  /** Sabotage: Ziele auf der Karte zeigen / sabotage: show the targets on the map */
+  startSabotage() {
+    this.sabotageMode = true;
+    this.barrierMode = false;
+    this.mineMode = false;
+    this.emplacementMode = false;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Raketensilo: Zielauswahl beginnen (nur eigenes, bereites Silo am Zug) / rocket silo: start targeting (own ready silo, on turn) */
+  startSilo(x: number, y: number) {
+    const s = this.state;
+    if (!s || !this.isHumanTurn) return;
+    const wait = siloWait(s, x, y);
+    if (wait === null || s.tiles[y * s.size + x].turret?.owner !== s.current) return;
+    if (wait > 0) { this.play('error'); this.ui.errorCode('siloCooldown'); return; }
+    this.clearSelection();
+    this.siloFrom = { x, y };
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl des Silos abbrechen / cancel the silo targeting */
+  cancelSilo() {
+    if (!this.siloFrom) return;
+    const from = this.siloFrom;
+    this.siloFrom = null;
+    this.siloAim = null;
+    // zurueck zum Silo-Feld / back to the silo tile
+    this.selected = from; this.tab = 'tile';
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Ecke anpeilen (Maus folgt, Antippen setzt) / aim a corner (mouse follows, a tap sets it) */
+  aimSilo(x: number, y: number) {
+    if (!this.siloFrom || (this.siloAim && this.siloAim.x === x && this.siloAim.y === y)) return;
+    this.siloAim = { x, y };
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Rakete auf die angepeilte Flaeche starten / launch the rocket at the aimed area */
+  async fireSilo() {
+    const s = this.state, aim = this.siloAim, from = this.siloFrom;
+    if (!s || !aim || !from || this.busy) return;
+    this.siloFrom = null;
+    this.siloAim = null;
+    await this.exec({ type: 'siloLaunch', x: from.x, y: from.y, tx: aim.x, ty: aim.y });
+  }
+
   startTerraform(unitId: number) {
     this.terraformUnit = unitId;
     this.updateHighlights();
@@ -193,6 +252,9 @@ export class Controller {
   clearSelection() {
     this.orbitalMode = false;
     this.orbitalAim = null;
+    this.siloFrom = null;
+    this.siloAim = null;
+    this.sabotageMode = false;
     this.barrierMode = false;
     this.mineMode = false;
     this.emplacementMode = false;
@@ -229,6 +291,8 @@ export class Controller {
       for (const p of mineTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && this.emplacementMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of emplacementTargets(s, u)) list.push({ ...p, kind: 'build' });
+    } else if (u && this.sabotageMode && u.owner === s.current && this.isHumanTurn) {
+      for (const p of sabotageTargets(s, u)) list.push({ ...p, kind: 'attack' });
     } else if (u && u.owner === s.current && this.isHumanTurn) {
       for (const r of reachable(s, u)) {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
@@ -259,6 +323,8 @@ export class Controller {
       for (const p of plansHints(s)) list.push({ ...p, kind: 'hint' });
     }
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
+    // Raketensilo: das Silo selbst markieren / rocket silo: mark the silo itself
+    if (this.siloFrom && this.isHumanTurn) list.push({ ...this.siloFrom, kind: 'select' });
     this.view.board.setHighlights(s, list);
     this.updateOrbitalPreview();
   }
@@ -267,6 +333,13 @@ export class Controller {
   private updateOrbitalPreview() {
     const s = this.state;
     if (!s) return;
+    // Raketensilo: dieselbe Flaechenvorschau mit Schaden, Abschuss und Brand / rocket silo: the same area preview with damage, kill and fire
+    if (this.siloFrom && this.siloAim && this.isHumanTurn) {
+      const pre = siloPreview(s, s.current, this.siloFrom.x, this.siloFrom.y, this.siloAim.x, this.siloAim.y);
+      const tags = pre.hits.map((h) => ({ x: h.x, y: h.y, own: h.own, text: t(h.killed ? 'shadow.silo.tagKill' : 'shadow.silo.tag', { dmg: h.dmg }) }));
+      this.view.board.showOrbitalPreview(s, pre.tiles, SILO.area.w, tags, pre.check !== 'ok');
+      return;
+    }
     if (!this.orbitalMode || !this.orbitalAim || !this.isHumanTurn) { this.view.board.showOrbitalPreview(s, [], ORBITAL.area.w, [], false); return; }
     const pre = orbitalPreview(s, s.current, this.orbitalAim.x, this.orbitalAim.y);
     const tags = pre.hits.map((h) => ({ x: h.x, y: h.y, own: h.own, text: t(h.killed ? 'orbital.tagKill' : 'orbital.tag', { dmg: h.dmg }) }));
@@ -282,6 +355,14 @@ export class Controller {
     if (this.orbitalMode) {
       if (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y && orbitalPreview(s, s.current, x, y).check === 'ok') { await this.fireOrbital(); return; }
       this.aimOrbital(x, y);
+      this.play('select');
+      return;
+    }
+    // Raketensilo: erstes Antippen peilt an, zweites auf dieselbe Ecke startet / rocket silo: first tap aims, a second on the same corner launches
+    if (this.siloFrom) {
+      const from = this.siloFrom;
+      if (this.siloAim && this.siloAim.x === x && this.siloAim.y === y && siloPreview(s, s.current, from.x, from.y, x, y).check === 'ok') { await this.fireSilo(); return; }
+      this.aimSilo(x, y);
       this.play('select');
       return;
     }
@@ -322,6 +403,15 @@ export class Controller {
       this.mineMode = false;
       if (mineTargets(s, u).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'mine', unit: u.id, x, y });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
+    if (u && this.sabotageMode) {
+      this.sabotageMode = false;
+      if (sabotageTargets(s, u).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'sabotage', unit: u.id, x, y });
         return;
       }
       this.updateHighlights(); this.ui.update();
@@ -695,6 +785,31 @@ export class Controller {
             await board.animateOrbital(s, e.tiles, ORBITAL.area.w, fid(e.faction) ?? null, animate, impact);
             break;
           }
+          // Raketensilo: Bogenflug, Einschlag mit Beben und Schadenszahlen, danach brennt die Flaeche / rocket silo: arc flight, impact with shake and damage numbers, then the area burns
+          case 'siloLaunch': {
+            if (!(e.faction === this.viewer || e.tiles.some((p) => visible(p.x, p.y)) || visible(e.from.x, e.from.y))) break;
+            const impact = () => {
+              audio.impact('guidedMissile', true, fid(e.faction));
+              for (const h of e.hits) if (visible(h.x, h.y)) { this.ui.fx('hit', h.x, h.y); this.ui.fx('num', h.x, h.y, `-${h.dmg}`); }
+              for (const p of e.tiles) if (visible(p.x, p.y)) this.ui.fx('boom', p.x, p.y);
+              if (animate) this.view.shake(ROCKET_FX.shake, ROCKET_FX.shakeMs);
+            };
+            audio.weapon('guidedMissile');
+            await board.animateSilo(s, e.from, e.tiles, fid(e.faction) ?? null, animate, impact);
+            this.refresh();
+            break;
+          }
+          // Raketenbrand zu Rundenbeginn / rocket fire at the start of the round
+          case 'fireHit': {
+            let shown = 0;
+            for (const h of e.hits) { if (!visible(h.x, h.y)) continue; this.ui.fx('hit', h.x, h.y); this.ui.fx('num', h.x, h.y, `-${h.dmg}`); shown++; }
+            if (shown) this.play('hit');
+            break;
+          }
+          // Sabotage: Knall am Ziel / sabotage: a bang at the target
+          case 'sabotage': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); } this.refresh(); break;
+          // Radarimpuls: Einheiten unter den Wolken tauchen auf / radar sweep: units under the clouds appear
+          case 'radarSweep': if (e.faction === this.viewer) { this.play('research'); this.refresh(); } break;
           // Meteorschauer und Saeureregen: Einschlag oder Zischen auf jeder getroffenen, sichtbaren Einheit
           // meteor shower and acid rain: impact or hiss on every hit, visible unit
           case 'weatherHit': {

@@ -4,7 +4,7 @@
  */
 import {
   COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
-  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
+  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
@@ -97,28 +97,75 @@ export function isExplored(s: GameState, f: number, x: number, y: number): boole
   return s.factions[f].explored[idx(s.size, x, y)] === 1;
 }
 
-/** Sieht Fraktion f die Einheit u? / does faction f see unit u? */
+/**
+ * Sieht Fraktion f die Einheit u? Radarimpuls und Sichtungen (SIGHTING, RADAR) zeigen jede Einheit im Umkreis, auch unter
+ * den Wolken; sonst nur auf erkundeten Feldern, verdeckte (Spion, getauchtes U-Boot, Tarnung) nur mit eigener Einheit oder
+ * Stadt daneben, getarnte (CAMO) auch mit eigenem Bauwerk (Geschuetz, Silo) daneben.
+ * Does faction f see unit u? Radar sweeps and sightings (SIGHTING, RADAR) show every unit in their radius, even under the
+ * clouds; otherwise only on explored tiles, hidden ones (spy, submerged submarine, camouflage) only with an own unit or city
+ * next to it, camouflaged ones (CAMO) also with an own structure (gun, silo) next to it.
+ */
 export function canSeeUnit(s: GameState, f: number, u: Unit): boolean {
   if (u.owner === f) return true;
+  if (sightedBy(s, f, u)) return true;
   if (!isExplored(s, f, u.x, u.y)) return false;
-  const hidden = has(u, 'invisible') || (has(u, 'submerged') && !u.revealed);
+  const camo = has(u, 'camo') && !u.revealed;
+  const hidden = camo || has(u, 'invisible') || (has(u, 'submerged') && !u.revealed);
   if (!hidden) return true;
-  return s.units.some((o) => o.owner === f && dist(o, u) <= 1) ||
-    s.cities.some((c) => c.owner === f && dist(c, u) <= 1);
+  const r = camo ? CAMO.revealRange : 1;
+  if (s.units.some((o) => o.owner === f && dist(o, u) <= r) || s.cities.some((c) => c.owner === f && dist(c, u) <= r)) return true;
+  // Tarnung: eigene Bauwerke (Geschuetz, Silo) daneben brechen sie / camouflage: own structures (gun, silo) next to it break it
+  if (!camo) return false;
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    const g = tileAt(s, u.x + dx, u.y + dy)?.turret;
+    if (g && g.hp > 0 && g.owner === f) return true;
+  }
+  return false;
 }
+
+/**
+ * Liegt u in einer aktiven Sichtung oder einem Radarimpuls der Fraktion f? / is u inside an active sighting or radar sweep of faction f?
+ */
+export function sightedBy(s: GameState, f: number, u: Pos): boolean {
+  const list = s.factions[f]?.sightings;
+  if (!list?.length) return false;
+  for (const z of list) if (z.until >= s.round && dist(z, u) <= z.r) return true;
+  return false;
+}
+
+/** Wird u nur durch Radar oder Sichtung gesehen (Feld unerkundet)? / is u seen only through radar or sighting (tile unexplored)? */
+export const radarEcho = (s: GameState, f: number, u: Unit): boolean => u.owner !== f && !isExplored(s, f, u.x, u.y) && sightedBy(s, f, u);
+
+/** Ist die Einheit getarnt (Faehigkeit 'camo', nicht enttarnt)? / is the unit camouflaged (ability 'camo', not revealed)? */
+export const camouflaged = (u: Unit): boolean => has(u, 'camo') && !u.revealed;
 
 export function unitCost(s: GameState, f: number, type: UnitTypeId): number | null {
   // leeres Transportboot aus der Werft: eigener Kaufpreis (Einschiffen bleibt frei) / empty transport boat from the shipyard: own price (embarking stays free)
-  const base = type === 'landingBoat' ? SHIPYARD.transportCost : UNITS[type].cost;
+  const base = shipyardPrice(type) ?? UNITS[type].cost;
   if (base === null) return null;
   const fs = FACTIONS[s.factions[f].id];
   let cost = fs.discountUnit === type ? Math.ceil(base * (1 - fs.discount)) : base;
+  // Seemacht (Meridon): alle Schiffe billiger / sea power (Meridon): all ships cheaper
+  if (UNITS[type].ship) cost = seaPrice(s, f, cost);
   // Doktrin Motorisierung: Fahrzeuge billiger / motorization doctrine: cheaper vehicles
   if (hasDoctrine(s, f, 'motorization') && VEHICLE_UNITS.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.motorizationDiscount));
   // Doktrinen Bergbau (Panzerwerk) und Forstwirtschaft (Geschuetzgiesserei) / mining (tank works) and forestry (foundry) doctrines
   if (hasDoctrine(s, f, 'mining') && PRODUCTION.units.tankWorks.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.miningDiscount));
   if (hasDoctrine(s, f, 'forestry') && PRODUCTION.units.foundry.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.forestryDiscount));
   return cost;
+}
+
+/** Kaufpreis eines leeren Transportboots der Werft (Landungsboot, Nebelkutter), sonst null / price of an empty transport boat of the shipyard, else null */
+export function shipyardPrice(type: UnitTypeId): number | null {
+  if (type === 'landingBoat') return SHIPYARD.transportCost;
+  if (type === 'fogCutter') return SHIPYARD.fogCutterCost;
+  return null;
+}
+
+/** Preis nach dem Seemacht-Rabatt der Fraktion (SEA_POWER) / price after the faction's sea power discount (SEA_POWER) */
+export function seaPrice(s: GameState, f: number, cost: number): number {
+  const d = s.factions[f] ? SEA_POWER.discount[s.factions[f].id] ?? 0 : 0;
+  return d > 0 ? Math.ceil(cost * (1 - d)) : cost;
 }
 
 export function unitLimit(s: GameState, c: City): number {
@@ -145,8 +192,9 @@ export function upgradeUnitLimit(s: GameState, c: City): number {
 export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
 
 export function levelUpCost(s: GameState, c: City): number {
-  let cost = CITY.levelUpCost(c.level);
-  if (c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'boom') cost = Math.max(1, cost - PERKS.boomLevelReduction);
+  const cost = CITY.levelUpCost(c.level);
+  // Schattenbank (Meridon): verdeckte Investitionen, Aufstieg billiger / Shadow Bank (Meridon): covert investment, cheaper level-up
+  if (c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'shadowBank') return Math.max(1, cost - PERKS.shadowBankLevelReduction);
   return cost;
 }
 
@@ -356,7 +404,7 @@ export function income(s: GameState, f: number): number {
 
 /** Sold eines Einheitentyps (pauschal oder Anteil am Preis) / upkeep of a unit type (flat or share of the price) */
 // leeres Transportboot: Anteil am Kaufpreis (SHIPYARD) / empty transport boat: share of its price (SHIPYARD)
-const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil(((type === 'landingBoat' ? SHIPYARD.transportCost : UNITS[type].cost) ?? 0) * UPKEEP.share);
+const typeUpkeep = (type: UnitTypeId) => UPKEEP.flat[type] ?? Math.ceil((shipyardPrice(type) ?? UNITS[type].cost ?? 0) * UPKEEP.share);
 
 /** Sold einer Einheit pro Runde (ohne Freikontingent) / upkeep of one unit per round (before the free quota) */
 export function unitUpkeep(u: Unit): number {
@@ -452,8 +500,21 @@ export function emptyShipAt(s: GameState, f: number, x: number, y: number): Unit
 /** Kann sich die Einheit noch bewegen? / can the unit still move? */
 export function canMove(u: Unit): boolean {
   if (u.fresh || u.exhausted || u.moved || u.moveDone) return false;
-  if (u.attacked && !has(u, 'escape')) return false;
+  if (u.attacked && !has(u, 'escape') && !u.withdraw) return false;
   return true;
+}
+
+/**
+ * Darf u nach seinem Angriff absetzen (WITHDRAW)? Fraktion mit Absetzen, Landeinheit ohne Flug, kein Schiff, kein Bauwerk,
+ * kein eigener Rueckzug ('escape'), in diesem Zug noch nicht gezogen.
+ * May u withdraw after its attack (WITHDRAW)? Faction with withdrawal, land unit without flight, no ship, no structure,
+ * no own move after attacking ('escape'), not moved yet this turn.
+ */
+export function canWithdrawAfterAttack(s: GameState, u: Unit): boolean {
+  const id = s.factions[u.owner]?.id;
+  if (!id || !WITHDRAW.factions.includes(id) || u.moved) return false;
+  const st = UNITS[u.type];
+  return !st.ship && !has(u, 'fly') && !has(u, 'escape') && !has(u, 'wonder') && !has(u, 'boss') && !has(u, 'kamikaze') && st.move > 0;
 }
 
 export function canAttackNow(u: Unit): boolean {
@@ -1013,7 +1074,7 @@ export function returnFire(s: GameState, att: Unit, def: Unit, defHp: number): n
   const judge = 1 + judgementAt(s, def, att);
   // verschanzter Angreifer (Korvat): ohne Trefferglueck weniger Gegenschlag / entrenched attacker (Korvat): less return fire without hit luck
   const trench = entrenchFactor(s, baseHitOdds(s, def), att);
-  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss * judge * trench) : 0;
+  return total > 0 ? Math.round((defenseForce / total) * defense * COMBAT.damageFactor * counterFactor(def.type, att.type) * boss * judge * trench * firepowerFactor(s, def)) : 0;
 }
 
 /** Kampfvorschau; rocket = Mech-Raketen (Fernangriff fuer den Wind) / combat preview; rocket = mech rockets (ranged for the wind) */
@@ -1040,7 +1101,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // Angriff von hinten: Ausrichtung des Ziels vor dem Angriff, nur eigener Angriff (der Gegenschlag rechnet in returnFire)
   // attack from behind: the target's facing before the attack, own attack only (return fire is computed in returnFire)
   const rear = rearAttackBonus(att, def);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench * (1 + rear)) : 0;
+  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench * (1 + rear) * firepowerFactor(s, att)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -1062,6 +1123,19 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
   return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial, entrenched: entrenchMiss(s, def), rear };
+}
+
+/**
+ * Feuerkraft der Fraktion (FIREPOWER): Faktor auf den Schaden von Landeinheiten (Angriff und Gegenschlag); Schiffe, Bauwerke
+ * und ausgenommene Typen (Lenkflugkoerper) 1. Meridon 0,9.
+ * The faction's firepower (FIREPOWER): factor on the damage of land units (attack and return fire); ships, structures and
+ * exempt types (Guided Missile) 1. Meridon 0.9.
+ */
+export function firepowerFactor(s: GameState, u: Unit): number {
+  const id = s.factions[u.owner]?.id;
+  const k = id ? FIREPOWER.land[id] : undefined;
+  if (k === undefined || UNITS[u.type].ship || FIREPOWER.exempt.includes(u.type) || isStructureType(u.type)) return 1;
+  return k;
 }
 
 /** Angriffswert inkl. Veteranenbonus (Dravon, kampferprobt) / attack value incl. veteran bonus (Dravon, battle-hardened) */
@@ -1264,7 +1338,7 @@ export type BuildCheck = { ok: true; cost: number } | { ok: false; error: 'techM
 
 export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y: number): BuildCheck {
   const st = BUILDINGS[b];
-  const cost = st.cost;
+  const cost = buildingCost(s, f, b);
   if (!inBounds(s.size, x, y)) return { ok: false, error: 'invalidTile', cost };
   const t = tileAt(s, x, y)!;
   if (territoryOwner(s, t) !== f) return { ok: false, error: 'notInTerritory', cost };
@@ -1319,6 +1393,12 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (st.onePerFaction && countBuildings(s, f, b) > 0) return { ok: false, error: 'alreadyBuilt', cost };
   if (s.factions[f].stars < cost) return { ok: false, error: 'notEnoughStars', cost };
   return { ok: true, cost };
+}
+
+/** Baupreis eines Gebaeudes fuer f (Seemacht: Marinestuetzpunkt billiger) / build price of a building for f (sea power: naval base cheaper) */
+export function buildingCost(s: GameState, f: number, b: BuildingId): number {
+  const c = BUILDINGS[b].cost;
+  return SEA_POWER.buildings.includes(b) ? seaPrice(s, f, c) : c;
 }
 
 /**
@@ -1530,7 +1610,9 @@ export function rosterShips(s: GameState, f: number): UnitTypeId[] {
   if (!id || id === XENO.faction) return [];
   const own = uniqueUnitOf(id);
   const extra = own && UNITS[own].ship ? [own] : [];
-  return ['landingBoat', ...SHIP_UPGRADES.filter((t) => t === 'destroyer'), ...extra, ...SHIP_UPGRADES.filter((t) => t !== 'destroyer')];
+  // Meridon: Nebelkutter statt Transportboot (SHIPYARD.transport) / Meridon: Fog Cutter instead of the transport boat (SHIPYARD.transport)
+  const boat = SHIPYARD.transport[id] ?? 'landingBoat';
+  return [boat, ...SHIP_UPGRADES.filter((t) => t === 'destroyer'), ...extra, ...SHIP_UPGRADES.filter((t) => t !== 'destroyer')];
 }
 
 /** Wasserfelder der Werft: Nachbarn des Stadtfelds und Wasser im Stadtgebiet / water tiles of the shipyard: neighbours of the city tile and water in the city territory */
@@ -1578,7 +1660,7 @@ export function trainTechNeed(s: GameState, f: number, type: UnitTypeId): TechId
   const st = UNITS[type];
   if (st.ship) {
     if (!canEmbark(s, f)) return 'coastalEconomy';
-    if (type === 'landingBoat' || usesSites(s, f)) return null;
+    if (type === 'landingBoat' || type === 'fogCutter' || usesSites(s, f)) return null;
   }
   return st.tech && !hasTech(s, f, st.tech) ? st.tech : null;
 }
@@ -1648,7 +1730,7 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
 }
 
 export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' | 'buildingMissing' {
-  if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat') return 'invalid';
+  if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat' || to === 'fogCutter') return 'invalid';
   if (u.fresh) return 'invalid';
   // Fraktionsschiffe (Kaperschiff) nur fuer ihre Fraktion / faction ships (privateer) only for their faction
   if (UNITS[to].faction && UNITS[to].faction !== s.factions[u.owner].id) return 'invalid';
@@ -1667,7 +1749,8 @@ export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'tec
 /** Preis einer Schiffsaufruestung (Doktrin Schiffbau: billiger) / price of a ship upgrade (shipbuilding doctrine: cheaper) */
 export function shipUpgradeCost(s: GameState, f: number, to: UnitTypeId): number {
   const base = UNITS[to].cost ?? 0;
-  return hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base;
+  // Seemacht (Meridon) nach der Doktrin Schiffbau / sea power (Meridon) after the shipbuilding doctrine
+  return seaPrice(s, f, hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base);
 }
 
 /**
@@ -1870,10 +1953,12 @@ export function effectiveMove(s: GameState, u: Unit): number {
   if (weather(s) === 'snow' && WEATHER.snow.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.snow.moveDelta);
   if (weather(s) === 'dust' && WEATHER.dust.moveUnits.includes(u.type)) m = Math.max(1, m + WEATHER.dust.moveDelta);
   // Meridon, Lotsenwesen: Landungsboote weiter / harbour pilots: landing boats further
-  if (u.type === 'landingBoat' && perk2Of(s, u.owner) === 'harbourPilots') m += PERKS2.harbourPilotsMove;
+  if ((u.type === 'landingBoat' || u.type === 'fogCutter') && perk2Of(s, u.owner) === 'harbourPilots') m += PERKS2.harbourPilotsMove;
   // Doktrin Nachrichtendienst: Spione weiter / intelligence doctrine: spies move further
   if (has(u, 'uprising') && hasDoctrine(s, u.owner, 'intelligence')) m += DOCTRINE.intelligenceSpyMove;
   if (u.slowed) m = Math.min(m, BARRIER.slowedMove);
+  // Absetzen nach dem Angriff: hoechstens WITHDRAW.tiles / withdrawing after the attack: at most WITHDRAW.tiles
+  if (u.withdraw && u.attacked) m = Math.min(m, WITHDRAW.tiles);
   return m;
 }
 
@@ -2000,9 +2085,11 @@ export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
   if (roster) return roster;
   // klassische Fraktionen: Grundliste (mit eigenen Bauarten, VARIANTS) plus einzigartige Landeinheit
   // classic factions: base list (with own designs, VARIANTS) plus unique land unit
-  const base = VARIANTS[id] ? LAND_UNITS.map((t) => variantOf(id, t)) : LAND_UNITS;
+  // eine Bauart kann zwei Grundtypen ersetzen (Meridon: Lenkflugkoerper fuer Artillerie und Panzer) / one design may replace two base types (Meridon: Guided Missile for artillery and tank)
+  const base = VARIANTS[id] ? [...new Set(LAND_UNITS.map((t) => variantOf(id, t)))] : LAND_UNITS;
+  const extra = ROSTER_EXTRA[id] ?? [];
   const u = uniqueUnitOf(id);
-  return u && !UNITS[u].ship ? [...base, u] : base;
+  return u && !UNITS[u].ship ? [...base, ...extra, u] : [...base, ...extra];
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
@@ -2464,8 +2551,8 @@ export const turretAt = (s: GameState, x: number, y: number) => {
   const t = tileAt(s, x, y);
   return t?.turret && t.turret.hp > 0 ? t.turret : null;
 };
-/** Werte eines Geschuetzes: neutral = Verdan, mit Besitzer = Geschuetzstellung / stats of a gun: neutral = Verdan, with owner = emplacement */
-export const gunStats = (g: { owner?: number }) => (g.owner === undefined ? VERDAN : EMPLACEMENT);
+/** Werte eines Geschuetzes: neutral = Verdan, mit Besitzer = Geschuetzstellung, Silo = SILO / stats of a gun: neutral = Verdan, with owner = emplacement, silo = SILO */
+export const gunStats = (g: { owner?: number; kind?: 'silo' }) => (g.kind === 'silo' ? SILO : g.owner === undefined ? VERDAN : EMPLACEMENT);
 /**
  * Ist das Geschuetz fuer Fraktion f feindlich (darf f es angreifen, beschiesst es f)? Neutral: immer; Stellung: nur im Krieg
  * mit dem Besitzer (nie im Frieden, nie Verbuendete, nie die eigene).
@@ -2474,11 +2561,11 @@ export const gunStats = (g: { owner?: number }) => (g.owner === undefined ? VERD
  */
 export const gunHostile = (s: GameState, g: { owner?: number }, f: number) => g.owner === undefined || isHostile(s, f, g.owner);
 /** Alle lebenden Geschuetze mit Position (owner nur bei Stellungen) / all living guns with position (owner only for emplacements) */
-export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number })[] {
-  const out: (Pos & { hp: number; active: boolean; owner?: number })[] = [];
+export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[] {
+  const out: (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[] = [];
   s.tiles.forEach((t, k) => {
     if (!t.turret || t.turret.hp <= 0) return;
-    out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active, ...(t.turret.owner !== undefined ? { owner: t.turret.owner } : {}) });
+    out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active, ...(t.turret.owner !== undefined ? { owner: t.turret.owner } : {}), ...(t.turret.kind ? { kind: t.turret.kind } : {}) });
   });
   return out;
 }
@@ -2502,7 +2589,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u)) : 0;
+  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock') || has(u, 'kamikaze')) return 0;

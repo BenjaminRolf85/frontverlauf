@@ -203,10 +203,11 @@ describe('Meridon: zwei fuer einen / Meridon: two for one', () => {
     const s = meridon();
     const c = s.cities[0];
     giveSites(c, 'armory');
-    expect(twinCheck(s, c, 'mg')).toBeNull();
+    // Meridon bildet statt des MG das Schattenkommando aus (Schattenflotte) / Meridon trains the Shadow Commando instead of the MG (shadow fleet)
+    expect(twinCheck(s, c, 'shadowCommando')).toBeNull();
     expect(twinCheck(s, c, 'pioneer')).toBeNull();
     expect(twinCheck(s, c, 'medic')).toBeNull();
-    const r = ok(s, { type: 'train', city: c.id, unitType: 'mg' });
+    const r = ok(s, { type: 'train', city: c.id, unitType: 'shadowCommando' });
     expect(trains(r.events)).toHaveLength(1);
     // andere Fraktion: keine zweite Infanterie / other faction: no second infantry
     expect(twinCheck(s, s.cities[1], 'infantry')).toBeNull();

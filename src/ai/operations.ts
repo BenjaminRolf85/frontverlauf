@@ -794,7 +794,7 @@ function killZone(ctx: Ctx): (Pos & { r: number; w: number; id?: number })[] {
     if (ranged(u)) out.push({ x: u.x, y: u.y, r: effectiveRange(s, u), w: 1, id: u.id });
     else if (isEntrenched(s, u)) out.push({ x: u.x, y: u.y, r: 1, w: 1, id: u.id });
   }
-  for (const g of turretList(s)) if (g.owner === f) out.push({ x: g.x, y: g.y, r: EMPLACEMENT.range, w: 1.5 });
+  for (const g of turretList(s)) if (g.owner === f && g.kind !== 'silo') out.push({ x: g.x, y: g.y, r: EMPLACEMENT.range, w: 1.5 });
   for (const c of ctx.myCities) {
     const d = unitAt(s, c.x, c.y);
     if (d && d.owner === f && isFighter(d) && !out.some((z) => z.id === d.id)) out.push({ x: c.x, y: c.y, r: effectiveRange(s, d), w: 1, id: d.id });

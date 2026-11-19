@@ -4,7 +4,7 @@
  */
 import {
   BARRIER, CITY, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
-  TOWER, VICTORY_TECH, WONDERS,
+  TOWER, VICTORY_TECH, WONDERS, SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER,
 } from '../data/balance';
 import { BUILDINGS, PRODUCTION, SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
@@ -44,6 +44,10 @@ function sections(): Section[] {
     { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     // Festungsbau der Dravon / Dravon fortress building
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
+    // Schattenflotte der Meridon: Tarnung, Absetzen, Raketensilo, Lenkflugkoerper, Radar, Sabotage / Meridon shadow fleet
+    { id: 'shadowFleet', icon: 'silo', params: { withdraw: WITHDRAW.tiles, cost: SILO.cost, per: SILO.perCity, max: SILO.max, spacing: SILO.minSpacing, range: SILO.launchRange,
+      dmg: SILO.damage, fire: SILO.fireRounds, burn: SILO.fireDamage, cd: SILO.cooldown, rr: RADAR.rounds, radius: RADAR.radius, rcd: RADAR.cooldown, scd: SABOTAGE.cooldown,
+      weak: pct(1 - (FIREPOWER.land.meridon ?? 1)), sea: pct(SEA_POWER.discount.meridon ?? 0) } },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
     { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, titheRival: CULT.titheRival, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) },
@@ -106,7 +110,8 @@ function drawbackLines(): string {
 
 /** Eine Zeile je Fraktionsmerkmal (eigene Bauarten, Zahlen aus balance.ts) / one line per faction feature (own designs, numbers from balance.ts) */
 function featureLines(): string {
-  return `<ul>${FACTION_IDS.filter((f) => has(`factions.${f}.feature`)).map((f) => `<li><strong>${esc(t(`factions.${f}.feature`))} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(t(`factions.${f}.featureDesc`, featureParams(f)))}</li>`).join('')}</ul>`;
+  const second = (f: FactionId) => (has(`factions.${f}.feature2`) ? `<li><strong>${esc(t(`factions.${f}.feature2`))} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(t(`factions.${f}.feature2Desc`))}</li>` : '');
+  return `<ul>${FACTION_IDS.filter((f) => has(`factions.${f}.feature`)).map((f) => `<li><strong>${esc(t(`factions.${f}.feature`))} (${esc(t(`factions.${f}.short`))}):</strong> ${esc(t(`factions.${f}.featureDesc`, featureParams(f)))}</li>${second(f)}`).join('')}</ul>`;
 }
 
 /** Eine Zeile je Fraktion: Siegbedingung und Siegtechnologie / one line per faction: victory condition and victory tech */

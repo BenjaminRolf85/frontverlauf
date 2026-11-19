@@ -20,7 +20,8 @@ function play(seed: number, size: MapSize, mapType: MapType, factions: FactionId
       const cmd = planNextCommand(s, f);
       const res = applyCommand(s, cmd);
       if (!res.ok) r.fails++;
-      if (res.ok && cmd.type === 'train' && cmd.unitType === 'landingBoat') r.boats++;
+      // Transportboot der Werft: Landungsboot, bei Meridon der Nebelkutter / shipyard transport: landing boat, the Fog Cutter for Meridon
+      if (res.ok && cmd.type === 'train' && (cmd.unitType === 'landingBoat' || cmd.unitType === 'fogCutter')) r.boats++;
       for (const e of res.events) {
         if (e.t === 'embark' && e.boat !== undefined) r.boards++;
         if (e.t === 'disembark') r.disembarks++;

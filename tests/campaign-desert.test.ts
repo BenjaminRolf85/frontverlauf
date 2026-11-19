@@ -6,7 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, cityAt, createGame, dist, hqOf, isLand, missionById, missionConfig, objectiveProgress, ownCities, turretGuard,
+  applyCommand, cityAt, createGame, dist, factionVariant, hqOf, isLand, missionById, missionConfig, objectiveProgress, ownCities, turretGuard,
   CAMPAIGN_FACTIONS, type GameState, type Unit,
 } from '../src/core';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
@@ -165,7 +165,9 @@ describe('Welt der Vergessenen: Ziele / world of the Forgotten: objectives', () 
     const s = game('m14', 'meridon');
     allHuman(s);
     const c = s.campaign!;
-    const u = s.units.find((x) => x.owner === 0 && x.type === 'mg')!;
+    // Meridons MG ist seit der Schattenflotte das Schattenkommando (VARIANTS.meridon.mg) / since the shadow fleet Meridon's MG is the Shadow Commando
+    const u = s.units.find((x) => x.owner === 0 && x.type === factionVariant(s, 0, 'mg'))!;
+    expect(u.type).toBe('shadowCommando');
     placeAt(s, u, c.cave!);
     passRound(s);
     expect(c.caveHold).toBe(1);

@@ -5,7 +5,9 @@ import { addCity, addUnit, blankGame, fails, giveSites, ok, setTerrain, unit, un
 
 /** Kueste: Land x<=4, Flachwasser x=5..7, Ozean x>=8 / coast: land x<=4, shallow 5..7, ocean >=8 */
 function coast() {
-  const s = blankGame({ factions: ['meridon', 'dravon'], stars: 500 });
+  // Korvat statt Meridon: die Schattenflotte zahlt fuer Schiffe weniger (SEA_POWER); nicht Velkar (startet mit Gebirgsausbildung)
+  // Korvat instead of Meridon: the shadow fleet pays less for ships (SEA_POWER); not Velkar (starts with mountain training)
+  const s = blankGame({ factions: ['korvat', 'dravon'], stars: 500 });
   for (let y = 0; y < 11; y++) {
     for (let x = 5; x < 11; x++) setTerrain(s, x, y, x <= 7 ? 'shallow' : 'ocean');
   }

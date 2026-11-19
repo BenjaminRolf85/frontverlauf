@@ -9,6 +9,7 @@ import {
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
+import { radarGoal, sabotageGoal, siloGoal } from './shadowFleet';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
 import { carrierGoal, plansGoals } from './temple';
 import type { OpSlot } from './operations';
@@ -616,13 +617,13 @@ function assignGoals(ctx: Ctx) {
   // wonders are planned separately (planWonderUnits), bosses guard their HQ (bossGoal)
   // Festungsbau: Bauer ziehen zur bedrohtesten Stadt ohne Stellung / fortification: builders head to the most threatened city without an emplacement
   const builder = new Map<number, Goal>();
-  for (const u of ctx.my) { const g = emplacementGoal(ctx, u); if (g) builder.set(u.id, g); }
+  for (const u of ctx.my) { const g = emplacementGoal(ctx, u) ?? siloGoal(ctx, u) ?? sabotageGoal(ctx, u); if (g) builder.set(u.id, g); }
   // Traeger der Kriegsplaene (m4): immer heim zum Hauptquartier / carrier of the war plans (m4): always home to the HQ
   const carrier = carrierGoal(ctx);
   if (carrier) builder.set(carrier.unit.id, carrier.goal);
   // leeres Transportboot (Werft): wartet ohne Ziel, bis eine Landeinheit einsteigt / empty transport boat (shipyard): waits without a goal until a land unit boards
-  const ferry = (u: Unit) => u.type === 'landingBoat' && u.carried === null;
-  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u) || ferry(u);
+  const ferry = (u: Unit) => (u.type === 'landingBoat' || u.type === 'fogCutter') && u.carried === null;
+  const special = (u: Unit) => u.type === 'spy' || u.type === 'medic' || has(u, 'mines') || has(u, 'radar') || isWonder(u) || isBoss(u) || builder.has(u.id) || isScientist(ctx, u) || ferry(u);
   for (const u of ctx.my) {
     if (special(u)) continue;
     // Rueckzug / retreat
@@ -663,6 +664,8 @@ function assignGoals(ctx: Ctx) {
     if (builder.has(u.id)) { ctx.goals.set(u.id, builder.get(u.id)!); continue; }
     if (u.type === 'spy') { ctx.goals.set(u.id, spyGoal(ctx, u)); continue; }
     if (u.type === 'medic') { ctx.goals.set(u.id, medicGoal(ctx, u)); continue; }
+    // Radarwagen: hinter der vordersten Kampfeinheit / Radar Truck: behind the foremost combat unit
+    if (has(u, 'radar')) { ctx.goals.set(u.id, radarGoal(ctx, u, front)); continue; }
     if (has(u, 'mines')) { ctx.goals.set(u.id, minerGoal(ctx)); continue; }
     ctx.goals.set(u.id, front);
   }

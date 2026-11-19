@@ -59,6 +59,7 @@ import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from '
 import { lightWarden, reliquary, sunLance } from './alveniaFaith';
 import { steppeColossus } from './korvatHeavy';
 import { cyborg, flameTank, kamikazeDrone } from './nexusSeries';
+import { fogCutter, guidedMissile, radarTruck, shadowCommando } from './shadowFleet';
 import { withGlow } from '../atmosphere';
 export { techParts, type TechPart } from './velkarTech';
 
@@ -71,7 +72,7 @@ export { techParts, type TechPart } from './velkarTech';
  */
 
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null, stage = 0): THREE.BufferGeometry {
-  const c = type === 'landingBoat' && carried && carried !== 'landingBoat' ? carried : null;
+  const c = (type === 'landingBoat' || type === 'fogCutter') && carried && carried !== type ? carried : null;
   const wonder = (WONDER_UNITS as UnitTypeId[]).includes(type);
   // Siegbauwerke: eigene Modelle in Bauwerksgroesse, ohne Groessen- und Tonwert-Anpassung der Einheiten
   // victory wonders: own models at structure size, without the unit size and value adjustments
@@ -123,6 +124,11 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'cyborg': return cyborg(faction).build();
       case 'flameTank': return flameTank(faction).build();
       case 'kamikazeDrone': return kamikazeDrone(faction).build();
+      // Meridon-Schattenflotte / Meridon shadow fleet
+      case 'shadowCommando': return shadowCommando(faction).build();
+      case 'fogCutter': return fogCutter(faction, c ? carriedGeometry(c, faction) : null).build();
+      case 'guidedMissile': return guidedMissile(faction).build();
+      case 'radarTruck': return radarTruck(faction).build();
       // Konter-Einheiten / counter units
       case 'antiTank': return antiTank(faction).build();
       case 'antiAir': return antiAir(faction).build();
@@ -168,11 +174,12 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   teslaTank: 1.05, octocopter: 1.1, railSniper: 1.2,
   lightWarden: 1.2, reliquary: 1.05, sunLance: 1.1,
   steppeColossus: 1.0, cyborg: 1.2, flameTank: 1.05, kamikazeDrone: 1.3,
+  shadowCommando: 1.2, guidedMissile: 1.25, radarTruck: 1.15,
 };
 /** Breiter gebaut (x) / built wider (x) */
 const UNIT_WIDE: Partial<Record<UnitTypeId, number>> = {
   tank: 1.18, doomCrawler: 1.1, titan: 1.08, jeep: 1.08, destroyer: 1.45, battleship: 1.4, submarine: 1.4, landingBoat: 1.15,
-  privateer: 1.45, steppeColossus: 1.04,
+  privateer: 1.45, steppeColossus: 1.04, fogCutter: 1.15,
 };
 /** Hoechste Modellhoehe unter dem Lebensbalken / highest model point below the HP badge */
 const MAX_H = 0.62;
@@ -198,7 +205,7 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
   g.userData.finishScale = s;
   const H = Math.max(0.15, bb.max.y);
   const pos = g.getAttribute('position'), nor = g.getAttribute('normal'), colr = g.getAttribute('color');
-  const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship' || type === 'privateer';
+  const ship = type === 'landingBoat' || type === 'submarine' || type === 'destroyer' || type === 'battleship' || type === 'privateer' || type === 'fogCutter';
   const floor = ship ? 0.82 : 0.66;
   for (let i = 0; i < pos.count; i++) {
     const h = Math.min(1, Math.max(0, pos.getY(i) / (H * 0.42)));
@@ -269,6 +276,9 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'cyborg': return cyborg(faction, true).build();
       case 'flameTank': return flameTank(faction, true).build();
       case 'kamikazeDrone': return kamikazeDrone(faction, true).build();
+      case 'shadowCommando': return shadowCommando(faction, true).build();
+      case 'guidedMissile': return guidedMissile(faction, true).build();
+      case 'radarTruck': return radarTruck(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });
@@ -397,6 +407,8 @@ export {
   mushroomForest, caveFloorDeco, rockPillars, craterCracks, craterDebris, verdanRemains, alienBones, giantSkull,
   supplyLineGeometry, verdanTurretGeometry, verdanRuinGeometry,
 } from './cavern';
+// Raketensilo der Meridon (Schattenflotte) / Meridon rocket silo (shadow fleet)
+export { siloGeometry } from './shadowFleet';
 // Geschuetzstellung der Dravon (Festungsbau) / Dravon gun emplacement (fortification)
 export { emplacementGeometry, emplacementRuinGeometry } from './emplacement';
 

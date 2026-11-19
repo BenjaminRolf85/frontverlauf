@@ -30,6 +30,7 @@ import { ObjectivePanel, bossToast, campaignResult, objectiveToast, ruinToast, w
 import { plansToast } from './ui/temple';
 import { showCorruption, showRandomEvent } from './ui/events';
 import { opNotice } from './ui/aiOps';
+import { shadowToast } from './ui/shadowFleet';
 
 function boot() {
   const app = document.getElementById('app')!;
@@ -259,7 +260,9 @@ function boot() {
         // Geschuetzstellung feuert auf eigene Einheiten / gun emplacement fires at own units
         case 'turretFire': if (e.owner !== undefined && e.victim === viewer) toast(root, t('emplacement.fires', { name: fname(e.owner), dmg: e.dmg }), 'range'); break;
         // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
-        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') toast(root, t('emplacement.lost'), 'warning'); break;
+        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') { const st = shadowToast(e, s, viewer); toast(root, st ? st.text : t('emplacement.lost'), 'warning'); } break;
+        // Schattenflotte (Meridon): Raketenstart, Brand, Sabotage, Radar / shadow fleet (Meridon): rocket launch, fire, sabotage, radar
+        case 'siloLaunch': case 'fireHit': case 'sabotage': case 'radarSweep': { const st = shadowToast(e, s, viewer); if (st) toast(root, st.text, st.icon); break; }
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
         case 'orbitalStrike':
@@ -305,9 +308,11 @@ function boot() {
   });
   // Orbitallaser: die Vorschau folgt dem Mauszeiger / orbital laser: the preview follows the mouse pointer
   canvas.addEventListener('pointermove', (e) => {
-    if (!game.orbitalMode || e.pointerType !== 'mouse' || e.buttons) return;
+    // Raketensilo ebenso / rocket silo likewise
+    if (!(game.orbitalMode || game.siloFrom) || e.pointerType !== 'mouse' || e.buttons) return;
     const p = view.board.pick(view.raycaster(e.clientX, e.clientY));
-    if (p) game.aimOrbital(p.x, p.y);
+    if (p && game.siloFrom) game.aimSilo(p.x, p.y);
+    else if (p) game.aimOrbital(p.x, p.y);
   });
   window.addEventListener('resize', () => { view.resize(); hud.render(); });
   window.addEventListener('keydown', (e) => {

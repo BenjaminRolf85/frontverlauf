@@ -108,6 +108,19 @@ const P: Record<string, string> = {
   cyborg: '<path d="M7 10a5 5 0 0 1 10 0v3.5H7z"/><path d="M12 10h5" stroke-width="2.6"/><path d="M8 13.5l1 3h6l1-3"/><path d="M4.5 21c.8-2.6 3.8-4.5 7.5-4.5s6.7 1.9 7.5 4.5"/><circle cx="9.3" cy="10.3" r="1" fill="currentColor"/>',
   flame: '<path d="M12 21.5c-3.9 0-6.5-2.6-6.5-6.2 0-3.6 2.8-5.5 3.6-9.8 2 1.4 3.2 3.3 3.3 5.3 1-.8 1.6-2 1.7-3.3 2.6 2 4.4 4.7 4.4 7.8 0 3.6-2.6 6.2-6.5 6.2z"/><path d="M12 21.5c-1.6 0-2.8-1.1-2.8-2.7 0-1.7 1.4-2.6 2.1-4.3 1.9 1.1 3.5 2.6 3.5 4.3 0 1.6-1.2 2.7-2.8 2.7z" fill="currentColor"/>',
   kamikaze: '<circle cx="11" cy="11.5" r="5"/><path d="M7.5 15l-3 5M14.5 15l3 5M9.5 16.3L8.5 20.5M12.5 16.3l1 4.2"/><path d="M14.5 7.5l2-2.5"/><path d="M18.8 2.8l.6 1.5 1.5.6-1.5.6-.6 1.5-.6-1.5-1.5-.6 1.5-.6z" fill="currentColor"/>',
+  // Meridon-Schattenflotte: Schattenkommando (Kapuze mit Augenschlitz), Nebelkutter (Boot im Nebel), Lenkflugkoerper,
+  // Radarwagen (Schuessel mit Wellen), Raketensilo (Silo mit Rakete), Sabotage (Zuender), Tarnung (durchgestrichenes Auge), Brand
+  // Meridon shadow fleet: Shadow Commando (hood with eye slit), Fog Cutter (boat in fog), Guided Missile, Radar Truck (dish
+  // with waves), rocket silo (silo with rocket), sabotage (detonator), camouflage (struck-out eye), fire
+  commando: '<path d="M5 13a7 7 0 0 1 14 0v2.5H5z"/><path d="M8 11.5h8" stroke-width="2.8"/><path d="M4 21c1-2.8 4-4.5 8-4.5s7 1.7 8 4.5"/><path d="M12 3.5V6"/>',
+  fogCutter: '<path d="M3 15.5h18l-3 4.5H6z"/><path d="M8 15.5V9.5h6l2 6"/><path d="M11 9.5V6"/><path d="M2.5 6.5h5M15 5h6M13 11.5h8" stroke-dasharray="2 2"/>',
+  missile: '<path d="M14.5 3.5l6 6-9 9-6-6z"/><path d="M5.5 12.5L3 13.5l7.5 7.5 1-2.5"/><path d="M17.5 3l3.5 3.5"/><path d="M5 19l-2 2M8 20.5l-1.5 1.5M3.5 16l-1.5 1.5"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/>',
+  radar: '<path d="M4 20h10l-2-5"/><path d="M5 14.5a7 7 0 0 1 9.5-9.5z"/><path d="M9.7 9.8l3.8-3.8"/><path d="M16 9a3.5 3.5 0 0 1 2.5 2.5M17.5 5.5a7 7 0 0 1 4 4"/>',
+  silo: '<path d="M6 21V10.5a6 6 0 0 1 12 0V21"/><path d="M3.5 21h17"/><path d="M12 3.5l2 3.5v6h-4V7z" fill="currentColor"/><path d="M9.5 16h5"/>',
+  sabotage: '<rect x="4" y="11" width="9" height="9" rx="1.5"/><path d="M8.5 11V7.5h7"/><path d="M15.5 7.5c2 0 3-1.5 3-3"/><path d="M19.5 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor"/><path d="M7 15.5h3"/>',
+  camo: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>',
+  fire: '<path d="M12 21.5c-3.9 0-6.5-2.6-6.5-6.2 0-3.6 2.8-5.5 3.6-9.8 2 1.4 3.2 3.3 3.3 5.3 1-.8 1.6-2 1.7-3.3 2.6 2 4.4 4.7 4.4 7.8 0 3.6-2.6 6.2-6.5 6.2z" fill="currentColor"/>',
+  withdraw: '<path d="M20 12H6M10 7l-5 5 5 5"/><path d="M20 6v12"/>',
   // Fraktionsembleme / faction emblems
   emblemGear: '<path d="M12 2.5l1.6 2.4 2.8-.8.6 2.9 2.8.9-.9 2.8 2.4 1.6-2.4 1.6.9 2.8-2.8.9-.6 2.9-2.8-.8L12 21.5l-1.6-2.4-2.8.8-.6-2.9-2.8-.9.9-2.8L2.7 12l2.4-1.6-.9-2.8 2.8-.9.6-2.9 2.8.8z" fill="currentColor"/><circle cx="12" cy="12" r="3.5" fill="var(--s-surface-raised)"/>',
   emblemFist: '<path d="M6 10.5h12v5.5a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z" fill="currentColor"/><path d="M6 10.5V6.5a1.5 1.5 0 0 1 3 0V10M9 10V5.5a1.5 1.5 0 0 1 3 0V10M12 10V5.5a1.5 1.5 0 0 1 3 0V10M15 10V7a1.5 1.5 0 0 1 3 0v3.5" fill="currentColor"/>',

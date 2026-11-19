@@ -18,7 +18,7 @@ import { coloredBox, outlined, paint } from '../render/toon';
 import type { View } from '../render/view';
 import { Panel } from './panel';
 import { cityName } from '../ui/hud';
-import { techT } from '../ui/terms';
+import { rewardText, techT } from '../ui/terms';
 
 type Mode = 'vr' | 'ar';
 interface Hand { ctrl: THREE.XRTargetRaySpace; grip: THREE.XRGripSpace; source: XRInputSource | null; line: THREE.Line; grabbing: boolean; selectAt: number; selectPos: THREE.Vector3 | null; pinchGrab: boolean }
@@ -289,8 +289,8 @@ export class XrSession {
     const [a, b] = rewardOptions(c, p.level);
     const P = this.rewards;
     P.begin(t('rewards.title', { city: cityName(s, c.id), level: p.level }));
-    P.button('rewardA', t(`rewards.${a}`), 40, 140, P.W / 2 - 60, P.H - 190, { sub: t(`rewards.${a}Desc`) });
-    P.button('rewardB', t(`rewards.${b}`), P.W / 2 + 20, 140, P.W / 2 - 60, P.H - 190, { sub: t(`rewards.${b}Desc`), variant: 'secondary' });
+    P.button('rewardA', rewardText(s, a, false), 40, 140, P.W / 2 - 60, P.H - 190, { sub: rewardText(s, a, true) });
+    P.button('rewardB', rewardText(s, b, false), P.W / 2 + 20, 140, P.W / 2 - 60, P.H - 190, { sub: rewardText(s, b, true), variant: 'secondary' });
     P.end();
     P.mesh.visible = true;
   }

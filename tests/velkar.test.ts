@@ -181,11 +181,14 @@ describe('Liste der Velkar / Velkar roster', () => {
       const l = rosterUnits(s, i);
       // Alvenia hat eigene Bauarten fuer Panzer (Reliquiar), nicht fuer Hubschrauber und Scharfschuetze / Alvenia has its own tank design (Reliquary), not for helicopter and sniper
       // Korvat ebenso (Steppenkoloss) / Korvat as well (Steppe Colossus)
-      for (const t of ['tank', 'heli', 'sniper'] as const) if (!((f === 'alvenia' || f === 'korvat') && t === 'tank')) expect(l, f).toContain(t);
+      // Meridon baut keine Panzer (Raketensilo, Lenkflugkoerper), behaelt Hubschrauber und Scharfschuetze
+      // Meridon builds no tanks (rocket silo, Guided Missile), keeps helicopter and sniper
+      for (const t of ['tank', 'heli', 'sniper'] as const) if (!((f === 'alvenia' || f === 'korvat' || f === 'meridon') && t === 'tank')) expect(l, f).toContain(t);
+      if (f === 'meridon') expect(l, f).not.toContain('tank');
       for (const t of ['teslaTank', 'octocopter', 'railSniper'] as const) expect(l, f).not.toContain(t);
       expect(techUnlocks('armyAviation', f).units).toEqual([]);
     }
-    expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia', 'korvat']);
+    expect(Object.keys(VARIANTS)).toEqual(['velkar', 'alvenia', 'korvat', 'meridon']);
     expect(LAND_UNITS).toContain('sniper');
   });
 

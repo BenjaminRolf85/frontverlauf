@@ -27,7 +27,7 @@ import { detailsLink, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
-import { factionIdOf, techIcon, techT } from './terms';
+import { factionIdOf, rewardText, techIcon, techT } from './terms';
 import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
 import { doctrineText } from './production';
@@ -760,8 +760,8 @@ export function rewardDialog(host: ScreenHost, onDone: () => void) {
   const d = openDialog(host.root, `<div class="panel-title"><h2 class="display">${esc(t('rewards.title', { city: cityName(s, c.id), level: p.level }))}</h2></div>
     <p>${esc(t('rewards.choose'))}</p>
     <div class="choice-grid">
-      <button type="button" class="choice" data-choice="a"><strong>${esc(t(`rewards.${a}`))}</strong><span>${esc(t(`rewards.${a}Desc`))}</span></button>
-      <button type="button" class="choice" data-choice="b"><strong>${esc(t(`rewards.${b}`))}</strong><span>${esc(t(`rewards.${b}Desc`))}</span></button>
+      <button type="button" class="choice" data-choice="a"><strong>${esc(rewardText(s, a, false))}</strong><span>${esc(rewardText(s, a, true))}</span></button>
+      <button type="button" class="choice" data-choice="b"><strong>${esc(rewardText(s, b, false))}</strong><span>${esc(rewardText(s, b, true))}</span></button>
     </div>`, { dismissable: false });
   d.node.addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-choice]');

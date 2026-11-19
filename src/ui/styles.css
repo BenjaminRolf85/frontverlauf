@@ -221,6 +221,8 @@ h1, h2, h3, .display {
 .action .action-sub { display: block; max-width: var(--c-action-sub-max-width); font-size: var(--c-action-sub-font-size); font-weight: var(--p-font-weight-regular); color: var(--s-text-muted); line-height: 1.1; overflow-wrap: anywhere; }
 .action.danger .action-sub { color: inherit; }
 .sheet-head .unit-sub { font-size: var(--p-font-size-sm); }
+/* Symbolgruppe in der Unterzeile (Raketensilo: Brand) auf der Textzeile / icon group in the sub line (rocket silo: fire) on the text line */
+.unit-sub .stat { vertical-align: bottom; }
 .sheet-head .unit-type { font-style: italic; }
 .nav-bar { display: flex; gap: var(--p-space-2); max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; }
 .nav-bar .btn { flex: 1; padding: 0 var(--p-space-2); font-size: var(--p-font-size-md); min-height: var(--p-size-touch-lg); }

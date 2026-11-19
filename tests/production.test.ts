@@ -71,7 +71,8 @@ describe('Produktionsstaetten / production sites', () => {
   }
 
   it('eine gebaute Staette auf einem Feld wirkt fuer die Stadt ihres Gebiets / a built site on a tile works for the city of its territory', () => {
-    const { s, hq, c } = game('meridon');
+    // Velkar statt Meridon: Meridon hat das Schattenkommando statt des MG / Velkar instead of Meridon: Meridon has the Shadow Commando instead of the MG
+    const { s, hq, c } = game('velkar');
     expect(trainCheck(s, c, 'mg')).toBe('buildingMissing');
     // Ruestungswerk im Gebiet von c, Kaserne fuer c / armoury in c's territory, barracks for c
     ok(s, { type: 'build', building: 'armory', x: 7, y: 3 });
@@ -105,7 +106,9 @@ describe('Produktionsstaetten / production sites', () => {
   });
 
   it('Panzerwerk braucht Tagebau oder Tiefbauzeche auf Erz im Stadtgebiet; Panzer kostet Sterne / tank works needs a mine or deep mine on ore; the tank costs stars', () => {
-    const { s, c } = game('meridon');
+    // Velkar statt Meridon (Meridon baut keine Panzer); Velkars Bauart aus dem Panzerwerk ist der Tesla-Panzer zum Panzerpreis
+    // Velkar instead of Meridon (Meridon builds no tanks); Velkar's design from the tank works is the Tesla tank at the tank price
+    const { s, c } = game('velkar');
     expect(buildCheck(s, 0, 'tankWorks', 7, 3)).toMatchObject({ ok: false, error: 'buildingMissing' });
     // Tagebau ohne Forschung, nur auf Erz / mine without research, only on ore
     setTerrain(s, 5, 1, 'mountain', { resource: null });
@@ -116,11 +119,12 @@ describe('Produktionsstaetten / production sites', () => {
     ok(s, { type: 'build', building: 'tankWorks', x: 7, y: 3 });
     ok(s, { type: 'build', building: 'trainingCamp', x: 7, y: 1 });
     expect(UNITS.tank.cost).toBe(60);
+    expect(UNITS.teslaTank.cost).toBe(UNITS.tank.cost);
     const before = s.factions[0].stars;
-    ok(s, { type: 'train', city: c.id, unitType: 'tank' });
+    ok(s, { type: 'train', city: c.id, unitType: 'teslaTank' });
     expect(s.factions[0].stars).toBe(before - 60);
     // Tagebau im Gebiet einer anderen Stadt hilft nicht / a mine in another city's territory does not help
-    const g2 = game('meridon');
+    const g2 = game('velkar');
     setTerrain(g2.s, 1, 1, 'mountain', { resource: 'ore' });
     ok(g2.s, { type: 'build', building: 'mine', x: 1, y: 1 });
     expect(buildCheck(g2.s, 0, 'tankWorks', 7, 3)).toMatchObject({ ok: false, error: 'buildingMissing' });
@@ -193,7 +197,9 @@ describe('Produktionsstaetten / production sites', () => {
 
   it('Eroberung: das Panzerwerk dient dem neuen Besitzer, nur Menschen / capture: the tank works serves the new owner, humans only', () => {
     for (const g of ['dravon', 'nexus', 'vesper'] as FactionId[]) {
-      const s = blankGame({ factions: ['meridon', g], stars: 500 });
+      // Velkar statt Meridon (Meridon baut keine Panzer): Velkar bildet im Panzerwerk den Tesla-Panzer aus
+      // Velkar instead of Meridon (Meridon builds no tanks): Velkar trains the Tesla tank at the tank works
+      const s = blankGame({ factions: ['velkar', g], stars: 500 });
       revealAll(s, 0); revealAll(s, 1);
       addCity(s, 1, 1, 0, { hq: true });
       const c = addCity(s, 5, 5, 0, { level: 3 });
@@ -204,7 +210,7 @@ describe('Produktionsstaetten / production sites', () => {
       ok(s, { type: 'build', building: 'mine', x: 4, y: 4 });
       ok(s, { type: 'build', building: 'tankWorks', x: 6, y: 6 });
       ok(s, { type: 'build', building: 'trainingCamp', x: 6, y: 4 });
-      expect(trainCheck(s, c, 'tank')).toBe('ok');
+      expect(trainCheck(s, c, 'teslaTank')).toBe('ok');
       // Fraktion g nimmt die Stadt / faction g takes the city
       s.current = 1;
       const u = addUnit(s, ROSTERS[g]?.infantry ?? 'infantry', 1, 5, 5);
@@ -342,7 +348,8 @@ describe('Doktrinen / doctrines', () => {
   });
 
   it('Marineartillerie und Schiffbau: Schiffe staerker, Aufruesten billiger / naval artillery and shipbuilding', () => {
-    const { s } = game('meridon');
+    // Velkar statt Meridon: die Schattenflotte zahlt fuer Schiffe weniger (SEA_POWER) / Velkar instead of Meridon: the shadow fleet pays less for ships (SEA_POWER)
+    const { s } = game('velkar');
     setTerrain(s, 3, 3, 'shallow');
     const d = addUnit(s, 'destroyer', 0, 3, 3);
     expect(effectiveAttack(s, d)).toBe(UNITS.destroyer.attack);

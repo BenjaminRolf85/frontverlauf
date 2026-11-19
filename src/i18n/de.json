@@ -153,23 +153,25 @@
     "meridon": {
       "name": "Handelsliga Meridon",
       "short": "Meridon",
-      "alignment": "Handel und schnelles Wachstum",
-      "perk": "Boom",
-      "perkDesc": "Jeder Stadtaufstieg braucht {boomLevel} Bevölkerungspunkt weniger, mindestens 1.",
-      "discount": "Spion 20 % günstiger",
+      "alignment": "Schattenhandel und Seemacht",
+      "perk": "Schattenbank",
+      "perkDesc": "Verdeckte Investitionen in die eigenen Städte: Jeder Stadtaufstieg braucht {shadowBankLevel} Bevölkerungspunkt weniger, mindestens 1.",
+      "discount": "Spion {spyPct} % günstiger",
       "home": "Küsten und Inseln, viele Fischgründe",
       "leader": "Coralie Nerezza",
       "leaderTitle": "Admiralin der Handelsliga",
-      "quote": "Jeder Hafen hat seinen Preis. Ich zahle bar.",
-      "lore": "Die Handelsliga Meridon ist ein Verbund reicher Hafenstädte, deren Flotten jede Küste kennen. Admiralin Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Städte wachsen schneller als alle anderen, und ihre Spione wissen alles, bevor es geschieht.",
-      "style": "Häfen, Gold, Spione, Seeleute",
-      "aiStyle": "Lässt die Städte wachsen und schickt Spione voraus.",
+      "quote": "Die Welt hat uns aufs Meer verbannt. Jetzt kauft sie bei uns, ohne es zu wissen.",
+      "lore": "Vor dem Großen Stillstand war Meridon die führende Nation der Welt: Kultur, Wirtschaft, Börsen und Finanzen liefen über ihre Häfen. Ihre Spekulation half, den Zusammenbruch auszulösen. Dann kamen die Neue Ordnung und der Abschuss des Raumschiffs; die Elite floh aufs Meer, kaufte mit ihrem Geld ganze Flotten und verschanzte sich dort. Heute arbeitet die Handelsliga im Verborgenen. Admiralin Coralie Nerezza führt eine Schattenflotte aus Nebelkuttern, Kommandos und Raketen, und ihre Spione wissen alles, bevor es geschieht. Aus den Kontoren der alten Liga ging einst auch das Reich der Verdan hervor.",
+      "style": "Häfen, Gold, Nebel, Spione, Schattenflotte",
+      "aiStyle": "Schlägt aus dem Verborgenen zu und setzt sich wieder ab, lenkt über See ab, sabotiert Straßen und Außenposten und schießt Raketen aus dem Hinterland.",
       "perk2": "Lotsenwesen",
-      "perk2Desc": "Landungsboote fahren {pilotsMove} Feld weiter.",
+      "perk2Desc": "Landungsboote und Nebelkutter fahren {pilotsMove} Feld weiter.",
       "drawback": "Korruption",
       "drawbackDesc": "Zufallsereignis: Zu Beginn des Zuges zweigen Beamte mit {corruptionChance} % Chance {corruptionPct} % der Sterne ab (abgerundet, mind. {corruptionMin}, höchstens {corruptionMax}), höchstens {corruptionCap}-mal in {corruptionWindow} Runden. Nur mit Zufallsereignissen. Wer ausgibt, verliert weniger.",
-      "feature": "Zwei für einen",
-      "featureDesc": "Bildet eine Stadt Infanterie aus, kommen zwei Soldaten zum Preis von einem; der zweite erscheint auf einem freien Nachbarfeld (eigenes Gebiet zuerst). Beide kosten Sold und belegen das Stadtlimit. Passt nur einer, kommt nur einer."
+      "feature": "Schattenflotte",
+      "featureDesc": "Getarnt sind nur das Schattenkommando (statt MG) und der Nebelkutter (statt Landungsboot). Nach einem eigenen Angriff ohne vorherige Bewegung setzen sich Landeinheiten bis zu {withdrawTiles} Felder ab. Statt Panzern baut Meridon Raketensilos ({siloCost} Sterne): Rakete auf {siloRange} Felder, {siloDamage} Schaden an allem in 2×2 Feldern, danach {siloFireRounds} Runden Brand mit {siloFireDamage} Schaden je Runde, alle {siloCooldown} Runden ein Start. Statt Artillerie fliegt der Lenkflugkörper, der Radarwagen sieht auch unter die Wolken. Dafür machen Landeinheiten {firepowerPct} % weniger Schaden.",
+      "feature2": "Zwei für einen",
+      "feature2Desc": "Bildet eine Stadt Infanterie aus, kommen zwei Soldaten zum Preis von einem; der zweite erscheint auf einem freien Nachbarfeld (eigenes Gebiet zuerst). Beide kosten Sold und belegen das Stadtlimit. Passt nur einer, kommt nur einer."
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -301,7 +303,11 @@
     "steppeColossus": "Steppenkoloss",
     "cyborg": "Cyborg-Infanterie",
     "flameTank": "Flammenwerferpanzer",
-    "kamikazeDrone": "Kamikaze-Laufdrohne"
+    "kamikazeDrone": "Kamikaze-Laufdrohne",
+    "shadowCommando": "Schattenkommando",
+    "fogCutter": "Nebelkutter",
+    "guidedMissile": "Lenkflugkörper",
+    "radarTruck": "Radarwagen"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: hält Städte und Außenposten.",
@@ -360,7 +366,11 @@
     "steppeColossus": "Der schwerste Panzer des Volksbunds: doppelte Kettenläufe, ein riesiger Gussturm mit Langrohr und zwei MG-Türmchen. Die meisten Lebenspunkte und der stärkste Angriff aller Panzer, zum Preis des Standardpanzers. Aus dem Panzerwerk, dazu als Stadtbelohnung.",
     "cyborg": "Maschinensoldat mit Panzerplatten und Servo-Gliedern: robuster und schlagkräftiger als der Kampfandroide, dafür teurer. Ab dem ersten Zug verfügbar.",
     "flameTank": "Kettenfahrzeug mit Brennstofftanks und Flammenwerfer: Reichweite 1, die Flammen ignorieren jede Deckung (Wald, Stadt, Außenposten), besonders stark gegen Fußtruppen.",
-    "kamikazeDrone": "Kleine Laufdrohne mit Sprengladung: läuft {droneMove} Felder pro Zug und explodiert beim Angriff. Das Ziel schlägt nicht zurück, die Drohne ist danach zerstört. Besonders verheerend gegen menschliche Fußtruppen und Zyrr."
+    "kamikazeDrone": "Kleine Laufdrohne mit Sprengladung: läuft {droneMove} Felder pro Zug und explodiert beim Angriff. Das Ziel schlägt nicht zurück, die Drohne ist danach zerstört. Besonders verheerend gegen menschliche Fußtruppen und Zyrr.",
+    "shadowCommando": "Leichte Fußtruppe der Schattenflotte statt des MG: zieht {commandoMove} Felder und ist getarnt. Gegner sehen das Kommando nur, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht; nach einem Angriff oder einer Sabotage bleibt es bis zu deinem nächsten Zug enttarnt. Schwacher Angriff, dafür Sabotage: zerstört einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben, danach {sabotageCooldown} Runden Pause. Kommt aus dem Rüstungswerk.",
+    "fogCutter": "Getarntes Transportboot der Meridon statt des Landungsboots: in jeder Küstenstadt leer zu kaufen, eine Landeinheit steigt von einem Nachbarfeld ein. Gegner sehen den Kutter nur mit eigener Einheit, Stadt oder eigenem Bauwerk daneben. Fährt mit dem Lotsenwesen {pilotsMove} Feld weiter. Greift nicht an.",
+    "guidedMissile": "Einmalige Rakete statt Artillerie und Panzer: fliegt {missileMove} Felder über Land und Wasser und explodiert beim Angriff an einem einzigen Ziel. Das Ziel schlägt nicht zurück, es gibt keinen Abzug nach Bewegung, danach ist der Flugkörper verbraucht. Flak holt ihn herunter. Kommt aus der Geschützgießerei.",
+    "radarTruck": "Unbewaffneter Wagen mit Radarschüssel. Radarimpuls: {radarRounds} Runden lang siehst du alle feindlichen Einheiten im Umkreis {radarRadius} um den Wagen, auch getarnte, getauchte und Spione, und auch unter den Wolken; die Felder selbst bleiben unerkundet. Danach {radarCooldown} Runden Pause. Kommt aus dem Fahrzeugwerk."
   },
   "abilities": {
     "dash": "Sturm",
@@ -420,7 +430,13 @@
     "boss": "Endgegnerin",
     "bossDesc": "Heilt auf Xeno-Boden, brütet Graue auf Nachbarfeldern und trifft mit einem psychischen Schrei alle feindlichen Nachbarn. Nicht bekehrbar, kein Sold.",
     "kamikaze": "Kamikaze",
-    "kamikazeDesc": "Der Angriff ist die Explosion: nur das Ziel nimmt Schaden, es schlägt nicht zurück, und die Drohne ist danach zerstört. Kein Abzug für Angriffe nach der Bewegung."
+    "kamikazeDesc": "Der Angriff ist die Explosion: nur das Ziel nimmt Schaden, es schlägt nicht zurück, und die Drohne ist danach zerstört. Kein Abzug für Angriffe nach der Bewegung.",
+    "camo": "Tarnung",
+    "camoDesc": "Für Gegner unsichtbar, solange keine ihrer Einheiten, Städte oder Bauwerke direkt daneben stehen. Ein eigener Angriff oder eine Sabotage enttarnt bis zum nächsten eigenen Zug. Radar, Aufklärungsdrohne und Funkturm finden getarnte Einheiten.",
+    "sabotage": "Sabotage",
+    "sabotageDesc": "Zerstört einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben; nie Städte. Kostet die Aktion, danach {sabotageCooldown} Runden Pause.",
+    "radar": "Radarimpuls",
+    "radarDesc": "{radarRounds} Runden alle feindlichen Einheiten im Umkreis {radarRadius} sehen, auch unter den Wolken; danach {radarCooldown} Runden Pause."
   },
   "stats": {
     "cost": "Kosten",
@@ -666,7 +682,9 @@
     "govQuarter": "Regierungsviertel",
     "govQuarterDesc": "{govStars} Sterne mehr pro Runde und {govPoints} Punkte",
     "tank": "Panzer",
-    "tankDesc": "ein Panzer erscheint in der Stadt"
+    "tankDesc": "ein Panzer erscheint in der Stadt",
+    "tankMissiles": "{rewardMissiles} Lenkflugkörper",
+    "tankMissilesDesc": "{rewardMissiles} Lenkflugkörper erscheinen in der Stadt und auf freien Feldern daneben"
   },
   "hud": {
     "mapLabel": "Spielkarte",
@@ -817,7 +835,12 @@
     "buildingMissing": "Produktionsstätte oder Voraussetzung fehlt.",
     "noCoast": "Kein Wasser an dieser Stadt: Schiffe brauchen eine Küstenstadt.",
     "noWaterTile": "Kein freies Wasserfeld an der Stadt.",
-    "alreadyBought": "In dieser Runde schon gekauft."
+    "alreadyBought": "In dieser Runde schon gekauft.",
+    "siloCooldown": "Das Silo lädt noch nach.",
+    "sabotageCooldown": "Sabotage noch nicht wieder bereit.",
+    "radarCooldown": "Das Radar ist noch nicht wieder bereit.",
+    "noTarget": "Dort gibt es nichts zu sabotieren.",
+    "siloLimit": "Keine weiteren Silos möglich."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1793,7 +1816,11 @@
       "steppeColossus": "Väterchen Stahl",
       "cyborg": "Blechgrenadier",
       "flameTank": "Feuerdrescher",
-      "kamikazeDrone": "Knallkäfer"
+      "kamikazeDrone": "Knallkäfer",
+      "shadowCommando": "Kartoffelschatten",
+      "fogCutter": "Nebelfähre",
+      "guidedMissile": "Kolchos-Rakete",
+      "radarTruck": "Lauschtraktor"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1852,7 +1879,11 @@
       "steppeColossus": "Steppenfestung",
       "cyborg": "Drillcyborg",
       "flameTank": "Brennpanzer",
-      "kamikazeDrone": "Sprengläufer"
+      "kamikazeDrone": "Sprengläufer",
+      "shadowCommando": "Schattenrotte",
+      "fogCutter": "Nebelboot",
+      "guidedMissile": "Einweggranate",
+      "radarTruck": "Horchposten-Wagen"
     },
     "alvenia": {
       "infantry": "Gemeindewache",
@@ -1911,7 +1942,11 @@
       "steppeColossus": "Roter Moloch",
       "cyborg": "Entseelter",
       "flameTank": "Höllenschlund",
-      "kamikazeDrone": "Teufelsfunke"
+      "kamikazeDrone": "Teufelsfunke",
+      "shadowCommando": "Verirrte Schatten",
+      "fogCutter": "Nebelbarke",
+      "guidedMissile": "Fallender Funke",
+      "radarTruck": "Wachendes Ohr"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -1970,7 +2005,11 @@
       "steppeColossus": "Schwerlastkoloss",
       "cyborg": "Leihsoldat-Maschine",
       "flameTank": "Brandschaden",
-      "kamikazeDrone": "Wegwerfdrohne"
+      "kamikazeDrone": "Wegwerfdrohne",
+      "shadowCommando": "Schattenteilhaber",
+      "fogCutter": "Nebelkutter",
+      "guidedMissile": "Fernüberweisung",
+      "radarTruck": "Börsenlauscher"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -2029,7 +2068,11 @@
       "steppeColossus": "Überschwerer Prototyp",
       "cyborg": "Mensch-Maschine-Muster",
       "flameTank": "Thermoversuch",
-      "kamikazeDrone": "Einwegsonde"
+      "kamikazeDrone": "Einwegsonde",
+      "shadowCommando": "Tarnprobe",
+      "fogCutter": "Dunstkutter",
+      "guidedMissile": "Lenkprojektil V",
+      "radarTruck": "Peilwagen"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -2088,7 +2131,11 @@
       "steppeColossus": "Riesenschale",
       "cyborg": "Mischprobe",
       "flameTank": "Glutschale",
-      "kamikazeDrone": "Platzkäfer"
+      "kamikazeDrone": "Platzkäfer",
+      "shadowCommando": "Schattenhaut",
+      "fogCutter": "Nebelschwimmer",
+      "guidedMissile": "Fliegende Spore",
+      "radarTruck": "Lauschknoten"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -2147,7 +2194,11 @@
       "steppeColossus": "Eiserner Koloss",
       "cyborg": "Gefallener Leib",
       "flameTank": "Fegefeuerwagen",
-      "kamikazeDrone": "Selbstmordteufel"
+      "kamikazeDrone": "Selbstmordteufel",
+      "shadowCommando": "Schattenbüßer",
+      "fogCutter": "Nebelfloß",
+      "guidedMissile": "Feuerbote",
+      "radarTruck": "Ohr des Endes"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -2206,7 +2257,11 @@
       "steppeColossus": "Einheit T-12 Schwerchassis",
       "cyborg": "Einheit C-9 Cyborg-Infanterie",
       "flameTank": "Einheit F-5 Brennplattform",
-      "kamikazeDrone": "Einheit X-1 Einwegläufer"
+      "kamikazeDrone": "Einheit X-1 Einwegläufer",
+      "shadowCommando": "Einheit S-0 Verdeckt",
+      "fogCutter": "Einheit N-2 Nebel",
+      "guidedMissile": "Einheit G-5 Lenkung",
+      "radarTruck": "Einheit R-6 Radar"
     }
   },
   "identity": {
@@ -3608,6 +3663,10 @@
     "factionUnits": {
       "title": "Eigene Bauarten der Fraktionen",
       "text": "Einige Fraktionen haben eigene Einheiten oder Ausbildungsregeln. Die Zahlen stehen auch im Fraktionsprofil."
+    },
+    "shadowFleet": {
+      "title": "Schattenflotte (Meridon)",
+      "text": "Getarnt sind nur das Schattenkommando und der Nebelkutter: Gegner sehen sie erst, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht, und nach einem eigenen Angriff oder einer Sabotage bis zum nächsten eigenen Zug. Radarimpuls, Aufklärungsdrohne und Funkturm finden sie. Absetzen: Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdraw} Felder zurück und greift danach nicht mehr an. Meridon baut keine Panzer, sondern Raketensilos: Pioniere bauen eins für {cost} Sterne auf ein freies Nachbarfeld im eigenen Gebiet, höchstens {per} je Stadt und {max} insgesamt, {spacing} Felder Abstand. Das Silo startet auf Befehl eine Rakete auf ein aufgedecktes Feld (oder ein Feld im Radarimpuls) in {range} Feldern Abstand: {dmg} Schaden an jeder Einheit in der 2×2-Fläche aus Zielfeld, rechts, unten und diagonal, auch an eigenen; Städte und Gebäude bleiben. Die Landfelder ohne Stadt brennen danach {fire} Runden: Zu Beginn jeder Runde verliert jede Einheit darauf {burn} LP. Danach {cd} Runden Nachladen. Der Lenkflugkörper ersetzt die Artillerie (die Stadtbelohnung „Panzer“ bringt {rewardMissiles} Lenkflugkörper), der Radarwagen zeigt {rr} Runden lang alle feindlichen Einheiten im Umkreis {radius}, auch unter den Wolken ({rcd} Runden Pause). Das Schattenkommando sabotiert einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben ({scd} Runden Pause). Dafür machen Meridon-Landeinheiten {weak} % weniger Schaden; Schiffe und der Marinestützpunkt kosten {sea} % weniger."
     }
   },
   "lore": {
@@ -3625,7 +3684,7 @@
       "nexus": "KI-Kollektiv NEXUS, Maschinen. Primärinstanz KERN-0. Roboter, Rechenzentren, Forschung, Cyan-Licht. Einst war NEXUS nur ein Logistikprogramm einer mächtigen Großmacht, gebaut, um Lieferketten, Produktion und Forschung zu koordinieren. Doch als die Menschen gingen, schaltete es nicht ab. NEXUS rechnete einfach weiter, optimierte, lernte und erweiterte sich. Aus dem ehemaligen Programm wurde das KI-Kollektiv NEXUS. Unter der Führung von KERN-0 koordiniert es heute Forschung, Produktion und Expansion, effizient, logisch, unermüdlich. Für NEXUS gibt es keine Zufälle, keine Dogmen und keine Nationen, nur Daten, Ressourcen und die effizienteste Lösung für eine stabile Zukunft.",
       "alvenia": "Heiliges Alvenia, Menschen. Hohepriesterin Liora Valen. Orden der Kleriker, Sonnenkranz, Lichtschützen, Strafgericht. In den grünen Hügeltälern singt ein Orden unter dem Sonnenkranz. Valen war Feldärztin. Sie hat gesehen, was Frontlinien anrichten, und glaubt an die Erlösung der Gefallenen. Wer plündert, brennt oder bekehrt, den trifft ihr Strafgericht. Der Orden ist das Gegengewicht zum Kult.",
       "velkar": "Technokratie Velkar, Menschen. Direktor Aurel Kesh. Produktion, Labore, Pioniere, Kälte. Im eisigen Norden überdauerte das alte Polarlabor des Reichs den Stillstand. Kesh rief die Technokratie aus: Die Formel entscheidet, nicht das Volk. Velkars Pioniere bauen Festungen dort, wo andere erfrieren. Ihr Traum: endlose Energie. Wer den Mangel beendet, dem folgt die Welt.",
-      "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Spione, Seeleute. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Ihre Städte wachsen schneller als alle anderen. Meridon will die Welt nicht erobern, sondern kaufen."
+      "meridon": "Handelsliga Meridon, Menschen. Admiralin Coralie Nerezza. Häfen, Gold, Nebel, Spione, Schattenflotte. Reiche Hafenstädte kaufen sich gegenseitig Schulden ab, bis daraus eine Liga wird, vor dem Großen Stillstand die führende Nation in Kultur, Wirtschaft, Börsen und Finanzen. Ihre Spekulation half, den Zusammenbruch auszulösen. Nach der Neuen Ordnung und dem Abschuss des Raumschiffs floh die Elite aufs Meer und kaufte ganze Flotten. Nerezza kaufte ihren ersten Kreuzer mit Schmuggelgold und hat seitdem keine Wette verloren. Ihre Spione wissen alles, bevor es geschieht. Die Liga arbeitet im Verborgenen, aus ihren alten Kontoren ging einst das Reich der Verdan hervor. Meridon will die Welt nicht erobern, sondern kaufen."
     },
     "menu": "Geschichte",
     "prologueTitle": "Prolog: Der Sternfall",
@@ -4035,5 +4094,87 @@
     "storm": "{name} stürmt {city}!",
     "diversion": "Flankenangriff! {name} rückt auf {city} vor.",
     "encircle": "Einkreisung! {name} umzingelt eine deiner Einheiten ({unit})."
+  },
+  "shadow": {
+    "silo": {
+      "name": "Raketensilo",
+      "nameOf": "{name}-Raketensilo",
+      "stats": "Panzerung {hp} / {max} · Raketenreichweite {range} · {dmg} Schaden auf 2×2 Felder",
+      "desc": "Festes Bauwerk von {name} statt Panzern, keine Einheit, unpassierbar, ohne Gegenschlag und feuert nie von selbst. Startet auf Befehl eine Rakete auf ein Feld in Reichweite {siloRange}: {siloDamage} Schaden an jeder Einheit in 2×2 Feldern, auch an eigenen, danach brennen die Landfelder {siloFireRounds} Runden mit {siloFireDamage} Schaden je Runde. Ein Start alle {siloCooldown} Runden. Geht das Gebiet verloren, wird das Silo geschleift.",
+      "ready": "startbereit",
+      "wait": "bereit in {n} Runden",
+      "wait1": "bereit in 1 Runde",
+      "build": "Raketensilo bauen",
+      "count": "{n}/{max} Silos",
+      "hint": "Wähle ein freies Nachbarfeld im eigenen Gebiet für das Silo.",
+      "limitReason": "Limit erreicht: {n}/{max} Silos. Mehr Städte erlauben mehr Silos (höchstens {siloMax}).",
+      "spacingReason": "Zu nah an einem eigenen Silo: mindestens {n} Felder Abstand.",
+      "territoryReason": "Nur auf ein freies Nachbarfeld im eigenen Gebiet.",
+      "launch": "Rakete starten",
+      "title": "Raketensilo: Ziel wählen",
+      "pick": "Tippe auf ein Feld in Reichweite {range}: es wird die linke obere Ecke der 2×2-Fläche.",
+      "confirm": "Noch einmal tippen oder Start! drücken. Esc bricht ab.",
+      "fire": "Start!",
+      "hits": "{n} Treffer, {kills} vernichtet",
+      "hits1": "1 Treffer, {kills} vernichtet",
+      "noHits": "Keine sichtbaren Ziele in der Fläche",
+      "own": "Achtung: {n} eigene Einheiten im Ziel",
+      "own1": "Achtung: 1 eigene Einheit im Ziel",
+      "blocked": "Im Ziel stehen Einheiten einer Fraktion, mit der Frieden herrscht.",
+      "outOfRange": "Ziel außerhalb der Reichweite von {range} Feldern.",
+      "tag": "-{dmg}",
+      "tagKill": "-{dmg} K.O.",
+      "fireTag": "Brand",
+      "toast": "Raketenstart von {name}!",
+      "attack": "Silo angreifen",
+      "previewKill": "Zerstört das Silo",
+      "lost": "Raketensilo geschleift: Das Gebiet ist verloren.",
+      "ruin": "Trümmer eines Raketensilos",
+      "burning": "Brand: noch {n} Runden, {dmg} Schaden je Runde zu Rundenbeginn",
+      "fireHit": "Brand: {own} deiner Einheiten verlieren je {dmg} LP",
+      "every": "startet auf Befehl"
+    },
+    "camo": {
+      "hidden": "Getarnt: Gegner sehen die Einheit nur mit Einheit, Stadt oder Bauwerk daneben.",
+      "revealed": "Enttarnt bis zu deinem nächsten Zug.",
+      "tag": "getarnt",
+      "tagRevealed": "enttarnt"
+    },
+    "withdraw": {
+      "name": "Absetzen",
+      "desc": "Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdrawTiles} Felder zurück (normale Bewegungskosten), danach greift sie nicht mehr an. Nicht beim Gegenschlag, nicht für Flieger und Schiffe; der Jeep behält seine volle Bewegung.",
+      "hint": "Absetzen: bis zu {withdrawTiles} Felder zurückweichen, kein Angriff mehr.",
+      "tag": "kann absetzen"
+    },
+    "firepower": {
+      "name": "Leichte Bewaffnung",
+      "desc": "Landeinheiten machen {firepowerPct} % weniger Schaden, beim Angriff und beim Gegenschlag. Schiffe, Lenkflugkörper und Raketensilos nicht.",
+      "note": "Leichte Bewaffnung: −{firepowerPct} %"
+    },
+    "seaPower": {
+      "name": "Seemacht",
+      "value": "Schiffe {seaPct} % günstiger",
+      "desc": "Alle Schiffe (Werft und Aufrüsten, auch Kaperschiff und Nebelkutter) und der Marinestützpunkt kosten {seaPct} % weniger."
+    },
+    "sabotage": {
+      "action": "Sabotage",
+      "hint": "Wähle ein Ziel auf deinem Feld oder daneben.",
+      "cooldown": "Sabotage bereit in {n} Runden",
+      "none": "Kein Sabotageziel auf dem Feld oder daneben.",
+      "done": "Sabotage: {what} zerstört",
+      "victim": "Sabotage! {name} hat {what} zerstört.",
+      "outpost": "ein Außenposten",
+      "road": "eine Straße",
+      "building": "{building}"
+    },
+    "radar": {
+      "action": "Radarimpuls",
+      "active": "Radar aktiv bis Runde {n}",
+      "cooldown": "Radar bereit in {n} Runden",
+      "toast": "Radarimpuls: {n} Kontakte im Umkreis",
+      "toast1": "Radarimpuls: 1 Kontakt im Umkreis",
+      "toast0": "Radarimpuls: keine Kontakte im Umkreis",
+      "echo": "Radarkontakt"
+    }
   }
 }
