@@ -248,8 +248,10 @@ export class View {
 
   private backdrop = '';
   /**
-   * Himmel hinter dem Brett (CSS am #app, siehe styles.css): Alienwelt und Wuestenwelt mit Tageszeit, sonst nichts.
-   * Sky behind the board (CSS on #app, see styles.css): alien world and desert world with the time of day, otherwise nothing.
+   * Hintergrund hinter dem Brett (CSS am #app, siehe styles.css): Alienwelt und Wuestenwelt als Himmel, sonst der
+   * Comic-Hintergrund der Standardwelt; die Tageszeit (data-phase) toent alle drei.
+   * Backdrop behind the board (CSS on #app, see styles.css): alien world and desert world as a sky, otherwise the comic
+   * backdrop of the default world; the time of day (data-phase) tints all three.
    */
   private syncBackdrop(world: 'alien' | 'desert' | null) {
     const key = `${world}-${this.sky.phase}`;
@@ -259,7 +261,7 @@ export class View {
     if (!app) return;
     app.classList.toggle('world-alien', world === 'alien');
     app.classList.toggle('world-desert', world === 'desert');
-    if (world) app.dataset.phase = this.sky.phase; else delete app.dataset.phase;
+    app.dataset.phase = this.sky.phase;
   }
 
   private loop(now: number, frame?: XRFrame) {
