@@ -3,10 +3,17 @@
  */
 import type * as THREE from 'three';
 import type { ResourceId, TerrainId } from '../../data/balance';
-import { Builder, geo, memo, mix, rng, shade } from './kit';
+import { Builder, geo, memo, mix, rng, shade, type V3 } from './kit';
 import { mat } from './look';
 
 const HALF_PI = Math.PI / 2;
+/**
+ * Form der Berggipfel: Flanken, Schieflage der Spitze, Unregelmaessigkeit, Schulter (Hoehe und Radius als Anteil),
+ * Schneekappe (Ueberstand, Anhebung der Spitze, Tiefe der Zacken in den Flanken).
+ * Shape of the mountain peaks: flanks, lean of the apex, irregularity, shoulder (height and radius as a share),
+ * snow cap (overhang, lift of the tip, depth of the jags in the flanks).
+ */
+const PEAK = { sides: 5, lean: 0.34, jitter: 0.3, shoulderY: 0.24, shoulderR: 0.72, snowOverhang: 1.14, snowLift: 0.025, snowDip: 1.7 };
 
 function tree(b: Builder, x: number, z: number, s: number, R: () => number) {
   const ry = R() * 3;
@@ -51,10 +58,42 @@ function rocks(b: Builder, R: () => number, n: number, spread: number, size: num
   }
 }
 
+/**
+ * Comic-Gipfel statt eines glatten Kegels: dunkler, breiter Schuttfuss, darueber eine steile, schiefe Felspyramide mit
+ * fuenf kantigen Flanken (unregelmaessiger Grundriss, Spitze aus der Mitte), oben eine ueberstehende Schneekappe mit
+ * gezackter Schneegrenze (an den Graten hoch, in den Flanken tief). Alle Teile sind geschlossene konvexe Koerper, damit
+ * die Tuschelinie auch die Schneegrenze nachzieht. snowK = Anteil der Felspyramide unter Schnee (0 = kein Schnee).
+ * Comic peak instead of a smooth cone: a dark, wide scree foot, above it a steep, lopsided rock pyramid with five
+ * crisp flanks (irregular footprint, apex off centre), on top an overhanging snow cap with a jagged snow line (high on
+ * the ridges, low in the flanks). All parts are closed convex bodies so the ink line also traces the snow line.
+ * snowK = share of the rock pyramid under snow (0 = no snow).
+ */
 function peak(b: Builder, x: number, z: number, r: number, h: number, snowK: number, R: () => number) {
-  const ry = R() * 3;
-  b.add(geo.cone(r, h, 6), R() < 0.5 ? mat.rock : shade(mat.rock, 0.92), { p: [x, h / 2, z], r: [0, ry, 0] });
-  if (snowK > 0) b.add(geo.cone(r * snowK * 1.05, h * snowK * 1.05, 6), mat.snow, { p: [x, h - (h * snowK * 1.05) / 2 + 0.004, z], r: [0, ry, 0] });
+  const n = PEAK.sides, ry = R() * 3;
+  const ax = (R() - 0.5) * PEAK.lean * r, az = (R() - 0.5) * PEAK.lean * r;
+  const dirs: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const a = ry + ((i + (R() - 0.5) * PEAK.jitter) / n) * Math.PI * 2, k = 1 + (R() - 0.5) * PEAK.jitter;
+    dirs.push([Math.cos(a) * k, Math.sin(a) * k]);
+  }
+  const yS = h * PEAK.shoulderY;
+  const foot: V3[] = dirs.map(([dx, dz]) => [dx * r, 0, dz * r]);
+  const shoulder: V3[] = dirs.map(([dx, dz]) => [ax * PEAK.shoulderY + dx * r * PEAK.shoulderR, yS, az * PEAK.shoulderY + dz * r * PEAK.shoulderR]);
+  const apex: V3 = [ax, h, az];
+  b.group({ p: [x, 0, z] }, () => {
+    b.add(geo.hull([...foot, ...shoulder]), mat.rockDark);
+    b.add(geo.hull([...shoulder, apex]), R() < 0.5 ? mat.rock : shade(mat.rock, 0.94));
+    if (snowK <= 0) return;
+    // Punkt auf der Felspyramide, t = Anteil ab der Spitze; waagrecht leicht nach aussen geschoben
+    // point on the rock pyramid, t = share from the apex; pushed slightly outwards horizontally
+    const on = (q: V3, t: number): V3 => [ax + (q[0] - ax) * t * PEAK.snowOverhang, h + (q[1] - h) * t, az + (q[2] - az) * t * PEAK.snowOverhang];
+    const cap: V3[] = [[ax, h + h * PEAK.snowLift, az]];
+    for (let i = 0; i < n; i++) {
+      const p = shoulder[i], q = shoulder[(i + 1) % n];
+      cap.push(on(p, snowK), on([(p[0] + q[0]) / 2, yS, (p[2] + q[2]) / 2], snowK * PEAK.snowDip));
+    }
+    b.add(geo.hull(cap), mat.snow);
+  });
 }
 
 function crystals(b: Builder, x: number, z: number, s: number, R: () => number) {
@@ -158,12 +197,12 @@ export function decoration(terrain: TerrainId, res: ResourceId | null, variant: 
     }
     case 'mountain': {
       if (res === 'ore') {
-        peak(b, -0.15, -0.15, 0.22, 0.38, 0.32, R);
+        peak(b, -0.15, -0.15, 0.23, 0.46, 0.34, R);
         resourceProps(b, 'ore', R, v);
       } else {
-        peak(b, -0.05 + (R() - 0.5) * 0.1, -0.05, 0.3, 0.5 + R() * 0.12, 0.38, R);
-        if (v % 2 === 0) peak(b, 0.2, 0.18, 0.18, 0.28, 0.0, R);
-        else peak(b, -0.22, 0.22, 0.16, 0.24, 0.0, R);
+        peak(b, -0.05 + (R() - 0.5) * 0.1, -0.05, 0.31, 0.62 + R() * 0.12, 0.36, R);
+        if (v % 2 === 0) peak(b, 0.2, 0.18, 0.19, 0.32, 0.0, R);
+        else peak(b, -0.22, 0.22, 0.17, 0.28, 0.0, R);
         rocks(b, R, 2, 0.35, 0.05);
         if (res) resourceProps(b, res, R, v);
       }

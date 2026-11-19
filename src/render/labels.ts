@@ -1,6 +1,7 @@
 /** Comic-Plaketten fuer LP und Staedtenamen (Canvas-Sprites) / comic badges for HP and city names (canvas sprites) */
 import * as THREE from 'three';
 import { primitives, semantic } from '../design/tokens';
+import { BADGE } from './config';
 
 const cache = new Map<string, THREE.SpriteMaterial>();
 
@@ -44,22 +45,27 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
   const m = material(key, W, H, (ctx) => {
     const ink = semantic.ink;
     ctx.globalAlpha = b.done ? 0.62 : 1;
+    // Schild nur so breit wie die Zahl (volle Breite mit Stern oder Suendenzeichen): verdeckt weniger von der Einheit dahinter
+    // pill only as wide as the number (full width with a star or sinner mark): hides less of the unit behind it
+    const txt = `${Math.max(0, Math.ceil(b.hp))}`;
+    ctx.font = `44px ${primitives.font.display}`;
+    const full = W - 10;
+    const pw = b.veteran || b.sin ? full : Math.min(full, Math.max(BADGE.minPill, Math.ceil(ctx.measureText(txt).width) + BADGE.pad * 2));
+    const px = (full - pw) / 2;
     ctx.fillStyle = ink;
-    roundRect(ctx, 6, 6, W - 10, 52, 16); ctx.fill();
+    roundRect(ctx, px + 6, 6, pw, 52, 16); ctx.fill();
     ctx.fillStyle = b.color;
-    roundRect(ctx, 2, 2, W - 10, 52, 16); ctx.fill();
+    roundRect(ctx, px + 2, 2, pw, 52, 16); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
     // Maertyrer-Segen: goldener Rand / Martyr's Blessing: golden rim
     if (b.blessed) {
-      roundRect(ctx, 5, 5, W - 16, 46, 14); ctx.lineWidth = 7; ctx.strokeStyle = semantic.faithHalo; ctx.stroke();
-      roundRect(ctx, 2, 2, W - 10, 52, 16); ctx.lineWidth = 3; ctx.strokeStyle = ink; ctx.stroke();
+      roundRect(ctx, px + 5, 5, pw - 6, 46, 14); ctx.lineWidth = 7; ctx.strokeStyle = semantic.faithHalo; ctx.stroke();
+      roundRect(ctx, px + 2, 2, pw, 52, 16); ctx.lineWidth = 3; ctx.strokeStyle = ink; ctx.stroke();
     }
     ctx.fillStyle = b.ink;
-    ctx.font = `44px ${primitives.font.display}`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const txt = `${Math.max(0, Math.ceil(b.hp))}`;
-    ctx.lineWidth = 6; ctx.strokeStyle = ink; ctx.strokeText(txt, (W - 10) / 2 + 2 + (b.veteran ? 10 : 0), 31);
-    ctx.fillText(txt, (W - 10) / 2 + 2 + (b.veteran ? 10 : 0), 31);
+    ctx.lineWidth = 6; ctx.strokeStyle = ink; ctx.strokeText(txt, full / 2 + 2 + (b.veteran ? 10 : 0), 31);
+    ctx.fillText(txt, full / 2 + 2 + (b.veteran ? 10 : 0), 31);
     if (b.veteran) {
       ctx.fillStyle = semantic.accent; ctx.strokeStyle = ink; ctx.lineWidth = 3;
       ctx.beginPath();
