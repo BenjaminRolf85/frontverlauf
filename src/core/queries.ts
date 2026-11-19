@@ -1497,7 +1497,7 @@ export function grandProjectConditionMet(s: GameState, f: number, id: GrandProje
 }
 export { GRAND_PROJECT_IDS };
 
-export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'invalidTile' | 'enemyTerritory' | 'notEnoughStars' | 'cannotCapture' {
+export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'invalidTile' | 'enemyTerritory' | 'outpostSpacing' | 'notEnoughStars' | 'cannotCapture' {
   if (!INFANTRY_TYPES.includes(u.type)) return 'cannotCapture';
   if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
@@ -1507,6 +1507,10 @@ export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'inv
   // nur auf eigenem oder neutralem Gebiet / only on own or neutral territory
   const owner = territoryOwner(s, t);
   if (owner !== null && owner !== u.owner) return 'enemyTerritory';
+  // mindestens ECON.outpostSpacing Felder zum naechsten Aussenposten, gleich welcher Fraktion
+  // at least ECON.outpostSpacing tiles to the next outpost, whatever its faction
+  const near = ECON.outpostSpacing - 1;
+  for (const p of area(s.size, u.x, u.y, near)) if (tileAt(s, p.x, p.y)?.outpost) return 'outpostSpacing';
   if (s.factions[u.owner].stars < outpostCost(s, u.owner)) return 'notEnoughStars';
   return 'ok';
 }

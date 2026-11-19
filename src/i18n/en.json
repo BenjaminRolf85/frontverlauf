@@ -824,6 +824,7 @@
     "enemyTerritory": "Not inside another faction's territory.",
     "cannotBuild": "This unit cannot build that.",
     "quake": "Earthquake: only foot troops can move this round.",
+    "outpostSpacing": "Too close to another outpost: keep at least {outpostSpacing} tiles apart.",
     "emplacementSpacing": "Too close to another own gun emplacement.",
     "emplacementLimit": "Emplacement limit reached: more cities allow more gun emplacements.",
     "recruitCooldown": "Recruiting is not ready again yet.",
@@ -3625,7 +3626,7 @@
     },
     "outposts": {
       "title": "Outposts",
-      "text": "With {tech}, infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) build an outpost on their tile for {cost} stars and defend ×{def} on it. If it borders own territory, the nearest city gains the free tiles around it. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
+      "text": "With {tech}, infantry, MG, snipers and pioneers (Light Wardens and railgun marksmen too) build an outpost on their tile for {cost} stars and defend ×{def} on it. If it borders own territory, the nearest city gains the free tiles around it. Two outposts are always at least {outpostSpacing} tiles apart, even those of different factions. Enemies can capture outposts. Pioneers also build tank barriers ({barrier} stars) that slow vehicles."
     },
     "diplomacy": {
       "title": "Diplomacy",

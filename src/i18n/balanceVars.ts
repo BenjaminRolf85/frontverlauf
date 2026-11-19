@@ -60,6 +60,7 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   hitMax: pct(HIT.mult.crit),
   // Fraktionsmerkmale / faction traits
   outpostCost: ECON.outpostCost,
+  outpostSpacing: ECON.outpostSpacing,
   earthworksCost: PERKS2.earthworksOutpostCost,
   veteranKills: VETERAN.kills,
   drillKills: VETERAN.killsDravon,

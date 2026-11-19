@@ -15,28 +15,27 @@ import { addCity, addUnit, blankGame, ok, tile } from './helpers';
 
 const FOUR: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon'];
 
-describe('Weniger Siedlungen / fewer settlements', () => {
-  it('30 % weniger neutrale Siedlungen, Heimatsiedlungen bleiben / 30 % fewer neutral settlements, home villages stay', () => {
-    expect(MAPGEN.villageShare).toBe(0.7);
+describe('Siedlungsabstand / settlement spacing', () => {
+  it('neutrale Siedlungen mindestens villageSpacing auseinander, jede Startinsel hat ihre Heimatsiedlung / neutral villages at least villageSpacing apart, every start island has its home village', () => {
+    // die pauschale Kuerzung ist durch den Abstand ersetzt / the flat cut is replaced by the spacing
+    expect(MAPGEN.villageShare).toBe(1);
+    expect(MAPGEN.villageSpacing).toBe(4);
+    let pairs = 0, close = 0;
     for (const type of ['continent', 'lakes', 'continents'] as MapType[]) {
-      let now = 0, before = 0;
       for (const size of MAP_SIZES) for (const seed of [1, 2, 3, 4]) {
         const m = generateMap(seed * 17 + size, size, type, FOUR);
-        // vorher: alle platzierten Siedlungen bleiben / before: all placed settlements stay
-        const share = MAPGEN.villageShare;
-        MAPGEN.villageShare = 1;
-        let o;
-        try { o = generateMap(seed * 17 + size, size, type, FOUR); } finally { MAPGEN.villageShare = share; }
-        // jede Startinsel hat ihre Heimatsiedlung, dieselbe wie vorher / every start island keeps its home village, the same as before
         expect(m.villages.length).toBeGreaterThanOrEqual(m.starts.length);
-        expect(m.villages.slice(0, m.starts.length)).toEqual(o.villages.slice(0, m.starts.length));
-        expect(m.villages.length).toBe(Math.max(m.starts.length, Math.round(o.villages.length * 0.7)));
-        now += m.villages.length; before += o.villages.length;
+        const v = m.villages;
+        for (let a = 0; a < v.length; a++) for (let b = a + 1; b < v.length; b++) {
+          pairs++;
+          // nur eine Heimatsiedlung ohne anderen Platz darf naeher liegen / only a home village with no other spot may lie closer
+          if (dist(v[a], v[b]) < MAPGEN.villageSpacing) { close++; expect(a, `${type} ${size} ${seed}`).toBeLessThan(m.starts.length); }
+          expect(dist(v[a], v[b])).toBeGreaterThanOrEqual(MAPGEN.minCityDistance);
+        }
       }
-      // insgesamt etwa 30 % weniger (Heimatsiedlungen als Untergrenze) / about 30 % fewer in total (home villages as the floor)
-      expect(now / before, type).toBeGreaterThan(0.65);
-      expect(now / before, type).toBeLessThan(0.75);
     }
+    // die Ausnahme ist selten / the exception is rare
+    expect(close / pairs).toBeLessThan(0.01);
   });
 });
 

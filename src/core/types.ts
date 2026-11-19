@@ -645,7 +645,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'recruitCooldown' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing'
+  | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing' | 'outpostSpacing'
   // Orbitallaser / orbital laser
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
   // Kriegsplaene (m4) / war plans (m4)

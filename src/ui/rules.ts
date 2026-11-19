@@ -41,7 +41,7 @@ function sections(): Section[] {
     // Werft der Kuestenstaedte: Schiffe kaufen, Transportboot, Einsteigen / shipyard of coastal cities: buying ships, transport boat, boarding
     { id: 'ships', icon: 'sail', params: { boat: SHIPYARD.transportCost, hull: SHIPYARD.hullHp.landingBoat ?? 0, base: t('buildings.navalBase'), dock: t('buildings.dryDock'), tech: t('techs.coastalEconomy') } },
     { id: 'doctrines', icon: 'lightning', extra: doctrineLines },
-    { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
+    { id: 'outposts', icon: 'outpost', params: { cost: ECON.outpostCost, outpostSpacing: ECON.outpostSpacing, def: fac(DEFENSE_BONUS.outpost), tech: t('techs.fortification'), barrier: BARRIER.cost } },
     // Festungsbau der Dravon / Dravon fortress building
     { id: 'emplacements', icon: 'range', params: emplacementRuleParams() },
     // Schattenflotte der Meridon: Tarnung, Absetzen, Raketensilo, Lenkflugkoerper, Radar, Sabotage / Meridon shadow fleet

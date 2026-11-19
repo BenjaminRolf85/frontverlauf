@@ -180,16 +180,17 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     const t = tiles[idx(size, p.x, p.y)];
     if (t.terrain === 'shallow' || t.terrain === 'ocean') return false;
     if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
-    return [...starts, ...villages].every((o) => dist(o, p) > MAPGEN.minCityDistance - 0 && dist(o, p) >= MAPGEN.minCityDistance);
+    // zu Startstaedten minCityDistance, zu anderen Siedlungen villageSpacing / to start cities minCityDistance, to other villages villageSpacing
+    return starts.every((o) => dist(o, p) >= MAPGEN.minCityDistance) && villages.every((o) => dist(o, p) >= MAPGEN.villageSpacing);
   };
   // Heimatsiedlung: Land, kein Radar, Abstand >= 3 zu fremden Starts und >= 2 zu anderen Siedlungen
-  // home village: land, no radar, distance >= 3 to other starts and >= 2 to other villages
-  const homeOk = (p: Pos, own: Pos, edge: number = MAPGEN.villageEdge) => {
+  // home village: land, no radar, distance >= 3 to other starts and >= spacing to other villages
+  const homeOk = (p: Pos, own: Pos, edge: number = MAPGEN.villageEdge, spacing: number = MAPGEN.villageSpacing) => {
     if (!inner(p, edge)) return false;
     const t = tiles[idx(size, p.x, p.y)];
     if (t.terrain === 'shallow' || t.terrain === 'ocean') return false;
     if (radars.some((r) => r.x === p.x && r.y === p.y)) return false;
-    return starts.every((o) => o === own || dist(o, p) >= 3) && villages.every((o) => dist(o, p) >= MAPGEN.minCityDistance);
+    return starts.every((o) => o === own || dist(o, p) >= 3) && villages.every((o) => dist(o, p) >= spacing);
   };
   // die erste Siedlung liegt auf der eigenen Startinsel (Abstand 3, sonst 2), damit niemand ohne Wachstum festsitzt
   // the first village lies on the own start island (distance 3, else 2) so nobody is stuck without growth
@@ -198,13 +199,18 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
     let pick: Pos | null = null;
     // kleine Startinsel am Rand: notfalls 1 Feld Abstand zum Rand, nie direkt am Rand
     // small start island at the edge: if need be 1 tile from the edge, never right at the edge
-    for (const edge of [MAPGEN.villageEdge, MAPGEN.villageEdgeHome]) {
-      // Abstand 3, sonst 2, notfalls 4 oder 5; erst danach wird der Randabstand gelockert
-      // distance 3, else 2, if need be 4 or 5; only then is the edge distance relaxed
-      for (const d of [3, 2, 4, 5]) {
-        const ring: Pos[] = [];
-        for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s, edge)) ring.push(p);
-        if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
+    // zuerst mit vollem Siedlungsabstand, erst als letzte Rettung mit minCityDistance (niemand startet ohne Wachstum)
+    // first with the full village spacing, only as a last resort with minCityDistance (nobody starts without growth)
+    for (const spacing of [MAPGEN.villageSpacing, MAPGEN.minCityDistance]) {
+      for (const edge of [MAPGEN.villageEdge, MAPGEN.villageEdgeHome]) {
+        // Abstand 3, sonst 2, notfalls 4 oder 5; erst danach wird der Randabstand gelockert
+        // distance 3, else 2, if need be 4 or 5; only then is the edge distance relaxed
+        for (const d of [3, 2, 4, 5]) {
+          const ring: Pos[] = [];
+          for (const p of area(size, s.x, s.y, d)) if (dist(p, s) === d && home.has(idx(size, p.x, p.y)) && homeOk(p, s, edge, spacing)) ring.push(p);
+          if (ring.length) { pick = ring[randInt(rng, ring.length)]; break; }
+        }
+        if (pick) break;
       }
       if (pick) break;
     }

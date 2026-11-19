@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { cityTiles, territoryOwner } from '../src/core';
-import { addCity, addUnit, blankGame, ok, revealAll, tile } from './helpers';
+import { cityTiles, outpostCheck, territoryOwner } from '../src/core';
+import { ECON } from '../src/data/balance';
+import { addCity, addUnit, blankGame, fails, ok, revealAll, tile } from './helpers';
 
 function og() {
   const s = blankGame({ stars: 200, factions: ['meridon', 'dravon'] });
@@ -58,5 +59,25 @@ describe('Aussenposten erweitern das Gebiet / outposts extend territory', () => 
     expect(tile(s, 3, 3).territory).toBeNull();
     // das eigentliche Stadtgebiet bleibt / the real city territory stays
     expect(territoryOwner(s, tile(s, 2, 2))).toBe(0);
+  });
+});
+
+describe('Aussenposten-Abstand / outpost spacing', () => {
+  it('mindestens ECON.outpostSpacing Felder zu jedem Aussenposten, auch fremden / at least ECON.outpostSpacing tiles to any outpost, foreign ones too', () => {
+    expect(ECON.outpostSpacing).toBe(4);
+    const s = og();
+    const a = addUnit(s, 'infantry', 0, 3, 3);
+    ok(s, { type: 'outpost', unit: a.id });
+    // 3 Felder (Schachbrett) entfernt: zu nah / 3 tiles away (Chebyshev): too close
+    const b = addUnit(s, 'infantry', 0, 6, 4);
+    expect(outpostCheck(s, b)).toBe('outpostSpacing');
+    fails(s, { type: 'outpost', unit: b.id }, 'outpostSpacing');
+    // ein fremder Aussenposten zaehlt genauso / a foreign outpost counts the same
+    const c = addUnit(s, 'infantry', 1, 3, 6);
+    expect(outpostCheck(s, c)).toBe('outpostSpacing');
+    // 4 Felder entfernt: erlaubt / 4 tiles away: allowed
+    const d = addUnit(s, 'infantry', 0, 7, 3);
+    expect(outpostCheck(s, d)).toBe('ok');
+    ok(s, { type: 'outpost', unit: d.id });
   });
 });
