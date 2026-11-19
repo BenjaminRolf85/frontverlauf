@@ -23,7 +23,7 @@ import { mountStats, statsDialog, statsPanel } from './stats';
 import { campaignScreen } from './campaign';
 import { leaderPortrait } from './leaders';
 import { openLore, openPrologue } from './lore';
-import { detailsLink, factionDetails, traitChips } from './factionInfo';
+import { cardLinks, factionDetails, traitChips } from './factionInfo';
 import { gameOverDispatchHtml } from './dispatch';
 import { victoryParams, victoryReasonHtml, victoryTrackerDialog } from './victory';
 import { rulesDialog } from './rules';
@@ -194,7 +194,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
   const ownCard = () => {
     const p = cfg.players[0];
     return `<div class="player-row slot own-card" style="--setup-accent:var(--faction-${p.id}-primary)">
-      <div class="slot-head"><span class="tag">${icon('people', 'icon-sm')}${esc(t('setup.human'))}</span>${detailsLink(p.id)}</div>
+      <div class="slot-head"><span class="tag">${icon('people', 'icon-sm')}${esc(t('setup.human'))}</span></div>
       <button type="button" class="slot-pick" data-action="pick-0" aria-label="${esc(t('setup.chooseFaction'))}: ${esc(fname(p.id))}">
         ${leaderPortrait(p.id, 'md')}
         <span class="col grow"><strong class="slot-faction">${esc(fname(p.id))}</strong>
@@ -202,6 +202,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
         <span class="slot-traits">${traitChips(p.id, { compact: true })}</span>
         <span class="slot-cta">${icon('next', 'icon-sm')}<span class="label">${esc(t('setup.chooseFaction'))}</span></span>
       </button>
+      ${cardLinks(p.id)}
     </div>`;
   };
   // kompakte Gegnerkarte / compact opponent card
@@ -219,7 +220,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
       ${traitChips(p.id, { compact: true })}
       ${segmented(`human-${i}`, [{ value: 'human', label: t('setup.human') }, { value: 'ai', label: t('setup.ai') }], p.human ? 'human' : 'ai')}
       ${!p.human ? `<div class="opp-diff" aria-label="${esc(t('setup.difficulty'))}">${segmented(`diff-${i}`, (['easy', 'normal', 'hard', 'extreme'] as Difficulty[]).map((d) => ({ value: d, label: t(`difficulty.${d}`) })), p.difficulty)}</div>` : ''}
-      ${detailsLink(p.id)}
+      ${cardLinks(p.id)}
     </article>`;
   // Hinzufuegen-Karte oder Hinweis auf die Hoechstzahl / add card or a note on the maximum
   const addCard = () => canAddOpponent(cfg.players)
@@ -311,7 +312,7 @@ export function setupScreen(host: ScreenHost): HTMLElement {
               ${ROSTERS[f] || tag ? `<span class="row">${ROSTERS[f] ? `<span class="tag">${esc(t('setup.special'))}</span>` : ''}${tag ? `<span class="tag ${current ? '' : 'warn'}">${esc(tag)}</span>` : ''}</span>` : ''}</span>
             <span class="pick-traits">${traitChips(f, { compact: true })}</span>
           </button>
-          ${detailsLink(f)}
+          ${cardLinks(f)}
         </div>`;
       }).join('')}</div>`;
     // an der UI-Wurzel statt im scrollbaren Bildschirm, sonst laege der Dialog nach dem Scrollen ausserhalb der Sicht

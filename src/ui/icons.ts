@@ -59,6 +59,7 @@ const P: Record<string, string> = {
   lightning: '<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
   grand: '<path d="M4 21h16M6 21v-9M10 21v-9M14 21v-9M18 21v-9M3 12h18L12 4z"/>',
   play: '<path d="M7 4v16l13-8z" fill="currentColor"/>',
+  pause: '<path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z" fill="currentColor"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   chevronUp: '<path d="M6 15l6-6 6 6"/>',
