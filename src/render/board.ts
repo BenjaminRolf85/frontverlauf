@@ -9,7 +9,7 @@ import { FUEL, M2, WAR_MARKS } from '../data/balance';
 import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
-import { ANIM, CLOUD_Y, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
+import { ANIM, CLOUD_Y, MARKER, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
 import { attackIcon, cityLabel, hpBadge, raceBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
@@ -206,6 +206,15 @@ const baseMaterial = () => (baseMat ??= new THREE.MeshBasicMaterial({ vertexColo
 
 /** Zeichenreihenfolge der Einheiten (nach dem Leeren des Tiefenpuffers) / render order of units (after the depth clear) */
 const UNIT_ORDER = 60;
+
+/**
+ * Tuschelinie der Dekoration: Baeume und Gipfel (decorationGeometry, Name 'deco|forest...' / 'deco|mountain...') etwas
+ * kraeftiger, damit sie zum Strich der Einheiten passen; Kleinteile (Graeser, Kisten, Vieh) bleiben fein.
+ * Ink line of the decoration: trees and peaks (decorationGeometry, name 'deco|forest...' / 'deco|mountain...') a little
+ * bolder so they match the line of the units; small props (grass, crates, cattle) stay fine.
+ */
+const sceneryLine = (geo: THREE.BufferGeometry) =>
+  geo.name.startsWith('deco|forest|') || geo.name.startsWith('deco|mountain|') ? OUTLINE.scenery : OUTLINE.building;
 
 export class Board {
   readonly group = new THREE.Group();
@@ -937,7 +946,7 @@ export class Board {
       this.pickMeshes.push({ mesh, tiles: gr.tiles });
     }
     for (const [geo, mats] of decoGroups) {
-      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building, landMaterial());
+      const { mesh, line } = outlinedInstanced(geo, mats.length, sceneryLine(geo), landMaterial());
       mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.raycast = () => {};
@@ -946,7 +955,7 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     for (const [geo, mats] of swayGroups) {
-      const { mesh, line } = outlinedInstanced(geo, mats.length, OUTLINE.building, swayMaterial(), swayOutline(OUTLINE.building));
+      const { mesh, line } = outlinedInstanced(geo, mats.length, sceneryLine(geo), swayMaterial(), swayOutline(sceneryLine(geo)));
       mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.raycast = () => {};
@@ -1251,22 +1260,20 @@ export class Board {
     let tpl = this.markerCache.get(key);
     if (!tpl) {
       tpl = new THREE.Group();
-      const flat = (inner: number, outer: number, color: string, opacity = 1) => new THREE.Mesh(
-        new THREE.RingGeometry(inner, outer, 40).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: hex(color), transparent: opacity < 1, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      const flat = (inner: number, outer: number, color: string) => new THREE.Mesh(
+        new THREE.RingGeometry(inner, outer, MARKER.segments).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: hex(color), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
       if (own) {
-        // dicker Ring: schwarz / Markierungsfarbe / weiss / schwarz, dazu leichte Flaeche
-        // thick ring: black / marker colour / white / black, plus a light fill
-        const mk = factionTokens[f].marker;
-        tpl.add(flat(0.465, 0.49, semantic.ink), flat(0.37, 0.465, mk), flat(0.345, 0.37, semantic.white), flat(0.33, 0.345, semantic.ink));
-        const fill = new THREE.Mesh(new THREE.CircleGeometry(0.33, 40).rotateX(-Math.PI / 2),
-          new THREE.MeshBasicMaterial({ color: hex(mk), transparent: true, opacity: 0.3, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
-        tpl.add(fill);
+        // schlanker Ring direkt am Sockel: weiss / Markierungsfarbe / Tusche; keine Flaeche, der Boden bleibt sichtbar
+        // slim ring right at the base: white / marker colour / ink; no fill, the ground stays visible
+        const r = MARKER.own;
+        tpl.add(flat(r.inner, r.white, semantic.white), flat(r.white, r.band, factionTokens[f].marker), flat(r.band, r.outer, semantic.ink));
         tpl.userData.pulse = true;
       } else {
-        tpl.add(flat(0.4, 0.43, factionTokens[f].primary), flat(0.43, 0.445, semantic.ink));
+        const r = MARKER.foreign;
+        tpl.add(flat(r.inner, r.band, factionTokens[f].primary), flat(r.band, r.outer, semantic.ink));
       }
-      tpl.position.y = 0.012;
+      tpl.position.y = MARKER.lift;
       tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER - 0.7; });
       this.markerCache.set(key, tpl);
     }
@@ -1275,7 +1282,6 @@ export class Board {
     return m;
   }
 
-  /** Eigene Ringe pulsieren leicht / own rings pulse gently */
   /** Schatten mit sterbenden Einheiten ausblenden / hide shadows of dying units */
   updateShadows() {
     for (const v of this.units.values()) {
@@ -1284,6 +1290,7 @@ export class Board {
     }
   }
 
+  /** Eigene Ringe pulsieren leicht / own rings pulse gently */
   pulseMarkers(time: number) {
     this.updateShadows();
     for (const o of this.highlightLayer.children) {
@@ -1293,7 +1300,7 @@ export class Board {
         o.scale.set(k, k, 1);
       }
     }
-    const k = 1 + Math.sin(time * 3.2) * 0.045;
+    const k = 1 + Math.sin(time * MARKER.pulseSpeed) * MARKER.pulse;
     for (const v of this.units.values()) {
       const m = v.group.getObjectByName('marker');
       if (m && m.userData.pulse) m.scale.set(k, 1, k);

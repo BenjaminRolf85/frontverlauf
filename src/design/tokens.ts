@@ -773,6 +773,17 @@ export const components = {
   },
   unitCard: { bg: semantic.surfaceRaised, hpFill: c.green500, hpLow: c.red500 },
   halftone: { dot: 'rgba(21, 19, 31, 0.12)', size: '8px', dotRadius: '1px', dotFade: '1.3px' },
+  /**
+   * Raum um das Brett in der Standardwelt (CSS am #app): Lichtfleck hinter dem Brett, Rasterpunkte im 45-Grad-Raster,
+   * Vignette zu den Ecken; je Tageszeit eine leichte Toenung (Anteil tintStrength).
+   * Space around the board in the default world (CSS on #app): a glow behind the board, halftone dots on a 45 degree
+   * grid, a vignette towards the corners; a light tint per time of day (share tintStrength).
+   */
+  worldBackdrop: {
+    base: semantic.worldBackground, glow: semantic.worldBackgroundTop, dot: c.olive400, shade: c.ink900,
+    dotSize: '18px', dotRadius: '2px', dotFade: '2.8px', dotStrength: '24%', shadeStrength: '62%',
+    tintDusk: c.red700, tintNight: c.sky700, tintDawn: c.orange500, tintStrength: '22%', tintStrengthNight: '55%',
+  },
   action: { minSize: '76px', minSizeDesktop: '92px', minSizeCompact: '64px', heightCompact: '60px', iconSize: primitives.size.icon, subFontSize: '10px', subMaxWidth: '96px', subMaxWidthWide: '148px' },
   /** Orbitallaser-Knopf: Abklingzeit-Abzeichen, Warnung bei eigenen Treffern / orbital laser button: cooldown badge, warning on own hits */
   orbital: { ready: c.green500, wait: c.paper300, badgeInk: semantic.text, warn: semantic.warning, aim: semantic.orbitalAim },

@@ -19,6 +19,31 @@ html, body {
 }
 #app { position: fixed; inset: 0; }
 /*
+ * Standardwelt (kein Kartenthema): Comic-Hintergrund um das Brett statt einer flachen Flaeche. Von oben nach unten:
+ * Vignette, zwei versetzte Punktraster (45-Grad-Raster), Lichtfleck hinter dem Brett. Die Tageszeit (data-phase, gesetzt
+ * von View) toent Grund und Lichtfleck leicht. Nur Verlaeufe, kein Bild; Alien-, Wuesten- und Hoehlenwelt bleiben unberuehrt.
+ * Default world (no map theme): a comic backdrop around the board instead of a flat fill. Top to bottom: vignette, two
+ * offset dot grids (45 degree halftone), a glow behind the board. The time of day (data-phase, set by View) tints base and
+ * glow lightly. Gradients only, no image; the alien, desert and cavern worlds stay untouched.
+ */
+#app:not(.world-alien):not(.world-desert) {
+  --backdrop-base: var(--c-world-backdrop-base); --backdrop-glow: var(--c-world-backdrop-glow);
+  --backdrop-dot: radial-gradient(circle, color-mix(in srgb, var(--c-world-backdrop-dot) var(--c-world-backdrop-dot-strength), transparent) var(--c-world-backdrop-dot-radius), transparent var(--c-world-backdrop-dot-fade));
+  background-color: var(--backdrop-base);
+  background-image:
+    radial-gradient(ellipse 75% 75% at 50% 45%, transparent 40%, color-mix(in srgb, var(--c-world-backdrop-shade) var(--c-world-backdrop-shade-strength), transparent) 100%),
+    var(--backdrop-dot), var(--backdrop-dot),
+    radial-gradient(ellipse 70% 65% at 50% 45%, var(--backdrop-glow) 0%, var(--backdrop-base) 100%);
+  background-size: auto, var(--c-world-backdrop-dot-size) var(--c-world-backdrop-dot-size), var(--c-world-backdrop-dot-size) var(--c-world-backdrop-dot-size), auto;
+  background-position: 0 0, 0 0, calc(var(--c-world-backdrop-dot-size) / 2) calc(var(--c-world-backdrop-dot-size) / 2), 0 0;
+}
+#app[data-phase="dusk"]:not(.world-alien):not(.world-desert) { --backdrop-glow: color-mix(in srgb, var(--c-world-backdrop-tint-dusk) var(--c-world-backdrop-tint-strength), var(--c-world-backdrop-glow)); }
+#app[data-phase="dawn"]:not(.world-alien):not(.world-desert) { --backdrop-glow: color-mix(in srgb, var(--c-world-backdrop-tint-dawn) var(--c-world-backdrop-tint-strength), var(--c-world-backdrop-glow)); }
+#app[data-phase="night"]:not(.world-alien):not(.world-desert) {
+  --backdrop-base: color-mix(in srgb, var(--c-world-backdrop-tint-night) var(--c-world-backdrop-tint-strength), var(--c-world-backdrop-base));
+  --backdrop-glow: color-mix(in srgb, var(--c-world-backdrop-tint-night) var(--c-world-backdrop-tint-strength-night), var(--c-world-backdrop-base));
+}
+/*
  * Heimatwelt der Zyrr (Kartenthema 'alien', gesetzt von View): violett-magenta Himmel mit zwei Monden und Sternen hinter
  * dem Brett; die Tageszeit (data-phase) verschiebt die Farben. Nur Verlaeufe, kein Bild.
  * Zyrr homeworld (map theme 'alien', set by View): violet-magenta sky with two moons and stars behind the board;
