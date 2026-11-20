@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
+  BASES, COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY,
 } from '../data/balance';
@@ -29,7 +29,8 @@ import {
   rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
-  cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, supportedUnits, unitLimit, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
+  cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
+  basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome,
   medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile, canWithdrawAfterAttack,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -83,7 +84,13 @@ export function createGame(cfg: GameConfig): GameState {
     c.isHQ = true; c.hqOf = i; c.level = START.hqLevel;
     claimTerritory(s, c, CITY.baseRadius);
   });
-  for (const v of map.villages) addCity(s, v.x, v.y, null, nameIndex++);
+  // Stuetzpunkte: jeder neutrale Ort bekommt seine Art aus der Kartenerzeugung (BASES); sonst gewoehnliche Siedlungen
+  // bases: every neutral place gets its kind from map generation (BASES); otherwise ordinary villages
+  const bases = basesOn(config);
+  map.villages.forEach((v, i) => {
+    const c = addCity(s, v.x, v.y, null, nameIndex++);
+    if (bases) c.base = map.kinds[i];
+  });
   map.starts.forEach((p, i) => {
     const alien = s.factions[i].id === XENO.faction;
     // Zyrr: Hauptquartier startet terraformt / Zyrr: HQ starts terraformed
@@ -627,7 +634,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
     // Raketen nachladen nur in eigener Stadt mit Depot / reload rockets only in an own city with a depot
     if (ROCKETS.units.includes(u.type) && (u.rockets ?? ROCKETS.max) < ROCKETS.max) {
       const c = s.cities.find((cc) => cc.x === u.x && cc.y === u.y);
-      if (c && c.owner === f && (c.upgrades ?? []).includes('depot')) u.rockets = ROCKETS.max;
+      // Ausbau Depot oder Stuetzpunkt Nachschubdepot (BASES.builtInUpgrade) / depot upgrade or supply depot base (BASES.builtInUpgrade)
+      if (c && c.owner === f && ((c.upgrades ?? []).includes('depot') || (c.base !== undefined && BASES.builtInUpgrade[c.base] === 'depot'))) u.rockets = ROCKETS.max;
     }
   }
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
@@ -1089,6 +1097,9 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
       for (const f of s.factions) f.embassies = f.embassies.filter((g) => g !== c.hqOf);
     }
   }
+  // Zyrr nehmen eine Fabrik ein: Stadtfeld und Gebiet werden sofort zu Xeno-Boden (BASES.zyrrFactoryXeno)
+  // the Zyrr capture a factory: city tile and territory turn to xeno ground at once (BASES.zyrrFactoryXeno)
+  for (const p of factoryXenoTiles(s, c)) tileAt(s, p.x, p.y)!.xeno = true;
   ev.push({ t: 'capture', city: c.id, faction: u.owner, from, ...(isCultFaction(s, u.owner) ? { plunder } : {}) });
   // Suende: Pluendern (Kult mit Beute) oder Erobern einer Stadt einer anderen Fraktion / sin: plundering (cult with loot) or capturing a city of another faction
   if (isCultFaction(s, u.owner) && plunder > 0) markSin(s, u.owner, 'plunder', ev);
@@ -1116,7 +1127,8 @@ function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev
     case 'tank': {
       const p = !unitAt(s, c.x, c.y) ? { x: c.x, y: c.y } : freeNeighbor(s, c.x, c.y, false);
       // volle Stadt: der Panzer gehoert zu keiner Stadt (wie ein Ueberlaeufer) / full city: the tank belongs to no city (like a defector)
-      const home = supportedUnits(s, c) < unitLimit(s, c) ? c.id : null;
+      // sonst traegt ihn ein Versorger (Wohnbloecke, Supermarkt) / otherwise a supplier supports it (residential blocks, supermarket)
+      const home = freeUnitSlots(s, c) > 0 ? trainHome(s, c) : null;
       // Velkar: Tesla-Panzer (VARIANTS) / Velkar: Tesla tank (VARIANTS)
       const heavy = ROSTERS[s.factions[f].id]?.tank ?? factionVariant(s, f, 'tank');
       if (p) spawnUnit(s, heavy, f, p.x, p.y, home);
@@ -1499,7 +1511,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (UNITS[cmd.unitType].ship) {
         const at = shipSpawnTile(s, c)!;
         // Kult: die Horde gehoert keiner Stadt / cult: the horde belongs to no city
-        const ship = spawnUnit(s, cmd.unitType, f, at.x, at.y, isCultFaction(s, f) ? null : c.id);
+        const ship = spawnUnit(s, cmd.unitType, f, at.x, at.y, isCultFaction(s, f) ? null : trainHome(s, c));
         ship.hp = ship.maxHp = SHIPYARD.hullHp[cmd.unitType] ?? 1;
         ev.push({ t: 'train', unit: ship.id, city: c.id });
         res = { ok: true, events: ev };
@@ -1508,11 +1520,12 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       // Meridon "Zwei fuer einen": vor der Ausbildung pruefen, die erste Einheit belegt dann einen Platz / check before training, the first unit then takes a slot
       const twin = twinCheck(s, c, cmd.unitType);
       const twinAt = twin === 'twin' ? twinSpot(s, c) : null;
-      const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, c.id);
+      // volle Stadt: ein Versorger (Wohnbloecke, Supermarkt) traegt die Einheit / full city: a supplier (residential blocks, supermarket) supports the unit
+      const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, trainHome(s, c));
       ev.push({ t: 'train', unit: u.id, city: c.id, ...(twin ? { twin } : {}) });
       const twins = [u];
       if (twinAt) {
-        const u2 = spawnUnit(s, cmd.unitType, f, twinAt.x, twinAt.y, c.id);
+        const u2 = spawnUnit(s, cmd.unitType, f, twinAt.x, twinAt.y, trainHome(s, c));
         twins.push(u2);
         ev.push({ t: 'train', unit: u2.id, city: c.id, twin: 'second' });
       }
@@ -1529,6 +1542,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
           ev.push({ t: 'veteran', unit: v.id });
         }
       }
+      // Stuetzpunkt Kaserne: Fusstruppen starten mit mehr LP (BASES.footHp) / barracks base: foot troops start with more HP (BASES.footHp)
+      const drill = trainFootHp(c, cmd.unitType);
+      if (drill > 0) for (const v of twins) { v.maxHp += drill; v.hp = v.maxHp; }
       res = { ok: true, events: ev };
       break;
     }
@@ -1636,6 +1652,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         nu.veteran = true; nu.maxHp += VETERAN.bonusHp; nu.hp = nu.maxHp;
         ev.push({ t: 'veteran', unit: nu.id });
       }
+      // Stuetzpunkt Kaserne: Rekruten auf oder neben ihr starten mit mehr LP / barracks base: recruits on or next to it start with more HP
+      const drill = recruitFootHp(s, f, cmd.unitType, cmd.x, cmd.y);
+      if (drill > 0) { nu.maxHp += drill; nu.hp = nu.maxHp; }
       res = { ok: true, events: ev };
       break;
     }
@@ -1938,6 +1957,8 @@ export function defaultConfig(partial: Partial<GameConfig> = {}): GameConfig {
     hitChance: partial.hitChance ?? true,
     factionVictory: partial.factionVictory ?? true,
     ...(partial.towers === false ? { towers: false } : {}),
+    // Stuetzpunkte ausdruecklich an oder aus (fehlt = an in freien Partien der Standardwelt, BASES) / bases explicitly on or off (missing = on in free games on the default world, BASES)
+    ...(partial.bases !== undefined ? { bases: partial.bases } : {}),
     ...(partial.campaign ? { campaign: partial.campaign } : {}),
   };
 }

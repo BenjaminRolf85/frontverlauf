@@ -410,7 +410,11 @@ describe('Alte Spielstaende / old saves', () => {
 describe('KI / AI', () => {
   it('baut Staetten, bildet gemischt aus, forscht Doktrinen, ohne Fehlbefehle / builds sites, trains a mixed army, adopts doctrines, no failed commands', () => {
     const facs: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'];
-    const s = createGame(defaultConfig({ seed: 77, size: 16, mapType: 'continent', mode: 'points', roundLimit: 20,
+    // ohne Stuetzpunkte: mit ihnen hat jede Fraktion die Kaserne schon in ihrem Heimat-Stuetzpunkt und baut in 20 Runden keine
+    // (Stuetzpunkte und eingebaute Staetten prueft bases.test.ts)
+    // without bases: with them every faction already has barracks in its home base and builds none within 20 rounds
+    // (bases and built-in sites are covered by bases.test.ts)
+    const s = createGame(defaultConfig({ seed: 77, size: 16, mapType: 'continent', mode: 'points', roundLimit: 20, bases: false,
       factions: [...facs, 'vesper' as FactionId].map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
     let failed = 0;
     const trained = new Set<UnitTypeId>();

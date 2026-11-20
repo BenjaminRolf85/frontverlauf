@@ -13,9 +13,11 @@ import { victoryTrackerDialog } from './victory';
  * Schritt zur Siedlung soll eindeutig bleiben).
  * Faction victories off: an AI wonder must not end the tutorial; hit luck stays on; no transmitter towers (the step to
  * the settlement should stay unambiguous).
+ * Keine Stuetzpunkte: das Tutorial lehrt das Einnehmen einer gewoehnlichen Siedlung (bases: false).
+ * No bases: the tutorial teaches capturing an ordinary village (bases: false).
  */
 export const TUTORIAL_CONFIG: GameConfig = defaultConfig({
-  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true, towers: false,
+  seed: 4242, size: 11, mapType: 'continent', mode: 'conquest', factionVictory: false, hitChance: true, towers: false, bases: false,
   factions: [{ id: 'korvat', human: true, difficulty: 'easy' }, { id: 'dravon', human: false, difficulty: 'easy' }],
 });
 /** Fraktion des Tutorials (Wortwahl der Texte) / faction of the tutorial (wording of the texts) */

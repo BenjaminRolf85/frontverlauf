@@ -9,7 +9,7 @@
  * the base belongs to.
  */
 import {
-  isAlienFaction, rosterShips, rosterUnits, trainCheck, trainTechNeed, twinCheck, unitCost, unitRange,
+  isAlienFaction, noTraining, rosterShips, rosterUnits, trainCheck, trainTechNeed, twinCheck, unitCost, unitRange,
   type City, type GameState, type TrainCheck,
 } from '../core';
 import { SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
@@ -60,6 +60,9 @@ function lockReason(s: GameState, c: City, type: UnitTypeId, chk: TrainCheck, fi
 export function troopCards(s: GameState, c: City, run: (type: UnitTypeId) => void, ships = false): TroopCard[] {
   const f = c.owner;
   if (f === null) return [];
+  // Wohnbloecke und Supermarkt bilden nie aus: keine Leiste voller gesperrter Karten, das Stadtfeld zeigt stattdessen den Hinweis (supplyNoteHtml)
+  // residential blocks and supermarket never train: no strip full of locked cards, the city panel shows the note instead (supplyNoteHtml)
+  if (noTraining(c)) return [];
   const fid = s.factions[f].id;
   const types = [...(ships ? [] : rosterUnits(s, f)), ...rosterShips(s, f)];
   const cards: TroopCard[] = [];

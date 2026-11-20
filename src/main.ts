@@ -185,7 +185,11 @@ function boot() {
             toast(root, e.faction !== viewer ? t('cult.plunderedBy', { city, name: fname(e.faction) }) : e.plunder ? t('cult.plundered', { city, n: e.plunder }) : t('cult.plunderedEmpty', { city }), 'star');
             break;
           }
-          toast(root, t(s.cities.find((c) => c.id === e.city)?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city }), 'capture');
+          {
+            // Stuetzpunkt: die Art in der Meldung nennen / base: name the kind in the message
+            const taken = s.cities.find((c) => c.id === e.city);
+            toast(root, taken?.base ? t('bases.captured', { name: fname(e.faction), city, kind: t(`bases.name.${taken.base}`) }) : t(taken?.tower ? 'tower.captured' : 'events.capture', { name: fname(e.faction), city }), 'capture');
+          }
           break;
         }
         // Wortwahl nach der Rasse der forschenden Fraktion / wording by the race of the researching faction

@@ -58,6 +58,35 @@ const P: Record<string, string> = {
   chart: '<path d="M3 3v18h18"/><path d="M6.5 15.5l4-5 3.5 3 5.5-7"/><circle cx="19.5" cy="6.5" r="1.3" fill="currentColor"/>',
   lightning: '<path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor"/>',
   grand: '<path d="M4 21h16M6 21v-9M10 21v-9M14 21v-9M18 21v-9M3 12h18L12 4z"/>',
+  // Stuetzpunkte (BASES): ein Liniensymbol je Art / bases (BASES): one line icon per kind
+  /** Kaserne: Baracke mit Tor und Fahne / barracks: hut with gate and flag */
+  baseBarracks: '<path d="M3 21V12l9-5 9 5v9"/><path d="M2 21h20"/><path d="M10 21v-5h4v5"/><path d="M12 7V2l4 1.5-4 1.5"/>',
+  /** Bunker: Kuppel mit Sehschlitz / bunker: dome with a firing slit */
+  baseBunker: '<path d="M2 20h20"/><path d="M4 20v-5a8 8 0 0 1 16 0v5"/><path d="M8 14h8" stroke-width="2.8"/>',
+  /** Panzerfabrik: Panzer unter dem Hallendach / tank factory: tank under the hall roof */
+  baseTankFactory: '<path d="M3 7l9-4 9 4"/><path d="M4 15h16l-2 5H6z"/><path d="M8 15v-4h7v4"/><path d="M15 12.5h6"/>',
+  /** Militaerflughafen: Flugzeug von oben / military airfield: aircraft from above */
+  baseAirbase: '<path d="M12 2.5c1 0 1.6 1.4 1.6 3v4l7 4.5v2.2l-7-2.2v4l2 1.6V21L12 20l-3.6 1v-1.4l2-1.6v-4l-7 2.2V14l7-4.5v-4c0-1.6.6-3 1.6-3z"/>',
+  /** Nachschubdepot: gestapelte Kisten / supply depot: stacked crates */
+  baseDepot: '<path d="M2 21h20"/><path d="M4 21v-8h7v8M13 21v-8h7v8M8.5 13V5h7v8"/><path d="M7.5 13v2.5M16.5 13v2.5M12 5v2.5"/>',
+  /** Marinestuetzpunkt: Anker / naval base: anchor */
+  baseNaval: '<circle cx="12" cy="4.8" r="2"/><path d="M12 6.8V21"/><path d="M8 10.5h8"/><path d="M4 13c0 4.5 3.5 8 8 8s8-3.5 8-8"/>',
+  /** Geschuetzwerk: Kanone auf Lafette / gun works: cannon on its carriage */
+  baseGunWorks: '<path d="M2 21h20"/><circle cx="8" cy="17" r="3.5"/><path d="M6 12.5l13-6.5 1.6 3.3-10.8 5.4"/>',
+  /** Lazarett: Gebaeude mit Kreuz / field hospital: building with a cross */
+  baseHospital: '<path d="M2 21h20"/><path d="M4 21V7h16v14"/><path d="M9 7V3h6v4"/><path d="M12 10.5v7M8.5 14h7" stroke-width="2.8"/>',
+  /** Wohnbloecke: zwei Hochhaeuser mit Fenstern / residential blocks: two tower blocks with windows */
+  baseHousing: '<path d="M2 21h20"/><path d="M3.5 21V5h7.5v16M13 21V10h7.5v11"/><path d="M6.3 9h2M6.3 13h2M6.3 17h2M15.8 14h2M15.8 18h2"/>',
+  /** Supermarkt: Einkaufswagen / supermarket: shopping trolley */
+  baseSupermarket: '<path d="M2.5 4h3l2.6 11h9.8l2.6-8H7"/><circle cx="9.5" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/>',
+  /** Fabrik: Halle mit Schornstein und Rauch / factory: hall with chimney and smoke */
+  baseFactory: '<path d="M2 21h20"/><path d="M3 21v-8l5-3v3l5-3v11"/><path d="M13 21V6h4v15"/><path d="M17 13h4v8"/><path d="M14 3c1 .6 1 1.4 2 1.4s1-.8 2-.8 1 .8 2 .8"/>',
+  /** Atomkraftwerk: Kuehlturm mit Dampf / nuclear power plant: cooling tower with steam */
+  baseNuclear: '<path d="M2 21h20"/><path d="M6 21c1.6-4 1.6-8.5.5-13h11c-1.1 4.5-1.1 9 .5 13"/><path d="M9.5 5c0-1.4 1.4-1.4 1.4-2.8M13.5 5c0-1.4 1.4-1.4 1.4-2.8"/>',
+  /** Solarfarm: Modulfeld unter der Sonne / solar farm: panel array under the sun */
+  baseSolar: '<path d="M4 21l3-9h10l3 9z"/><path d="M9.6 12l-1 9M14.4 12l1 9M5.5 16.5h13"/><circle cx="12" cy="5.5" r="2"/><path d="M12 1.5v.6M7.6 5.5h.6M15.8 5.5h.6M8.9 2.4l.5.5M15.1 2.4l-.5.5"/>',
+  /** Windraeder: Mast mit drei Fluegeln / wind turbines: mast with three blades */
+  baseWind: '<path d="M12 21v-9.5"/><path d="M9 21h6"/><circle cx="12" cy="9.5" r="1.5"/><path d="M12 8V2.5M13.3 10.3l5 3M10.7 10.3l-5 3"/>',
   play: '<path d="M7 4v16l13-8z" fill="currentColor"/>',
   pause: '<path d="M7 4.5h3.5v15H7zM13.5 4.5H17v15h-3.5z" fill="currentColor"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',

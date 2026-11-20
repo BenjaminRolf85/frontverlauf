@@ -7,7 +7,7 @@
  * them, and the texts no longer drift when the balancing changes.
  */
 import {
-  CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
+  BASES, CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
   SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY,
 } from '../data/balance';
@@ -147,6 +147,24 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   hospitalHeal: CITY_UPGRADES.hospitalHeal,
   cityFlakDamage: CITY_UPGRADES.flakDamage,
   depotIncome: CITY_UPGRADES.depotIncome,
+  // Stuetzpunkte (BASES) / bases (BASES)
+  baseFootHp: BASES.footHp,
+  baseBunkerDef: BASES.defense.bunker ?? 0,
+  baseHousingDef: BASES.defense.housing ?? 0,
+  baseHeal: BASES.heal,
+  baseFactoryStars: BASES.stars.factory ?? 0,
+  baseDepotStars: BASES.stars.supplyDepot ?? 0,
+  baseNuclearStars: BASES.stars.nuclearPlant ?? 0,
+  baseSolarStars: BASES.stars.solarFarm ?? 0,
+  baseWindStars: BASES.stars.windFarm ?? 0,
+  baseNuclearEnergy: BASES.energy.nuclearPlant ?? 0,
+  baseSolarEnergy: BASES.energy.solarFarm ?? 0,
+  baseWindEnergy: BASES.energy.windFarm ?? 0,
+  baseDepotUnits: BASES.units.supplyDepot ?? 0,
+  baseHousingUnits: BASES.units.housing ?? 0,
+  baseSupermarketUnits: BASES.units.supermarket ?? 0,
+  baseDiscountPct: pct(BASES.discount),
+  baseGapStars: BASES.gapStars,
   // Wetter und Xeno-Boden / weather and xeno ground
   weatherCycle: WEATHER.cycleRounds,
   windFuel: WEATHER.wind.fuelBurn,

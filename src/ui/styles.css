@@ -835,6 +835,10 @@ input[type="text"], select {
 .rules-factions { list-style: none; margin: var(--p-space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-1); }
 .rules-factions li { display: flex; align-items: center; gap: var(--p-space-2); font-size: var(--p-font-size-sm); }
 .rules-factions .faction-chip .label { display: none; }
+/* Stuetzpunkte: Zeile im Stadtfeld und Liste in den Regeln / bases: line in the city panel and list in the rules */
+.base-line, .base-supply { margin: var(--p-space-2) 0 0; }
+.rules-bases { list-style: none; margin: var(--p-space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }
+.rules-bases li { font-size: var(--p-font-size-sm); }
 
 /* ---------- Forschung: Legende, Beschriftung, Listenansicht / research: legend, labels, list view ---------- */
 .legend i.legend-victory { background: var(--s-surface-raised); border: var(--p-border-width-thick) dashed var(--s-outline); }

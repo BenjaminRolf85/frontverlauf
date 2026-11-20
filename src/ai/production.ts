@@ -9,7 +9,7 @@
  * lumber camp for the foundry.
  */
 import {
-  buildCheck, citySites, cityTiles, factionVariant, rosterUnits, siteNeed, siteOf, supportedUnits, unitLimit, usesSites, type City, type Command, type GameState,
+  buildCheck, citySites, cityTiles, factionVariant, freeUnitSlots, noTraining, rosterUnits, siteNeed, siteOf, usesSites, type City, type Command, type GameState,
 } from '../core';
 import { AI, BUILDINGS, PRODUCTION, type BuildingId, type ProductionSiteId, type UnitTypeId } from '../data/balance';
 import type { Ctx } from './analysis';
@@ -69,8 +69,10 @@ export function productionBuys(ctx: Ctx, popVal: number, counters: { antiVehicle
   const worth = new Map<ProductionSiteId, number>();
   for (const site of ORDER) worth.set(site, siteWorth(ctx, site, counters));
   for (const c of ctx.myCities) {
+    // Wohnbloecke und Supermarkt: keine Produktionsstaetten (bilden nie aus) / residential blocks and supermarket: no production sites (they never train)
+    if (noTraining(c)) continue;
     const have = citySites(s, c);
-    const free = Math.max(0, unitLimit(s, c) - supportedUnits(s, c));
+    const free = freeUnitSlots(s, c);
     for (const site of ORDER) {
       if (site === 'navalBase' || have.includes(site)) continue;
       let value: number;

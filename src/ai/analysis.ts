@@ -4,11 +4,12 @@
  */
 import {
   counterFactor, unitRange, entrenchFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
-  neighbors, supportedUnits, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
+  neighbors, freeUnitSlots, noTraining, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
   isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, rearAttackBonus, type Pos } from '../core';
 import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
+import { baseAttackWorth, baseCaptureWorth, baseDefendWorth } from './bases';
 import { radarGoal, sabotageGoal, siloGoal } from './shadowFleet';
 import { isScientist, mothershipGoals, scientistGoal } from './mothership';
 import { carrierGoal, plansGoals } from './temple';
@@ -212,7 +213,9 @@ export function buildCtx(s: GameState, f: number): Ctx {
   // Kult bildet nicht aus: seine Staedte muessen nicht frei bleiben / the cult does not train: its cities need not stay free
   if (desired > my.length && fa.stars >= 10 && !cult) {
     // Menschen: nur Staedte mit einer Produktionsstaette / humans: only cities with a production site
-    for (const c of myCities) if (supportedUnits(s, c) < unitLimit(s, c) && (!usesSites(s, f) || citySites(s, c).length > 0)) ctx.trainable.add(c.id);
+    // Wohnbloecke und Supermarkt bilden nie aus; ihre Plaetze zaehlen fuer die anderen Staedte mit (freeUnitSlots)
+    // residential blocks and supermarket never train; their slots count for the other cities (freeUnitSlots)
+    for (const c of myCities) if (!noTraining(c) && freeUnitSlots(s, c) > 0 && (!usesSites(s, f) || citySites(s, c).length > 0)) ctx.trainable.add(c.id);
   }
   ctx.navalNeed = computeNavalNeed(ctx);
   assignGoals(ctx);
@@ -504,7 +507,8 @@ function buildGoals(ctx: Ctx): Goal[] {
   // Kult: Beute macht Siedlungen und Staedte lohnender / cult: loot makes villages and cities more attractive
   const loot = (c: City) => plunderValue(s, f, c) * AI.cultPlunderValue;
   for (const c of ctx.neutralCities) {
-    goals.push({ kind: 'village', x: c.x, y: c.y, value: 75 + loot(c), cap: 1, distW: 9, src: tileSrc(c.x, c.y), water: false });
+    // Stuetzpunkt: Wert nach Art und Fraktion (BASES.ai) / base: worth by kind and faction (BASES.ai)
+    goals.push({ kind: 'village', x: c.x, y: c.y, value: 75 + loot(c) + baseCaptureWorth(s, f, c), cap: 1, distW: 9, src: tileSrc(c.x, c.y), water: false });
   }
   // schwaechsten Gegner zuerst ausschalten / finish off the weakest enemy first
   const cityCount = new Map<number, number>();
@@ -515,7 +519,7 @@ function buildGoals(ctx: Ctx): Goal[] {
     const defended = !!def && def.owner !== f && canSeeUnit(s, f, def);
     const owned = s.cities.filter((o) => o.owner === c.owner).length;
     const value = (38 + 6 * c.level + (c.isHQ ? 15 : 0)) * prof.aggression + (defended ? 0 : 25 + prof.raid) +
-      (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0) + loot(c);
+      (cityCount.get(c.owner!) === fewest ? 8 : 0) + (owned <= 2 ? 15 : 0) + loot(c) + baseAttackWorth(s, f, c);
     goals.push({ kind: 'city', x: c.x, y: c.y, value: value + (ctx.siege ? 20 : 0), cap: ctx.siege ? (defended ? 5 : 3) : defended ? 4 : 2, distW: ctx.siege ? 3 : 5, src: tileSrc(c.x, c.y), water: false, targetId: c.id });
   }
   for (let k = 0; k < ctx.n; k++) {
@@ -543,7 +547,7 @@ function buildGoals(ctx: Ctx): Goal[] {
   for (const c of ctx.myCities) {
     const near = ctx.enemies.filter((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
     if (!near.length) continue;
-    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + 8 * near.length;
+    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + 8 * near.length + baseDefendWorth(s, f, c);
     goals.push({ kind: 'defend', x: c.x, y: c.y, value, cap: Math.min(3, near.length + 1), distW: 12, src: tileSrc(c.x, c.y), water: false });
   }
   // Feindliche Wunder: hoechster Vorrang, jeder Treffer unterbricht oder schwaecht / hostile wonders: top priority, every hit interrupts or weakens
