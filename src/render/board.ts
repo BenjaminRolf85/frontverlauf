@@ -30,6 +30,7 @@ import { WATER_BOX_TOP, buildWater } from './water';
 import { CLIFF_STEP, NATURAL, beachCoast, buildLandscape, cliffRock, groundTone, growthRank } from './landscape';
 import { TownFx, type TownInput } from './lights';
 import { FogFx } from './fog';
+import { ContactShadows } from './contact';
 import { CaveShell } from './cave';
 import { CaveLife, type CreatureSpot } from './life';
 import { setWaterTheme } from './water';
@@ -263,6 +264,8 @@ export class Board {
   readonly techParts = new TechParts();
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
+  /** Bodenschatten unter Einheiten und stehender Dekoration / contact shadows under units and standing decoration */
+  readonly contact = new ContactShadows();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
   readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : this.theme === 'alien' ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
   /** Darstellungsqualitaet (View.setQuality): 'low' = weniger Hoehlen-Deko / render quality: 'low' = less cavern decoration */
@@ -326,7 +329,7 @@ export class Board {
     clearer.onBeforeRender = (renderer) => renderer.clearDepth();
     clearer.raycast = () => {};
     this.unitLayer.add(clearer);
-    this.group.add(this.life.group, this.caveShell.group, this.caveLife.group);
+    this.group.add(this.life.group, this.caveShell.group, this.caveLife.group, this.contact.group);
     this.life.busy = (id) => this.animating.has(id);
   }
 
@@ -1115,6 +1118,8 @@ export class Board {
       // Hoehle, niedrige Qualitaet: Pilze und Bodendeko ohne Tuschelinie (halbiert die Dreiecke) / cavern, low quality: mushrooms and floor decoration without ink line (halves the triangles)
       if (cave && low && geo.name.startsWith('cave|')) { line.dispose(); this.staticLayer.add(mesh); } else this.staticLayer.add(mesh, line);
     }
+    // Bodenschatten unter Baeumen, Felsen und anderer stehender Dekoration / contact shadows under trees, rocks and other standing decoration
+    this.contact.buildDeco([decoGroups, swayGroups]);
     this.ambient.build(fishTiles);
     for (const [geo, mats] of decals) {
       const mesh = new THREE.InstancedMesh(withGlow(geo, 'none'), decalMaterial(), mats.length);
@@ -1413,6 +1418,8 @@ export class Board {
       const echo = viewer >= 0 && radarEcho(s, viewer, u);
       const hidden = submerged || echo || (camouflaged(u) && (viewer < 0 || u.owner === viewer));
       if (echo && !this.isAnimating(u.id)) v.group.position.y = CLOUD_Y + RADAR_ECHO_LIFT;
+      // kein Bodenschatten fuer Radarkontakte und getauchte U-Boote / no contact shadow for radar contacts and submerged submarines
+      v.group.userData.noShadow = echo || submerged;
       this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
       const opts = hidden ? { transparent: true, opacity: echo ? 0.7 : 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
       const mat = unitMaterial(opts);
@@ -1474,12 +1481,16 @@ export class Board {
     return m;
   }
 
-  /** Schatten mit sterbenden Einheiten ausblenden / hide shadows of dying units */
+  /** Bodenschatten folgen den Einheiten und schrumpfen mit sterbenden / contact shadows follow the units and shrink with dying ones */
   updateShadows() {
+    this.contact.beginUnits(this.units.size);
+    let i = 0;
     for (const v of this.units.values()) {
-      const sh = v.group.getObjectByName('shadow');
-      if (sh) sh.visible = v.group.scale.x > 0.3;
+      const g = v.group;
+      if (!g.visible || g.userData.noShadow || g.scale.x <= 0.3) continue;
+      this.contact.unit(i++, g.position, Math.min(1, g.scale.x));
     }
+    this.contact.endUnits(i);
   }
 
   /** Eigene Ringe pulsieren leicht / own rings pulse gently */
@@ -1857,6 +1868,8 @@ export class Board {
       try { a.update(t); } catch (e) { console.error(e); this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); continue; }
       if (t >= 1) { this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); }
     }
+    // Bodenschatten folgen der Bewegung im selben Bild / contact shadows follow the move within the same frame
+    this.updateShadows();
     this.dirty = false;
     return true;
   }
