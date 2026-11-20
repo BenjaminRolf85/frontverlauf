@@ -71,13 +71,39 @@ export { techParts, type TechPart } from './velkarTech';
  * stage: Bauphase (0 = im Bau) / build phase (0 = under construction).
  */
 
+/**
+ * Detailstufe der Einheitenmodelle: 'high' = Feinmodellierung mit Zusatzdetails und runderen Formen, 'low' = dieselben
+ * Modelle ohne die Zusaetze (schwache Geraete). Gilt fuer alle danach angeforderten Einheiten; beide Stufen liegen
+ * getrennt im Zwischenspeicher. Das Brett setzt die Stufe aus der Qualitaetseinstellung.
+ * Detail level of the unit models: 'high' = fine modelling with extra detail and rounder shapes, 'low' = the same
+ * models without the extras (weak devices). Applies to all units requested afterwards; both levels are cached
+ * separately. The board sets the level from the quality setting.
+ */
+export type UnitQuality = 'low' | 'high';
+/**
+ * Dreiecks-Obergrenze je Einheitenmodell (jede Fraktion, beide Detailstufen); der Endgegner ist doppelt so gross.
+ * Die Tuschelinie zeichnet jedes Modell ein zweites Mal. Genaue Grenzen je Typ: tests/unit-model-budget.test.ts.
+ * Triangle ceiling per unit model (any faction, both detail levels); the boss is twice the size. The ink line draws
+ * every model a second time. Exact limits per type: tests/unit-model-budget.test.ts.
+ */
+export const UNIT_TRI_LIMIT = 9500;
+export const UNIT_TRI_LIMIT_BOSS = 16500;
+let unitQuality: UnitQuality = 'high';
+export function setUnitQuality(q: UnitQuality): void {
+  unitQuality = q;
+}
+export function getUnitQuality(): UnitQuality {
+  return unitQuality;
+}
+
 export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null, stage = 0): THREE.BufferGeometry {
   const c = (type === 'landingBoat' || type === 'fogCutter') && carried && carried !== type ? carried : null;
   const wonder = (WONDER_UNITS as UnitTypeId[]).includes(type);
   // Siegbauwerke: eigene Modelle in Bauwerksgroesse, ohne Groessen- und Tonwert-Anpassung der Einheiten
   // victory wonders: own models at structure size, without the unit size and value adjustments
   if (wonder) return wonderGeometry(type as WonderType, faction, stage);
-  return memo(`unit|${type}|${faction}|${c ?? ''}${wonder ? `|${stage}` : ''}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
+  const hi = unitQuality === 'high';
+  return memo(`unit|${type}|${faction}|${c ?? ''}${hi ? '' : '|low'}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
       case 'sniper': return sniper(faction).build();
@@ -148,7 +174,7 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       // Wunder der Siegbedingungen / victory wonders
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
-  }))));
+  }, { smooth: true, fine: hi }))));
 }
 
 /**
@@ -229,7 +255,7 @@ export function leaderGeometry(faction: FactionId, mood: LeaderMood = 'neutral')
 
 /** Vereinfachte Ladung fuer das Landungsboot (ohne Besatzung/Embleme) / simplified cargo for the landing boat */
 function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeometry {
-  return memo(`unitLite|${type}|${faction}`, () => {
+  return memo(`unitLite|${type}|${faction}${unitQuality === 'high' ? '' : '|low'}`, () => {
     switch (type) {
       case 'jeep': return (faction === 'velkar' ? sensorCarrier(faction, true) : jeep(faction, true)).build();
       case 'tank': return tank(faction, true).build();

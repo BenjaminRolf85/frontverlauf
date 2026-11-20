@@ -17,7 +17,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { ball, Builder, fine, geo, mix, rng, shade, softBox, type ColorLike, type V3 } from './kit';
 import { mat, type Look } from './look';
 import { TECH } from './velkarTech';
 import { FAITH, faithStar, haloRing } from './alveniaFaith';
@@ -42,9 +42,11 @@ function onDome(b: Builder, centre: V3, rad: number, scale: V3, theta: number, p
 /** Gesicht mit Augen, Brauen, Nase, Mund / face with eyes, brows, nose, mouth */
 export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', seed: number) {
   const R = rng(seed);
-  b.add(d >= 1 ? geo.rbox(0.104, 0.098, 0.1, 0.02) : geo.box(0.104, 0.098, 0.1), mat.skin, { p: [0, 0.049, 0] });
+  // runder Kopf: Rundungsschritte je Detailstufe / round head: rounding steps per detail level
+  b.add(softBox(0.104, 0.098, 0.1, 0.027, headSteps(d)), mat.skin, { p: [0, 0.049, 0] });
   // Nase / nose
-  b.add(d === 2 ? geo.rtaper(0.024, 0.022, 0.018, 0.014, 0.03, 0.005) : geo.box(0.022, 0.026, 0.018), shade(mat.skin, 0.9), { p: [0, 0.04, 0.056] });
+  const roundNose = d === 2 || (d === 1 && fine());
+  b.add(roundNose ? ball(1, d === 2 ? 8 : 6, d === 2 ? 5 : 4) : geo.box(0.022, 0.026, 0.018), shade(mat.skin, 0.9), { p: [0, 0.04, roundNose ? 0.053 : 0.056], s: roundNose ? [0.0125, 0.015, 0.0125] : 1 });
   if (glasses === 'none') {
     for (const s of [-1, 1]) {
       if (d >= 1) {
@@ -57,7 +59,12 @@ export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', see
     }
   }
   if (d >= 1) b.box(0.03, 0.006, 0.005, shade(mat.skin, 0.55), [0.004, 0.018, 0.0505], [0, 0, -0.08]);
-  if (d === 2) for (const s of [-1, 1]) b.add(geo.rbox(0.014, 0.03, 0.024, 0.005), shade(mat.skin, 0.9), { p: [s * 0.055, 0.048, -0.004] });
+  if (d === 2) for (const s of [-1, 1]) b.add(softBox(0.014, 0.03, 0.024, 0.006, fine() ? 1 : 0), shade(mat.skin, 0.9), { p: [s * 0.055, 0.048, -0.004] });
+}
+
+/** Rundungsschritte eines Kopfes: bei hoher Qualitaet 1 (Besatzung 0), sonst 0 / rounding steps of a head: 1 on high quality (crew 0), else 0 */
+function headSteps(d: Detail): number {
+  return d >= 1 && fine() ? 1 : 0;
 }
 
 function sunglasses(b: Builder, d: Detail, c: ColorLike = mat.ink) {
@@ -121,7 +128,7 @@ export function robotHead(b: Builder, L: Look, d: Detail, spy: boolean) {
   const plate = L.helmet;
   const metal = mat.gunmetal;
   const glow = mat.cyanGlow;
-  b.add(d >= 1 ? geo.rbox(0.104, 0.1, 0.104, 0.022) : geo.box(0.1, 0.1, 0.1), plate, { p: [0, 0.058, 0] });
+  b.add(softBox(0.104, 0.1, 0.104, 0.02, headSteps(d)), plate, { p: [0, 0.058, 0] });
   b.add(d >= 1 ? geo.rtaper(0.084, 0.07, 0.074, 0.06, 0.03, 0.008) : geo.box(0.08, 0.03, 0.07), metal, { p: [0, 0.012, 0.008] });
   b.box(0.104, 0.03, 0.006, metal, [0, 0.066, 0.052]);
   b.box(0.092, 0.014, 0.006, glow, [0, 0.066, 0.055]);
@@ -198,8 +205,9 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
 
 /** Kopf + Kopfbedeckung / head + headgear */
 export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean, seed = 1) {
-  const ws = d === 2 ? 18 : d === 1 ? 12 : 10;
-  const hs = d === 2 ? 6 : d === 1 ? 5 : 3;
+  // hohe Qualitaet: volle Rundung der Helme / high quality: full roundness of the helmets
+  const ws = d === 2 ? (fine() ? 18 : 15) : d === 1 ? 12 : fine() ? 12 : 10;
+  const hs = d === 2 ? 6 : d === 1 ? 5 : fine() ? 4 : 3;
   const hc = L.helmet;
   if (fedora) {
     spyHat(b, f, L, d, ws);
@@ -234,7 +242,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
         // Nieten / rivets
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-          onDome(b, C, 0.086, S, a, 1.15, () => geo.sphere(0.005, 5, 3), shade(hc, 0.65));
+          onDome(b, C, 0.086, S, a, 1.15, () => ball(0.005, 6, 3), shade(hc, 0.65));
         }
         // Kinnriemen / chinstrap
         for (const s of [-1, 1]) b.box(0.006, 0.07, 0.01, mat.dark, [s * 0.055, 0.03, 0.016], [0.12, 0, 0]);
@@ -255,7 +263,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       // schwarze Sturmhaube mit Augenausschnitt + flaches Barett mit Goldrand und Faust-Abzeichen
       // black balaclava with eye opening + flat beret with gold edge and fist badge
       const knit = shade(hc, 1.35);
-      b.add(d >= 1 ? geo.rbox(0.112, 0.106, 0.108, 0.026) : geo.box(0.112, 0.106, 0.108), hc, { p: [0, 0.052, 0] });
+      b.add(softBox(0.112, 0.106, 0.108, 0.032, headSteps(d)), hc, { p: [0, 0.052, 0] });
       // Augenausschnitt mit Haut und Augen / eye opening with skin and eyes
       b.add(d >= 1 ? geo.rbox(0.082, 0.026, 0.01, 0.006) : geo.box(0.082, 0.026, 0.01), mat.skin, { p: [0, 0.062, 0.051] });
       for (const sx of [-1, 1]) {

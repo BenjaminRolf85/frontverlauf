@@ -3,7 +3,8 @@
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
  * URL-Parameter / URL params: ?cat=units|ships|buildings|resource|grand|cities|nature|counters|unique|leaders|wonders|artifact|all &view=iso|top|front|34 &f=<faction>
- * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0
+ * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
+ * cat=special: Sonderbauarten der Fraktionen / faction designs
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
@@ -14,7 +15,7 @@ import {
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, unitGeometry, xenoDecoration,
+  buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, setUnitQuality, unitGeometry, xenoDecoration, UNIT_TRI_LIMIT, UNIT_TRI_LIMIT_BOSS,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -32,6 +33,8 @@ const params = new URLSearchParams(location.search);
 // ?labels=0 blendet Beschriftung und Navigation aus / hides labels and navigation
 if (params.get('labels') === '0') document.querySelector('nav')?.remove();
 const cat = params.get('cat') ?? 'units';
+// ?q=low zeigt die leichte Detailstufe der Einheiten / shows the light unit detail level
+if (params.get('q') === 'low') setUnitQuality('low');
 const view = params.get('view') ?? 'iso';
 const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
@@ -278,6 +281,19 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'special': {
+      // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction
+      const list: [UnitTypeId, FactionId][] = [
+        ['teslaTank', 'velkar'], ['octocopter', 'velkar'], ['railSniper', 'velkar'], ['lightWarden', 'alvenia'], ['reliquary', 'alvenia'], ['sunLance', 'alvenia'],
+        ['steppeColossus', 'korvat'], ['shadowCommando', 'meridon'], ['fogCutter', 'meridon'], ['guidedMissile', 'meridon'], ['radarTruck', 'meridon'],
+        ['swarmMother', 'zyrr'], ['scientist', 'korvat'],
+      ];
+      const water = (t: UnitTypeId) => t === 'fogCutter';
+      // drei je Zeile / three per row
+      const rows: Row[] = [];
+      for (let i = 0; i < list.length; i += 3) rows.push({ label: `special ${i / 3 + 1}`, cells: list.slice(i, i + 3).map(([t, f]) => ({ geo: unitGeometry(t, f, null), ground: water(t) ? waterGround : factionTokens[f].terrain })) });
+      return { cols: ['a', 'b', 'c'], rows };
+    }
     case 'leaders': {
       // Anfuehrer-Buesten; view=34 dreht sie in die Dreiviertelansicht / leader busts; view=34 turns them three-quarter
       const bust = (f: FactionId) => {
@@ -502,8 +518,8 @@ function checkAll(): string[] {
     const n = g.getAttribute('normal').array as Float32Array;
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
-    const big = ['tank', 'antiAir', 'mineLayer', 'mech', 'tripod', 'doomCrawler', 'titan', 'battleship', 'protoWalker'].some((u) => name.startsWith(`unit ${u} `));
-    const limit = name.startsWith('unit swarmMother') ? 16000 : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : big ? 9000 : name.startsWith('unit') ? 6000 : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    // Einheiten: Obergrenze je Modell (genau je Typ in tests/unit-model-budget.test.ts) / units: ceiling per model (exact per type in tests/unit-model-budget.test.ts)
+    const limit = name.startsWith('unit swarmMother') ? UNIT_TRI_LIMIT_BOSS : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : name.startsWith('unit') ? UNIT_TRI_LIMIT : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name === 'artifact all') {
       // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2
