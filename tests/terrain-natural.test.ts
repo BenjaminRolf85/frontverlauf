@@ -4,7 +4,7 @@
  * Natural landscape of the default world: fringes, beach, sand shoal, ground tone and meadow variants are deterministic
  * and reveal nothing about tiles under the fog of war.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { createGame, defaultConfig, isExplored, type GameState, type Tile } from '../src/core';
 import { Board } from '../src/render/board';
@@ -15,6 +15,10 @@ import { TILE_TOP } from '../src/render/config';
 import { NATURAL, beachCoast, buildLandscape, groundTone, growthRank, type LandInput } from '../src/render/landscape';
 import { SHOAL, buildWater, setWaterTheme, waterMaterial } from '../src/render/water';
 import { fringeGeometry, decorationGeometry } from '../src/render/models';
+
+// die Tests bauen ganze Karten und Bretter: auf einem ausgelasteten Rechner reicht die Vorgabe von 5 s nicht
+// the tests build whole maps and boards: on a busy machine the default of 5 s is not enough
+vi.setConfig({ testTimeout: 120000 });
 
 const water = (t: Tile) => t.terrain === 'shallow' || t.terrain === 'ocean';
 const top = (t: Tile) => TILE_TOP[t.terrain] + (t.biome && !water(t) ? BIOME_LIFT[t.biome] : 0) + (t.terrain === 'mountain' ? PEAK_LIFT[t.peak ?? 2] : 0);
