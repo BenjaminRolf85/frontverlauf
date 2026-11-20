@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, shade } from './kit';
+import { Builder, fine, geo, shade } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { soldier, standPose } from './soldiers';
 import { TECH, techDot } from './velkarTech';
@@ -190,7 +190,8 @@ function funnel(b: Builder, f: FactionId, L: Look, z: number, y: number, h: numb
   const dz = styleOf(f) === 'dravon' ? -r * 0.6 : 0;
   b.block(0, y + h - 0.02, z + dz, r * 2.1, 0.02, r * 2.5, L.trim);
   b.block(0, y + h, z + dz, r * 1.5, 0.004, r * 1.8, mat.ink);
-  b.add(geo.ico(r * 0.9, 0), mat.cloudShade, { p: [0, y + h + r, z + dz - r * 0.6] });
+  // Rauchwolke: bei hoher Qualitaet rund / smoke puff: round on high quality
+  b.add(fine() ? geo.sphere(r * 0.9, 7, 4) : geo.ico(r * 0.9, 0), mat.cloudShade, { p: [0, y + h + r, z + dz - r * 0.6] });
 }
 
 /** Container-Stapel (Meridon) / container stack */

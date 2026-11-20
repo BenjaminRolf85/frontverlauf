@@ -1322,12 +1322,14 @@ export class Board {
     }
     this.lastState = s;
     const seen = new Set<number>();
+    // Detailstufe der Einheitenmodelle folgt der Qualitaet (im Schluessel: Wechsel baut die Modelle neu) / unit model detail follows the quality (in the key: a change rebuilds the models)
+    models.setUnitQuality(this.quality);
     for (const u of s.units) {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
       const stage = u.wonder?.stage ?? 0;
-      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}`;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}-${this.quality}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
