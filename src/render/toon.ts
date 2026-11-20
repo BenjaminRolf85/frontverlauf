@@ -6,16 +6,27 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { hex, semantic } from '../design/tokens';
 
-let gradient: THREE.DataTexture | null = null;
-function gradientMap(): THREE.DataTexture {
-  if (gradient) return gradient;
-  const steps = new Uint8Array([90, 90, 90, 255, 175, 175, 175, 255, 255, 255, 255, 255]);
-  gradient = new THREE.DataTexture(steps, 3, 1, THREE.RGBAFormat);
-  gradient.minFilter = THREE.NearestFilter;
-  gradient.magFilter = THREE.NearestFilter;
-  gradient.generateMipmaps = false;
-  gradient.needsUpdate = true;
-  return gradient;
+/**
+ * Helligkeitsstufen des Sonnenlichts (0..255): abgewandte Seite, Streiflicht, besonnte Seite. Die grosse Spanne gibt den
+ * Modellen eine deutlich schattige Seite; soft ist die sanftere Treppe fuer die Wolken des Kriegsnebels.
+ * Brightness steps of the sun light (0..255): far side, grazing light, sunlit side. The wide range gives the models a
+ * clearly shaded side; soft is the gentler ramp for the fog-of-war clouds.
+ */
+export const TOON_RAMP = { hard: [36, 128, 255], soft: [185, 225, 255] };
+
+const gradients = new Map<string, THREE.DataTexture>();
+/** Stufentextur fuer das Toon-Shading / step texture for the toon shading */
+export function gradientMap(kind: keyof typeof TOON_RAMP = 'hard'): THREE.DataTexture {
+  let g = gradients.get(kind);
+  if (g) return g;
+  const steps = new Uint8Array(TOON_RAMP[kind].flatMap((v) => [v, v, v, 255]));
+  g = new THREE.DataTexture(steps, 3, 1, THREE.RGBAFormat);
+  g.minFilter = THREE.NearestFilter;
+  g.magFilter = THREE.NearestFilter;
+  g.generateMipmaps = false;
+  g.needsUpdate = true;
+  gradients.set(kind, g);
+  return g;
 }
 
 const toonCache = new Map<string, THREE.MeshToonMaterial>();

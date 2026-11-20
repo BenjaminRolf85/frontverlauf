@@ -821,11 +821,16 @@ export const components = {
   techTree: { fontSize: '11px', costSize: '20px', stroke: '3', strokeDone: '5', strokeSelected: '6', labelHalo: '4', dash: '6 3' },
   /** Lagekarte (Canvas liest die Farben direkt) / minimap (the canvas reads the colours directly) */
   minimap: {
-    size: '136px', sizeDesktop: '184px', bg: semantic.surfaceInverse, border: semantic.outline, fog: c.ink800,
-    view: c.yellow400, viewShade: semantic.outline, neutral: semantic.neutral, outline: semantic.outline,
+    // Papierkarte: Papierton als Grund, Unerforschtes als schraffiertes Papier, Gelaende um paperMix zum Papier gemischt
+    // paper map: paper tone as the ground, the unexplored as hatched paper, terrain mixed towards the paper by paperMix
+    size: '136px', sizeDesktop: '184px', bg: semantic.surface, border: semantic.outline, fog: c.paper200, fogHatch: c.paper300,
+    frame: c.paper300, frameInset: '3', pad: '8', sheetShade: c.paper300, sheetLine: '1.6', paperMix: '0.24',
+    view: c.yellow400, viewShade: semantic.outline, neutral: semantic.surfaceRaised, outline: semantic.outline,
     plain: semantic.terrainPlain, forest: c.forest500, mountain: semantic.terrainMountain, shallow: semantic.terrainShallow,
     ocean: semantic.terrainOcean, deep: semantic.terrainDeep, xeno: semantic.xenoGround, lava: semantic.lava,
-    territoryMix: '0.34', borderAlpha: '0.9', unitDot: '1.9', cityDot: '2.6', hqDot: '4', viewLine: '1.6',
+    // Marken in CSS-Pixeln: Einheit, Stadt (Kreisradius), Hauptquartier (Sternradius), Strichbreiten
+    // marks in CSS pixels: unit, city (circle radius), headquarters (star radius), line widths
+    territoryMix: '0.34', borderAlpha: '0.9', coastAlpha: '0.6', unitDot: '1.8', cityDot: '3.3', hqDot: '6.4', markLine: '1.2', viewLine: '2',
   },
   /** Verlaufsdiagramm der Statistik / statistics line chart */
   chart: {

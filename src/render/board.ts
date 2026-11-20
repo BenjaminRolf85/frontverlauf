@@ -9,7 +9,7 @@ import { FUEL, M2, WAR_MARKS } from '../data/balance';
 import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
-import { ANIM, CLOUD_Y, MARKER, OUTLINE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
+import { ANIM, CAMERA, CITY_MASK, CITY_SIGN, CLOUD_Y, GARRISON, MARKER, OUTLINE, SETTLEMENT_SCALE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
 import { attackIcon, cityLabel, hpBadge, raceBadge } from './labels';
 import * as models from './models';
 import { WeatherFx } from './weather';
@@ -18,7 +18,7 @@ import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { ROCKET_FX, RocketFx } from './fx/rocket';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
-import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
+import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, meadowVariant, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { CombatFx, aimTurrets, angleDelta, headingOf, lerpAngle, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 import { brokenFenceGeometry, burntGrassGeometry, debrisGeometry, oilSlickGeometry, roadDamageGeometry, shellHolesGeometry, smokeWispGeometry, stumpsGeometry } from './remains';
@@ -27,15 +27,17 @@ import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
 import { TechParts } from './techParts';
 import { WATER_BOX_TOP, buildWater } from './water';
-import { buildLandscape, cliffRock } from './landscape';
+import { CLIFF_STEP, NATURAL, beachCoast, buildLandscape, cliffRock, groundTone, growthRank } from './landscape';
 import { TownFx, type TownInput } from './lights';
 import { FogFx } from './fog';
+import { ContactShadows } from './contact';
 import { CaveShell } from './cave';
 import { CaveLife, type CreatureSpot } from './life';
 import { setWaterTheme } from './water';
 import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGeometry } from './alienWorld';
 import { alienBurrowGeometry } from './models/alienFlora';
 import { towerGeometry } from './models/towers';
+import { cityHeight, hqMastTop } from './models/city';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
 import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
@@ -124,10 +126,12 @@ const lavaGeometry = (v: number) => safe(models.lavaGeometry, semantic.lava, v);
 const crashSiteGeometry = (v: number) => safe(models.crashSiteGeometry, semantic.metal, v);
 const labRuinGeometry = (v: number) => safe(models.labRuinGeometry, semantic.neutral, v);
 const jungleDecoration = (v: number) => safe(models.jungleDecoration, semantic.biomeJungleDark, v);
+const fringeGeometry = (v: number) => safe(models.fringeGeometry, null, v);
 const mothershipGeometry = (lite: boolean) => safe(models.mothershipGeometry, semantic.xenoGround, lite);
 const mothershipSmokeGeometry = (lite: boolean) => safe(models.mothershipSmokeGeometry, null, lite);
 /** Mutterschiff (m2): Breitseite zur Standardkamera / mothership (m2): broadside towards the default camera */
 const SHIP_TURN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
+const WHITE = new THREE.Color(1, 1, 1);
 /** Deckkraft erschoepfter Einheiten / opacity of exhausted units */
 const DONE_OPACITY = 0.5;
 /** Eintauchtiefe watender Einheiten / sink depth of wading units */
@@ -216,6 +220,23 @@ const UNIT_ORDER = 60;
 const sceneryLine = (geo: THREE.BufferGeometry) =>
   geo.name.startsWith('deco|forest|') || geo.name.startsWith('deco|mountain|') ? OUTLINE.scenery : OUTLINE.building;
 
+/**
+ * LP-Plakette in ihrer Groesse halten, wenn die Einheit verkleinert gezeichnet wird (Besatzung, GARRISON).
+ * Keep the HP badge at its size when the unit is drawn smaller (garrison, GARRISON).
+ */
+function fitBadge(badge: THREE.Sprite, unitScale: number) {
+  const size = badge.userData.size as THREE.Vector3 | undefined;
+  if (size) badge.scale.copy(size).multiplyScalar(1 / Math.max(0.001, unitScale));
+}
+/** Einheitswuerfel (Ursprung unten mittig) und unsichtbares Material der Trefferkoerper / unit cube (origin bottom centre) and invisible material of the hit bodies */
+let proxyGeo: THREE.BufferGeometry | null = null;
+const proxyGeometry = () => (proxyGeo ??= new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0));
+let proxyMat: THREE.MeshBasicMaterial | null = null;
+const proxyMaterial = () => (proxyMat ??= new THREE.MeshBasicMaterial({ visible: false }));
+/** Tiefenmaske der Staedte: schreibt nur Tiefe (CITY_MASK) / depth mask of the cities: writes depth only (CITY_MASK) */
+let maskMat: THREE.MeshBasicMaterial | null = null;
+const maskMaterial = () => (maskMat ??= new THREE.MeshBasicMaterial({ colorWrite: false }));
+
 export class Board {
   readonly group = new THREE.Group();
   private staticLayer = new THREE.Group();
@@ -243,6 +264,8 @@ export class Board {
   readonly techParts = new TechParts();
   /** Stadtlichter, Lava-Schein, Leuchtfeuer, Schornsteinrauch / city lights, lava glow, beacons, chimney smoke */
   readonly town = new TownFx();
+  /** Bodenschatten unter Einheiten und stehender Dekoration / contact shadows under units and standing decoration */
+  readonly contact = new ContactShadows();
   /** Aufloesende Nebelwolken / dissolving fog clouds */
   readonly fogFx = new FogFx((v) => (this.theme === 'cavern' ? caveCloudGeometry(v) : this.theme === 'alien' ? alienCloud(cloudGeometry(v), v) : cloudGeometry(v)));
   /** Darstellungsqualitaet (View.setQuality): 'low' = weniger Hoehlen-Deko / render quality: 'low' = less cavern decoration */
@@ -270,6 +293,25 @@ export class Board {
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
+  /**
+   * Unsichtbare Trefferkoerper hoher Staedte und Sendetuerme (userData.tile = Feldindex): ein Tipp auf das Wahrzeichen
+   * waehlt die Stadt, nicht das Feld dahinter.
+   * Invisible hit bodies of tall cities and transmitter towers (userData.tile = tile index): a tap on the landmark picks
+   * the city, not the tile behind it.
+   */
+  private cityProxies: THREE.Mesh[] = [];
+  /** Tiefenmasken der Staedte mit ihrer Grundposition (CITY_MASK) / depth masks of the cities with their base position (CITY_MASK) */
+  private cityMasks: { mesh: THREE.Mesh; base: THREE.Vector3 }[] = [];
+  /** zuletzt gesetzte Markierungen (fuer Besatzungen beim Drehen) / highlights set last (for garrisons while rotating) */
+  private lastHighlights: { x: number; y: number; kind: HighlightKind; facing?: number }[] = [];
+  /** Stadtschilder mit ihrem Feld, fuer die Platzierung je Blickrichtung / city signs with their tile, placed per view direction */
+  private citySigns: { sprite: THREE.Sprite; x: number; y: number; top: number }[] = [];
+  /** Felder mit sichtbarer Einheit beim letzten Neuaufbau / tiles with a visible unit at the last rebuild */
+  private occupiedTiles = new Set<number>();
+  /** Zustand des letzten Abgleichs (fuer die Besatzungen beim Drehen) / state of the last sync (for the garrisons while rotating) */
+  private lastState: GameState | null = null;
+  /** Richtung zur Kamera am Boden (x, z), Laenge 1 / direction towards the camera on the ground (x, z), length 1 */
+  private front = new THREE.Vector2(Math.SQRT1_2, Math.SQRT1_2);
   private anims: Anim[] = [];
   private tileGeoCache = new Map<string, THREE.BufferGeometry>();
   size = 0;
@@ -287,7 +329,7 @@ export class Board {
     clearer.onBeforeRender = (renderer) => renderer.clearDepth();
     clearer.raycast = () => {};
     this.unitLayer.add(clearer);
-    this.group.add(this.life.group, this.caveShell.group, this.caveLife.group);
+    this.group.add(this.life.group, this.caveShell.group, this.caveLife.group, this.contact.group);
     this.life.busy = (id) => this.animating.has(id);
   }
 
@@ -296,6 +338,79 @@ export class Board {
     const off = (this.size - 1) / 2;
     const top = s ? tileTop(s.tiles[y * s.size + x]) : 0;
     return new THREE.Vector3(x - off, top, y - off);
+  }
+
+  /**
+   * Standplatz einer Einheit: Feldmitte; auf einem Stadtfeld die vordere Ecke zur Kamera hin, kleiner (GARRISON).
+   * Spot of a unit: the tile centre; on a city tile the front corner towards the camera, smaller (GARRISON).
+   */
+  private unitSpot(s: GameState, x: number, y: number): { pos: THREE.Vector3; scale: number } {
+    const pos = this.tileCenter(s, x, y);
+    if (s.tiles[y * s.size + x].cityId === null) return { pos, scale: 1 };
+    pos.x += this.front.x * GARRISON.shift; pos.z += this.front.y * GARRISON.shift;
+    return { pos, scale: GARRISON.scale };
+  }
+
+  /**
+   * Blickrichtung der Kamera (Winkel um die Hochachse, wie View.angle): Besatzungen und Stadtschilder ruecken zur Kamera.
+   * View direction of the camera (angle about the vertical axis, like View.angle): garrisons and city signs move towards the camera.
+   */
+  setViewAngle(angle: number) {
+    const fx = Math.cos(angle), fz = Math.sin(angle);
+    if (Math.abs(fx - this.front.x) < 1e-4 && Math.abs(fz - this.front.y) < 1e-4) return;
+    this.front.set(fx, fz);
+    this.placeCitySigns();
+    this.placeCityMasks();
+    const s = this.lastState;
+    if (s) for (const u of s.units) {
+      const v = this.units.get(u.id);
+      if (!v || this.isAnimating(u.id) || s.tiles[u.y * s.size + u.x]?.cityId == null) continue;
+      const y = v.group.position.y;
+      v.group.position.copy(this.unitSpot(s, u.x, u.y).pos).setY(y);
+    }
+    // Markierungen an Besatzungen ruecken mit / highlights at garrisons move along
+    if (s && this.lastHighlights.some((h) => this.garrisonAt(s, h.x, h.y))) this.setHighlights(s, this.lastHighlights);
+    this.dirty = true;
+  }
+
+  /** Steht auf dem Stadtfeld eine sichtbare Einheit? / is there a visible unit on the city tile? */
+  private garrisonAt(s: GameState, x: number, y: number): boolean {
+    if (s.tiles[y * s.size + x]?.cityId == null) return false;
+    return s.units.some((u) => u.x === x && u.y === y && this.units.has(u.id));
+  }
+
+  /** Tiefenmasken entlang der Blickachse nach hinten schieben (CITY_MASK) / push the depth masks back along the view axis (CITY_MASK) */
+  private placeCityMasks() {
+    const c = Math.cos(CAMERA.elevation) * CITY_MASK.push, sy = Math.sin(CAMERA.elevation) * CITY_MASK.push;
+    for (const m of this.cityMasks) m.mesh.position.set(m.base.x - this.front.x * c, m.base.y - sy, m.base.z - this.front.y * c);
+  }
+
+  /**
+   * Stadtschilder setzen: unter die vordere Ecke; steht auf dem Feld davor eine Einheit, an die freie vordere Kante
+   * (links vor rechts; sind beide besetzt, links).
+   * Place the city signs: below the front corner; if a unit stands on the tile in front, at the free front edge
+   * (left before right; if both are taken, left).
+   */
+  private placeCitySigns() {
+    const f = this.front, n = this.size, off = (n - 1) / 2;
+    // rechts auf dem Bildschirm / right on screen
+    const rx = f.y, rz = -f.x;
+    const taken = (dx: number, dz: number, c: { x: number; y: number }) => {
+      const x = c.x + Math.round(dx), y = c.y + Math.round(dz);
+      return x >= 0 && y >= 0 && x < n && y < n && this.occupiedTiles.has(y * n + x);
+    };
+    for (const c of this.citySigns) {
+      let ox = f.x * CITY_SIGN.front, oz = f.y * CITY_SIGN.front;
+      if (taken(f.x * Math.SQRT2, f.y * Math.SQRT2, c)) {
+        // links frei: links; sonst rechts, wenn frei; sonst links (dort verdeckt das Schild nur den Sockel des Nachbarn, nicht sein Gesicht)
+        // left free: left; else right if free; else left (there the sign only covers the neighbour's base, not its face)
+        const left = !taken((f.x - rx) * Math.SQRT1_2, (f.y - rz) * Math.SQRT1_2, c);
+        const right = !left && !taken((f.x + rx) * Math.SQRT1_2, (f.y + rz) * Math.SQRT1_2, c);
+        const side = right ? 1 : -1;
+        ox = f.x * CITY_SIGN.side + side * rx * CITY_SIGN.across; oz = f.y * CITY_SIGN.side + side * rz * CITY_SIGN.across;
+      }
+      c.sprite.position.set(c.x - off + ox, c.top - CITY_SIGN.drop, c.y - off + oz);
+    }
   }
 
   private snowy = false;
@@ -482,6 +597,9 @@ export class Board {
     this.artifactOrbit = null;
     this.clearGroup(this.labelLayer);
     this.pickMeshes = [];
+    this.cityProxies = [];
+    this.citySigns = [];
+    this.cityMasks = [];
     const size = s.size;
     const explored = (x: number, y: number) => viewer < 0 || isExplored(s, viewer, x, y);
     this.round = s.round;
@@ -495,13 +613,21 @@ export class Board {
     this.staticLayer.add(slab);
 
     // Felder gruppiert nach Geometrie / tiles grouped by geometry
-    const groups = new Map<THREE.BufferGeometry, { tiles: number[]; mats: THREE.Matrix4[] }>();
-    const add = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, tile: number) => {
+    const groups = new Map<THREE.BufferGeometry, { tiles: number[]; mats: THREE.Matrix4[]; tones: (THREE.Color | null)[]; toned: boolean }>();
+    const add = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, tile: number, tone: THREE.Color | null = null) => {
       if (!geo) return;
       let gr = groups.get(geo);
-      if (!gr) { gr = { tiles: [], mats: [] }; groups.set(geo, gr); }
-      gr.tiles.push(tile); gr.mats.push(m);
+      if (!gr) { gr = { tiles: [], mats: [], tones: [], toned: false }; groups.set(geo, gr); }
+      gr.tiles.push(tile); gr.mats.push(m); gr.tones.push(tone);
+      if (tone) gr.toned = true;
     };
+    // Natuerliche Landschaft nur in der Standardwelt: Bodenton je Feld, Wiesenflecken, Waldsaum, Strand und Sandbank
+    // natural landscape in the default world only: ground tone per tile, meadow patches, forest fringe, beach and sand shoal
+    const natural = !cave && !this.alien && !this.desert;
+    const tones: (THREE.Color | null)[] = new Array(s.tiles.length).fill(null);
+    /** Feld mit eigener Schlachtfeld-Farbe: bleibt ohne Saeume und Ton / tile with its own battlefield colour: stays without fringes and tone */
+    const scarred = (t: Tile) => scarKeyTier(scarTier(t), scarGround(t.terrain, t.biome, this.theme, this.snowy)) > 0;
+    const builtOn = (t: Tile) => t.cityId !== null || !!t.building || !!t.grandProject || !!t.outpost || !!t.feature || !!t.turret || !!t.turretRuin || !!t.temple;
     const decoGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const swayGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const addDeco = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, sway = false, kind: GlowKind = 'nature') => {
@@ -514,6 +640,7 @@ export class Board {
     };
     const fishTiles: { x: number; z: number; y: number }[] = [];
     const occupied = new Set(s.units.filter((u) => viewer < 0 || canSeeUnit(s, viewer, u)).map((u) => u.y * size + u.x));
+    this.occupiedTiles = new Set(occupied);
     // fallen gelassene Kriegsplaene (m4) halten das Feld frei wie eine Einheit / dropped war plans (m4) keep the tile clear like a unit
     const dropped = s.campaign?.plans?.at === 'dropped' ? s.campaign.plans : null;
     if (dropped) occupied.add(dropped.y! * size + dropped.x!);
@@ -552,7 +679,8 @@ export class Board {
         // vernarbte Felder ohne Heimatfaerbung (verbrannte Erde; die Grenzlinien zeigen das Gebiet weiter): spart Feldgeometrien und Draw-Calls
         // scarred tiles without the home tint (scorched earth; the border lines still show the territory): saves tile geometries and draw calls
         const scarKey = scarKeyTier(scar, ground);
-        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k);
+        if (natural && !scarKey && !t.xeno && (t.terrain === 'plain' || t.terrain === 'forest')) tones[k] = groundTone(x, y, seed);
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k, tones[k]);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -677,7 +805,30 @@ export class Board {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
-        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 2) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 2) {
+          // Wiese der Standardwelt: mehr Sorten, aus dem Seed gewuerfelt (niedrige Qualitaet: die bisherigen acht) / meadow of the default world: more kinds, rolled from the seed (low quality: the previous eight)
+          const meadow = natural && !low && t.terrain === 'plain' && (!t.biome || t.biome === 'grassland' || t.biome === 'jungle');
+          addDeco(biomeDecoration(t.terrain, t.biome, meadow ? meadowVariant(tileHash(x, y, seed, 71)) : (x * 7 + y * 13 + x * y) % 8), at(), true);
+          // Waldsaum: ein kleiner Baum an der Kante zu erkundetem Wald auf gleicher Hoehe, hoechstens zwei je Feld
+          // forest fringe: one small tree at the edge towards explored forest on the same level, at most two per tile
+          // nicht auf Feldern mit Fluss, Portal oder einer fuer den Betrachter sichtbaren Mine / not on tiles with a river, the portal or a mine the viewer can see
+          const marked = (!!t.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) || (!!portal && portal.x === x && portal.y === y);
+          if (natural && !low && t.terrain === 'plain' && !t.river && !marked) {
+            let n = 0;
+            for (const [i, [dx, dy]] of ([[1, 0], [0, 1], [-1, 0], [0, -1]] as const).entries()) {
+              const nx = x + dx, ny = y + dy;
+              if (n >= NATURAL.fringe.max || nx < 0 || ny < 0 || nx >= size || ny >= size || !explored(nx, ny)) continue;
+              const o = s.tiles[ny * size + nx];
+              if (o.terrain !== 'forest' || o.biome === 'jungle' || o.xeno || (builtOn(o) && o.building !== 'road') || scarTier(o) >= 3 || Math.abs(tileTop(o) - top) >= CLIFF_STEP) continue;
+              if (tileHash(x, y, seed, 73 + i) >= NATURAL.fringe.chance) continue;
+              n++;
+              const d = NATURAL.fringe.near + (NATURAL.fringe.far - NATURAL.fringe.near) * tileHash(x, y, seed, 79 + i), side = (tileHash(x, y, seed, 89 + i) - 0.5) * 0.56, sc = 0.9 + tileHash(x, y, seed, 97 + i) * 0.2;
+              addDeco(fringeGeometry(Math.floor(tileHash(x, y, seed, 101 + i) * NATURAL.fringe.variants)), new THREE.Matrix4().compose(
+                new THREE.Vector3(x - off + dx * d - dy * side, top, y - off + dy * d + dx * side),
+                new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 107 + i) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)), true);
+            }
+          }
+        }
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
         if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building && !alien) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken, groesser je Schlachtfeld-Stufe / craters and scorch marks, larger per battlefield tier
@@ -725,6 +876,8 @@ export class Board {
         if (t.river) {
           const wet = (xx: number, yy: number) => {
             if (xx < 0 || yy < 0 || xx >= size || yy >= size) return false;
+            // nur erkundete Nachbarn: der Fluss verraet kein Wasser unter dem Nebel / explored neighbours only: the river reveals no water under the fog
+            if (!explored(xx, yy)) return false;
             const o = s.tiles[yy * size + xx];
             return !!o.river || o.terrain === 'shallow' || o.terrain === 'ocean';
           };
@@ -940,6 +1093,8 @@ export class Board {
       const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile, landMaterial());
       mesh.receiveShadow = true;
       gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      // Bodenton je Feld als Instanzfarbe (kostet weder Dreiecke noch Draw-Calls) / ground tone per tile as instance colour (costs neither triangles nor draw calls)
+      if (gr.toned) { gr.tones.forEach((c, i) => mesh.setColorAt(i, c ?? WHITE)); mesh.instanceColor!.needsUpdate = true; }
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
       this.staticLayer.add(mesh, line);
@@ -963,6 +1118,8 @@ export class Board {
       // Hoehle, niedrige Qualitaet: Pilze und Bodendeko ohne Tuschelinie (halbiert die Dreiecke) / cavern, low quality: mushrooms and floor decoration without ink line (halves the triangles)
       if (cave && low && geo.name.startsWith('cave|')) { line.dispose(); this.staticLayer.add(mesh); } else this.staticLayer.add(mesh, line);
     }
+    // Bodenschatten unter Baeumen, Felsen und anderer stehender Dekoration / contact shadows under trees, rocks and other standing decoration
+    this.contact.buildDeco([decoGroups, swayGroups]);
     this.ambient.build(fishTiles);
     for (const [geo, mats] of decals) {
       const mesh = new THREE.InstancedMesh(withGlow(geo, 'none'), decalMaterial(), mats.length);
@@ -1032,13 +1189,37 @@ export class Board {
           'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
-      if (cave) obj.scale.setScalar(1.15);
+      // Siedlungen der anderen Welten etwas groesser, wie die Staedte / settlements of the other worlds a little larger, like the cities
+      if (cave || ((alien || desert) && !c.tower)) obj.scale.setScalar(SETTLEMENT_SCALE);
       // Hoehlen und Aussenposten schauen mit Oeffnung und Wappen zur Standardkamera / burrows and outposts face the default camera with opening and emblem
       if (alien || desert) obj.rotation.y = Math.PI / 4;
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
       if (cave) glowSpots.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, size: flags.hq ? 1.7 : 1.35, color: amber });
-      else townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g });
+      else townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g,
+        ...(!alien && !desert && !c.tower ? { beacon: hqMastTop(level) } : {}) });
+      // Tiefenmaske: dieselbe Geometrie, nur Tiefe, nach dem Leeren des Tiefenpuffers und vor den Einheiten
+      // depth mask: the same geometry, depth only, after the depth clear and before the units
+      if (!low && !cave && !alien && !desert) {
+        const mask = new THREE.Mesh(g, maskMaterial());
+        mask.renderOrder = UNIT_ORDER - 0.8;
+        mask.raycast = () => {};
+        this.staticLayer.add(mask);
+        this.cityMasks.push({ mesh: mask, base: obj.position.clone() });
+      }
+      // Trefferkoerper: breiter Sockel der Haeuser und schlankes Wahrzeichen / hit bodies: broad base of the houses and slim landmark
+      if (!cave && (c.tower || (!alien && !desert))) {
+        const h = c.tower ? 0.95 : cityHeight(level, fid === null);
+        const bodies: [number, number][] = c.tower ? [[0.26, h]] : [[0.78, Math.min(h, 0.14 + level * 0.03)], [0.26, h]];
+        for (const [w, bh] of bodies) {
+          const proxy = new THREE.Mesh(proxyGeometry(), proxyMaterial());
+          proxy.position.copy(obj.position);
+          proxy.scale.set(w, bh, w);
+          proxy.userData.tile = c.y * size + c.x;
+          this.staticLayer.add(proxy);
+          this.cityProxies.push(proxy);
+        }
+      }
       // Stadt-Ausbauten / city upgrades
       for (const [slot, up] of (c.upgrades ?? []).entries()) {
         const perk = outlined(withGlow(perkGeometry(up, fid), 'built'), OUTLINE.building, landMaterial());
@@ -1058,19 +1239,27 @@ export class Board {
         // Sendetuerme wachsen nicht: ohne Stufe wie Nachschublinien / transmitter towers do not grow: no level, like supply lines
         const need = c.owner !== null && !cave && !c.tower ? levelUpCost(s, c) : 0;
         const label = cityLabel(cname, cave || c.tower ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
-        label.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0, -0.05, 0.42));
         label.center.set(0.5, 1);
         this.labelLayer.add(label);
+        this.citySigns.push({ sprite: label, x: c.x, y: c.y, top: obj.position.y });
       }
     }
+    this.placeCitySigns();
+    this.placeCityMasks();
 
     // Animiertes Wasser / animated water
-    const water = buildWater(s, explored);
+    const water = buildWater(s, explored, 5, natural ? (l, w) => beachCoast(l, tileTop(l), tileTop(w)) : undefined);
     if (water) this.staticLayer.add(water);
     // Weiche Uebergaenge und Felsabbrueche / soft transitions and rock cliffs
     const land = buildLandscape({
       size, tiles: s.tiles, explored, top: tileTop,
       topColor: (t) => (t.terrain === 'shallow' || t.terrain === 'ocean' ? null : this.tileColors(t.terrain, this.tintOf(s, t), t.biome, !!t.xeno).top),
+      ...(natural ? { natural: {
+        seed, segments: low ? NATURAL.segments.low : NATURAL.segments.high,
+        rank: (t) => (scarred(t) ? null : growthRank(t)),
+        tone: (x, y) => tones[y * size + x],
+        meadow: (t) => t.terrain === 'plain' && !t.xeno && !t.resource && !builtOn(t) && !scarred(t),
+      } } : {}),
     });
     if (land.strips) {
       const strips = new THREE.Mesh(land.strips, landMaterial());
@@ -1136,13 +1325,16 @@ export class Board {
       }
       this.facingGame = s.tiles;
     }
+    this.lastState = s;
     const seen = new Set<number>();
+    // Detailstufe der Einheitenmodelle folgt der Qualitaet (im Schluessel: Wechsel baut die Modelle neu) / unit model detail follows the quality (in the key: a change rebuilds the models)
+    models.setUnitQuality(this.quality);
     for (const u of s.units) {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
       const f = s.factions[u.owner].id;
       const stage = u.wonder?.stage ?? 0;
-      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}`;
+      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}-${this.quality}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
@@ -1172,18 +1364,21 @@ export class Board {
         grp.userData.unitId = u.id;
         // Reihenfolge: Bodenring, Schatten, Einheit / order: ground ring, shadow, unit
         grp.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.renderOrder === 0) o.renderOrder = UNIT_ORDER; });
-        grp.position.copy(this.tileCenter(s, u.x, u.y));
+        grp.position.copy(this.unitSpot(s, u.x, u.y).pos);
         v = { id: u.id, group: grp, key, badge: null, badgeKey: '' };
         this.units.set(u.id, v);
         this.unitLayer.add(grp);
       }
       if (!this.isAnimating(u.id)) {
-        v.group.position.copy(this.tileCenter(s, u.x, u.y));
+        // Besatzung einer Stadt: vordere Ecke, kleiner / garrison of a city: front corner, smaller
+        const spot = this.unitSpot(s, u.x, u.y);
+        v.group.position.copy(spot.pos);
         const wo = WONDER_OFFSET[u.type];
         if (wo) { v.group.position.x += wo.x; v.group.position.z += wo.z; }
         // Zyrr unter Wasser: halb eingetaucht / Zyrr under water: half submerged
         if (isWading(s, u)) v.group.position.y -= WADE_SINK;
-        v.group.scale.setScalar(1);
+        v.group.scale.setScalar(spot.scale);
+        if (v.badge) fitBadge(v.badge, spot.scale);
       }
       // Kriegsplaene (m4): Koecher am Traeger / war plans (m4): case at the carrier
       const carry = s.campaign?.plans?.at === 'carried' && s.campaign.plans.unit === u.id;
@@ -1209,6 +1404,8 @@ export class Board {
         v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed });
         // Endgegner: Balken ueber der Krone / boss: badge above the crown
         v.badge.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
+        v.badge.userData.size = v.badge.scale.clone();
+        fitBadge(v.badge, v.group.scale.x);
         v.group.add(v.badge);
         v.badgeKey = badgeKey;
       }
@@ -1221,6 +1418,8 @@ export class Board {
       const echo = viewer >= 0 && radarEcho(s, viewer, u);
       const hidden = submerged || echo || (camouflaged(u) && (viewer < 0 || u.owner === viewer));
       if (echo && !this.isAnimating(u.id)) v.group.position.y = CLOUD_Y + RADAR_ECHO_LIFT;
+      // kein Bodenschatten fuer Radarkontakte und getauchte U-Boote / no contact shadow for radar contacts and submerged submarines
+      v.group.userData.noShadow = echo || submerged;
       this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
       const opts = hidden ? { transparent: true, opacity: echo ? 0.7 : 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
       const mat = unitMaterial(opts);
@@ -1282,12 +1481,16 @@ export class Board {
     return m;
   }
 
-  /** Schatten mit sterbenden Einheiten ausblenden / hide shadows of dying units */
+  /** Bodenschatten folgen den Einheiten und schrumpfen mit sterbenden / contact shadows follow the units and shrink with dying ones */
   updateShadows() {
+    this.contact.beginUnits(this.units.size);
+    let i = 0;
     for (const v of this.units.values()) {
-      const sh = v.group.getObjectByName('shadow');
-      if (sh) sh.visible = v.group.scale.x > 0.3;
+      const g = v.group;
+      if (!g.visible || g.userData.noShadow || g.scale.x <= 0.3) continue;
+      this.contact.unit(i++, g.position, Math.min(1, g.scale.x));
     }
+    this.contact.endUnits(i);
   }
 
   /** Eigene Ringe pulsieren leicht / own rings pulse gently */
@@ -1322,7 +1525,9 @@ export class Board {
   animateMove(s: GameState, unitId: number, from: { x: number; y: number }, path: { x: number; y: number }[]): Promise<void> {
     const v = this.units.get(unitId);
     if (!v || !path.length) return Promise.resolve();
-    const pts = [this.tileCenter(s, from.x, from.y), ...path.map((p) => this.tileCenter(s, p.x, p.y))];
+    // Standplaetze statt Feldmitten: in Staedten vorn und kleiner / spots instead of tile centres: in cities at the front and smaller
+    const spots = [this.unitSpot(s, from.x, from.y), ...path.map((p) => this.unitSpot(s, p.x, p.y))];
+    const pts = spots.map((p) => p.pos);
     this.animating.add(unitId);
     const dur = Math.min(ANIM.maxTotal, ANIM.move * Math.max(1, path.length) * 0.6);
     const last = pts[pts.length - 1];
@@ -1345,6 +1550,8 @@ export class Board {
       const i = Math.max(0, Math.min(pts.length - 2, Math.floor(f)));
       const local = f - i;
       v.group.position.lerpVectors(pts[i], pts[i + 1], local);
+      const sc = spots[i].scale + (spots[i + 1].scale - spots[i].scale) * local;
+      if (sc !== v.group.scale.x) { v.group.scale.setScalar(sc); if (v.badge) fitBadge(v.badge, sc); }
       // Gangart je Einheitenart statt eines festen Hopsers / gait per unit kind instead of a fixed hop
       this.life.moveFrame(unitId, t, f);
       if (model) model.rotation.y = t >= 1 && want !== undefined ? want : face(f);
@@ -1472,6 +1679,8 @@ export class Board {
     this.animating.add(unitId);
     this.life.untrack(unitId);
     const start = v.group.position.clone();
+    // Besatzungen sterben in ihrer verkleinerten Groesse / garrisons die at their reduced size
+    const size0 = v.group.scale.x;
     const model = v.group.getObjectByName('model');
     if (v.badge) v.badge.visible = false;
     const fx = new THREE.Group();
@@ -1508,18 +1717,18 @@ export class Board {
         v.group.position.y += Math.sin(Math.min(1, t * 1.4) * Math.PI) * 0.35;
         model.rotation.z = Math.min(1, t * 1.5) * (Math.PI / 2);
         model.rotation.y = t * Math.PI * 2;
-        v.group.scale.setScalar(t > 0.75 ? Math.max(0.001, 1 - (t - 0.75) * 4) : 1);
+        v.group.scale.setScalar(size0 * (t > 0.75 ? Math.max(0.001, 1 - (t - 0.75) * 4) : 1));
       } else if (kind === 'wreck') {
         v.group.position.copy(start);
         v.group.position.y += Math.sin(Math.min(1, t * 2) * Math.PI) * 0.18;
         if (model) model.rotation.z = t * 0.4;
-        v.group.scale.setScalar(t > 0.5 ? Math.max(0.001, 1 - (t - 0.5) * 2) : 1);
+        v.group.scale.setScalar(size0 * (t > 0.5 ? Math.max(0.001, 1 - (t - 0.5) * 2) : 1));
         if (fire) fire.scale.setScalar(t < 0.4 ? 0.3 + t * 3 : Math.max(0.001, 1.5 - (t - 0.4) * 2.5));
       } else {
         v.group.position.copy(start);
         v.group.position.y -= t * 0.3;
         v.group.rotation.z = t * 0.5;
-        v.group.scale.setScalar(Math.max(0.001, 1 - t * 0.8));
+        v.group.scale.setScalar(size0 * Math.max(0.001, 1 - t * 0.8));
       }
       const dt = t * (ANIM.death / 1000);
       for (const d of drops) {
@@ -1544,16 +1753,22 @@ export class Board {
    */
   setHighlights(s: GameState | null, list: { x: number; y: number; kind: HighlightKind; facing?: number }[]) {
     this.clearGroup(this.highlightLayer);
+    this.lastHighlights = s ? list : [];
     if (!s || !list.length) { this.dirty = true; return; }
+    // Auswahl, Ziel und Hinweis gelten der Einheit: an einer Besatzung sitzt der Ring an ihrem Standplatz, in ihrer Groesse
+    // select, target and hint are about the unit: at a garrison the ring sits at its spot, at its size
+    const spotOf = (h: { x: number; y: number; kind: HighlightKind }) =>
+      (h.kind === 'select' || h.kind === 'target' || h.kind === 'attack' || h.kind === 'hint') && this.garrisonAt(s, h.x, h.y) ? this.unitSpot(s, h.x, h.y) : { pos: this.tileCenter(s, h.x, h.y), scale: 1 };
     const colors: Record<HighlightKind, string> = {
       move: semantic.highlightMove, attack: semantic.highlightAttack, safe: semantic.highlightSafe, unsafe: semantic.highlightUnsafe,
       select: semantic.highlightSelect, target: semantic.highlightAttack, hint: semantic.highlightSelect, build: semantic.highlightSafe,
     };
     const byKind = new Map<HighlightKind, THREE.Matrix4[]>();
     for (const h of list) {
-      const p = this.tileCenter(s, h.x, h.y);
+      const spot = spotOf(h), p = spot.pos;
       p.y = Math.max(p.y, TILE_TOP.shallow) + 0.02;
       const m = new THREE.Matrix4().makeTranslation(p.x, p.y, p.z);
+      if (spot.scale !== 1) m.scale(new THREE.Vector3(spot.scale, 1, spot.scale));
       if (!byKind.has(h.kind)) byKind.set(h.kind, []);
       byKind.get(h.kind)!.push(m);
     }
@@ -1588,9 +1803,10 @@ export class Board {
         look = { geos, mat: new THREE.MeshBasicMaterial({ vertexColors: true, depthWrite: false, side: THREE.DoubleSide }) };
         this.facingLooks.set(h.kind, look);
       }
-      const p = this.tileCenter(s, h.x, h.y);
+      const spot = spotOf(h), p = spot.pos;
       p.y = Math.max(p.y, TILE_TOP.shallow) + 0.022;
       const arrow = new THREE.Group();
+      arrow.scale.setScalar(spot.scale);
       look.geos.forEach((g, i) => { const m = new THREE.Mesh(g, look!.mat); m.renderOrder = 6 + i; m.raycast = () => {}; arrow.add(m); });
       arrow.position.copy(p);
       arrow.rotation.y = headingOf(d.x, d.y);
@@ -1601,7 +1817,8 @@ export class Board {
     for (const h of list) {
       if (h.kind !== 'attack' && h.kind !== 'target') continue;
       const icon = attackIcon(h.kind === 'target');
-      icon.position.copy(this.tileCenter(s, h.x, h.y)).add(new THREE.Vector3(0, 0.98, 0));
+      const spot = spotOf(h);
+      icon.position.copy(spot.pos).add(new THREE.Vector3(0, spot.scale === 1 ? 0.98 : 0.84, 0));
       icon.userData.bob = icon.position.y;
       this.highlightLayer.add(icon);
     }
@@ -1620,9 +1837,12 @@ export class Board {
         return { x: Math.round(local.x + off), y: Math.round(local.z + off) };
       }
     }
-    const hits = ray.intersectObjects(this.pickMeshes.map((p) => p.mesh), false);
+    const hits = ray.intersectObjects([...this.pickMeshes.map((p) => p.mesh), ...this.cityProxies], false);
     if (!hits.length) return null;
     const h = hits[0];
+    // hohe Stadt oder Sendeturm getroffen: ihr Feld / hit a tall city or transmitter tower: its tile
+    const ct = h.object.userData.tile as number | undefined;
+    if (ct !== undefined) return { x: ct % this.size, y: Math.floor(ct / this.size) };
     const entry = this.pickMeshes.find((p) => p.mesh === h.object);
     if (!entry || h.instanceId === undefined) return null;
     const k = entry.tiles[h.instanceId];
@@ -1648,6 +1868,8 @@ export class Board {
       try { a.update(t); } catch (e) { console.error(e); this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); continue; }
       if (t >= 1) { this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); }
     }
+    // Bodenschatten folgen der Bewegung im selben Bild / contact shadows follow the move within the same frame
+    this.updateShadows();
     this.dirty = false;
     return true;
   }

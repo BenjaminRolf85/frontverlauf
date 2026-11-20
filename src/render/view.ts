@@ -50,12 +50,14 @@ export class View {
     const hemi = new THREE.HemisphereLight(hex(semantic.white), hex(semantic.terrainPlainSide), 1.6);
     this.sun = new THREE.DirectionalLight(hex(semantic.white), 2.2);
     this.sun.position.set(SUN.x, SUN.y, SUN.z);
-    // weiche Schatten unter Gebaeuden, Bergen und Baeumen (nur hohe Qualitaet); Einheiten werfen keine
-    // soft shadows under buildings, mountains and trees (high quality only); units cast none
+    // Schlagschatten von Gebaeuden, Bergen und Baeumen (nur hohe Qualitaet); Einheiten haben stattdessen Bodenschatten (contact.ts)
+    // cast shadows of buildings, mountains and trees (high quality only); units get contact shadows instead (contact.ts)
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0006;
     this.sun.shadow.normalBias = 0.02;
-    this.sun.shadow.intensity = 0.6;
+    // Staerke und harte Comic-Kante macht der Atmosphaeren-Shader selbst (atmosphere.ts, FRAG_SHADOW), nicht three
+    // strength and the hard comic edge come from the atmosphere shader itself (atmosphere.ts, FRAG_SHADOW), not from three
+    this.sun.shadow.intensity = 0;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // Schattenkarte nur bei Aenderungen neu zeichnen / redraw the shadow map only on changes
     this.renderer.shadowMap.autoUpdate = false;
@@ -148,6 +150,8 @@ export class View {
     this.camera.updateProjectionMatrix();
     // Hoehle: hohe Waende nur auf den abgewandten Seiten / cavern: tall walls only on the far sides
     this.board.caveShell.setView(this.angle);
+    // Besatzungen und Stadtschilder ruecken zur Kamera / garrisons and city signs move towards the camera
+    this.board.setViewAngle(this.angle);
     this.needs = true;
   }
 

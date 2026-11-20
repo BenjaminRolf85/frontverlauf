@@ -8,7 +8,7 @@
  */
 import * as THREE from 'three';
 import { factionTokens, hex, primitives, semantic } from '../design/tokens';
-import { toonMaterial, unitMaterial } from './toon';
+import { gradientMap, toonMaterial, unitMaterial } from './toon';
 
 /** Gemeinsame Uniforms (werden von View/Sky jedes Bild gesetzt) / shared uniforms (set every frame by View/Sky) */
 export const ATMO = {
@@ -28,6 +28,15 @@ export const ATMO = {
   uHazeHalf: { value: 7 },
   /** Gesamthelligkeit der Szene fuer unbeleuchtete Shader (Wasser) / overall scene light for unlit shaders (water) */
   uLight: { value: new THREE.Color(1, 1, 1) },
+  /**
+   * Schlagschatten: x = Anteil des Sonnenlichts, y = Anteil des Umgebungslichts, der im Schatten wegfaellt (je Tageszeit, Sky).
+   * Cast shadows: x = share of the sun light, y = share of the ambient light removed inside a shadow (per time of day, Sky).
+   */
+  uShadow: { value: new THREE.Vector2(0.9, 0.3) },
+  /** Staerke der Bodenschatten (contact.ts) / strength of the contact shadows (contact.ts) */
+  uContact: { value: 0.3 },
+  /** waagerechte Richtung zur Sonne, normiert (Versatz der Bodenschatten) / horizontal direction to the sun, normalised (offset of the contact shadows) */
+  uSunXZ: { value: new THREE.Vector2(-0.83, 0.55) },
 };
 
 // ---------- Leuchtmasken / glow masks ----------
@@ -121,6 +130,7 @@ const FRAG_HEAD = /* glsl */ `
 uniform float uGlow;
 uniform float uWindow;
 uniform vec3 uWindowColor;
+uniform vec2 uShadow;
 varying vec2 vGlow;
 varying vec3 vAtmoWorld;
 ${HAZE_GLSL}
@@ -142,18 +152,34 @@ const FRAG_GLOW = /* glsl */ `
   }
 `;
 /**
- * Schatten auch im Umgebungslicht, sonst sind sie neben dem starken Himmelslicht kaum zu sehen.
- * Shadows also in the ambient light, otherwise they barely show next to the strong sky light.
+ * Schlagschatten im Comic-Stil: die weich gefilterte Schattenkarte wird an einer Schwelle geschaerft (klare Kante statt
+ * Verlauf) und dunkelt Sonnenlicht und einen Teil des Umgebungslichts ab (uShadow). Der eingebaute Schattenfaktor von
+ * three ist dafuer abgeschaltet (View: shadow.intensity = 0); Schatten empfangen nur Materialien mit diesem Baustein.
+ * Comic-style cast shadows: the softly filtered shadow map is sharpened at a threshold (a clear edge instead of a
+ * gradient) and darkens the sun light and part of the ambient light (uShadow). The built-in shadow factor of three is
+ * switched off for this (View: shadow.intensity = 0); only materials with this chunk receive shadows.
  */
+export const SHADOW_EDGE = { from: 0.3, to: 0.72 };
 const FRAG_SHADOW = /* glsl */ `
   #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
     if (receiveShadow) {
       DirectionalLightShadow atmoSh = directionalLightShadows[ 0 ];
-      float atmoS = getShadow( directionalShadowMap[ 0 ], atmoSh.shadowMapSize, atmoSh.shadowIntensity, atmoSh.shadowBias, atmoSh.shadowRadius, vDirectionalShadowCoord[ 0 ] );
-      reflectedLight.indirectDiffuse *= mix( 1.0, atmoS, 0.5 );
+      float atmoS = getShadow( directionalShadowMap[ 0 ], atmoSh.shadowMapSize, 1.0, atmoSh.shadowBias, atmoSh.shadowRadius, vDirectionalShadowCoord[ 0 ] );
+      atmoS = smoothstep( ${SHADOW_EDGE.from.toFixed(2)}, ${SHADOW_EDGE.to.toFixed(2)}, atmoS );
+      reflectedLight.directDiffuse *= mix( 1.0, atmoS, uShadow.x );
+      reflectedLight.indirectDiffuse *= mix( 1.0, atmoS, uShadow.y );
     }
   #endif
 `;
+/**
+ * Beleuchtete Flaechen auf 1 begrenzen (der Bildschirm schneidet dort ohnehin ab): so ueberschreiten weisse Wolken und
+ * Eis die Bloom-Schwelle nicht mehr und werfen keinen Lichthof auf den Hintergrund; nur Eigenleuchten (Lava, Fenster,
+ * Xeno) liegt darueber und leuchtet weiter.
+ * Clamp lit surfaces to 1 (the screen clips there anyway): white clouds and ice no longer exceed the bloom threshold
+ * and cast no halo onto the backdrop; only self glow (lava, windows, xeno) lies above it and keeps glowing.
+ */
+export const LIT_SUM = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
+const LIT_CLAMPED = 'vec3 outgoingLight = min( reflectedLight.directDiffuse + reflectedLight.indirectDiffuse, vec3( 1.0 ) ) + totalEmissiveRadiance;';
 const FRAG_HAZE = /* glsl */ `
   outgoingLight = mix(outgoingLight, uHazeColor, atmoHaze(vAtmoWorld));
 `;
@@ -165,6 +191,7 @@ function hookUniforms(shader: THREE.WebGLProgramParametersWithUniforms) {
   shader.uniforms.uHaze = ATMO.uHaze;
   shader.uniforms.uHazeColor = ATMO.uHazeColor;
   shader.uniforms.uHazeHalf = ATMO.uHazeHalf;
+  shader.uniforms.uShadow = ATMO.uShadow;
 }
 
 /**
@@ -178,6 +205,7 @@ export function patchAtmosphere(shader: THREE.WebGLProgramParametersWithUniforms
   shader.fragmentShader = FRAG_HEAD + shader.fragmentShader
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${FRAG_GLOW}`)
     .replace('#include <lights_fragment_end>', `#include <lights_fragment_end>\n${FRAG_SHADOW}`)
+    .replace(LIT_SUM, LIT_CLAMPED)
     .replace('#include <opaque_fragment>', `${FRAG_HAZE}\n#include <opaque_fragment>`);
 }
 
@@ -254,11 +282,23 @@ const DRIFT_GLSL = /* glsl */ `
   transformed.y += sin(uTime * 0.5 + driftPh * 2.1) * 0.012;
 `;
 
+/**
+ * Farbton der Nebelwolken: statt reinem Weiss ein leicht kuehler Ton (cloudShade) mal brightness, dazu die sanfte
+ * Schattentreppe (TOON_RAMP.soft). Die Tageszeit toent die Wolken ueber das Licht (abends warm, nachts blau).
+ * Nicht dunkler waehlen: mit brightness 0.94 und einer haerteren Treppe wurden die Wolken abends schmutzig braun.
+ * Tone of the fog clouds: a slightly cool tone (cloudShade) times brightness instead of pure white, plus the gentle
+ * shading ramp (TOON_RAMP.soft). The time of day tints the clouds through the light (warm at dusk, blue at night).
+ * Do not go darker: with brightness 0.94 and a harder ramp the clouds turned a muddy brown at dusk.
+ */
+export const CLOUD_LOOK = { tint: semantic.cloudShade, brightness: 1 };
+
 let cloudMat: THREE.MeshToonMaterial | null = null;
 /** Wolkenmaterial mit Treiben und Dunst / cloud material with drift and haze */
 export function cloudMaterial(): THREE.MeshToonMaterial {
   if (cloudMat) return cloudMat;
   const m = toonMaterial().clone();
+  m.color.set(hex(CLOUD_LOOK.tint)).multiplyScalar(CLOUD_LOOK.brightness);
+  m.gradientMap = gradientMap('soft');
   m.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = ATMO.uTime;
     patchAtmosphere(shader, DRIFT_GLSL, 'uniform float uTime;\n');

@@ -33,6 +33,38 @@ export const MARKER = {
  * HP badge: minimum width and padding of the pill in canvas pixels (canvas 128 wide, digits 44 high).
  */
 export const BADGE = { minPill: 72, pad: 17 };
+/**
+ * Besatzung: Eine Einheit auf einem Stadtfeld (auch Sendeturm, Aussenposten, Hoehle, Nachschublinie) rueckt um shift
+ * Feldbreiten zur Kamera hin an die vordere Ecke und wird mit scale verkleinert gezeichnet; die Stadt dahinter bleibt
+ * sichtbar. Die LP-Plakette behaelt ihre Groesse. Mit diesen Werten beruehrt der Ring keinen Nachbarring
+ * (Abstand zum Nachbarn rund 0.84 > 0.458 x 1.04 + 0.458 x scale x 1.04).
+ * Garrison: a unit on a city tile (also transmitter tower, outpost, burrow, supply line) moves by shift tile widths
+ * towards the camera into the front corner and is drawn scaled by scale; the city behind it stays visible. The HP badge
+ * keeps its size. With these values the ring touches no neighbouring ring (distance to the neighbour about 0.84 >
+ * 0.458 x 1.04 + 0.458 x scale x 1.04).
+ */
+export const GARRISON = { shift: 0.255, scale: 0.76 };
+/**
+ * Stadtschild: haengt unter der vorderen Ecke des Feldes (front, zur Kamera). Steht dort ein Nachbar, weicht es an die
+ * linke oder rechte vordere Kante aus (side nach vorn, across zur Seite); drop = Absenkung unter die Feldoberkante.
+ * City sign: hangs below the front corner of the tile (front, towards the camera). If a neighbour stands there it moves
+ * to the left or right front edge (side to the front, across sideways); drop = offset below the tile top.
+ */
+export const CITY_SIGN = { front: 0.72, side: 0.52, across: 0.6, drop: 0.05 };
+/**
+ * Tiefenmaske der Staedte (nur hohe Qualitaet): Einheiten werden nach dem Leeren des Tiefenpuffers gezeichnet und
+ * uebermalten sonst auch Tuerme, die vor ihnen stehen. Die Stadt schreibt deshalb ihre Tiefe noch einmal, um push
+ * Feldbreiten entlang der Blickachse nach hinten geschoben (im Bild deckungsgleich): Was mehr als push hinter einer
+ * Stadtflaeche liegt (Einheit auf dem Feld dahinter), wird von ihr verdeckt; die eigene Besatzung und Markierungen auf
+ * dem Stadtfeld liegen naeher und bleiben sichtbar.
+ * Depth mask of the cities (high quality only): units are drawn after the depth clear and would otherwise also paint
+ * over towers standing in front of them. So the city writes its depth once more, pushed back by push tile widths along
+ * the view axis (congruent on screen): whatever lies more than push behind a city surface (a unit on the tile behind)
+ * is hidden by it; the city's own garrison and highlights on the city tile are closer and stay visible.
+ */
+export const CITY_MASK = { push: 0.7 };
+/** Massstab der Siedlungen der anderen Welten (Hoehle, Aussenposten, Nachschublinie) / scale of the settlements of the other worlds (burrow, outpost, supply line) */
+export const SETTLEMENT_SCALE = 1.15;
 /** Sonnenposition (Licht und projizierte Schatten) / sun position (light and projected shadows) */
 export const SUN = { x: -9, y: 7.5, z: 6 };
 export const ANIM = { move: 360, attack: 320, death: 400, rotate: 320, maxTotal: 400 };
