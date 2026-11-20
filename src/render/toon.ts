@@ -12,7 +12,7 @@ import { hex, semantic } from '../design/tokens';
  * Brightness steps of the sun light (0..255): far side, grazing light, sunlit side. The wide range gives the models a
  * clearly shaded side; soft is the gentler ramp for the fog-of-war clouds.
  */
-export const TOON_RAMP = { hard: [36, 128, 255], soft: [150, 205, 255] };
+export const TOON_RAMP = { hard: [36, 128, 255], soft: [185, 225, 255] };
 
 const gradients = new Map<string, THREE.DataTexture>();
 /** Stufentextur fuer das Toon-Shading / step texture for the toon shading */

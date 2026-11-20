@@ -285,10 +285,12 @@ const DRIFT_GLSL = /* glsl */ `
 /**
  * Farbton der Nebelwolken: statt reinem Weiss ein leicht kuehler Ton (cloudShade) mal brightness, dazu die sanfte
  * Schattentreppe (TOON_RAMP.soft). Die Tageszeit toent die Wolken ueber das Licht (abends warm, nachts blau).
+ * Nicht dunkler waehlen: mit brightness 0.94 und einer haerteren Treppe wurden die Wolken abends schmutzig braun.
  * Tone of the fog clouds: a slightly cool tone (cloudShade) times brightness instead of pure white, plus the gentle
  * shading ramp (TOON_RAMP.soft). The time of day tints the clouds through the light (warm at dusk, blue at night).
+ * Do not go darker: with brightness 0.94 and a harder ramp the clouds turned a muddy brown at dusk.
  */
-export const CLOUD_LOOK = { tint: semantic.cloudShade, brightness: 0.94 };
+export const CLOUD_LOOK = { tint: semantic.cloudShade, brightness: 1 };
 
 let cloudMat: THREE.MeshToonMaterial | null = null;
 /** Wolkenmaterial mit Treiben und Dunst / cloud material with drift and haze */
