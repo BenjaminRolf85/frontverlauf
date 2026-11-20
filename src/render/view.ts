@@ -148,6 +148,8 @@ export class View {
     this.camera.updateProjectionMatrix();
     // Hoehle: hohe Waende nur auf den abgewandten Seiten / cavern: tall walls only on the far sides
     this.board.caveShell.setView(this.angle);
+    // Besatzungen und Stadtschilder ruecken zur Kamera / garrisons and city signs move towards the camera
+    this.board.setViewAngle(this.angle);
     this.needs = true;
   }
 
