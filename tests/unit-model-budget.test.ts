@@ -28,19 +28,19 @@ const tris = (g: THREE.BufferGeometry) => g.getAttribute('position').count / 3;
 const LOW_SLACK = 1.03;
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
-  infantry: [5750, 4550, 4891], // 5467 / 4300
+  infantry: [5750, 4550, 4891], // 5453 / 4300
   sniper: [7250, 6050, 6285], // 6865 / 5720
-  jeep: [6400, 5350, 5140], // 6086 / 5088
+  jeep: [6350, 5300, 5140], // 6018 / 5028
   pioneer: [6500, 5250, 5321], // 6189 / 4972
   mg: [5600, 4750, 5075], // 5286 / 4515
   medic: [6600, 5350, 5703], // 6273 / 5064
   artillery: [6400, 5700, 5839], // 6095 / 5419
   spy: [4300, 3100, 3237], // 4089 / 2908
   heli: [3900, 3900, 4007], // 3695 / 3695
-  tank: [8450, 7950, 7866], // 8021 / 7536
+  tank: [8400, 7850, 7866], // 7983 / 7472
   antiTank: [4750, 3950, 3945], // 4520 / 3749
   antiAir: [5700, 5500, 6024], // 5412 / 5220
-  mineLayer: [6450, 6050, 6430], // 6099 / 5718
+  mineLayer: [6400, 6050, 6430], // 6085 / 5718
   landingBoat: [2400, 2150, 2276], // 2259 / 2020
   submarine: [4050, 3900, 3792], // 3849 / 3674
   destroyer: [5700, 5550, 5748], // 5422 / 5280
@@ -66,8 +66,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   railgun: [5950, 5650, 5580], // 5636 / 5380
   flameTank: [7450, 7200, 7006], // 7070 / 6814
   titan: [7000, 6100, 5772], // 6620 / 5788
-  steppeRider: [4250, 3600, 3367], // 4017 / 3405
-  stormbreaker: [5600, 4500, 4681], // 5333 / 4264
+  steppeRider: [4150, 3500, 3367], // 3941 / 3329
+  stormbreaker: [5550, 4450, 4681], // 5275 / 4216
   peacekeeper: [8900, 7100, 7414], // 8450 / 6737
   privateer: [3200, 3200, 3388], // 3008 / 3008
   protoWalker: [4550, 4300, 4260], // 4324 / 4068
@@ -77,7 +77,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   lightWarden: [8600, 6850, 7252], // 8178 / 6477
   reliquary: [6250, 6050, 6278], // 5910 / 5750
   sunLance: [5100, 4550, 5013], // 4843 / 4295
-  steppeColossus: [9350, 8850, 8643], // 8868 / 8395
+  steppeColossus: [9350, 8800, 8643], // 8868 / 8369
   shadowCommando: [4750, 3450, 3531], // 4479 / 3273
   fogCutter: [800, 750, 704], // 736 / 696
   guidedMissile: [700, 700, 668], // 648 / 648
@@ -107,7 +107,7 @@ function cases(): [UnitTypeId, FactionId][] {
 }
 
 /** Summe ueber alle geprueften Modelle: [hoch, niedrig]; vor dem Feinschliff waren es 603819 / sum over all checked models: [high, low]; before the polish it was 603819 */
-const SUMME: [number, number] = [653000, 570000];
+const SUMME: [number, number] = [651000, 568000];
 /** Stand vor dem Feinschliff (gleiche Modelle, eine Detailstufe) / state before the polish (same models, one detail level) */
 const BEFORE_SUM = 603819;
 

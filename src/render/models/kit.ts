@@ -4,6 +4,10 @@
  * am Ende wird alles zu einer BufferGeometry verschmolzen.
  * Every part is made non-indexed, transformed, flat-shaded and vertex-coloured;
  * finally everything is merged into one BufferGeometry.
+ * Feinbereich (Einheiten, siehe withDetail): runde Teile und die weichen Formen (softBox, softPrism, lathe, capsule)
+ * behalten glatte Normalen; alles andere bleibt flach schattiert.
+ * Fine scope (units, see withDetail): round parts and the soft shapes (softBox, softPrism, lathe, capsule) keep
+ * smooth normals; everything else stays flat-shaded.
  */
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
@@ -148,10 +152,6 @@ export function withDetail<T>(seg: number, bevel: boolean, fn: () => T, opts: De
 export function fine(): boolean {
   return DETAIL.fine;
 }
-/** Feinmodellierung im aktuellen Detailbereich? / fine modelling inside the current detail scope? */
-export function smoothScope(): boolean {
-  return DETAIL.smooth;
-}
 /**
  * Segmentanzahl im aktuellen Detailbereich. Im Feinbereich bekommen Kleinstteile (Radius `size` unter TINY bzw. SMALL)
  * keine oder weniger zusaetzliche Segmente: dort sieht sie niemand, die Dreiecke gehen an die grossen Rundungen.
@@ -166,6 +166,7 @@ function S(n: number, min = 3, size = Infinity): number {
   }
   return Math.max(min, Math.round(n * k));
 }
+/** Radien, unter denen Rundungen keine bzw. weniger Zusatzsegmente bekommen / radii below which curves get no or fewer extra segments */
 const TINY = 0.0075;
 const SMALL = 0.0125;
 /** Ab so vielen Segmenten gilt ein Drehkoerper als rund / from this many segments a turned part counts as round */
@@ -367,11 +368,13 @@ export type LathePoint = readonly [number, number] | readonly [number, number, b
 
 /**
  * Drehkoerper um die y-Achse aus einem Profil; glatte Normalen, an "harten" Punkten bleibt die Kante scharf.
- * Radius 0 schliesst die Form. Die Laufrichtung des Profils ist egal.
+ * Radius 0 schliesst die Form. Die Laufrichtung des Profils ist egal. `range` = [erster Abschnitt, Ende) baut nur
+ * einen Teil des Profils, mit den Normalen des ganzen: so laesst sich ein Koerper in mehreren Farben fugenlos bauen.
  * Turned part about the y axis from a profile; smooth normals, the edge stays sharp at "hard" points.
- * Radius 0 closes the shape. The direction of the profile does not matter.
+ * Radius 0 closes the shape. The direction of the profile does not matter. `range` = [first section, end) builds only
+ * part of the profile, with the normals of the whole: this builds one body in several colours without a seam.
  */
-export function lathe(profile: LathePoint[], seg: number): THREE.BufferGeometry {
+export function lathe(profile: LathePoint[], seg: number, range?: readonly [number, number]): THREE.BufferGeometry {
   const n = Math.max(3, Math.round(seg));
   const m = profile.length;
   // Normale je Abschnitt in der Profilebene (r, y) / normal per section in the profile plane (r, y)
@@ -401,7 +404,7 @@ export function lathe(profile: LathePoint[], seg: number): THREE.BufferGeometry 
     pos.push(profile[i][0] * s, profile[i][1], profile[i][0] * c);
     nor.push(nr * s, ny, nr * c);
   };
-  for (let i = 0; i < m - 1; i++) {
+  for (let i = range ? Math.max(0, range[0]) : 0; i < (range ? Math.min(m - 1, range[1]) : m - 1); i++) {
     const r0 = profile[i][0], r1 = profile[i + 1][0];
     if (r0 <= 1e-7 && r1 <= 1e-7) continue;
     for (let j = 0; j < n; j++) {
@@ -448,15 +451,11 @@ export const geo = {
   /** Halbkugel, Boden bei y=0 / hemisphere, base at y=0 */
   hemi: (r: number, ws = 8, hs = 3) => turned(new THREE.SphereGeometry(r, S(ws, 3, r), S(hs, 2, r), 0, Math.PI * 2, 0, Math.PI / 2), S(ws, 3, r)),
   torus: (r: number, tube: number, rs = 4, ts = 12) => turned(new THREE.TorusGeometry(r, tube, S(rs, 3, tube * 2), S(ts, 3, r)), S(ts, 3, r)),
-  /** Quader mit weich gerundeten Kanten (glatte Normalen), siehe softBox / box with softly rounded edges (smooth normals), see softBox */
-  soft: (w: number, h: number, d: number, r: number, n = 0) => softBox(w, h, d, r, n),
   /** Weich gerundeter Quader, oben verjuengt (unten wb x db, oben wt x dt) / softly rounded box, tapered towards the top */
   softTaper: (wb: number, db: number, wt: number, dt: number, h: number, r: number, dz = 0, n = 0) =>
     taperSoft(softBox(wb, h, db, Math.min(r, Math.min(wt, dt) * 0.45), n), h, wt / wb, dt / db, dz),
   /** Drehkoerper aus einem Profil, siehe lathe; Segmentzahl folgt dem Detailbereich / turned part from a profile, see lathe; the segment count follows the detail scope */
-  lathe: (profile: LathePoint[], seg = 10) => lathe(profile, S(seg)),
-  /** Kapsel entlang y, siehe capsule / capsule along y, see capsule */
-  capsule: (r0: number, r1: number, len: number, seg = 8, rings = 2, flat = 1) => capsule(r0, r1, len, S(seg), rings, flat),
+  lathe: (profile: LathePoint[], seg = 10, range?: readonly [number, number]) => lathe(profile, S(seg), range),
   /**
    * Quader mit verjuengter Oberseite / box with a tapered top.
    * Unten wb x db, oben wt x dt, Hoehe h, Oberseite um dz in z verschoben. Zentriert.
