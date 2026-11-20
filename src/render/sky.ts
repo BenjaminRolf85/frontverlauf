@@ -28,24 +28,54 @@ interface Preset {
   /** Licht fuer unbeleuchtete Shader (Wasser) / light for unlit shaders (water) */
   light: [number, number, number];
   bloom: number;
+  /**
+   * Schlagschatten: Anteil des Sonnen- und des Umgebungslichts, der im Schatten wegfaellt (nachts schwaecher, damit
+   * nichts im Dunkeln verschwindet); contact = Staerke der Bodenschatten unter Einheiten und Baeumen.
+   * Cast shadows: share of the sun and of the ambient light removed inside a shadow (weaker at night so nothing
+   * vanishes in the dark); contact = strength of the contact shadows under units and trees.
+   */
+  shadow: [number, number];
+  contact: number;
 }
 
+/**
+ * Schatten je Tageszeit, fuer alle Welten gleich: am Tag kraeftig, in der Daemmerung etwas weicher (lange Schatten),
+ * nachts und in der Hoehle nur leicht, damit Einheiten und Markierungen lesbar bleiben.
+ * Shadows per time of day, the same for all worlds: strong by day, a little softer at dusk and dawn (long shadows),
+ * only light at night and in the cavern so units and markers stay readable.
+ */
+const SHADE: Record<DayPhase | 'cave', Pick<Preset, 'shadow' | 'contact'>> = {
+  day: { shadow: [1, 0.15], contact: 0.55 },
+  dusk: { shadow: [0.9, 0.1], contact: 0.48 },
+  night: { shadow: [0.7, 0.05], contact: 0.4 },
+  dawn: { shadow: [0.9, 0.1], contact: 0.48 },
+  cave: { shadow: [0.6, 0.05], contact: 0.4 },
+};
+
+/*
+ * Lichtbalance: wenig Umgebungslicht (hemi) und eine kraeftige Sonne (sunI) geben den Modellen eine helle und eine
+ * schattige Seite; die Summe beider bleibt je Stimmung gleich, damit besonnte Flaechen so hell und freundlich sind wie zuvor.
+ * Nacht und Hoehle verschieben nur wenig: dort traegt das blaue Umgebungslicht die Stimmung und haelt alles lesbar.
+ * Light balance: little ambient light (hemi) and a strong sun (sunI) give the models a lit and a shaded side; their
+ * sum stays the same per mood so sunlit surfaces are as bright and friendly as before. Night and cavern shift only a
+ * little: there the blue ambient light carries the mood and keeps everything readable.
+ */
 const PRESETS: Record<DayPhase, Preset> = {
   day: {
-    sky: semantic.skyDay, ground: semantic.terrainPlainSide, hemi: 1.6, sun: semantic.sunDay, sunI: 2.2, sunDir: [SUN.x, SUN.y, SUN.z],
-    night: 0, glow: 0.3, window: 0, haze: semantic.hazeDay, hazeAmt: 0.22, light: [1, 1, 1], bloom: 0.55,
+    sky: semantic.skyDay, ground: semantic.terrainPlainSide, hemi: 0.95, sun: semantic.sunDay, sunI: 2.85, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0, glow: 0.3, window: 0, haze: semantic.hazeDay, hazeAmt: 0.22, light: [1, 1, 1], bloom: 0.55, ...SHADE.day,
   },
   dusk: {
-    sky: semantic.skyDusk, ground: semantic.terrainPlainSide, hemi: 1.45, sun: semantic.sunDusk, sunI: 2.0, sunDir: [-10, 4.6, -3.5],
-    night: 0.45, glow: 0.55, window: 0.8, haze: semantic.hazeDusk, hazeAmt: 0.34, light: [0.92, 0.78, 0.7], bloom: 0.75,
+    sky: semantic.skyDusk, ground: semantic.terrainPlainSide, hemi: 0.95, sun: semantic.sunDusk, sunI: 2.5, sunDir: [-10, 4.6, -3.5],
+    night: 0.45, glow: 0.55, window: 0.8, haze: semantic.hazeDusk, hazeAmt: 0.34, light: [0.92, 0.78, 0.7], bloom: 0.75, ...SHADE.dusk,
   },
   night: {
-    sky: semantic.skyNight, ground: semantic.groundNight, hemi: 1.55, sun: semantic.moonLight, sunI: 1.25, sunDir: [4, 9, -6],
-    night: 1, glow: 1, window: 1, haze: semantic.hazeNight, hazeAmt: 0.42, light: [0.42, 0.5, 0.78], bloom: 1,
+    sky: semantic.skyNight, ground: semantic.groundNight, hemi: 1.45, sun: semantic.moonLight, sunI: 1.35, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.hazeNight, hazeAmt: 0.42, light: [0.42, 0.5, 0.78], bloom: 1, ...SHADE.night,
   },
   dawn: {
-    sky: semantic.skyDawn, ground: semantic.terrainPlainSide, hemi: 1.5, sun: semantic.sunDawn, sunI: 1.95, sunDir: [8, 5, 8],
-    night: 0.25, glow: 0.4, window: 0.45, haze: semantic.hazeDusk, hazeAmt: 0.3, light: [1, 0.9, 0.86], bloom: 0.65,
+    sky: semantic.skyDawn, ground: semantic.terrainPlainSide, hemi: 0.98, sun: semantic.sunDawn, sunI: 2.47, sunDir: [8, 5, 8],
+    night: 0.25, glow: 0.4, window: 0.45, haze: semantic.hazeDusk, hazeAmt: 0.3, light: [1, 0.9, 0.86], bloom: 0.65, ...SHADE.dawn,
   },
 };
 
@@ -56,8 +86,8 @@ const PRESETS: Record<DayPhase, Preset> = {
  * full self glow and dense haze in cave tones towards the edge.
  */
 const CAVE: Preset = {
-  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 1.1, sun: semantic.caveKeyLight, sunI: 1.05, sunDir: [-3, 9, 4],
-  night: 1, glow: 1.6, window: 1, haze: semantic.caveHaze, hazeAmt: 0.6, light: [0.42, 0.48, 0.78], bloom: 1.35,
+  sky: semantic.caveAmbient, ground: semantic.caveGround, hemi: 0.95, sun: semantic.caveKeyLight, sunI: 1.2, sunDir: [-3, 9, 4],
+  night: 1, glow: 1.6, window: 1, haze: semantic.caveHaze, hazeAmt: 0.6, light: [0.42, 0.48, 0.78], bloom: 1.35, ...SHADE.cave,
 };
 
 /**
@@ -66,20 +96,20 @@ const CAVE: Preset = {
  */
 const ALIEN_PRESETS: Record<DayPhase, Preset> = {
   day: {
-    sky: semantic.alienSkyLow, ground: semantic.alienGroundDark, hemi: 1.5, sun: semantic.alienSun, sunI: 2.0, sunDir: [SUN.x, SUN.y, SUN.z],
-    night: 0.2, glow: 0.55, window: 0.2, haze: semantic.alienHaze, hazeAmt: 0.3, light: [0.96, 0.86, 1], bloom: 0.75,
+    sky: semantic.alienSkyLow, ground: semantic.alienGroundDark, hemi: 0.95, sun: semantic.alienSun, sunI: 2.55, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0.2, glow: 0.55, window: 0.2, haze: semantic.alienHaze, hazeAmt: 0.3, light: [0.96, 0.86, 1], bloom: 0.75, ...SHADE.day,
   },
   dusk: {
-    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [-10, 4.6, -3.5],
-    night: 0.5, glow: 0.75, window: 0.8, haze: semantic.alienHaze, hazeAmt: 0.36, light: [0.9, 0.74, 0.96], bloom: 0.85,
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 0.95, sun: semantic.alienSun, sunI: 2.35, sunDir: [-10, 4.6, -3.5],
+    night: 0.5, glow: 0.75, window: 0.8, haze: semantic.alienHaze, hazeAmt: 0.36, light: [0.9, 0.74, 0.96], bloom: 0.85, ...SHADE.dusk,
   },
   night: {
-    sky: semantic.alienSkyHigh, ground: semantic.alienSkyTop, hemi: 1.5, sun: semantic.alienMoon, sunI: 1.2, sunDir: [4, 9, -6],
-    night: 1, glow: 1, window: 1, haze: semantic.alienHazeNight, hazeAmt: 0.42, light: [0.5, 0.42, 0.78], bloom: 1,
+    sky: semantic.alienSkyHigh, ground: semantic.alienSkyTop, hemi: 1.4, sun: semantic.alienMoon, sunI: 1.3, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.alienHazeNight, hazeAmt: 0.42, light: [0.5, 0.42, 0.78], bloom: 1, ...SHADE.night,
   },
   dawn: {
-    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 1.45, sun: semantic.alienSun, sunI: 1.85, sunDir: [8, 5, 8],
-    night: 0.35, glow: 0.65, window: 0.45, haze: semantic.alienHaze, hazeAmt: 0.33, light: [0.94, 0.8, 0.98], bloom: 0.8,
+    sky: semantic.alienSkyMid, ground: semantic.alienGroundDark, hemi: 0.95, sun: semantic.alienSun, sunI: 2.35, sunDir: [8, 5, 8],
+    night: 0.35, glow: 0.65, window: 0.45, haze: semantic.alienHaze, hazeAmt: 0.33, light: [0.94, 0.8, 0.98], bloom: 0.8, ...SHADE.dawn,
   },
 };
 
@@ -91,20 +121,20 @@ const ALIEN_PRESETS: Record<DayPhase, Preset> = {
  */
 const DESERT_PRESETS: Record<DayPhase, Preset> = {
   day: {
-    sky: semantic.desertSkyLow, ground: semantic.desertSandDark, hemi: 1.55, sun: semantic.desertSun, sunI: 2.15, sunDir: [SUN.x, SUN.y, SUN.z],
-    night: 0, glow: 0.35, window: 0, haze: semantic.desertHaze, hazeAmt: 0.36, light: [1, 0.9, 0.82], bloom: 0.6,
+    sky: semantic.desertSkyLow, ground: semantic.desertSandDark, hemi: 0.98, sun: semantic.desertSun, sunI: 2.72, sunDir: [SUN.x, SUN.y, SUN.z],
+    night: 0, glow: 0.35, window: 0, haze: semantic.desertHaze, hazeAmt: 0.36, light: [1, 0.9, 0.82], bloom: 0.6, ...SHADE.day,
   },
   dusk: {
-    sky: semantic.desertSkyMid, ground: semantic.desertRockDark, hemi: 1.45, sun: semantic.desertSunset, sunI: 1.8, sunDir: [-10, 4.6, -3.5],
-    night: 0.45, glow: 0.6, window: 0.8, haze: semantic.desertHaze, hazeAmt: 0.42, light: [0.86, 0.76, 0.78], bloom: 0.8,
+    sky: semantic.desertSkyMid, ground: semantic.desertRockDark, hemi: 0.95, sun: semantic.desertSunset, sunI: 2.3, sunDir: [-10, 4.6, -3.5],
+    night: 0.45, glow: 0.6, window: 0.8, haze: semantic.desertHaze, hazeAmt: 0.42, light: [0.86, 0.76, 0.78], bloom: 0.8, ...SHADE.dusk,
   },
   night: {
-    sky: semantic.desertSkyHigh, ground: semantic.desertSkyTop, hemi: 1.45, sun: semantic.desertMoon, sunI: 1.15, sunDir: [4, 9, -6],
-    night: 1, glow: 1, window: 1, haze: semantic.desertHazeNight, hazeAmt: 0.44, light: [0.56, 0.44, 0.5], bloom: 1,
+    sky: semantic.desertSkyHigh, ground: semantic.desertSkyTop, hemi: 1.36, sun: semantic.desertMoon, sunI: 1.24, sunDir: [4, 9, -6],
+    night: 1, glow: 1, window: 1, haze: semantic.desertHazeNight, hazeAmt: 0.44, light: [0.56, 0.44, 0.5], bloom: 1, ...SHADE.night,
   },
   dawn: {
-    sky: semantic.desertSkyMid, ground: semantic.desertSandDark, hemi: 1.5, sun: semantic.desertSun, sunI: 1.9, sunDir: [8, 5, 8],
-    night: 0.25, glow: 0.45, window: 0.45, haze: semantic.desertHaze, hazeAmt: 0.38, light: [0.98, 0.84, 0.76], bloom: 0.7,
+    sky: semantic.desertSkyMid, ground: semantic.desertSandDark, hemi: 0.98, sun: semantic.desertSun, sunI: 2.42, sunDir: [8, 5, 8],
+    night: 0.25, glow: 0.45, window: 0.45, haze: semantic.desertHaze, hazeAmt: 0.38, light: [0.98, 0.84, 0.76], bloom: 0.7, ...SHADE.dawn,
   },
 };
 
@@ -112,12 +142,13 @@ const DESERT_PRESETS: Record<DayPhase, Preset> = {
 interface State {
   sky: THREE.Color; ground: THREE.Color; hemi: number; sun: THREE.Color; sunI: number; sunDir: THREE.Vector3;
   night: number; glow: number; window: number; haze: THREE.Color; hazeAmt: number; light: THREE.Color; bloom: number;
+  shadowSun: number; shadowAmbient: number; contact: number;
 }
 const toState = (p: Preset): State => ({
   sky: new THREE.Color(hex(p.sky)), ground: new THREE.Color(hex(p.ground)), hemi: p.hemi,
   sun: new THREE.Color(hex(p.sun)), sunI: p.sunI, sunDir: new THREE.Vector3(...p.sunDir).normalize(),
   night: p.night, glow: p.glow, window: p.window, haze: new THREE.Color(hex(p.haze)), hazeAmt: p.hazeAmt,
-  light: new THREE.Color(...p.light), bloom: p.bloom,
+  light: new THREE.Color(...p.light), bloom: p.bloom, shadowSun: p.shadow[0], shadowAmbient: p.shadow[1], contact: p.contact,
 });
 const clone = (s: State): State => ({ ...s, sky: s.sky.clone(), ground: s.ground.clone(), sun: s.sun.clone(), sunDir: s.sunDir.clone(), haze: s.haze.clone(), light: s.light.clone() });
 
@@ -175,7 +206,7 @@ export class Sky {
     c.sky.copy(a.sky).lerp(b.sky, e); c.ground.copy(a.ground).lerp(b.ground, e); c.sun.copy(a.sun).lerp(b.sun, e);
     c.haze.copy(a.haze).lerp(b.haze, e); c.light.copy(a.light).lerp(b.light, e);
     c.sunDir.copy(a.sunDir).lerp(b.sunDir, e).normalize();
-    for (const key of ['hemi', 'sunI', 'night', 'glow', 'window', 'hazeAmt', 'bloom'] as const) c[key] = a[key] + (b[key] - a[key]) * e;
+    for (const key of ['hemi', 'sunI', 'night', 'glow', 'window', 'hazeAmt', 'bloom', 'shadowSun', 'shadowAmbient', 'contact'] as const) c[key] = a[key] + (b[key] - a[key]) * e;
     if (k >= 1) this.blending = false;
     this.apply();
     return true;
@@ -196,6 +227,11 @@ export class Sky {
     ATMO.uWindow.value = c.window;
     ATMO.uHazeColor.value.copy(c.haze);
     ATMO.uLight.value.copy(c.light);
+    ATMO.uShadow.value.set(c.shadowSun, c.shadowAmbient);
+    ATMO.uContact.value = c.contact;
+    // waagerechte Sonnenrichtung fuer den Versatz der Bodenschatten / horizontal sun direction for the offset of the contact shadows
+    const flat = Math.hypot(c.sunDir.x, c.sunDir.z);
+    if (flat > 1e-4) ATMO.uSunXZ.value.set(c.sunDir.x / flat, c.sunDir.z / flat);
     this.hazeAmount = c.hazeAmt;
     this.bloom = c.bloom;
   }
