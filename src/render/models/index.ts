@@ -41,7 +41,7 @@ const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
   // Korvat-Koloss und NEXUS-Baureihen mit vielen Teilen / Korvat colossus and NEXUS series with many parts
   steppeColossus: 1.3, cyborg: 1.4, flameTank: 1.4, kamikazeDrone: 1.5,
 };
-import { cloud, decoration } from './nature';
+import { cloud, decoration, forestFringe } from './nature';
 import { battleship, destroyer, landingBoat, submarine } from './ships';
 import { infantry, medic, mgTeam, pioneer, sniper, spy } from './soldiers';
 import { artillery, heli, jeep } from './vehicles';
@@ -323,6 +323,12 @@ export function decorationGeometry(terrain: TerrainId, resource: ResourceId | nu
   if (g) g.name = key;
   decoCache.set(key, g);
   return g;
+}
+
+/** Waldsaum auf dem Nachbarfeld eines Waldes (2 Varianten); der Name beginnt wie die Waldbaeume, also gleiche Tuschelinie / forest fringe on the tile next to a forest (2 variants); the name starts like the forest trees, so the same ink line */
+export function fringeGeometry(variant: number): THREE.BufferGeometry {
+  const v = ((Math.floor(variant) % 2) + 2) % 2;
+  return memo(`deco|forest|fringe|${v}`, () => forestFringe(v).build());
 }
 
 /** Fremdwesen-Flora fuer terraformte Felder (6 Varianten) / alien flora for terraformed tiles (6 variants) */

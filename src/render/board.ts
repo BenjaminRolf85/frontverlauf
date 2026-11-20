@@ -18,7 +18,7 @@ import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { ROCKET_FX, RocketFx } from './fx/rocket';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
-import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
+import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, meadowVariant, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
 import { CombatFx, aimTurrets, angleDelta, headingOf, lerpAngle, pathFacing, playAttack, turretTurn, turretsIn, type AttackInfo, type FxHost, type TurretInfo } from './combat';
 import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, scorchGeometry, skeletonGeometry, splatGeometry, wreckGeometry } from './remains';
 import { brokenFenceGeometry, burntGrassGeometry, debrisGeometry, oilSlickGeometry, roadDamageGeometry, shellHolesGeometry, smokeWispGeometry, stumpsGeometry } from './remains';
@@ -27,7 +27,7 @@ import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
 import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
 import { TechParts } from './techParts';
 import { WATER_BOX_TOP, buildWater } from './water';
-import { buildLandscape, cliffRock } from './landscape';
+import { CLIFF_STEP, NATURAL, beachCoast, buildLandscape, cliffRock, groundTone, growthRank } from './landscape';
 import { TownFx, type TownInput } from './lights';
 import { FogFx } from './fog';
 import { CaveShell } from './cave';
@@ -124,10 +124,12 @@ const lavaGeometry = (v: number) => safe(models.lavaGeometry, semantic.lava, v);
 const crashSiteGeometry = (v: number) => safe(models.crashSiteGeometry, semantic.metal, v);
 const labRuinGeometry = (v: number) => safe(models.labRuinGeometry, semantic.neutral, v);
 const jungleDecoration = (v: number) => safe(models.jungleDecoration, semantic.biomeJungleDark, v);
+const fringeGeometry = (v: number) => safe(models.fringeGeometry, null, v);
 const mothershipGeometry = (lite: boolean) => safe(models.mothershipGeometry, semantic.xenoGround, lite);
 const mothershipSmokeGeometry = (lite: boolean) => safe(models.mothershipSmokeGeometry, null, lite);
 /** Mutterschiff (m2): Breitseite zur Standardkamera / mothership (m2): broadside towards the default camera */
 const SHIP_TURN = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
+const WHITE = new THREE.Color(1, 1, 1);
 /** Deckkraft erschoepfter Einheiten / opacity of exhausted units */
 const DONE_OPACITY = 0.5;
 /** Eintauchtiefe watender Einheiten / sink depth of wading units */
@@ -495,13 +497,21 @@ export class Board {
     this.staticLayer.add(slab);
 
     // Felder gruppiert nach Geometrie / tiles grouped by geometry
-    const groups = new Map<THREE.BufferGeometry, { tiles: number[]; mats: THREE.Matrix4[] }>();
-    const add = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, tile: number) => {
+    const groups = new Map<THREE.BufferGeometry, { tiles: number[]; mats: THREE.Matrix4[]; tones: (THREE.Color | null)[]; toned: boolean }>();
+    const add = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, tile: number, tone: THREE.Color | null = null) => {
       if (!geo) return;
       let gr = groups.get(geo);
-      if (!gr) { gr = { tiles: [], mats: [] }; groups.set(geo, gr); }
-      gr.tiles.push(tile); gr.mats.push(m);
+      if (!gr) { gr = { tiles: [], mats: [], tones: [], toned: false }; groups.set(geo, gr); }
+      gr.tiles.push(tile); gr.mats.push(m); gr.tones.push(tone);
+      if (tone) gr.toned = true;
     };
+    // Natuerliche Landschaft nur in der Standardwelt: Bodenton je Feld, Wiesenflecken, Waldsaum, Strand und Sandbank
+    // natural landscape in the default world only: ground tone per tile, meadow patches, forest fringe, beach and sand shoal
+    const natural = !cave && !this.alien && !this.desert;
+    const tones: (THREE.Color | null)[] = new Array(s.tiles.length).fill(null);
+    /** Feld mit eigener Schlachtfeld-Farbe: bleibt ohne Saeume und Ton / tile with its own battlefield colour: stays without fringes and tone */
+    const scarred = (t: Tile) => scarKeyTier(scarTier(t), scarGround(t.terrain, t.biome, this.theme, this.snowy)) > 0;
+    const builtOn = (t: Tile) => t.cityId !== null || !!t.building || !!t.grandProject || !!t.outpost || !!t.feature || !!t.turret || !!t.turretRuin || !!t.temple;
     const decoGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const swayGroups = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
     const addDeco = (geo: THREE.BufferGeometry | null, m: THREE.Matrix4, sway = false, kind: GlowKind = 'nature') => {
@@ -552,7 +562,8 @@ export class Board {
         // vernarbte Felder ohne Heimatfaerbung (verbrannte Erde; die Grenzlinien zeigen das Gebiet weiter): spart Feldgeometrien und Draw-Calls
         // scarred tiles without the home tint (scorched earth; the border lines still show the territory): saves tile geometries and draw calls
         const scarKey = scarKeyTier(scar, ground);
-        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k);
+        if (natural && !scarKey && !t.xeno && (t.terrain === 'plain' || t.terrain === 'forest')) tones[k] = groundTone(x, y, seed);
+        add(this.tileGeo(t.terrain, homeFaction && !t.xeno && !scarKey ? factionTokens[homeFaction].terrain : null, t.biome, t.peak ?? 2, !!t.xeno, ring, scarKey), pos, k, tones[k]);
         const top = tileTop(t);
         const ps = t.terrain === 'mountain' ? PEAK_SCALE[t.peak ?? 2] : 1;
         const at = (dy = 0) => new THREE.Matrix4().compose(
@@ -677,7 +688,30 @@ export class Board {
           addDeco(lavaGeometry((x + y * 3) % 3), new THREE.Matrix4().makeTranslation(x - off, top + 0.005, y - off), false, 'lava');
           lavaSpots.push({ x: x - off, y: top, z: y - off, size: 1.9 });
         }
-        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 2) addDeco(biomeDecoration(t.terrain, t.biome, (x * 7 + y * 13 + x * y) % 8), at(), true);
+        if (!cave && !desert && !jungle && !t.xeno && !occ && !hasStructure && !t.resource && !t.road && !t.remains && !t.barrier && scar < 2) {
+          // Wiese der Standardwelt: mehr Sorten, aus dem Seed gewuerfelt (niedrige Qualitaet: die bisherigen acht) / meadow of the default world: more kinds, rolled from the seed (low quality: the previous eight)
+          const meadow = natural && !low && t.terrain === 'plain' && (!t.biome || t.biome === 'grassland' || t.biome === 'jungle');
+          addDeco(biomeDecoration(t.terrain, t.biome, meadow ? meadowVariant(tileHash(x, y, seed, 71)) : (x * 7 + y * 13 + x * y) % 8), at(), true);
+          // Waldsaum: ein kleiner Baum an der Kante zu erkundetem Wald auf gleicher Hoehe, hoechstens zwei je Feld
+          // forest fringe: one small tree at the edge towards explored forest on the same level, at most two per tile
+          // nicht auf Feldern mit Fluss, Portal oder einer fuer den Betrachter sichtbaren Mine / not on tiles with a river, the portal or a mine the viewer can see
+          const marked = (!!t.mine && (viewer < 0 || canSeeMine(s, viewer, x, y))) || (!!portal && portal.x === x && portal.y === y);
+          if (natural && !low && t.terrain === 'plain' && !t.river && !marked) {
+            let n = 0;
+            for (const [i, [dx, dy]] of ([[1, 0], [0, 1], [-1, 0], [0, -1]] as const).entries()) {
+              const nx = x + dx, ny = y + dy;
+              if (n >= NATURAL.fringe.max || nx < 0 || ny < 0 || nx >= size || ny >= size || !explored(nx, ny)) continue;
+              const o = s.tiles[ny * size + nx];
+              if (o.terrain !== 'forest' || o.biome === 'jungle' || o.xeno || (builtOn(o) && o.building !== 'road') || scarTier(o) >= 3 || Math.abs(tileTop(o) - top) >= CLIFF_STEP) continue;
+              if (tileHash(x, y, seed, 73 + i) >= NATURAL.fringe.chance) continue;
+              n++;
+              const d = NATURAL.fringe.near + (NATURAL.fringe.far - NATURAL.fringe.near) * tileHash(x, y, seed, 79 + i), side = (tileHash(x, y, seed, 89 + i) - 0.5) * 0.56, sc = 0.9 + tileHash(x, y, seed, 97 + i) * 0.2;
+              addDeco(fringeGeometry(Math.floor(tileHash(x, y, seed, 101 + i) * NATURAL.fringe.variants)), new THREE.Matrix4().compose(
+                new THREE.Vector3(x - off + dx * d - dy * side, top, y - off + dy * d + dx * side),
+                new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), tileHash(x, y, seed, 107 + i) * Math.PI * 2), new THREE.Vector3(sc, sc, sc)), true);
+            }
+          }
+        }
         // Fische (die Brandung zeichnet der Wasser-Shader) / fish (the surf is drawn by the water shader)
         if ((t.terrain === 'shallow' || t.terrain === 'ocean') && t.resource === 'fish' && !t.building && !alien) fishTiles.push({ x: x - off, z: y - off, y: top });
         // Krater und Brandflecken, groesser je Schlachtfeld-Stufe / craters and scorch marks, larger per battlefield tier
@@ -725,6 +759,8 @@ export class Board {
         if (t.river) {
           const wet = (xx: number, yy: number) => {
             if (xx < 0 || yy < 0 || xx >= size || yy >= size) return false;
+            // nur erkundete Nachbarn: der Fluss verraet kein Wasser unter dem Nebel / explored neighbours only: the river reveals no water under the fog
+            if (!explored(xx, yy)) return false;
             const o = s.tiles[yy * size + xx];
             return !!o.river || o.terrain === 'shallow' || o.terrain === 'ocean';
           };
@@ -940,6 +976,8 @@ export class Board {
       const { mesh, line } = outlinedInstanced(geo, gr.mats.length, OUTLINE.tile, landMaterial());
       mesh.receiveShadow = true;
       gr.mats.forEach((m, i) => { mesh.setMatrixAt(i, m); line.setMatrixAt(i, m); });
+      // Bodenton je Feld als Instanzfarbe (kostet weder Dreiecke noch Draw-Calls) / ground tone per tile as instance colour (costs neither triangles nor draw calls)
+      if (gr.toned) { gr.tones.forEach((c, i) => mesh.setColorAt(i, c ?? WHITE)); mesh.instanceColor!.needsUpdate = true; }
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
       this.staticLayer.add(mesh, line);
@@ -1065,12 +1103,18 @@ export class Board {
     }
 
     // Animiertes Wasser / animated water
-    const water = buildWater(s, explored);
+    const water = buildWater(s, explored, 5, natural ? (l, w) => beachCoast(l, tileTop(l), tileTop(w)) : undefined);
     if (water) this.staticLayer.add(water);
     // Weiche Uebergaenge und Felsabbrueche / soft transitions and rock cliffs
     const land = buildLandscape({
       size, tiles: s.tiles, explored, top: tileTop,
       topColor: (t) => (t.terrain === 'shallow' || t.terrain === 'ocean' ? null : this.tileColors(t.terrain, this.tintOf(s, t), t.biome, !!t.xeno).top),
+      ...(natural ? { natural: {
+        seed, segments: low ? NATURAL.segments.low : NATURAL.segments.high,
+        rank: (t) => (scarred(t) ? null : growthRank(t)),
+        tone: (x, y) => tones[y * size + x],
+        meadow: (t) => t.terrain === 'plain' && !t.xeno && !t.resource && !builtOn(t) && !scarred(t),
+      } } : {}),
     });
     if (land.strips) {
       const strips = new THREE.Mesh(land.strips, landMaterial());
