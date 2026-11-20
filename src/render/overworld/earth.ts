@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { primitives, semantic } from '../../design/tokens';
 import type { FactionId } from '../../data/balance';
-import { city } from '../models/city';
+import { CITY_SCALE, city } from '../models/city';
 import { feature } from '../models/buildings';
 import { crashSite } from '../models/terrain';
 import { dataCenter, powerPlant } from '../models/specials';
@@ -160,7 +160,7 @@ export function buildEarth(ctx: WorldCtx): WorldBuild {
   towns.forEach((p, i) => {
     const town = look.inked(city(TOWN_FACTIONS[i % TOWN_FACTIONS.length], 2 + (i % 2), flags).build(), 0.03);
     town.position.set(p.x, H(p.x, p.z) - 0.005, p.z);
-    town.scale.setScalar(0.32);
+    town.scale.setScalar(0.32 / CITY_SCALE);
     town.rotation.y = i * 1.3;
     content.add(town);
   });

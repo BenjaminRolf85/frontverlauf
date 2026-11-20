@@ -116,7 +116,17 @@ export function cityLabel(name: string, level: number | string, color: string, i
     ctx.lineWidth = 4; ctx.strokeStyle = semantic.ink; ctx.stroke();
     // Stufe / level
     ctx.fillStyle = capital ? semantic.accent : semantic.surfaceRaised;
-    ctx.beginPath(); ctx.arc(x + 26, 32, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    if (capital) {
+      // Hauptquartier: goldener Stern statt Kreis, auch bei Kartenzoom zu erkennen / headquarters: golden star instead of the circle, readable at map zoom too
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 16 : 29;
+        ctx.lineTo(x + 26 + Math.cos(a) * r, 33 + Math.sin(a) * r);
+      }
+      ctx.closePath();
+    } else ctx.arc(x + 26, 32, 18, 0, Math.PI * 2);
+    ctx.lineJoin = 'round';
+    ctx.fill(); ctx.stroke();
     ctx.fillStyle = semantic.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `30px ${primitives.font.display}`;
     ctx.fillText(String(level), x + 26, 34);

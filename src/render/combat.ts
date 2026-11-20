@@ -934,20 +934,22 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const aSwing = swing(aModel, host.facing(attackerId), a1, info?.attackerHull);
   const turnA = aSwing.ms;
 
-  const muzzle = (o: THREE.Vector3, type: UnitTypeId | undefined, sw: Swing) => {
+  // k: Massstab der Einheit (Besatzung einer Stadt steht kleiner, GARRISON) / k: scale of the unit (a city garrison is drawn smaller, GARRISON)
+  const aK = a.scale.x, dK = d.scale.x;
+  const muzzle = (o: THREE.Vector3, type: UnitTypeId | undefined, sw: Swing, k: number) => {
     const [h, fwd] = (type && MUZZLE[type]) || [0.24, 0.17];
-    if (sw.pivot) return turretMuzzle(o, sw.pivot, sw.hull, sw.aim, h, fwd);
-    return o.clone().add(new THREE.Vector3(Math.sin(sw.aim) * fwd, h, Math.cos(sw.aim) * fwd));
+    const p = sw.pivot ? turretMuzzle(o, sw.pivot, sw.hull, sw.aim, h, fwd) : o.clone().add(new THREE.Vector3(Math.sin(sw.aim) * fwd, h, Math.cos(sw.aim) * fwd));
+    return k === 1 ? p : p.sub(o).multiplyScalar(k).add(o);
   };
-  const hitPoint = (o: THREE.Vector3, type: UnitTypeId | undefined) => o.clone().add(new THREE.Vector3(0, (type && HIT_H[type]) ?? 0.18, 0));
+  const hitPoint = (o: THREE.Vector3, type: UnitTypeId | undefined, k: number) => o.clone().add(new THREE.Vector3(0, ((type && HIT_H[type]) ?? 0.18) * k, 0));
   const surfaceOf = (type: UnitTypeId | undefined, water: boolean): Surface => (water ? 'water' : type && FLESH.has(type) ? 'flesh' : 'metal');
 
   // Hinweg / outbound
   const fireAt = turnA;
-  const flight = info ? shoot(fx, aw, muzzle(aStart, info.attacker, aSwing), hitPoint(dStart, info.target), info.attackerFaction, fireAt, info.attackerWater) : 130;
+  const flight = info ? shoot(fx, aw, muzzle(aStart, info.attacker, aSwing, aK), hitPoint(dStart, info.target, dK), info.attackerFaction, fireAt, info.attackerWater) : 130;
   const impactAt = fireAt + flight;
   if (info) {
-    impact(fx, aw, hitPoint(dStart, info.target), dStart.y, surfaceOf(info.target, info.targetWater), info.attackerFaction, impactAt);
+    impact(fx, aw, hitPoint(dStart, info.target, dK), dStart.y, surfaceOf(info.target, info.targetWater), info.attackerFaction, impactAt);
     // Explosionsradius: kleinere Einschlaege bei Nachbarn / blast radius: smaller impacts at neighbours
     for (const id of info.splash ?? []) {
       const o = host.unitObject(id);
@@ -963,8 +965,8 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const retFireAt = impactAt + RETURN_GAP;
   let retImpactAt = retFireAt;
   if (ret && info) {
-    retImpactAt = retFireAt + shoot(fx, dw, muzzle(dStart, info.target, dSwing), hitPoint(aStart, info.attacker), info.targetFaction, retFireAt, info.targetWater);
-    impact(fx, dw, hitPoint(aStart, info.attacker), aStart.y, surfaceOf(info.attacker, info.attackerWater), info.targetFaction, retImpactAt);
+    retImpactAt = retFireAt + shoot(fx, dw, muzzle(dStart, info.target, dSwing, dK), hitPoint(aStart, info.attacker, aK), info.targetFaction, retFireAt, info.targetWater);
+    impact(fx, dw, hitPoint(aStart, info.attacker, aK), aStart.y, surfaceOf(info.attacker, info.attackerWater), info.targetFaction, retImpactAt);
   }
   const total = (ret ? retImpactAt : impactAt) + TAIL;
 

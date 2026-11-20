@@ -141,8 +141,8 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
   const L = look(f);
   const R = rng(o.seed ?? 1);
   const ry = o.ry ?? 0;
-  // hoechstens 4 Fensterbaender (Dreiecksbudget) / at most 4 window bands (triangle budget)
-  const floors = Math.min(4, Math.max(1, Math.round(h / 0.085)));
+  // hoechstens 4 Fensterbaender, Hochhaeuser 6 (Dreiecksbudget) / at most 4 window bands, high-rises 6 (triangle budget)
+  const floors = Math.min(h > 0.45 ? 6 : 4, Math.max(1, Math.round(h / 0.085)));
   b.group({ p: [x, 0, z], r: [0, ry, 0] }, () => {
     switch (f) {
       case 'korvat': {
