@@ -143,6 +143,9 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
   const ry = o.ry ?? 0;
   // hoechstens 4 Fensterbaender, Hochhaeuser 6 (Dreiecksbudget) / at most 4 window bands, high-rises 6 (triangle budget)
   const floors = Math.min(h > 0.45 ? 6 : 4, Math.max(1, Math.round(h / 0.085)));
+  // Fenstersprossen nur auf den unteren Etagen, nie auf der obersten (ausser im Erdgeschosshaus): haelt die groesseren Staedte im alten Dreiecksrahmen
+  // window mullions only on the lower floors, never on the top one (except on a single-storey house): keeps the larger cities within the old triangle frame
+  const mull = Math.max(1, Math.min(2, floors - 1));
   b.group({ p: [x, 0, z], r: [0, ry, 0] }, () => {
     switch (f) {
       case 'korvat': {
@@ -150,7 +153,7 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         b.block(0, 0, 0, w, h, d, L.wall);
         for (let i = 0; i < floors; i++) {
           band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.018, mat.window);
-          if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.018, L.wall);
+          if (i < mull) mullions(b, w, d, (i + 0.45) * (h / floors), 0.018, L.wall);
         }
         door(b, d / 2, L.roof, L.wallDark);
         b.block(0, h, 0, w + 0.016, 0.018, d + 0.016, L.roofDark);
@@ -167,7 +170,7 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
         b.block(0, 0, 0, w + 0.012, Math.min(0.04, h * 0.25), d + 0.012, L.wallDark);
         for (let i = 0; i < floors; i++) {
           band(b, 0, (i + 0.5) * (h / floors), 0, w, d, 0.014, L.secondary);
-          if (i < 3) mullions(b, w, d, (i + 0.5) * (h / floors) - 0.022, 0.02, L.wallDark);
+          if (i < mull) mullions(b, w, d, (i + 0.5) * (h / floors) - 0.022, 0.02, L.wallDark);
         }
         door(b, d / 2, mat.dark, L.secondary, 0.034, 0.045);
         const rh = Math.max(w, d) * (o.landmark ? 1.05 : 0.8);
@@ -186,7 +189,7 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
           b.block(0, 0, 0, w, h, d, L.wall);
           for (let i = 0; i < floors; i++) {
             band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.wallDark);
-            if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
+            if (i < mull) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
           }
           b.block(w * 0.28, h, -d * 0.1, 0.022, Math.min(0.12, w * 0.55) * 0.8, 0.022, mat.concreteDark);
           b.block(0, 0, d / 2 + 0.002, 0.03, 0.05, 0.006, L.roofDark);
@@ -204,7 +207,7 @@ export function house(b: Builder, f: FactionId | null, x: number, z: number, w: 
           b.block(0, 0, 0, w, h, d, L.wall);
           for (let i = 0; i < floors; i++) {
             band(b, 0, (i + 0.45) * (h / floors), 0, w, d, 0.016, L.roof);
-            if (i < 3) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
+            if (i < mull) mullions(b, w, d, (i + 0.45) * (h / floors), 0.016, L.wall);
           }
           door(b, d / 2, L.secondary, L.wallDark);
           b.block(0, h, 0, w + 0.01, 0.014, d + 0.01, L.wallDark);
