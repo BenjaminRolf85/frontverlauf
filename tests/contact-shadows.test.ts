@@ -10,7 +10,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { CONTACT, ContactShadows, footprints } from '../src/render/contact';
 import { decorationGeometry } from '../src/render/models';
 import { TOON_RAMP } from '../src/render/toon';
-import { ATMO, CLOUD_LOOK, cloudMaterial, SHADOW_EDGE } from '../src/render/atmosphere';
+import { ATMO, CLOUD_LOOK, cloudMaterial, LIT_SUM, SHADOW_EDGE } from '../src/render/atmosphere';
 import { Sky } from '../src/render/sky';
 import { hex } from '../src/design/tokens';
 
@@ -81,6 +81,12 @@ describe('Licht und Schatten / light and shadow', () => {
     for (const r of Object.values(TOON_RAMP)) { expect(r[0]).toBeLessThan(r[1]); expect(r[1]).toBeLessThan(r[2]); expect(r[2]).toBe(255); }
     expect(TOON_RAMP.soft[0]).toBeGreaterThan(TOON_RAMP.hard[0]);
     expect(SHADOW_EDGE.from).toBeLessThan(SHADOW_EDGE.to);
+  });
+
+  it('Begrenzung gegen den Lichthof: die Zeile steht im Toon-Shader von three / clamp against the halo: the line exists in the toon shader of three', () => {
+    // sonst greift das Ersetzen in patchAtmosphere nach einem three-Update still nicht mehr / otherwise the replace in patchAtmosphere silently stops working after a three update
+    expect(THREE.ShaderLib.toon.fragmentShader.includes(LIT_SUM)).toBe(true);
+    expect(THREE.ShaderLib.toon.fragmentShader.includes('#include <lights_fragment_end>')).toBe(true);
   });
 
   it('Nebelwolken: getoent, nie heller als Weiss / fog clouds: tinted, never brighter than white', () => {

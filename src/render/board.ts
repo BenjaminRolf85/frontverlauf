@@ -1659,6 +1659,8 @@ export class Board {
       try { a.update(t); } catch (e) { console.error(e); this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); continue; }
       if (t >= 1) { this.anims.splice(this.anims.indexOf(a), 1); a.resolve(); }
     }
+    // Bodenschatten folgen der Bewegung im selben Bild / contact shadows follow the move within the same frame
+    this.updateShadows();
     this.dirty = false;
     return true;
   }

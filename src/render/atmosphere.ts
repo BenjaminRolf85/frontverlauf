@@ -178,7 +178,7 @@ const FRAG_SHADOW = /* glsl */ `
  * Clamp lit surfaces to 1 (the screen clips there anyway): white clouds and ice no longer exceed the bloom threshold
  * and cast no halo onto the backdrop; only self glow (lava, windows, xeno) lies above it and keeps glowing.
  */
-const LIT_SUM = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
+export const LIT_SUM = 'vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + totalEmissiveRadiance;';
 const LIT_CLAMPED = 'vec3 outgoingLight = min( reflectedLight.directDiffuse + reflectedLight.indirectDiffuse, vec3( 1.0 ) ) + totalEmissiveRadiance;';
 const FRAG_HAZE = /* glsl */ `
   outgoingLight = mix(outgoingLight, uHazeColor, atmoHaze(vAtmoWorld));
