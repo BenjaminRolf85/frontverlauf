@@ -5,10 +5,11 @@
  * white plates, gunmetal, cyan glowing lines and eyes, hexagonal panels.
  * Blick nach +z, Ursprung unten mittig / facing +z, origin bottom centre.
  */
+import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { robotHead } from './headgear';
-import { Builder, geo, shade, type V3 } from './kit';
+import { Builder, capsule, fine, geo, shade, type V3 } from './kit';
 import { look, mat } from './look';
 import { coils, hexPanel, joint, limb } from './robots';
 import { antenna, tracks } from './tanks';
@@ -48,13 +49,16 @@ export function cyborg(f: FactionId, lite = false): Builder {
     b.add(geo.torus(0.024, 0.005, 3, 10), metal, { p: [0, 0.29, 0.064] });
     hexPanel(b, [0, 0.245, 0.051], 0.02, shade(plate, 0.85), [HALF_PI, 0, 0]);
     addEmblem(b, f, 0.018, 0.004, L.emblem, { p: [-0.045, 0.315, 0.062] });
-    // Reaktorrucksack mit Kuehlrohren / reactor backpack with cooling pipes
-    b.add(geo.cbox(0.11, 0.1, 0.05, 0.012), metal, { p: [0, 0.29, -0.07] });
-    for (const s of [-1, 1]) {
-      b.cyl(0.016, 0.016, 0.09, 8, metal, [s * 0.045, 0.3, -0.1]);
-      b.add(geo.cyl(0.017, 0.017, 0.01, 8, true), glow, { p: [s * 0.045, 0.35, -0.1] });
-    }
     antenna(b, 0.04, 0.34, -0.07, 0.11, glow);
+  }
+  // Reaktorrucksack mit hohen Kuehlschloten; Lesbarkeit: die zwei Schlote ragen ueber den Kopf (Kennform des Cyborgs gegen
+  // den schlanken Androiden) / reactor backpack with tall cooling stacks; readability: the two stacks rise above the head
+  // (the cyborg's signature against the slim android)
+  b.add(lite ? geo.box(0.13, 0.12, 0.06) : geo.cbox(0.13, 0.12, 0.06, 0.014), metal, { p: [0, 0.29, -0.075] });
+  for (const s of [-1, 1]) {
+    b.cyl(0.022, 0.026, 0.22, lite || !fine() ? 6 : 10, metal, [s * 0.048, 0.36, -0.105]);
+    b.add(geo.cyl(0.026, 0.026, 0.03, lite || !fine() ? 6 : 10), glow, { p: [s * 0.048, 0.47, -0.105] });
+    if (!lite && fine()) b.cyl(0.03, 0.03, 0.016, 10, mat.dark, [s * 0.048, 0.445, -0.105]);
   }
   // Kopf mit Visier / head with visor
   b.group({ p: [0, 0.335, 0.005], s: 0.95 }, () => robotHead(b, L, lite ? 1 : 2, false));
@@ -105,21 +109,24 @@ export function flameTank(f: FactionId, lite = false): Builder {
     for (const x of [-0.08, 0, 0.08]) hexPanel(b, [x, 0.156, 0.15], 0.022, shade(plate, 0.9), [0, 0, 0]);
     addEmblem(b, f, 0.024, 0.004, L.primary, { p: [0.11, 0.157, 0.06], r: [-HALF_PI, 0, 0] });
   }
-  // Brennstofftanks auf dem Heck / fuel tanks on the rear deck
+  // Brennstofftanks auf dem Heck; Lesbarkeit: aufrecht und hoch wie zwei Tuerme (Kennform des Flammenpanzers gegen den
+  // Railgun-Traeger mit langen Schienen) / fuel tanks on the rear deck; readability: upright and tall like two towers (the
+  // flame tank's signature against the railgun carrier with its long rails)
   for (const s of [-1, 1]) {
-    b.cyl(0.042, 0.042, 0.15, lite ? 8 : 14, L.primary, [s * 0.075, 0.2, -0.12], [HALF_PI, 0, 0]);
-    for (const z of [-0.045, -0.195]) b.add(geo.sphere(0.042, lite ? 8 : 12, lite ? 4 : 6), L.primary, { p: [s * 0.075, 0.2, z], s: [1, 1, 0.5] });
+    b.cyl(0.056, 0.056, 0.27, lite ? 8 : 14, L.primary, [s * 0.075, 0.29, -0.12]);
+    b.add(geo.hemi(0.056, lite ? 8 : 14, lite ? 2 : 4), L.primary, { p: [s * 0.075, 0.425, -0.12], s: [1, 0.6, 1] });
     if (!lite) {
-      for (const z of [-0.16, -0.08]) b.add(geo.torus(0.043, 0.005, 3, 14), metal, { p: [s * 0.075, 0.2, z] });
+      for (const y of [0.2, 0.38]) b.cyl(0.059, 0.059, 0.014, 14, metal, [s * 0.075, y, -0.12]);
       // Warnband / hazard band
-      b.add(geo.cyl(0.044, 0.044, 0.012, 14, true), mat.yellow, { p: [s * 0.075, 0.2, -0.12], r: [HALF_PI, 0, 0] });
+      b.add(geo.cyl(0.0585, 0.0585, 0.02, 14, true), mat.yellow, { p: [s * 0.075, 0.29, -0.12] });
+      b.cyl(0.012, 0.012, 0.02, 8, metal, [s * 0.075, 0.465, -0.12]);
     }
-    b.cyl(0.026, 0.03, 0.03, lite ? 6 : 10, metal, [s * 0.075, 0.165, -0.12]);
+    b.cyl(0.03, 0.034, 0.03, lite ? 6 : 10, metal, [s * 0.075, 0.15, -0.12]);
   }
   // gedrungener Turm vorn / squat turret at the front
   const ty = 0.155, tz = 0.05;
   // Leitungen von den Tanks zum Turmkranz bleiben an der Wanne / hoses from the tanks to the turret ring stay on the hull
-  if (!lite) for (const s of [-1, 1]) b.tube([s * 0.075, 0.24, -0.06], [s * 0.03, ty + 0.02, tz - 0.03], 0.008, 6, mat.dark);
+  if (!lite) for (const s of [-1, 1]) b.tube([s * 0.075, 0.33, -0.065], [s * 0.03, ty + 0.02, tz - 0.03], 0.008, 6, mat.dark);
   // Drehturm um den Turmkranz / turret rotating around the turret ring
   b.turret([0, ty, tz], () => {
     b.cyl(0.07, 0.08, 0.025, lite ? 8 : 12, metal, [0, ty + 0.012, tz]);
@@ -155,16 +162,24 @@ export function kamikazeDrone(f: FactionId, lite = false): Builder {
   const L = look(f);
   const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
   const y = 0.13;
-  // vier duenne Beine / four thin legs
+  // vier Beine; Feinschliff: runde, kraeftigere Glieder mit Kniekappe, Hydraulikleitung und Krallenfuss statt Draht
+  // four legs; polish: round, sturdier limbs with a knee cap, hydraulic line and claw foot instead of wire
+  // niedrige Qualitaet: duennere Glieder mit weniger Segmenten, ohne Kappen und Leitungen / low quality: thinner limbs with fewer segments, without caps and lines
+  const lo = lite || !fine();
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const base: V3 = [sx * 0.045, y - 0.01, sz * 0.04];
     const knee: V3 = [sx * 0.12, y + 0.04, sz * 0.11];
-    const foot: V3 = [sx * 0.16, 0.008, sz * 0.15];
-    joint(b, base, 0.014, lite);
-    b.tube(base, knee, 0.009, lite ? 5 : 7, plate, 0.008);
-    joint(b, knee, 0.012, lite, L.primary);
-    b.tube(knee, foot, 0.007, lite ? 5 : 7, metal, 0.005);
-    b.add(geo.cone(0.008, 0.02, 6), metal, { p: [foot[0], 0.01, foot[2]], r: [Math.PI, 0, 0] });
+    const foot: V3 = [sx * 0.16, 0.012, sz * 0.15];
+    joint(b, base, 0.016, lite);
+    b.segment(new THREE.Vector3(...base), new THREE.Vector3(...knee), (l) => (lo ? geo.cyl(0.011, 0.009, l, 6) : capsule(0.012, 0.01, l + 0.012, 10, 1)), plate);
+    joint(b, knee, 0.015, lite, L.primary);
+    b.segment(new THREE.Vector3(...knee), new THREE.Vector3(...foot), (l) => (lo ? geo.cyl(0.008, 0.006, l, 6) : capsule(0.009, 0.007, l + 0.008, 8, 1)), metal);
+    if (!lo) {
+      b.add(geo.hemi(0.017, 10, 3), plate, { p: [knee[0] * 1.06, knee[1] + 0.004, knee[2] * 1.06], r: [sz * 0.9, 0, -sx * 0.9] });
+      b.tube([base[0] * 1.2, base[1] + 0.012, base[2] * 1.2], [knee[0] * 0.9, knee[1] + 0.014, knee[2] * 0.9], 0.0035, 5, mat.yellow);
+      for (const k of [-1, 1]) b.add(geo.cone(0.006, 0.022, 6), metal, { p: [foot[0] + k * sz * 0.008, 0.008, foot[2] + k * sx * 0.008], r: [Math.PI, 0, 0] });
+    }
+    b.add(geo.cone(0.01, 0.024, 8), metal, { p: [foot[0], 0.012, foot[2]], r: [Math.PI, 0, 0] });
   }
   // Sprengladung mit Warnring / explosive charge with a hazard ring
   b.add(geo.sphere(0.075, lite ? 10 : 16, lite ? 6 : 10), plate, { p: [0, y + 0.02, 0], s: [1, 0.85, 1.1] });

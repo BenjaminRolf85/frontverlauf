@@ -334,7 +334,9 @@ export function destroyer(f: FactionId): Builder {
   superBlock(b, f, L, 0, d + 0.07, 0.08, 0.1, 0.055, 0.08);
   bridgeWings(b, L, d + 0.11, 0.1, 0.15);
   mast(b, L, f, 0.06, d + 0.125, 0.16);
-  funnel(b, f, L, -0.06, d, 0.13, 0.03);
+  // Lesbarkeit: zwei hohe Schornsteine, die Kennform des Zerstoerers gegen das U-Boot mit nur einem Turm / readability: two tall funnels, the destroyer's signature against the submarine with its single sail
+  funnel(b, f, L, -0.025, d, 0.17, 0.03);
+  funnel(b, f, L, -0.088, d, 0.15, 0.026);
   lifeboats(b, L, 0.07, d + 0.04, -0.04);
   lifeRings(b, 0.072, d + 0.025, [0.13, -0.2]);
   turret(b, f, L, 0.24, d, 0.09, 1, 1);
@@ -354,8 +356,8 @@ export function destroyer(f: FactionId): Builder {
   b.cyl(0.004, 0.004, 0.04, 6, mat.dark, [0, d + 0.14, 0.05], [HALF_PI, 0, 0]);
   b.add(geo.cbox(0.06, 0.03, 0.05, 0.008), L.hullDark, { p: [0, d + 0.015, 0.155] });
   for (const x of [-0.015, 0.015]) for (const z of [0.14, 0.17]) b.box(0.02, 0.003, 0.02, mat.ink, [x, d + 0.031, z]);
-  b.tube([0, d, -0.1], [0, d + 0.12, -0.1], 0.005, 6, mat.dark);
-  b.add(geo.sphere(0.02, 10, 5), mat.white, { p: [0, d + 0.13, -0.1] });
+  b.tube([0, d, -0.21], [0, d + 0.12, -0.21], 0.005, 6, mat.dark);
+  b.add(geo.sphere(0.02, 10, 5), mat.white, { p: [0, d + 0.13, -0.21] });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [0.101, 0.035, 0.18], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [-0.101, 0.035, 0.18], r: [0, -HALF_PI, 0] });
   if (f === 'velkar') techHullLine(b, 0.1, 0.05, 0.5);
@@ -384,8 +386,14 @@ export function battleship(f: FactionId): Builder {
   superBlock(b, f, L, 0, d, 0.0, 0.17, 0.07, 0.2);
   superBlock(b, f, L, 0, d + 0.07, 0.02, 0.12, 0.06, 0.11);
   superBlock(b, f, L, 0, d + 0.13, 0.03, 0.08, 0.05, 0.06);
+  // Lesbarkeit: hoher Gefechtsturm (Pagode) mit Leitstand und hohem Mast, die Kennform des Schlachtschiffs gegen den flachen
+  // Zerstoerer / readability: tall battle tower (pagoda) with a fire-control top and a tall mast, the battleship's signature
+  // against the low destroyer
+  superBlock(b, f, L, 0, d + 0.18, 0.03, 0.1, 0.06, 0.08);
+  b.add(geo.cbox(0.13, 0.035, 0.06, 0.01), L.hullDark, { p: [0, d + 0.255, 0.03] });
+  for (const s2 of [-1, 1]) b.cyl(0.014, 0.014, 0.03, 8, mat.dark, [s2 * 0.065, d + 0.255, 0.03], [0, 0, HALF_PI]);
   bridgeWings(b, L, d + 0.16, 0.05, 0.12);
-  mast(b, L, f, 0.03, d + 0.18, 0.15);
+  mast(b, L, f, 0.025, d + 0.272, 0.2);
   funnel(b, f, L, -0.1, d, 0.15, 0.035);
   if (styleOf(f) === 'meridon') containers(b, L, -0.18, d);
   // Nebengeschuetze / secondary guns
