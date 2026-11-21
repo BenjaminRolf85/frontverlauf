@@ -17,7 +17,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { ball, Builder, fine, geo, mix, rng, shade, softBox, type ColorLike, type LathePoint, type V3 } from './kit';
 import { mat, type Look } from './look';
 import { TECH } from './velkarTech';
 import { FAITH, faithStar, haloRing } from './alveniaFaith';
@@ -42,9 +42,11 @@ function onDome(b: Builder, centre: V3, rad: number, scale: V3, theta: number, p
 /** Gesicht mit Augen, Brauen, Nase, Mund / face with eyes, brows, nose, mouth */
 export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', seed: number) {
   const R = rng(seed);
-  b.add(d >= 1 ? geo.rbox(0.104, 0.098, 0.1, 0.02) : geo.box(0.104, 0.098, 0.1), mat.skin, { p: [0, 0.049, 0] });
+  // runder Kopf: Rundungsschritte je Detailstufe / round head: rounding steps per detail level
+  b.add(softBox(0.104, 0.098, 0.1, 0.027, headSteps(d)), mat.skin, { p: [0, 0.049, 0] });
   // Nase / nose
-  b.add(d === 2 ? geo.rtaper(0.024, 0.022, 0.018, 0.014, 0.03, 0.005) : geo.box(0.022, 0.026, 0.018), shade(mat.skin, 0.9), { p: [0, 0.04, 0.056] });
+  const roundNose = d === 2 || (d === 1 && fine());
+  b.add(roundNose ? ball(1, d === 2 ? 8 : 6, d === 2 ? 5 : 4) : geo.box(0.022, 0.026, 0.018), shade(mat.skin, 0.9), { p: [0, 0.04, roundNose ? 0.053 : 0.056], s: roundNose ? [0.0125, 0.015, 0.0125] : 1 });
   if (glasses === 'none') {
     for (const s of [-1, 1]) {
       if (d >= 1) {
@@ -57,7 +59,12 @@ export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', see
     }
   }
   if (d >= 1) b.box(0.03, 0.006, 0.005, shade(mat.skin, 0.55), [0.004, 0.018, 0.0505], [0, 0, -0.08]);
-  if (d === 2) for (const s of [-1, 1]) b.add(geo.rbox(0.014, 0.03, 0.024, 0.005), shade(mat.skin, 0.9), { p: [s * 0.055, 0.048, -0.004] });
+  if (d === 2) for (const s of [-1, 1]) b.add(softBox(0.014, 0.03, 0.024, 0.006, fine() ? 1 : 0), shade(mat.skin, 0.9), { p: [s * 0.055, 0.048, -0.004] });
+}
+
+/** Rundungsschritte eines Kopfes: bei hoher Qualitaet 1 (Besatzung 0), sonst 0 / rounding steps of a head: 1 on high quality (crew 0), else 0 */
+function headSteps(d: Detail): number {
+  return d >= 1 && fine() ? 1 : 0;
 }
 
 function sunglasses(b: Builder, d: Detail, c: ColorLike = mat.ink) {
@@ -121,7 +128,7 @@ export function robotHead(b: Builder, L: Look, d: Detail, spy: boolean) {
   const plate = L.helmet;
   const metal = mat.gunmetal;
   const glow = mat.cyanGlow;
-  b.add(d >= 1 ? geo.rbox(0.104, 0.1, 0.104, 0.022) : geo.box(0.1, 0.1, 0.1), plate, { p: [0, 0.058, 0] });
+  b.add(softBox(0.104, 0.1, 0.104, 0.02, headSteps(d)), plate, { p: [0, 0.058, 0] });
   b.add(d >= 1 ? geo.rtaper(0.084, 0.07, 0.074, 0.06, 0.03, 0.008) : geo.box(0.08, 0.03, 0.07), metal, { p: [0, 0.012, 0.008] });
   b.box(0.104, 0.03, 0.006, metal, [0, 0.066, 0.052]);
   b.box(0.092, 0.014, 0.006, glow, [0, 0.066, 0.055]);
@@ -198,8 +205,9 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
 
 /** Kopf + Kopfbedeckung / head + headgear */
 export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean, seed = 1) {
-  const ws = d === 2 ? 18 : d === 1 ? 12 : 10;
-  const hs = d === 2 ? 6 : d === 1 ? 5 : 3;
+  // hohe Qualitaet: volle Rundung der Helme / high quality: full roundness of the helmets
+  const ws = d === 2 ? (fine() ? 18 : 15) : d === 1 ? 12 : fine() ? 12 : 10;
+  const hs = d === 2 ? 6 : d === 1 ? 5 : fine() ? 4 : 3;
   const hc = L.helmet;
   if (fedora) {
     spyHat(b, f, L, d, ws);
@@ -222,19 +230,29 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       face(b, d, 'none', seed);
       const C: V3 = [0, 0.068, -0.004];
       const S: V3 = [1, 0.9, 1.06];
-      b.add(geo.hemi(0.086, ws, hs), hc, { p: C, s: S });
-      // breite, ausgestellte Krempe mit Kante / wide flared rim with edge
-      b.add(geo.cyl(0.088, 0.116, 0.016, ws), shade(hc, 0.85), { p: [0, 0.061, -0.004], s: [1, 1, 1.05] });
-      ring(b, 0.117, 0.007, ws, shade(hc, 0.55), [0, 0.0535, -0.004], [1, 1, 1.05]);
-      // rotes Krempenband (auch von oben sichtbar) / red rim band (visible from above)
-      b.cyl(0.108, 0.108, 0.004, ws, L.primary, [0, 0.067, -0.004]);
-      // rotes Band / red band
-      ring(b, 0.0865, 0.016, ws, L.primary, [0, 0.077, -0.004], [1, 1, 1.06], 0.0875);
+      // Kuppel, rotes Band, Krempe mit rotem Krempenband, Kante und Unterseite als EIN Drehkoerper in mehreren
+      // Farben. Aufgesetzte Ringe und Scheiben bekamen von der Tuschelinie schwebende Striche neben dem Helm; so
+      // liegt alles buendig und die Linie laeuft nur um den Umriss.
+      // dome, red band, rim with its red rim band, edge and underside as ONE turned part in several colours. Rings
+      // and discs set on top got floating strokes beside the helmet from the ink line; this way everything lies flush
+      // and the line only runs around the silhouette.
+      const R = 0.086, bandTop = Math.acos(0.019 / R), rows = Math.max(3, Math.round(hs * 1.4));
+      const prof: LathePoint[] = [];
+      for (let i = 0; i <= rows; i++) { const a = (i / rows) * bandTop; prof.push([R * Math.sin(a), R * Math.cos(a)]); }
+      prof.push([R, 0, true], [0.105, -0.0052], [0.1165, -0.0133, true], [0.1165, -0.02, true], [0.084, -0.012]);
+      const rim = shade(hc, 0.55);
+      const parts: [number, number, ColorLike][] = [
+        [0, rows, hc], [rows, rows + 2, L.primary], [rows + 2, rows + 3, shade(hc, 0.85)], [rows + 3, rows + 5, rim],
+      ];
+      for (const [from, to, c] of parts) b.add(geo.lathe(prof, ws, [from, to]), c, { p: C, s: S });
       if (d === 2) {
-        // Nieten / rivets
+        // Nieten als offene, einseitige Plaettchen: sie bekommen keine Tuschelinie (eine Kugel dieser Groesse wuerde
+        // von der Kontur zu einem Klecks am Helmrand aufgeblasen)
+        // rivets as open one-sided discs: they get no ink line (a sphere of this size would be inflated by the outline
+        // into a blot at the helmet's edge)
         for (let i = 0; i < 8; i++) {
           const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
-          onDome(b, C, 0.086, S, a, 1.15, () => geo.sphere(0.005, 5, 3), shade(hc, 0.65));
+          onDome(b, C, 0.0872, S, a, 1.15, () => new THREE.CircleGeometry(0.0062, 6).rotateX(-HALF_PI), shade(hc, 0.6));
         }
         // Kinnriemen / chinstrap
         for (const s of [-1, 1]) b.box(0.006, 0.07, 0.01, mat.dark, [s * 0.055, 0.03, 0.016], [0.12, 0, 0]);
@@ -255,7 +273,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       // schwarze Sturmhaube mit Augenausschnitt + flaches Barett mit Goldrand und Faust-Abzeichen
       // black balaclava with eye opening + flat beret with gold edge and fist badge
       const knit = shade(hc, 1.35);
-      b.add(d >= 1 ? geo.rbox(0.112, 0.106, 0.108, 0.026) : geo.box(0.112, 0.106, 0.108), hc, { p: [0, 0.052, 0] });
+      b.add(softBox(0.112, 0.106, 0.108, 0.032, headSteps(d)), hc, { p: [0, 0.052, 0] });
       // Augenausschnitt mit Haut und Augen / eye opening with skin and eyes
       b.add(d >= 1 ? geo.rbox(0.082, 0.026, 0.01, 0.006) : geo.box(0.082, 0.026, 0.01), mat.skin, { p: [0, 0.062, 0.051] });
       for (const sx of [-1, 1]) {
@@ -272,12 +290,13 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
         b.add(geo.rtaper(0.024, 0.02, 0.016, 0.012, 0.026, 0.005), hc, { p: [0, 0.04, 0.058] });
         b.add(geo.rbox(0.03, 0.01, 0.008, 0.004), mat.ink, { p: [0, 0.02, 0.054] });
       }
-      // Strickrillen am Hals / knit ribs at the neck
-      if (d >= 1) {
-        for (const y of d === 2 ? [0.004, 0.012, 0.02] : [0.008]) ring(b, 0.058, 0.004, ws, knit, [0, y, 0], [1, 1, 0.98]);
-      }
-      // Oberseite rund, kleines goldenes Faust-Abzeichen seitlich / rounded top, small gold fist badge on the side
-      b.add(geo.hemi(0.058, ws, hs), hc, { p: [0, 0.098, 0], s: [0.98, 0.42, 0.96] });
+      // Strickbund am Hals: ein Wulst, buendig am gerundeten Kopf (abstehende Ringe bekamen von der Tuschelinie
+      // schwebende Striche) / knit collar at the neck: one roll, flush with the rounded head (rings standing proud
+      // got floating strokes from the ink line)
+      if (d >= 1) b.add(geo.lathe([[0.046, -0.004], [0.051, 0.006], [0.046, 0.016]], d === 2 ? ws : 7), knit, { p: [0, 0.006, 0], s: [1, 1, 0.98] });
+      // Oberseite rund (Kuppe innerhalb der gerundeten Kanten), kleines goldenes Faust-Abzeichen seitlich
+      // rounded top (cap inside the rounded edges), small gold fist badge on the side
+      b.add(geo.hemi(0.058, ws, hs), hc, { p: [0, 0.099, 0], s: [0.72, 0.36, 0.7] });
       if (d >= 1) {
         b.group({ p: [-0.057, 0.056, 0.004], r: [0, -HALF_PI, 0] }, () => {
           b.cyl(0.015, 0.015, 0.004, 10, L.secondary, [0, 0, 0], [HALF_PI, 0, 0]);

@@ -14,7 +14,7 @@
  */
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, shade, type ColorLike, type V3 } from './kit';
+import { Builder, fine, geo, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
 import { soldier, standPose } from './soldiers';
 
@@ -38,10 +38,13 @@ interface TrackOpts {
 export function tracks(b: Builder, o: TrackOpts) {
   const hl = o.len / 2;
   const h = o.h;
-  const prof: [number, number][] = [
-    [-hl, h * 0.32], [-hl + 0.035, 0], [hl - 0.035, 0], [hl + 0.006, h * 0.36], [hl, h * 0.74], [hl - 0.022, h],
-    [-hl + 0.022, h], [-hl - 0.004, h * 0.72],
-  ];
+  // Kettenlauf mit runden Enden (die Kettenglieder liegen auf demselben Bogen) / track run with round ends (the track plates sit on the same arc)
+  const prof: [number, number][] = [];
+  const steps = o.lite ? 2 : fine() ? 5 : 3;
+  for (const sign of [1, -1]) for (let k = 0; k <= steps; k++) {
+    const a = sign * (-HALF_PI + (k / steps) * Math.PI);
+    prof.push([sign * (hl - 0.035 + Math.cos(a) * h * 0.45), h * 0.5 + Math.sin(a) * h * 0.5]);
+  }
   for (const s of [-1, 1]) {
     b.add(geo.profileZY(prof, o.w), mat.dark, { p: [s * o.x, 0, 0] });
     const ox = s * (o.x + o.w / 2 + 0.004);
@@ -112,6 +115,12 @@ export function gun(b: Builder, x: number, y: number, z0: number, len0: number, 
       break;
     case 'none':
       break;
+  }
+  // Rohrmuendung / muzzle bore
+  if (!o.lite) {
+    const brake = o.brake ?? 'ring';
+    const front = zt + (brake === 'big' ? 0.01 : brake === 'box' ? 0.008 : brake === 'ring' ? 0.002 : 0);
+    b.cyl(r * 0.62, r * 0.62, 0.004, seg, mat.ink, [x, y, front], [HALF_PI, 0, 0]);
   }
 }
 

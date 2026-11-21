@@ -13,7 +13,12 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
-/** Helligkeit, ab der ein Pixel leuchtet (lineares HDR) / luminance from which a pixel glows (linear HDR) */
+/**
+ * Helligkeit, ab der ein Pixel leuchtet (lineares HDR). Beleuchtete Flaechen der Landschaft bleiben darunter (auf 1
+ * begrenzt, atmosphere.ts LIT_CLAMPED), nur Eigenleuchten und glowColor liegen darueber.
+ * Luminance from which a pixel glows (linear HDR). Lit surfaces of the landscape stay below it (clamped to 1,
+ * atmosphere.ts LIT_CLAMPED), only self glow and glowColor lie above it.
+ */
 export const BLOOM_THRESHOLD = 1.05;
 
 /**

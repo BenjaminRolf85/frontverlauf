@@ -6,7 +6,7 @@
  */
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, type ColorLike } from './kit';
+import { Builder, fine, geo, mix, rng, shade, type ColorLike } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { seatPose, soldier, standPose } from './soldiers';
 
@@ -16,7 +16,12 @@ interface WheelOpts { seg?: number; rim?: ColorLike; spokes?: number; lite?: boo
 /** Rad mit Reifen, Felge, Nabe und optional Speichen / wheel with tyre, rim, hub and optional spokes */
 export function wheel(b: Builder, x: number, y: number, z: number, r: number, w: number, o: WheelOpts = {}) {
   const seg = o.lite ? 8 : (o.seg ?? 10);
-  b.cyl(r, r, w, seg, mat.dark, [x, y, z], [0, 0, HALF_PI]);
+  if (o.lite || !fine()) b.cyl(r, r, w, seg, mat.dark, [x, y, z], [0, 0, HALF_PI]);
+  else {
+    // Reifen mit runden Schultern statt eines glatten Zylinders / tyre with round shoulders instead of a plain cylinder
+    const hw = w / 2, sh = Math.min(w * 0.3, r * 0.22);
+    b.add(geo.lathe([[r * 0.55, -hw], [r - sh, -hw], [r, -hw + sh], [r, hw - sh], [r - sh, hw], [r * 0.55, hw]], seg), mat.dark, { p: [x, y, z], r: [0, 0, HALF_PI] });
+  }
   if (o.lite) {
     b.cyl(r * 0.5, r * 0.5, w + 0.006, 6, o.rim ?? mat.metal, [x, y, z], [0, 0, HALF_PI]);
     return;

@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, xfMatrix, type ColorLike, type V3 } from './kit';
+import { ball, Builder, capsule, drum, fine, geo, mix, rng, shade, softBox, xfMatrix, type ColorLike, type V3 } from './kit';
 import { headgear } from './headgear';
 import { look, mat, type Look } from './look';
 import { TECH, techArmour, techDot, techPack } from './velkarTech';
@@ -30,6 +30,12 @@ const THIGH = 0.062;
 const SHIN = 0.058;
 const UPPER = 0.072;
 const FORE = 0.085;
+/** Rundungssegmente der Glieder je Feinstufe (0 Besatzung, 1 Trupp, 2 Einzelfigur, 3 Einzelfigur in hoher Qualitaet) / radial segments of the limbs per fine tier */
+const LIMB_SEG = [6, 8, 8, 10] as const;
+/** dasselbe bei niedriger Qualitaet (Stufe 3 gibt es dort nicht) / the same on low quality (tier 3 does not occur there) */
+const LIMB_SEG_LOW = [6, 5, 8, 8] as const;
+/** Kugelsegmente der Haende je Feinstufe / sphere segments of the hands per fine tier */
+const HAND_SEG = [[6, 3], [6, 4], [8, 4], [8, 5]] as const;
 
 export interface Pose {
   /** Beckenmitte / pelvis centre */
@@ -131,9 +137,20 @@ export function seatPose(hands: [V3, V3]): Pose {
 export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {}): void {
   const L = look(f);
   const d: Detail = o.detail ?? 2;
+  // Feinstufe: 3 = Einzelfigur bei hoher Qualitaet, sonst die Detailstufe / fine tier: 3 = hero figure on high quality, else the detail level
+  const tier = d === 2 && fine() ? 3 : d;
+  const segs = (fine() ? LIMB_SEG : LIMB_SEG_LOW)[tier];
+  // niedrige Qualitaet: Besatzungen und Trupps behalten Rumpf und Haende wie bisher / low quality: crews and teams keep torso and hands as before
+  const lowCrew = !fine() && d < 2;
   // Teil-Geometrie je Detailstufe / part geometry per detail level
   const part = (w: number, h: number, dd: number, ch = 0.22, minDetail: Detail = 2) =>
     d >= minDetail ? (d === 2 ? geo.rbox(w, h, dd, Math.min(w, h, dd) * ch) : geo.cbox(w, h, dd, Math.min(w, dd) * ch)) : geo.box(w, h, dd);
+  // Glied als Kapsel: rund statt kantig (Segmente und Kappenringe je Feinstufe) / limb as a capsule: round instead of boxy (segments and cap rings per fine tier)
+  const limb = (r0: number, r1: number, len: number) => (tier === 0 && !fine()
+    ? geo.box(r0 * 1.8, len - r0 * 0.6, r0 * 1.9)
+    : capsule(r0, r1, Math.max(len, (r0 + r1) * 1.1), segs, tier >= 1 && fine() ? 2 : 1));
+  // Band um ein Glied / band around a limb
+  const band = (r: number, h: number) => drum(r, r, h, segs);
   const Mp = xfMatrix({ p: pose.pelvis, r: pose.body });
   const Mt = Mp.clone().multiply(xfMatrix({ p: [0, TORSO_Y, 0], r: pose.twist }));
   const coatC = o.coatColor ?? L.primary;
@@ -177,7 +194,9 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     }
     b.group({ p: [0, TORSO_Y, 0], r: pose.twist }, () => {
       const jacket = o.coat ? coatC : L.jacket;
-      b.add(d >= 1 ? geo.ctaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.016) : geo.taper(0.146, 0.09, 0.17, 0.102, 0.11), jacket, { p: [0, 0.055, 0] });
+      // Rumpf mit runden Schultern / torso with round shoulders
+      if (lowCrew) b.add(d >= 1 ? geo.ctaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.016) : geo.taper(0.146, 0.09, 0.17, 0.102, 0.11), jacket, { p: [0, 0.055, 0] });
+      else b.add(geo.softTaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.024, 0, tier === 3 ? 1 : 0), jacket, { p: [0, 0.055, 0] });
       if (o.coat) {
         // Kragen hochgeschlagen, Revers, Guertel / turned-up collar, lapels, belt
         for (const s of [-1, 1]) {
@@ -264,7 +283,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       }
       // Kopf / head
       b.group({ p: [0, NECK_Y, 0], r: pose.head, s: 1.22 }, () => {
-        b.cyl(0.03, 0.034, 0.03, d === 2 ? 10 : 6, mat.skin, [0, -0.005, 0]);
+        b.add(drum(0.03, 0.034, 0.03, segs), mat.skin, { p: [0, -0.005, 0] });
         if (o.head) o.head(b, L, d); else headgear(b, f, L, d, o.hat === 'fedora', o.seed ?? 1);
       });
     });
@@ -276,11 +295,11 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const T = V(side < 0 ? pose.handL : pose.handR);
     const pole = V((side < 0 ? pose.elbowPoleL : pose.elbowPoleR) ?? [side * 0.8, -0.6, -0.35]);
     const { joint: E, end: H } = ik(S, T, UPPER, FORE, pole);
-    b.segment(S, E, (len) => part(0.05, len + 0.014, 0.052), sleeve, (len) => {
-      if (o.armband && side < 0) b.box(0.058, 0.024, 0.06, L.secondary, [0, len * 0.45, 0]);
+    b.segment(S, E, (len) => limb(0.029, 0.0265, len + 0.034), sleeve, (len) => {
+      if (o.armband && side < 0) b.add(band(0.0305, 0.024), L.secondary, { p: [0, len * 0.45, 0] });
       if (d === 2 && !o.armband && !o.coat) {
-        b.box(0.054, 0.016, 0.03, L.secondary, [side * 0.004, len * 0.25, 0.0]);
-        if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.027, len * 0.55, 0], r: [0, -HALF_PI, 0] });
+        b.add(band(0.0295, 0.015), L.secondary, { p: [0, len * 0.25, 0] });
+        if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.029, len * 0.58, 0], r: [0, -HALF_PI, 0] });
       }
       if (f === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
       // Alvenia: weisses Schulterstueck mit Goldrand und tuerkiser Leuchte / Alvenia: white pauldron with gold rim and teal light
@@ -291,13 +310,16 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         if (d === 2) techDot(b, [side * 0.034, 0.012, 0.02], 0.007);
       }
     });
-    b.segment(E, H, (len) => part(0.046, Math.max(0.01, len - 0.022), 0.048, 0.22, 1).translate(0, -0.011, 0), sleeve, (len) => {
-      if (d === 2) b.box(0.05, 0.014, 0.052, shade(sleeve, 0.82), [0, len - 0.03, 0]);
-      b.add(part(0.04, 0.042, 0.044, 0.28), mat.skin, { p: [0, len, 0] });
+    b.segment(E, H, (len) => limb(0.0265, 0.024, len - 0.002).translate(0, -0.014, 0), sleeve, (len) => {
+      // Aermelbund / cuff
+      if (d === 2) b.add(band(0.0265, 0.014), shade(sleeve, 0.82), { p: [0, len - 0.03, 0] });
+      // Hand als runder Faeustling mit Daumen / hand as a round mitt with thumb
+      const [hw, hh] = HAND_SEG[tier];
+      if (lowCrew) b.add(geo.box(0.04, 0.042, 0.044), mat.skin, { p: [0, len, 0] });
+      else b.add(ball(1, hw, hh), mat.skin, { p: [0, len + 0.002, 0.001], s: [0.0215, 0.025, 0.0235] });
       if (d === 2) {
-        // Finger und Daumen / fingers and thumb
-        b.add(part(0.04, 0.02, 0.03, 0.25), shade(mat.skin, 0.92), { p: [0, len + 0.026, 0.008] });
-        b.box(0.014, 0.024, 0.014, mat.skin, [-side * 0.022, len + 0.008, 0.014]);
+        b.add(ball(1, hw, 4), shade(mat.skin, 0.92), { p: [0, len + 0.022, 0.008], s: [0.0195, 0.013, 0.016] });
+        b.add(ball(1, 6, 3), mat.skin, { p: [-side * 0.021, len + 0.008, 0.013], s: [0.008, 0.013, 0.008] });
       }
     });
   }
@@ -308,17 +330,20 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const T = V(side < 0 ? pose.footL : pose.footR);
     const pole = V((side < 0 ? pose.kneePoleL : pose.kneePoleR) ?? [0, 0, 1]);
     const { joint: K, end: A } = ik(S, T, THIGH, SHIN, pole);
-    b.segment(S, K, (len) => part(0.062, len + 0.014, 0.066), L.pants);
-    b.segment(K, A, (len) => part(0.056, len + 0.006, 0.06, 0.22, 1), L.pants, (len) => {
+    b.segment(S, K, (len) => limb(0.0345, 0.032, len + 0.04), L.pants);
+    b.segment(K, A, (len) => limb(0.032, 0.03, len + 0.03), L.pants, (len) => {
       if (d === 2) {
-        b.box(0.05, 0.03, 0.02, shade(L.gear, 0.9), [0, 0.006, 0.03]);
-        b.box(0.062, 0.016, 0.066, mat.dark, [0, len - 0.004, 0]);
+        // Knieschoner und Stiefelschaft / knee pad and boot top
+        b.add(tier === 3 ? softBox(0.046, 0.034, 0.022, 0.009, 1) : geo.rbox(0.046, 0.034, 0.022, 0.007), shade(L.gear, 0.9), { p: [0, 0.006, 0.027] });
+        b.add(band(0.0325, 0.018), mat.dark, { p: [0, len - 0.006, 0] });
       }
     });
     b.group({ p: [A.x, A.y, A.z], r: (side < 0 ? pose.bootL : pose.bootR) ?? [0, 0, 0] }, () => {
-      b.add(part(0.064, 0.04, 0.094, 0.22), mat.dark, { p: [0, -0.016, 0.014] });
+      // Stiefel mit runder Kappe und Sohle / boot with a round toe cap and sole
+      if (d === 2) b.add(softBox(0.064, 0.04, 0.094, 0.017, tier === 3 ? 1 : 0), mat.dark, { p: [0, -0.016, 0.014] });
+      else b.add(part(0.064, 0.04, 0.094, 0.22, fine() ? 1 : 2), mat.dark, { p: [0, -0.016, 0.014] });
       if (d === 2) {
-        b.box(0.066, 0.008, 0.098, mat.ink, [0, -0.032, 0.014]);
+        b.add(softBox(0.068, 0.01, 0.1, 0.004), mat.ink, { p: [0, -0.032, 0.014] });
         for (const z of [0.02, 0.035]) b.box(0.03, 0.004, 0.004, mat.paper, [0, 0.003, z]);
       }
       if (f === 'velkar' && d >= 1) b.box(0.068, 0.012, 0.03, mat.snow, [0, -0.004, -0.02]);

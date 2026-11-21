@@ -62,6 +62,46 @@ function flowers(parts: THREE.BufferGeometry[], r: () => number, n: number) {
   }
 }
 
+/** niedrige Buesche: deutlich flacher und runder als Baeume, damit die Wiese nie wie Wald wirkt / low bushes: clearly flatter and rounder than trees so a meadow never reads as forest */
+function bushes(parts: THREE.BufferGeometry[], r: () => number, n: number) {
+  for (let i = 0; i < n; i++) {
+    const x = (r() - 0.5) * 0.66, z = (r() - 0.5) * 0.66, s = 0.05 + r() * 0.025;
+    parts.push(part(new THREE.IcosahedronGeometry(s, 0), i % 2 ? semantic.treeDark : semantic.tree, M(x, s * 0.55, z, 0, r() * 3, 0, 1, 0.7, 1)));
+    if (r() < 0.6) parts.push(part(new THREE.IcosahedronGeometry(s * 0.65, 0), semantic.tree, M(x + s * 0.9, s * 0.4, z + (r() - 0.5) * s, 0, r() * 3, 0, 1, 0.7, 1)));
+  }
+}
+/** Feldsteine / field stones */
+function stones(parts: THREE.BufferGeometry[], r: () => number, n: number) {
+  const x0 = (r() - 0.5) * 0.5, z0 = (r() - 0.5) * 0.5;
+  for (let i = 0; i < n; i++) {
+    const s = 0.028 + r() * 0.028;
+    parts.push(part(new THREE.DodecahedronGeometry(s, 0), i % 2 ? semantic.cliffDark : semantic.cliff, M(x0 + (r() - 0.5) * 0.2, s * 0.5, z0 + (r() - 0.5) * 0.2, r(), r() * 3, r(), 1, 0.7, 1)));
+  }
+}
+/** Blumenwiese: lockerer Blumenteppich um einen Punkt / flower meadow: a loose carpet of flowers around a point */
+function flowerPatch(parts: THREE.BufferGeometry[], r: () => number, n: number) {
+  const colors = [semantic.flowerA, semantic.flowerB, semantic.flowerC, semantic.flowerD];
+  const x0 = (r() - 0.5) * 0.4, z0 = (r() - 0.5) * 0.4, main = Math.floor(r() * colors.length);
+  for (let i = 0; i < n; i++) {
+    const a = r() * Math.PI * 2, d = 0.05 + r() * 0.2, x = x0 + Math.cos(a) * d, z = z0 + Math.sin(a) * d;
+    parts.push(part(new THREE.CylinderGeometry(0.005, 0.005, 0.045, 3), semantic.grassTuft, M(x, 0.022, z)));
+    parts.push(part(new THREE.IcosahedronGeometry(0.019, 0), colors[r() < 0.7 ? main : Math.floor(r() * colors.length)], M(x, 0.05, z)));
+  }
+}
+
+/** Zahl der Wiesen-Varianten (0 bis 7 wie bisher, ab 8 Buesche, Steine, Blumenwiesen, hohes Gras) / number of meadow variants (0 to 7 as before, from 8 on bushes, stones, flower meadows, tall grass) */
+export const MEADOW_VARIANTS = 12;
+/**
+ * Wiesen-Variante aus einem Zufallswert 0..1: rund ein Viertel der Felder bleibt leer, der Rest verteilt sich ungleich,
+ * damit keine Sorte das Bild bestimmt.
+ * Meadow variant from a random value 0..1: about a quarter of the tiles stay empty, the rest is spread unevenly so no
+ * kind dominates the picture.
+ */
+export function meadowVariant(h: number): number {
+  const steps: [number, number][] = [[0.24, 0], [0.41, 3], [0.52, 5], [0.58, 7], [0.7, 8], [0.79, 9], [0.89, 10], [1, 11]];
+  return (steps.find(([limit]) => h < limit) ?? steps[0])[1];
+}
+
 /** Deko je Landschaft (nur auf freien Feldern ohne Wald) / decoration per biome (only on free non-forest tiles) */
 export function biomeDecoration(terrain: TerrainId, biome: BiomeId | undefined, variant: number): THREE.BufferGeometry | null {
   if (!biome || terrain !== 'plain') return null;
@@ -120,8 +160,16 @@ export function biomeDecoration(terrain: TerrainId, biome: BiomeId | undefined, 
     default: {
       // Wiese: viele Felder bleiben ganz gruen, sonst Gras, wenige Blumen, selten ein Baeumchen
       // meadow: many tiles stay plain green, otherwise grass, a few flowers, rarely a small tree
-      const v = variant % 8;
+      const v = variant % MEADOW_VARIANTS;
       if (v <= 2) break;
+      if (v >= 8) {
+        // neue Sorten: Buesche, Feldsteine, Blumenwiese, hohes Gras / new kinds: bushes, field stones, flower meadow, tall grass
+        if (v === 8) { bushes(parts, r, 2); grass(parts, r, 1); }
+        if (v === 9) { stones(parts, r, 3); grass(parts, r, 2); }
+        if (v === 10) { flowerPatch(parts, r, 6); grass(parts, r, 1); }
+        if (v === 11) grass(parts, r, 6);
+        break;
+      }
       grass(parts, r, v <= 4 ? 2 : 3);
       if (v === 5 || v === 6) flowers(parts, r, 1 + Math.floor(r() * 3));
       if (v === 7) {

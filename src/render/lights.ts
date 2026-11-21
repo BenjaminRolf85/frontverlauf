@@ -12,7 +12,8 @@ import { flatToon, outlinedInstanced } from './toon';
 import { glowColor } from './post';
 
 export interface TownInput {
-  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry }[];
+  /** beacon: Spitze des HQ-Masts relativ zur Feldmitte (fehlt = alte feste Stelle) / beacon: top of the HQ mast relative to the tile centre (missing = the old fixed spot) */
+  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry; beacon?: [number, number, number] }[];
   /** Lava und Vulkane / lava and volcanoes */
   lava: { x: number; z: number; y: number; size: number }[];
   /** Hoehle: farbige Lichtflecken (Pilze, Teiche, Krater, Laternen, Verdan-Auge) / cavern: coloured light pools */
@@ -166,7 +167,8 @@ export class TownFx {
       if (c.hq) {
         const h = 0.5 + Math.min(c.level, 6) * 0.03 + 0.06;
         const core = new THREE.Mesh(this.beaconGeo, this.beaconMat);
-        core.position.set(c.x - 0.335, c.y + h, c.z + 0.325);
+        const [bx, by, bz] = c.beacon ?? [-0.335, h, 0.325];
+        core.position.set(c.x + bx, c.y + by, c.z + bz);
         const halo = new THREE.Sprite(this.haloMat.clone());
         halo.position.copy(core.position);
         halo.scale.setScalar(0.32);

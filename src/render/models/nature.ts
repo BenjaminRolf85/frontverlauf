@@ -29,6 +29,22 @@ function tree(b: Builder, x: number, z: number, s: number, R: () => number) {
   }
 }
 
+/**
+ * Waldsaum: ein kleiner Baum mit Busch, der vom Wald auf das Nachbarfeld ausfranst (Ursprung = Stamm, y=0 am Boden).
+ * Deutlich kleiner als die Waldbaeume, damit das Wiesenfeld eine Wiese bleibt.
+ * Forest fringe: one small tree with a bush that frays from the forest onto the neighbouring tile (origin = trunk, y=0
+ * at the ground). Clearly smaller than the forest trees so the plains tile stays a meadow.
+ */
+export function forestFringe(variant: number): Builder {
+  const v = ((variant % 2) + 2) % 2;
+  const R = rng(2600 + v * 43);
+  const b = new Builder();
+  tree(b, 0, 0, 0.62 + v * 0.06, R);
+  const bush = (x: number, z: number, s: number) => b.add(geo.ico(s, 0), v % 2 ? mat.leaf : mat.leafDark, { p: [x, s * 0.55, z], r: [0, R() * 3, 0], s: [1, 0.7, 1] });
+  if (v === 0) bush(0.1, 0.05, 0.045);
+  return b;
+}
+
 /** Rind (eigene Geometrie) / cow (own geometry) */
 export function cattle(variant: number): THREE.BufferGeometry {
   const v = Math.abs(variant | 0) % 3;

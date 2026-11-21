@@ -13,7 +13,7 @@
 .minimap-canvas {
   display: block; width: var(--c-minimap-size); height: var(--c-minimap-size); cursor: crosshair; touch-action: none;
   background: var(--c-minimap-bg); border: var(--p-border-width-thick) solid var(--c-minimap-border);
-  border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow-pressed);
+  border-radius: var(--p-radius-md); box-shadow: var(--c-button-shadow);
 }
 .minimap-toggle { position: absolute; top: calc(-1 * var(--p-space-3)); right: calc(-1 * var(--p-space-3)); }
 .minimap.collapsed .minimap-toggle { position: static; }
