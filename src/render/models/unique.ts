@@ -18,7 +18,7 @@ import type { FactionId } from '../../data/balance';
 import { HALF_PI, band, barrel, crate, flagPole, gableRoof, sandbag } from './architecture';
 import { hall, tractor } from './buildings';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { Builder, fine, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat } from './look';
 import { hull, lifeRings, mast, superBlock } from './ships';
 import { rifle, soldier, standPose } from './soldiers';
@@ -253,6 +253,12 @@ export function privateer(f: FactionId): Builder {
   b.add(geo.profileZY([[-0.16, 0.06], [0.0, 0.06], [0.0, 0.08], [-0.16, 0.08]], 0.008), L.primary, { p: [0, dk, 0.035] });
   addEmblem(b, f, 0.04, 0.012, L.primary, { p: [0, dk + 0.22, -0.055], r: [0, HALF_PI, 0] });
   b.tube([0, dk + 0.06, 0.035], [0, dk + 0.065, -0.17], 0.004, 4, mat.wood);
+  // Proportion: Rahsegel quer ueber dem Deck, damit das Segel aus jeder Richtung als Flaeche steht (sonst nur von der Seite)
+  // und das Kaperschiff sich vom Zerstoerer trennt / proportion: square sail across the deck so the sail reads as an area
+  // from every heading (otherwise only from the side) and the privateer separates from the destroyer
+  b.cyl(0.005, 0.005, 0.32, 6, mat.wood, [0, dk + 0.37, 0.048], [0, 0, HALF_PI]);
+  b.add(geo.profileZY([[-0.15, 0.0], [0.15, 0.0], [0.13, -0.22], [-0.13, -0.22]], 0.006), mat.paper, { p: [0, dk + 0.365, 0.05], r: [0, HALF_PI, 0] });
+  b.box(0.26, 0.016, 0.008, L.secondary, [0, dk + 0.2, 0.05]);
   // Klüverfock am Bugspriet / jib on the bowsprit
   b.tube([0, dk + 0.01, 0.37], [0, dk + 0.035, 0.435], 0.004, 4, mat.wood);
   b.add(geo.profileZY([[0.05, 0.03], [0.4, 0.04], [0.05, 0.38]], 0.004), mat.paper, { p: [0, dk, 0.0] });
@@ -266,7 +272,8 @@ export function privateer(f: FactionId): Builder {
   // Beute: Truhe mit Gold und Kisten / loot: chest with gold and crates
   b.add(geo.rbox(0.06, 0.035, 0.04, 0.006), mat.wood, { p: [0.03, dk + 0.018, 0.1] });
   b.box(0.062, 0.006, 0.042, mat.gold, [0.03, dk + 0.033, 0.1]);
-  for (let i = 0; i < 4; i++) b.cyl(0.008, 0.008, 0.004, 8, mat.gold, [0.025 + i * 0.006, dk + 0.04 + i * 0.002, 0.1 + (i % 2) * 0.006]);
+  // Muenzen nur bei hoher Qualitaet (gleicht das Rahsegel im Budget aus) / coins on high quality only (offsets the square sail in the budget)
+  if (fine()) for (let i = 0; i < 4; i++) b.cyl(0.008, 0.008, 0.004, 8, mat.gold, [0.025 + i * 0.006, dk + 0.04 + i * 0.002, 0.1 + (i % 2) * 0.006]);
   crate(b, -0.04, dk, 0.12, 0.035, L.trim);
   barrel(b, -0.045, dk, -0.03, L.primary);
   // Aussenborder und Kielwasser / twin outboards and wake

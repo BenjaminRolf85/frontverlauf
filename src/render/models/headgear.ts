@@ -205,9 +205,11 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
 
 /** Kopf + Kopfbedeckung / head + headgear */
 export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean, seed = 1) {
-  // hohe Qualitaet: volle Rundung der Helme / high quality: full roundness of the helmets
-  const ws = d === 2 ? (fine() ? 18 : 15) : d === 1 ? 12 : fine() ? 12 : 10;
-  const hs = d === 2 ? 6 : d === 1 ? 5 : fine() ? 4 : 3;
+  // hohe Qualitaet: volle Rundung der Helme; niedrige Qualitaet: der Helm der Fusstruppen ist kleiner (HEAD_FOOT), dort reichen
+  // weniger Segmente / high quality: full roundness of the helmets; low quality: the foot troops' helmet is smaller (HEAD_FOOT),
+  // fewer segments suffice there
+  const ws = d === 2 ? (fine() ? 18 : 12) : d === 1 ? (fine() ? 12 : 10) : fine() ? 12 : 10;
+  const hs = d === 2 ? (fine() ? 6 : 5) : d === 1 ? (fine() ? 5 : 4) : fine() ? 4 : 3;
   const hc = L.helmet;
   if (fedora) {
     spyHat(b, f, L, d, ws);

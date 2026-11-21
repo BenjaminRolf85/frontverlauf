@@ -26,35 +26,38 @@ export function shadowCommando(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const d = lite ? 1 : 2;
-  // Lesbarkeit: tiefer geduckt als der Schuetze (die kleinste stehende Figur) mit grossem Sprengrucksack als Buckel
-  // readability: crouched lower than the rifleman (the smallest standing figure) with a big demolition pack as a hump
-  const dy = -0.025;
+  // Lesbarkeit: tief geduckt (Becken auf Kniehoehe, deutlich niedriger als der Schuetze) mit grossem Sprengrucksack als Buckel
+  // readability: deep crouch (pelvis at knee height, clearly lower than the rifleman) with a big demolition pack as a hump
+  const dy = -0.06;
   const G: V3 = [0.04, 0.17 + dy, 0.07];
   const D: V3 = [-0.2, 0.05, 1];
   const grey = shadowGrey(f);
   soldier(b, f, {
     ...standPose([[G[0] - 0.08, G[1] - 0.01, G[2] + 0.06], G]),
     pelvis: [0, 0.135 + dy, -0.01],
-    footL: [-0.065, 0.034, 0.07],
-    footR: [0.06, 0.034, -0.06],
+    footL: [-0.075, 0.034, 0.08],
+    footR: [0.07, 0.034, -0.07],
+    kneePoleL: [-0.3, 0.2, 1],
+    kneePoleR: [0.3, 0.2, 1],
     twist: [0.25, 0.3, 0],
     head: [0.15, -0.25, 0],
   }, { detail: d, coat: true, coatColor: grey, seed: 83, pack: 'none' });
   rifle(b, G, D, { len: 0.22, detail: d });
   // Kapuze ueber dem Helm und Halstuch in Fraktionsfarbe / hood over the helmet and neckerchief in faction colour
-  b.add(geo.hemi(0.068, lite ? 8 : 12, 4), grey, { p: [0.012, 0.27 + dy, -0.008], s: [1, 1.05, 1.12], r: [0.25, 0.3, 0] });
-  b.add(geo.rbox(0.1, 0.02, 0.08, 0.008), L.primary, { p: [0, 0.248 + dy, 0.01], r: [0.2, 0.3, 0] });
+  // Kapuze und Brille passen zum kleineren Kopf der Fusstruppen (HEAD_FOOT) / hood and goggles fit the smaller foot-troop head (HEAD_FOOT)
+  b.add(geo.hemi(0.054, lite ? 8 : 12, 4), grey, { p: [0.01, 0.27 + dy, -0.006], s: [1, 1.1, 1.12], r: [0.25, 0.3, 0] });
+  b.add(geo.rbox(0.085, 0.02, 0.07, 0.008), L.primary, { p: [0, 0.255 + dy, 0.01], r: [0.2, 0.3, 0] });
   // Augenschlitz-Brille / eye-slit goggles
-  b.box(0.07, 0.01, 0.01, mat.gold, [0.02, 0.29 + dy, 0.06], [0, 0.3, 0]);
+  b.box(0.058, 0.01, 0.01, mat.gold, [0.018, 0.282 + dy, 0.05], [0, 0.3, 0]);
   // Sprengrucksack mit Zuendkabelrolle / demolition pack with a detonator cable reel
-  b.group({ p: [-0.01, 0.2 + dy, -0.085], r: [0.25, 0.3, 0] }, () => {
-    b.add(geo.rbox(0.15, 0.13, 0.08, 0.02), mat.darkMid, {});
-    b.add(geo.rbox(0.155, 0.03, 0.085, 0.01), L.primary, { p: [0, 0.035, 0] });
+  b.group({ p: [-0.01, 0.2 + dy, -0.1], r: [0.45, 0.3, 0] }, () => {
+    b.add(geo.rbox(0.19, 0.14, 0.1, 0.022), mat.darkMid, {});
+    b.add(geo.rbox(0.195, 0.03, 0.105, 0.01), L.primary, { p: [0, 0.035, 0] });
     if (!lite && fine()) {
       b.cyl(0.032, 0.032, 0.05, 12, mat.wood, [0, 0.085, -0.005], [0, 0, HALF_PI]);
       b.cyl(0.036, 0.036, 0.008, 12, mat.dark, [-0.028, 0.085, -0.005], [0, 0, HALF_PI]);
       b.cyl(0.036, 0.036, 0.008, 12, mat.dark, [0.028, 0.085, -0.005], [0, 0, HALF_PI]);
-      for (const sx of [-1, 1]) b.box(0.016, 0.135, 0.01, grey, [sx * 0.045, 0, 0.043]);
+      for (const sx of [-1, 1]) b.box(0.016, 0.145, 0.01, grey, [sx * 0.055, 0, 0.053]);
     }
   });
   if (!lite) {

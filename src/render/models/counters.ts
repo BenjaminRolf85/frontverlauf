@@ -12,7 +12,7 @@ import type { FactionId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { dish } from './architecture';
 import { addEmblem } from './emblems';
-import { Builder, capsule, col, fine, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { Builder, capsule, col, fine, geo, mix, rng, shade, unitLow, type ColorLike, type V3 } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { kneelPose, soldier } from './soldiers';
 import { antenna, commander, tracks } from './tanks';
@@ -246,62 +246,67 @@ export function mineLayer(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const st = styleOf(f);
-  tracks(b, { x: 0.125, w: 0.065, len: 0.36, h: 0.08, wheels: 4, wr: 0.026, sprocket: L.trim, hub: L.secondary, lite, links: 8 });
+  // Proportion: das laengste und flachste Kettenfahrzeug (Wanne 0.44 statt 0.36 lang), damit es sich in Masse und Umriss
+  // vom Panzer (hoher Turm) und von der Flak (kurz, hoch) trennt / proportion: the longest and flattest tracked vehicle (hull
+  // 0.44 instead of 0.36 long) so it separates in mass and outline from the tank (tall turret) and the AA (short, tall)
+  const HL = 0.44, dz = (HL - 0.36) / 2;
+  // niedrige Qualitaet: vier Laufrollen wie zuvor (gleiches Budget) / low quality: four road wheels as before (same budget)
+  tracks(b, { x: 0.125, w: 0.065, len: HL, h: 0.08, wheels: unitLow() ? 4 : 5, wr: 0.026, sprocket: L.trim, hub: L.secondary, lite, links: 8 });
   // Wanne / hull
   switch (st) {
     case 'dravon':
-      b.add(geo.profileZY([[-0.18, 0], [0.17, 0], [0.19, 0.035], [0.06, 0.075], [-0.17, 0.08], [-0.19, 0.04]], 0.25), L.hull, { p: [0, 0.06, -0.01] });
+      b.add(geo.profileZY([[-0.18 - dz, 0], [0.17 + dz, 0], [0.19 + dz, 0.035], [0.06 + dz, 0.075], [-0.17 - dz, 0.08], [-0.19 - dz, 0.04]], 0.25), L.hull, { p: [0, 0.06, -0.01] });
       break;
     case 'alvenia':
-      b.add(geo.rtaper(0.26, 0.36, 0.22, 0.3, 0.08, 0.028), L.hull, { p: [0, 0.1, -0.01] });
+      b.add(geo.rtaper(0.26, HL, 0.22, HL - 0.06, 0.08, 0.028), L.hull, { p: [0, 0.1, -0.01] });
       break;
     case 'velkar':
-      b.add(geo.rtaper(0.27, 0.36, 0.21, 0.28, 0.08, 0.012, 0.01), L.hull, { p: [0, 0.1, -0.01] });
-      for (const s of [-1, 1]) b.block(s * 0.163, 0.035, -0.01, 0.012, 0.055, 0.34, L.hullDark);
+      b.add(geo.rtaper(0.27, HL, 0.21, HL - 0.08, 0.08, 0.012, 0.01), L.hull, { p: [0, 0.1, -0.01] });
+      for (const s of [-1, 1]) b.block(s * 0.163, 0.035, -0.01, 0.012, 0.055, HL - 0.02, L.hullDark);
       break;
     default:
-      b.block(0, 0.06, -0.01, 0.25, 0.08, 0.36, L.hull);
-      if (st === 'meridon') for (const z of [-0.12, -0.06, 0.0]) b.block(0, 0.062, z, 0.254, 0.076, 0.008, shade(L.hull, 0.8));
+      b.block(0, 0.06, -0.01, 0.25, 0.08, HL, L.hull);
+      if (st === 'meridon') for (const z of [-0.12 - dz, -0.06, 0.0]) b.block(0, 0.062, z, 0.254, 0.076, 0.008, shade(L.hull, 0.8));
       break;
   }
   // Fahrerhaus vorn, flach: der Minenleger ist das niedrigste Kettenfahrzeug (kein Turm) / cab at the front, low: the mine
   // layer is the lowest tracked vehicle (no turret)
   const top = 0.14;
-  b.add(lite ? geo.box(0.16, 0.05, 0.1) : geo.cbox(0.16, 0.05, 0.1, 0.012), L.hullDark, { p: [0, top + 0.025, 0.08] });
-  b.box(0.13, 0.022, 0.006, mat.glass, [0, top + 0.03, 0.132], [-0.15, 0, 0]);
-  if (!lite) commander(b, f, -0.04, top + 0.045, 0.06, 81);
+  b.add(lite ? geo.box(0.16, 0.05, 0.1) : geo.cbox(0.16, 0.05, 0.1, 0.012), L.hullDark, { p: [0, top + 0.025, 0.08 + dz] });
+  b.box(0.13, 0.022, 0.006, mat.glass, [0, top + 0.03, 0.132 + dz], [-0.15, 0, 0]);
+  if (!lite) commander(b, f, -0.04, top + 0.045, 0.06 + dz, 81);
   // Raeumschild vorn mit Warnstreifen; Lesbarkeit: breiter als die Ketten und hoch (Kennform des Minenlegers: flache Wanne mit
   // Schaufel vorn, kein Turm) / mine plough at the front with hazard stripes; readability: wider than the tracks and tall
   // (the mine layer's signature: a flat hull with a blade in front, no turret)
-  b.group({ p: [0, 0.085, 0.25], r: [0.25, 0, 0] }, () => {
+  b.group({ p: [0, 0.085, 0.25 + dz], r: [0.25, 0, 0] }, () => {
     b.add(lite ? geo.box(0.42, 0.14, 0.018) : geo.cbox(0.42, 0.14, 0.018, 0.005), L.trim, {});
     for (const s of [-1, 1]) b.add(lite ? geo.box(0.018, 0.14, 0.07) : geo.cbox(0.018, 0.14, 0.07, 0.004), L.trim, { p: [s * 0.205, 0, -0.03] });
     hazardStripes(b, 0, 0.02, 0.011, 0.38, 0.05, 8);
     // Zinken / tines
     for (let i = 0; i < (lite ? 5 : 9); i++) b.add(geo.cone(0.011, 0.055, 4), mat.metal, { p: [-0.18 + i * (0.36 / (lite ? 4 : 8)), -0.082, 0.012], r: [Math.PI + 0.3, 0, 0] });
   });
-  for (const s of [-1, 1]) b.tube([s * 0.1, 0.11, 0.16], [s * 0.1, 0.09, 0.24], 0.01, 5, mat.dark);
+  for (const s of [-1, 1]) b.tube([s * 0.1, 0.11, 0.16 + dz], [s * 0.1, 0.09, 0.24 + dz], 0.01, 5, mat.dark);
   // Minenwanne hinten: eine flache Lage Tellerminen hinter niedrigen Bordwaenden (statt des hohen Gestells, das wie ein Turm wirkte)
   // mine tray at the rear: one flat layer of disc mines behind low side boards (instead of the tall rack that read as a turret)
-  const rz = -0.1;
+  const rz = -0.1 - dz;
   b.box(0.23, 0.01, 0.2, mat.darkMid, [0, top + 0.005, rz]);
   for (const s of [-1, 1]) b.add(lite ? geo.box(0.012, 0.035, 0.2) : geo.cbox(0.012, 0.035, 0.2, 0.004), L.trim, { p: [s * 0.115, top + 0.022, rz] });
   b.add(lite ? geo.box(0.23, 0.035, 0.012) : geo.cbox(0.23, 0.035, 0.012, 0.004), L.trim, { p: [0, top + 0.022, rz - 0.1] });
   if (!lite) hazardStripes(b, 0, top + 0.022, rz - 0.107, 0.2, 0.024, 5, Math.PI);
   for (const x of [-0.06, 0.0, 0.06]) for (const z of [rz - 0.05, rz + 0.04]) discMine(b, [x, top + 0.022, z], 0.03, L.hullDark, L.secondary, lite);
   // Rutsche mit fallender Mine / chute with a dropping mine
-  b.group({ p: [0, 0.09, -0.22], r: [-0.7, 0, 0] }, () => {
+  b.group({ p: [0, 0.09, -0.22 - dz], r: [-0.7, 0, 0] }, () => {
     b.box(0.08, 0.006, 0.12, mat.metal, [0, 0, -0.04]);
     for (const s of [-1, 1]) b.box(0.006, 0.02, 0.12, mat.metal, [s * 0.04, 0.01, -0.04]);
   });
-  discMine(b, [0, 0.014, -0.28], 0.032, L.hullDark, L.secondary, lite);
+  discMine(b, [0, 0.014, -0.28 - dz], 0.032, L.hullDark, L.secondary, lite);
   if (!lite) {
     addEmblem(b, f, 0.028, 0.006, L.emblem, { p: [0.128, 0.1, 0.0], r: [0, HALF_PI, 0] });
     addEmblem(b, f, 0.028, 0.006, L.emblem, { p: [-0.128, 0.1, 0.0], r: [0, -HALF_PI, 0] });
     // Markierungsfaehnchen / marker pennants
     for (const s of [-1, 1]) {
-      b.tube([s * 0.12, top, -0.19], [s * 0.12, top + 0.1, -0.19], 0.003, 4, mat.dark);
-      b.box(0.004, 0.026, 0.04, s > 0 ? mat.yellow : L.primary, [s * 0.12, top + 0.088, -0.168]);
+      b.tube([s * 0.12, top, -0.19 - dz], [s * 0.12, top + 0.1, -0.19 - dz], 0.003, 4, mat.dark);
+      b.box(0.004, 0.026, 0.04, s > 0 ? mat.yellow : L.primary, [s * 0.12, top + 0.088, -0.168 - dz]);
     }
   }
   return b;
