@@ -72,7 +72,7 @@ function houseCount(level: number, neutral: boolean): number {
   return neutral ? Math.min(n, 6) : n;
 }
 
-function govQuarter(b: Builder, f: FactionId | null, x: number, z: number) {
+export function govQuarter(b: Builder, f: FactionId | null, x: number, z: number) {
   const L = look(f);
   b.group({ p: [x, 0, z] }, () => {
     b.block(0, 0, 0, 0.23, 0.02, 0.23, mat.concreteLight);
@@ -87,7 +87,7 @@ function govQuarter(b: Builder, f: FactionId | null, x: number, z: number) {
   });
 }
 
-function factory(b: Builder, f: FactionId | null, x: number, z: number, level: number) {
+export function factory(b: Builder, f: FactionId | null, x: number, z: number, level: number) {
   sawtoothHall(b, f, x + 0.02, z + 0.02, 0.2, 0.2, 0.1, 3);
   chimney(b, x - 0.08, 0, z - 0.08, 0.36 + level * 0.025, 0.028, mat.concreteLight);
 }
@@ -107,13 +107,15 @@ function hq(b: Builder, f: FactionId | null, x: number, z: number, level: number
   flagPole(b, f, MAST.x, 0, MAST.z, mastHeight(level), MAST.flag);
 }
 
-function bunkerRing(b: Builder, f: FactionId | null, gold: boolean) {
+/** open: Seite ohne Mauer (0 = +z, 1 = +x, 2 = -z, 3 = -x; Hafenbecken der Stuetzpunkte) / open: side without a wall (harbour basin of the bases) */
+export function bunkerRing(b: Builder, f: FactionId | null, gold: boolean, open = -1) {
   const L = look(f);
   const R = 0.385;
   const t = 0.035;
   const h = 0.075;
   const trim = f ? L.primary : mat.concreteDark;
   for (let side = 0; side < 4; side++) {
+    if (side === open) continue;
     b.group({ r: [0, side * HALF_PI, 0] }, () => {
       // zwei Mauerstuecke mit Tor in der Mitte / two wall pieces with a gate in the middle
       for (const s of [-1, 1]) {
@@ -136,13 +138,15 @@ function bunkerRing(b: Builder, f: FactionId | null, gold: boolean) {
 
 /**
  * Bordstein rund um den Platz in der Fraktionsfarbe (Dorf: Holz); das Hauptquartier traegt goldene Eckpfosten.
+ * open: Seite ohne Bordstein (wie bunkerRing).
  * Kerb around the plaza in the faction colour (village: wood); the HQ carries golden corner posts.
+ * open: side without a kerb (like bunkerRing).
  */
-function kerb(b: Builder, f: FactionId | null, gold: boolean) {
+export function kerb(b: Builder, f: FactionId | null, gold: boolean, open = -1) {
   const L = look(f);
   const c = f ? L.primary : mat.wood;
   const R = 0.385, t = 0.03, h = 0.026;
-  for (let side = 0; side < 4; side++) b.group({ r: [0, side * HALF_PI, 0] }, () => { b.block(0, 0, R, 2 * R + t, h, t, c); });
+  for (let side = 0; side < 4; side++) if (side !== open) b.group({ r: [0, side * HALF_PI, 0] }, () => { b.block(0, 0, R, 2 * R + t, h, t, c); });
   if (gold) for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     b.cyl(0.03, 0.034, 0.07, 6, mat.gold, [sx * R, 0.035, sz * R]);
     b.add(geo.ico(0.022, 0), mat.gold, { p: [sx * R, 0.085, sz * R] });

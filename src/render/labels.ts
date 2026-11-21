@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { primitives, semantic } from '../design/tokens';
 import { BADGE } from './config';
+import { icon } from '../ui/icons';
 
 const cache = new Map<string, THREE.SpriteMaterial>();
 
@@ -99,47 +100,122 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
   return s;
 }
 
+/**
+ * Symbol aus dem SVG-Symbolsatz (icons.ts) auf einen Canvas zeichnen: Pfade und Kreise im 24er-Raster, wie im SVG
+ * gestrichen bzw. gefuellt. Ohne Path2D (Testumgebung) passiert nichts.
+ * Draw an icon from the SVG icon set (icons.ts) onto a canvas: paths and circles on the 24 grid, stroked or filled as in
+ * the SVG. Without Path2D (test environment) nothing happens.
+ */
+export function drawIcon(ctx: CanvasRenderingContext2D, name: string, x: number, y: number, size: number, color: string) {
+  if (typeof Path2D === 'undefined') return;
+  const svg = icon(name);
+  const body = svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>'));
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 24, size / 24);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  for (const m of body.matchAll(/<(path|circle)\s+([^>]*?)\/?>/g)) {
+    const attr = (n: string) => new RegExp(`(?:^|\\s)${n}="([^"]*)"`).exec(m[2])?.[1];
+    ctx.lineWidth = Number(attr('stroke-width') ?? 2.2);
+    const fill = attr('fill') === 'currentColor';
+    if (m[1] === 'path') {
+      const p = new Path2D(attr('d') ?? '');
+      if (fill) ctx.fill(p);
+      ctx.stroke(p);
+    } else {
+      ctx.beginPath();
+      ctx.arc(Number(attr('cx')), Number(attr('cy')), Number(attr('r')), 0, Math.PI * 2);
+      if (fill) ctx.fill();
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** Art eines Stuetzpunkts auf dem Schild: Symbolname (icons.ts) und Name / kind of a base on the sign: icon name (icons.ts) and name */
+export interface BaseTag { icon: string; name: string }
+
+/**
+ * Masse des Stadtschilds in Canvas-Pixeln. Stuetzpunkt: breiterer Canvas (baseWidth), Symbolplakette (badge) links im
+ * Schild, darunter eine Fahne (tab) mit dem Namen der Art.
+ * Sizes of the city sign in canvas pixels. Base: a wider canvas (baseWidth), an icon badge on the left of the pill and a
+ * tab below it with the name of the kind.
+ */
+export const SIGN = { width: 320, baseWidth: 384, pill: 60, badge: 50, icon: 40, tab: 30, tabFont: 25, world: 0.95 };
+
 /** Stadtschild / city sign */
 /** level als Text: '' = leerer Kreis (Nachschublinie) / level as text: '' = empty circle (supply line) */
-export function cityLabel(name: string, level: number | string, color: string, ink: string, capital: boolean, pop = 0, need = 0): THREE.Sprite {
-  const key = `city-${name}-${level}-${color}-${capital}-${pop}-${need}`;
-  const W = 320, H = need > 0 ? 112 : 80;
+export function cityLabel(name: string, level: number | string, color: string, ink: string, capital: boolean, pop = 0, need = 0, base?: BaseTag): THREE.Sprite {
+  const key = `city-${name}-${level}-${color}-${capital}-${pop}-${need}-${base ? `${base.icon}:${base.name}` : ''}`;
+  const W = base ? SIGN.baseWidth : SIGN.width;
+  // Stuetzpunkt: Fahne mit der Art unter dem Schild / base: tab with the kind below the pill
+  const tab = base ? SIGN.tab : 0;
+  const H = (need > 0 ? 112 : 80) + tab;
+  // neutraler Stuetzpunkt: das Symbol ersetzt den Stufenkreis (Stufe 0 sagt nichts) / neutral base: the icon replaces the level circle (level 0 says nothing)
+  const circle = !(base && level === 0);
   const m = material(key, W, H, (ctx) => {
     ctx.font = `40px ${primitives.font.display}`;
     const text = name.toUpperCase();
-    const tw = Math.min(W - 80, ctx.measureText(text).width + 30);
-    const x = (W - tw - 46) / 2;
+    const left = (base ? SIGN.badge + 8 : 0) + (circle ? 46 : 8);
+    const tw = Math.min(W - 34 - left, ctx.measureText(text).width + 30);
+    const x = (W - tw - left) / 2;
+    if (base) {
+      // Fahne zuerst, das Schild ueberdeckt ihre Oberkante / the tab first, the pill covers its top edge
+      ctx.font = `${SIGN.tabFont}px ${primitives.font.display}`;
+      const kind = base.name.toUpperCase();
+      const kw = Math.min(W - 16, ctx.measureText(kind).width + 26);
+      const kx = (W - kw) / 2, ky = SIGN.pill - 12;
+      ctx.fillStyle = semantic.ink;
+      roundRect(ctx, kx, ky, kw, tab + 12, 10); ctx.fill();
+      ctx.fillStyle = semantic.surfaceRaised; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(kind, W / 2, SIGN.pill + tab / 2 + 1, kw - 16);
+      ctx.font = `40px ${primitives.font.display}`;
+    }
     ctx.fillStyle = semantic.ink;
-    roundRect(ctx, x + 5, 7, tw + 46, 60, 14); ctx.fill();
+    roundRect(ctx, x + 5, 7, tw + left, SIGN.pill, 14); ctx.fill();
     ctx.fillStyle = color;
-    roundRect(ctx, x, 2, tw + 46, 60, 14); ctx.fill();
+    roundRect(ctx, x, 2, tw + left, SIGN.pill, 14); ctx.fill();
     ctx.lineWidth = 4; ctx.strokeStyle = semantic.ink; ctx.stroke();
+    let cx = x + 26;
+    if (base) {
+      // Symbolplakette: Tusche mit hellem Symbol, auf jeder Fraktionsfarbe lesbar / icon badge: ink with a light icon, readable on every faction colour
+      const by = 2 + (SIGN.pill - SIGN.badge) / 2;
+      ctx.fillStyle = semantic.ink;
+      roundRect(ctx, x + 6, by, SIGN.badge, SIGN.badge, 10); ctx.fill();
+      drawIcon(ctx, base.icon, x + 6 + (SIGN.badge - SIGN.icon) / 2, by + (SIGN.badge - SIGN.icon) / 2, SIGN.icon, semantic.surfaceRaised);
+      cx = x + SIGN.badge + 8 + 24;
+    }
     // Stufe / level
-    ctx.fillStyle = capital ? semantic.accent : semantic.surfaceRaised;
-    ctx.beginPath();
-    if (capital) {
-      // Hauptquartier: goldener Stern statt Kreis, auch bei Kartenzoom zu erkennen / headquarters: golden star instead of the circle, readable at map zoom too
-      for (let i = 0; i < 10; i++) {
-        const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 16 : 29;
-        ctx.lineTo(x + 26 + Math.cos(a) * r, 33 + Math.sin(a) * r);
-      }
-      ctx.closePath();
-    } else ctx.arc(x + 26, 32, 18, 0, Math.PI * 2);
-    ctx.lineJoin = 'round';
-    ctx.fill(); ctx.stroke();
-    ctx.fillStyle = semantic.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `30px ${primitives.font.display}`;
-    ctx.fillText(String(level), x + 26, 34);
+    if (circle) {
+      ctx.fillStyle = capital ? semantic.accent : semantic.surfaceRaised;
+      ctx.beginPath();
+      if (capital) {
+        // Hauptquartier: goldener Stern statt Kreis, auch bei Kartenzoom zu erkennen / headquarters: golden star instead of the circle, readable at map zoom too
+        for (let i = 0; i < 10; i++) {
+          const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 16 : 29;
+          ctx.lineTo(cx + Math.cos(a) * r, 33 + Math.sin(a) * r);
+        }
+        ctx.closePath();
+      } else ctx.arc(cx, 32, 18, 0, Math.PI * 2);
+      ctx.lineJoin = 'round';
+      ctx.lineWidth = 4; ctx.strokeStyle = semantic.ink;
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = semantic.ink; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `30px ${primitives.font.display}`;
+      ctx.fillText(String(level), cx, 34);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `40px ${primitives.font.display}`;
-    ctx.fillStyle = ink; ctx.lineWidth = 5; ctx.strokeStyle = semantic.ink;
-    ctx.strokeText(text, x + 46 + tw / 2, 34, tw - 10);
-    ctx.fillText(text, x + 46 + tw / 2, 34, tw - 10);
+    ctx.fillStyle = ink; ctx.lineWidth = 5; ctx.strokeStyle = semantic.ink; ctx.lineJoin = 'round';
+    ctx.strokeText(text, x + left + tw / 2, 34, tw - 10);
+    ctx.fillText(text, x + left + tw / 2, 34, tw - 10);
     // Ausbaufortschritt: Punkte bis zur naechsten Stufe / growth progress: pips to the next level
     if (need > 0) {
       const n = Math.min(need, 10);
       const filled = Math.round((Math.min(pop, need) / need) * n);
       const pw = 20, gap = 5, total = n * pw + (n - 1) * gap;
-      const px = (W - total) / 2, py = 76;
+      const px = (W - total) / 2, py = 76 + tab;
       ctx.lineWidth = 3; ctx.strokeStyle = semantic.ink;
       for (let i = 0; i < n; i++) {
         ctx.fillStyle = i < filled ? semantic.accent : semantic.surfaceRaised;
@@ -148,7 +224,8 @@ export function cityLabel(name: string, level: number | string, color: string, i
     }
   });
   const s = new THREE.Sprite(m);
-  s.scale.set(0.95, 0.95 * (H / W), 1);
+  const k = SIGN.world / SIGN.width;
+  s.scale.set(k * W, k * H, 1);
   s.renderOrder = 9;
   return s;
 }

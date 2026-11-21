@@ -6,16 +6,21 @@
  *
  * Gezeichnet als kleine Papierkarte im Comic-Stil: Papierton und Rahmen aus den Tokens, Gelaende wie gedruckt (zum
  * Papier hin gemischt), Kuesten als Tuschelinie, Unerforschtes als schraffiertes leeres Papier. Staedte sind Kreise,
- * Hauptquartiere Sterne, Sendetuerme Dreiecke in Fraktionsfarbe mit Tuscherand. Das Grundbild (Gelaende, Kuesten,
+ * Hauptquartiere Sterne, Sendetuerme Dreiecke in Fraktionsfarbe mit Tuscherand. Stuetzpunkte tragen die Marke ihrer
+ * Gruppe (BASES.groups): Produktion Quadrat, Energie Raute, Versorgung Dreieck nach unten, Schutz Kreuz; die Kaserne
+ * zaehlt zur Produktion. Das Grundbild (Gelaende, Kuesten,
  * Grenzen, Schraffur) entsteht nur bei einer Aenderung des Spielstands; Kamerabewegungen zeichnen es bloss neu ein.
  * Drawn as a small paper map in the comic style: paper tone and frame from the tokens, terrain as if printed (mixed
  * towards the paper), coasts as an ink line, the unexplored as hatched blank paper. Cities are circles, headquarters
- * stars, transmitter towers triangles in the faction colour with an ink rim. The base image (terrain, coasts, borders,
+ * stars, transmitter towers triangles in the faction colour with an ink rim. Bases carry the mark of their group
+ * (BASES.groups): production a square, power a diamond, supply a triangle pointing down, protection a cross; the
+ * barracks counts as production. The base image (terrain, coasts, borders,
  * hatching) is only built when the game state changes; camera moves merely draw it again.
  */
 import * as THREE from 'three';
 import { factionTokens, components, semantic } from '../design/tokens';
 import { canSeeUnit, cityById, isExplored, type GameState, type Tile } from '../core';
+import { BASES, type BaseGroup, type BaseKind } from '../data/balance';
 import type { Controller } from '../game/controller';
 import { t } from '../i18n/i18n';
 import { icon } from './icons';
@@ -28,6 +33,29 @@ const THROTTLE_MS = 60;
 const BASE_PX = 12;
 const css = ([r, g, b]: Rgb) => `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
 const isWater = (tile: Tile) => tile.terrain === 'ocean' || tile.terrain === 'shallow';
+
+/**
+ * Marke eines Stuetzpunkts: Groesse relativ zum Stadtkreis (MM.cityDot), Balkenbreite des Kreuzes relativ zur Marke.
+ * Mark of a base: size relative to the city circle (MM.cityDot), bar width of the cross relative to the mark.
+ */
+const BASE_MARK = { size: 1.35, bar: 0.42 };
+/** Gruppe einer Art; die Kaserne (Heimat-Stuetzpunkt, in keiner Gruppe) bildet aus wie die Produktion / group of a kind; the barracks (home base, in no group) trains like the production kinds */
+export function baseGroup(kind: BaseKind): BaseGroup {
+  for (const g of Object.keys(BASES.groups) as BaseGroup[]) if (BASES.groups[g].includes(kind)) return g;
+  return 'production';
+}
+/** Umriss der Gruppenmarke um (x, y) mit Halbmesser r / outline of the group mark around (x, y) with half size r */
+function baseMark(ctx: CanvasRenderingContext2D, group: BaseGroup, x: number, y: number, r: number) {
+  ctx.beginPath();
+  if (group === 'production') ctx.rect(x - r * 0.86, y - r * 0.86, r * 1.72, r * 1.72);
+  else if (group === 'power') { ctx.moveTo(x, y - r * 1.22); ctx.lineTo(x + r * 1.05, y); ctx.lineTo(x, y + r * 1.22); ctx.lineTo(x - r * 1.05, y); ctx.closePath(); }
+  else if (group === 'supply') { ctx.moveTo(x - r * 1.08, y - r * 0.84); ctx.lineTo(x + r * 1.08, y - r * 0.84); ctx.lineTo(x, y + r * 1.1); ctx.closePath(); }
+  else {
+    const a = r * 1.08, b = r * BASE_MARK.bar;
+    ctx.moveTo(x - b, y - a); ctx.lineTo(x + b, y - a); ctx.lineTo(x + b, y - b); ctx.lineTo(x + a, y - b); ctx.lineTo(x + a, y + b); ctx.lineTo(x + b, y + b);
+    ctx.lineTo(x + b, y + a); ctx.lineTo(x - b, y + a); ctx.lineTo(x - b, y + b); ctx.lineTo(x - a, y + b); ctx.lineTo(x - a, y - b); ctx.lineTo(x - b, y - b); ctx.closePath();
+  }
+}
 
 type Rgb = [number, number, number];
 /** Token-Farbe (#rrggbb) in RGB / token colour (#rrggbb) to RGB */
@@ -328,7 +356,8 @@ export class Minimap {
     const ur = parseFloat(MM.unitDot);
     ctx.lineJoin = 'round';
     ctx.strokeStyle = MM.outline;
-    // Staedte zuerst: Kreis, Hauptquartier als Stern, Sendeturm als Dreieck / cities first: circle, HQ as a star, tower as a triangle
+    // Staedte zuerst: Kreis, Hauptquartier als Stern, Sendeturm als Dreieck, Stuetzpunkt mit der Marke seiner Gruppe
+    // cities first: circle, HQ as a star, tower as a triangle, base with the mark of its group
     const cr = parseFloat(MM.cityDot), hr = parseFloat(MM.hqDot);
     for (const city of s.cities) {
       if (!seen(city.x, city.y)) continue;
@@ -336,6 +365,11 @@ export class Minimap {
       const hq = city.isHQ && city.owner !== null && city.hqOf === city.owner;
       ctx.fillStyle = city.owner === null ? MM.neutral : factionTokens[s.factions[city.owner].id].primary;
       ctx.lineWidth = parseFloat(MM.markLine);
+      if (city.base && !hq) {
+        baseMark(ctx, baseGroup(city.base), mx, my, cr * BASE_MARK.size);
+        ctx.fill(); ctx.stroke();
+        continue;
+      }
       ctx.beginPath();
       if (hq) {
         for (let i = 0; i < 10; i++) {
