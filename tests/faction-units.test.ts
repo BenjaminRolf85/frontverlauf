@@ -6,8 +6,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  applyCommand, combatPreview, counterFactor, createGame, defaultConfig, factionVariant, netIncome, paidUnits, rosterUnits, supportedUnits,
-  trainCheck, twinCheck, unitAt, unitCost, unitLimit, unitScore, unitUpkeep, upkeep, upkeepFactor, type GameEvent, type GameState, type Unit,
+  applyCommand, combatPreview, counterFactor, createGame, defaultConfig, factionVariant, paidUnits, rosterUnits, supportedUnits,
+  trainCheck, unitAt, unitCost, unitScore, unitUpkeep, upkeep, upkeepFactor, type GameEvent, type GameState, type Unit,
 } from '../src/core';
 import {
   AI, FACTION_IDS, HIT, HIT_KINDS, KORVAT_UNITS, PRODUCTION, ROBOT_UNITS, ROSTERS, SCORE, UNITS, UPKEEP, VARIANTS, type FactionId, type UnitTypeId,
@@ -130,7 +130,11 @@ describe('Steppenkoloss (Korvat) / Steppe Colossus (Korvat)', () => {
   });
 });
 
-describe('Meridon: zwei fuer einen / Meridon: two for one', () => {
+// Spielerwunsch: Meridon bekommt nicht mehr zwei Soldaten gleichzeitig ("Zwei fuer einen" entfernt), sondern Marines statt
+// Infanterie; diese Tests ersetzen die alten Zwillings-Tests (Kauf am Silo und Quellen: meridon-marines.test.ts)
+// player request: Meridon no longer gets two soldiers at once ("Two for One" removed) but marines instead of infantry;
+// these tests replace the old twin tests (purchase at the silo and sources: meridon-marines.test.ts)
+describe('Meridon: Marines statt "Zwei fuer einen" / Meridon: marines instead of "Two for One"', () => {
   function meridon(o: { level?: number } = {}) {
     const s = duel('meridon', 'dravon', { stars: 100 });
     s.cities[0].level = o.level ?? 3;
@@ -138,96 +142,61 @@ describe('Meridon: zwei fuer einen / Meridon: two for one', () => {
   }
   const trains = (evs: GameEvent[]) => evs.filter((e): e is Extract<GameEvent, { t: 'train' }> => e.t === 'train');
 
-  it('Infanterie: zwei Einheiten zum Preis von einer, die zweite daneben im eigenen Gebiet / infantry: two units for the price of one, the second next to it in own territory', () => {
+  it('Marines: eine Einheit zum vollen Preis, keine zweite / marines: one unit at the full price, no second one', () => {
     const s = meridon();
     const c = s.cities[0];
-    expect(twinCheck(s, c, 'infantry')).toBe('twin');
     const before = s.factions[0].stars;
-    const r = ok(s, { type: 'train', city: c.id, unitType: 'infantry' });
-    expect(s.factions[0].stars).toBe(before - unitCost(s, 0, 'infantry')!);
+    const r = ok(s, { type: 'train', city: c.id, unitType: 'marine' });
+    expect(s.factions[0].stars).toBe(before - unitCost(s, 0, 'marine')!);
     const ev = trains(r.events);
-    expect(ev.map((e) => e.twin)).toEqual(['twin', 'second']);
-    const [a, b] = ev.map((e) => unit(s, e.unit)!);
-    expect(a.type).toBe('infantry'); expect(b.type).toBe('infantry');
-    expect([a.x, a.y]).toEqual([c.x, c.y]);
-    expect(Math.max(Math.abs(b.x - c.x), Math.abs(b.y - c.y))).toBe(1);
-    expect(s.tiles[b.y * s.size + b.x].territory).toBe(c.id);
-    // beide gehoeren zur Stadt (Limit) und sind frisch / both belong to the city (limit) and are fresh
-    expect(b.homeCity).toBe(c.id);
-    expect(b.fresh).toBe(true);
-    expect(supportedUnits(s, c)).toBe(2);
+    expect(ev).toHaveLength(1);
+    const u = unit(s, ev[0].unit)!;
+    expect(u.type).toBe('marine');
+    expect([u.x, u.y]).toEqual([c.x, c.y]);
+    expect(u.homeCity).toBe(c.id);
+    expect(supportedUnits(s, c)).toBe(1);
+    expect(s.units.filter((o) => o.owner === 0)).toHaveLength(1);
+    // die Infanterie selbst gibt es fuer Meridon nicht mehr / the infantry itself no longer exists for Meridon
+    fails(s, { type: 'train', city: c.id, unitType: 'infantry' }, 'invalid');
   });
 
-  it('beide kosten Sold / both cost upkeep', () => {
+  it('fester Sold, Kaserne macht sie zu Veteranen / flat upkeep, barracks make them veterans', () => {
     const s = meridon({ level: 5 });
     const c = s.cities[0];
-    // vier freie Einheiten belegen / fill the four free units
     for (let i = 0; i < UPKEEP.freeUnits; i++) addUnit(s, 'jeep', 0, 3 + i, 8);
     const up = upkeep(s, 0);
-    ok(s, { type: 'train', city: c.id, unitType: 'infantry' });
-    expect(paidUnits(s, 0).filter((u) => u.type === 'infantry')).toHaveLength(2);
-    expect(upkeep(s, 0)).toBe(up + 2 * Math.ceil(UNITS.infantry.cost! * UPKEEP.share));
-    expect(netIncome(s, 0)).toBeLessThan(netIncome(s, 0) + 1);
-  });
-
-  it('Stadtlimit fuer nur eine: nur eine Einheit, Hinweis "limit" / city limit for only one: one unit, note "limit"', () => {
-    const s = meridon({ level: 1 });
-    const c = s.cities[0];
-    const free = unitLimit(s, c) - supportedUnits(s, c);
-    for (let i = 0; i < free - 1; i++) addUnit(s, 'jeep', 0, 3 + i, 6, { homeCity: c.id });
-    expect(unitLimit(s, c) - supportedUnits(s, c)).toBe(1);
-    expect(twinCheck(s, c, 'infantry')).toBe('limit');
-    const r = ok(s, { type: 'train', city: c.id, unitType: 'infantry' });
-    expect(trains(r.events).map((e) => e.twin)).toEqual(['limit']);
-    expect(s.units.filter((u) => u.type === 'infantry')).toHaveLength(1);
-    expect(supportedUnits(s, c)).toBe(unitLimit(s, c));
-  });
-
-  it('kein freies Nachbarfeld: nur eine Einheit, Hinweis "noRoom" / no free adjacent tile: one unit, note "noRoom"', () => {
-    const s = meridon();
-    const c = s.cities[0];
-    // Rand der Karte: Nachbarn (0..2, 0..2); Wasser und eigene Einheiten / map edge: neighbours; water and own units
-    setTerrain(s, 0, 0, 'ocean'); setTerrain(s, 1, 0, 'ocean'); setTerrain(s, 2, 0, 'shallow');
-    setTerrain(s, 0, 1, 'mountain'); setTerrain(s, 0, 2, 'ocean');
-    addUnit(s, 'jeep', 0, 2, 1); addUnit(s, 'jeep', 0, 1, 2); addUnit(s, 'jeep', 0, 2, 2);
-    expect(twinCheck(s, c, 'infantry')).toBe('noRoom');
-    const r = ok(s, { type: 'train', city: c.id, unitType: 'infantry' });
-    expect(trains(r.events).map((e) => e.twin)).toEqual(['noRoom']);
-    expect(s.units.filter((u) => u.type === 'infantry')).toHaveLength(1);
-    // mit Gebirgsausbildung reicht der Berg / with mountain training the mountain will do
-    s.factions[0].techs.push('mountainTraining');
-    expect(twinCheck(s, c, 'infantry')).toBe('twin');
-  });
-
-  it('nur Infanterie und nur Meridon; Kaserne macht beide zu Veteranen / infantry and Meridon only; barracks make both veterans', () => {
-    const s = meridon();
-    const c = s.cities[0];
-    giveSites(c, 'armory');
-    // Meridon bildet statt des MG das Schattenkommando aus (Schattenflotte) / Meridon trains the Shadow Commando instead of the MG (shadow fleet)
-    expect(twinCheck(s, c, 'shadowCommando')).toBeNull();
-    expect(twinCheck(s, c, 'pioneer')).toBeNull();
-    expect(twinCheck(s, c, 'medic')).toBeNull();
-    const r = ok(s, { type: 'train', city: c.id, unitType: 'shadowCommando' });
-    expect(trains(r.events)).toHaveLength(1);
-    // andere Fraktion: keine zweite Infanterie / other faction: no second infantry
-    expect(twinCheck(s, s.cities[1], 'infantry')).toBeNull();
-    // Kaserne (Stadtausbau): beide Veteranen / barracks (city upgrade): both veterans
+    ok(s, { type: 'train', city: c.id, unitType: 'marine' });
+    expect(paidUnits(s, 0).filter((u) => u.type === 'marine')).toHaveLength(1);
+    expect(upkeep(s, 0)).toBe(up + UPKEEP.flat.marine!);
     const s2 = meridon();
     s2.cities[0].upgrades = ['barracks'];
-    const r2 = ok(s2, { type: 'train', city: s2.cities[0].id, unitType: 'infantry' });
-    const both = trains(r2.events).map((e) => unit(s2, e.unit)!);
-    expect(both).toHaveLength(2);
-    for (const u of both) { expect(u.veteran).toBe(true); expect(u.hp).toBe(u.maxHp); expect(u.maxHp).toBeGreaterThan(UNITS.infantry.hp); }
+    const r2 = ok(s2, { type: 'train', city: s2.cities[0].id, unitType: 'marine' });
+    const v = trains(r2.events).map((e) => unit(s2, e.unit)!);
+    expect(v).toHaveLength(1);
+    expect(v[0].veteran).toBe(true);
+    expect(v[0].maxHp).toBeGreaterThan(UNITS.marine.hp);
   });
 
   it('besetztes Stadtfeld: keine Ausbildung, nichts veraendert / occupied city tile: no training, nothing changed', () => {
     const s = meridon();
     addUnit(s, 'jeep', 0, s.cities[0].x, s.cities[0].y);
-    fails(s, { type: 'train', city: s.cities[0].id, unitType: 'infantry' }, 'occupied');
+    fails(s, { type: 'train', city: s.cities[0].id, unitType: 'marine' }, 'occupied');
   });
 
-  it('KI: Infanterie zaehlt doppelt, wenn beide passen / AI: infantry counts double if both fit', () => {
-    expect(AI.twinValue).toBeGreaterThan(1.5);
+  it('kein Zwilling mehr fuer irgendeine Fraktion / no twin any more for any faction', () => {
+    // der Mechanismus ist entfernt (nur Meridon nutzte ihn) / the mechanism is removed (only Meridon used it)
+    expect('twinValue' in AI).toBe(false);
+    for (const f of FACTION_IDS) {
+      const s = duel(f, f === 'dravon' ? 'korvat' : 'dravon', { stars: 100 });
+      giveSites(s.cities[0], 'trainingCamp');
+      const inf = factionVariant(s, 0, 'infantry');
+      if (trainCheck(s, s.cities[0], inf) !== 'ok') continue;
+      const r = ok(s, { type: 'train', city: s.cities[0].id, unitType: inf });
+      expect(trains(r.events), f).toHaveLength(1);
+    }
+  });
+
+  it('KI: bildet Marines aus, ohne Fehlbefehl / AI: trains marines without a failed command', () => {
     const s = meridon();
     s.factions[0].human = false;
     const cmd = planNextCommand(s, 0);
@@ -402,7 +371,8 @@ describe('NEXUS: neue Einheiten / NEXUS: new units', () => {
 });
 
 describe('KI-Partien mit den neuen Einheiten / AI games with the new units', () => {
-  it('Eroberung mit Korvat, Meridon und NEXUS: keine Fehlbefehle, Drohnen und Zwillinge im Einsatz / conquest with Korvat, Meridon and NEXUS: no failed commands, drones and twins in use', () => {
+  // vorher Zwillinge im Einsatz, jetzt Marines (Meridon) / before twins in use, now marines (Meridon)
+  it('Eroberung mit Korvat, Meridon und NEXUS: keine Fehlbefehle, Drohnen und Marines im Einsatz / conquest with Korvat, Meridon and NEXUS: no failed commands, drones and marines in use', () => {
     const ids: FactionId[] = ['nexus', 'meridon', 'korvat', 'zyrr'];
     // Seed 7 setzte mit dem Angriff von hinten keine Kamikaze-Drohne mehr ein (NEXUS frueh ausgeschieden), daher Seed 10;
     // mit schnelleren Einheiten, Stadtwachstum und Sendetuermen sprengt auf Seed 10 keine Drohne mehr, daher Seed 14
@@ -410,7 +380,7 @@ describe('KI-Partien mit den neuen Einheiten / AI games with the new units', () 
     // faster units, city growth and transmitter towers no drone explodes on seed 10 any more, hence seed 14
     const s = createGame(defaultConfig({ seed: 14, size: 14, mode: 'conquest', mapType: 'continent', factionVictory: false,
       factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
-    let fails = 0, kamikaze = 0, twins = 0;
+    let fails = 0, kamikaze = 0, marines = 0;
     const types = new Set<UnitTypeId>();
     while (!s.over && s.round <= 70) {
       const f = s.current;
@@ -420,13 +390,13 @@ describe('KI-Partien mit den neuen Einheiten / AI games with the new units', () 
         if (!r.ok) fails++;
         for (const e of r.events) {
           if (e.t === 'attack' && e.kamikaze) kamikaze++;
-          if (e.t === 'train') { if (e.twin === 'second') twins++; const u = unitAt(s, s.units.find((o) => o.id === e.unit)?.x ?? -1, s.units.find((o) => o.id === e.unit)?.y ?? -1); if (u) types.add(u.type); }
+          if (e.t === 'train') { if (s.units.find((o) => o.id === e.unit)?.type === 'marine') marines++; const u = unitAt(s, s.units.find((o) => o.id === e.unit)?.x ?? -1, s.units.find((o) => o.id === e.unit)?.y ?? -1); if (u) types.add(u.type); }
         }
         if (cmd.type === 'endTurn' && r.ok) break;
       }
     }
     expect(fails).toBe(0);
-    expect(twins).toBeGreaterThan(0);
+    expect(marines).toBeGreaterThan(0);
     expect(kamikaze).toBeGreaterThan(0);
     expect(FACTION_IDS).toContain('nexus');
   }, 120_000);
@@ -446,7 +416,11 @@ describe('Texte der neuen Merkmale / texts of the new traits', () => {
       const up = factionTraits('korvat').find((x) => x.kind === 'upkeep')!;
       expect(up.value).toContain('33');
       expect(factionTraits('dravon').some((x) => x.kind === 'upkeep')).toBe(false);
-      expect(t('twin.label', { unit: t('units.infantry') })).toContain('2x');
+      // Meridon: zweites Merkmal Marines mit Preis aus balance.ts (vorher "Zwei fuer einen") / Meridon: second feature marines with the price from balance.ts (before "Two for One")
+      const m2 = factionTraits('meridon').filter((x) => x.kind === 'feature')[1]!;
+      expect(m2.value).toBe(t('factions.meridon.feature2'));
+      expect(m2.desc).toContain(String(UNITS.marine.cost));
+      expect(m2.desc).not.toMatch(/\{\w+\}/);
       setLanguage('de');
     });
   }

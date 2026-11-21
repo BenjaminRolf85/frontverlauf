@@ -87,6 +87,10 @@ export interface SoldierOpts {
   head?: (b: Builder, L: Look, d: Detail) => void;
   /** Kopfmassstab (fehlt = HEAD_CREW ohne Beine, sonst HEAD_FOOT) / head scale (missing = HEAD_CREW without legs, else HEAD_FOOT) */
   headScale?: number;
+  /** eigene Uniformfarben statt der Fraktionsoptik (Marines) / own uniform colours instead of the faction look (marines) */
+  colors?: Partial<Pick<Look, 'jacket' | 'pants' | 'gear'>>;
+  /** ohne Fraktionszubehoer an Rumpf, Armen und Stiefeln (eigene Ausruestung, Marines) / without faction extras on torso, arms and boots (own equipment, marines) */
+  plain?: boolean;
 }
 
 /** Zwei-Knochen-IK / two-bone IK */
@@ -148,7 +152,10 @@ export function seatPose(hands: [V3, V3]): Pose {
  * Soldat aufbauen (lokal: Fuesse auf y=0, Blick +z) / build a soldier (local: feet at y=0, facing +z).
  */
 export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {}): void {
-  const L = look(f);
+  // eigene Uniformfarben (Marines) ueber der Fraktionsoptik / own uniform colours (marines) over the faction look
+  const L: Look = o.colors ? { ...look(f), ...o.colors } : look(f);
+  // ohne Fraktionszubehoer (eigene Ausruestung, Marines) / without faction extras (own equipment, marines)
+  const fx: FactionId | null = o.plain ? null : f;
   const d: Detail = o.detail ?? 2;
   // Feinstufe: 3 = Einzelfigur bei hoher Qualitaet, sonst die Detailstufe / fine tier: 3 = hero figure on high quality, else the detail level
   const tier = d === 2 && fine() ? 3 : d;
@@ -190,7 +197,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       b.box(0.036, 0.055, 0.014, shade(L.gear, 0.75), [0.05, -0.012, -0.054]);
     }
     // Heiliges Alvenia: Wappenrock vorn und hinten / Holy Alvenia: tabard front and back
-    if (f === 'alvenia' && !o.coat && !o.robe && !o.noLegs) faithTabard(b, d);
+    if (fx === 'alvenia' && !o.coat && !o.robe && !o.noLegs) faithTabard(b, d);
     if (o.robe) {
       // Kutte bis zu den Knoecheln, zerfranster Saum / ankle-length robe, ragged hem
       b.add(d >= 1 ? geo.rtaper(0.21, 0.16, 0.158, 0.106, 0.13, 0.012) : geo.taper(0.21, 0.16, 0.158, 0.106, 0.13), L.jacket, { p: [0, -0.06, 0] });
@@ -238,23 +245,23 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         b.box(0.028, 0.08, 0.008, L.primary, [0.05, -0.03, 0.056], [0, 0, 0.1]);
       }
       // Fraktionszubehoer / faction extras
-      if (f === 'meridon' && !o.coat) {
+      if (fx === 'meridon' && !o.coat) {
         b.add(d >= 1 ? geo.ctaper(0.156, 0.098, 0.176, 0.108, 0.08, 0.014) : geo.taper(0.156, 0.098, 0.176, 0.108, 0.08), L.secondary, { p: [0, 0.06, 0] });
         if (d >= 1) for (const s of [-1, 1]) b.box(0.034, 0.03, 0.012, shade(L.secondary, 0.75), [s * 0.04, 0.045, 0.056]);
       }
-      if (f === 'korvat' && !o.coat) b.box(0.026, 0.13, 0.012, L.secondary, [0.0, 0.06, 0.053], [0, 0, 0.62]);
-      if (f === 'dravon' && !o.coat) {
+      if (fx === 'korvat' && !o.coat) b.box(0.026, 0.13, 0.012, L.secondary, [0.0, 0.06, 0.053], [0, 0, 0.62]);
+      if (fx === 'dravon' && !o.coat) {
         b.add(geo.taper(0.1, 0.012, 0.08, 0.012, 0.05), L.secondary, { p: [0, 0.07, 0.052] });
         b.add(geo.taper(0.09, 0.01, 0.07, 0.01, 0.04), shade(L.jacket, 0.8), { p: [0, 0.07, 0.056] });
       }
       // Heiliges Alvenia "Orden im Feld": weisse Brustplatte mit Goldborte und Stern / Holy Alvenia "Order in the field": white chest plate with gold trim and star
-      if (f === 'alvenia' && !o.coat && !o.robe) faithArmour(b, d);
+      if (fx === 'alvenia' && !o.coat && !o.robe) faithArmour(b, d);
       // Velkar "Labor im Feld": frostweisse Brustplatte mit Leuchtleiste statt Schneetarn / frost-white chest plate with a light strip instead of snow camo
-      if (f === 'velkar' && !o.coat && !o.robe) techArmour(b, d);
+      if (fx === 'velkar' && !o.coat && !o.robe) techArmour(b, d);
       // Velkar: Generator-Rucksack statt Tornister (nicht fuer Besatzungen) / Velkar: generator backpack instead of a pack (not for crews)
-      const techGen = f === 'velkar' && !o.coat && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
+      const techGen = fx === 'velkar' && !o.coat && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
       // Alvenia: Umhang statt Tornister / Alvenia: cape instead of a pack
-      const cape = f === 'alvenia' && !o.coat && !o.robe && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
+      const cape = fx === 'alvenia' && !o.coat && !o.robe && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
       if (techGen) techPack(b, d);
       else if (cape) faithCape(b, d);
       // Rucksack / pack
@@ -288,7 +295,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         // weissem Kreuz (kein rotes Kreuz auf Weiss: geschuetztes Zeichen). Velkar: niedriger Rucksack, der Kryo-Kanister ragt hoch.
         // Readability: tall medical frame pack rising above the helmet (the medic's signature shape), side and back panels green
         // with a white cross (no red cross on white: protected emblem). Velkar: low pack, the cryo canister rises instead.
-        const tall = f !== 'velkar';
+        const tall = fx !== 'velkar';
         const ph = tall ? 0.33 : 0.2, py = tall ? 0.185 : 0.085;
         b.add(part(0.2, ph, 0.11, 0.18, 1), mat.white, { p: [0, py, -0.11] });
         b.add(part(0.206, 0.04, 0.116, 0.25, 1), L.primary, { p: [0, 0.11, -0.11] });
@@ -332,11 +339,11 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         b.add(band(0.0295, 0.015), L.secondary, { p: [0, len * 0.25, 0] });
         if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.029, len * 0.58, 0], r: [0, -HALF_PI, 0] });
       }
-      if (f === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
+      if (fx === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
       // Alvenia: weisses Schulterstueck mit Goldrand und tuerkiser Leuchte / Alvenia: white pauldron with gold rim and teal light
-      if (f === 'alvenia' && !o.coat && d >= 1) faithPauldron(b, side, d);
+      if (fx === 'alvenia' && !o.coat && d >= 1) faithPauldron(b, side, d);
       // Velkar: frostweisse Schulterplatte mit Leuchtpunkt / frost-white shoulder plate with a light dot
-      if (f === 'velkar' && !o.coat && d >= 1) {
+      if (fx === 'velkar' && !o.coat && d >= 1) {
         b.add(geo.rtaper(0.07, 0.07, 0.06, 0.06, 0.03, 0.008), TECH.shell, { p: [0, 0.012, 0] });
         if (d === 2) techDot(b, [side * 0.034, 0.012, 0.02], 0.007);
       }
@@ -377,7 +384,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         b.add(softBox(0.068, 0.01, 0.1, 0.004), mat.ink, { p: [0, -0.032, 0.014] });
         for (const z of [0.02, 0.035]) b.box(0.03, 0.004, 0.004, mat.paper, [0, 0.003, z]);
       }
-      if (f === 'velkar' && d >= 1) b.box(0.068, 0.012, 0.03, mat.snow, [0, -0.004, -0.02]);
+      if (fx === 'velkar' && d >= 1) b.box(0.068, 0.012, 0.03, mat.snow, [0, -0.004, -0.02]);
     });
   }
 }

@@ -3,23 +3,24 @@
  * Economy and diplomacy: rewards, research, buildings, training, embassies, peace.
  */
 import {
-  unitClass, twinCheck, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
+  unitClass, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
   income, isLand, isShip, isWater, neighbors, researchCost, freeUnitSlots, noTraining, territoryOwner, trainCheck, unitAt,
   unitCost, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, factionVariant, rosterShips,
+  siloUnit,
 } from '../core';
 import {
   AI, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
-  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
+  WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, MARINES, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { relayTechBonus, relayValue } from './orbital';
 import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
-import { siloBuy, siloPioneerShare } from './shadowFleet';
+import { siloBuy, siloMissileBuys, siloPioneerShare } from './shadowFleet';
 import { materialBonus, productionBuys, siteFor } from './production';
 
 type Failed = Set<string>;
@@ -460,7 +461,9 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   const army = Math.max(1, ctx.my.length);
   const unexplored = ctx.fa.explored.some((e) => !e);
   // Menschen: nur, wofuer die Stadt eine Produktionsstaette hat / humans: only what the city has a production site for
-  const avail = (t: UnitTypeId) => UNITS[t].cost !== null && (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && siteFor(s, c, t);
+  // Meridon: Silo-Einheiten (Lenkflugkoerper) nie in der Stadt, nur am Silo (siloMissileBuys)
+  // Meridon: silo units (Guided Missile) never in a city, only at the silo (siloMissileBuys)
+  const avail = (t: UnitTypeId) => UNITS[t].cost !== null && (!UNITS[t].tech || hasTech(s, f, UNITS[t].tech!)) && siteFor(s, c, t) && !siloUnit(t);
   // Konter: Anteile nach sichtbaren Fahrzeugen und Fliegern / counters: shares by visible vehicles and flyers
   const ct = counterShares(ctx);
   const soft = 1 - 0.5 * Math.min(1, ct.vehRatio + ct.airRatio);
@@ -482,6 +485,9 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     // Meridon-Schattenflotte: Kommandos statt MG (leichter, getarnt), Lenkflugkoerper gegen wertvolle Ziele, ein Radarwagen
     // Meridon shadow fleet: commandos instead of the MG (lighter, camouflaged), Guided Missiles against valuable targets, one Radar Truck
     shadowCommando: 0.3 * soft,
+    // Marines statt Infanterie: teuer, also kleinerer Anteil als die Infanterie, dafuer hohe Qualitaet
+    // marines instead of infantry: expensive, so a smaller share than the infantry, but high quality
+    marine: (avail(mgType) ? MARINES.ai.share : MARINES.ai.shareAlone) * soft,
     guidedMissile: ctx.enemies.length || ctx.hostileCities.length ? 0.12 : 0.04,
     radarTruck: army >= 5 && !count('radarTruck') ? 0.08 : 0,
     sunLance: ctx.hostileCities.length ? 0.16 : 0.08,
@@ -508,7 +514,7 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
     infantry: 0.5, mg: 1, jeep: 0.6, sniper: 0.6, pioneer: 0.5, artillery: 0.9, medic: 0.8, spy: 0.6, heli: 0.9, railSniper: 0.7, octocopter: 0.9,
     lightWarden: 0.7, sunLance: 1, tank: 1.2, teslaTank: 1.2, reliquary: 1.2, steppeColossus: 1.3,
     antiTank: 0.8, antiAir: 0.8, mineLayer: 0.6,
-    shadowCommando: 0.85, guidedMissile: 0.8, radarTruck: 0.5,
+    shadowCommando: 0.85, guidedMissile: 0.8, radarTruck: 0.5, marine: MARINES.ai.quality,
     steppeRider: 0.6, stormbreaker: 1, peacekeeper: 0.9, protoWalker: 1,
   };
   // Bedrohung der Stadt: Fahrzeuge oder Flieger in der Naehe / threat to the city: vehicles or flyers nearby
@@ -519,17 +525,15 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
   for (const t of list) {
     if (!avail(t)) continue;
     const counterUrgent = (t === 'antiTank' && local.vehicle > 0) || (t === 'antiAir' && local.air > 0);
-    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker', 'shadowCommando'].includes(t) && !counterUrgent) continue;
+    if (urgent && !['infantry', 'mg', 'pioneer', 'sniper', 'railSniper', 'lightWarden', 'peacekeeper', 'stormbreaker', 'shadowCommando', 'marine'].includes(t) && !counterUrgent) continue;
     const target = (share[t] ?? 0) * (prof.pref[t] ?? 1);
     if (target <= 0 && !urgent) continue;
-    // Meridon: zwei zum Preis von einer, wenn beide passen / Meridon: two for the price of one if both fit
-    const twin = twinCheck(s, c, t) === 'twin' ? AI.twinValue : 1;
-    let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5 * twin;
+    let sc = (target - count(t) / army) * 4 + (quality[t] ?? 0.3) * 0.5;
     // Pioniere nur noch knapp vor der Infanterie: sie kommen jetzt aus jeder Kaserne / pioneers only just ahead of infantry: they now come from every barracks
-    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' || t === 'shadowCommando' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' ? 1.2 : 1;
+    if (urgent) sc = counterUrgent ? 2.2 : t === 'mg' || t === 'peacekeeper' ? 2 : t === 'stormbreaker' || t === 'shadowCommando' ? 1.8 : t === 'pioneer' ? (usesSites(s, f) ? 1.15 : 1.6) : t === 'infantry' || t === 'lightWarden' || t === 'marine' ? 1.2 : 1;
     if (!prof.specials && (t === 'medic' || t === 'spy' || t === 'artillery' || t === 'sunLance')) sc -= 0.6;
     if (prof.sloppy > 0) sc += (hashNoise(c.id, s.round, list.indexOf(t)) - 0.5) * prof.sloppy * 2;
-    sc -= unitCost(s, f, t)! / 250 / twin;
+    sc -= unitCost(s, f, t)! / 250;
     if (sc > bs) { bs = sc; best = t; }
   }
   return best;
@@ -668,8 +672,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     const mk = (t: UnitTypeId, factor: number) => {
       if (trainCheck(s, c, t) !== 'ok' && trainCheck(s, c, t) !== 'notEnoughStars') return;
       const cost = unitCost(s, f, t)!;
-      // zwei Einheiten kosten doppelten Sold / two units cost double upkeep
-      if (!urgent && net - upFor(t) * (twinCheck(s, c, t) === 'twin' ? 2 : 1) < 0) return;
+      if (!urgent && net - upFor(t) < 0) return;
       let value: number;
       if (urgent) value = cost * 3.5;
       else if (deficit > 0) value = cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW;
@@ -678,14 +681,12 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       // humans: train the first unit of a new production site (except the barracks) promptly, for a mixed army
       const site = usesSites(s, f) ? siteOf(t) : null;
       if (!urgent && s.round >= 3 && site && site !== 'trainingCamp' && !ctx.my.some((u) => siteOf(u.carried ?? u.type) === site)) value = Math.max(value, cost * 2.2);
-      // Meridon "Zwei fuer einen": doppelter Wert, wenn beide passen; sonst waere der zweite Platz verschenkt
-      // Meridon "Two for One": double value if both fit; otherwise the second slot would be wasted
-      if (twinCheck(s, c, t) === 'twin') value *= AI.twinValue;
       value = value * factor + cost * ctx.pf - front * 0.05;
       buys.push({ cmd: { type: 'train', city: c.id, unitType: t }, cost, value, save: !urgent });
     };
     mk(type, 1);
-    const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? 'infantry';
+    // Grundinfanterie der Fraktion (Meridon: Marines) / the faction's basic infantry (Meridon: marines)
+    const cheap: UnitTypeId = ROSTERS[fa.id]?.infantry ?? factionVariant(s, f, 'infantry');
     if (type !== cheap) mk(cheap, 0.8);
     // Menschen: je neuer Staette dieser Stadt (ohne Kaserne) die erste Einheit anbieten, auch wenn der Wunschtyp ein anderer ist
     // humans: offer the first unit of each new site of this city (except the barracks), even if the desired type is another one
@@ -701,6 +702,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   // Meridon: Raketensilo als Sparziel, sobald ein Pionier am Bauplatz steht / Meridon: rocket silo as a savings goal once a pioneer stands at the site
   const silo = siloBuy(ctx);
   if (silo) buys.push({ ...silo, save: true, horizon: SILO.ai.saveRounds });
+  // Meridon: Lenkflugkoerper am Silo kaufen (einer je Silo und Zug) / Meridon: buy Guided Missiles at the silo (one per silo and turn)
+  buys.push(...siloMissileBuys(ctx, net, upFor, deficit));
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap
   // Kult: Horde und Limit einmal je Planung / cult: horde and cap once per planning
   const horde = isCultFaction(s, f) ? hordeCount(s, f) : null;

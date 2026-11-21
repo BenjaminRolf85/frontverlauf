@@ -35,7 +35,7 @@ import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
 import { BASE_ICON, baseLineHtml, baseName, supplyNoteHtml } from './bases';
-import { troopCards, troopsHtml, type TroopCard } from './troops';
+import { siloCards, troopCards, troopsHtml, type TroopCard } from './troops';
 import { UNIT_ROLE, unitRoleIcon } from './unitRoles';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
@@ -811,6 +811,12 @@ export class Hud {
       head = st.head;
       body += st.body;
       this.actions.push(...st.actions);
+      // eigenes Silo am Zug: Kaufkarte (Lenkflugkoerper) ueber der Aktionsleiste, wie die Truppen der Stadt
+      // own silo on turn: purchase card (Guided Missile) above the action bar, like the city's troops
+      if (g.isHumanTurn && turretAt(s, x, y)?.owner === s.current) {
+        this.cards = siloCards(s, x, y, (type) => void g.exec({ type: 'siloBuy', x, y, unitType: type }));
+        this.troopsTitle = t('shadow.silo.buyTitle');
+      }
     } else if (explored && turretAt(s, x, y)?.owner !== undefined) {
       // Geschuetzstellung: Besitzer, Panzerung, Reichweite, feuert jede Runde / gun emplacement: owner, armour, range, fires every round
       const gun = turretAt(s, x, y)!;

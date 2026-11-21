@@ -73,10 +73,16 @@ describe('Truppenkarten / troop cards', () => {
     expect(cards.find((x) => x.type === 'infantry')!.reason).toBe(t('errors.occupied'));
   });
 
-  it('meridon: twin note on infantry, privateer card', () => {
+  // vorher "Zwei fuer einen" an der Infanterie; jetzt Marines statt Infanterie, der Lenkflugkoerper nur am Silo
+  // before "Two for One" on the infantry; now marines instead of infantry, the Guided Missile only at the silo
+  it('meridon: marine card instead of infantry, Guided Missile locked to the silo, privateer card', () => {
     const { s, c } = coastal('meridon');
     const cards = troopCards(s, c, noop);
-    expect(cards.find((x) => x.type === 'infantry')!.label).toBe(t('twin.label', { unit: t('units.infantry') }));
+    expect(cards.some((x) => x.type === 'infantry')).toBe(false);
+    expect(cards.find((x) => x.type === 'marine')!.label).toBe(t('units.marine'));
+    const gm = cards.find((x) => x.type === 'guidedMissile')!;
+    expect(gm.enabled).toBe(false);
+    expect(gm.reason).toBe(t('shadow.silo.onlyHere'));
     expect(cards.some((x) => x.type === 'privateer')).toBe(true);
   });
 

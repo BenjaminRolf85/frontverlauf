@@ -56,10 +56,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   cyborg: 'energy', flameTank: 'flame', kamikazeDrone: 'blast',
   // Meridon-Schattenflotte: Kommando-Karabiner, Lenkflugkoerper (Sprengladung) / Meridon shadow fleet: commando carbine, guided missile (blast charge)
   shadowCommando: 'rifle', fogCutter: 'none', guidedMissile: 'blast', radarTruck: 'none',
+  // Marines: Karabiner wie die Infanterie / marines: carbine like the infantry
+  marine: 'rifle',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando', 'marine']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {

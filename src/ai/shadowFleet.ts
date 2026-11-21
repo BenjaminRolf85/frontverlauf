@@ -8,9 +8,9 @@
  */
 import {
   buildsSilos, dist, emplacementCheck, emplacementLimit, emplacementTargets, idx, isBoss, isProductionSite, isWonder, radarCheck, readySilos, sabotageTargets, sabotageThing,
-  siloPreview, silosOf, territoryOwner, unitById, type City, type Command, type Pos, type Unit,
+  siloBuyCheck, siloPreview, silosOf, siloUnit, territoryOwner, unitById, unitCost, type City, type Command, type Pos, type Unit,
 } from '../core';
-import { RADAR, SABOTAGE, SILO, UNITS, VERDAN, WONDERS } from '../data/balance';
+import { RADAR, SABOTAGE, SILO, UNITS, VERDAN, WONDERS, type UnitTypeId } from '../data/balance';
 import { worth, type Ctx, type Goal } from './analysis';
 
 type Failed = Set<string>;
@@ -166,6 +166,36 @@ export function siloGoal(ctx: Ctx, u: Unit): Goal | null {
   }
   if (!best) return null;
   return { kind: 'support', x: best.x, y: best.y, value: 25, cap: 99, distW: 0, src: `t${best.y * ctx.size + best.x}l`, water: false, targetId: best.id };
+}
+
+/**
+ * Kaufwuensche fuer Lenkflugkoerper an den eigenen Silos (SILO.units, einer je Silo und Zug): bis zum Zielanteil an der
+ * Armee (SILO.ai.missileShare mit bekanntem Gegner, sonst missileQuiet), nur wenn das Netto-Einkommen den Sold traegt;
+ * Wert wie bei der Ausbildung in der Stadt (Fehlbestand der Armee), mal missileValue.
+ * Purchase wishes for Guided Missiles at the own silos (SILO.units, one per silo and turn): up to the target share of the
+ * army (SILO.ai.missileShare with a known enemy, otherwise missileQuiet), only if net income carries the upkeep; value as
+ * for training in a city (army deficit), times missileValue.
+ */
+export function siloMissileBuys(ctx: Ctx, net: number, upFor: (t: UnitTypeId) => number, deficit: number): { cmd: Command; cost: number; value: number; save: boolean }[] {
+  const { s, f, prof } = ctx;
+  if (!buildsSilos(s, f)) return [];
+  const army = Math.max(1, ctx.my.length);
+  const want = (ctx.enemies.length || ctx.hostileCities.length ? A.missileShare : A.missileQuiet) * (prof.pref.guidedMissile ?? 1);
+  let have = ctx.my.filter((u) => siloUnit(u.type)).length;
+  const out: { cmd: Command; cost: number; value: number; save: boolean }[] = [];
+  for (const g of silosOf(s, f)) {
+    for (const type of SILO.units) {
+      if (have / army >= want) return out;
+      const chk = siloBuyCheck(s, f, g.x, g.y, type);
+      if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
+      if (net - upFor(type) < 0) continue;
+      const cost = unitCost(s, f, type)!;
+      const base = deficit > 0 ? cost * (1.15 + 0.08 * Math.min(deficit, 5)) * prof.militaryW : cost * 0.25;
+      out.push({ cmd: { type: 'siloBuy', x: g.x, y: g.y, unitType: type }, cost, value: base * A.missileValue + cost * ctx.pf, save: true });
+      have++;
+    }
+  }
+  return out;
 }
 
 /** Zusaetzlicher Pionier-Anteil fuer Silos / extra pioneer share for silos */

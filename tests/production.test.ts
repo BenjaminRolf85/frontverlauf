@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCommand, buildCheck, citySites, createGame, defaultConfig, effectiveAttack, effectiveMove, effectiveRange,
-  fuelBurnAt, heliWillCrash, reachable, rosterUnits, shipUpgradeCost, siteOf, techUnlocks, trainCheck, unitCost, upgradeCheck, usesSites,
+  factionVariant, fuelBurnAt, heliWillCrash, reachable, rosterUnits, shipUpgradeCost, siloUnit, siteOf, techUnlocks, trainCheck, unitCost, upgradeCheck, usesSites,
   type GameState,
 } from '../src/core';
 import {
@@ -32,8 +32,13 @@ function game(f: FactionId = 'alvenia', g: FactionId = f === 'meridon' ? 'alveni
   return { s, hq, c, e };
 }
 
-/** Landeinheiten, die Fraktion f ausbilden darf (Liste mit eigenen Bauarten, ohne Schiffe) / land units faction f may train */
-const trainable = (s: GameState, f: number) => rosterUnits(s, f).filter((u) => UNITS[u].cost !== null && !UNITS[u].ship);
+/**
+ * Landeinheiten, die Fraktion f in Staedten ausbilden darf (Liste mit eigenen Bauarten, ohne Schiffe). Ohne die Einheiten des
+ * Raketensilos (Meridon: Lenkflugkoerper, SILO.units): die baut nur das Silo, Staedte melden 'siloOnly' (shadow-fleet.test.ts).
+ * Land units faction f may train in cities (roster with own designs, without ships). Without the rocket silo's units
+ * (Meridon: Guided Missile, SILO.units): only the silo builds those, cities report 'siloOnly' (shadow-fleet.test.ts).
+ */
+const trainable = (s: GameState, f: number) => rosterUnits(s, f).filter((u) => UNITS[u].cost !== null && !UNITS[u].ship && !siloUnit(u));
 
 describe('Produktionsstaetten / production sites', () => {
   it('nur die fuenf Menschen-Fraktionen haben Staetten / only the five human factions use sites', () => {
@@ -90,8 +95,9 @@ describe('Produktionsstaetten / production sites', () => {
   it('Kaserne im Hauptquartier eingebaut und frei, andere Staedte brauchen eine / barracks built into the HQ for free, other cities need one', () => {
     const { s, hq, c } = game('meridon');
     expect(citySites(s, hq)).toEqual(['trainingCamp']);
-    expect(trainCheck(s, hq, 'infantry')).toBe('ok');
-    expect(trainCheck(s, c, 'infantry')).toBe('buildingMissing');
+    // Meridon: Marines statt Infanterie / Meridon: marines instead of infantry
+    expect(trainCheck(s, hq, 'marine')).toBe('ok');
+    expect(trainCheck(s, c, 'marine')).toBe('buildingMissing');
     // kein zweites Mal im Hauptquartier / not a second time in the HQ
     expect(buildCheck(s, 0, 'trainingCamp', 3, 3)).toMatchObject({ ok: false, error: 'onePerCity' });
     expect(buildCheck(s, 0, 'trainingCamp', 7, 3)).toMatchObject({ ok: true, cost: BUILDINGS.trainingCamp.cost });
@@ -101,7 +107,7 @@ describe('Produktionsstaetten / production sites', () => {
       const home = g.cities.find((x) => x.isHQ && x.hqOf === fa.index)!;
       if (!usesSites(g, fa.index)) continue;
       expect(citySites(g, home), fa.id).toContain('trainingCamp');
-      expect(trainCheck(g, home, fa.id === 'alvenia' ? 'lightWarden' : 'infantry'), fa.id).not.toBe('buildingMissing');
+      expect(trainCheck(g, home, factionVariant(g, fa.index, 'infantry')), fa.id).not.toBe('buildingMissing');
     }
   });
 

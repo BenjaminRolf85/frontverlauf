@@ -16,7 +16,7 @@ import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMi
 import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
-import { addSighting, applyRadar, applySabotage, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloCheck, type ShadowKit } from './shadowFleet';
+import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloBuyCheck, siloCheck, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
@@ -27,7 +27,7 @@ import {
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
   rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, score, trainCheck, unitAt, unitById, unitCost, upgradeCheck, veteranKills, visionRadius, visionRadiusAt,
-  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft, twinCheck, twinSpot,
+  barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
   basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome,
@@ -1070,7 +1070,8 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
       const p = fa.id === XENO.faction ? null : freeNeighbor(s, u.x, u.y, true);
       if (p) {
         const d = spawnUnit(s, 'destroyer', f, p.x, p.y, null);
-        const inf = ROSTERS[fa.id]?.infantry ?? 'infantry';
+        // eigene Bauart (Meridon: Marines) / own design (Meridon: marines)
+        const inf = ROSTERS[fa.id]?.infantry ?? factionVariant(s, f, 'infantry');
         d.carried = inf; d.hp = UNITS[inf].hp; d.maxHp = UNITS[inf].hp;
       } else giveStars();
       break;
@@ -1207,7 +1208,9 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
     u.carried = u.type; u.type = 'landingBoat'; u.exhausted = true;
     ev.push({ t: 'embark', unit: u.id });
   } else if (r.disembark) {
-    u.type = u.carried!; u.carried = null; u.exhausted = true;
+    // amphibisch (Marines): Anlanden erschoepft nicht, die Bewegung ist verbraucht, der Angriff bleibt (MARINES)
+    // amphibious (marines): landing does not exhaust, the move is used up, the attack stays (MARINES)
+    u.type = u.carried!; u.carried = null; u.exhausted = !has(u, 'amphibious') || hadAttacked;
     ev.push({ t: 'disembark', unit: u.id });
   }
   reveal(s, f, u.x, u.y, visionRadius(s, u), ev);
@@ -1514,8 +1517,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = trainCheck(s, c, cmd.unitType);
       if (check !== 'ok') return fail(check);
       fa.stars -= unitCost(s, f, cmd.unitType)!;
-      // Werft: leeres Schiff auf freiem Wasserfeld an der Stadt, Rumpf-LP; keine Zwillinge, keine Veteranen (SHIPYARD)
-      // shipyard: empty ship on a free water tile at the city, hull HP; no twins, no veterans (SHIPYARD)
+      // Werft: leeres Schiff auf freiem Wasserfeld an der Stadt, Rumpf-LP; keine Veteranen (SHIPYARD)
+      // shipyard: empty ship on a free water tile at the city, hull HP; no veterans (SHIPYARD)
       if (UNITS[cmd.unitType].ship) {
         const at = shipSpawnTile(s, c)!;
         // Kult: die Horde gehoert keiner Stadt / cult: the horde belongs to no city
@@ -1525,18 +1528,9 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         res = { ok: true, events: ev };
         break;
       }
-      // Meridon "Zwei fuer einen": vor der Ausbildung pruefen, die erste Einheit belegt dann einen Platz / check before training, the first unit then takes a slot
-      const twin = twinCheck(s, c, cmd.unitType);
-      const twinAt = twin === 'twin' ? twinSpot(s, c) : null;
       // volle Stadt: ein Versorger (Wohnbloecke, Supermarkt) traegt die Einheit / full city: a supplier (residential blocks, supermarket) supports the unit
       const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, trainHome(s, c));
-      ev.push({ t: 'train', unit: u.id, city: c.id, ...(twin ? { twin } : {}) });
-      const twins = [u];
-      if (twinAt) {
-        const u2 = spawnUnit(s, cmd.unitType, f, twinAt.x, twinAt.y, trainHome(s, c));
-        twins.push(u2);
-        ev.push({ t: 'train', unit: u2.id, city: c.id, twin: 'second' });
-      }
+      ev.push({ t: 'train', unit: u.id, city: c.id });
       if (isWonder(u)) {
         ev.push({ t: 'wonder', what: 'started', kind: u.type as WonderUnitId, unit: u.id, faction: f, x: u.x, y: u.y, stage: 0 });
         res = { ok: true, events: ev };
@@ -1544,15 +1538,12 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       }
       // Kaserne oder Soeldnerkaserne: Einheit startet als Veteran / barracks or mercenary barracks: unit starts as a veteran
       if (hasCityUpgrade(c, 'barracks') || (buildingWorksFor(s, f, 'mercenaryBarracks') && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'mercenaryBarracks'))) {
-        // beide Einheiten sind gleich (Meridon) / both units are identical (Meridon)
-        for (const v of twins) {
-          v.veteran = true; v.maxHp += VETERAN.bonusHp; v.hp = v.maxHp;
-          ev.push({ t: 'veteran', unit: v.id });
-        }
+        u.veteran = true; u.maxHp += VETERAN.bonusHp; u.hp = u.maxHp;
+        ev.push({ t: 'veteran', unit: u.id });
       }
       // Stuetzpunkt Kaserne: Fusstruppen starten mit mehr LP (BASES.footHp) / barracks base: foot troops start with more HP (BASES.footHp)
       const drill = trainFootHp(c, cmd.unitType);
-      if (drill > 0) for (const v of twins) { v.maxHp += drill; v.hp = v.maxHp; }
+      if (drill > 0) { u.maxHp += drill; u.hp = u.maxHp; }
       res = { ok: true, events: ev };
       break;
     }
@@ -1896,6 +1887,15 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (check !== 'ok') return fail(check);
       fireSilo(s, f, cmd.x, cmd.y, cmd.tx, cmd.ty, ev, shadowKit(s));
       checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'siloBuy': {
+      // Raketensilo als Produktionsstaette: eine Einheit je Zug, unabhaengig vom Start (SILO.units)
+      // rocket silo as a production site: one unit per turn, independent of the launch (SILO.units)
+      const check = siloBuyCheck(s, f, cmd.x, cmd.y, cmd.unitType);
+      if (check !== 'ok') return fail(check);
+      buySilo(s, f, cmd.x, cmd.y, cmd.unitType, ev, (type, x, y, home) => spawnUnit(s, type, f, x, y, home));
       res = { ok: true, events: ev };
       break;
     }

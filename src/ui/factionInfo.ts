@@ -27,8 +27,8 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 
 /** Symbol des Fraktionsmerkmals / icon of the faction feature */
 const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'silo', nexus: 'kamikaze' };
-/** Symbol des zweiten Fraktionsmerkmals (Meridon: Zwei fuer einen) / icon of the second faction feature (Meridon: Two for One) */
-const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'people' };
+/** Symbol des zweiten Fraktionsmerkmals (Meridon: Marines, Rollensymbol Infanterie) / icon of the second faction feature (Meridon: marines, infantry role icon) */
+const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'roleInfantry' };
 
 export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'upkeep' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'drawback' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 
@@ -115,7 +115,7 @@ export function factionTraits(f: FactionId): FactionTrait[] {
   if (has(`factions.${f}.perk2`)) out.push({ kind: 'perk2', icon: 'star', label: t('traits.perk2'), value: k('perk2'), desc: has(`factions.${f}.perk2Desc`) ? k('perk2Desc') : '' });
   // Fraktionsmerkmal (Dravon: Festungsbau), Zahlen aus balance.ts / faction feature (Dravon: fortress building), numbers from balance.ts
   if (has(`factions.${f}.feature`)) out.push({ kind: 'feature', icon: FEATURE_ICON[f] ?? 'range', label: t('traits.feature'), value: k('feature'), desc: t(`factions.${f}.featureDesc`, featureParams(f)) });
-  // zweites Merkmal (Meridon: Zwei fuer einen) / second feature (Meridon: Two for One)
+  // zweites Merkmal (Meridon: Marines) / second feature (Meridon: marines)
   if (has(`factions.${f}.feature2`)) out.push({ kind: 'feature', icon: FEATURE2_ICON[f] ?? 'range', label: t('traits.feature'), value: k('feature2'), desc: k('feature2Desc') });
   // Nachteil (Meridon: Korruption), Zahlen aus CORRUPTION ueber BALANCE_VARS / drawback (Meridon: corruption), numbers from CORRUPTION via BALANCE_VARS
   if (has(`factions.${f}.drawback`)) out.push({ kind: 'drawback', icon: 'warning', label: t('traits.drawback'), value: k('drawback'), desc: k('drawbackDesc') });

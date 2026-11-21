@@ -369,7 +369,7 @@ describe('Kampagne: Ziele / campaign: objectives', () => {
     const e = game('m4');
     expect(ownCities(e, 1).length).toBe(1);
     const hq = ownCities(e, 1)[0];
-    const u = e.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
+    const u = e.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden' || x.type === 'marine'))!;
     placeAt(e, u, hq);
     // die Hauptstadt faellt, der Kult lebt in seiner Horde weiter / the capital falls, the cult lives on in its horde
     expect(applyCommand(e, { type: 'capture', unit: u.id }).ok).toBe(true);
@@ -586,10 +586,10 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const s = game('m10', 'meridon');
     const c = s.campaign!;
     const out = cityAt(s, c.targets[0].x, c.targets[0].y)!;
-    // ausbilden geht vorher nicht / training is impossible before
-    expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'infantry' }).ok).toBe(false);
+    // ausbilden geht vorher nicht (Meridon: Marines statt Infanterie) / training is impossible before (Meridon: marines instead of infantry)
+    expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'marine' }).ok).toBe(false);
     s.units = s.units.filter((u) => !(u.owner === 1 && u.x === out.x && u.y === out.y));
-    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden' || u.type === 'marine'))!;
     placeAt(s, inf, out);
     const r = applyCommand(s, { type: 'capture', unit: inf.id });
     expect(r.ok).toBe(true);
@@ -600,7 +600,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     expect(c.status).toEqual(['done', 'pending']);
     expect(c.result).toBeNull();
     placeAt(s, inf, landAt(s, out, 1));
-    expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'infantry' }).ok).toBe(true);
+    expect(applyCommand(s, { type: 'train', city: out.id, unitType: 'marine' }).ok).toBe(true);
     // bis an das Hauptquartier der Zyrr / up to the Zyrr HQ
     const jeep = s.units.find((u) => u.owner === 0 && u.type === 'jeep')!;
     placeAt(s, jeep, landAt(s, c.targets[1], 3));
@@ -617,7 +617,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     allHuman(l);
     const o2 = cityAt(l, l.campaign!.targets[0].x, l.campaign!.targets[0].y)!;
     l.units = l.units.filter((u) => !(u.owner === 1 && u.x === o2.x && u.y === o2.y));
-    const i2 = l.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
+    const i2 = l.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden' || u.type === 'marine'))!;
     placeAt(l, i2, o2);
     expect(applyCommand(l, { type: 'capture', unit: i2.id }).ok).toBe(true);
     placeAt(l, i2, landAt(l, o2, 1));
@@ -634,7 +634,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const s = game('m11', f);
     allHuman(s);
     const hq = s.campaign!.targets[0];
-    const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
+    const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden' || x.type === 'marine'))!;
     placeAt(s, u, landAt(s, hq, SWARM_MOTHER.emergeRange));
     const r = poke(s);
     const boss = s.units.find((x) => x.type === 'swarmMother')!;
@@ -689,7 +689,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
     const spots = free(3);
     expect(spots.length).toBeGreaterThanOrEqual(3);
     const mg = s.units.find((u) => u.owner === 0 && u.type === 'mg')!;
-    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden' || u.type === 'marine'))!;
     placeAt(s, mg, spots[0]); placeAt(s, inf, spots[1]);
     // Brut nur auf freien Nachbarfeldern / brood only on free adjacent tiles
     const room = Math.min(SWARM_MOTHER.broodCount, free(8).length);
@@ -727,7 +727,7 @@ describe('Kampagne: Alienwelt / campaign: alien world', () => {
 
   it('m11: Schrei kann toeten und zaehlt als Abschuss / the scream can kill and counts as a kill', () => {
     const { s, boss } = withBoss('dravon');
-    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden'))!;
+    const inf = s.units.find((u) => u.owner === 0 && (u.type === 'infantry' || u.type === 'lightWarden' || u.type === 'marine'))!;
     const p = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]].map(([dx, dy]) => ({ x: boss.x + dx, y: boss.y + dy }))
       .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.cityId === null && !unitAt(s, q.x, q.y); })!;
     placeAt(s, inf, p);
@@ -834,7 +834,7 @@ describe('Kampagne: Ueberzeugen / campaign: persuasion', () => {
       const p = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ({ x: c.x + dx, y: c.y + dy }))
         .find((q) => { const t = s.tiles[q.y * s.size + q.x]; return t && isLand(t) && t.terrain !== 'mountain' && !t.volcano && t.cityId === null && !unitAt(s, q.x, q.y); });
       if (!p) continue;
-      const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden'))!;
+      const u = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'lightWarden' || x.type === 'marine'))!;
       placeAt(s, u, p);
       return { c, u };
     }

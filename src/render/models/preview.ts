@@ -43,7 +43,8 @@ const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
 const withNeutral: (FactionId | null)[] = onlyFaction ? [onlyFaction] : [...FACTION_IDS, null];
 
-const LAND: UnitTypeId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer', 'scientist'];
+// Marines (Meridon) gleich neben der Infanterie, in allen acht Farbgebungen / marines (Meridon) right next to the infantry, in all eight colourings
+const LAND: UnitTypeId[] = ['infantry', 'marine', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer', 'scientist'];
 const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleship'];
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
@@ -331,7 +332,7 @@ function sheet(): Sheet {
       // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction
       const list: [UnitTypeId, FactionId][] = [
         ['teslaTank', 'velkar'], ['octocopter', 'velkar'], ['railSniper', 'velkar'], ['lightWarden', 'alvenia'], ['reliquary', 'alvenia'], ['sunLance', 'alvenia'],
-        ['steppeColossus', 'korvat'], ['shadowCommando', 'meridon'], ['fogCutter', 'meridon'], ['guidedMissile', 'meridon'], ['radarTruck', 'meridon'],
+        ['steppeColossus', 'korvat'], ['shadowCommando', 'meridon'], ['fogCutter', 'meridon'], ['guidedMissile', 'meridon'], ['radarTruck', 'meridon'], ['marine', 'meridon'],
         ['swarmMother', 'zyrr'], ['scientist', 'korvat'],
       ];
       const water = (t: UnitTypeId) => t === 'fogCutter';

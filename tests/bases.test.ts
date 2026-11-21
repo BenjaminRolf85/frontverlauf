@@ -315,9 +315,12 @@ describe('Wirkung je Art / effect per kind', () => {
     expect(cityIncome(s, ab)).toBe(tributeStars(BASES.gapStars));
     expect(cityIncome(s, ab)).toBeGreaterThan(0);
     expect(cityIncome(s, tf)).toBe(0);
-    // Meridon baut keine Panzer: an der Panzerfabrik Ersatz-Sterne / Meridon builds no tanks: substitute stars at the tank factory
+    // Meridon baut weder Panzer noch (neu) Artillerie: an Panzerfabrik und Geschuetzwerk Ersatz-Sterne
+    // Meridon builds neither tanks nor (new) artillery: substitute stars at the tank factory and the gun works
     tf.owner = 4;
     expect(cityIncome(s, tf)).toBe(INCOME.perCityLevel + BASES.gapStars);
+    gw.owner = 4;
+    expect(cityIncome(s, gw)).toBe(INCOME.perCityLevel + BASES.gapStars);
     tf.owner = 0;
     expect(cityIncome(s, tf)).toBe(INCOME.perCityLevel);
   });
@@ -849,7 +852,9 @@ describe('Texte / texts', () => {
       }
       expect(baseEffectText('bunker', 'vesper')).toContain(`+${BASES.defense.bunker}`);
       expect(baseEffectText('tankFactory', 'nexus')).toContain(`${Math.round(BASES.discount * 100)} %`);
+      // Meridon: Panzerfabrik und (neu) Geschuetzwerk bringen Sterne / Meridon: tank factory and (new) gun works bring stars
       expect(baseEffectText('tankFactory', 'meridon')).toContain(`+${BASES.gapStars}`);
+      expect(baseEffectText('gunWorks', 'meridon')).toContain(`+${BASES.gapStars}`);
       expect(baseEffectText('airbase', 'vesper')).toContain(`+${tributeStars(BASES.gapStars)}`);
       expect(baseEffectText('factory', 'vesper')).toContain(`+${tributeStars(BASES.stars.factory!)} `);
       expect(baseEffectText('factory', 'vesper')).not.toContain(`+${BASES.stars.factory} `);

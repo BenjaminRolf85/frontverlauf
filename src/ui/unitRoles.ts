@@ -36,7 +36,7 @@ export const UNIT_ROLE: Record<UnitTypeId, UnitRole> = {
   // Linieninfanterie aller Fraktionen, auch Reiter, Ordenswacht und Sturmbrecher (Fusstruppen im Nahkampf)
   // line infantry of every faction, also riders, Order Guard and Stormbreakers (foot troops in close combat)
   infantry: 'infantry', lightWarden: 'infantry', grey: 'infantry', zealot: 'infantry', android: 'infantry', cyborg: 'infantry',
-  steppeRider: 'infantry', peacekeeper: 'infantry', stormbreaker: 'infantry',
+  steppeRider: 'infantry', peacekeeper: 'infantry', stormbreaker: 'infantry', marine: 'infantry',
   sniper: 'sniper', railSniper: 'sniper',
   mg: 'mg',
   antiTank: 'antiTank', faustZealot: 'antiTank',

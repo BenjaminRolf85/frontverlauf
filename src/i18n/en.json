@@ -161,7 +161,7 @@
       "leader": "Coralie Nerezza",
       "leaderTitle": "Admiral of the Trade League",
       "quote": "The world banished us to the sea. Now it buys from us without knowing.",
-      "lore": "Before the Great Standstill Meridon was the leading nation of the world: culture, economy, stock exchanges and finance all ran through its harbours. Its speculation helped to trigger the collapse. Then came the New Order and the shooting down of the spaceship; the elite fled to the sea, bought whole fleets with its money and dug in there. Today the Trade League works in secret. Admiral Coralie Nerezza commands a shadow fleet of Fog Cutters, commandos and rockets, and her spies know everything before it happens. The counting houses of the old League once gave rise to the Verdan empire as well.",
+      "lore": "Before the Great Standstill Meridon was the leading nation of the world: culture, economy, stock exchanges and finance all ran through its harbours. Its speculation helped to trigger the collapse. Then came the New Order and the shooting down of the spaceship; the elite fled to the sea, bought whole fleets with its money and dug in there. Today the Trade League works in secret. Admiral Coralie Nerezza commands a shadow fleet of Fog Cutters, marines, commandos and rockets, and her spies know everything before it happens. The counting houses of the old League once gave rise to the Verdan empire as well.",
       "style": "harbours, gold, fog, spies, shadow fleet",
       "aiStyle": "Strikes from hiding and falls back again, creates diversions by sea, sabotages roads and outposts and fires rockets from the hinterland.",
       "perk2": "Harbour pilots",
@@ -169,9 +169,9 @@
       "drawback": "Corruption",
       "drawbackDesc": "Random event: at the start of the turn officials siphon off {corruptionPct} % of the stars with a {corruptionChance} % chance (rounded down, min. {corruptionMin}, at most {corruptionMax}), at most {corruptionCap} times in {corruptionWindow} rounds. Only with random events. Spending loses less.",
       "feature": "Shadow Fleet",
-      "featureDesc": "Only the Shadow Commando (instead of the MG) and the Fog Cutter (instead of the landing boat) are camouflaged. After an own attack without moving first, land units withdraw up to {withdrawTiles} tiles. Instead of tanks Meridon builds rocket silos ({siloCost} stars): a rocket at {siloRange} tiles, {siloDamage} damage to everything in 2×2 tiles, then {siloFireRounds} rounds of fire dealing {siloFireDamage} damage per round, one launch every {siloCooldown} rounds. The Guided Missile flies instead of artillery, the Radar Truck sees under the clouds too. In return land units deal {firepowerPct} % less damage.",
-      "feature2": "Two for One",
-      "feature2Desc": "When a city trains infantry, two soldiers come for the price of one; the second appears on a free adjacent tile (own territory first). Both cost upkeep and take a slot of the city limit. If only one fits, only one comes."
+      "featureDesc": "Only the Shadow Commando (instead of the MG) and the Fog Cutter (instead of the landing boat) are camouflaged. After an own attack without moving first, land units withdraw up to {withdrawTiles} tiles. Meridon builds neither tanks nor artillery but rocket silos ({siloCost} stars): every silo builds one Guided Missile per turn ({missileCost} stars) and launches a rocket every {siloCooldown} rounds at {siloRange} tiles, {siloDamage} damage to everything in 2×2 tiles, then {siloFireRounds} rounds of fire dealing {siloFireDamage} damage per round. The Radar Truck sees under the clouds too. In return land units deal {firepowerPct} % less damage.",
+      "feature2": "Marines",
+      "feature2Desc": "Instead of ordinary soldiers the barracks train marines: {marineHp} HP, attack {marineAtk}, defence {marineDef}, but {marineCost} stars instead of {infantryCost}. Amphibious: landing from a ship, they may still attack in the same turn."
     },
     "velkar": {
       "name": "Technocracy of Velkar",
@@ -307,7 +307,8 @@
     "shadowCommando": "Shadow Commando",
     "fogCutter": "Fog Cutter",
     "guidedMissile": "Guided Missile",
-    "radarTruck": "Radar Truck"
+    "radarTruck": "Radar Truck",
+    "marine": "Marines"
   },
   "unitDesc": {
     "infantry": "Cheap backbone of every army: holds cities and outposts.",
@@ -369,8 +370,9 @@
     "kamikazeDrone": "Small walker drone with an explosive charge: walks {droneMove} tiles per turn and explodes when it attacks. The target cannot strike back, the drone is destroyed afterwards. Especially devastating against human foot troops and the Zyrr.",
     "shadowCommando": "Light foot troop of the shadow fleet instead of the MG: moves {commandoMove} tiles and is camouflaged. Enemies only see the commando when one of their units, cities or structures stands right next to it; after an attack or a sabotage it stays revealed until your next turn. Weak attack, but sabotage: destroys a hostile outpost, building or road on its own tile or next to it, then a pause of {sabotageCooldown} rounds. Comes from the armoury.",
     "fogCutter": "Camouflaged transport boat of Meridon instead of the landing boat: bought empty in any coastal city, a land unit boards from an adjacent tile. Enemies only see the cutter with their own unit, city or structure next to it. Moves {pilotsMove} tile further with harbour pilots. Does not attack.",
-    "guidedMissile": "Single-use rocket instead of artillery and tanks: flies {missileMove} tiles over land and water and explodes when attacking a single target. The target does not strike back, there is no penalty after moving, and the missile is spent afterwards. Flak brings it down. Comes from the gun foundry.",
-    "radarTruck": "Unarmed truck with a radar dish. Radar sweep: for {radarRounds} rounds you see every hostile unit within radius {radarRadius} of the truck, camouflaged, submerged ones and spies too, even under the clouds; the tiles themselves stay unexplored. Then a pause of {radarCooldown} rounds. Comes from the motor pool."
+    "guidedMissile": "Single-use rocket: flies {missileMove} tiles over land and water and explodes on attack against a single target. The target does not return fire, there is no penalty after moving, and the missile is spent afterwards. Flak brings it down. Comes from the rocket silo: every silo builds one per turn ({missileCost} stars).",
+    "radarTruck": "Unarmed truck with a radar dish. Radar sweep: for {radarRounds} rounds you see every hostile unit within radius {radarRadius} of the truck, camouflaged, submerged ones and spies too, even under the clouds; the tiles themselves stay unexplored. Then a pause of {radarCooldown} rounds. Comes from the motor pool.",
+    "marine": "Elite foot troop of the Trade League instead of the infantry: {marineHp} HP, attack {marineAtk} and defence {marineDef} (infantry: {infantryHp}, {infantryAtk} and {infantryDef}), but very expensive: {marineCost} instead of {infantryCost} stars, with upkeep to match. Amphibious: landing from a ship leaves them ready, they may still attack in the same turn. Captures cities and outposts. Comes from the barracks."
   },
   "abilities": {
     "dash": "Assault",
@@ -436,7 +438,9 @@
     "sabotage": "Sabotage",
     "sabotageDesc": "Destroys a hostile outpost, building or road on its own tile or next to it; never cities. Costs the action, then a pause of {sabotageCooldown} rounds.",
     "radar": "Radar sweep",
-    "radarDesc": "See every hostile unit within radius {radarRadius} for {radarRounds} rounds, even under the clouds; then a pause of {radarCooldown} rounds."
+    "radarDesc": "See every hostile unit within radius {radarRadius} for {radarRounds} rounds, even under the clouds; then a pause of {radarCooldown} rounds.",
+    "amphibious": "Amphibious",
+    "amphibiousDesc": "Landing from a ship does not exhaust: the unit may still attack in the same turn, but not move on."
   },
   "stats": {
     "cost": "Cost",
@@ -842,7 +846,9 @@
     "radarCooldown": "The radar is not ready again yet.",
     "noTarget": "There is nothing to sabotage there.",
     "siloLimit": "No further silos possible.",
-    "noTraining": "Residential blocks and supermarkets train no troops."
+    "noTraining": "Residential blocks and supermarkets train no troops.",
+    "siloOnly": "Only the rocket silo builds this unit.",
+    "noRoom": "No free tile for the new unit."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -1822,7 +1828,8 @@
       "shadowCommando": "Potato Shadows",
       "fogCutter": "Fog Ferry",
       "guidedMissile": "Kolkhoz Rocket",
-      "radarTruck": "Listening Tractor"
+      "radarTruck": "Listening Tractor",
+      "marine": "Sailor Guard"
     },
     "dravon": {
       "infantry": "Balaclavas",
@@ -1885,7 +1892,8 @@
       "shadowCommando": "Shadow Squad",
       "fogCutter": "Fog Boat",
       "guidedMissile": "One-Way Shell",
-      "radarTruck": "Listening-Post Truck"
+      "radarTruck": "Listening-Post Truck",
+      "marine": "Boarding Party"
     },
     "alvenia": {
       "infantry": "Parish Guard",
@@ -1948,7 +1956,8 @@
       "shadowCommando": "Wayward Shadows",
       "fogCutter": "Fog Barque",
       "guidedMissile": "Falling Spark",
-      "radarTruck": "Watchful Ear"
+      "radarTruck": "Watchful Ear",
+      "marine": "Wave Knights"
     },
     "meridon": {
       "infantry": "Harbour Watch",
@@ -2011,7 +2020,8 @@
       "shadowCommando": "Silent Shareholders",
       "fogCutter": "Fog Cutter",
       "guidedMissile": "Wire Transfer",
-      "radarTruck": "Market Listener"
+      "radarTruck": "Market Listener",
+      "marine": "Expensive Lads"
     },
     "velkar": {
       "infantry": "Lab Guard",
@@ -2074,7 +2084,8 @@
       "shadowCommando": "Stealth Sample",
       "fogCutter": "Haze Cutter",
       "guidedMissile": "Guided Projectile V",
-      "radarTruck": "Bearing Truck"
+      "radarTruck": "Bearing Truck",
+      "marine": "Diving Grenadiers"
     },
     "zyrr": {
       "infantry": "Droneling",
@@ -2137,7 +2148,8 @@
       "shadowCommando": "Shadow Skin",
       "fogCutter": "Fog Swimmer",
       "guidedMissile": "Flying Spore",
-      "radarTruck": "Listening Node"
+      "radarTruck": "Listening Node",
+      "marine": "Saltwater Sample"
     },
     "vesper": {
       "infantry": "Penitents",
@@ -2200,7 +2212,8 @@
       "shadowCommando": "Shadow Penitents",
       "fogCutter": "Fog Raft",
       "guidedMissile": "Fire Herald",
-      "radarTruck": "Ear of the End"
+      "radarTruck": "Ear of the End",
+      "marine": "Drowned Penitents"
     },
     "nexus": {
       "infantry": "Bio Unit H-1 Foot Squad",
@@ -2263,7 +2276,8 @@
       "shadowCommando": "Unit S-0 Covert",
       "fogCutter": "Unit N-2 Fog",
       "guidedMissile": "Unit G-5 Guidance",
-      "radarTruck": "Unit R-6 Radar"
+      "radarTruck": "Unit R-6 Radar",
+      "marine": "Bio Unit M-2 Sea Foot Squad"
     }
   },
   "identity": {
@@ -3670,7 +3684,7 @@
     },
     "shadowFleet": {
       "title": "Shadow fleet (Meridon)",
-      "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. Radar sweeps, the recon drone and the radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and does not attack again. Meridon builds no tanks but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. On command the silo launches a rocket at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The Guided Missile replaces artillery (the “Tank” city reward brings {rewardMissiles} Guided Missiles), the Radar Truck shows every hostile unit within radius {radius} for {rr} rounds, even under the clouds ({rcd} rounds of pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds of pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
+      "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. The radar sweep, recon drone and radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and attacks no more afterwards. Instead of infantry the barracks train marines ({marineCost} stars, {marineHp} HP, attack {marineAtk}, defence {marineDef}); they are amphibious and may still attack in the same turn after landing. Meridon builds neither tanks nor artillery but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. Every silo builds one Guided Missile per turn ({missileCost} stars) on a free tile next to it; it belongs to the city in whose territory the silo stands. Independently the silo launches a rocket on command at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The city reward \"tank\" brings {rewardMissiles} Guided Missiles; captured tank factories and gun works give Meridon stars instead of units, Guided Missiles only come from the silo. The Radar Truck shows all hostile units within radius {radius} for {rr} rounds, under the clouds too ({rcd} rounds pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
     },
     "bases": {
       "title": "Bases",
@@ -4086,13 +4100,6 @@
     "note": "Explodes: the drone is destroyed afterwards, no return fire",
     "killed": "Kamikaze drone explodes"
   },
-  "twin": {
-    "label": "2x {unit}",
-    "desc": "Two for One: a second {unit} appears next to the city. Paid once, both cost upkeep and take a slot of the city limit.",
-    "limit": "Only 1: the city limit has room for one more unit only.",
-    "noRoom": "Only 1: no free tile next to the city for the second unit.",
-    "trained": "Two for One: 2x {unit} trained"
-  },
   "troops": {
     "title": "Troops",
     "ships": "Ships: {city}",
@@ -4116,7 +4123,7 @@
       "name": "Rocket Silo",
       "nameOf": "{name} Rocket Silo",
       "stats": "Armour {hp} / {max} · rocket range {range} · {dmg} damage on 2×2 tiles",
-      "desc": "Fixed structure of {name} instead of tanks, not a unit, impassable, no return fire and never fires on its own. On command it launches a rocket at a tile within range {siloRange}: {siloDamage} damage to every unit in 2×2 tiles, own ones too, then the land tiles burn for {siloFireRounds} rounds dealing {siloFireDamage} damage per round. One launch every {siloCooldown} rounds. If the territory is lost, the silo is razed.",
+      "desc": "Fixed structure of {name} instead of tank works and artillery, not a unit, impassable, no return fire and never fires on its own. Builds one Guided Missile per turn ({missileCost} stars) on a free tile next to it. Launches a rocket on command at a tile within range {siloRange}: {siloDamage} damage to every unit in 2×2 tiles, own ones too, then the land tiles burn for {siloFireRounds} rounds with {siloFireDamage} damage per round. One launch every {siloCooldown} rounds. If the territory is lost, the silo is razed.",
       "ready": "ready to launch",
       "wait": "ready in {n} rounds",
       "wait1": "ready in 1 round",
@@ -4148,7 +4155,12 @@
       "ruin": "Rubble of a rocket silo",
       "burning": "Fire: {n} more rounds, {dmg} damage per round at the start of the round",
       "fireHit": "Fire: {own} of your units lose {dmg} HP each",
-      "every": "launches on command"
+      "every": "launches on command",
+      "buyTitle": "Silo builds",
+      "buyNote": "Appears on a free tile next to the silo and belongs to the city in whose territory the silo stands. One purchase per turn, independent of the rocket launch.",
+      "bought": "Already built this turn. Again next turn.",
+      "noRoom": "No free tile next to the silo.",
+      "onlyHere": "Only at a rocket silo: pioneers build it next to a city."
     },
     "camo": {
       "hidden": "Camouflaged: enemies only see the unit with a unit, city or structure next to it.",

@@ -49,8 +49,8 @@ export function baseEffectText(kind: BaseKind, f: FactionId | null): string {
     const stars = BASES.stars[kind];
     if (stars) return [t('bases.tribute', { n: tributeStars(stars) }), has(`bases.cult.${kind}`) ? t(`bases.cult.${kind}`) : ''].filter(Boolean).join(' ');
   }
-  // ohne passende Einheit: Ersatz-Sterne (Kult am Flughafen, Zyrr am Marinestuetzpunkt, Meridon an der Panzerfabrik)
-  // without a matching unit: substitute stars (cult at the airfield, Zyrr at the naval base, Meridon at the tank factory)
+  // ohne passende Einheit: Ersatz-Sterne (Kult am Flughafen, Zyrr am Marinestuetzpunkt, Meridon an Panzerfabrik und Geschuetzwerk)
+  // without a matching unit: substitute stars (cult at the airfield, Zyrr at the naval base, Meridon at the tank factory and gun works)
   if (f && baseGap(kind, f)) return t('bases.gap', { faction: t(`factions.${f}.short`) });
   if (isSpecial(f)) {
     if (BASES.discountUnits[kind]) return t('bases.discount', { units: unitList(baseDiscountUnits(kind, f)) });

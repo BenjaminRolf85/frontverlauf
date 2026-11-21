@@ -8,10 +8,13 @@
  * sparing, wonder interruption, war marks, outposts, connections) in as a ShadowKit, as for the orbital laser.
  * Deterministic, without randomness. Numbers: SABOTAGE, RADAR, SILO, SIGHTING in balance.ts.
  */
-import { RADAR, SABOTAGE, SIGHTING, SILO, type BuildingId } from '../data/balance';
+import { RADAR, SABOTAGE, SIGHTING, SILO, UNITS, type BuildingId, type UnitTypeId } from '../data/balance';
 import { dist, inBounds, isLand, tileAt } from './grid';
-import { canActStill, canSeeUnit, has, isExplored, isHostile, sightedBy, territoryOwner, unitAt, unitById } from './queries';
-import type { ErrorCode, Faction, GameEvent, GameState, OrbitalHit, Pos, Tile, Unit } from './types';
+import {
+  canActStill, canSeeUnit, cityById, freeUnitSlots, has, isExplored, isHostile, sightedBy, siloUnit, spawnSpotNear, territoryOwner, trainHome,
+  unitAt, unitById, unitCost,
+} from './queries';
+import type { City, ErrorCode, Faction, GameEvent, GameState, OrbitalHit, Pos, Tile, Unit } from './types';
 
 /** Interne Helfer aus rules.ts / internal helpers from rules.ts */
 export interface ShadowKit {
@@ -312,6 +315,57 @@ export function fireSilo(s: GameState, f: number, x: number, y: number, tx: numb
       if (u.owner !== f) fa.kills++;
     } else kit.interrupt(u, ev);
   }
+}
+
+// ---------- Raketensilo: Kauf / rocket silo: purchase ----------
+
+/**
+ * Stadt, zu der ein Kauf am Silo (x, y) gehoert: die Stadt, in deren Gebiet das Silo steht (sie traegt Limit und Sold).
+ * City a purchase at the silo (x, y) belongs to: the city in whose territory the silo stands (it carries limit and upkeep).
+ */
+export function siloCity(s: GameState, x: number, y: number): City | null {
+  const t = tileAt(s, x, y);
+  return t && t.territory !== null ? cityById(s, t.territory) ?? null : null;
+}
+
+/** Hat das Silo (x, y) in diesem Zug schon gebaut? / has the silo (x, y) already built this turn? */
+export const siloBoughtNow = (s: GameState, x: number, y: number): boolean => tileAt(s, x, y)?.turret?.bought === s.round;
+
+export type SiloBuyCheck = 'ok' | Extract<ErrorCode, 'gameOver' | 'noUnit' | 'invalid' | 'alreadyBought' | 'unitLimit' | 'noRoom' | 'notEnoughStars'>;
+
+/**
+ * Darf f am eigenen Silo (x, y) eine Einheit dieses Typs kaufen? Reihenfolge: Silo, Typ, schon gekauft, Limit der Stadt
+ * (mit Versorgern), freies Feld, Sterne. Unabhaengig von der Ladezeit des Starts.
+ * May f buy a unit of this type at its own silo (x, y)? Order: silo, type, already bought, the city's limit (with
+ * suppliers), free tile, stars. Independent of the launch charge.
+ */
+export function siloBuyCheck(s: GameState, f: number, x: number, y: number, type: UnitTypeId): SiloBuyCheck {
+  if (s.over) return 'gameOver';
+  if (!siloOf(s, f, x, y)) return 'noUnit';
+  if (!siloUnit(type) || (UNITS[type].faction && UNITS[type].faction !== s.factions[f].id) || unitCost(s, f, type) === null) return 'invalid';
+  if (siloBoughtNow(s, x, y)) return 'alreadyBought';
+  const c = siloCity(s, x, y);
+  if (!c || c.owner !== f || freeUnitSlots(s, c) <= 0) return 'unitLimit';
+  if (!spawnSpotNear(s, f, x, y)) return 'noRoom';
+  if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
+  return 'ok';
+}
+
+/**
+ * Kauf anwenden (siloBuyCheck vorher 'ok'): Preis, Einheit auf dem freien Nachbarfeld (erschoepft, ab dem naechsten Zug
+ * bereit wie eine ausgebildete Einheit), Heimatstadt wie beim Ausbilden in der Silo-Stadt, Sperre bis zum naechsten Zug.
+ * Apply the purchase (siloBuyCheck 'ok' beforehand): price, unit on the free adjacent tile (exhausted, ready from the next
+ * turn like a trained unit), home city as when training in the silo's city, lock until the next turn.
+ */
+export function buySilo(s: GameState, f: number, x: number, y: number, type: UnitTypeId, ev: GameEvent[], spawn: (type: UnitTypeId, x: number, y: number, home: number | null) => Unit): Unit {
+  const c = siloCity(s, x, y)!;
+  const p = spawnSpotNear(s, f, x, y)!;
+  s.factions[f].stars -= unitCost(s, f, type)!;
+  const home = trainHome(s, c);
+  const u = spawn(type, p.x, p.y, home);
+  siloOf(s, f, x, y)!.bought = s.round;
+  ev.push({ t: 'siloBuy', unit: u.id, x, y, city: home, faction: f });
+  return u;
 }
 
 /** Brennt das Feld (Raketenbrand)? / is the tile burning (rocket fire)? */

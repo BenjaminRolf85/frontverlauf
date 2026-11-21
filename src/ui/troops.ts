@@ -9,10 +9,10 @@
  * the base belongs to.
  */
 import {
-  isAlienFaction, noTraining, rosterShips, rosterUnits, trainCheck, trainTechNeed, twinCheck, unitCost, unitRange,
-  type City, type GameState, type TrainCheck,
+  isAlienFaction, noTraining, rosterShips, rosterUnits, siloBuyCheck, trainCheck, trainTechNeed, unitCost, unitRange,
+  type City, type GameState, type SiloBuyCheck, type TrainCheck,
 } from '../core';
-import { SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { SHIPYARD, SILO, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { has as hasText, num, t } from '../i18n/i18n';
 import { esc, price, type ActionItem } from './components';
 import { icon } from './icons';
@@ -25,7 +25,7 @@ export type TroopClass = 'land' | 'air' | 'sea';
 const CLASS_ORDER: TroopClass[] = ['land', 'air', 'sea'];
 
 /** Karte = Aktion plus Anzeige / card = action plus display */
-export interface TroopCard extends ActionItem { type: UnitTypeId; cls: TroopClass; check: TrainCheck }
+export interface TroopCard extends ActionItem { type: UnitTypeId; cls: TroopClass; check: TrainCheck | SiloBuyCheck }
 
 export const troopClass = (type: UnitTypeId): TroopClass => (UNITS[type].ship ? 'sea' : UNITS[type].abilities.includes('fly') ? 'air' : 'land');
 
@@ -46,6 +46,8 @@ function lockReason(s: GameState, c: City, type: UnitTypeId, chk: TrainCheck, fi
     }
     case 'buildingMissing': return trainLockReason(s, c, type);
     case 'computeMissing': return t('nexus.computeNeed', { n: UNITS[type].compute ?? 0 });
+    // Meridon: Lenkflugkoerper kommen aus dem Raketensilo / Meridon: Guided Missiles come from the rocket silo
+    case 'siloOnly': return t('shadow.silo.onlyHere');
     case 'invalid':
       // Zyrr: erst das Stadtfeld terraformen; sonst gehoert die Karte nicht in die Leiste / Zyrr: terraform the city tile first; otherwise the card does not belong in the strip
       return isAlienFaction(s, c.owner!) && !UNITS[type].ship ? t('xeno.cityNeedsTerraform') : null;
@@ -74,21 +76,41 @@ export function troopCards(s: GameState, c: City, run: (type: UnitTypeId) => voi
     const chk = trainCheck(s, c, type);
     const reason = lockReason(s, c, type, chk, fid);
     if (reason === null) return;
-    // Meridon "Zwei fuer einen": 2x im Namen, Hinweis, falls nur eine kommt / Meridon "Two for One": 2x in the name, note if only one comes
-    const twin = st.ship ? null : twinCheck(s, c, type);
-    const twinNote = twin === 'twin' ? t('twin.desc', { unit: t(`units.${type}`) }) : twin ? t(`twin.${twin}`) : '';
     const shipNote = type === 'landingBoat' ? t('troops.boatNote') : st.ship ? t('troops.shipNote') : '';
-    const desc = [twinNote, shipNote, hasText(`unitDesc.${type}`) ? t(`unitDesc.${type}`) : ''].filter(Boolean).join(' ');
-    cards.push({
-      id: `train-${type}`, type, cls: troopClass(type), check: chk, icon: UNIT_ICON[type] ?? 'helmet',
-      label: twin === 'twin' ? t('twin.label', { unit: t(`units.${type}`) }) : t(`units.${type}`), sub: unitNickname(fid, type),
-      cost: unitCost(s, f, type)!, enabled: chk === 'ok', desc, reason: reason || undefined,
-      run: () => run(type),
-    });
+    cards.push(card(s, f, type, chk, reason, shipNote, `train-${type}`, run));
   });
   const rank = (x: TroopCard) => (x.enabled ? 0 : 1) * 10 + CLASS_ORDER.indexOf(x.cls);
   // stabil: gleiche Gruppe nach Preis, sonst Listenreihenfolge / stable: same group by price, otherwise list order
   return cards.map((x, i) => ({ x, i })).sort((a, b) => rank(a.x) - rank(b.x) || (a.x.cost ?? 0) - (b.x.cost ?? 0) || a.i - b.i).map((e) => e.x);
+}
+
+/** Eine Karte (Ausbildung oder Silo-Kauf) / one card (training or silo purchase) */
+function card(s: GameState, f: number, type: UnitTypeId, chk: TrainCheck | SiloBuyCheck, reason: string, note: string, id: string, run: (type: UnitTypeId) => void): TroopCard {
+  const fid = s.factions[f].id;
+  const desc = [note, hasText(`unitDesc.${type}`) ? t(`unitDesc.${type}`) : ''].filter(Boolean).join(' ');
+  return {
+    id, type, cls: troopClass(type), check: chk, icon: UNIT_ICON[type] ?? 'helmet',
+    label: t(`units.${type}`), sub: unitNickname(fid, type),
+    cost: unitCost(s, f, type)!, enabled: chk === 'ok', desc, reason: reason || undefined,
+    run: () => run(type),
+  };
+}
+
+/**
+ * Kaufkarten am eigenen Raketensilo (x, y), Meridon (SILO.units): einmal je Zug, Preis, Werte und Sperrgrund wie in der
+ * Stadt. run: Kauf ausloesen.
+ * Purchase cards at the own rocket silo (x, y), Meridon (SILO.units): once per turn, price, stats and lock reason as in
+ * the city. run: trigger the purchase.
+ */
+export function siloCards(s: GameState, x: number, y: number, run: (type: UnitTypeId) => void): TroopCard[] {
+  const f = s.current;
+  if (f < 0 || !s.factions[f]) return [];
+  const fid = s.factions[f].id;
+  return SILO.units.filter((type) => !UNITS[type].faction || UNITS[type].faction === fid).map((type) => {
+    const chk = siloBuyCheck(s, f, x, y, type);
+    const reason = chk === 'ok' ? '' : chk === 'alreadyBought' ? t('shadow.silo.bought') : chk === 'noRoom' ? t('shadow.silo.noRoom') : techT(`errors.${chk}`, fid);
+    return card(s, f, type, chk, reason, t('shadow.silo.buyNote'), `siloBuy-${type}`, run);
+  });
 }
 
 /** Werte einer Karte mit Symbolen / stats of a card with icons */
@@ -135,8 +157,10 @@ function cardHtml(c: TroopCard, fid: FactionId): string {
 export function troopsHtml(cards: TroopCard[], fid: FactionId, title = t('troops.title')): string {
   if (!cards.length) return '';
   const ready = cards.filter((c) => c.enabled).length;
+  // Symbol der Ueberschrift: Werft (nur Schiffe), Raketensilo (Kaufkarten), sonst Kaserne / heading icon: shipyard (ships only), rocket silo (purchase cards), otherwise barracks
+  const head = cards.every((c) => c.cls === 'sea') ? 'sail' : cards.every((c) => c.id.startsWith('siloBuy-')) ? 'silo' : 'helmet';
   return `<section class="troops" aria-label="${esc(title)}">
-    <div class="troops-head"><h4 class="troops-title">${icon(cards.every((c) => c.cls === 'sea') ? 'sail' : 'helmet', 'icon-sm')}<span>${esc(title)}</span></h4>
+    <div class="troops-head"><h4 class="troops-title">${icon(head, 'icon-sm')}<span>${esc(title)}</span></h4>
       <span class="muted troops-count">${esc(t('troops.available', { n: ready, max: cards.length }))}</span>
       <button type="button" class="troops-nav prev" data-action="troopsPrev" aria-label="${esc(t('troops.prev'))}" title="${esc(t('troops.prev'))}">${icon('next', 'icon-sm')}</button>
       <button type="button" class="troops-nav" data-action="troopsNext" aria-label="${esc(t('troops.next'))}" title="${esc(t('troops.next'))}">${icon('next', 'icon-sm')}</button></div>

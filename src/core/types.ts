@@ -68,11 +68,11 @@ export interface Tile {
   turret?: { hp: number; active: boolean; owner?: number;
     /**
      * Art des Bauwerks: fehlt = Geschuetz (Verdan oder Stellung); 'silo' = Raketensilo (Meridon, SILO), feuert nie von selbst;
-     * ready = Runde, ab der das Silo wieder starten kann.
+     * ready = Runde, ab der das Silo wieder starten kann; bought = Runde des letzten Kaufs (SILO.units, einer je Zug).
      * Kind of structure: missing = gun (Verdan or emplacement); 'silo' = rocket silo (Meridon, SILO), never fires on its own;
-     * ready = round from which the silo can launch again.
+     * ready = round from which the silo can launch again; bought = round of the last purchase (SILO.units, one per turn).
      */
-    kind?: 'silo'; ready?: number } | null;
+    kind?: 'silo'; ready?: number; bought?: number } | null;
   /**
    * Brand nach einem Raketeneinschlag (SILO): brennt bis einschliesslich Runde until; owner = Fraktion des Silos (Abschuesse).
    * Fehlt = brennt nicht (auch alte Spielstaende).
@@ -493,11 +493,9 @@ export type GameEvent =
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number; bought?: true }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
-  /**
-   * twin (Meridon, TWIN_TRAINING): 'twin' = eine zweite Einheit folgt, 'second' = dies ist die zweite, 'limit'/'noRoom' = nur eine (Limit bzw. kein Feld)
-   * twin (Meridon, TWIN_TRAINING): 'twin' = a second unit follows, 'second' = this is the second, 'limit'/'noRoom' = only one (limit or no tile)
-   */
-  | { t: 'train'; unit: number; city: number; twin?: 'twin' | 'second' | 'limit' | 'noRoom' }
+  | { t: 'train'; unit: number; city: number }
+  /** Raketensilo (x, y) hat eine Einheit gebaut; city = Heimatstadt / rocket silo (x, y) built a unit; city = home city */
+  | { t: 'siloBuy'; unit: number; x: number; y: number; city: number | null; faction: number }
   /** Kult: Einheit by ruft im Feld die Einheit unit / cult: unit by calls up unit in the field */
   | { t: 'recruit'; unit: number; by: number }
   | { t: 'build'; building: BuildingId | 'outpost' | GrandProjectId; x: number; y: number; faction: number }
@@ -652,6 +650,8 @@ export type Command =
   | { type: 'radarSweep'; unit: number }
   /** Raketensilo auf (x, y) startet auf das Zielfeld (tx, ty) / rocket silo at (x, y) launches at the target tile (tx, ty) */
   | { type: 'siloLaunch'; x: number; y: number; tx: number; ty: number }
+  /** Raketensilo auf (x, y) baut eine Einheit (SILO.units) / rocket silo at (x, y) builds a unit (SILO.units) */
+  | { type: 'siloBuy'; x: number; y: number; unitType: UnitTypeId }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -673,7 +673,9 @@ export type ErrorCode =
   // Stufe kaufen: in dieser Runde schon gekauft / buy level: already bought this round
   | 'alreadyBought'
   // Schattenflotte: Silo, Sabotage und Radar noch gesperrt, kein Ziel / shadow fleet: silo, sabotage and radar still locked, no target
-  | 'siloCooldown' | 'sabotageCooldown' | 'radarCooldown' | 'noTarget' | 'siloLimit';
+  | 'siloCooldown' | 'sabotageCooldown' | 'radarCooldown' | 'noTarget' | 'siloLimit'
+  // Einheit nur am Raketensilo zu haben; kein freies Feld am Silo / unit only available at a rocket silo; no free tile at the silo
+  | 'siloOnly' | 'noRoom';
 
 export interface CommandResult {
   ok: boolean;
