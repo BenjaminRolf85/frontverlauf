@@ -130,9 +130,9 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   // Schlauch / hose
   const hose: V3[] = [[0.03, 0.18, -0.1], [0.09, 0.12, -0.05], [0.09, 0.13, 0.02], back];
   for (let i = 0; i < hose.length - 1; i++) b.tube(hose[i], hose[i + 1], 0.007, 6, mat.dark);
-  // Gasmasken-Filter / gas mask filter
-  b.cyl(0.016, 0.018, 0.03, 8, mat.rustDark, [0.01, 0.335, 0.09], [HALF_PI, 0, 0]);
-  b.cyl(0.012, 0.012, 0.006, 8, mat.dark, [0.01, 0.335, 0.107], [HALF_PI, 0, 0]);
+  // Gasmasken-Filter vor dem kleineren Kopf (HEAD_FOOT) / gas mask filter in front of the smaller head (HEAD_FOOT)
+  b.cyl(0.012, 0.014, 0.024, 8, mat.rustDark, [0.01, 0.321, 0.068], [HALF_PI, 0, 0]);
+  b.cyl(0.009, 0.009, 0.006, 8, mat.dark, [0.01, 0.321, 0.082], [HALF_PI, 0, 0]);
   });
   return b;
 }
@@ -167,10 +167,12 @@ export function prophet(f: FactionId, lite = false): Builder {
     b.add(geo.rtaper(0.36, 0.29, 0.17, 0.13, 0.29, 0.014), shade(L.primary, 0.78), { p: [0, 0.155, -0.005] });
     b.add(geo.rtaper(0.368, 0.298, 0.36, 0.29, 0.022, 0.008), mat.ember, { p: [0, 0.022, -0.005] });
     b.box(0.05, 0.25, 0.012, mat.bone, [0, 0.15, 0.1], [-0.2, 0, 0]);
-    // Mitra-Hut mit Sonnenzeichen, hoeher als zuvor / mitre-like hat with sun mark, taller than before
-    b.add(geo.taper(0.1, 0.078, 0.032, 0.032, 0.13), L.primary, { p: [0, 0.48, 0.0] });
-    b.box(0.092, 0.012, 0.072, mat.ember, [0, 0.44, 0.0]);
-    addEmblem(b, 'vesper', 0.022, 0.004, mat.bone, { p: [0, 0.49, 0.03], r: [-0.18, 0, 0] });
+    // Mitra-Hut mit Sonnenzeichen, hoeher als zuvor; sitzt auf dem kleineren Kopf (HEAD_FOOT) / mitre-like hat with sun mark,
+    // taller than before; sits on the smaller head (HEAD_FOOT)
+    const my = -0.055;
+    b.add(geo.taper(0.088, 0.07, 0.03, 0.03, 0.13), L.primary, { p: [0, 0.48 + my, 0.0] });
+    b.box(0.082, 0.012, 0.064, mat.ember, [0, 0.44 + my, 0.0]);
+    addEmblem(b, 'vesper', 0.022, 0.004, mat.bone, { p: [0, 0.49 + my, 0.027], r: [-0.18, 0, 0] });
     // rote Stola / red stole
     for (const sx of [-1, 1]) {
       b.box(0.024, 0.2, 0.008, L.primary, [sx * 0.035, 0.2, 0.06], [0, 0, sx * 0.05]);
