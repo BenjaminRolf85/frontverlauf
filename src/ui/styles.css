@@ -301,6 +301,10 @@ h1, h2, h3, .display {
 .progress > i { display: block; height: 100%; background: var(--c-progress-fill); transition: width var(--p-duration-slow); }
 .progress.hp > i { background: var(--c-unit-card-hp-fill); }
 .progress.hp.low > i { background: var(--c-unit-card-hp-low); }
+/* Schutzschild der Akademie (Velkar) / the academy's shield (Velkar) */
+.progress.shield > i { background: var(--s-velkar-tech-glow); }
+.academy-state.airborne strong { color: var(--s-velkar-tech-gear); }
+.academy-shield.muted { opacity: 0.8; }
 
 /* ---------- Dialog ---------- */
 .overlay {
@@ -388,6 +392,11 @@ h1, h2, h3, .display {
 .fx-burst.boom polygon { fill: var(--s-fire); }
 @keyframes fx-burst { 0% { transform: translate(-50%, -50%) scale(0.2) rotate(-20deg); opacity: 1; } 70% { transform: translate(-50%, -50%) scale(1.1) rotate(4deg); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.15) rotate(6deg); opacity: 0; } }
 .fx-word.good { color: var(--c-tech-node-researched); }
+/* Hacken (NEXUS): Wort und Signalringe in der Markierungsfarbe der NEXUS / hacking (NEXUS): word and signal rings in the NEXUS marker colour */
+.fx-word.hack { color: var(--faction-nexus-marker); }
+.fx-burst.hack { border-radius: 50%; border: var(--p-border-width-thick) dashed var(--faction-nexus-marker);
+  box-shadow: 0 0 0 var(--p-border-width-thick) var(--s-outline), inset 0 0 0 var(--p-border-width-thick) var(--faction-nexus-primary); }
+.fx-burst.hack.end { border-style: dotted; opacity: 0.7; }
 /* Maertyrer-Segen: goldener Lichtkranz und Wort / Martyr's Blessing: golden halo of light and word */
 .fx-word.bless { color: var(--s-faith-halo); }
 .fx-burst.bless { border-radius: 50%; border: var(--p-border-width-thick) solid var(--s-faith-halo);

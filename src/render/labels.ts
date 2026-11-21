@@ -42,10 +42,15 @@ export function clearLabelCache() {
  * sin = faction marked as a sinner, blessed = Martyr's Blessing (Holy Alvenia); icon = role icon of the unit
  * (unitRoles.ts), without icon the badge has no icon cap.
  */
-export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number; sin?: boolean; blessed?: boolean; icon?: string }
+export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number; sin?: boolean; blessed?: boolean; icon?: string;
+  /**
+   * Vom Hackturm uebernommen (HACK.tower): verbleibende Zuege und Farbe der hackenden Fraktion (Kreis mit Zahl rechts).
+   * Taken over by a hack tower (HACK.tower): remaining turns and colour of the hacking faction (disc with a number on the right).
+   */
+  hijack?: { n: number; color: string } }
 
 /** Lage der Teile auf der Plakette in Canvas-Pixeln, ab der linken Kante des Schilds / layout of the badge parts in canvas pixels, from the left edge of the pill */
-export interface BadgeLayout { width: number; pill: number; cap: boolean; textX: number; starX: number; sinX: number }
+export interface BadgeLayout { width: number; pill: number; cap: boolean; textX: number; starX: number; sinX: number; hackX: number }
 
 /**
  * Plakette von links nach rechts: Symbolkappe (Tuschekreis mit hellem Rollensymbol, fuellt das linke Ende des Schilds),
@@ -55,7 +60,7 @@ export interface BadgeLayout { width: number; pill: number; cap: boolean; textX:
  * star, sinner mark. The pill is only as wide as its content; without a cap at least BADGE.minPill as before.
  * textWidth = measured width of the number.
  */
-export function badgeLayout(textWidth: number, cap: boolean, veteran: boolean, sin: boolean): BadgeLayout {
+export function badgeLayout(textWidth: number, cap: boolean, veteran: boolean, sin: boolean, hack = false): BadgeLayout {
   const tw = Math.ceil(textWidth);
   let x = cap ? BADGE.cap + BADGE.gap : BADGE.pad;
   const textX = x + tw / 2;
@@ -64,9 +69,12 @@ export function badgeLayout(textWidth: number, cap: boolean, veteran: boolean, s
   if (veteran) x += BADGE.gap + BADGE.star;
   const sinX = sin ? x + BADGE.gap + BADGE.sin / 2 : 0;
   if (sin) x += BADGE.gap + BADGE.sin;
+  // Uebernahme-Zaehler (HACK.tower) ganz rechts / takeover counter (HACK.tower) on the far right
+  const hackX = hack ? x + BADGE.gap + BADGE.sin / 2 : 0;
+  if (hack) x += BADGE.gap + BADGE.sin;
   const pill = cap ? x + BADGE.padEnd : Math.max(BADGE.minPill, x + BADGE.pad);
   // links 2 Pixel Rand, rechts der Schatten (4) und 2 Pixel / 2 pixels margin on the left, the shadow (4) and 2 pixels on the right
-  return { width: pill + 8, pill, cap, textX, starX, sinX };
+  return { width: pill + 8, pill, cap, textX, starX, sinX, hackX };
 }
 
 /**
@@ -92,11 +100,11 @@ const badgeFont = () => `44px ${primitives.font.display}`;
 
 /** LP-Plakette / HP badge */
 export function hpBadge(b: BadgeInfo): THREE.Sprite {
-  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}-${!!b.sin}-${!!b.blessed}-${b.icon ?? ''}`;
+  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}-${!!b.sin}-${!!b.blessed}-${b.icon ?? ''}-${b.hijack ? `${b.hijack.n}${b.hijack.color}` : ''}`;
   const txt = `${Math.max(0, Math.ceil(b.hp))}`;
   measureCtx ??= document.createElement('canvas').getContext('2d')!;
   measureCtx.font = badgeFont();
-  const L = badgeLayout(measureCtx.measureText(txt).width, !!b.icon, b.veteran, !!b.sin);
+  const L = badgeLayout(measureCtx.measureText(txt).width, !!b.icon, b.veteran, !!b.sin, !!b.hijack);
   const fuelW = b.fuel !== null ? b.maxFuel * 22 + (b.maxFuel - 1) * 6 + 8 : 0;
   // gerade Breite, damit die Mitte auf einem Pixel liegt / even width so the centre lies on a pixel
   const W = Math.ceil(Math.max(L.width, fuelW) / 2) * 2, H = b.fuel !== null ? 84 : 64;
@@ -145,6 +153,15 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
       ctx.strokeStyle = semantic.textInverse; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(cx, cy, 8, -Math.PI * 0.35, Math.PI * 1.35); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(cx, cy - 13); ctx.lineTo(cx - 3, cy - 4); ctx.lineTo(cx + 2, cy); ctx.lineTo(cx - 1, cy + 5); ctx.stroke();
+    }
+    // Uebernahme: Kreis in der Farbe der hackenden Fraktion mit den verbleibenden Zuegen / takeover: disc in the hacker's colour with the remaining turns
+    if (b.hijack) {
+      const cx = px + 2 + L.hackX, cy = 29;
+      ctx.fillStyle = b.hijack.color; ctx.strokeStyle = ink; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, 17, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = semantic.white; ctx.font = `34px ${primitives.font.display}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 5; ctx.strokeText(`${b.hijack.n}`, cx, cy + 1); ctx.fillText(`${b.hijack.n}`, cx, cy + 1);
     }
     if (b.fuel !== null) {
       const pw = 22, gap = 6, total = b.maxFuel * pw + (b.maxFuel - 1) * gap, x0 = (W - total) / 2;
@@ -332,6 +349,38 @@ export function raceBadge(rows: RaceRow[], need: number): THREE.Sprite {
   });
   const sp = new THREE.Sprite(m);
   sp.scale.set(1.5, 1.5 * ((H + 6) / (W + 6)), 1);
+  sp.renderOrder = 9;
+  return sp;
+}
+
+/**
+ * Stoerbild-Marke einer gehackten Stadt (HACK.city): Hack-Symbol und Restrunden auf einem Schild in der Farbe des Hackers,
+ * dahinter versetzt eine zweite Kante in der Markierungsfarbe (Bildstoerung).
+ * Glitch mark of a hacked city (HACK.city): hack icon and rounds left on a sign in the hacker's colour, with a second,
+ * offset edge in the marker colour behind it (glitch).
+ */
+export function hackBadge(n: number, color: string, glitch: string): THREE.Sprite {
+  const key = `hackcity-${n}-${color}-${glitch}`;
+  const W = 132, H = 64;
+  const m = material(key, W, H, (ctx) => {
+    const ink = semantic.ink;
+    ctx.fillStyle = glitch;
+    roundRect(ctx, 10, 2, W - 16, H - 12, 14); ctx.fill();
+    ctx.fillStyle = ink;
+    roundRect(ctx, 6, 10, W - 14, H - 14, 14); ctx.fill();
+    ctx.fillStyle = color;
+    roundRect(ctx, 2, 6, W - 14, H - 14, 14); ctx.fill();
+    ctx.lineWidth = 4; ctx.strokeStyle = ink; ctx.stroke();
+    // Stoerstreifen / glitch stripes
+    ctx.fillStyle = glitch;
+    for (const [y, w] of [[16, 30], [36, 18]]) ctx.fillRect(W - 24 - w, y, w, 4);
+    drawIcon(ctx, 'hack', 10, 12, 36, semantic.white);
+    ctx.fillStyle = semantic.white; ctx.font = `40px ${primitives.font.display}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 6; ctx.strokeStyle = ink; ctx.strokeText(`${n}`, 74, 31); ctx.fillText(`${n}`, 74, 31);
+  });
+  const sp = new THREE.Sprite(m);
+  sp.scale.set(0.62, 0.62 * (H / W), 1);
   sp.renderOrder = 9;
   return sp;
 }

@@ -642,6 +642,86 @@ export const CULT = {
 export const NEXUS = { faction: 'nexus' as FactionId };
 
 /**
+ * Hacken (NEXUS, Spielerwunsch): zwei Faehigkeiten ohne Einheit, nur in freien Partien (nicht Kampagne, nicht Tutorial).
+ * 1. Fernuebernahme neutraler Orte (Siedlung, Stuetzpunkt, Sendeturm): ein aufgedeckter neutraler Ort wird per Klick
+ *    eingenommen, als haette eine Einheit ihn erobert. Jedes eigene Rechenzentrum (Gebaeude im eigenen Gebiet) gibt eine
+ *    Ladung, die nach einem Hack place.recharge Runden laedt: verfuegbar = Rechenzentren - Hacks der letzten recharge Runden.
+ *    Preis cost + perLevel je Stufe ueber 1 und je bereits gehacktem Ort perHacked (wird teurer), erst ab Runde firstRound
+ *    und hoechstens ein Hack je Zug, damit das fruehe Rennen um neutrale Orte nicht entschieden ist.
+ * 2. Hackturm: Bauwerk im eigenen Gebiet (Tile.turret mit kind 'hack', wie Stellung und Silo: unpassierbar, angreifbar ohne
+ *    Gegenschlag, feuert nie, wird bei Gebietsverlust geschleift), gebaut per Feld ohne Einheit. Befehl: eine sichtbare
+ *    feindliche mechanisierte Einheit (Fahrzeug oder Flieger; keine Schiffe, Wunder, Endgegner, Lenkflugkoerper) in Reichweite
+ *    reach uebernehmen. NEXUS steuert sie sofort und im naechsten eigenen Zug (rounds Zuege), danach kehrt sie am Ende des
+ *    NEXUS-Zuges mit ihren restlichen LP erschoepft zum Besitzer zurueck, ausser sie bleibt mit keepChance dauerhaft bei NEXUS
+ *    oder schaltet sich mit shutdownChance ab (Wrack). Eine Einheit je Turm; der Turm laedt cooldown Runden ab der Uebernahme.
+ *    Faellt der Turm, kehrt die Einheit sofort zurueck.
+ * Hacking (NEXUS, player request): two abilities without a unit, only in free games (not the campaign, not the tutorial).
+ * 1. Remote takeover of neutral places (village, base, transmitter tower): an explored neutral place is taken by a click as
+ *    if a unit had captured it. Every own data centre (building in own territory) gives a charge that recharges for
+ *    place.recharge rounds after a hack: available = data centres - hacks of the last recharge rounds. Price cost + perLevel
+ *    per level above 1 and perHacked per place already hacked (gets dearer), only from round firstRound and at most one hack
+ *    per turn, so the early race for neutral places is not decided by it.
+ * 2. Hack tower: a structure in own territory (Tile.turret with kind 'hack', like the emplacement and the silo: impassable,
+ *    attackable without return fire, never fires, razed on loss of territory), built per tile without a unit. Command: take
+ *    over a visible hostile mechanised unit (vehicle or flyer; no ships, wonders, bosses, guided missiles) within reach.
+ *    NEXUS controls it at once and in its next own turn (rounds turns); then at the end of the NEXUS turn it returns to its
+ *    owner, exhausted, with its remaining HP, unless it stays with NEXUS for good (keepChance) or shuts down (shutdownChance,
+ *    wreck). One unit per tower; the tower recharges cooldown rounds from the takeover. If the tower falls, the unit returns
+ *    at once.
+ */
+export const HACK = {
+  factions: ['nexus'] as FactionId[],
+  place: { cost: 15, perLevel: 5, perHacked: 5, recharge: 10, firstRound: 6, perTurn: 1 },
+  /**
+   * Stadt-Hack (Spielerwunsch): eine aufgedeckte feindliche Stadt (Kriegsgegner) hacken, nicht einnehmen. rounds Runden lang
+   * sieht NEXUS alle Einheiten im Umkreis radius + Stadtradius (Sichtung, auch unter den Wolken), die Felder werden aufgedeckt,
+   * das Stadtpanel zeigt die Daten der Stadt (Kasse des Besitzers, Einkommen, getragene Einheiten). Eigene Sperre statt der
+   * Rechenzentrum-Ladungen (sonst stuende Aufklaerung gegen Ausbreitung): ein Stadt-Hack je cooldown Runden, mindestens ein
+   * Rechenzentrum, Preis cost.
+   * City hack (player request): hack, not capture, an explored hostile city (enemy at war). For rounds rounds NEXUS sees every
+   * unit within radius + the city radius (sighting, also under the clouds), the tiles are revealed, the city panel shows the
+   * city's data (owner's treasury, income, supported units). Its own lock instead of the data-centre charges (otherwise
+   * scouting would compete with expansion): one city hack every cooldown rounds, at least one data centre, price cost.
+   */
+  city: { cost: 10, rounds: 3, radius: 2, cooldown: 4 },
+  tower: {
+    cost: 30, hp: 24, attack: 0, defense: 3,
+    /** kein Gegenschlag: Schussweite 0 / no return fire: firing range 0 */
+    range: 0,
+    race: 'robot' as HitRace,
+    terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+    perCity: 1, max: 3, minSpacing: 4,
+    /** Reichweite der Uebernahme (Chebyshev) / takeover reach (Chebyshev) */
+    reach: 4,
+    /** Zuege unter NEXUS-Steuerung / turns under NEXUS control */
+    rounds: 2,
+    /** Runden ab der Uebernahme bis zur naechsten / rounds from a takeover to the next */
+    cooldown: 3,
+    /**
+     * Ausgang am regulaeren Ende (Spielerwunsch, bewusst laestig: NEXUS ist eine KI): mit keep bleibt die Einheit dauerhaft
+     * bei NEXUS, mit shutdown schaltet sie sich ab und wird zum Wrack (Wurf aus dem Zufallsstrom des Spiels); sonst kehrt
+     * sie zurueck. Faellt der Turm vorher, kehrt sie immer zurueck.
+     * Outcome at the regular end (player request, deliberately annoying: NEXUS is an AI): with keep the unit stays with
+     * NEXUS for good, with shutdown it switches itself off and becomes a wreck (roll from the game's random stream);
+     * otherwise it returns. If the tower falls before, it always returns.
+     */
+    keepChance: 0.1,
+    shutdownChance: 0.1,
+  },
+  /**
+   * KI: Wert eines Orts (Sterne-Gegenwert) und Mindestverhaeltnis; Turmbau ab minCities Staedten mit Feind in frontRange
+   * Feldern; Uebernahme ab minValue (Wert der Einheit, worth).
+   * AI: value of a place (star equivalent) and minimum ratio; tower building from minCities cities with an enemy within
+   * frontRange tiles; takeover from minValue (unit worth).
+   */
+  ai: { placeValue: 60, baseBonus: 15, minCities: 2, frontRange: 6, towerValue: 70, minValue: 20, reserve: 10,
+    /** Stadt-Hack: Wert, hoechstens so weit von eigenen Einheiten oder Staedten / city hack: value, at most this far from own units or cities */
+    cityValue: 10, cityRange: 4,
+    /** Wertfaktor einer uebernommenen Einheit (analysis.ts worth) / worth factor of a taken-over unit (analysis.ts worth) */
+    hijackedWorth: 0.4 },
+};
+
+/**
  * Kamikaze-Laufdrohne (NEXUS, Faehigkeit 'kamikaze'): der Angriff ist die Explosion. Schaden nach der normalen Formel mit
  * Rassen-Bonus (UNITS.bonusRace), nur das Ziel (keine Nachbarn), kein Gegenschlag, kein Abzug fuer Feuern nach Bewegung (die Drohne
  * laeuft ins Ziel). Trefferglueck wie bei Robotern: ein Fehlschuss ist ein Blindgaenger, die Drohne ist trotzdem verbraucht.
@@ -1280,6 +1360,90 @@ export const ORBITAL = {
     /** Relay erst ab so vielen eigenen Staedten (vorher geht Wachstum vor) / relay only from this many own cities (growth first) */
     minCities: 3,
   },
+};
+
+/**
+ * Schwebende Akademie (Velkar, Spielerwunsch): Velkar waechst durch die Hauptstadt, eine schwebende Akademie, die sich
+ * versetzen kann. Eroberte Orte werden einfeldrige Forschungsposten (Sterne und Sicht, keine Produktion); ihr Gebiet und
+ * ihr Wachstum gehen an die Akademie. Gilt in freien Partien (createGame setzt City.academy); die Kampagne behaelt die
+ * alten Regeln, weil ihre Missionsziele mit Velkar-Staedten rechnen.
+ * Floating academy (Velkar, player request): Velkar grows through its capital, a floating academy that can relocate.
+ * Captured places become one-tile research posts (stars and vision, no production); their territory and growth pass to
+ * the academy. Applies in free games (createGame sets City.academy); the campaign keeps the old rules because its mission
+ * objectives count on Velkar cities.
+ */
+export const ACADEMY = {
+  faction: 'velkar' as FactionId,
+  /** Runden vom Abheben bis zum Schweben (die Akademie zieht ab dem naechsten eigenen Zug) / rounds from lift-off until floating (the academy moves from the next own turn) */
+  liftRounds: 1,
+  /** Felder je Zug in der Luft (Schachbrett-Abstand, ueber jedes Gelaende) / tiles per turn in the air (Chebyshev distance, over any terrain) */
+  move: 2,
+  /** Abstand der Landestelle zu jedem anderen Ort mindestens / minimum distance of the landing site to every other place */
+  landGap: 2,
+  /** beim Landen: neutrale Felder in diesem Umkreis werden Akademie-Gebiet / on landing: neutral tiles within this radius become academy territory */
+  landClaim: 1,
+  /**
+   * Ausbildung (Spielerwunsch: mit jedem Posten mehr Einheiten auf einmal): Einheiten je Zug = baseSlots + floor(Posten /
+   * postsPerSlot), hoechstens maxSlots; sie erscheinen auf der Akademie oder auf freien Nachbarfeldern (die Hauptstadt ist
+   * die einzige Staette). Dazu gelten Einheitenlimit und Sterne wie immer.
+   * Training (player request: more units at once with every post): units per turn = baseSlots + floor(posts /
+   * postsPerSlot), at most maxSlots; they appear on the academy or on free adjacent tiles (the capital is the only site).
+   * Unit limit and stars apply as always.
+   */
+  baseSlots: 2,
+  postsPerSlot: 1,
+  maxSlots: 6,
+  /** Einheitenlimit der Akademie je Forschungsposten (dazu Plaetze der Stuetzpunkt-Art) / academy unit limit per research post (plus the base kind's slots) */
+  postUnits: 3,
+  /** Bevoelkerung fuer die Akademie je eingenommenem Ort: base + perLevel x (Stufe - 1) / population for the academy per captured place */
+  postPop: 2,
+  postPopPerLevel: 1,
+  /** Sicht des Postens beim Einnehmen (Umkreis) / vision of the post on capture (radius) */
+  postVision: 2,
+  /**
+   * Schwebend greifen nur Flieger ('fly'), Flak ('flak') und diese Panzer an; jeder Treffer ohne Schild erzwingt die
+   * Notlandung. Am Boden wird die Akademie wie jede Stadt eingenommen (nicht solange der Schild steht).
+   * While floating only flyers ('fly'), flak ('flak') and these tanks attack; every hit without a shield forces an
+   * emergency landing. On the ground the academy is captured like any city (not while the shield stands).
+   */
+  tankClass: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'titan', 'flameTank', 'mech', 'tripod', 'doomCrawler'] as UnitTypeId[],
+  /**
+   * Schutzschild: eigene LP, faengt Angriffe auf die Akademie und auf Einheiten auf ihrem Feld zuerst ab (am Boden und in der
+   * Luft, ohne Besatzung). Laedt sich zu Beginn des eigenen Zuges um regen auf; zerstoert erst nach rebuildRounds neu baubar.
+   * defense = Abwehrwert gegen Angriffe auf den Schild (wie ein Geschuetz).
+   * Shield: own HP, absorbs attacks on the academy and on units on its tile first (on the ground and in the air, without a
+   * garrison). Recharges by regen at the start of the own turn; once destroyed it can be rebuilt after rebuildRounds.
+   * defense = defence value against attacks on the shield (like a gun).
+   */
+  shield: { cost: 30, hp: 20, regen: 3, rebuildRounds: 3, defense: 3 },
+  /**
+   * Beamer-Relay (Spielerwunsch): auf einem Forschungsposten gebaut (cost Sterne, ohne eigene LP, geht mit dem Posten
+   * verloren). Eine Einheit auf oder neben der Akademie wird zum Relay gebeamt: sie ist eine Runde unterwegs und erscheint
+   * zu Beginn des naechsten eigenen Zuges auf oder neben dem Relay, voll einsatzbereit. Ein Beamvorgang je Relay und Runde,
+   * kostenlos ("Aufwand 1 Runde"). Faellt das Relay unterwegs, kehrt die Einheit zur Akademie zurueck.
+   * Beam relay (player request): built on a research post (cost stars, no HP of its own, lost with the post). A unit on or
+   * next to the academy is beamed to the relay: it is in transit for one round and appears at the start of the next own
+   * turn on or next to the relay, fully ready. One beam per relay and round, free of charge ("effort 1 round"). If the
+   * relay falls meanwhile, the unit returns to the academy.
+   */
+  beamer: { cost: 25 },
+  /** Grundverteidigung der Akademie fuer eigene Bodeneinheiten auf ihrem Feld (wie BASES.defense) / base defence of the academy for own ground units on its tile */
+  defense: 1,
+  /**
+   * KI: Umzug, wenn ein Landeplatz im Umkreis search um minGain besser ist (Abstand zur Front, nicht naeher als frontKeep,
+   * Bedrohung, freies Land), hoechstens alle cooldown Runden nach einer Landung; Flucht nur ohne Schild und ohne Flieger,
+   * Flak oder Panzer in der Naehe vor threatRatio-facher Uebermacht; Schild ab shieldRound oder bei Bedrohung. Beamer:
+   * Relay auf Posten ab relayDist Feldern von der Akademie, eines je relaysPerPosts Posten; beamen, wenn das Relay dem Ziel
+   * der Einheit beamGain Felder naeher ist. Profil der Velkar mit Akademie: armyPerCity und aggression mehr (gemessen,
+   * BALANCING.md: alles kommt aus einer Stadt, ohne den Zuschlag hortete die KI Sterne).
+   * AI: relocate when a landing site within search is better by minGain (distance to the front, not closer than frontKeep,
+   * threat, free land), at most every cooldown rounds after a landing; flee only without a shield and without flyers, flak
+   * or tanks nearby, from a threatRatio times superior force; shield from shieldRound or when threatened. Beamer: relay on
+   * posts from relayDist tiles away from the academy, one per relaysPerPosts posts; beam when the relay is beamGain tiles
+   * closer to the unit's goal. Profile of Velkar with an academy: more armyPerCity and aggression (measured, BALANCING.md:
+   * everything comes from one city, without the bonus the AI hoarded stars).
+   */
+  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */

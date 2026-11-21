@@ -2,8 +2,8 @@
  * KI-Profile je Schwierigkeit, Fraktion und Spielmodus.
  * AI profiles per difficulty, faction and game mode.
  */
-import type { Difficulty, FactionId, UnitTypeId } from '../data/balance';
-import type { GameState } from '../core';
+import { ACADEMY, type Difficulty, type FactionId, type UnitTypeId } from '../data/balance';
+import { academyOf, type GameState } from '../core';
 
 export interface Profile {
   difficulty: Difficulty;
@@ -78,7 +78,12 @@ export function profileFor(s: GameState, f: number): Profile {
     // Schattenbank (Wachstum), Kueste; Marines sind teuer und stark, also eine kleinere Armee (gemessen, BALANCING.md)
     // shadow bank (growth), coast; marines are expensive and strong, hence a smaller army (measured, BALANCING.md)
     case 'meridon': p.buildW += 0.25; p.armyPerCity -= 0.3; p.pref = { spy: 1.5 }; break;
-    case 'velkar': p.pref = { pioneer: 1.4, protoWalker: 1.2 }; break; // Forschungsvorsprung (Rabatt genuegt, kein Zusatzgewicht) / research lead (the discount suffices, no extra weight)
+    case 'velkar': {
+      p.pref = { pioneer: 1.4, protoWalker: 1.2 }; // Forschungsvorsprung (Rabatt genuegt, kein Zusatzgewicht) / research lead (the discount suffices, no extra weight)
+      // schwebende Akademie: alles kommt aus einer Stadt, also groessere und entschlossenere Armee (ACADEMY.ai) / floating academy: everything comes from one city, so a bigger, bolder army (ACADEMY.ai)
+      if (academyOf(s, f)) { p.armyPerCity += ACADEMY.ai.armyPerCity; p.aggression += ACADEMY.ai.aggression; }
+      break;
+    }
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte
     // Zyrr: opportunistic raiders, skimmers and tripods go around the front and look for undefended cities
     // Zyrr: Invasoren. Grosse Armee, wenig Vorsicht, kaum Rueckzug (heilen nur auf Xeno-Boden, also lieber weiterkaempfen)

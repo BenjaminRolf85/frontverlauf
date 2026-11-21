@@ -31,6 +31,8 @@ import { plansToast } from './ui/temple';
 import { showCorruption, showRandomEvent } from './ui/events';
 import { opNotice } from './ui/aiOps';
 import { shadowToast } from './ui/shadowFleet';
+import { academyToast } from './ui/academy';
+import { hackToast } from './ui/hacking';
 
 function boot() {
   const app = document.getElementById('app')!;
@@ -178,6 +180,8 @@ function boot() {
       switch (e.t) {
         case 'contact': if (e.a === viewer) toast(root, t('events.contact', { name: fname(e.b), stars: e.stars }), 'diplomacy'); break;
         case 'capture': {
+          // Fernuebernahme (NEXUS): eigene Meldung, auch fuer Zuschauer mit Sicht auf den Ort / remote takeover (NEXUS): own message, also for onlookers who see the place
+          if (e.hack) { const ht = hackToast(e, s, viewer); if (ht) toast(root, ht.text, ht.icon); break; }
           if (e.faction !== viewer && e.from !== viewer) break;
           const city = cityName(s, e.city);
           // Kult: Pluenderung, Beute fuer den Kult, Warnung fuer das Opfer / cult: plunder, loot for the cult, warning for the victim
@@ -264,10 +268,14 @@ function boot() {
         // Geschuetzstellung feuert auf eigene Einheiten / gun emplacement fires at own units
         case 'turretFire': if (e.owner !== undefined && e.victim === viewer) toast(root, t('emplacement.fires', { name: fname(e.owner), dmg: e.dmg }), 'range'); break;
         // eigene Geschuetzstellung geschleift (Gebiet verloren) / own gun emplacement razed (territory lost)
-        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') { const st = shadowToast(e, s, viewer); toast(root, st ? st.text : t('emplacement.lost'), 'warning'); } break;
+        case 'emplacementLost': if (e.faction === viewer && e.reason === 'territory') { const st = hackToast(e, s, viewer) ?? shadowToast(e, s, viewer); toast(root, st ? st.text : t('emplacement.lost'), 'warning'); } break;
+        // Hacken (NEXUS): gehackter Ort, uebernommene und zurueckgekehrte Einheiten / hacking (NEXUS): hacked place, taken-over and returned units
+        case 'hijack': case 'hijackEnd': case 'cityHack': { const ht = hackToast(e, s, viewer); if (ht) toast(root, ht.text, ht.icon); break; }
         // Schattenflotte (Meridon): Raketenstart, Brand, Sabotage, Radar / shadow fleet (Meridon): rocket launch, fire, sabotage, radar
         case 'siloLaunch': case 'fireHit': case 'sabotage': case 'radarSweep': { const st = shadowToast(e, s, viewer); if (st) toast(root, st.text, st.icon); break; }
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
+        // Schwebende Akademie, Schild, Posten, Beamer (Velkar) / floating academy, shield, post, beamer (Velkar)
+        case 'academy': case 'shield': case 'post': case 'beam': { const a = academyToast(e, s, viewer); if (a) toast(root, a.text, a.icon); break; }
         // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
         case 'orbitalStrike':
           if (viewer < 0 || e.faction === viewer || e.tiles.some((p) => s.factions[viewer].explored[p.y * s.size + p.x] === 1)) toast(root, t('orbital.toast', { name: fname(e.faction) }), 'satellite');

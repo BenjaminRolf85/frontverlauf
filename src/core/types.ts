@@ -71,8 +71,12 @@ export interface Tile {
      * ready = Runde, ab der das Silo wieder starten kann; bought = Runde des letzten Kaufs (SILO.units, einer je Zug).
      * Kind of structure: missing = gun (Verdan or emplacement); 'silo' = rocket silo (Meridon, SILO), never fires on its own;
      * ready = round from which the silo can launch again; bought = round of the last purchase (SILO.units, one per turn).
+     * 'hack' = Hackturm (NEXUS, HACK.tower), feuert nie; ready = Runde, ab der er wieder uebernehmen kann; link = ID der
+     * gerade uebernommenen Einheit (fehlt = keine).
+     * 'hack' = hack tower (NEXUS, HACK.tower), never fires; ready = round from which it can take over again; link = id of
+     * the unit currently taken over (missing = none).
      */
-    kind?: 'silo'; ready?: number; bought?: number } | null;
+    kind?: 'silo' | 'hack'; ready?: number; bought?: number; link?: number } | null;
   /**
    * Brand nach einem Raketeneinschlag (SILO): brennt bis einschliesslich Runde until; owner = Fraktion des Silos (Abschuesse).
    * Fehlt = brennt nicht (auch alte Spielstaende).
@@ -134,6 +138,11 @@ export interface City {
   base?: BaseKind;
   /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
   plundered?: number;
+  /**
+   * Stadt-Hack der NEXUS (HACK.city): Fraktion by sieht die Stadt bis einschliesslich Runde until; fehlt = nie (auch alte Spielstaende).
+   * NEXUS city hack (HACK.city): faction by sees the city until and including round until; missing = never (old saves too).
+   */
+  hacked?: { by: number; until: number };
   /** Kult: wie oft diese Stadt schon gepluendert wurde (fehlt = nie) / cult: how often this city has been plundered (missing = never) */
   plunderCount?: number;
   /**
@@ -144,6 +153,34 @@ export interface City {
    */
   works?: ProductionSiteId[];
   nameIndex: number;
+  /**
+   * Schwebende Akademie (Velkar, ACADEMY): Hauptstadt, die abheben, fliegen und landen kann; fehlt = gewoehnliche Stadt
+   * (Kampagne, alte Spielstaende). Geht beim Verlust der Stadt verloren (ein Posten wird zur neuen Akademie).
+   * Floating academy (Velkar, ACADEMY): capital that can lift off, fly and land; missing = ordinary city (campaign, old
+   * saves). Is lost with the city (a post becomes the new academy).
+   */
+  academy?: boolean;
+  /** Forschungsposten (Velkar): ein Feld, Sterne und Sicht, keine Produktion / research post (Velkar): one tile, stars and vision, no production */
+  post?: boolean;
+  /**
+   * Akademie in der Luft: lifting = hebt ab (zieht ab dem naechsten eigenen Zug), flying = schwebt; steps = Felder, die in
+   * diesem Zug noch gehen. Fehlt = am Boden.
+   * Academy in the air: lifting = lifting off (moves from the next own turn), flying = floating; steps = tiles left this
+   * turn. Missing = on the ground.
+   */
+  air?: { phase: 'lifting' | 'flying'; steps: number };
+  /** Produktion ruht bis vor diese Runde (Landung, Notlandung) / production rests until before this round (landing, emergency landing) */
+  calm?: number;
+  /** Schutzschild der Akademie (LP); fehlt = keiner / the academy's shield (HP); missing = none */
+  shield?: { hp: number; max: number };
+  /** Schild wieder baubar ab dieser Runde (nach der Zerstoerung) / shield buildable again from this round (after its destruction) */
+  shieldReady?: number;
+  /** Ausbildungen in dieser Runde (Akademie: mehrere je Zug) / trainings this round (academy: several per turn) */
+  trained?: { round: number; n: number };
+  /** Beamer-Relay auf dem Forschungsposten (ACADEMY.beamer) / beam relay on the research post (ACADEMY.beamer) */
+  relay?: boolean;
+  /** Runde des letzten Beamvorgangs zu diesem Relay (einer je Runde) / round of the last beam to this relay (one per round) */
+  beamed?: number;
 }
 
 export interface Unit {
@@ -216,6 +253,15 @@ export interface Unit {
   sabotageReady?: number;
   /** Radarimpuls wieder moeglich ab dieser Runde (fehlt = sofort) / radar sweep possible again from this round (missing = now) */
   sweepReady?: number;
+  /**
+   * Vom Hackturm uebernommen (HACK.tower): owner ist waehrenddessen die hackende Fraktion; from = eigentlicher Besitzer,
+   * until = letzte Runde unter fremder Steuerung (Rueckgabe am Ende dieses Zuges der hackenden Fraktion), (x, y) = Turm.
+   * Fehlt = nicht uebernommen (auch alte Spielstaende).
+   * Taken over by a hack tower (HACK.tower): owner is the hacking faction meanwhile; from = actual owner, until = last
+   * round under foreign control (returned at the end of the hacking faction's turn in that round), (x, y) = tower.
+   * Missing = not taken over (old saves too).
+   */
+  hijack?: { from: number; until: number; x: number; y: number };
   /** stand zu Beginn des Zuges hier (fuer Einnahme) / stood here at turn start (for capture) */
   startX: number;
   startY: number;
@@ -270,6 +316,13 @@ export interface Faction {
    * Radar sweep (RADAR): unit = Radar Truck, (x, y) follows it; if it falls, the sweep ends.
    */
   sightings?: { x: number; y: number; r: number; until: number; unit?: number }[];
+  /**
+   * Fernuebernahmen neutraler Orte (HACK.place): Runde jedes Hacks; fehlt = keiner (auch alte Spielstaende).
+   * Remote takeovers of neutral places (HACK.place): round of every hack; missing = none (old saves too).
+   */
+  hacks?: number[];
+  /** Stadt-Hack wieder moeglich ab dieser Runde (HACK.city; fehlt = sofort) / city hack possible again from this round (HACK.city; missing = now) */
+  cityHackReady?: number;
 }
 
 export interface PendingReward {
@@ -474,6 +527,13 @@ export interface GameState {
   droughts?: { faction: number; until: number }[];
   /** Art des Sieges (fehlt in alten Spielstaenden) / kind of victory (missing in old saves) */
   victory?: Victory;
+  /**
+   * Gebeamte Einheiten unterwegs (Velkar, ACADEMY.beamer): erscheinen zu Beginn des naechsten Zuges ihrer Fraktion am Relay
+   * (relay = Posten), sonst an der Akademie. Fehlt = keine (auch alte Spielstaende).
+   * Beamed units in transit (Velkar, ACADEMY.beamer): appear at the start of their faction's next turn at the relay
+   * (relay = post), otherwise at the academy. Missing = none (old saves too).
+   */
+  transit?: { unit: Unit; relay: number; round: number }[];
 }
 
 /** Siegart: Punkte, Eroberung oder Fraktions-Siegbedingung / victory kind: points, conquest or faction condition */
@@ -489,7 +549,9 @@ export type GameEvent =
     kamikaze?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
-  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
+  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number;
+    /** per Fernuebernahme gehackt (HACK.place) / hacked by remote takeover (HACK.place) */
+    hack?: boolean }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number; bought?: true }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
@@ -565,7 +627,27 @@ export type GameEvent =
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
   | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number; kamikaze?: boolean }
   /** Geschuetzstellung gebaut / gun emplacement built */
-  | { t: 'emplacement'; x: number; y: number; faction: number; kind?: 'silo' }
+  | { t: 'emplacement'; x: number; y: number; faction: number; kind?: 'silo' | 'hack' }
+  /**
+   * Hackturm (x, y) uebernimmt die Einheit unit von from bis Runde until / hack tower (x, y) takes over unit from from until round until
+   */
+  | { t: 'hijack'; unit: number; faction: number; from: number; x: number; y: number; until: number }
+  /** Stadt-Hack (HACK.city): faction sieht die Stadt city von victim bis Runde until / city hack: faction sees victim's city until round until */
+  | { t: 'cityHack'; city: number; faction: number; victim: number; until: number; x: number; y: number }
+  /**
+   * Uebernahme beendet: zurueck an faction (time = Zeit um, tower = Turm gefallen, eliminated = Hacker ausgeschieden);
+   * lost = der Besitzer ist ausgeschieden, die Einheit zerfaellt.
+   * Takeover ended: back to faction (time = time is up, tower = tower fell, eliminated = hacker eliminated); lost = the owner
+   * is eliminated, the unit falls apart.
+   */
+  | { t: 'hijackEnd'; unit: number; faction: number; by: number; reason: 'time' | 'tower' | 'eliminated'; lost?: boolean;
+    /**
+     * Ausgang am regulaeren Ende (HACK.tower): kept = bleibt dauerhaft bei by, shutdown = abgeschaltet (zerstoert, Wrack);
+     * fehlt = zurueckgegeben. x, y = Feld der Einheit (fuer den Effekt nach dem Abschalten).
+     * Outcome at the regular end (HACK.tower): kept = stays with by for good, shutdown = switched off (destroyed, wreck);
+     * missing = returned. x, y = the unit's tile (for the effect after the shutdown).
+     */
+    outcome?: 'kept' | 'shutdown'; x?: number; y?: number; unitType?: UnitTypeId }
   /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */
   | { t: 'emplacementLost'; x: number; y: number; faction: number; reason: 'territory' | 'eliminated' }
   /**
@@ -598,6 +680,24 @@ export type GameEvent =
   | { t: 'radarSweep'; unit: number; x: number; y: number; radius: number; until: number; faction: number }
   | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
   | { t: 'fireHit'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /**
+   * Schwebende Akademie: abgehoben, schwebt, gezogen (from -> x, y), gelandet, notgelandet (by = Angreifer), verlegt (neue
+   * Akademie nach dem Verlust der alten).
+   * Floating academy: lifted, floating, moved (from -> x, y), landed, emergency landing (by = attacker), moved over (new
+   * academy after losing the old one).
+   */
+  | { t: 'academy'; what: 'lift' | 'float' | 'move' | 'land' | 'forced' | 'transfer'; city: number; faction: number; x: number; y: number; from?: Pos; by?: number }
+  /** Schutzschild der Akademie: gebaut, getroffen (dmg, unit = Angreifer), zerstoert, aufgeladen / academy shield: built, hit, destroyed, recharged */
+  | { t: 'shield'; what: 'built' | 'hit' | 'down' | 'regen'; city: number; faction: number; hp: number; dmg?: number; unit?: number; hit?: HitKind }
+  /**
+   * Beamer: Einheit gebeamt (depart, x, y = Abflug, city = Relay), angekommen (arrive), zur Akademie zurueckgekehrt (return,
+   * Relay verloren oder kein Platz), Relay gebaut (built).
+   * Beamer: unit beamed (depart, x, y = departure, city = relay), arrived (arrive), returned to the academy (return, relay
+   * lost or no room), relay built (built).
+   */
+  | { t: 'beam'; what: 'built' | 'depart' | 'arrive' | 'return'; city: number; faction: number; x: number; y: number; unit?: number; unitType?: UnitTypeId }
+  /** Ort als Forschungsposten eingenommen: pop = Bevoelkerung fuer die Akademie, tiles = uebergebene Felder / place taken as a research post */
+  | { t: 'post'; city: number; academy: number; faction: number; pop: number; tiles: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 /** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
@@ -652,6 +752,24 @@ export type Command =
   | { type: 'siloLaunch'; x: number; y: number; tx: number; ty: number }
   /** Raketensilo auf (x, y) baut eine Einheit (SILO.units) / rocket silo at (x, y) builds a unit (SILO.units) */
   | { type: 'siloBuy'; x: number; y: number; unitType: UnitTypeId }
+  /** Schwebende Akademie: abheben, ziehen (bis ACADEMY.move Felder je Zug), landen, Schild bauen / floating academy: lift off, move, land, build the shield */
+  | { type: 'liftAcademy'; city: number }
+  | { type: 'moveAcademy'; city: number; to: Pos }
+  | { type: 'landAcademy'; city: number }
+  | { type: 'academyShield'; city: number }
+  /** Beamer-Relay auf einem Posten bauen; Einheit zum Relay beamen / build a beam relay on a post; beam a unit to the relay */
+  | { type: 'buildBeamer'; city: number }
+  | { type: 'beam'; unit: number; city: number }
+  /** Akademie angreifen: Schild, in der Luft ohne Schild Notlandung / attack the academy: shield, in the air without a shield an emergency landing */
+  | { type: 'attackAcademy'; unit: number; city: number }
+  /** NEXUS: neutralen Ort fernuebernehmen (HACK.place) / NEXUS: remote takeover of a neutral place (HACK.place) */
+  | { type: 'hack'; city: number }
+  /** NEXUS: Hackturm auf (x, y) bauen (HACK.tower) / NEXUS: build a hack tower on (x, y) (HACK.tower) */
+  | { type: 'hackTower'; x: number; y: number }
+  /** NEXUS: Hackturm auf (x, y) uebernimmt die Einheit target / NEXUS: hack tower at (x, y) takes over the unit target */
+  | { type: 'hijack'; x: number; y: number; target: number }
+  /** NEXUS: feindliche Stadt hacken und aufdecken (HACK.city) / NEXUS: hack and reveal a hostile city (HACK.city) */
+  | { type: 'hackCity'; city: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -675,7 +793,17 @@ export type ErrorCode =
   // Schattenflotte: Silo, Sabotage und Radar noch gesperrt, kein Ziel / shadow fleet: silo, sabotage and radar still locked, no target
   | 'siloCooldown' | 'sabotageCooldown' | 'radarCooldown' | 'noTarget' | 'siloLimit'
   // Einheit nur am Raketensilo zu haben; kein freies Feld am Silo / unit only available at a rocket silo; no free tile at the silo
-  | 'siloOnly' | 'noRoom';
+  | 'siloOnly' | 'noRoom'
+  // Schwebende Akademie: keine Akademie, in der Luft, am Boden, hebt noch ab, keine Felder mehr, Landeplatz ungeeignet,
+  // Produktion ruht, Schild steht, schwebend nicht angreifbar fuer diese Einheit
+  // floating academy: no academy, airborne, grounded, still lifting, no tiles left, landing site unsuitable, production
+  // rests, shield is up, not attackable by this unit while floating
+  | 'notAcademy' | 'airborne' | 'grounded' | 'lifting' | 'noSteps' | 'landingSite' | 'academyBusy' | 'shieldUp' | 'airTarget'
+  // Beamer: kein Relay, schon gebeamt, Einheit nicht an der Akademie / beamer: no relay, already beamed, unit not at the academy
+  | 'noBeamer' | 'beamUsed' | 'notAtAcademy'
+  // Hacken (NEXUS): keine Ladung, zu frueh, schon gehackt in diesem Zug, uebernommene Einheit, Turm belegt, nicht mechanisiert
+  // hacking (NEXUS): no charge, too early, already hacked this turn, taken-over unit, tower busy, not mechanised
+  | 'hackCharges' | 'hackEarly' | 'hackTurn' | 'hijacked' | 'towerBusy' | 'towerCooldown' | 'notMechanised' | 'cityHackCooldown' | 'noDataCenter';
 
 export interface CommandResult {
   ok: boolean;

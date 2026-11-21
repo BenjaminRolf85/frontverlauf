@@ -9,7 +9,7 @@
 import {
   BASES, CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
-  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY,
+  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY, HACK,
 } from '../data/balance';
 
 const pct = (x: number) => Math.round(x * 100);
@@ -67,6 +67,25 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   hardenedAttack: PERKS2.battleHardenedAttack,
   shadowBankLevel: PERKS.shadowBankLevelReduction,
   rewardMissiles: REWARD_HEAVY.count.meridon ?? 1,
+  // Hacken (NEXUS): Fernuebernahme und Hackturm / hacking (NEXUS): remote takeover and hack tower
+  hackCost: HACK.place.cost,
+  hackPerLevel: HACK.place.perLevel,
+  hackPerHacked: HACK.place.perHacked,
+  hackRecharge: HACK.place.recharge,
+  hackFirst: HACK.place.firstRound,
+  towerCost: HACK.tower.cost,
+  towerHp: HACK.tower.hp,
+  towerReach: HACK.tower.reach,
+  towerRounds: HACK.tower.rounds,
+  towerCooldown: HACK.tower.cooldown,
+  towerMax: HACK.tower.max,
+  towerSpacing: HACK.tower.minSpacing,
+  towerKeep: pct(HACK.tower.keepChance),
+  cityCost: HACK.city.cost,
+  cityRounds: HACK.city.rounds,
+  cityRadius: HACK.city.radius,
+  cityCooldown: HACK.city.cooldown,
+  towerShutdown: pct(HACK.tower.shutdownChance),
   // Schattenflotte (Meridon) / shadow fleet (Meridon)
   spyPct: pct(FACTIONS.meridon.discount),
   siloCost: SILO.cost,
@@ -182,4 +201,18 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   windFuel: WEATHER.wind.fuelBurn,
   xenoDef: XENO.groundDefense,
   xenoHeal: XENO.groundHeal,
+  // Schwebende Akademie und Beamer (Velkar, ACADEMY) / floating academy and beamer (Velkar, ACADEMY)
+  academyMove: ACADEMY.move,
+  academyLift: ACADEMY.liftRounds,
+  academyLandGap: ACADEMY.landGap,
+  academyBaseSlots: ACADEMY.baseSlots,
+  academyMaxSlots: ACADEMY.maxSlots,
+  academyPostUnits: ACADEMY.postUnits,
+  academyPostPop: ACADEMY.postPop,
+  academyDefense: ACADEMY.defense,
+  academyShieldHp: ACADEMY.shield.hp,
+  academyShieldCost: ACADEMY.shield.cost,
+  academyShieldRegen: ACADEMY.shield.regen,
+  academyShieldRebuild: ACADEMY.shield.rebuildRounds,
+  beamerCost: ACADEMY.beamer.cost,
 };

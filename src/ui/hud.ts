@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SILO, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SILO, HACK, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, corruptionRule, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
@@ -12,7 +12,7 @@ import {
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
-  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
+  trueOwner, emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
   type City, type GameState, type Unit,
 } from '../core';
 import { emplacementCount, emplacementDesc, emplacementName, emplacementStats } from './emplacement';
@@ -30,7 +30,9 @@ import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
+import { academyActions, academySheet, postActions, unitAcademyActions } from './academy';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
+import { cityHackHtml, hackCityAction, hackPlaceAction, hackTowerBuildAction, hackTowerTile, hijackSheet, hijackTag } from './hacking';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
@@ -123,7 +125,8 @@ export function unitNickname(f: FactionId, type: UnitTypeId): string {
 }
 /** Anzeigename einer Einheit: Spitzname ihrer Fraktion / display name of a unit: its faction's nickname */
 export function unitDisplayName(s: GameState, u: Unit): string {
-  const f = s.factions[u.owner]?.id;
+  // uebernommene Einheit (HACK.tower): Name nach dem eigentlichen Besitzer / taken-over unit (HACK.tower): name after the actual owner
+  const f = s.factions[trueOwner(u)]?.id;
   if (!f) return unitName(u);
   return u.carried ? `${unitNickname(f, u.type)} (${t('stats.carrying', { unit: unitNickname(f, u.carried) })})` : unitNickname(f, u.type);
 }
@@ -570,6 +573,8 @@ export class Hud {
     let sheet = '';
     if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.siloFrom && g.isHumanTurn) { const o = siloSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    // Hackturm: Zielauswahl "Einheit uebernehmen" (NEXUS) / hack tower: "take over unit" targeting (NEXUS)
+    else if (g.hackFrom && g.isHumanTurn) { const o = hijackSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
@@ -681,13 +686,14 @@ export class Hud {
     if (!explored) {
       head = `<h3 class="display">${esc(t('hud.unexplored'))}</h3>`;
     } else if (tab === 'unit' && vUnit) {
-      const fid = s.factions[vUnit.owner].id;
+      // uebernommene Einheit: Bauart und Farben des eigentlichen Besitzers (HACK.tower) / taken-over unit: design and colours of the actual owner
+      const fid = s.factions[trueOwner(vUnit)].id;
       const st = UNITS[vUnit.type];
       // 3D-Portraet statt Symbol / 3D portrait instead of an icon
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub">${roleChip(vUnit.type)}<span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${hijackTag(s, vUnit)}${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -724,6 +730,9 @@ export class Hud {
         if (city.base) body += `${baseLineHtml(city.base, vf)}<p class="muted sheet-more">${esc(t('bases.likeCity'))}</p>`;
         if (city.tower) body += `<p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: TOWER.unitLimit }))}</p>`;
         body += lootTag(s, viewer, city);
+        // NEXUS: neutralen Ort fernuebernehmen (HACK) / NEXUS: remote takeover of the neutral place (HACK)
+        const hackAct = hackPlaceAction(s, city, g, (c) => this.err(c));
+        if (hackAct) this.actions.push(hackAct);
       } else if (isCultFaction(s, city.owner)) {
         // Kult-Stadt: keine Wirtschaft, nur Plaetze fuer die Horde / cult city: no economy, only slots for the horde
         const fid = s.factions[city.owner].id;
@@ -741,6 +750,18 @@ export class Hud {
         this.cityNote = '';
         // Kult: Schiffe aus der Werft, Landtruppen gesperrt (Rekrutieren im Feld) / cult: ships from the shipyard, land troops locked (recruiting in the field)
         if (myTurn && city.owner === s.current) this.setTroops(s, city);
+      } else if (city.academy || city.post) {
+        // Schwebende Akademie und Forschungsposten (Velkar): eigener Kopf, Zustand, Schild, Aktionen / floating academy and research post (Velkar): own head, state, shield, actions
+        const a = academySheet(s, city);
+        head = a.head;
+        body += a.body;
+        this.cityNote = '';
+        if (myTurn && city.owner === s.current) {
+          this.actions.push(...(city.academy ? academyActions(s, g, city, (c) => this.err(c)) : postActions(s, g, city, (c) => this.err(c))));
+          // Ausbildung, Ausbauten und Stufe nur an der Akademie / training, upgrades and level only at the academy
+          if (city.academy) this.cityActions(s, city.id);
+        }
+        if (city.academy) body += citySitesHtml(s, city);
       } else if (city.tower) {
         // Sendeturm: bildet aus, waechst nicht, festes Einkommen / transmitter tower: trains, does not grow, fixed income
         const fid = s.factions[city.owner].id;
@@ -805,6 +826,12 @@ export class Hud {
       const ts = templeSheet(s, x, y)!;
       head = ts.head;
       body += ts.body;
+    } else if (explored && hackTowerTile(s, x, y, viewer, g, (c) => this.err(c))) {
+      // Hackturm (NEXUS): Ladezustand, gesteuerte Einheit, Uebernahme / hack tower (NEXUS): charge state, controlled unit, takeover
+      const ht = hackTowerTile(s, x, y, viewer, g, (c) => this.err(c))!;
+      head = ht.head;
+      body += ht.body;
+      this.actions.push(...ht.actions);
     } else if (explored && siloTile(s, x, y, viewer, g)) {
       // Raketensilo (Meridon): Ladezustand und Start / rocket silo (Meridon): charge state and launch
       const st = siloTile(s, x, y, viewer, g)!;
@@ -884,6 +911,13 @@ export class Hud {
       const base = tile.building === 'navalBase' && tile.territory !== null ? cityById(s, tile.territory) : undefined;
       if (myTurn && base && base.owner === s.current && owner === s.current) this.setTroops(s, base, true);
     }
+    // Stadt-Hack (NEXUS): Marke und Daten an fremden Staedten, Aktion fuer NEXUS am Zug / city hack (NEXUS): mark and data at foreign cities, action for NEXUS on turn
+    if (explored && city && city.owner !== null && (tab === 'city' || (tab === 'unit' && !vUnit))) {
+      // gleich unter dem Kopf, damit die Daten ohne Scrollen sichtbar sind / right below the head so the data shows without scrolling
+      body = cityHackHtml(s, city, viewer) + body;
+      const ca = hackCityAction(s, city, g, (c) => this.err(c));
+      if (ca) this.actions.push(ca);
+    }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(k === 'city' && supplyLines(s) ? 'actions.shaftActions' : `actions.${k}Actions`))}</button>`).join('')}</div>` : '';
     // Aktionsleiste mit Scroll-Hinweis und einzeiliger Erklaerung darunter / action bar with scroll cue and a one-line explanation below
@@ -903,6 +937,8 @@ export class Hud {
 
   private unitActions(s: GameState, u: Unit) {
     const g = this.game;
+    // Beamer und Angriff auf eine Akademie / beamer and attack on an academy
+    this.actions.push(...unitAcademyActions(s, g, u, (c) => this.err(c)));
     const gunAt = g.pendingTurret;
     if (gunAt && turretTargets(s, u).some((p) => p.x === gunAt.x && p.y === gunAt.y)) {
       const gun = turretAt(s, gunAt.x, gunAt.y)!;
@@ -912,12 +948,15 @@ export class Hud {
       const owned = gun.owner !== undefined;
       // Raketensilo: eigener Name, kein Gegenschlag / rocket silo: own name, no return fire
       const isSilo = gun.kind === 'silo';
-      const sub = kill ? t(isSilo ? 'shadow.silo.previewKill' : owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      // Hackturm (NEXUS): eigener Name, kein Gegenschlag / hack tower (NEXUS): own name, no return fire
+      const isHack = gun.kind === 'hack';
+      const sub = kill ? t(isSilo ? 'shadow.silo.previewKill' : isHack ? 'hack.tower.previewKill' : owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
       const about = isSilo ? `${t('shadow.silo.nameOf', { name: t(`factions.${s.factions[gun.owner!].id}.short`) })}: ${t('shadow.silo.stats', { hp: gun.hp, max: SILO.hp, range: SILO.launchRange, dmg: SILO.damage })}`
+        : isHack ? `${t('hack.tower.nameOf', { name: t(`factions.${s.factions[gun.owner!].id}.short`) })}: ${t('hack.tower.stats', { hp: gun.hp, max: HACK.tower.hp, reach: HACK.tower.reach })}`
         : owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
       if (pre.moveFire) this.combatNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(isSilo ? 'shadow.silo.attack' : owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(isSilo ? 'shadow.silo.attack' : isHack ? 'hack.tower.attack' : owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
@@ -1222,6 +1261,9 @@ export class Hud {
     }
     // gesperrte Gebaeude hinter den baubaren / locked buildings after the buildable ones
     this.actions.push(...locked);
+    // NEXUS: Hackturm auf diesem Feld (HACK.tower) / NEXUS: hack tower on this tile (HACK.tower)
+    const ht = hackTowerBuildAction(s, x, y, g, (c) => this.err(c));
+    if (ht) this.actions.unshift(ht);
     for (const id of GRAND_PROJECT_IDS) {
       if (!grandProjectCheck(s, f, id, x, y)) continue;
       this.actions.push({ id: `grand-${id}`, icon: 'grand', label: t(`grand.${id}`), cost: 0, enabled: true, variant: 'primary', run: () => void g.exec({ type: 'grandProject', id, x, y }) });

@@ -356,8 +356,10 @@ export class Minimap {
     const ur = parseFloat(MM.unitDot);
     ctx.lineJoin = 'round';
     ctx.strokeStyle = MM.outline;
-    // Staedte zuerst: Kreis, Hauptquartier als Stern, Sendeturm als Dreieck, Stuetzpunkt mit der Marke seiner Gruppe
-    // cities first: circle, HQ as a star, tower as a triangle, base with the mark of its group
+    // Staedte zuerst: Kreis, Hauptquartier als Stern, Sendeturm als Dreieck, Stuetzpunkt mit der Marke seiner Gruppe,
+    // Akademie als Raute, Forschungsposten als Quadrat
+    // cities first: circle, HQ as a star, tower as a triangle, base with the mark of its group, academy as a diamond,
+    // research post as a square
     const cr = parseFloat(MM.cityDot), hr = parseFloat(MM.hqDot);
     for (const city of s.cities) {
       if (!seen(city.x, city.y)) continue;
@@ -365,6 +367,20 @@ export class Minimap {
       const hq = city.isHQ && city.owner !== null && city.hqOf === city.owner;
       ctx.fillStyle = city.owner === null ? MM.neutral : factionTokens[s.factions[city.owner].id].primary;
       ctx.lineWidth = parseFloat(MM.markLine);
+      // Akademie (Velkar): Raute, schwebend mit Ring; Forschungsposten: kleines Quadrat / academy (Velkar): diamond, floating with a ring; research post: small square
+      if (city.academy) {
+        ctx.beginPath();
+        ctx.moveTo(mx, my - hr); ctx.lineTo(mx + hr * 0.8, my); ctx.lineTo(mx, my + hr); ctx.lineTo(mx - hr * 0.8, my); ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        if (city.air) { ctx.beginPath(); ctx.arc(mx, my, hr * 1.35, 0, Math.PI * 2); ctx.stroke(); }
+        continue;
+      }
+      if (city.post) {
+        ctx.beginPath();
+        ctx.rect(mx - cr * 0.7, my - cr * 0.7, cr * 1.4, cr * 1.4);
+        ctx.fill(); ctx.stroke();
+        continue;
+      }
       if (city.base && !hq) {
         baseMark(ctx, baseGroup(city.base), mx, my, cr * BASE_MARK.size);
         ctx.fill(); ctx.stroke();

@@ -75,7 +75,7 @@ export type RadarCheck = 'ok' | Extract<ErrorCode, 'cannotBuild' | 'unitExhauste
 
 /** Darf u jetzt einen Radarimpuls senden? / may u send a radar sweep now? */
 export function radarCheck(s: GameState, u: Unit): RadarCheck {
-  if (!has(u, 'radar')) return 'cannotBuild';
+  if (!has(u, 'radar') || u.hijack) return 'cannotBuild';
   if (!canActStill(u)) return 'unitExhausted';
   if (radarWait(s, u) > 0) return 'radarCooldown';
   return 'ok';

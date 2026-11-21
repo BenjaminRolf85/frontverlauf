@@ -28,6 +28,16 @@ const P: Record<string, string> = {
   close: '<path d="M5 5l14 14M19 5L5 19"/>',
   check: '<path d="M4 12.5l5 5L20 6.5"/>',
   /** Satellitenschuessel mit Strahl: Satelliten-Relay und Orbitallaser / satellite dish with beam: satellite relay and orbital laser */
+  /** Schwebende Akademie: Plattform mit Kuppel, Turm und Duesen / floating academy: platform with dome, tower and nozzles */
+  academy: '<path d="M3 13h18l-2 3H5z"/><path d="M8 13a4 4 0 0 1 8 0"/><path d="M15.5 13V6.5h2V13"/><path d="M16.5 6.5V4"/><path d="M7 16l-1 3M12 16v3.5M17 16l1 3" stroke-dasharray="1.5 1.5"/>',
+  /** Abheben: Plattform mit Pfeil nach oben / lift off: platform with an arrow upwards */
+  liftOff: '<path d="M4 17h16l-1.5 2.5h-13z"/><path d="M12 14V3M8 7l4-4 4 4"/><path d="M8 21.5l-.5 1M16 21.5l.5 1"/>',
+  /** Landen: Pfeil nach unten auf eine Plattform / land: arrow down onto a platform */
+  land: '<path d="M12 3v11M8 10l4 4 4-4"/><path d="M4 17h16l-1.5 2.5h-13z"/><path d="M3 21.5h18"/>',
+  /** Beamer: Plattform mit Strahlenringen / beamer: pad with beam rings */
+  beam: '<ellipse cx="12" cy="19" rx="8" ry="2.5"/><path d="M6 18V8M18 18V8"/><ellipse cx="12" cy="13" rx="5" ry="1.4" stroke-dasharray="2 1.5"/><ellipse cx="12" cy="8" rx="5" ry="1.4" stroke-dasharray="2 1.5"/><path d="M12 3v2"/>',
+  /** Forschungsposten: Kuppel mit Mast und Schuessel / research post: dome with mast and dish */
+  researchPost: '<path d="M3 20h18"/><path d="M5 20a5 5 0 0 1 10 0"/><path d="M17 20V7"/><path d="M14 6a4 4 0 0 0 6 3z"/><circle cx="17" cy="4" r="1" fill="currentColor"/>',
   satellite: '<path d="M4 20h9"/><path d="M8.5 20l1-4"/><path d="M4.5 9.5a7 7 0 0 0 9 9z"/><path d="M9 14l3.5-3.5"/><path d="M15 3l2 2-2.5 2.5-2-2zM18.5 6.5l2 2"/><path d="M17 11l3 9" stroke-dasharray="2 2"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
   soundOn: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',
@@ -147,6 +157,10 @@ const P: Record<string, string> = {
   missile: '<path d="M14.5 3.5l6 6-9 9-6-6z"/><path d="M5.5 12.5L3 13.5l7.5 7.5 1-2.5"/><path d="M17.5 3l3.5 3.5"/><path d="M5 19l-2 2M8 20.5l-1.5 1.5M3.5 16l-1.5 1.5"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/>',
   radar: '<path d="M4 20h10l-2-5"/><path d="M5 14.5a7 7 0 0 1 9.5-9.5z"/><path d="M9.7 9.8l3.8-3.8"/><path d="M16 9a3.5 3.5 0 0 1 2.5 2.5M17.5 5.5a7 7 0 0 1 4 4"/>',
   silo: '<path d="M6 21V10.5a6 6 0 0 1 12 0V21"/><path d="M3.5 21h17"/><path d="M12 3.5l2 3.5v6h-4V7z" fill="currentColor"/><path d="M9.5 16h5"/>',
+  /** Terminal mit Eingabezeichen: Fernuebernahme und gehackte Einheit (NEXUS) / terminal with a prompt: remote takeover and hacked unit (NEXUS) */
+  hack: '<rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M7 8.5l3 2.5-3 2.5M12 13.5h5"/><path d="M8 20.5h8M12 17v3.5"/>',
+  /** Gittermast mit Sendekopf und Signalboegen: Hackturm (NEXUS) / lattice mast with an emitter head and signal arcs: hack tower (NEXUS) */
+  hackTower: '<path d="M12 9v12M8.5 21L12 9l3.5 12M10 16h4"/><circle cx="12" cy="7" r="1.8" fill="currentColor"/><path d="M8.5 4a5 5 0 0 0 0 6M15.5 4a5 5 0 0 1 0 6M5.5 2a8.5 8.5 0 0 0 0 10M18.5 2a8.5 8.5 0 0 1 0 10"/>',
   sabotage: '<rect x="4" y="11" width="9" height="9" rx="1.5"/><path d="M8.5 11V7.5h7"/><path d="M15.5 7.5c2 0 3-1.5 3-3"/><path d="M19.5 2.5l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" fill="currentColor"/><path d="M7 15.5h3"/>',
   camo: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20L20 4"/>',
   fire: '<path d="M12 21.5c-3.9 0-6.5-2.6-6.5-6.2 0-3.6 2.8-5.5 3.6-9.8 2 1.4 3.2 3.3 3.3 5.3 1-.8 1.6-2 1.7-3.3 2.6 2 4.4 4.7 4.4 7.8 0 3.6-2.6 6.2-6.5 6.2z" fill="currentColor"/>',

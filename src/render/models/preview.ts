@@ -8,6 +8,7 @@
  * cat=basesF: every faction per kind (&lv= level), cat=naval: naval base per sea side
  * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
  * cat=special: Sonderbauarten der Fraktionen / faction designs
+ * cat=academy: schwebende Akademie der Velkar (Boden, Luft, Stufen) und Forschungsposten (mit Beamer) / Velkar floating academy (ground, air, levels) and research posts (with beamer)
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
@@ -22,9 +23,11 @@ import {
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
+import { hackTowerGeometry } from './hacking';
 import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
 import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artifact';
 import { Builder } from './kit';
+import { ACADEMY_MODEL, academyGeometry, researchPostGeometry } from './academy';
 import { look } from './look';
 
 /** tiles: Bodenflaeche in Brettfeldern (Wunder) / ground size in board tiles (wonders) */
@@ -119,6 +122,22 @@ function sheet(): Sheet {
           cells: variants.map((v) => ({ geo: cityGeometry(f, v.level, v.flags), ground: f ? factionTokens[f].terrain : plainGround })),
         })),
       };
+    }
+    case 'academy': {
+      // Akademie am Boden und in der Luft (Luft: um die Schwebehoehe angehoben), Posten mit und ohne Beamer
+      // academy on the ground and in the air (air: raised by the hover height), post with and without beamer
+      const fs: FactionId[] = onlyFaction ? [onlyFaction] : ['velkar', 'korvat'];
+      const lift = (g: THREE.BufferGeometry) => { const c = g.clone(); c.translate(0, ACADEMY_MODEL.airY, 0); c.computeBoundingBox(); return c; };
+      const variants: { label: string; geo: (f: FactionId) => THREE.BufferGeometry }[] = [
+        { label: 'ground L1', geo: (f) => academyGeometry(f, 1, false) },
+        { label: 'ground L4', geo: (f) => academyGeometry(f, 4, false) },
+        { label: 'ground L8', geo: (f) => academyGeometry(f, 8, false) },
+        { label: 'air L1', geo: (f) => lift(academyGeometry(f, 1, true)) },
+        { label: 'air L8', geo: (f) => lift(academyGeometry(f, 8, true)) },
+        { label: 'post', geo: (f) => researchPostGeometry(f, false) },
+        { label: 'post relay', geo: (f) => researchPostGeometry(f, true) },
+      ];
+      return { cols: variants.map((v) => v.label), rows: fs.map((f) => ({ label: f, cells: variants.map((v) => ({ geo: v.geo(f), ground: factionTokens[f].terrain })) })) };
     }
     case 'bases': {
       // Stuetzpunkte: neutral, besetzt in niedriger, mittlerer und hoher Stufe, mit allen Ausbauten / bases: neutral, owned at a low, middle and high level, with all extensions
@@ -241,6 +260,9 @@ function sheet(): Sheet {
           ...list.map((t) => ({ label: t, cells: all8.map((f) => ({ geo: unitGeometry(t, f, null), ground: f === fid ? ground : plainGround })) })),
           { label: `${fid} city 1/3/5/8`, cells: [1, 3, 5, 8].map((lv) => ({ geo: cityGeometry(fid, lv, { hq: lv >= 3, factory: lv >= 5, bunkerRing: lv >= 8, govQuarter: lv >= 8 }), ground })) },
           { label: `${fid} buildings`, cells: [...kinds.map((k) => ({ geo: buildingGeometry(k, fid), ground })), { geo: buildingGeometry(kinds[0], null), ground: plainGround }] },
+          // Hackturm der NEXUS: frei und mit uebernommener Einheit (HACK.tower) / NEXUS hack tower: free and with a taken-over unit (HACK.tower)
+          ...(cult ? [] : [{ label: 'hack tower / linked', cells: [{ geo: hackTowerGeometry('nexus', false), ground }, { geo: hackTowerGeometry('nexus', true), ground },
+            { geo: hackTowerGeometry('nexus', false), ground: plainGround }, { geo: hackTowerGeometry('nexus', true), ground: plainGround }] }]),
           { label: `${fid} crew`, cells: [
             { geo: unitGeometry('infantry', fid, null), ground }, { geo: unitGeometry('spy', fid, null), ground },
             { geo: unitGeometry('jeep', fid, null), ground }, { geo: unitGeometry('destroyer', fid, null), ground: waterGround },
@@ -443,7 +465,7 @@ async function buildScene() {
     sh.cols = keep.map((i) => sh.cols[i]);
     for (const r of sh.rows) r.cells = keep.map((i) => r.cells[i]).filter(Boolean);
   }
-  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' ? 1.5 : 1.2;
+  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' || cat === 'academy' ? 1.5 : 1.2;
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';

@@ -378,7 +378,11 @@ describe('KI-Partien mit den neuen Einheiten / AI games with the new units', () 
     // mit schnelleren Einheiten, Stadtwachstum und Sendetuermen sprengt auf Seed 10 keine Drohne mehr, daher Seed 14
     // seed 7 no longer used a kamikaze drone with the attack from behind (NEXUS eliminated early), hence seed 10; with
     // faster units, city growth and transmitter towers no drone explodes on seed 10 any more, hence seed 14
-    const s = createGame(defaultConfig({ seed: 14, size: 14, mode: 'conquest', mapType: 'continent', factionVictory: false,
+    // mit dem Hacken der NEXUS scheidet NEXUS auf Seed 14 in Runde 35 ohne eine Drohne aus, daher Seed 16 (NEXUS lebt, Drohnen
+    // explodieren, Marines und Hacktuerme im Einsatz)
+    // with NEXUS hacking, NEXUS is eliminated on seed 14 in round 35 without a single drone, hence seed 16 (NEXUS lives, drones
+    // explode, marines and hack towers in use)
+    const s = createGame(defaultConfig({ seed: 16, size: 14, mode: 'conquest', mapType: 'continent', factionVictory: false,
       factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
     let fails = 0, kamikaze = 0, marines = 0;
     const types = new Set<UnitTypeId>();

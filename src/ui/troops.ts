@@ -10,8 +10,7 @@
  */
 import {
   isAlienFaction, noTraining, rosterShips, rosterUnits, siloBuyCheck, trainCheck, trainTechNeed, unitCost, unitRange,
-  type City, type GameState, type SiloBuyCheck, type TrainCheck,
-} from '../core';
+  type City, type GameState, type SiloBuyCheck, type TrainCheck, trainSlots } from '../core';
 import { SHIPYARD, SILO, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { has as hasText, num, t } from '../i18n/i18n';
 import { esc, price, type ActionItem } from './components';
@@ -48,6 +47,8 @@ function lockReason(s: GameState, c: City, type: UnitTypeId, chk: TrainCheck, fi
     case 'computeMissing': return t('nexus.computeNeed', { n: UNITS[type].compute ?? 0 });
     // Meridon: Lenkflugkoerper kommen aus dem Raketensilo / Meridon: Guided Missiles come from the rocket silo
     case 'siloOnly': return t('shadow.silo.onlyHere');
+    // Akademie: alle Ausbildungen dieser Runde vergeben oder kein freies Feld / academy: all trainings of this round used or no free tile
+    case 'occupied': return c.academy ? t('academy.slotsUsed', { max: trainSlots(s, c) }) : err(chk);
     case 'invalid':
       // Zyrr: erst das Stadtfeld terraformen; sonst gehoert die Karte nicht in die Leiste / Zyrr: terraform the city tile first; otherwise the card does not belong in the strip
       return isAlienFaction(s, c.owner!) && !UNITS[type].ship ? t('xeno.cityNeedsTerraform') : null;

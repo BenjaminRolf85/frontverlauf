@@ -6,7 +6,7 @@ import {
   counterFactor, unitRange, entrenchFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, freeUnitSlots, noTraining, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
   isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, rearAttackBonus, type Pos } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HACK, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { baseAttackWorth, baseCaptureWorth, baseDefendWorth } from './bases';
@@ -93,6 +93,10 @@ export function worth(u: Unit): number {
   const base = (t: UnitTypeId) => (t === 'tank' || t === 'teslaTank' || t === 'reliquary' ? 60 : UNITS[t].cost ?? 10);
   let w = u.carried ? base(u.carried) + (UNITS[u.type].cost ?? 0) : base(u.type);
   if (u.veteran) w += 8;
+  // vom Hackturm uebernommen (HACK.tower): fuer den Hacker auf Zeit geliehen (also mutig einsetzen), fuer den Besitzer die
+  // eigene Einheit (also nicht gern zerstoeren) / taken over by a hack tower: on loan for the hacker (so use it boldly), the
+  // owner's own unit for the owner (so not eager to destroy it)
+  if (u.hijack) w *= HACK.ai.hijackedWorth;
   return Math.max(8, w);
 }
 
@@ -547,7 +551,8 @@ function buildGoals(ctx: Ctx): Goal[] {
   for (const c of ctx.myCities) {
     const near = ctx.enemies.filter((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
     if (!near.length) continue;
-    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + 8 * near.length + baseDefendWorth(s, f, c);
+    // Akademie (Velkar): das Herz der Fraktion, entschlossen verteidigen / academy (Velkar): the faction's heart, defend it firmly
+    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + (c.academy ? 30 : 0) + 8 * near.length + baseDefendWorth(s, f, c);
     goals.push({ kind: 'defend', x: c.x, y: c.y, value, cap: Math.min(3, near.length + 1), distW: 12, src: tileSrc(c.x, c.y), water: false });
   }
   // Feindliche Wunder: hoechster Vorrang, jeder Treffer unterbricht oder schwaecht / hostile wonders: top priority, every hit interrupts or weakens
