@@ -12,8 +12,9 @@
 import type * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, memo, mix, shade, type LathePoint, type V3 } from './kit';
-import { look, mat } from './look';
+import { Builder, fine, geo, memo, mix, shade, type ColorLike, type LathePoint, type V3 } from './kit';
+import { look, mat, type Look } from './look';
+import { face } from './headgear';
 import { rifle, soldier, standPose } from './soldiers';
 import { wheel } from './vehicles';
 
@@ -69,6 +70,95 @@ export function shadowCommando(f: FactionId, lite = false): Builder {
     addEmblem(b, f, 0.018, 0.003, L.emblem, { p: [-0.075, 0.22 + dy, 0.03], r: [0, -0.5, 0] });
   }
   return b;
+}
+
+/**
+ * Marines (statt Infanterie, Elitetruppe): breiter gebaut als der Schuetze (Figur in Breite und Tiefe verstaerkt), dunkle
+ * Marine-Kampfuniform aus der Fraktionsfarbe, Gefechtshelm mit Brille, Schwimmweste in Signalfarbe mit Koppelzeug,
+ * kurzer Karabiner im Anschlag, kleiner Sturmrucksack. Getrennt vom Schattenkommando (geduckt, Kapuze, Grau) und vom
+ * Schuetzen (Barett, Tornister, langes Gewehr). Tuschelinie: Brille und Riemen liegen buendig im Helm, keine aufgesetzten
+ * Ringe oder Scheiben am Kopf (ANNAHMEN.md, Feinere Einheitenmodelle).
+ * Marines (instead of infantry, elite troops): built broader than the rifleman (figure widened and deepened), dark naval
+ * combat uniform from the faction colour, combat helmet with goggles, life vest in a signal colour with webbing, short
+ * carbine at the ready, small assault pack. Set apart from the Shadow Commando (crouched, hood, grey) and the rifleman
+ * (beret, pack, long rifle). Ink line: goggles and strap sit flush in the helmet, no rings or discs set on the head
+ * (ANNAHMEN.md, finer unit models).
+ */
+export function marine(f: FactionId, lite = false): Builder {
+  const b = new Builder();
+  const L = look(f);
+  const d = lite ? 1 : 2;
+  // Marine-Blau aus der Fraktionsfarbe (Meridon: tiefes Petrol), Weste in der Signalfarbe der Fraktion (Meridon: Orange)
+  // naval blue from the faction colour (Meridon: deep petrol), vest in the faction's signal colour (Meridon: orange)
+  const navy = mix(mix(L.primaryDark, mat.blue, 0.4), mat.ink, 0.48);
+  const navyDark = shade(navy, 0.72);
+  const vest = L.secondary;
+  const web = mat.darkMid;
+  // Anschlag: Karabiner an der Schulter, breiter Stand, leicht vorgebeugt / at the ready: carbine at the shoulder, wide stance, leaning slightly forward
+  const G: V3 = [0.035, 0.225, 0.07];
+  const D: V3 = [-0.14, 0.02, 1];
+  const n = Math.hypot(D[0], D[1], D[2]);
+  const fore: V3 = [G[0] + (D[0] / n) * 0.1, G[1] + (D[1] / n) * 0.1, G[2] + (D[2] / n) * 0.1];
+  const pelvis: V3 = [0, 0.15, -0.01];
+  const twist: V3 = [0.14, 0.18, 0];
+  // breiter und tiefer gebaut als der Schuetze (Elite, schwere Ausruestung) / built broader and deeper than the rifleman (elite, heavy gear)
+  b.group({ p: [0, 0, -0.035], s: [1.13, 1, 1.1] }, () => {
+    soldier(b, f, {
+      ...standPose([fore, G]),
+      pelvis,
+      footL: [-0.068, 0.034, 0.06],
+      footR: [0.066, 0.034, -0.055],
+      bootR: [0, 0.32, 0],
+      kneePoleL: [-0.15, 0, 1],
+      twist,
+      head: [0.1, -0.16, 0],
+      elbowPoleL: [-0.9, -0.5, 0.1],
+    }, { detail: d, pack: 'none', seed: 57, plain: true, colors: { jacket: navy, pants: navyDark, gear: web }, head: (bb, _L, dd) => marineHelmet(bb, L, dd, navy) });
+    rifle(b, G, D, { len: 0.235, back: 0.07, detail: d, heavy: 1.2 });
+    // Schwimmweste mit Koppelzeug, folgt dem Oberkoerper / life vest with webbing, follows the torso
+    b.group({ p: [pelvis[0], pelvis[1] + 0.02, pelvis[2]], r: twist }, () => {
+      b.add(d === 2 ? geo.ctaper(0.172, 0.114, 0.194, 0.128, 0.092, 0.022) : geo.taper(0.172, 0.114, 0.194, 0.128, 0.092), vest, { p: [0, 0.063, 0] });
+      // Kragenwulst hinter dem Nacken (Auftriebskissen) / collar roll behind the neck (buoyancy pad)
+      b.add(geo.rbox(0.13, 0.038, 0.05, 0.016), shade(vest, 0.9), { p: [0, 0.118, -0.03] });
+      // Reissverschluss, Koppeltraeger, Magazintaschen / zip, harness straps, magazine pouches
+      b.box(0.01, 0.09, 0.008, shade(vest, 0.6), [0, 0.063, 0.066]);
+      for (const sx of [-1, 1]) b.box(0.016, 0.1, 0.01, web, [sx * 0.045, 0.066, 0.066]);
+      b.box(0.2, 0.018, 0.134, web, [0, 0.016, 0]);
+      if (d === 2) {
+        for (const x of [-0.05, 0, 0.05]) b.add(geo.rbox(0.03, 0.036, 0.02, 0.006), navyDark, { p: [x, 0.035, 0.07] });
+        // Signalleuchte und Pfeife an der Weste / strobe light and whistle on the vest
+        b.box(0.018, 0.024, 0.012, mat.yellow, [-0.045, 0.108, 0.064]);
+        b.box(0.014, 0.01, 0.012, mat.metalLight, [0.045, 0.108, 0.064]);
+      }
+      // kleiner Sturmrucksack mit Seil / small assault pack with a rope
+      b.add(d === 2 ? geo.rbox(0.13, 0.11, 0.05, 0.016) : geo.box(0.13, 0.11, 0.05), navyDark, { p: [0, 0.06, -0.09] });
+      if (d === 2) b.add(geo.torus(0.028, 0.009, 4, 10), mat.sand, { p: [0, 0.045, -0.118], r: [0, 0, 0] });
+      if (d === 2) addEmblem(b, f, 0.016, 0.003, L.emblem, { p: [0.05, 0.095, 0.067] });
+    });
+  });
+  return b;
+}
+
+/**
+ * Gefechtshelm der Marines: flache Kuppel in Marine-Blau, Brille auf der Stirn buendig im Helm, Riemen an den Seiten in
+ * der Westenfarbe, Gesicht darunter. / Marine combat helmet: flat dome in naval blue, goggles on the brow flush in the
+ * helmet, side straps in the vest colour, face below.
+ */
+function marineHelmet(b: Builder, L: Look, d: 0 | 1 | 2, navy: ColorLike) {
+  face(b, d, 'none', 57);
+  const helm = shade(navy, 0.92);
+  const ws = d === 2 ? 14 : 10, hs = d === 2 ? 5 : 3;
+  b.add(geo.hemi(0.068, ws, hs), helm, { p: [0, 0.068, -0.004], s: [1.05, 0.9, 1.1] });
+  // Nackenschutz hinten, buendig unter der Kuppel / neck guard at the back, flush below the dome
+  b.add(geo.rbox(0.11, 0.022, 0.03, 0.008), shade(helm, 0.85), { p: [0, 0.066, -0.054] });
+  // Brille: Rahmen halb in der Kuppel, zwei Glaeser, Band an den Seiten / goggles: frame half inside the dome, two lenses, strap at the sides
+  b.add(geo.rbox(0.086, 0.026, 0.03, 0.009), mat.dark, { p: [0, 0.092, 0.052], r: [-0.3, 0, 0] });
+  for (const sx of [-1, 1]) {
+    b.box(0.03, 0.016, 0.012, mat.glassDark, [sx * 0.021, 0.094, 0.066], [-0.3, 0, 0]);
+    b.box(0.012, 0.016, 0.05, L.secondary, [sx * 0.069, 0.084, 0.004]);
+  }
+  // Kinnriemen / chin strap
+  if (d === 2) for (const sx of [-1, 1]) b.box(0.006, 0.05, 0.012, mat.dark, [sx * 0.052, 0.045, 0.012]);
 }
 
 /**

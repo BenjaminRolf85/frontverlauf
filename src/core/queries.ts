@@ -5,7 +5,7 @@
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -1358,6 +1358,9 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (isCultFaction(s, f) && !CULT.buildings.includes(b)) return { ok: false, error: 'cannotBuild', cost };
   // Produktionsstaetten nur fuer Menschen (der Marinestuetzpunkt fuer alle) / production sites for humans only (the naval base for everyone)
   if (isProductionSite(b) && b !== 'navalBase' && !usesSites(s, f)) return { ok: false, error: 'wrongFaction', cost };
+  // Staette ohne eine einzige eigene Einheit (Meridon: weder Panzerwerk noch Geschuetzgiesserei) fehlt in der Bauliste
+  // a site without a single own unit (Meridon: neither tank works nor foundry) is missing from the build list
+  if (isProductionSite(b) && !siteUseful(s, f, b)) return { ok: false, error: 'wrongFaction', cost };
   // Wohnbloecke und Supermarkt bilden nie aus: keine Produktionsstaette in ihrem Gebiet (der Marinestuetzpunkt bleibt als
   // Einschiffungsort erlaubt, Kriegsschiffe liefert er dort nicht)
   // residential blocks and supermarket never train: no production site in their territory (the naval base stays allowed
@@ -1675,6 +1678,17 @@ export const usesSites = (s: GameState, f: number | null): boolean => f !== null
 export const isProductionSite = (b: BuildingId | null | undefined): b is ProductionSiteId => !!b && (PRODUCTION.sites as BuildingId[]).includes(b);
 const SITE_OF = new Map<UnitTypeId, ProductionSiteId>();
 for (const site of PRODUCTION.sites) for (const u of PRODUCTION.units[site]) SITE_OF.set(u, site);
+/**
+ * Bringt die Staette Fraktion f wenigstens eine eigene Einheit? Marinestuetzpunkt und Trockendock immer (Einschiffen,
+ * Voraussetzung); Meridon hat weder Panzer noch Artillerie, also kein Panzerwerk und keine Geschuetzgiesserei.
+ * Does the site give faction f at least one own unit? Naval base and dry dock always (embarking, prerequisite); Meridon has
+ * neither tanks nor artillery, so no tank works and no foundry.
+ */
+export function siteUseful(s: GameState, f: number, site: ProductionSiteId): boolean {
+  if (site === 'navalBase' || site === 'dryDock') return true;
+  const roster = rosterUnits(s, f);
+  return PRODUCTION.units[site].some((u) => roster.includes(u));
+}
 /** Produktionsstaette einer Einheit (null = keine noetig, z. B. Sonderfraktionen) / production site of a unit (null = none needed, e.g. special factions) */
 export const siteOf = (type: UnitTypeId): ProductionSiteId | null => SITE_OF.get(type) ?? null;
 /** Wirkt die Doktrin (erforschte Technologie) fuer f? Nur fuer Menschen / does the doctrine (researched tech) work for f? Humans only */
@@ -1843,7 +1857,7 @@ function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   return 'ok';
 }
 
-export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining';
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining' | 'siloOnly';
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
@@ -1872,6 +1886,8 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
   }
   if (st.compute !== undefined && computePower(s, c.owner) < st.compute) return 'computeMissing';
   if (alien && !tileAt(s, c.x, c.y)!.xeno) return 'invalid';
+  // Meridon: Lenkflugkoerper baut nur das Raketensilo, keine Stadt (auch kein Stuetzpunkt) / Meridon: only the rocket silo builds Guided Missiles, no city (no base either)
+  if (siloUnit(type)) return 'siloOnly';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
   // Menschen: nur mit der passenden Produktionsstaette dieser Stadt / humans: only with this city's matching production site
   if (usesSites(s, c.owner)) {
@@ -2422,22 +2438,19 @@ export function counterFactor(attacker: UnitTypeId, target: UnitTypeId): number 
   return (bonus?.[cls] ?? 1) * (race?.factor ?? 1);
 }
 
-// ---------- Meridon: zwei fuer einen / Meridon: two for one ----------
-
-/** Bildet Fraktion f diese Einheit doppelt aus (TWIN_TRAINING)? / does faction f train this unit twice (TWIN_TRAINING)? */
-export const twinTrained = (s: GameState, f: number, type: UnitTypeId): boolean => !!s.factions[f] && (TWIN_TRAINING.units[s.factions[f].id] ?? []).includes(type);
+// ---------- Freies Nachbarfeld fuer eine neue Einheit / free adjacent tile for a new unit ----------
 
 /**
- * Feld fuer die zweite Einheit beim Ausbilden in Stadt c: freies Nachbarfeld an Land (kein Vulkan, keine Lava, kein Wunder,
- * keine Stellung, Berge nur mit Gebirgsausbildung), eigenes Gebiet zuerst, sonst null.
- * Tile for the second unit when training in city c: a free adjacent land tile (no volcano, lava, wonder or emplacement,
- * mountains only with mountain training), own territory first, else null.
+ * Freies Nachbarfeld an Land um (x, y) fuer eine neue Einheit der Fraktion f (Raketensilo, SILO): kein Vulkan, keine Lava,
+ * kein Wunder, keine Stellung, nicht das Artefakt, keine fremde Stadt, Berge nur mit Gebirgsausbildung; eigenes Gebiet
+ * zuerst, dann neutrales, feindliches zuletzt; null = keins frei.
+ * Free adjacent land tile around (x, y) for a new unit of faction f (rocket silo, SILO): no volcano, lava, wonder or
+ * emplacement, not the artifact, no foreign city, mountains only with mountain training; own territory first, then
+ * neutral, hostile last; null = none free.
  */
-export function twinSpot(s: GameState, c: City): Pos | null {
-  const f = c.owner;
-  if (f === null) return null;
+export function spawnSpotNear(s: GameState, f: number, x: number, y: number): Pos | null {
   let best: Pos | null = null, bs = -Infinity;
-  for (const p of neighbors(s.size, c.x, c.y)) {
+  for (const p of neighbors(s.size, x, y)) {
     const t = tileAt(s, p.x, p.y)!;
     // gleiche Feldregeln wie beim Rekrutieren: nicht das Artefakt, nicht das Mutterschiff, keine fremde Stadt / same tile rules as recruiting
     const art = s.campaign?.artifact;
@@ -2452,18 +2465,10 @@ export function twinSpot(s: GameState, c: City): Pos | null {
   return best;
 }
 
-/**
- * Zweite Einheit beim Ausbilden (Meridon): 'twin' = es kommen zwei, 'limit' = das Stadtlimit laesst nur eine zu,
- * 'noRoom' = kein freies Nachbarfeld, null = gilt fuer diese Einheit nicht. Vor der Ausbildung abgefragt (die erste
- * Einheit belegt dann einen Platz im Limit).
- * Second unit when training (Meridon): 'twin' = two come, 'limit' = the city limit allows only one, 'noRoom' = no free
- * adjacent tile, null = does not apply to this unit. Asked before training (the first unit then takes one slot of the limit).
- */
-export function twinCheck(s: GameState, c: City, type: UnitTypeId): 'twin' | 'limit' | 'noRoom' | null {
-  if (c.owner === null || !twinTrained(s, c.owner, type)) return null;
-  if (freeUnitSlots(s, c) < 2) return 'limit';
-  return twinSpot(s, c) ? 'twin' : 'noRoom';
-}
+// ---------- Raketensilo als Produktionsstaette (Meridon) / rocket silo as a production site (Meridon) ----------
+
+/** Baut nur das Raketensilo diese Einheit (SILO.units)? / is this unit built only by the rocket silo (SILO.units)? */
+export const siloUnit = (type: UnitTypeId): boolean => SILO.units.includes(type);
 
 /** Sieht Fraktion f die Mine auf (x, y)? Besitzer immer, sonst nur mit eigener Einheit daneben / does faction f see the mine? */
 export function canSeeMine(s: GameState, f: number, x: number, y: number): boolean {

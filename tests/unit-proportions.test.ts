@@ -74,6 +74,12 @@ describe('Einheiten: Proportionen / units: proportions', () => {
       }
       // Schattenkommando tief geduckt, kleiner als der Schuetze / Shadow Commando deep crouch, smaller than the rifleman
       expect(dims('shadowCommando', 'meridon').h).toBeLessThan(dims('infantry', 'meridon').h * 0.75);
+      // Marines (Meridon): breiter gebaut als der Schuetze, nicht niedriger, klar groesser als das geduckte Kommando
+      // marines (Meridon): built broader than the rifleman, not lower, clearly larger than the crouched commando
+      const mar = dims('marine', 'meridon'), inf = dims('infantry', 'meridon');
+      expect(mar.wid).toBeGreaterThan(inf.wid * 1.2);
+      expect(mar.h).toBeGreaterThanOrEqual(inf.h);
+      expect(mar.h).toBeGreaterThan(dims('shadowCommando', 'meridon').h * 1.4);
     });
 
     it(`alle Einheiten bleiben auf dem Feld und unter der Plakette (${q}) / all units stay on the tile and below the badge (${q})`, () => {

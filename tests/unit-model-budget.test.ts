@@ -29,10 +29,12 @@ const LOW_SLACK = 1.03;
 /**
  * Bewusst ausgebaute Modelle (Feinschliff Runde 3, vorher die groebsten): fuer sie gilt die Vorher-Grenze der niedrigen
  * Qualitaet nicht, nur ihre eigene Grenze in BUDGET. Keines davon steht in der Szene des spaeten Spiels der Grundfraktionen.
+ * Ebenso neue Modelle ohne Vorher-Stand (Marines der Meridon).
  * Deliberately extended models (polish round 3, before the coarsest ones): the before limit of low quality does not apply
- * to them, only their own limit in BUDGET. None of them is in the late-game scene of the base factions.
+ * to them, only their own limit in BUDGET. None of them is in the late-game scene of the base factions. Likewise new models
+ * without a before state (Meridon's marines).
  */
-const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile']);
+const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [5750, 4550, 4891], // 5453 / 4300
@@ -89,6 +91,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)
   guidedMissile: [4200, 1400, 668], // 3976 / 1324 (Feinschliff Runde 3 / polish round 3)
   radarTruck: [4200, 3600, 3470], // 3962 / 3386
+  // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
+  marine: [5150, 3900, 3698], // 4874 / 3698
   swarmMother: [16350, 16250, 15432], // 15560 / 15432
   scientist: [4350, 3150, 3038], // 4102 / 2998
 };

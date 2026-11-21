@@ -56,7 +56,7 @@ export type KorvatUnitId = 'steppeColossus';
  * instead of the tank Meridon does not build), Fog Cutter instead of the transport boat, plus the Radar Truck (see VARIANTS,
  * ROSTER_EXTRA, SHADOW_FLEET).
  */
-export type MeridonUnitId = 'shadowCommando' | 'fogCutter' | 'guidedMissile' | 'radarTruck';
+export type MeridonUnitId = 'shadowCommando' | 'fogCutter' | 'guidedMissile' | 'radarTruck' | 'marine';
 export type UnitTypeId = LandUnitId | ShipId | AlienUnitId | CultUnitId | RobotUnitId | UniqueUnitId | WonderUnitId | BossUnitId | CampaignUnitId | VelkarUnitId | AlveniaUnitId | KorvatUnitId | MeridonUnitId;
 export type Ability =
   | 'dash' | 'escape' | 'persist' | 'fortify' | 'heal' | 'convert' | 'noRetaliate' | 'ignoreOutpost'
@@ -72,6 +72,9 @@ export type Ability =
   // Meridon: Tarnung (unsichtbar ohne Nachbarn, siehe CAMO), Sabotage (SABOTAGE), Radarimpuls (RADAR)
   // Meridon: camouflage (invisible without neighbours, see CAMO), sabotage (SABOTAGE), radar sweep (RADAR)
   | 'camo' | 'sabotage' | 'radar'
+  // Meridon-Marines: Anlanden von einem Schiff erschoepft nicht, der Angriff im selben Zug bleibt (MARINES)
+  // Meridon marines: landing from a ship does not exhaust, the attack in the same turn stays (MARINES)
+  | 'amphibious'
   // Wunder der Siegbedingungen: kein Sold, kein Stadtlimit, nicht bekehrbar / victory wonders: no upkeep, no city limit, not convertible
   | 'wonder'
   // Endgegner: kein Sold, nicht bekehrbar, nimmt nichts ein, Faehigkeiten siehe SWARM_MOTHER / boss: no upkeep, not convertible, captures nothing, abilities see SWARM_MOTHER
@@ -355,6 +358,10 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   // Radarwagen: unbewaffnet, Radarimpuls (RADAR) zeigt feindliche Einheiten im Umkreis auch unter den Wolken
   // Radar Truck: unarmed, radar sweep (RADAR) shows hostile units in the radius even under the clouds
   radarTruck: { cost: 25, hp: 10, attack: 0, defense: 1.5, move: 2, range: 0, vision: 2, abilities: ['radar'], tech: null, ship: false, faction: 'meridon' },
+  // Marines statt Infanterie (MARINES): Elitetruppe, stark, aber sehr teuer; amphibisch (Anlanden erschoepft nicht)
+  // Marines instead of infantry (MARINES): elite troops, strong but very expensive; amphibious (landing does not exhaust)
+  // gemessen (BALANCING.md): 28/15/3/3 zu schwach (5,8 % Siege), 24/18/3,5/3,5 mit Sold 5 im Ziel / measured: 28/15/3/3 too weak (5.8 % wins), 24/18/3.5/3.5 with upkeep 5 on target
+  marine: { cost: 24, hp: 18, attack: 3.5, defense: 3.5, move: 2, range: 1, vision: 1, abilities: ['dash', 'fortify', 'amphibious'], tech: null, ship: false, faction: 'meridon' },
   // Wunder der Siegbedingungen (siehe WONDERS): Bauwerke mit eigenen LP, Bewegung 0 / victory wonders (see WONDERS): structures with own HP, movement 0
   portal: { cost: null, hp: 40, attack: 0, defense: 3, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'dimensionalRift', ship: false, faction: 'zyrr' },
   hackRelay: { cost: null, hp: 30, attack: 0, defense: 2.5, move: 0, range: 0, vision: 2, abilities: ['wonder'], tech: 'singularity', ship: false, faction: 'nexus' },
@@ -412,7 +419,7 @@ export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', '
 export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
 export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance'];
 export const KORVAT_UNITS: KorvatUnitId[] = ['steppeColossus'];
-export const MERIDON_UNITS: MeridonUnitId[] = ['shadowCommando', 'fogCutter', 'guidedMissile', 'radarTruck'];
+export const MERIDON_UNITS: MeridonUnitId[] = ['marine', 'shadowCommando', 'fogCutter', 'guidedMissile', 'radarTruck'];
 
 /**
  * Fraktionsvarianten: die eigene Bauart ersetzt eine Grundeinheit in Liste, Stadtbelohnung und Kampagnen-Verstaerkung.
@@ -427,11 +434,14 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
   alvenia: { infantry: 'lightWarden', tank: 'reliquary', artillery: 'sunLance' },
   // Korvat: Steppenkoloss statt Panzer / Korvat: Steppe Colossus instead of the tank
   korvat: { tank: 'steppeColossus' },
-  // Meridon: Schattenkommando statt MG, Lenkflugkoerper statt Artillerie; Meridon baut keine Panzer, an ihrer Stelle stehen
-  // das Raketensilo (Bauwerk, SILO) und fuer Stadtbelohnung und Kampagnen-Verstaerkung ebenfalls ein Lenkflugkoerper
-  // Meridon: Shadow Commando instead of the MG, Guided Missile instead of artillery; Meridon builds no tanks, their place
-  // is taken by the rocket silo (structure, SILO) and, for the city reward and campaign reinforcements, a Guided Missile too
-  meridon: { mg: 'shadowCommando', artillery: 'guidedMissile', tank: 'guidedMissile' },
+  // Meridon: Marines statt Infanterie (MARINES), Schattenkommando statt MG. Meridon baut weder Panzer noch Artillerie: an
+  // ihrer Stelle steht das Raketensilo (SILO), das Lenkflugkoerper baut und Raketen startet. Der Lenkflugkoerper steht hier
+  // nur als Ersatz fuer Geschenke (Stadtbelohnung "Panzer", Kampagnen-Verstaerkung); in Staedten ist er nicht zu haben.
+  // Meridon: marines instead of infantry (MARINES), Shadow Commando instead of the MG. Meridon builds neither tanks nor
+  // artillery: their place is taken by the rocket silo (SILO), which builds Guided Missiles and launches rockets. The
+  // Guided Missile is listed here only as the substitute for gifts (city reward "tank", campaign reinforcements); cities
+  // do not offer it.
+  meridon: { infantry: 'marine', mg: 'shadowCommando', artillery: 'guidedMissile', tank: 'guidedMissile' },
 };
 
 /**
@@ -508,7 +518,7 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * a share of its price (rounded up); tanks cost a flat amount.
  */
 export const UPKEEP = {
-  freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12, steppeColossus: 12 } as Partial<Record<UnitTypeId, number>>,
+  freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12, steppeColossus: 12, marine: 5 } as Partial<Record<UnitTypeId, number>>,
   /**
    * Faktor auf den Gesamtsold einer Fraktion (Besitzer zaehlt). Korvat "Volksarmee": 33 % weniger Sold. Gerundet wird die
    * Summe (aufgerundet), nicht jede Einheit: sonst bliebe Infanterie bei 3 Sternen (3 x 0,67 = 2,01, aufgerundet 3).
@@ -647,15 +657,23 @@ export const KAMIKAZE = {
 };
 
 /**
- * Meridon "Zwei fuer einen": bildet eine Stadt eine dieser Einheiten aus, erscheint eine zweite gleiche Einheit auf einem
- * freien Nachbarfeld an Land (eigenes Gebiet zuerst), zum Preis von einer. Die zweite zaehlt fuer Sold und Stadtlimit;
- * passt sie nicht mehr ins Limit oder ist kein Feld frei, kommt nur eine. Nur die Grundinfanterie der Kaserne.
- * Meridon "Two for One": when a city trains one of these units, a second identical unit appears on a free adjacent land
- * tile (own territory first), for the price of one. The second counts for upkeep and the city limit; if it no longer fits
- * the limit or no tile is free, only one comes. Basic barracks infantry only.
+ * Marines (Meridon, Spielerwunsch: statt gewoehnlicher Soldaten und statt "Zwei fuer einen"): ersetzen die Infanterie
+ * ueberall (Kaserne, Start, Belohnungen, Verstaerkungen, Aufstand, KI), stark, aber sehr teuer (UNITS.marine). Amphibisch
+ * (Faehigkeit 'amphibious'): wer von einem Schiff an Land geht, bleibt bereit und darf im selben Zug noch angreifen (nicht
+ * weiterziehen: die Bewegung ist verbraucht). Die Feuerkraft der Meridon an Land (FIREPOWER) gilt auch fuer sie.
+ * Marines (Meridon, player request: instead of ordinary soldiers and instead of "Two for One"): replace the infantry
+ * everywhere (barracks, start, rewards, reinforcements, uprising, AI), strong but very expensive (UNITS.marine).
+ * Amphibious (ability 'amphibious'): landing from a ship leaves the unit ready, it may still attack in the same turn (not
+ * move on: the move is used up). Meridon's firepower on land (FIREPOWER) applies to them as well.
  */
-export const TWIN_TRAINING = {
-  units: { meridon: ['infantry'] } as Partial<Record<FactionId, UnitTypeId[]>>,
+export const MARINES = {
+  faction: 'meridon' as FactionId,
+  unit: 'marine' as UnitTypeId,
+  /**
+   * KI: Zielanteil der Marines an der Armee (mit Schattenkommando, allein) und Qualitaet beim Vergleich der Typen.
+   * AI: target share of marines in the army (with the Shadow Commando, alone) and quality when comparing types.
+   */
+  ai: { share: 0.25, shareAlone: 0.45, quality: 1.1 },
 };
 
 /**
@@ -719,9 +737,9 @@ export const WITHDRAW = {
 
 /**
  * Feuerkraft je Fraktion (Faktor auf den Schaden von Angriff und Gegenschlag, wie die anderen Fraktionsfaktoren vor dem
- * Trefferglueck). Meridon: Landeinheiten -10 % (Tuning 3, vorher -15 %); Schiffe, Lenkflugkoerper (exempt) und das Raketensilo (Bauwerk) nicht.
+ * Trefferglueck). Meridon: Landeinheiten -10 % (Tuning 3, vorher -15 %; auch die Marines); Schiffe, Lenkflugkoerper (exempt) und das Raketensilo (Bauwerk) nicht.
  * Firepower per faction (factor on the damage of attack and return fire, like the other faction factors before hit luck).
- * Meridon: land units -10 % (tuning 3, before -15 %); ships, Guided Missiles (exempt) and the rocket silo (structure) are not affected.
+ * Meridon: land units -10 % (tuning 3, before -15 %; marines too); ships, Guided Missiles (exempt) and the rocket silo (structure) are not affected.
  */
 export const FIREPOWER = {
   land: { meridon: 0.9 } as Partial<Record<FactionId, number>>,
@@ -772,7 +790,7 @@ export const RADAR = {
 };
 
 /**
- * Raketensilo (Meridon, statt Panzer): Bauwerk wie die Geschuetzstellung (Tile.turret mit owner und kind 'silo'): Pioniere
+ * Raketensilo (Meridon, statt Panzerwerk und Artillerie): Bauwerk wie die Geschuetzstellung (Tile.turret mit owner und kind 'silo'): Pioniere
  * bauen es auf ein freies Nachbarfeld im eigenen Gebiet, hoechstens perCity je eigener Stadt und max insgesamt, Mindestabstand
  * minSpacing; unpassierbar, angreifbar (kein Gegenschlag, feuert nie von selbst), geschleift bei Gebietsverlust.
  * Start: ein Zielfeld in Reichweite launchRange (Schachbrett-Abstand vom Silo, aufgedeckt); die Rakete trifft die 2x2-Flaeche
@@ -788,11 +806,23 @@ export const RADAR = {
  * (own ones too, no roll; units at peace block the launch as for the orbital laser) and on guns; cities and buildings stay.
  * Land tiles then burn for fireRounds rounds: at the start of each of those rounds every unit on a burning tile loses
  * fireDamage HP. After a launch the silo is locked for cooldown rounds (after building, charge rounds).
+ * Kauf (Spielerwunsch: Silos statt Panzerfabrik): ein Silo baut einmal je Zug eine Einheit aus units (Lenkflugkoerper) zum
+ * Preis aus UNITS, unabhaengig vom Start (eigene Sperre Tile.turret.bought, die Ladezeit des Starts bleibt unberuehrt). Die
+ * Einheit erscheint auf einem freien Nachbarfeld des Silos an Land (eigenes Gebiet zuerst) und gehoert zur Stadt, in deren
+ * Gebiet das Silo steht (Limit und Sold wie bei einer dort ausgebildeten Einheit; volle Stadt: ein Versorger traegt sie).
+ * Staedte bilden diese Einheiten nie aus, auch kein eroberter Stuetzpunkt (Panzerfabrik und Geschuetzwerk bringen Meridon
+ * Ersatz-Sterne, BASES.gap): das Silo ist die einzige Quelle.
+ * Purchase (player request: silos instead of a tank factory): a silo builds one unit from units (Guided Missile) per turn
+ * at its UNITS price, independent of the launch (own lock Tile.turret.bought, the launch charge is untouched). The unit
+ * appears on a free adjacent land tile of the silo (own territory first) and belongs to the city in whose territory the
+ * silo stands (limit and upkeep as for a unit trained there; full city: a supplier supports it). Cities never train
+ * these units, no captured base either (tank factory and gun works give Meridon substitute stars, BASES.gap): the silo is
+ * the only source.
  */
 export const SILO = {
   factions: ['meridon'] as FactionId[],
   builders: ['pioneer'] as UnitTypeId[],
-  cost: 60,
+  cost: 50,
   hp: 20,
   attack: 0,
   defense: 2.5,
@@ -811,6 +841,8 @@ export const SILO = {
   fireDamage: 2,
   cooldown: 3,
   charge: 1,
+  /** Einheiten, die das Silo baut (statt der Staedte) / units the silo builds (instead of the cities) */
+  units: ['guidedMissile'] as UnitTypeId[],
   /**
    * KI: Start ab Nettowert minValue (wie ORBITAL.ai), eigene Einheiten ownWeight-fach negativ; Bau erst ab minCities Staedten
    * und armyShare der Wunscharmee, direkt mit reserve Sternen Polster, sonst als Sparziel (Wert buyValue x Preis, bis zu
@@ -819,7 +851,12 @@ export const SILO = {
    * cities and armyShare of the desired army, directly with a reserve star cushion, otherwise as a savings goal (value
    * buyValue x price, up to saveRounds rounds of income).
    */
-  ai: { minValue: 6, ownWeight: 2.5, killBonus: 1, damageWeight: 1.5, fireWeight: 0.5, gunWorth: 40, wonderInterrupt: 25, minCities: 2, reserve: 15, armyShare: 0.5, buyValue: 1.6, saveRounds: 4 },
+  ai: { minValue: 6, ownWeight: 2.5, killBonus: 1, damageWeight: 1.5, fireWeight: 0.5, gunWorth: 40, wonderInterrupt: 25, minCities: 2, reserve: 15, armyShare: 0.25, buyValue: 1.6, saveRounds: 4,
+    /**
+     * Kauf am Silo: Zielanteil der Lenkflugkoerper an der Armee (mit bekanntem Gegner, sonst quiet) und Wertfaktor des Kaufs.
+     * Purchase at the silo: target share of Guided Missiles in the army (with a known enemy, otherwise quiet) and value factor.
+     */
+    missileShare: 0.16, missileQuiet: 0.04, missileValue: 1 },
 };
 
 /**
@@ -828,12 +865,12 @@ export const SILO = {
  * von einem Nachbarfeld auf das leere Schiff zieht (danach wie beim Einschiffen: LP der Einheit, erschoepft).
  * Transportboote brauchen weder Marinestuetzpunkt noch Forschung (Menschen); Kult und NEXUS brauchen Kuestenwirtschaft
  * wie beim Einschiffen, die Zyrr waten und haben keine Schiffe. Kriegsschiffe kosten ihren Preis aus UNITS und brauchen
- * die Produktionsstaette (Menschen) bzw. die Forschung (andere) wie beim Aufruesten. Keine Zwillinge, keine Veteranen.
+ * die Produktionsstaette (Menschen) bzw. die Forschung (andere) wie beim Aufruesten. Keine Veteranen.
  * Shipyard of coastal cities: a city with water in its territory or right next to the city tile buys ships. The ship
  * appears empty (no carried unit) on a free water tile at the city; a land unit boards by moving from an adjacent tile
  * onto the empty ship (then as when embarking: the unit's HP, exhausted). Transport boats need neither a naval base nor
  * research (humans); the cult and NEXUS need coastal economy as for embarking, the Zyrr wade and have no ships. Warships
- * cost their UNITS price and need the production site (humans) or the research (others) as for upgrading. No twins, no veterans.
+ * cost their UNITS price and need the production site (humans) or the research (others) as for upgrading. No veterans.
  */
 export const SHIPYARD = {
   /** Kaufpreis des leeren Transportboots (UNITS.landingBoat.cost bleibt 0: Einschiffen am Stuetzpunkt ist frei) / price of the empty transport boat (UNITS.landingBoat.cost stays 0: embarking at a base is free) */
@@ -876,7 +913,7 @@ export const XENO = {
 export const LAND_UNITS: LandUnitId[] = ['infantry', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer'];
 export const SHIP_UPGRADES: ShipId[] = ['submarine', 'destroyer', 'battleship'];
 /** Infanterietypen fuer Aussenposten / infantry types for outposts */
-export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper', 'lightWarden', 'shadowCommando'];
+export const INFANTRY_TYPES: UnitTypeId[] = ['infantry', 'mg', 'sniper', 'pioneer', 'railSniper', 'lightWarden', 'shadowCommando', 'marine'];
 
 export const COMBAT = {
   damageFactor: 4.5,
@@ -1110,7 +1147,7 @@ export const REMAINS = {
   wreckDefenseBonus: 1,
   /** Wracks: alle Fahrzeuge und Flieger (Maschinen); Wunder-Bauwerke hinterlassen keins / wrecks: all vehicles and flyers (machines); wonder structures leave none */
   wreckUnits: [...VEHICLE_UNITS, ...AIR_UNITS] as UnitTypeId[],
-  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando'] as UnitTypeId[],
+  skeletonUnits: ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'antiTank', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando', 'marine'] as UnitTypeId[],
 };
 
 /** Panzersperre des Pioniertrupps / tank barrier of the pioneer squad */
@@ -1604,11 +1641,12 @@ export const PRODUCTION = {
    * armoury: it does not fit the motor pool, and in the barracks it would be available at the HQ from round 1.
    */
   units: {
-    trainingCamp: ['infantry', 'pioneer', 'medic', 'sniper', 'spy', 'steppeRider', 'peacekeeper', 'lightWarden', 'railSniper'],
+    trainingCamp: ['infantry', 'pioneer', 'medic', 'sniper', 'spy', 'steppeRider', 'peacekeeper', 'lightWarden', 'railSniper', 'marine'],
     armory: ['mg', 'antiTank', 'mineLayer', 'antiAir', 'stormbreaker', 'shadowCommando'],
     motorPool: ['jeep', 'radarTruck'],
     tankWorks: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'protoWalker'],
-    foundry: ['artillery', 'sunLance', 'guidedMissile'],
+    // der Lenkflugkoerper kommt aus dem Raketensilo (SILO.units), nicht aus der Giesserei / the Guided Missile comes from the rocket silo (SILO.units), not the foundry
+    foundry: ['artillery', 'sunLance'],
     airfield: ['heli', 'octocopter'],
     // Transportboote brauchen keine Staette (SHIPYARD); der Stuetzpunkt bleibt Einschiffungsort / transport boats need no site (SHIPYARD); the base stays the embarking point
     navalBase: ['destroyer', 'privateer'],
@@ -2146,12 +2184,14 @@ export const BASES = {
     navalStation: ['landingBoat', 'destroyer', 'submarine', 'battleship'],
   } as Partial<Record<BaseKind, UnitTypeId[]>>,
   /**
-   * Hat eine Fraktion keine passende Einheit (Kult: keine Flieger, Zyrr: keine Schiffe, Meridon: keine Panzer), bringt ihr
-   * die Art stattdessen gapStars Sterne pro Runde. So ist keine Art fuer irgendeine Fraktion wertlos.
-   * Where a faction has no matching unit (cult: no aircraft, Zyrr: no ships, Meridon: no tanks), the kind gives it
-   * gapStars stars per round instead. So no kind is worthless for any faction.
+   * Hat eine Fraktion keine passende Einheit (Kult: keine Flieger, Zyrr: keine Schiffe, Meridon: weder Panzer noch
+   * Artillerie), bringt ihr die Art stattdessen gapStars Sterne pro Runde. So ist keine Art fuer irgendeine Fraktion wertlos.
+   * Meridon baut Lenkflugkoerper nur am Raketensilo (SILO.units), nie in einer eroberten Panzerfabrik.
+   * Where a faction has no matching unit (cult: no aircraft, Zyrr: no ships, Meridon: neither tanks nor artillery), the kind
+   * gives it gapStars stars per round instead. So no kind is worthless for any faction. Meridon builds Guided Missiles only
+   * at the rocket silo (SILO.units), never in a captured tank factory.
    */
-  gap: { tankFactory: ['meridon'], airbase: ['vesper'], navalStation: ['zyrr'] } as Partial<Record<BaseKind, FactionId[]>>,
+  gap: { tankFactory: ['meridon'], gunWorks: ['meridon'], airbase: ['vesper'], navalStation: ['zyrr'] } as Partial<Record<BaseKind, FactionId[]>>,
   gapStars: 3,
   /**
    * Fabrik und Zyrr (Spielerwunsch: die Zyrr bekommen dort einen eigenen Bonus): die Zyrr leben von Xeno-Boden (nur dort
@@ -2404,13 +2444,6 @@ export const AI = {
   kamikazeCost: 1,
   /** Kamikaze: Mindestwert eines Angriffs (Sterne-Gegenwert nach Abzug der Drohne) / kamikaze: minimum value of an attack (star equivalent after subtracting the drone) */
   kamikazeMin: 3,
-  /**
-   * Meridon "Zwei fuer einen": Wertfaktor einer Ausbildung, die zwei Einheiten bringt; passt nur eine (Limit, kein Feld),
-   * gilt der Faktor nicht (der zweite Platz waere verschenkt).
-   * Meridon "Two for One": value factor of a training that brings two units; if only one fits (limit, no tile), the factor
-   * does not apply (the second slot would be wasted).
-   */
-  twinValue: 1.8,
   /**
    * Korvat: Zuschlag auf den Wert des Panzerwerks, weil dort der Steppenkoloss entsteht (die Korvat haben selten Erz).
    * Korvat: bonus on the worth of the tank works because the Steppe Colossus is built there (Korvat rarely has ore).

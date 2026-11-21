@@ -26,15 +26,20 @@ function duel(o: { factions?: FactionId[]; size?: 11 | 14 | 16; stars?: number }
 }
 
 describe('Liste der Einheiten / unit roster', () => {
-  it('Meridon: kein Panzer, keine Artillerie, kein MG; Schattenkommando, Lenkflugkoerper und Radarwagen statt dessen', () => {
+  // Silos statt Panzerfabrik (Spielerwunsch): der Lenkflugkoerper kommt nur noch aus dem Raketensilo, Staedte melden 'siloOnly'
+  // (vorher aus der Geschuetzgiesserei); Marines statt Infanterie. Kauf am Silo: meridon-marines.test.ts
+  // silos instead of a tank factory (player request): the Guided Missile now only comes from the rocket silo, cities report
+  // 'siloOnly' (before: from the foundry); marines instead of infantry. Purchase at the silo: meridon-marines.test.ts
+  it('Meridon: kein Panzer, keine Artillerie, kein MG, keine Infanterie; Marines, Schattenkommando, Lenkflugkoerper (Silo) und Radarwagen statt dessen', () => {
     const { s, hq } = duel();
     const list = rosterUnits(s, 0);
-    for (const t of ['tank', 'artillery', 'mg'] as const) expect(list, t).not.toContain(t);
-    for (const t of ['shadowCommando', 'guidedMissile', 'radarTruck'] as const) expect(list, t).toContain(t);
+    for (const t of ['tank', 'artillery', 'mg', 'infantry'] as const) expect(list, t).not.toContain(t);
+    for (const t of ['marine', 'shadowCommando', 'guidedMissile', 'radarTruck'] as const) expect(list, t).toContain(t);
     expect(list.filter((t) => t === 'guidedMissile')).toHaveLength(1);
     giveSites(hq, 'armory', 'foundry', 'tankWorks', 'motorPool');
-    for (const t of ['tank', 'artillery', 'mg'] as const) expect(trainCheck(s, hq, t), t).toBe('invalid');
-    for (const t of ['shadowCommando', 'guidedMissile', 'radarTruck'] as const) expect(trainCheck(s, hq, t), t).toBe('ok');
+    for (const t of ['tank', 'artillery', 'mg', 'infantry'] as const) expect(trainCheck(s, hq, t), t).toBe('invalid');
+    for (const t of ['marine', 'shadowCommando', 'radarTruck'] as const) expect(trainCheck(s, hq, t), t).toBe('ok');
+    expect(trainCheck(s, hq, 'guidedMissile')).toBe('siloOnly');
     // Stadtbelohnung und Kampagne: statt Panzer ein Lenkflugkoerper / city reward and campaign: a Guided Missile instead of the tank
     expect(factionVariant(s, 0, 'tank')).toBe('guidedMissile');
     // andere Fraktionen behalten ihre Liste / other factions keep their roster

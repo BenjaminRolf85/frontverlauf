@@ -650,13 +650,10 @@ export class Controller {
             if (e.plunder && visible(c.x, c.y)) this.ui.fx('num', c.x, c.y, `+${e.plunder}`);
             break;
           }
-          // Meridon "Zwei fuer einen": die zweite Einheit erscheint sichtbar; nur eine, wenn Limit oder Platz fehlen
-          // Meridon "Two for One": the second unit appears visibly; only one if the limit or the space is missing
-          case 'train': {
+          // Raketensilo baut eine Einheit: sie erscheint sichtbar neben dem Silo / rocket silo builds a unit: it appears visibly next to the silo
+          case 'siloBuy': {
             const nu = unitById(s, e.unit);
-            if (!e.twin || !nu || nu.owner !== this.viewer) break;
-            if (e.twin === 'second') { if (visible(nu.x, nu.y)) this.ui.fx('levelUp', nu.x, nu.y); this.ui.toast(t('twin.trained', { unit: t(`units.${nu.type}`) }), 'people'); }
-            else if (e.twin !== 'twin') this.ui.toast(t(`twin.${e.twin}`), 'warning');
+            if (nu && visible(nu.x, nu.y)) { this.play('build'); this.ui.fx('levelUp', nu.x, nu.y); }
             break;
           }
           // Kult: Rekrut im Feld / cult: recruit in the field

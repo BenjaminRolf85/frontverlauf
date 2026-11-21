@@ -59,7 +59,7 @@ import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from '
 import { lightWarden, reliquary, sunLance } from './alveniaFaith';
 import { steppeColossus } from './korvatHeavy';
 import { cyborg, flameTank, kamikazeDrone } from './nexusSeries';
-import { fogCutter, guidedMissile, radarTruck, shadowCommando } from './shadowFleet';
+import { fogCutter, guidedMissile, marine, radarTruck, shadowCommando } from './shadowFleet';
 import { withGlow } from '../atmosphere';
 export { techParts, type TechPart } from './velkarTech';
 
@@ -155,6 +155,7 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'fogCutter': return fogCutter(faction, c ? carriedGeometry(c, faction) : null).build();
       case 'guidedMissile': return guidedMissile(faction).build();
       case 'radarTruck': return radarTruck(faction).build();
+      case 'marine': return marine(faction).build();
       // Konter-Einheiten / counter units
       case 'antiTank': return antiTank(faction).build();
       case 'antiAir': return antiAir(faction).build();
@@ -206,8 +207,8 @@ const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   infantry: 1.2, sniper: 1.2, pioneer: 1.2, mg: 1.25, medic: 1.25, spy: 0.92, antiTank: 1.2, scientist: 1.25,
   zealot: 1.2, torchbearer: 1.2, prophet: 1.25, faustZealot: 1.15, grey: 1.2, android: 1.2, cyborg: 1.2,
   shadowCommando: 0.95, railSniper: 1.2, lightWarden: 1.2,
-  // Helden und schwere Fusstruppen / heroes and heavy foot troops
-  steppeRider: 1.1, stormbreaker: 1.4, peacekeeper: 1.15, protoWalker: 1.1,
+  // Helden und schwere Fusstruppen (Marines: Elite, groesser als der Schuetze) / heroes and heavy foot troops (marines: elite, larger than the rifleman)
+  steppeRider: 1.1, stormbreaker: 1.4, marine: 1.3, peacekeeper: 1.15, protoWalker: 1.1,
   // Fahrzeuge: leichte Wagen kleiner, schwere Sonderbauarten groesser / vehicles: light cars smaller, heavy faction designs larger
   jeep: 1.0, radarTruck: 1.1, doomBuggy: 1.05, artillery: 1.1, rocketCart: 1.2, mech: 1.15,
   heli: 1.08, terraformer: 1.1, skimmer: 1.2, quadDrone: 1.25, spider: 1.15, titan: 1.15, doomCrawler: 1.2, tank: 1.1,
@@ -328,6 +329,7 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'shadowCommando': return shadowCommando(faction, true).build();
       case 'guidedMissile': return guidedMissile(faction, true).build();
       case 'radarTruck': return radarTruck(faction, true).build();
+      case 'marine': return marine(faction, true).build();
       default: return unitGeometry(type, faction, null).clone();
     }
   });

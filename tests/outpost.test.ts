@@ -16,8 +16,9 @@ function og() {
 }
 
 describe('Aussenposten bauen / building outposts', () => {
-  it('infantry types are infantry, MG, sniper and pioneer (plus the Velkar railgun marksman, the Alvenia Light Wardens and the Meridon Shadow Commando)', () => {
-    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'lightWarden', 'mg', 'pioneer', 'railSniper', 'shadowCommando', 'sniper']);
+  // Meridon-Marines ersetzen die Infanterie und bauen Aussenposten wie sie / Meridon marines replace the infantry and build outposts like it
+  it('infantry types are infantry, MG, sniper and pioneer (plus the Velkar railgun marksman, the Alvenia Light Wardens, the Meridon Shadow Commando and marines)', () => {
+    expect([...INFANTRY_TYPES].sort()).toEqual(['infantry', 'lightWarden', 'marine', 'mg', 'pioneer', 'railSniper', 'shadowCommando', 'sniper']);
   });
 
   it('every infantry type builds it for 25 stars on its own tile, also outside own borders', () => {

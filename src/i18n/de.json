@@ -161,7 +161,7 @@
       "leader": "Coralie Nerezza",
       "leaderTitle": "Admiralin der Handelsliga",
       "quote": "Die Welt hat uns aufs Meer verbannt. Jetzt kauft sie bei uns, ohne es zu wissen.",
-      "lore": "Vor dem Großen Stillstand war Meridon die führende Nation der Welt: Kultur, Wirtschaft, Börsen und Finanzen liefen über ihre Häfen. Ihre Spekulation half, den Zusammenbruch auszulösen. Dann kamen die Neue Ordnung und der Abschuss des Raumschiffs; die Elite floh aufs Meer, kaufte mit ihrem Geld ganze Flotten und verschanzte sich dort. Heute arbeitet die Handelsliga im Verborgenen. Admiralin Coralie Nerezza führt eine Schattenflotte aus Nebelkuttern, Kommandos und Raketen, und ihre Spione wissen alles, bevor es geschieht. Aus den Kontoren der alten Liga ging einst auch das Reich der Verdan hervor.",
+      "lore": "Vor dem Großen Stillstand war Meridon die führende Nation der Welt: Kultur, Wirtschaft, Börsen und Finanzen liefen über ihre Häfen. Ihre Spekulation half, den Zusammenbruch auszulösen. Dann kamen die Neue Ordnung und der Abschuss des Raumschiffs; die Elite floh aufs Meer, kaufte mit ihrem Geld ganze Flotten und verschanzte sich dort. Heute arbeitet die Handelsliga im Verborgenen. Admiralin Coralie Nerezza führt eine Schattenflotte aus Nebelkuttern, Marines, Kommandos und Raketen, und ihre Spione wissen alles, bevor es geschieht. Aus den Kontoren der alten Liga ging einst auch das Reich der Verdan hervor.",
       "style": "Häfen, Gold, Nebel, Spione, Schattenflotte",
       "aiStyle": "Schlägt aus dem Verborgenen zu und setzt sich wieder ab, lenkt über See ab, sabotiert Straßen und Außenposten und schießt Raketen aus dem Hinterland.",
       "perk2": "Lotsenwesen",
@@ -169,9 +169,9 @@
       "drawback": "Korruption",
       "drawbackDesc": "Zufallsereignis: Zu Beginn des Zuges zweigen Beamte mit {corruptionChance} % Chance {corruptionPct} % der Sterne ab (abgerundet, mind. {corruptionMin}, höchstens {corruptionMax}), höchstens {corruptionCap}-mal in {corruptionWindow} Runden. Nur mit Zufallsereignissen. Wer ausgibt, verliert weniger.",
       "feature": "Schattenflotte",
-      "featureDesc": "Getarnt sind nur das Schattenkommando (statt MG) und der Nebelkutter (statt Landungsboot). Nach einem eigenen Angriff ohne vorherige Bewegung setzen sich Landeinheiten bis zu {withdrawTiles} Felder ab. Statt Panzern baut Meridon Raketensilos ({siloCost} Sterne): Rakete auf {siloRange} Felder, {siloDamage} Schaden an allem in 2×2 Feldern, danach {siloFireRounds} Runden Brand mit {siloFireDamage} Schaden je Runde, alle {siloCooldown} Runden ein Start. Statt Artillerie fliegt der Lenkflugkörper, der Radarwagen sieht auch unter die Wolken. Dafür machen Landeinheiten {firepowerPct} % weniger Schaden.",
-      "feature2": "Zwei für einen",
-      "feature2Desc": "Bildet eine Stadt Infanterie aus, kommen zwei Soldaten zum Preis von einem; der zweite erscheint auf einem freien Nachbarfeld (eigenes Gebiet zuerst). Beide kosten Sold und belegen das Stadtlimit. Passt nur einer, kommt nur einer."
+      "featureDesc": "Getarnt sind nur das Schattenkommando (statt MG) und der Nebelkutter (statt Landungsboot). Nach einem eigenen Angriff ohne vorherige Bewegung setzen sich Landeinheiten bis zu {withdrawTiles} Felder ab. Meridon baut weder Panzer noch Artillerie, sondern Raketensilos ({siloCost} Sterne): Jedes Silo baut einen Lenkflugkörper je Zug ({missileCost} Sterne) und startet alle {siloCooldown} Runden eine Rakete auf {siloRange} Felder, {siloDamage} Schaden an allem in 2×2 Feldern, danach {siloFireRounds} Runden Brand mit {siloFireDamage} Schaden je Runde. Der Radarwagen sieht auch unter die Wolken. Dafür machen Landeinheiten {firepowerPct} % weniger Schaden.",
+      "feature2": "Marines",
+      "feature2Desc": "Statt gewöhnlicher Soldaten bildet die Kaserne Marines aus: {marineHp} LP, Angriff {marineAtk}, Verteidigung {marineDef}, aber {marineCost} Sterne statt {infantryCost}. Amphibisch: Wer von einem Schiff an Land geht, darf im selben Zug noch angreifen."
     },
     "velkar": {
       "name": "Technokratie Velkar",
@@ -307,7 +307,8 @@
     "shadowCommando": "Schattenkommando",
     "fogCutter": "Nebelkutter",
     "guidedMissile": "Lenkflugkörper",
-    "radarTruck": "Radarwagen"
+    "radarTruck": "Radarwagen",
+    "marine": "Marines"
   },
   "unitDesc": {
     "infantry": "Billiges Rückgrat jeder Armee: hält Städte und Außenposten.",
@@ -369,8 +370,9 @@
     "kamikazeDrone": "Kleine Laufdrohne mit Sprengladung: läuft {droneMove} Felder pro Zug und explodiert beim Angriff. Das Ziel schlägt nicht zurück, die Drohne ist danach zerstört. Besonders verheerend gegen menschliche Fußtruppen und Zyrr.",
     "shadowCommando": "Leichte Fußtruppe der Schattenflotte statt des MG: zieht {commandoMove} Felder und ist getarnt. Gegner sehen das Kommando nur, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht; nach einem Angriff oder einer Sabotage bleibt es bis zu deinem nächsten Zug enttarnt. Schwacher Angriff, dafür Sabotage: zerstört einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben, danach {sabotageCooldown} Runden Pause. Kommt aus dem Rüstungswerk.",
     "fogCutter": "Getarntes Transportboot der Meridon statt des Landungsboots: in jeder Küstenstadt leer zu kaufen, eine Landeinheit steigt von einem Nachbarfeld ein. Gegner sehen den Kutter nur mit eigener Einheit, Stadt oder eigenem Bauwerk daneben. Fährt mit dem Lotsenwesen {pilotsMove} Feld weiter. Greift nicht an.",
-    "guidedMissile": "Einmalige Rakete statt Artillerie und Panzer: fliegt {missileMove} Felder über Land und Wasser und explodiert beim Angriff an einem einzigen Ziel. Das Ziel schlägt nicht zurück, es gibt keinen Abzug nach Bewegung, danach ist der Flugkörper verbraucht. Flak holt ihn herunter. Kommt aus der Geschützgießerei.",
-    "radarTruck": "Unbewaffneter Wagen mit Radarschüssel. Radarimpuls: {radarRounds} Runden lang siehst du alle feindlichen Einheiten im Umkreis {radarRadius} um den Wagen, auch getarnte, getauchte und Spione, und auch unter den Wolken; die Felder selbst bleiben unerkundet. Danach {radarCooldown} Runden Pause. Kommt aus dem Fahrzeugwerk."
+    "guidedMissile": "Einmalige Rakete: fliegt {missileMove} Felder über Land und Wasser und explodiert beim Angriff an einem einzigen Ziel. Das Ziel schlägt nicht zurück, es gibt keinen Abzug nach Bewegung, danach ist der Flugkörper verbraucht. Flak holt ihn herunter. Kommt aus dem Raketensilo: Jedes Silo baut einen je Zug ({missileCost} Sterne).",
+    "radarTruck": "Unbewaffneter Wagen mit Radarschüssel. Radarimpuls: {radarRounds} Runden lang siehst du alle feindlichen Einheiten im Umkreis {radarRadius} um den Wagen, auch getarnte, getauchte und Spione, und auch unter den Wolken; die Felder selbst bleiben unerkundet. Danach {radarCooldown} Runden Pause. Kommt aus dem Fahrzeugwerk.",
+    "marine": "Elite-Fußtruppe der Handelsliga statt der Infanterie: {marineHp} LP, Angriff {marineAtk} und Verteidigung {marineDef} (Infanterie: {infantryHp}, {infantryAtk} und {infantryDef}), aber sehr teuer: {marineCost} statt {infantryCost} Sterne, entsprechend mehr Sold. Amphibisch: Wer von einem Schiff an Land geht, bleibt bereit und darf im selben Zug noch angreifen. Nimmt Städte und Außenposten ein. Kommt aus der Kaserne."
   },
   "abilities": {
     "dash": "Sturm",
@@ -436,7 +438,9 @@
     "sabotage": "Sabotage",
     "sabotageDesc": "Zerstört einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben; nie Städte. Kostet die Aktion, danach {sabotageCooldown} Runden Pause.",
     "radar": "Radarimpuls",
-    "radarDesc": "{radarRounds} Runden alle feindlichen Einheiten im Umkreis {radarRadius} sehen, auch unter den Wolken; danach {radarCooldown} Runden Pause."
+    "radarDesc": "{radarRounds} Runden alle feindlichen Einheiten im Umkreis {radarRadius} sehen, auch unter den Wolken; danach {radarCooldown} Runden Pause.",
+    "amphibious": "Amphibisch",
+    "amphibiousDesc": "Anlanden von einem Schiff erschöpft nicht: Die Einheit darf im selben Zug noch angreifen, aber nicht weiterziehen."
   },
   "stats": {
     "cost": "Kosten",
@@ -842,7 +846,9 @@
     "radarCooldown": "Das Radar ist noch nicht wieder bereit.",
     "noTarget": "Dort gibt es nichts zu sabotieren.",
     "siloLimit": "Keine weiteren Silos möglich.",
-    "noTraining": "Wohnblöcke und Supermärkte bilden keine Truppen aus."
+    "noTraining": "Wohnblöcke und Supermärkte bilden keine Truppen aus.",
+    "siloOnly": "Diese Einheit baut nur das Raketensilo.",
+    "noRoom": "Kein freies Feld für die neue Einheit."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -1822,7 +1828,8 @@
       "shadowCommando": "Kartoffelschatten",
       "fogCutter": "Nebelfähre",
       "guidedMissile": "Kolchos-Rakete",
-      "radarTruck": "Lauschtraktor"
+      "radarTruck": "Lauschtraktor",
+      "marine": "Matrosengarde"
     },
     "dravon": {
       "infantry": "Sturmhauben",
@@ -1885,7 +1892,8 @@
       "shadowCommando": "Schattenrotte",
       "fogCutter": "Nebelboot",
       "guidedMissile": "Einweggranate",
-      "radarTruck": "Horchposten-Wagen"
+      "radarTruck": "Horchposten-Wagen",
+      "marine": "Entermannschaft"
     },
     "alvenia": {
       "infantry": "Gemeindewache",
@@ -1948,7 +1956,8 @@
       "shadowCommando": "Verirrte Schatten",
       "fogCutter": "Nebelbarke",
       "guidedMissile": "Fallender Funke",
-      "radarTruck": "Wachendes Ohr"
+      "radarTruck": "Wachendes Ohr",
+      "marine": "Wellenritter"
     },
     "meridon": {
       "infantry": "Hafenwache",
@@ -2011,7 +2020,8 @@
       "shadowCommando": "Schattenteilhaber",
       "fogCutter": "Nebelkutter",
       "guidedMissile": "Fernüberweisung",
-      "radarTruck": "Börsenlauscher"
+      "radarTruck": "Börsenlauscher",
+      "marine": "Teure Jungs"
     },
     "velkar": {
       "infantry": "Laborwache",
@@ -2074,7 +2084,8 @@
       "shadowCommando": "Tarnprobe",
       "fogCutter": "Dunstkutter",
       "guidedMissile": "Lenkprojektil V",
-      "radarTruck": "Peilwagen"
+      "radarTruck": "Peilwagen",
+      "marine": "Tauchgrenadiere"
     },
     "zyrr": {
       "infantry": "Drohnling",
@@ -2137,7 +2148,8 @@
       "shadowCommando": "Schattenhaut",
       "fogCutter": "Nebelschwimmer",
       "guidedMissile": "Fliegende Spore",
-      "radarTruck": "Lauschknoten"
+      "radarTruck": "Lauschknoten",
+      "marine": "Salzwasserprobe"
     },
     "vesper": {
       "infantry": "Büßer",
@@ -2200,7 +2212,8 @@
       "shadowCommando": "Schattenbüßer",
       "fogCutter": "Nebelfloß",
       "guidedMissile": "Feuerbote",
-      "radarTruck": "Ohr des Endes"
+      "radarTruck": "Ohr des Endes",
+      "marine": "Ertrunkene Büßer"
     },
     "nexus": {
       "infantry": "Bioeinheit H-1 Fußtrupp",
@@ -2263,7 +2276,8 @@
       "shadowCommando": "Einheit S-0 Verdeckt",
       "fogCutter": "Einheit N-2 Nebel",
       "guidedMissile": "Einheit G-5 Lenkung",
-      "radarTruck": "Einheit R-6 Radar"
+      "radarTruck": "Einheit R-6 Radar",
+      "marine": "Bioeinheit M-2 Seefußtrupp"
     }
   },
   "identity": {
@@ -3670,7 +3684,7 @@
     },
     "shadowFleet": {
       "title": "Schattenflotte (Meridon)",
-      "text": "Getarnt sind nur das Schattenkommando und der Nebelkutter: Gegner sehen sie erst, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht, und nach einem eigenen Angriff oder einer Sabotage bis zum nächsten eigenen Zug. Radarimpuls, Aufklärungsdrohne und Funkturm finden sie. Absetzen: Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdraw} Felder zurück und greift danach nicht mehr an. Meridon baut keine Panzer, sondern Raketensilos: Pioniere bauen eins für {cost} Sterne auf ein freies Nachbarfeld im eigenen Gebiet, höchstens {per} je Stadt und {max} insgesamt, {spacing} Felder Abstand. Das Silo startet auf Befehl eine Rakete auf ein aufgedecktes Feld (oder ein Feld im Radarimpuls) in {range} Feldern Abstand: {dmg} Schaden an jeder Einheit in der 2×2-Fläche aus Zielfeld, rechts, unten und diagonal, auch an eigenen; Städte und Gebäude bleiben. Die Landfelder ohne Stadt brennen danach {fire} Runden: Zu Beginn jeder Runde verliert jede Einheit darauf {burn} LP. Danach {cd} Runden Nachladen. Der Lenkflugkörper ersetzt die Artillerie (die Stadtbelohnung „Panzer“ bringt {rewardMissiles} Lenkflugkörper), der Radarwagen zeigt {rr} Runden lang alle feindlichen Einheiten im Umkreis {radius}, auch unter den Wolken ({rcd} Runden Pause). Das Schattenkommando sabotiert einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben ({scd} Runden Pause). Dafür machen Meridon-Landeinheiten {weak} % weniger Schaden; Schiffe und der Marinestützpunkt kosten {sea} % weniger."
+      "text": "Getarnt sind nur das Schattenkommando und der Nebelkutter: Gegner sehen sie erst, wenn eine ihrer Einheiten, Städte oder Bauwerke direkt daneben steht, und nach einem eigenen Angriff oder einer Sabotage bis zum nächsten eigenen Zug. Radarimpuls, Aufklärungsdrohne und Funkturm finden sie. Absetzen: Nach einem eigenen Angriff ohne vorherige Bewegung weicht eine Landeinheit bis zu {withdraw} Felder zurück und greift danach nicht mehr an. Statt Infanterie bildet die Kaserne Marines aus ({marineCost} Sterne, {marineHp} LP, Angriff {marineAtk}, Verteidigung {marineDef}); sie sind amphibisch und dürfen nach dem Anlanden im selben Zug noch angreifen. Meridon baut weder Panzer noch Artillerie, sondern Raketensilos: Pioniere bauen eins für {cost} Sterne auf ein freies Nachbarfeld im eigenen Gebiet, höchstens {per} je Stadt und {max} insgesamt, {spacing} Felder Abstand. Jedes Silo baut einmal je Zug einen Lenkflugkörper ({missileCost} Sterne) auf ein freies Feld daneben; er gehört zur Stadt, in deren Gebiet das Silo steht. Unabhängig davon startet das Silo auf Befehl eine Rakete auf ein aufgedecktes Feld (oder ein Feld im Radarimpuls) in {range} Feldern Abstand: {dmg} Schaden an jeder Einheit in der 2×2-Fläche aus Zielfeld, rechts, unten und diagonal, auch an eigenen; Städte und Gebäude bleiben. Die Landfelder ohne Stadt brennen danach {fire} Runden: Zu Beginn jeder Runde verliert jede Einheit darauf {burn} LP. Danach {cd} Runden Nachladen. Die Stadtbelohnung „Panzer“ bringt {rewardMissiles} Lenkflugkörper; eroberte Panzerfabriken und Geschützwerke bringen Meridon Sterne statt Einheiten, Lenkflugkörper kommen nur aus dem Silo. Der Radarwagen zeigt {rr} Runden lang alle feindlichen Einheiten im Umkreis {radius}, auch unter den Wolken ({rcd} Runden Pause). Das Schattenkommando sabotiert einen feindlichen Außenposten, ein Gebäude oder eine Straße auf dem eigenen Feld oder daneben ({scd} Runden Pause). Dafür machen Meridon-Landeinheiten {weak} % weniger Schaden; Schiffe und der Marinestützpunkt kosten {sea} % weniger."
     },
     "bases": {
       "title": "Stützpunkte",
@@ -4086,13 +4100,6 @@
     "note": "Explodiert: die Drohne ist danach zerstört, kein Gegenschlag",
     "killed": "Kamikaze-Drohne explodiert"
   },
-  "twin": {
-    "label": "2x {unit}",
-    "desc": "Zwei für einen: eine zweite {unit} erscheint neben der Stadt. Preis einmal, beide kosten Sold und belegen das Stadtlimit.",
-    "limit": "Nur 1: das Stadtlimit lässt nur noch Platz für eine Einheit.",
-    "noRoom": "Nur 1: kein freies Feld neben der Stadt für die zweite Einheit.",
-    "trained": "Zwei für einen: 2x {unit} ausgebildet"
-  },
   "troops": {
     "title": "Truppen",
     "ships": "Schiffe: {city}",
@@ -4116,7 +4123,7 @@
       "name": "Raketensilo",
       "nameOf": "{name}-Raketensilo",
       "stats": "Panzerung {hp} / {max} · Raketenreichweite {range} · {dmg} Schaden auf 2×2 Felder",
-      "desc": "Festes Bauwerk von {name} statt Panzern, keine Einheit, unpassierbar, ohne Gegenschlag und feuert nie von selbst. Startet auf Befehl eine Rakete auf ein Feld in Reichweite {siloRange}: {siloDamage} Schaden an jeder Einheit in 2×2 Feldern, auch an eigenen, danach brennen die Landfelder {siloFireRounds} Runden mit {siloFireDamage} Schaden je Runde. Ein Start alle {siloCooldown} Runden. Geht das Gebiet verloren, wird das Silo geschleift.",
+      "desc": "Festes Bauwerk von {name} statt Panzerwerk und Artillerie, keine Einheit, unpassierbar, ohne Gegenschlag und feuert nie von selbst. Baut einmal je Zug einen Lenkflugkörper ({missileCost} Sterne) auf ein freies Feld daneben. Startet auf Befehl eine Rakete auf ein Feld in Reichweite {siloRange}: {siloDamage} Schaden an jeder Einheit in 2×2 Feldern, auch an eigenen, danach brennen die Landfelder {siloFireRounds} Runden mit {siloFireDamage} Schaden je Runde. Ein Start alle {siloCooldown} Runden. Geht das Gebiet verloren, wird das Silo geschleift.",
       "ready": "startbereit",
       "wait": "bereit in {n} Runden",
       "wait1": "bereit in 1 Runde",
@@ -4148,7 +4155,12 @@
       "ruin": "Trümmer eines Raketensilos",
       "burning": "Brand: noch {n} Runden, {dmg} Schaden je Runde zu Rundenbeginn",
       "fireHit": "Brand: {own} deiner Einheiten verlieren je {dmg} LP",
-      "every": "startet auf Befehl"
+      "every": "startet auf Befehl",
+      "buyTitle": "Silo baut",
+      "buyNote": "Erscheint auf einem freien Feld neben dem Silo und gehört zur Stadt, in deren Gebiet das Silo steht. Ein Kauf je Zug, unabhängig vom Raketenstart.",
+      "bought": "In diesem Zug schon gebaut. Wieder im nächsten Zug.",
+      "noRoom": "Kein freies Feld neben dem Silo.",
+      "onlyHere": "Nur am Raketensilo: Pioniere bauen es neben einer Stadt."
     },
     "camo": {
       "hidden": "Getarnt: Gegner sehen die Einheit nur mit Einheit, Stadt oder Bauwerk daneben.",

@@ -163,7 +163,8 @@ describe('m2: Aufbau / setup', () => {
     const away = defenseBonus(s, u);
     placeAt(s, u, spot(s));
     expect(defenseBonus(s, u)).toBeCloseTo(away + M2.hullCover);
-    const inf = s.units.find((x) => x.owner === 0 && x.type === 'infantry')!;
+    // Meridon: Marines statt Infanterie / Meridon: marines instead of infantry
+    const inf = s.units.find((x) => x.owner === 0 && (x.type === 'infantry' || x.type === 'marine'))!;
     placeAt(s, inf, spot(s));
     expect(hullCover(s, inf)).toBe(0);
     expect(hullCover(s, u)).toBe(M2.hullCover);
