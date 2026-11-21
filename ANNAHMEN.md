@@ -1323,3 +1323,69 @@ Diese Punkte ersetzen widersprechende Angaben weiter oben (Forschung schaltet Ei
 - EN: Budget: all models (56 types times 8 factions) high 2,307,606 to 2,375,996 (+3.0 %), low 2,072,903 to 2,047,979 (−1.2 %). Late-game scene (109 units, desktop 1280x800, whole map): high 1,224,521 to 1,234,081 triangles (+0.8 %, allowed +10 %), low 1,057,633 to 1,047,778 (−0.9 %); draw calls 976 to 978 and 949 to 952 (the same per unit, the two or three extra come from taller models at the screen edge that are no longer culled). Close view with 23 units: high 378,517 to 378,445, low 335,823 to 329,495. The limits in the budget test are raised for the rocket cart and the Shadow Commando (high) and the four extended models, all others unchanged; `UNIT_TRI_LIMIT` 9500 and `UNIT_TRI_LIMIT_BOSS` 16,500 stay.
 - EN: Size: the signature parts make some models taller; the comic enlargement (MAX_H 0.62 below the HP badge) compensates. Medic 1.25 to 1.16, radar truck 1.15 to 1.09; AA at most 0.61 tall, the Velkar prophet from 0.68 to 0.63. Placement on the tile, garrison in the city, HP badge and ring unchanged and checked in the game picture (medic as the garrison in the HQ).
 - EN: Unchanged (image comparison without units, animations off, desktop, two maps with an overview and a close view each, cities, bases, buildings, terrain, forests, volcanoes): 0 differing pixels in 4 of 4 image pairs. Wrecks on the map use the unit models and change with them (they are removed for the comparison).
+
+## Typ-Symbol an der Lebenspunkte-Plakette / Unit-type icon on the HP badge
+
+- Jede Einheit trägt links auf ihrer LP-Plakette eine Symbolkappe: ein Tuschekreis (Durchmesser 54 Canvas-Pixel, so hoch wie das Schild) mit dem hellen Symbol ihrer Rolle (42 Pixel), wie das Symbolschild der Stützpunkte. Tusche mit hellem Symbol ist auf jeder Fraktionsfarbe lesbar; die Kappe überdeckt die Tuschekante am linken Ende, das Schild bleibt eine Pille.
+- Reihenfolge auf der Plakette: Symbol, Zahl, Veteranenstern, Sündenzeichen. Der Veteranenstern wandert dafür von links nach rechts hinter die Zahl. Zahl (44 Pixel), Schildhöhe (52), Lage über der Einheit und Weltmaßstab je Canvas-Pixel bleiben wie bisher; der Canvas ist nur noch so breit wie sein Inhalt. Die Plakette wird dadurch um die Kappe breiter (eine Plakette "10" etwa so breit wie bisher eine Veteranen-Plakette), aber nicht höher; das Fadenkreuz eines Ziels liegt mittig und lässt das Symbol links frei.
+- Die Rolle folgt der Aufgabe im Kampf (Fähigkeiten, Reichweite), nicht dem Modell: gleiche Rolle = gleiches Symbol bei allen Fraktionen. 25 Rollen, alle mit verschiedenen Symbolen. Die Zuordnung steht in src/ui/unitRoles.ts (UNIT_ROLE, vollständig durch den Typ erzwungen, dazu ein Test über alle Kauflisten):
+  - Infanterie (Stahlhelm): Infanterie, Lichtschützen, Graue, Eiferer, Androiden, Cyborgs, Steppenreiter, Ordenswacht, Sturmbrecher
+  - Scharfschützen (Zielfernrohr): Scharfschütze, Railgun-Schütze
+  - Maschinengewehr (drei Patronen): MG
+  - Panzerabwehr (Panzerfaust-Geschoss): Panzerabwehr-Trupp, Panzerfaust-Eiferer
+  - Flammenwerfer (Flamme, Fähigkeit "burn"): Flammenjünger, Flammenwerferpanzer
+  - Heiler (Kreuz): Sanitäter, Prophet
+  - Pioniere und Bauer (Spaten): Pionier, Terraformer
+  - Spion (Augenmaske): Spion
+  - Kommando (Kampfmesser): Schattenkommando
+  - Wissenschaftler (Kolben): Wissenschaftler
+  - Artillerie (große Granate; Fernkampf ab Reichweite 3 ohne Gegenschlag): Artillerie, Raketen-Pickup, Railgun-Plattform, Sonnenlanze
+  - Panzer (Panzer von der Seite): Panzer, Tesla-Panzer, Reliquiar, Steppenkoloss, Weltenwalze
+  - Läufer und Mechs (Rumpf auf Beinen): Kampfmech, Todesstrahl-Läufer, Titan, Spinnenbot, Prototyp-Läufer
+  - Flugabwehr (Doppelrohr mit Sprengwolke): Flakpanzer, Flak-Drohne
+  - Minenleger (Mine): Minenleger
+  - Aufklärung (Fernglas): Jeep, Endzeit-Buggy
+  - Radar (Schüssel mit Wellen): Radarwagen
+  - Luftfahrzeuge (Flugzeug von oben): Kampfhubschrauber, Oktokopter, Schwebegleiter, Kampfdrohne
+  - Kamikaze (Explosion; explodiert beim Angriff): Kamikaze-Laufdrohne, Lenkflugkörper
+  - Transportboot (Rumpf mit Kiste): Landungsboot, Nebelkutter
+  - U-Boot (Rumpf mit Turm), Zerstörer und Kaperschiff (spitzer Aufbau), Kriegsschiff (Schlachtschiff, zwei Türme)
+  - Wunder (Pokal): Dimensionsportal, Hacker-Relais, Fusionskraftwerk, Landkreuzer Waal, Erdkernbohrer
+  - Endgegner (Krone): Schwarmmutter
+- Kampfdrohne und Schwebegleiter zählen als Luftfahrzeuge (sie fliegen), Kamikaze-Drohne und Lenkflugkörper als Kamikaze (das Wichtigste an ihnen ist, dass sie beim Angriff vergehen). Die einzigartigen Einheiten bekommen kein eigenes Heldensymbol, sondern das ihrer Rolle.
+- Artillerie zeigt eine Granate statt eines Geschützes: klein war das schräge Rohr nicht vom schrägen Panzerfaust-Geschoss zu unterscheiden. Ein Fadenkreuz kommt nur für Scharfschützen in Frage und ist ein Fernrohr ohne äußere Striche, damit es nicht wie die Zielmarke aussieht.
+- Die neuen Symbole stehen in icons.ts (role...), kräftig und meist gefüllt, damit sie auch winzig lesbar bleiben. Kaufleiste, Fraktionsprofil und Rekrutieren nutzen UNIT_ICON, das jetzt aus den Rollen abgeleitet ist: dort ersetzen die Rollensymbole die bisherigen, teils zufälligen Symbole (Artillerie war ein Blitz, Hubschrauber ein Kanister). Das Einheitenfeld zeigt das Rollensymbol vor dem Typnamen (das 3D-Porträt verdeckte das alte Symbol). Die Regeln haben einen neuen Abschnitt "Einheitensymbole" mit Legende.
+- Speicher: Plaketten werden wie bisher je Schlüssel einmal gezeichnet und zwischengespeichert, nie je Bild. Mit dem Symbol gibt es je Typ eigene Plaketten; der Zwischenspeicher wird deshalb begrenzt (BADGE.cacheMax = 160): darüber werden alle nicht gezeigten Plaketten freigegeben.
+- Ehrlich: Auf dem Telefon bei ganzer Karte (16 x 16) ist das Symbol so wenig lesbar wie die Zahl daneben (wenige Pixel); es zeigt dort nur, dass eine Plakette da ist. Gut lesbar ist es ab Spielzoom.
+
+- Every unit carries an icon cap on the left of its HP badge: an ink disc (54 canvas pixels across, as tall as the pill) with the light icon of its role (42 pixels), like the icon badge of the bases. Ink with a light icon is readable on every faction colour; the cap covers the ink edge at the left end, the pill stays a pill.
+- Order on the badge: icon, number, veteran star, sinner mark. The veteran star moves from the left to behind the number for this. Number (44 pixels), pill height (52), position above the unit and world scale per canvas pixel stay as before; the canvas is now only as wide as its content. The badge gets wider by the cap (a "10" badge about as wide as a veteran badge used to be), but not taller; a target's crosshair sits in the middle and leaves the icon on the left free.
+- The role follows the job in combat (abilities, range), not the model: same role = same icon for every faction. 25 roles, all with different icons. The mapping lives in src/ui/unitRoles.ts (UNIT_ROLE, completeness enforced by the type, plus a test over every shop list):
+  - Infantry (steel helmet): infantry, Light Wardens, Greys, zealots, androids, cyborgs, Steppe Riders, Order Guard, Stormbreakers
+  - Snipers (scope): sniper, railgun marksman
+  - Machine gun (three cartridges): MG
+  - Anti-tank (rocket-propelled grenade): anti-tank squad, rocket zealot
+  - Flamethrowers (flame, ability burn): torchbearer, flamethrower tank
+  - Healers (cross): medic, prophet
+  - Engineers and builders (spade): pioneer, terraformer
+  - Spy (domino mask): spy
+  - Commando (combat knife): Shadow Commando
+  - Scientist (flask): scientist
+  - Artillery (big shell; ranged fire from range 3 without retaliation): artillery, rocket pickup, railgun platform, Sun Lance
+  - Tanks (tank side view): tank, Tesla tank, Reliquary, Steppe Colossus, doom crawler
+  - Walkers and mechs (hull on legs): battle mech, death-ray walker, titan, spider bot, Prototype Walker
+  - Anti-air (twin barrels with a flak burst): flak tank, flak drone
+  - Mine layer (mine): mine layer
+  - Recon (binoculars): jeep, doom buggy
+  - Radar (dish with waves): Radar Truck
+  - Aircraft (plane from above): attack helicopter, octocopter, hover skimmer, combat drone
+  - Kamikaze (explosion; explodes when attacking): kamikaze walker drone, Guided Missile
+  - Transport boat (hull with crate): landing boat, Fog Cutter
+  - Submarine (hull with tower), destroyer and privateer (pointed superstructure), battleship (two turrets)
+  - Wonder (trophy): portal, hack relay, fusion plant, Waal, earth-core drill
+  - Boss (crown): Swarm Mother
+- Combat drone and hover skimmer count as aircraft (they fly), the kamikaze drone and the Guided Missile as kamikaze (what matters most is that they are spent when attacking). The unique units get no hero icon of their own but the one of their role.
+- Artillery shows a shell rather than a gun: at small size the diagonal barrel could not be told apart from the diagonal anti-tank rocket. A crosshair is used for snipers only and is a scope without outer ticks so it does not look like the target marker.
+- The new icons live in icons.ts (role...), bold and mostly filled so they stay readable even tiny. The shop strip, the faction profile and recruiting use UNIT_ICON, which is now derived from the roles: there the role icons replace the former, partly arbitrary icons (artillery was a lightning bolt, the helicopter a fuel can). The unit panel shows the role icon before the type name (the 3D portrait hid the old icon). The rules have a new "Unit icons" section with a legend.
+- Memory: badges are drawn once per key and cached as before, never per frame. With the icon there are badges per type, so the cache is bounded (BADGE.cacheMax = 160): above that every badge not shown is released.
+- Honestly: on the phone with the whole map (16 x 16) the icon is as unreadable as the number next to it (a few pixels); there it only shows that a badge is present. It reads well from play zoom on.
