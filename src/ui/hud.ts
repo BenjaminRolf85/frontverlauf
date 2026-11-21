@@ -12,7 +12,7 @@ import {
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
-  emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
+  trueOwner, emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
   type City, type GameState, type Unit,
 } from '../core';
 import { emplacementCount, emplacementDesc, emplacementName, emplacementStats } from './emplacement';
@@ -31,6 +31,7 @@ import { victoryGoalText, wonderPanel } from './victory';
 import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
+import { cityHackHtml, hackCityAction, hackPlaceAction, hackTowerBuildAction, hackTowerTile, hijackSheet, hijackTag } from './hacking';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
@@ -123,7 +124,8 @@ export function unitNickname(f: FactionId, type: UnitTypeId): string {
 }
 /** Anzeigename einer Einheit: Spitzname ihrer Fraktion / display name of a unit: its faction's nickname */
 export function unitDisplayName(s: GameState, u: Unit): string {
-  const f = s.factions[u.owner]?.id;
+  // uebernommene Einheit (HACK.tower): Name nach dem eigentlichen Besitzer / taken-over unit (HACK.tower): name after the actual owner
+  const f = s.factions[trueOwner(u)]?.id;
   if (!f) return unitName(u);
   return u.carried ? `${unitNickname(f, u.type)} (${t('stats.carrying', { unit: unitNickname(f, u.carried) })})` : unitNickname(f, u.type);
 }
@@ -570,6 +572,8 @@ export class Hud {
     let sheet = '';
     if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.siloFrom && g.isHumanTurn) { const o = siloSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    // Hackturm: Zielauswahl "Einheit uebernehmen" (NEXUS) / hack tower: "take over unit" targeting (NEXUS)
+    else if (g.hackFrom && g.isHumanTurn) { const o = hijackSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `
@@ -681,13 +685,14 @@ export class Hud {
     if (!explored) {
       head = `<h3 class="display">${esc(t('hud.unexplored'))}</h3>`;
     } else if (tab === 'unit' && vUnit) {
-      const fid = s.factions[vUnit.owner].id;
+      // uebernommene Einheit: Bauart und Farben des eigentlichen Besitzers (HACK.tower) / taken-over unit: design and colours of the actual owner
+      const fid = s.factions[trueOwner(vUnit)].id;
       const st = UNITS[vUnit.type];
       // 3D-Portraet statt Symbol / 3D portrait instead of an icon
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub">${roleChip(vUnit.type)}<span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${hijackTag(s, vUnit)}${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
@@ -724,6 +729,9 @@ export class Hud {
         if (city.base) body += `${baseLineHtml(city.base, vf)}<p class="muted sheet-more">${esc(t('bases.likeCity'))}</p>`;
         if (city.tower) body += `<p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: TOWER.unitLimit }))}</p>`;
         body += lootTag(s, viewer, city);
+        // NEXUS: neutralen Ort fernuebernehmen (HACK) / NEXUS: remote takeover of the neutral place (HACK)
+        const hackAct = hackPlaceAction(s, city, g, (c) => this.err(c));
+        if (hackAct) this.actions.push(hackAct);
       } else if (isCultFaction(s, city.owner)) {
         // Kult-Stadt: keine Wirtschaft, nur Plaetze fuer die Horde / cult city: no economy, only slots for the horde
         const fid = s.factions[city.owner].id;
@@ -805,6 +813,12 @@ export class Hud {
       const ts = templeSheet(s, x, y)!;
       head = ts.head;
       body += ts.body;
+    } else if (explored && hackTowerTile(s, x, y, viewer, g, (c) => this.err(c))) {
+      // Hackturm (NEXUS): Ladezustand, gesteuerte Einheit, Uebernahme / hack tower (NEXUS): charge state, controlled unit, takeover
+      const ht = hackTowerTile(s, x, y, viewer, g, (c) => this.err(c))!;
+      head = ht.head;
+      body += ht.body;
+      this.actions.push(...ht.actions);
     } else if (explored && siloTile(s, x, y, viewer, g)) {
       // Raketensilo (Meridon): Ladezustand und Start / rocket silo (Meridon): charge state and launch
       const st = siloTile(s, x, y, viewer, g)!;
@@ -883,6 +897,13 @@ export class Hud {
       // eigener Marinestuetzpunkt: Schiffskarten der Stadt, zu der er gehoert / own naval base: ship cards of the city it belongs to
       const base = tile.building === 'navalBase' && tile.territory !== null ? cityById(s, tile.territory) : undefined;
       if (myTurn && base && base.owner === s.current && owner === s.current) this.setTroops(s, base, true);
+    }
+    // Stadt-Hack (NEXUS): Marke und Daten an fremden Staedten, Aktion fuer NEXUS am Zug / city hack (NEXUS): mark and data at foreign cities, action for NEXUS on turn
+    if (explored && city && city.owner !== null && (tab === 'city' || (tab === 'unit' && !vUnit))) {
+      // gleich unter dem Kopf, damit die Daten ohne Scrollen sichtbar sind / right below the head so the data shows without scrolling
+      body = cityHackHtml(s, city, viewer) + body;
+      const ca = hackCityAction(s, city, g, (c) => this.err(c));
+      if (ca) this.actions.push(ca);
     }
     const tabsAvail = [vUnit && explored ? 'unit' : '', city && explored ? 'city' : '', 'tile'].filter(Boolean);
     const switcher = tabsAvail.length > 1 ? `<div class="seg tabs" role="tablist">${tabsAvail.map((k) => `<button type="button" role="tab" data-action="tab-${k}" aria-pressed="${k === tab || (k === 'city' && tab === 'unit' && !vUnit)}">${esc(t(k === 'city' && supplyLines(s) ? 'actions.shaftActions' : `actions.${k}Actions`))}</button>`).join('')}</div>` : '';
@@ -1222,6 +1243,9 @@ export class Hud {
     }
     // gesperrte Gebaeude hinter den baubaren / locked buildings after the buildable ones
     this.actions.push(...locked);
+    // NEXUS: Hackturm auf diesem Feld (HACK.tower) / NEXUS: hack tower on this tile (HACK.tower)
+    const ht = hackTowerBuildAction(s, x, y, g, (c) => this.err(c));
+    if (ht) this.actions.unshift(ht);
     for (const id of GRAND_PROJECT_IDS) {
       if (!grandProjectCheck(s, f, id, x, y)) continue;
       this.actions.push({ id: `grand-${id}`, icon: 'grand', label: t(`grand.${id}`), cost: 0, enabled: true, variant: 'primary', run: () => void g.exec({ type: 'grandProject', id, x, y }) });

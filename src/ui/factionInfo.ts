@@ -28,7 +28,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 /** Symbol des Fraktionsmerkmals / icon of the faction feature */
 const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'silo', nexus: 'kamikaze' };
 /** Symbol des zweiten Fraktionsmerkmals (Meridon: Marines, Rollensymbol Infanterie) / icon of the second faction feature (Meridon: marines, infantry role icon) */
-const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'roleInfantry' };
+const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'roleInfantry', nexus: 'hack' };
 
 export interface FactionTrait { kind: 'perk' | 'unit' | 'discount' | 'upkeep' | 'building' | 'resource' | 'perk2' | 'combat' | 'feature' | 'drawback' | 'aim' | 'victory'; icon: string; label: string; value: string; desc: string }
 

@@ -18,6 +18,7 @@ import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacemen
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloBuyCheck, siloCheck, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
+import { applyCityHack, applyHack, applyHijack, buildHackTower, cityHackCheck, endHijacks, hackCheck, hackTowerCheck, hijackCheck, releaseHijacks, sweepHijacks, type HackKit } from './hacking';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
 import { canFace, faceTowards, facingTowards, spawnFacing } from './facing';
@@ -557,6 +558,8 @@ function checkElimination(s: GameState, ev: GameEvent[], cultOnly = false) {
     if (eliminatedNow(s, f.index)) {
       f.alive = false;
       f.eliminatedRound = s.round;
+      // Hacker scheidet aus: uebernommene Einheiten kehren vorher zurueck / hacker eliminated: taken-over units return first
+      releaseHijacks(s, f.index, ev, hackKit(s));
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
       for (const u of s.units.filter((o) => o.owner === f.index)) killUnit(s, u, null, ev, false);
       // Minen und Sperren verschwinden, Aussenposten werden frei / mines and barriers vanish, outposts are released
@@ -936,8 +939,8 @@ function wakeTurrets(s: GameState, ev: GameEvent[]) {
  */
 function processTurrets(s: GameState, ev: GameEvent[]) {
   for (const p of turretList(s)) {
-    // Raketensilos feuern nur auf Befehl / rocket silos only fire on command
-    if (!p.active || p.kind === 'silo') continue;
+    // Raketensilos feuern nur auf Befehl, Hacktuerme nie / rocket silos only fire on command, hack towers never
+    if (!p.active || p.kind === 'silo' || p.kind === 'hack') continue;
     const G = gunStats(p);
     const u = p.owner !== undefined ? emplacementTarget(s, p) : turretTarget(s, p);
     if (!u) continue;
@@ -1081,7 +1084,8 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
   ev.push({ t: 'bunker', x: u.x, y: u.y, reward, faction: f });
 }
 
-function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
+/** Einnahme durch u (eine Einheit oder, beim Hacken, nur die Fraktion) / capture by u (a unit or, when hacking, just the faction) */
+function captureCity(s: GameState, u: Pick<Unit, 'owner'>, c: City, ev: GameEvent[], hack = false) {
   const from = c.owner;
   // Kult: Pluenderung vor dem Besitzwechsel (Stufe der Stadt zaehlt) / cult: plunder before the change of owner (the city's level counts)
   const plunder = plunderValue(s, u.owner, c);
@@ -1109,7 +1113,7 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   // Zyrr nehmen eine Fabrik ein: Stadtfeld und Gebiet werden sofort zu Xeno-Boden (BASES.zyrrFactoryXeno)
   // the Zyrr capture a factory: city tile and territory turn to xeno ground at once (BASES.zyrrFactoryXeno)
   for (const p of factoryXenoTiles(s, c)) tileAt(s, p.x, p.y)!.xeno = true;
-  ev.push({ t: 'capture', city: c.id, faction: u.owner, from, ...(isCultFaction(s, u.owner) ? { plunder } : {}) });
+  ev.push({ t: 'capture', city: c.id, faction: u.owner, from, ...(isCultFaction(s, u.owner) ? { plunder } : {}), ...(hack ? { hack: true } : {}) });
   // Suende: Pluendern (Kult mit Beute) oder Erobern einer Stadt einer anderen Fraktion / sin: plundering (cult with loot) or capturing a city of another faction
   if (isCultFaction(s, u.owner) && plunder > 0) markSin(s, u.owner, 'plunder', ev);
   else if (from !== null && from !== u.owner) markSin(s, u.owner, 'capture', ev);
@@ -1353,6 +1357,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     if (u.owner !== f) return 'notYourUnit';
     return u;
   };
+  // uebernommene Einheiten (HACK.tower): nur ziehen, kaempfen und rasten / taken-over units (HACK.tower): only move, fight and rest
+  if ('unit' in cmd && typeof cmd.unit === 'number' && !HIJACK_COMMANDS.includes(cmd.type) && unitById(s, cmd.unit)?.hijack) return fail('hijacked');
   switch (cmd.type) {
     case 'move': {
       const u = ownUnit(cmd.unit);
@@ -1899,13 +1905,51 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       res = { ok: true, events: ev };
       break;
     }
+    case 'hack': {
+      // NEXUS: neutralen Ort fernuebernehmen (HACK.place) / NEXUS: remote takeover of a neutral place (HACK.place)
+      const c = cityById(s, cmd.city);
+      if (!c) return fail('invalidTarget');
+      const check = hackCheck(s, f, c);
+      if (check !== 'ok') return fail(check);
+      applyHack(s, f, c, ev, hackKit(s));
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'hackCity': {
+      // NEXUS: feindliche Stadt aufdecken, nicht einnehmen (HACK.city) / NEXUS: reveal a hostile city, not capture it (HACK.city)
+      const c = cityById(s, cmd.city);
+      if (!c) return fail('invalidTarget');
+      const check = cityHackCheck(s, f, c);
+      if (check !== 'ok') return fail(check);
+      applyCityHack(s, f, c, ev, { ...hackKit(s), sight: (g, x, y, r, rounds) => addSighting(s, g, x, y, r, rounds) });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'hackTower': {
+      const check = hackTowerCheck(s, f, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      buildHackTower(s, f, cmd.x, cmd.y, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'hijack': {
+      const target = unitById(s, cmd.target);
+      const check = hijackCheck(s, f, cmd.x, cmd.y, target);
+      if (check !== 'ok') return fail(check);
+      applyHijack(s, f, cmd.x, cmd.y, target!, ev, hackKit(s));
+      res = { ok: true, events: ev };
+      break;
+    }
     case 'endTurn': {
       if (s.pendingRewards.some((p) => cityById(s, p.cityId)?.owner === f)) return fail('pendingReward');
       endTurnProcessing(s, ev);
+      // Uebernahmen (HACK.tower) enden am Ende des Zuges der hackenden Fraktion / takeovers (HACK.tower) end at the end of the hacking faction's turn
+      endHijacks(s, f, ev, hackKit(s));
       advance(s, ev);
       if (s.campaign) evaluateCampaign(s, ev, true);
       wakeTurrets(s, ev);
       sweepEmplacements(s, ev);
+      sweepHijacks(s, ev, hackKit(s));
       res = { ok: true, events: ev };
       s.log.push(...ev.filter((e) => e.t !== 'move'));
       if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
@@ -1917,11 +1961,28 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
   // Kult: der letzte Mann kann im eigenen Zug fallen / cult: the last man can fall during the own turn
   if (res.ok && !s.over) checkElimination(s, ev, true);
   if (res.ok && !s.over) afterAction(s, f, ev);
-  if (res.ok) { wakeTurrets(s, ev); sweepEmplacements(s, ev); }
+  if (res.ok) { wakeTurrets(s, ev); sweepEmplacements(s, ev); sweepHijacks(s, ev, hackKit(s)); }
   if (res.ok && s.campaign) evaluateCampaign(s, ev, false);
   s.log.push(...ev.filter((e) => e.t !== 'move'));
   if (s.log.length > 300) s.log.splice(0, s.log.length - 300);
   return res;
+}
+
+/**
+ * Befehle, die eine vom Hackturm uebernommene Einheit ausfuehren darf (sonst 'hijacked'): ziehen, kaempfen, rasten.
+ * Commands a unit taken over by a hack tower may carry out (otherwise 'hijacked'): move, fight, rest.
+ */
+const HIJACK_COMMANDS: Command['type'][] = ['move', 'attack', 'attackTurret', 'retreat', 'rocket', 'heal', 'repair'];
+
+/** Interne Helfer fuer das Hacken (hacking.ts) / internal helpers for hacking (hacking.ts) */
+function hackKit(s: GameState): HackKit {
+  return {
+    kill: (u, e) => killUnit(s, u, null, e, false),
+    wreck: (u, e) => killUnit(s, u, null, e, true),
+    roll: () => nextRandom(s),
+    reveal: (f, x, y, r, e) => reveal(s, f, x, y, r, e),
+    capture: (f, c, e) => captureCity(s, { owner: f }, c, e, true),
+  };
 }
 
 /** Interne Helfer fuer die Schattenflotte (shadowFleet.ts) / internal helpers for the shadow fleet (shadowFleet.ts) */

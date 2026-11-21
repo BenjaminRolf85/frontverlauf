@@ -17,7 +17,8 @@ describe('Regeln / rules', () => {
       expect(html).not.toMatch(/\{\w+\}/);
       expect(html).not.toContain('rules.');
       // 20 Abschnitte: dazu Schiffe und Werft, die Schattenflotte der Meridon, die Stuetzpunkte und die Einheitensymbole / 20 sections: plus ships and shipyard, the Meridon shadow fleet, the bases and the unit icons
-      expect((html.match(/<details/g) ?? []).length).toBe(20);
+      // 21 Abschnitte: dazu "Hacken (NEXUS)" / 21 sections: plus "Hacking (NEXUS)"
+      expect((html.match(/<details/g) ?? []).length).toBe(21);
       expect(html).toContain('data-rule="bases"');
       expect(html).toContain('data-rule="shadowFleet"');
     });

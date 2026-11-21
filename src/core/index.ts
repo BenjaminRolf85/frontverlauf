@@ -25,3 +25,5 @@ export { WORLDS, worldOf, type WorldId } from './worlds';
 export * from './mothership';
 export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRandomEvent } from './events';
 export * from './shadowFleet';
+// Hacken der NEXUS: Fernuebernahme und Hackturm / NEXUS hacking: remote takeover and hack tower
+export * from './hacking';

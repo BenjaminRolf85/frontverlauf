@@ -118,7 +118,9 @@ const heroOrder = (a: HeroRecord, b: HeroRecord) =>
 /** Einheit gefallen (aus rules.ts killUnit) / unit fell (from rules.ts killUnit) */
 export function noteDeath(s: GameState, u: Unit) {
   const h = ensureHistory(s);
-  if (u.owner >= 0 && u.owner < h.losses.length) h.losses[u.owner]++;
+  // uebernommene Einheit (HACK.tower): Verlust des eigentlichen Besitzers / taken-over unit (HACK.tower): loss of the actual owner
+  const o = u.hijack?.from ?? u.owner;
+  if (o >= 0 && o < h.losses.length) h.losses[o]++;
   if (u.kills <= 0) return;
   h.fallen = h.fallen.filter((r) => r.id !== u.id);
   h.fallen.push({ id: u.id, type: u.type, faction: u.owner, kills: u.kills, veteran: u.veteran, alive: false, round: s.round });

@@ -4,7 +4,7 @@
  */
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
-  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
+  INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, HACK, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
@@ -192,8 +192,13 @@ export function upgradeUnitLimit(s: GameState, c: City): number {
   if (c.owner === null || c.tower || supplyLines(s) || isCultFaction(s, c.owner)) return 0;
   return cityUpgrades(c).length * CITY.unitLimitPerUpgrade;
 }
-// Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
-export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
+/**
+ * Eigentlicher Besitzer: bei einer vom Hackturm uebernommenen Einheit der Besitzer vor der Uebernahme (HACK.tower).
+ * Actual owner: for a unit taken over by a hack tower, the owner before the takeover (HACK.tower).
+ */
+export const trueOwner = (u: Unit): number => u.hijack?.from ?? u.owner;
+// Wunder zaehlen nicht zum Stadtlimit; uebernommene Einheiten belegen weiter ihren Platz / wonders do not count towards the city limit; taken-over units keep their slot
+export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && trueOwner(u) === c.owner && !isWonder(u)).length;
 
 export function levelUpCost(s: GameState, c: City): number {
   const cost = CITY.levelUpCost(c.level);
@@ -427,7 +432,8 @@ export function paidUnits(s: GameState, f: number): Unit[] {
   if (isCultFaction(s, f)) return [];
   // Wunder kosten keinen Sold und belegen kein Freikontingent / wonders cost no upkeep and take no free slot
   // Endgegner ebenso / bosses likewise
-  return s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u)).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
+  // vom Hackturm uebernommene Einheiten kosten niemanden Sold (HACK.tower) / units taken over by a hack tower cost nobody upkeep (HACK.tower)
+  return s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u) && !u.hijack).sort((a, b) => a.id - b.id).slice(UPKEEP.freeUnits);
 }
 /** Gesamtsold pro Runde / total upkeep per round */
 export function upkeep(s: GameState, f: number): number {
@@ -478,7 +484,8 @@ export function score(s: GameState, f: number): number {
   }
   for (const t of fa.techs) p += SCORE.techPerTier * TECHS[t].tier;
   if (isAlienFaction(s, f)) for (const c of ownCities(s, f)) for (const pos of cityTiles(s, c)) if (tileAt(s, pos.x, pos.y)!.xeno) p += XENO.tilePoints;
-  for (const u of ownUnits(s, f)) p += unitScore(u);
+  // uebernommene Einheiten zaehlen fuer den eigentlichen Besitzer / taken-over units count for the actual owner
+  for (const u of s.units) if (trueOwner(u) === f) p += unitScore(u);
   p += SCORE.grandProject * fa.grandProjectsBuilt.length;
   // Kult: Beute zaehlt dauerhaft / cult: loot counts permanently
   p += (fa.plunder ?? 0) * plunderScoreFor(s);
@@ -592,6 +599,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
           stop = true;
         } else if (!walkable(t)) {
           // eigenes leeres Schiff: einsteigen (wie Einschiffen: Kuestenwirtschaft fuer Nicht-Menschen) / own empty ship: board (as embarking: coastal economy for non-humans)
+          // uebernommene Einheiten schiffen nicht ein (HACK.tower) / taken-over units do not embark (HACK.tower)
+          if (u.hijack) continue;
           if (emptyShipAt(s, f, n.x, n.y) && canEmbark(s, f) && !has(u, 'wonder') && !isBoss(u)) {
             board = true; stop = true;
           } else if (t.building === 'navalBase' && territoryOwner(s, t) === f && canEmbark(s, f) && !has(u, 'wonder')) {
@@ -625,6 +634,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
       if (other && other.owner !== f) continue;
       // Spion darf feindliche Stadt betreten / spy may enter hostile cities
       const city = t.cityId !== null ? cityById(s, t.cityId)! : null;
+      // uebernommene Einheiten betreten keine Staedte (HACK.tower) / taken-over units enter no cities (HACK.tower)
+      if (city && u.hijack) continue;
       if (city && city.owner !== null && city.owner !== f && !isHostile(s, f, city.owner) && !has(u, 'uprising')) {
         // Stadt einer befriedeten Fraktion: nicht betretbar / city of faction at peace: not enterable
         continue;
@@ -1256,6 +1267,7 @@ export const canPersuadeFaction = (s: GameState, f: number) => !!s.config.campai
  */
 export function persuadeCheck(s: GameState, u: Unit, c: City): 'ok' | import('./types').ErrorCode {
   if (!canPersuadeFaction(s, u.owner)) return 'wrongFaction';
+  if (u.hijack) return 'hijacked';
   if (u.fresh) return 'fresh';
   if (u.exhausted || u.attacked) return 'unitExhausted';
   if (isShip(u) || has(u, 'wonder') || has(u, 'boss')) return 'cannotCapture';
@@ -1273,6 +1285,8 @@ export function persuadeTargets(s: GameState, u: Unit): City[] {
 }
 
 export function captureKind(s: GameState, u: Unit): CaptureKind | null {
+  // uebernommene Einheiten nehmen nichts ein (HACK.tower) / taken-over units capture nothing (HACK.tower)
+  if (u.hijack) return null;
   if (u.fresh || u.exhausted || u.moved || u.attacked) return null;
   if (u.x !== u.startX || u.y !== u.startY) return null;
   if (isShip(u) || has(u, 'fly') || has(u, 'uprising') || has(u, 'wonder') || has(u, 'boss')) return null;
@@ -1515,7 +1529,7 @@ export function grandProjectConditionMet(s: GameState, f: number, id: GrandProje
 export { GRAND_PROJECT_IDS };
 
 export function outpostCheck(s: GameState, u: Unit): 'ok' | 'techMissing' | 'invalidTile' | 'enemyTerritory' | 'outpostSpacing' | 'notEnoughStars' | 'cannotCapture' {
-  if (!INFANTRY_TYPES.includes(u.type)) return 'cannotCapture';
+  if (!INFANTRY_TYPES.includes(u.type) || u.hijack) return 'cannotCapture';
   if (u.fresh || u.exhausted || u.attacked) return 'cannotCapture';
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   const t = tileAt(s, u.x, u.y)!;
@@ -1901,7 +1915,7 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
 }
 
 export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' | 'buildingMissing' | 'noTraining' {
-  if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat' || to === 'fogCutter') return 'invalid';
+  if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat' || to === 'fogCutter' || u.hijack) return 'invalid';
   if (u.fresh) return 'invalid';
   // Fraktionsschiffe (Kaperschiff) nur fuer ihre Fraktion / faction ships (privateer) only for their faction
   if (UNITS[to].faction && UNITS[to].faction !== s.factions[u.owner].id) return 'invalid';
@@ -2019,7 +2033,7 @@ export type BarrierCheck = 'ok' | 'cannotBuild' | 'unitExhausted' | 'techMissing
 
 /** Kann die Einheit eine Panzersperre auf (x,y) bauen? / can the unit build a tank barrier on (x,y)? */
 export function barrierCheck(s: GameState, u: Unit, x: number, y: number): BarrierCheck {
-  if (!BARRIER.builders.includes(u.type)) return 'cannotBuild';
+  if (!BARRIER.builders.includes(u.type) || u.hijack) return 'cannotBuild';
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!hasTech(s, u.owner, 'fortification')) return 'techMissing';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
@@ -2295,7 +2309,8 @@ export type RecruitCheck = 'ok' | 'notPreacher' | 'unitExhausted' | 'recruitCool
 // ---------- Kult: Pluendern, Plaetze, Rekrutieren / cult: plunder, slots, recruiting ----------
 
 /** Einheiten, die das Kult-Limit belegen (ohne Wunder und Endgegner) / units that take a slot of the cult cap (without wonders and bosses) */
-export const cultUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f && !isWonder(u) && !isBoss(u));
+// uebernommene Einheiten zaehlen fuer den eigentlichen Besitzer (HACK.tower) / taken-over units count for the actual owner (HACK.tower)
+export const cultUnits = (s: GameState, f: number) => s.units.filter((u) => trueOwner(u) === f && !isWonder(u) && !isBoss(u));
 
 /**
  * Plaetze, die eine Kult-Stadt stellt: Stadtlimit (Stufe + 1, Sendeturm, Nachschublinie), eigenes Hauptquartier + CULT.hqSlots,
@@ -2491,7 +2506,7 @@ export type MineCheck = 'ok' | 'cannotBuild' | 'unitExhausted' | 'invalidTile' |
 
 /** Kann die Einheit eine Mine auf (x, y) legen? / can the unit lay a mine on (x, y)? */
 export function mineCheck(s: GameState, u: Unit, x: number, y: number): MineCheck {
-  if (!has(u, 'mines')) return 'cannotBuild';
+  if (!has(u, 'mines') || u.hijack) return 'cannotBuild';
   if (u.fresh || u.exhausted || u.attacked) return 'unitExhausted';
   if (!inBounds(s.size, x, y) || dist(u, { x, y }) !== 1) return 'outOfRange';
   const t = tileAt(s, x, y)!;
@@ -2728,7 +2743,7 @@ export const turretAt = (s: GameState, x: number, y: number) => {
   return t?.turret && t.turret.hp > 0 ? t.turret : null;
 };
 /** Werte eines Geschuetzes: neutral = Verdan, mit Besitzer = Geschuetzstellung, Silo = SILO / stats of a gun: neutral = Verdan, with owner = emplacement, silo = SILO */
-export const gunStats = (g: { owner?: number; kind?: 'silo' }) => (g.kind === 'silo' ? SILO : g.owner === undefined ? VERDAN : EMPLACEMENT);
+export const gunStats = (g: { owner?: number; kind?: 'silo' | 'hack' }) => (g.kind === 'silo' ? SILO : g.kind === 'hack' ? HACK.tower : g.owner === undefined ? VERDAN : EMPLACEMENT);
 /**
  * Ist das Geschuetz fuer Fraktion f feindlich (darf f es angreifen, beschiesst es f)? Neutral: immer; Stellung: nur im Krieg
  * mit dem Besitzer (nie im Frieden, nie Verbuendete, nie die eigene).
@@ -2737,8 +2752,8 @@ export const gunStats = (g: { owner?: number; kind?: 'silo' }) => (g.kind === 's
  */
 export const gunHostile = (s: GameState, g: { owner?: number }, f: number) => g.owner === undefined || isHostile(s, f, g.owner);
 /** Alle lebenden Geschuetze mit Position (owner nur bei Stellungen) / all living guns with position (owner only for emplacements) */
-export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[] {
-  const out: (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[] = [];
+export function turretList(s: GameState): (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' | 'hack' })[] {
+  const out: (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' | 'hack' })[] = [];
   s.tiles.forEach((t, k) => {
     if (!t.turret || t.turret.hp <= 0) return;
     out.push({ x: k % s.size, y: Math.floor(k / s.size), hp: t.turret.hp, active: t.turret.active, ...(t.turret.owner !== undefined ? { owner: t.turret.owner } : {}), ...(t.turret.kind ? { kind: t.turret.kind } : {}) });

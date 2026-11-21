@@ -642,6 +642,84 @@ export const CULT = {
 export const NEXUS = { faction: 'nexus' as FactionId };
 
 /**
+ * Hacken (NEXUS, Spielerwunsch): zwei Faehigkeiten ohne Einheit, nur in freien Partien (nicht Kampagne, nicht Tutorial).
+ * 1. Fernuebernahme neutraler Orte (Siedlung, Stuetzpunkt, Sendeturm): ein aufgedeckter neutraler Ort wird per Klick
+ *    eingenommen, als haette eine Einheit ihn erobert. Jedes eigene Rechenzentrum (Gebaeude im eigenen Gebiet) gibt eine
+ *    Ladung, die nach einem Hack place.recharge Runden laedt: verfuegbar = Rechenzentren - Hacks der letzten recharge Runden.
+ *    Preis cost + perLevel je Stufe ueber 1 und je bereits gehacktem Ort perHacked (wird teurer), erst ab Runde firstRound
+ *    und hoechstens ein Hack je Zug, damit das fruehe Rennen um neutrale Orte nicht entschieden ist.
+ * 2. Hackturm: Bauwerk im eigenen Gebiet (Tile.turret mit kind 'hack', wie Stellung und Silo: unpassierbar, angreifbar ohne
+ *    Gegenschlag, feuert nie, wird bei Gebietsverlust geschleift), gebaut per Feld ohne Einheit. Befehl: eine sichtbare
+ *    feindliche mechanisierte Einheit (Fahrzeug oder Flieger; keine Schiffe, Wunder, Endgegner, Lenkflugkoerper) in Reichweite
+ *    reach uebernehmen. NEXUS steuert sie sofort und im naechsten eigenen Zug (rounds Zuege), danach kehrt sie am Ende des
+ *    NEXUS-Zuges mit ihren restlichen LP erschoepft zum Besitzer zurueck, ausser sie bleibt mit keepChance dauerhaft bei NEXUS
+ *    oder schaltet sich mit shutdownChance ab (Wrack). Eine Einheit je Turm; der Turm laedt cooldown Runden ab der Uebernahme.
+ *    Faellt der Turm, kehrt die Einheit sofort zurueck.
+ * Hacking (NEXUS, player request): two abilities without a unit, only in free games (not the campaign, not the tutorial).
+ * 1. Remote takeover of neutral places (village, base, transmitter tower): an explored neutral place is taken by a click as
+ *    if a unit had captured it. Every own data centre (building in own territory) gives a charge that recharges for
+ *    place.recharge rounds after a hack: available = data centres - hacks of the last recharge rounds. Price cost + perLevel
+ *    per level above 1 and perHacked per place already hacked (gets dearer), only from round firstRound and at most one hack
+ *    per turn, so the early race for neutral places is not decided by it.
+ * 2. Hack tower: a structure in own territory (Tile.turret with kind 'hack', like the emplacement and the silo: impassable,
+ *    attackable without return fire, never fires, razed on loss of territory), built per tile without a unit. Command: take
+ *    over a visible hostile mechanised unit (vehicle or flyer; no ships, wonders, bosses, guided missiles) within reach.
+ *    NEXUS controls it at once and in its next own turn (rounds turns); then at the end of the NEXUS turn it returns to its
+ *    owner, exhausted, with its remaining HP, unless it stays with NEXUS for good (keepChance) or shuts down (shutdownChance,
+ *    wreck). One unit per tower; the tower recharges cooldown rounds from the takeover. If the tower falls, the unit returns
+ *    at once.
+ */
+export const HACK = {
+  factions: ['nexus'] as FactionId[],
+  place: { cost: 20, perLevel: 5, perHacked: 5, recharge: 10, firstRound: 6, perTurn: 1 },
+  /**
+   * Stadt-Hack (Spielerwunsch): eine aufgedeckte feindliche Stadt (Kriegsgegner) hacken, nicht einnehmen. rounds Runden lang
+   * sieht NEXUS alle Einheiten im Umkreis radius + Stadtradius (Sichtung, auch unter den Wolken), die Felder werden aufgedeckt,
+   * das Stadtpanel zeigt die Daten der Stadt (Kasse des Besitzers, Einkommen, getragene Einheiten). Eigene Sperre statt der
+   * Rechenzentrum-Ladungen (sonst stuende Aufklaerung gegen Ausbreitung): ein Stadt-Hack je cooldown Runden, mindestens ein
+   * Rechenzentrum, Preis cost.
+   * City hack (player request): hack, not capture, an explored hostile city (enemy at war). For rounds rounds NEXUS sees every
+   * unit within radius + the city radius (sighting, also under the clouds), the tiles are revealed, the city panel shows the
+   * city's data (owner's treasury, income, supported units). Its own lock instead of the data-centre charges (otherwise
+   * scouting would compete with expansion): one city hack every cooldown rounds, at least one data centre, price cost.
+   */
+  city: { cost: 10, rounds: 3, radius: 2, cooldown: 4 },
+  tower: {
+    cost: 40, hp: 18, attack: 0, defense: 2.5,
+    /** kein Gegenschlag: Schussweite 0 / no return fire: firing range 0 */
+    range: 0,
+    race: 'robot' as HitRace,
+    terrain: ['plain', 'forest', 'mountain'] as TerrainId[],
+    perCity: 1, max: 3, minSpacing: 4,
+    /** Reichweite der Uebernahme (Chebyshev) / takeover reach (Chebyshev) */
+    reach: 4,
+    /** Zuege unter NEXUS-Steuerung / turns under NEXUS control */
+    rounds: 2,
+    /** Runden ab der Uebernahme bis zur naechsten / rounds from a takeover to the next */
+    cooldown: 4,
+    /**
+     * Ausgang am regulaeren Ende (Spielerwunsch, bewusst laestig: NEXUS ist eine KI): mit keep bleibt die Einheit dauerhaft
+     * bei NEXUS, mit shutdown schaltet sie sich ab und wird zum Wrack (Wurf aus dem Zufallsstrom des Spiels); sonst kehrt
+     * sie zurueck. Faellt der Turm vorher, kehrt sie immer zurueck.
+     * Outcome at the regular end (player request, deliberately annoying: NEXUS is an AI): with keep the unit stays with
+     * NEXUS for good, with shutdown it switches itself off and becomes a wreck (roll from the game's random stream);
+     * otherwise it returns. If the tower falls before, it always returns.
+     */
+    keepChance: 0.1,
+    shutdownChance: 0.1,
+  },
+  /**
+   * KI: Wert eines Orts (Sterne-Gegenwert) und Mindestverhaeltnis; Turmbau ab minCities Staedten mit Feind in frontRange
+   * Feldern; Uebernahme ab minValue (Wert der Einheit, worth).
+   * AI: value of a place (star equivalent) and minimum ratio; tower building from minCities cities with an enemy within
+   * frontRange tiles; takeover from minValue (unit worth).
+   */
+  ai: { placeValue: 60, baseBonus: 15, minCities: 2, frontRange: 6, towerValue: 70, minValue: 20, reserve: 10,
+    /** Stadt-Hack: Wert, hoechstens so weit von eigenen Einheiten oder Staedten / city hack: value, at most this far from own units or cities */
+    cityValue: 10, cityRange: 6 },
+};
+
+/**
  * Kamikaze-Laufdrohne (NEXUS, Faehigkeit 'kamikaze'): der Angriff ist die Explosion. Schaden nach der normalen Formel mit
  * Rassen-Bonus (UNITS.bonusRace), nur das Ziel (keine Nachbarn), kein Gegenschlag, kein Abzug fuer Feuern nach Bewegung (die Drohne
  * laeuft ins Ziel). Trefferglueck wie bei Robotern: ein Fehlschuss ist ein Blindgaenger, die Drohne ist trotzdem verbraucht.

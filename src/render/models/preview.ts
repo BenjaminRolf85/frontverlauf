@@ -22,6 +22,7 @@ import {
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
+import { hackTowerGeometry } from './hacking';
 import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
 import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artifact';
 import { Builder } from './kit';
@@ -241,6 +242,9 @@ function sheet(): Sheet {
           ...list.map((t) => ({ label: t, cells: all8.map((f) => ({ geo: unitGeometry(t, f, null), ground: f === fid ? ground : plainGround })) })),
           { label: `${fid} city 1/3/5/8`, cells: [1, 3, 5, 8].map((lv) => ({ geo: cityGeometry(fid, lv, { hq: lv >= 3, factory: lv >= 5, bunkerRing: lv >= 8, govQuarter: lv >= 8 }), ground })) },
           { label: `${fid} buildings`, cells: [...kinds.map((k) => ({ geo: buildingGeometry(k, fid), ground })), { geo: buildingGeometry(kinds[0], null), ground: plainGround }] },
+          // Hackturm der NEXUS: frei und mit uebernommener Einheit (HACK.tower) / NEXUS hack tower: free and with a taken-over unit (HACK.tower)
+          ...(cult ? [] : [{ label: 'hack tower / linked', cells: [{ geo: hackTowerGeometry('nexus', false), ground }, { geo: hackTowerGeometry('nexus', true), ground },
+            { geo: hackTowerGeometry('nexus', false), ground: plainGround }, { geo: hackTowerGeometry('nexus', true), ground: plainGround }] }]),
           { label: `${fid} crew`, cells: [
             { geo: unitGeometry('infantry', fid, null), ground }, { geo: unitGeometry('spy', fid, null), ground },
             { geo: unitGeometry('jeep', fid, null), ground }, { geo: unitGeometry('destroyer', fid, null), ground: waterGround },
