@@ -469,6 +469,8 @@ export {
 } from './cavern';
 // Raketensilo der Meridon (Schattenflotte) / Meridon rocket silo (shadow fleet)
 export { siloGeometry } from './shadowFleet';
+// Hackturm der NEXUS (HACK.tower) / NEXUS hack tower (HACK.tower)
+export { hackTowerGeometry } from './hacking';
 // Geschuetzstellung der Dravon (Festungsbau) / Dravon gun emplacement (fortification)
 export { emplacementGeometry, emplacementRuinGeometry } from './emplacement';
 

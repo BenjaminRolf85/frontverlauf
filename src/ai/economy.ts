@@ -21,6 +21,7 @@ import { hashNoise } from './profile';
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
 import { siloBuy, siloMissileBuys, siloPioneerShare } from './shadowFleet';
+import { hackCityBuy, hackPlaceBuy, hackTowerBuy } from './hacking';
 import { materialBonus, productionBuys, siteFor } from './production';
 
 type Failed = Set<string>;
@@ -703,6 +704,13 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   // Meridon: Raketensilo als Sparziel, sobald ein Pionier am Bauplatz steht / Meridon: rocket silo as a savings goal once a pioneer stands at the site
   const silo = siloBuy(ctx);
   if (silo) buys.push({ ...silo, save: true, horizon: SILO.ai.saveRounds });
+  // NEXUS: neutrale Orte hacken und Hacktuerme bauen (HACK) / NEXUS: hack neutral places and build hack towers (HACK)
+  const hp = hackPlaceBuy(ctx);
+  if (hp) buys.push(hp);
+  const ht = hackTowerBuy(ctx);
+  if (ht) buys.push(ht);
+  const hc = hackCityBuy(ctx);
+  if (hc) buys.push(hc);
   // Meridon: Lenkflugkoerper am Silo kaufen (einer je Silo und Zug) / Meridon: buy Guided Missiles at the silo (one per silo and turn)
   buys.push(...siloMissileBuys(ctx, net, upFor, deficit));
   // Kult: Rekrutierer rufen bis zum Limit neue Einheiten auf Nachbarfelder / cult: recruiters call up new units onto adjacent tiles up to the cap

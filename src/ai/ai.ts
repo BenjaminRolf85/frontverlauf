@@ -15,6 +15,7 @@ import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
 import { planAcademyFlight, planAcademyLift, planAcademyStrike, planBeam } from './academy';
 import { planRadar, planSabotage, planSilo } from './shadowFleet';
+import { planHijack } from './hacking';
 import { applyOps } from './operations';
 import { cmdKey, planAttack, planCapture, planConvert, planUnitMoves, planWonderUnits } from './tactics';
 
@@ -80,6 +81,8 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     // Schattenflotte (Meridon): Radar vor den Angriffen, Silo-Start, Sabotage nach den Angriffen / shadow fleet (Meridon): radar before the attacks, silo launch, sabotage after the attacks
     ?? planRadar(ctx, failed)
     ?? planSilo(ctx, failed)
+    // NEXUS: Hackturm uebernimmt ein Fahrzeug vor den Angriffen (es kaempft gleich mit) / NEXUS: hack tower takes over a vehicle before the attacks (it fights right away)
+    ?? planHijack(ctx, failed)
     ?? planAttack(ctx, failed)
     // schwebende Akademie: feindliche angreifen, die eigene ziehen und landen / floating academy: attack hostile ones, move and land the own one
     ?? planAcademyStrike(ctx, failed)

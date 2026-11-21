@@ -6,11 +6,11 @@ import * as THREE from 'three';
 import type { BaseKind, BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL, M2, WAR_MARKS } from '../data/balance';
-import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, type GameState, type Unit } from '../core';
+import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, trueOwner, hijackRoundsLeft, cityHackRoundsLeft, type GameState, type Unit } from '../core';
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CAMERA, CITY_MASK, CITY_SIGN, CLOUD_Y, GARRISON, MARKER, OUTLINE, SETTLEMENT_SCALE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
-import { attackIcon, cityLabel, hpBadge, pruneBadgeCache, raceBadge } from './labels';
+import { attackIcon, cityLabel, hackBadge, hpBadge, pruneBadgeCache, raceBadge } from './labels';
 import { unitRoleIcon } from '../ui/unitRoles';
 import * as models from './models';
 import { WeatherFx } from './weather';
@@ -177,6 +177,8 @@ const verdanRuinGeometry = () => safe(models.verdanRuinGeometry, semantic.verdan
 const emplacementGeometry = (f: FactionId) => safe(models.emplacementGeometry, factionTokens[f].primary, f);
 /** Raketensilo der Meridon / Meridon rocket silo */
 const siloGeometry = (f: FactionId) => safe(models.siloGeometry, factionTokens[f].primary, f);
+/** Hackturm der NEXUS (verbunden: aktiv) / NEXUS hack tower (linked: active) */
+const hackTowerGeometry = (f: FactionId, active: boolean) => safe(models.hackTowerGeometry, factionTokens[f].primary, f, active);
 const emplacementRuinGeometry = (f: FactionId | null) => safe(models.emplacementRuinGeometry, semantic.neutralDark, f);
 const craterCracks = (ring: number, v: number) => safe(models.craterCracks, null, ring, v);
 const craterDebris = (v: number) => safe(models.craterDebris, null, v);
@@ -197,7 +199,8 @@ const CRATER_RADIUS = 2;
 const craterDip = new WeakMap<Tile, number>();
 import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
 
-export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build';
+/** reach = Reichweite des Hackturms (HACK.tower), in der Markierungsfarbe der NEXUS / reach of the hack tower (HACK.tower), in the NEXUS marker colour */
+export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build' | 'reach';
 
 interface UnitView { id: number; group: THREE.Group; key: string; badge: THREE.Sprite | null; badgeKey: string }
 interface Anim { update: (t: number) => void; start: number; dur: number; resolve: () => void }
@@ -937,6 +940,17 @@ export class Board {
           const sf = s.factions[t.turret.owner ?? 0]?.id ?? 'meridon';
           const sg = siloGeometry(sf);
           addDeco(desert && sg ? sandify(sg, `silo${sf}`) : sg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), ((x * 3 + y) % 4) * (Math.PI / 2)), new THREE.Vector3(1.1, 1.1, 1.1)), false, 'built');
+        } else if (t.turret && t.turret.hp > 0 && t.turret.kind === 'hack') {
+          // Hackturm (NEXUS): Schuessel zur naechsten Grenze, leuchtet heller, solange er eine Einheit haelt
+          // hack tower (NEXUS): dish towards the nearest border, glows brighter while it holds a unit
+          const hf = s.factions[t.turret.owner ?? 0]?.id ?? 'nexus';
+          const linked = t.turret.link !== undefined && s.units.some((o) => o.id === t.turret!.link && o.hijack);
+          let home: { x: number; y: number } | null = null, hd = Infinity;
+          for (const c of s.cities) if (c.owner === t.turret.owner) { const d = Math.max(Math.abs(c.x - x), Math.abs(c.y - y)); if (d < hd) { hd = d; home = c; } }
+          const face = home && hd > 0 ? Math.atan2(x - home.x, y - home.y) : ((x * 3 + y) % 8) * (Math.PI / 4);
+          const hg = hackTowerGeometry(hf, linked);
+          addDeco(desert && hg ? sandify(hg, `hackTower${hf}${linked}`) : hg, new THREE.Matrix4().compose(new THREE.Vector3(x - off, top, y - off), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), face), new THREE.Vector3(1.1, 1.1, 1.1)), false, 'built');
+          glowSpots.push({ x: x - off, y: top, z: y - off, size: linked ? 1.5 : 0.9, color: new THREE.Color(hex(factionTokens[hf].marker)) });
         } else if (t.turret && t.turret.hp > 0 && t.turret.owner !== undefined) {
           // Geschuetzstellung: Rohr weg von der naechsten eigenen Stadt (zur Grenze) / gun emplacement: barrel away from the nearest own city (towards the border)
           const ef = s.factions[t.turret.owner]?.id ?? 'dravon';
@@ -1278,6 +1292,17 @@ export class Board {
         this.staticLayer.add(perk);
         if (up === 'satRelay') relayLamps.push(perk.position.clone().add(new THREE.Vector3(...RELAY_LAMP).multiplyScalar(PERK_SCALE)));
       }
+      // Stadt-Hack (HACK.city): Stoerbild-Marke mit Restrunden ueber der Stadt, Leuchten in der Farbe des Hackers
+      // city hack (HACK.city): glitch mark with the rounds left above the city, glow in the hacker's colour
+      const hk = cityHackRoundsLeft(s, c);
+      if (hk > 0 && c.hacked) {
+        const hf = s.factions[c.hacked.by]?.id ?? 'nexus';
+        const hb = hackBadge(hk, factionTokens[hf].primary, factionTokens[hf].marker);
+        hb.position.copy(this.tileCenter(s, c.x, c.y)).add(new THREE.Vector3(0.18, 1.15, -0.18));
+        hb.center.set(0.5, 0);
+        this.labelLayer.add(hb);
+        glowSpots.push({ x: c.x - off, y: tileTop(s.tiles[c.y * size + c.x]), z: c.y - off, size: 1.7, color: new THREE.Color(hex(factionTokens[hf].marker)) });
+      }
       const cname = this.showLabels ? cityNameOf(s, c.id) : '';
       if (cname) {
         const color = fid ? factionTokens[fid].primary : semantic.neutral;
@@ -1383,9 +1408,12 @@ export class Board {
     for (const u of s.units) {
       if (viewer >= 0 && !canSeeUnit(s, viewer, u)) continue;
       seen.add(u.id);
-      const f = s.factions[u.owner].id;
+      // uebernommene Einheit (HACK.tower): Modell, Sockel und Plakette des eigentlichen Besitzers, Ring der hackenden Fraktion
+      // taken-over unit (HACK.tower): model, base and badge of the actual owner, ring of the hacking faction
+      const f = s.factions[trueOwner(u)].id;
+      const cf = s.factions[u.owner].id;
       const stage = u.wonder?.stage ?? 0;
-      const key = `${u.type}-${f}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}-${this.quality}`;
+      const key = `${u.type}-${f}-${cf}-${u.carried}-${viewer < 0 || u.owner === viewer}-${stage}-${this.quality}`;
       let v = this.units.get(u.id);
       if (v && v.key !== key) { this.unitLayer.remove(v.group); v = undefined; }
       if (!v) {
@@ -1411,7 +1439,9 @@ export class Board {
         // Drehtuerme behalten ihr letztes Ziel / turrets keep their last target
         aimTurrets(model, this.turretAim.get(u.id));
         grp.add(model);
-        grp.add(this.groundMarker(f, own));
+        grp.add(this.groundMarker(cf, own));
+        // Uebernahme: leuchtender Doppelring in der Farbe der hackenden Fraktion / takeover: glowing double ring in the hacker's colour
+        if (u.hijack) grp.add(this.hijackMarker(cf));
         grp.userData.unitId = u.id;
         // Reihenfolge: Bodenring, Schatten, Einheit / order: ground ring, shadow, unit
         grp.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.renderOrder === 0) o.renderOrder = UNIT_ORDER; });
@@ -1449,11 +1479,13 @@ export class Board {
         (u.exhausted || u.fresh || u.attacked || (u.moved && attackTargets(s, u).length === 0));
       // Heiliges Alvenia: Suendenzeichen und Segen auf der Plakette / Holy Alvenia: sinner mark and blessing on the badge
       const sin = isSinner(s, u.owner) && judgeAlive(s), blessed = blessingOf(s, u) > 0;
-      const badgeKey = `${u.type}-${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}-${sin}-${blessed}`;
+      const hj = u.hijack ? hijackRoundsLeft(s, u) : 0;
+      const badgeKey = `${u.type}-${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}-${sin}-${blessed}-${hj}`;
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
         // Rollensymbol links auf der Plakette (unitRoles.ts) / role icon on the left of the badge (unitRoles.ts)
-        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed, icon: unitRoleIcon(u.type) });
+        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed, icon: unitRoleIcon(u.type),
+          ...(hj ? { hijack: { n: hj, color: factionTokens[cf].primary } } : {}) });
         // Endgegner: Balken ueber der Krone / boss: badge above the crown
         v.badge.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
         v.badge.userData.size = v.badge.scale.clone();
@@ -1511,6 +1543,37 @@ export class Board {
   }
 
   private markerCache = new Map<string, THREE.Group>();
+  /**
+   * Markierung einer uebernommenen Einheit (HACK.tower): zwei schmale Ringe ausserhalb des Bodenrings in der Farbe der
+   * hackenden Fraktion, gestrichelt wie ein Datensignal; ohne Licht (MeshBasicMaterial), also in jeder Szene gleich hell.
+   * Marker of a taken-over unit (HACK.tower): two slim rings outside the ground ring in the hacker's colour, dashed like a
+   * data signal; unlit (MeshBasicMaterial), so equally bright in every scene.
+   */
+  private hijackMarker(f: FactionId): THREE.Object3D {
+    const key = `hijack-${f}`;
+    let tpl = this.markerCache.get(key);
+    if (!tpl) {
+      tpl = new THREE.Group();
+      const color = hex(factionTokens[f].primary);
+      const mat = new THREE.MeshBasicMaterial({ color, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+      const glow = new THREE.MeshBasicMaterial({ color: hex(factionTokens[f].marker), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 });
+      const ink = new THREE.MeshBasicMaterial({ color: hex(semantic.ink), depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+      const r = MARKER.own.outer;
+      tpl.add(new THREE.Mesh(new THREE.RingGeometry(r + 0.01, r + 0.075, MARKER.segments).rotateX(-Math.PI / 2), ink));
+      // gestrichelter Aussenring: 12 Bogenstuecke / dashed outer ring: 12 arc pieces
+      for (let i = 0; i < 12; i++) {
+        tpl.add(new THREE.Mesh(new THREE.RingGeometry(r + 0.015, r + 0.07, 4, 1, (i * Math.PI) / 6, Math.PI / 9).rotateX(-Math.PI / 2), glow));
+      }
+      tpl.add(new THREE.Mesh(new THREE.RingGeometry(r + 0.09, r + 0.12, MARKER.segments).rotateX(-Math.PI / 2), mat));
+      tpl.position.y = MARKER.lift + 0.004;
+      tpl.traverse((o) => { o.raycast = () => {}; o.renderOrder = UNIT_ORDER - 0.65; });
+      this.markerCache.set(key, tpl);
+    }
+    const m = tpl.clone();
+    m.name = 'hijack';
+    return m;
+  }
+
   private groundMarker(f: FactionId, own: boolean): THREE.Object3D {
     const key = `${f}-${own}`;
     let tpl = this.markerCache.get(key);
@@ -1818,7 +1881,7 @@ export class Board {
       (h.kind === 'select' || h.kind === 'target' || h.kind === 'attack' || h.kind === 'hint') && this.garrisonAt(s, h.x, h.y) ? this.unitSpot(s, h.x, h.y) : { pos: this.tileCenter(s, h.x, h.y), scale: 1 };
     const colors: Record<HighlightKind, string> = {
       move: semantic.highlightMove, attack: semantic.highlightAttack, safe: semantic.highlightSafe, unsafe: semantic.highlightUnsafe,
-      select: semantic.highlightSelect, target: semantic.highlightAttack, hint: semantic.highlightSelect, build: semantic.highlightSafe,
+      select: semantic.highlightSelect, target: semantic.highlightAttack, hint: semantic.highlightSelect, build: semantic.highlightSafe, reach: factionTokens.nexus.marker,
     };
     const byKind = new Map<HighlightKind, THREE.Matrix4[]>();
     for (const h of list) {
@@ -1837,7 +1900,7 @@ export class Board {
         const ring = new THREE.RingGeometry(big ? 0.36 : 0.22, big ? 0.46 : 0.32, 20, 1).rotateX(-Math.PI / 2);
         look = {
           geo: paint(ring.toNonIndexed(), colors[kind]),
-          mat: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : 1, depthWrite: false, side: THREE.DoubleSide }),
+          mat: new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: kind === 'move' || kind === 'safe' || kind === 'unsafe' || kind === 'build' ? 0.85 : kind === 'reach' ? 0.6 : 1, depthWrite: false, side: THREE.DoubleSide }),
         };
         ring.dispose();
         this.highlightLooks.set(kind, look);
@@ -2084,6 +2147,74 @@ export class Board {
       this.rocket.frame(t);
       if (!hit && t >= ROCKET_FX.impact) { hit = true; onImpact(); }
       if (t >= 1) this.rocket.end();
+    });
+  }
+
+  /**
+   * Fernuebernahme (NEXUS): Datensaeule und drei aufsteigende Signalringe in der Markierungsfarbe ueber dem Ort.
+   * Remote takeover (NEXUS): a data column and three rising signal rings in the marker colour above the place.
+   */
+  animateHack(s: GameState, c: { x: number; y: number }, faction: FactionId | null): Promise<void> {
+    const color = hex(factionTokens[faction ?? 'nexus'].marker);
+    const grp = new THREE.Group();
+    grp.position.copy(this.tileCenter(s, c.x, c.y));
+    const mats: THREE.MeshBasicMaterial[] = [];
+    const geos: THREE.BufferGeometry[] = [];
+    const mk = (g: THREE.BufferGeometry) => {
+      const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide });
+      mats.push(m); geos.push(g);
+      const o = new THREE.Mesh(g, m); o.raycast = () => {}; grp.add(o); return o;
+    };
+    const column = mk(new THREE.CylinderGeometry(0.06, 0.12, 1.6, 10, 1, true));
+    column.position.y = 0.8;
+    const rings = [0, 1, 2].map(() => mk(new THREE.RingGeometry(0.32, 0.4, 32).rotateX(-Math.PI / 2)));
+    this.unitLayer.add(grp);
+    return this.addAnim(760, (t) => {
+      column.scale.set(1, Math.min(1, t * 2.5), 1);
+      mats[0].opacity = 0.85 * (1 - t);
+      rings.forEach((r, i) => {
+        const k = Math.max(0, Math.min(1, t * 1.6 - i * 0.25));
+        r.position.y = 0.1 + k * 1.1;
+        r.scale.setScalar(0.6 + k * 0.9);
+        mats[i + 1].opacity = 0.9 * (1 - k);
+      });
+      if (t >= 1) { this.unitLayer.remove(grp); for (const m of mats) m.dispose(); for (const g of geos) g.dispose(); }
+      this.dirty = true;
+    });
+  }
+
+  /**
+   * Uebernahme (Hackturm): Signalstrahl vom Sendekopf des Turms zur Einheit, dann ein Ring um die Einheit.
+   * Takeover (hack tower): signal beam from the tower's emitter head to the unit, then a ring around the unit.
+   */
+  animateHijack(s: GameState, tower: { x: number; y: number }, u: { x: number; y: number }, faction: FactionId | null): Promise<void> {
+    const color = hex(factionTokens[faction ?? 'nexus'].marker);
+    const a = this.tileCenter(s, tower.x, tower.y).add(new THREE.Vector3(0, 1.05, 0));
+    const b = this.tileCenter(s, u.x, u.y).add(new THREE.Vector3(0, 0.35, 0));
+    const len = a.distanceTo(b);
+    const beamMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false });
+    const beamGeo = new THREE.CylinderGeometry(0.025, 0.025, 1, 6, 1, true);
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    beam.raycast = () => {};
+    beam.position.copy(a).add(b).multiplyScalar(0.5);
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    const ringGeo = new THREE.RingGeometry(0.4, 0.5, 32).rotateX(-Math.PI / 2);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.raycast = () => {};
+    ring.position.copy(this.tileCenter(s, u.x, u.y)).add(new THREE.Vector3(0, 0.05, 0));
+    this.unitLayer.add(beam, ring);
+    return this.addAnim(640, (t) => {
+      // Strahl waechst vom Turm zur Einheit, flackert, verblasst / the beam grows from the tower to the unit, flickers, fades
+      const grow = Math.min(1, t * 2.2);
+      beam.scale.set(1, len * grow, 1);
+      beam.position.copy(a).lerp(b, grow * 0.5);
+      beamMat.opacity = (t < 0.7 ? 0.9 : 0.9 * (1 - (t - 0.7) / 0.3)) * (0.75 + 0.25 * Math.sin(t * 40));
+      const k = Math.max(0, (t - 0.4) / 0.6);
+      ring.scale.setScalar(1.3 - 0.4 * k);
+      ringMat.opacity = k < 0.8 ? k : (1 - k) * 4;
+      if (t >= 1) { this.unitLayer.remove(beam, ring); beamMat.dispose(); beamGeo.dispose(); ringMat.dispose(); ringGeo.dispose(); }
+      this.dirty = true;
     });
   }
 

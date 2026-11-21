@@ -27,3 +27,5 @@ export { RANDOM_EVENTS, eventRounds, randomEventFor, nextEventRound, triggerRand
 export * from './shadowFleet';
 // Schwebende Akademie (Velkar) / floating academy (Velkar)
 export * from './academy';
+// Hacken der NEXUS: Fernuebernahme und Hackturm / NEXUS hacking: remote takeover and hack tower
+export * from './hacking';

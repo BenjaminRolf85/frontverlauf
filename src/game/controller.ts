@@ -5,7 +5,7 @@
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
-  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById,
+  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
@@ -20,6 +20,7 @@ import { RIFT_OPEN_MS } from '../render/rift';
 import { ORBITAL_FX } from '../render/fx/orbital';
 import { ROCKET_FX } from '../render/fx/rocket';
 import { saveGame } from '../save/save';
+import type { FxKind } from '../ui/fx';
 
 export type Tab = 'unit' | 'city' | 'tile';
 
@@ -28,7 +29,7 @@ export interface UiHooks {
   toast(text: string, icon?: string): void;
   errorCode(code: string): void;
   event(e: GameEvent, s: GameState): void;
-  fx(kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom' | 'bless', x: number, y: number, text?: string): void;
+  fx(kind: FxKind, x: number, y: number, text?: string): void;
   handover(faction: number): Promise<void>;
   confirm(text: string, ok: string): Promise<boolean>;
   gameOver(): void;
@@ -78,6 +79,9 @@ export class Controller {
   academyMoveCity: number | null = null;
   /** angewaehlte feindliche Akademie (zweites Antippen greift an) / selected hostile academy (a second tap attacks) */
   pendingAcademy: number | null = null;
+  /** Zielauswahl des Hackturms: Turm und angepeilte Einheit / hack tower targeting: tower and the aimed unit */
+  hackFrom: { x: number; y: number } | null = null;
+  hackAim: number | null = null;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -172,6 +176,44 @@ export class Controller {
     this.ui.update();
   }
 
+  /** Hackturm: Zielauswahl beginnen (nur eigener, freier und bereiter Turm am Zug) / hack tower: start targeting (own free ready tower, on turn) */
+  startHijack(x: number, y: number) {
+    const s = this.state;
+    if (!s || !this.isHumanTurn) return;
+    const wait = towerWait(s, x, y);
+    if (wait === null || s.tiles[y * s.size + x].turret?.owner !== s.current) return;
+    if (towerLink(s, x, y)) { this.play('error'); this.ui.errorCode('towerBusy'); return; }
+    if (wait > 0) { this.play('error'); this.ui.errorCode('towerCooldown'); return; }
+    this.clearSelection();
+    this.hackFrom = { x, y };
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl des Hackturms abbrechen / cancel the hack tower targeting */
+  cancelHijack() {
+    if (!this.hackFrom) return;
+    const from = this.hackFrom;
+    this.hackFrom = null;
+    this.hackAim = null;
+    this.selected = from; this.tab = 'tile';
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Angepeilte Einheit uebernehmen / take over the aimed unit */
+  async fireHijack() {
+    const s = this.state, from = this.hackFrom, aim = this.hackAim;
+    if (!s || !from || aim === null || this.busy) return;
+    this.hackFrom = null;
+    this.hackAim = null;
+    const res = await this.exec({ type: 'hijack', x: from.x, y: from.y, target: aim });
+    // die uebernommene Einheit gleich anwaehlen, sie kann sofort handeln / select the taken-over unit, it can act at once
+    const u = res.ok ? unitById(s, aim) : undefined;
+    if (u) { this.selected = { x: u.x, y: u.y }; this.selectedUnit = u.id; this.tab = 'unit'; this.updateHighlights(); this.ui.update(); }
+  }
+
   /** Zielauswahl des Silos abbrechen / cancel the silo targeting */
   cancelSilo() {
     if (!this.siloFrom) return;
@@ -258,6 +300,8 @@ export class Controller {
     this.orbitalAim = null;
     this.siloFrom = null;
     this.siloAim = null;
+    this.hackFrom = null;
+    this.hackAim = null;
     this.sabotageMode = false;
     this.barrierMode = false;
     this.mineMode = false;
@@ -345,6 +389,15 @@ export class Controller {
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     // Raketensilo: das Silo selbst markieren / rocket silo: mark the silo itself
     if (this.siloFrom && this.isHumanTurn) list.push({ ...this.siloFrom, kind: 'select' });
+    // Hackturm: Reichweite, Ziele und angepeiltes Ziel / hack tower: reach, targets and the aimed target
+    if (this.hackFrom && this.isHumanTurn) {
+      const from = this.hackFrom;
+      const targets = hijackTargets(s, s.current, from.x, from.y);
+      const at = new Set(targets.map((u) => u.y * s.size + u.x));
+      for (const p of hackReachTiles(s, from.x, from.y)) if (!at.has(p.y * s.size + p.x)) list.push({ ...p, kind: 'reach' });
+      for (const u of targets) list.push({ x: u.x, y: u.y, kind: u.id === this.hackAim ? 'target' : 'attack', ...(u.id === this.hackAim ? { facing: facingOf(u) } : {}) });
+      list.push({ ...from, kind: 'select' });
+    }
     this.view.board.setHighlights(s, list);
     this.updateOrbitalPreview();
   }
@@ -376,6 +429,18 @@ export class Controller {
       if (this.orbitalAim && this.orbitalAim.x === x && this.orbitalAim.y === y && orbitalPreview(s, s.current, x, y).check === 'ok') { await this.fireOrbital(); return; }
       this.aimOrbital(x, y);
       this.play('select');
+      return;
+    }
+    // Hackturm: erstes Antippen peilt eine Einheit an, zweites uebernimmt sie / hack tower: first tap aims at a unit, a second takes it over
+    if (this.hackFrom) {
+      const from = this.hackFrom;
+      const tu = unitAt(s, x, y);
+      const ok = !!tu && hijackCheck(s, s.current, from.x, from.y, tu) === 'ok';
+      if (ok && this.hackAim === tu!.id) { await this.fireHijack(); return; }
+      this.hackAim = ok ? tu!.id : null;
+      this.play(ok ? 'select' : 'error');
+      this.updateHighlights();
+      this.ui.update();
       return;
     }
     // Raketensilo: erstes Antippen peilt an, zweites auf dieselbe Ecke startet / rocket silo: first tap aims, a second on the same corner launches
@@ -691,6 +756,8 @@ export class Controller {
           }
           case 'capture': {
             const c = s.cities.find((cc) => cc.id === e.city)!;
+            // Fernuebernahme (NEXUS): Datenblitz am Ort / remote takeover (NEXUS): data flash at the place
+            if (e.hack && visible(c.x, c.y)) { this.ui.fx('hack', c.x, c.y); if (animate) await board.animateHack(s, c, fid(e.faction) ?? null); }
             if (e.faction === this.viewer) audio.sting('cityWon', fid(e.faction));
             else if (e.from !== null && e.from === this.viewer) audio.sting('cityLost');
             else if (visible(c.x, c.y)) this.play('capture');
@@ -732,7 +799,36 @@ export class Controller {
           case 'barrier': if (e.faction === this.viewer) this.play('build'); break;
           // Minen: nur der Besitzer hoert das Legen / mines: only the owner hears the laying
           case 'mine': if (e.faction === this.viewer) this.play('build'); break;
-          case 'emplacement': if (e.faction === this.viewer) this.play('build'); break;
+          case 'emplacement': if (e.faction === this.viewer) this.play('build'); if (e.kind === 'hack') this.refresh(); break;
+          // Hackturm uebernimmt eine Einheit / gibt sie zurueck: Signal am Turm und an der Einheit / hack tower takes over a unit / gives it back: signal at the tower and at the unit
+          case 'hijack': {
+            const u = unitById(s, e.unit);
+            if (u && visible(u.x, u.y)) { this.play('research'); this.ui.fx('hack', u.x, u.y); if (animate) await board.animateHijack(s, { x: e.x, y: e.y }, u, fid(e.faction) ?? null); }
+            this.refresh();
+            break;
+          }
+          // Ende der Uebernahme: zurueck, dauerhaft uebernommen oder abgeschaltet (danach folgt 'killed' mit Wrack)
+          // end of the takeover: returned, permanently taken over or shut down (then 'killed' with a wreck follows)
+          // Stadt-Hack: Datensaeule ueber der Stadt fuer Hacker und Opfer / city hack: data column above the city for hacker and victim
+          case 'cityHack': {
+            if (e.faction === this.viewer || e.victim === this.viewer || visible(e.x, e.y)) {
+              this.play('research');
+              this.ui.fx('hack', e.x, e.y, t('hack.city.fx'));
+              if (animate) await board.animateHack(s, { x: e.x, y: e.y }, fid(e.faction) ?? null);
+            }
+            this.refresh();
+            break;
+          }
+          case 'hijackEnd': {
+            const at = e.x !== undefined && e.y !== undefined ? { x: e.x, y: e.y } : unitById(s, e.unit);
+            if (at && visible(at.x, at.y)) {
+              if (e.outcome === 'kept') { this.play('capture'); this.ui.fx('hack', at.x, at.y, t('hack.hijack.fxKept')); if (animate) await board.animateHack(s, at, fid(e.by) ?? null); }
+              else if (e.outcome === 'shutdown') { this.play('error'); this.ui.fx('hackEnd', at.x, at.y, t('hack.hijack.fxShutdown')); }
+              else this.ui.fx('hackEnd', at.x, at.y);
+            }
+            this.refresh();
+            break;
+          }
           case 'mineHit': if (visible(e.x, e.y)) { this.play('hit'); this.ui.fx('boom', e.x, e.y); this.ui.fx('num', e.x, e.y, `-${e.dmg}`); if (animate) this.view.shake(SHAKE.barrier * 2); } break;
           case 'aaFire': { const tu = before.get(e.target); if (tu && visible(tu.x, tu.y)) { this.play('hit'); this.ui.fx('num', tu.x, tu.y, `-${e.dmg}`); } break; }
           case 'terraform': if (e.faction === this.viewer) this.play('research'); break;

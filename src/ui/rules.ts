@@ -4,7 +4,7 @@
  */
 import {
   BARRIER, BASES, BASE_KINDS, CITY, CITY_UPGRADES, COMBAT, CULT, DEFENSE_BONUS, ECON, FACTION_IDS, HIT, HIT_KINDS, HOME_DEFENSE, INCOME, MARTYR, MODES, MOVE_FIRE, RANGED_COVER, REPAIR, RETREAT, ROCKETS, SCORE, SIN, START, UPKEEP,
-  TOWER, VICTORY_TECH, WONDERS, SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, ACADEMY,
+  TOWER, VICTORY_TECH, WONDERS, SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, ACADEMY, HACK,
 } from '../data/balance';
 import { BUILDINGS, PRODUCTION, SHIPYARD, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
 import { DOCTRINE_TECHS } from '../core';
@@ -58,6 +58,10 @@ function sections(): Section[] {
     { id: 'academy', icon: 'academy', params: { pop: ACADEMY.postPop, perLevel: ACADEMY.postPopPerLevel, units: ACADEMY.postUnits, base: ACADEMY.baseSlots, max: ACADEMY.maxSlots,
       lift: ACADEMY.liftRounds, move: ACADEMY.move, gap: ACADEMY.landGap, claim: ACADEMY.landClaim, cost: ACADEMY.shield.cost, hp: ACADEMY.shield.hp, regen: ACADEMY.shield.regen,
       rebuild: ACADEMY.shield.rebuildRounds, beamer: ACADEMY.beamer.cost } },
+    // Hacken der NEXUS: Fernuebernahme, Stadt-Hack, Hackturm / NEXUS hacking: remote takeover, city hack, hack tower
+    { id: 'hacking', icon: 'hackTower', params: { recharge: HACK.place.recharge, cost: HACK.place.cost, perLevel: HACK.place.perLevel, perHacked: HACK.place.perHacked, first: HACK.place.firstRound,
+      tcost: HACK.tower.cost, tmax: HACK.tower.max, spacing: HACK.tower.minSpacing, reach: HACK.tower.reach, rounds: HACK.tower.rounds, cd: HACK.tower.cooldown,
+      keep: pct(HACK.tower.keepChance), off: pct(HACK.tower.shutdownChance), ccost: HACK.city.cost, ccd: HACK.city.cooldown, crounds: HACK.city.rounds, cr: HACK.city.radius } },
     { id: 'diplomacy', icon: 'diplomacy', params: { cost: ECON.embassyBaseCost, step: ECON.embassyStep, income: INCOME.embassy, tech: t('techs.intelligence') } },
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
     { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, titheRival: CULT.titheRival, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) },

@@ -174,7 +174,7 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
 
 // ---------- Verdan-Geschuetze / Verdan guns ----------
 
-const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' })[]>();
+const gunCache = new WeakMap<Ctx, (Pos & { hp: number; active: boolean; owner?: number; kind?: 'silo' | 'hack' })[]>();
 /**
  * Bekannte (aufgedeckte) feindliche Geschuetze: Verdan und Stellungen von Kriegsgegnern (eigene und befreundete nicht).
  * Known (explored) hostile guns: Verdan and emplacements of enemies at war (not own or friendly ones).
@@ -205,7 +205,8 @@ function gunAttackValue(ctx: Ctx, u: Unit, p: Pos): number {
   const gr = gunStats(gun).range;
   const near = own ? ctx.my.filter((o) => dist(o, p) <= gr).length + ctx.myCities.filter((c) => dist(c, p) <= gr + 1).length * 2 : 0;
   // Raketensilo: wertvolles Ziel ohne Gegenschlag / rocket silo: a valuable target without return fire
-  const prize = gun.kind === 'silo' ? EMPLACEMENT.ai.prize + 20 : own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
+  // Hackturm (NEXUS): ebenso, mehr, solange er eine Einheit haelt (sie kehrt dann zurueck) / hack tower (NEXUS): likewise, more while it holds a unit (it then returns)
+  const prize = gun.kind === 'silo' ? EMPLACEMENT.ai.prize + 20 : gun.kind === 'hack' ? EMPLACEMENT.ai.prize + 20 + (gun.link !== undefined ? 25 : 0) : own ? EMPLACEMENT.ai.prize + near * 3 : gun.active ? 34 : 14;
   let v = (expected / gunStats(gun).hp) * prize + kill * prize;
   v -= ret >= u.hp ? worth(u) + 6 : (ret / u.hp) * worth(u) * 0.7;
   // Kamikaze: die Drohne ist danach verbraucht / kamikaze: the drone is spent afterwards
@@ -222,7 +223,7 @@ function gunDanger(ctx: Ctx, x: number, y: number): number {
 /** Feindliche Geschuetzstellungen in Schussweite von (x, y) / hostile gun emplacements within range of (x, y) */
 function emplacementDanger(ctx: Ctx, x: number, y: number): number {
   let n = 0;
-  for (const g of knownGuns(ctx)) if (g.owner !== undefined && g.kind !== 'silo' && dist(g, { x, y }) <= EMPLACEMENT.range) n++;
+  for (const g of knownGuns(ctx)) if (g.owner !== undefined && !g.kind && dist(g, { x, y }) <= EMPLACEMENT.range) n++;
   return n;
 }
 

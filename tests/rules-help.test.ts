@@ -16,10 +16,11 @@ describe('Regeln / rules', () => {
       const html = rulesHtml();
       expect(html).not.toMatch(/\{\w+\}/);
       expect(html).not.toContain('rules.');
-      // 21 Abschnitte: dazu Schiffe und Werft, die Schattenflotte der Meridon, die Stuetzpunkte, die Einheitensymbole und die schwebende Akademie der Velkar
-      // 21 sections: plus ships and shipyard, the Meridon shadow fleet, the bases, the unit icons and the Velkar floating academy
-      expect((html.match(/<details/g) ?? []).length).toBe(21);
+      // 22 Abschnitte: dazu Schiffe und Werft, die Schattenflotte der Meridon, die Stuetzpunkte, die Einheitensymbole, die schwebende Akademie der Velkar und das Hacken der NEXUS
+      // 22 sections: plus ships and shipyard, the Meridon shadow fleet, the bases, the unit icons, the Velkar floating academy and NEXUS hacking
+      expect((html.match(/<details/g) ?? []).length).toBe(22);
       expect(html).toContain('data-rule="academy"');
+      expect(html).toContain('data-rule="hacking"');
       expect(html).toContain('data-rule="bases"');
       expect(html).toContain('data-rule="shadowFleet"');
     });

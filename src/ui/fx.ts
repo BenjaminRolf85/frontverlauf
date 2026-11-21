@@ -5,6 +5,9 @@ import { t, tList } from '../i18n/i18n';
 import type { View } from '../render/view';
 import { esc } from './components';
 
+/** Arten der Effektwoerter (hack/hackEnd: Hacken der NEXUS) / kinds of effect words (hack/hackEnd: NEXUS hacking) */
+export type FxKind = 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom' | 'bless' | 'hack' | 'hackEnd';
+
 export class Fx {
   private layer: HTMLElement;
   enabled = true;
@@ -16,7 +19,7 @@ export class Fx {
     root.appendChild(this.layer);
   }
 
-  show(s: GameState, kind: 'hit' | 'kill' | 'capture' | 'levelUp' | 'heal' | 'num' | 'splat' | 'boom' | 'bless', x: number, y: number, text?: string) {
+  show(s: GameState, kind: FxKind, x: number, y: number, text?: string) {
     if (!this.enabled || this.view.renderer.xr.isPresenting) return;
     const p = this.view.board.tileCenter(s, x, y).add(new THREE.Vector3(0, 0.5, 0));
     p.applyMatrix4(this.view.board.group.matrixWorld);
@@ -58,6 +61,18 @@ export class Fx {
         setTimeout(() => burst.remove(), 700);
         word = t(kind === 'splat' ? 'fx.splat' : 'fx.boom');
         cls += kind === 'splat' ? ' danger' : '';
+        break;
+      }
+      // Hacken (NEXUS): Signalringe in der Markierungsfarbe der NEXUS hinter dem Wort / hacking (NEXUS): signal rings in the NEXUS marker colour behind the word
+      case 'hack': case 'hackEnd': {
+        const ring = document.createElement('div');
+        ring.className = `fx-burst hack${kind === 'hackEnd' ? ' end' : ''}`;
+        ring.style.left = `${scr.x}px`;
+        ring.style.top = `${scr.y - 10}px`;
+        this.layer.appendChild(ring);
+        setTimeout(() => ring.remove(), 900);
+        word = text ?? t(kind === 'hack' ? 'hack.hijack.fx' : 'hack.hijack.fxBack');
+        cls += ' hack';
         break;
       }
       case 'heal': cls = 'fx-num'; break;

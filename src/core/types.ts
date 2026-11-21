@@ -71,8 +71,12 @@ export interface Tile {
      * ready = Runde, ab der das Silo wieder starten kann; bought = Runde des letzten Kaufs (SILO.units, einer je Zug).
      * Kind of structure: missing = gun (Verdan or emplacement); 'silo' = rocket silo (Meridon, SILO), never fires on its own;
      * ready = round from which the silo can launch again; bought = round of the last purchase (SILO.units, one per turn).
+     * 'hack' = Hackturm (NEXUS, HACK.tower), feuert nie; ready = Runde, ab der er wieder uebernehmen kann; link = ID der
+     * gerade uebernommenen Einheit (fehlt = keine).
+     * 'hack' = hack tower (NEXUS, HACK.tower), never fires; ready = round from which it can take over again; link = id of
+     * the unit currently taken over (missing = none).
      */
-    kind?: 'silo'; ready?: number; bought?: number } | null;
+    kind?: 'silo' | 'hack'; ready?: number; bought?: number; link?: number } | null;
   /**
    * Brand nach einem Raketeneinschlag (SILO): brennt bis einschliesslich Runde until; owner = Fraktion des Silos (Abschuesse).
    * Fehlt = brennt nicht (auch alte Spielstaende).
@@ -134,6 +138,11 @@ export interface City {
   base?: BaseKind;
   /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
   plundered?: number;
+  /**
+   * Stadt-Hack der NEXUS (HACK.city): Fraktion by sieht die Stadt bis einschliesslich Runde until; fehlt = nie (auch alte Spielstaende).
+   * NEXUS city hack (HACK.city): faction by sees the city until and including round until; missing = never (old saves too).
+   */
+  hacked?: { by: number; until: number };
   /** Kult: wie oft diese Stadt schon gepluendert wurde (fehlt = nie) / cult: how often this city has been plundered (missing = never) */
   plunderCount?: number;
   /**
@@ -244,6 +253,15 @@ export interface Unit {
   sabotageReady?: number;
   /** Radarimpuls wieder moeglich ab dieser Runde (fehlt = sofort) / radar sweep possible again from this round (missing = now) */
   sweepReady?: number;
+  /**
+   * Vom Hackturm uebernommen (HACK.tower): owner ist waehrenddessen die hackende Fraktion; from = eigentlicher Besitzer,
+   * until = letzte Runde unter fremder Steuerung (Rueckgabe am Ende dieses Zuges der hackenden Fraktion), (x, y) = Turm.
+   * Fehlt = nicht uebernommen (auch alte Spielstaende).
+   * Taken over by a hack tower (HACK.tower): owner is the hacking faction meanwhile; from = actual owner, until = last
+   * round under foreign control (returned at the end of the hacking faction's turn in that round), (x, y) = tower.
+   * Missing = not taken over (old saves too).
+   */
+  hijack?: { from: number; until: number; x: number; y: number };
   /** stand zu Beginn des Zuges hier (fuer Einnahme) / stood here at turn start (for capture) */
   startX: number;
   startY: number;
@@ -298,6 +316,13 @@ export interface Faction {
    * Radar sweep (RADAR): unit = Radar Truck, (x, y) follows it; if it falls, the sweep ends.
    */
   sightings?: { x: number; y: number; r: number; until: number; unit?: number }[];
+  /**
+   * Fernuebernahmen neutraler Orte (HACK.place): Runde jedes Hacks; fehlt = keiner (auch alte Spielstaende).
+   * Remote takeovers of neutral places (HACK.place): round of every hack; missing = none (old saves too).
+   */
+  hacks?: number[];
+  /** Stadt-Hack wieder moeglich ab dieser Runde (HACK.city; fehlt = sofort) / city hack possible again from this round (HACK.city; missing = now) */
+  cityHackReady?: number;
 }
 
 export interface PendingReward {
@@ -524,7 +549,9 @@ export type GameEvent =
     kamikaze?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
-  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number }
+  | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number;
+    /** per Fernuebernahme gehackt (HACK.place) / hacked by remote takeover (HACK.place) */
+    hack?: boolean }
   | { t: 'outpostCapture'; x: number; y: number; faction: number }
   | { t: 'cityLevel'; city: number; level: number; bought?: true }
   | { t: 'reward'; city: number; choice: 'a' | 'b'; level: number }
@@ -600,7 +627,27 @@ export type GameEvent =
   /** Einheit greift ein Verdan-Geschuetz an / unit attacks a Verdan gun */
   | { t: 'turretHit'; unit: number; x: number; y: number; dmg: number; ret: number; hit?: HitKind; retHit?: HitKind; destroyed: boolean; owner?: number; kamikaze?: boolean }
   /** Geschuetzstellung gebaut / gun emplacement built */
-  | { t: 'emplacement'; x: number; y: number; faction: number; kind?: 'silo' }
+  | { t: 'emplacement'; x: number; y: number; faction: number; kind?: 'silo' | 'hack' }
+  /**
+   * Hackturm (x, y) uebernimmt die Einheit unit von from bis Runde until / hack tower (x, y) takes over unit from from until round until
+   */
+  | { t: 'hijack'; unit: number; faction: number; from: number; x: number; y: number; until: number }
+  /** Stadt-Hack (HACK.city): faction sieht die Stadt city von victim bis Runde until / city hack: faction sees victim's city until round until */
+  | { t: 'cityHack'; city: number; faction: number; victim: number; until: number; x: number; y: number }
+  /**
+   * Uebernahme beendet: zurueck an faction (time = Zeit um, tower = Turm gefallen, eliminated = Hacker ausgeschieden);
+   * lost = der Besitzer ist ausgeschieden, die Einheit zerfaellt.
+   * Takeover ended: back to faction (time = time is up, tower = tower fell, eliminated = hacker eliminated); lost = the owner
+   * is eliminated, the unit falls apart.
+   */
+  | { t: 'hijackEnd'; unit: number; faction: number; by: number; reason: 'time' | 'tower' | 'eliminated'; lost?: boolean;
+    /**
+     * Ausgang am regulaeren Ende (HACK.tower): kept = bleibt dauerhaft bei by, shutdown = abgeschaltet (zerstoert, Wrack);
+     * fehlt = zurueckgegeben. x, y = Feld der Einheit (fuer den Effekt nach dem Abschalten).
+     * Outcome at the regular end (HACK.tower): kept = stays with by for good, shutdown = switched off (destroyed, wreck);
+     * missing = returned. x, y = the unit's tile (for the effect after the shutdown).
+     */
+    outcome?: 'kept' | 'shutdown'; x?: number; y?: number; unitType?: UnitTypeId }
   /** Stellung geschleift: Gebiet verloren oder Fraktion ausgeschieden / emplacement razed: territory lost or faction eliminated */
   | { t: 'emplacementLost'; x: number; y: number; faction: number; reason: 'territory' | 'eliminated' }
   /**
@@ -715,6 +762,14 @@ export type Command =
   | { type: 'beam'; unit: number; city: number }
   /** Akademie angreifen: Schild, in der Luft ohne Schild Notlandung / attack the academy: shield, in the air without a shield an emergency landing */
   | { type: 'attackAcademy'; unit: number; city: number }
+  /** NEXUS: neutralen Ort fernuebernehmen (HACK.place) / NEXUS: remote takeover of a neutral place (HACK.place) */
+  | { type: 'hack'; city: number }
+  /** NEXUS: Hackturm auf (x, y) bauen (HACK.tower) / NEXUS: build a hack tower on (x, y) (HACK.tower) */
+  | { type: 'hackTower'; x: number; y: number }
+  /** NEXUS: Hackturm auf (x, y) uebernimmt die Einheit target / NEXUS: hack tower at (x, y) takes over the unit target */
+  | { type: 'hijack'; x: number; y: number; target: number }
+  /** NEXUS: feindliche Stadt hacken und aufdecken (HACK.city) / NEXUS: hack and reveal a hostile city (HACK.city) */
+  | { type: 'hackCity'; city: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -745,7 +800,10 @@ export type ErrorCode =
   // rests, shield is up, not attackable by this unit while floating
   | 'notAcademy' | 'airborne' | 'grounded' | 'lifting' | 'noSteps' | 'landingSite' | 'academyBusy' | 'shieldUp' | 'airTarget'
   // Beamer: kein Relay, schon gebeamt, Einheit nicht an der Akademie / beamer: no relay, already beamed, unit not at the academy
-  | 'noBeamer' | 'beamUsed' | 'notAtAcademy';
+  | 'noBeamer' | 'beamUsed' | 'notAtAcademy'
+  // Hacken (NEXUS): keine Ladung, zu frueh, schon gehackt in diesem Zug, uebernommene Einheit, Turm belegt, nicht mechanisiert
+  // hacking (NEXUS): no charge, too early, already hacked this turn, taken-over unit, tower busy, not mechanised
+  | 'hackCharges' | 'hackEarly' | 'hackTurn' | 'hijacked' | 'towerBusy' | 'towerCooldown' | 'notMechanised' | 'cityHackCooldown' | 'noDataCenter';
 
 export interface CommandResult {
   ok: boolean;

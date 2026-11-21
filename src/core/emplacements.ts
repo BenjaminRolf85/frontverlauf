@@ -39,7 +39,7 @@ const specOf = (s: GameState, f: number) => (buildsSilos(s, f) ? SILO : EMPLACEM
 export const isEmplacementBuilder = (s: GameState, u: Unit) =>
   (hasFortification(s, u.owner) && EMPLACEMENT.builders.includes(u.type)) || (buildsSilos(s, u.owner) && SILO.builders.includes(u.type));
 /** Lebende Geschuetzstellungen der Fraktion f (ohne Silos) / living gun emplacements of faction f (without silos) */
-export const emplacementsOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f && p.kind !== 'silo');
+export const emplacementsOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f && !p.kind);
 /** Lebende Raketensilos der Fraktion f / living rocket silos of faction f */
 export const silosOf = (s: GameState, f: number) => turretList(s).filter((p) => p.owner === f && p.kind === 'silo');
 /** Eigene Bauwerke der Bauart der Fraktion (Stellungen oder Silos) / own structures of the faction's kind (emplacements or silos) */
@@ -136,10 +136,10 @@ export function buildEmplacement(s: GameState, u: Unit, x: number, y: number, ev
  * Target of an emplacement: visible units at war with the owner in range (no wonders, no submerged submarines).
  * Order: a full hit destroys it, then distance to the nearest own city, then HP, then id (deterministic).
  */
-export function emplacementTarget(s: GameState, p: Pos & { hp: number; owner?: number; kind?: 'silo' }): Unit | null {
+export function emplacementTarget(s: GameState, p: Pos & { hp: number; owner?: number; kind?: 'silo' | 'hack' }): Unit | null {
   const f = p.owner;
-  // Silos feuern nie von selbst / silos never fire on their own
-  if (f === undefined || p.kind === 'silo') return null;
+  // Silos und Hacktuerme feuern nie von selbst / silos and hack towers never fire on their own
+  if (f === undefined || p.kind) return null;
   const cities = ownCities(s, f);
   let best: Unit | null = null, bestKey = Infinity;
   for (const u of s.units) {
