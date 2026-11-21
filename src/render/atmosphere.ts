@@ -66,6 +66,8 @@ const KEYS = {
     keyColor(semantic.faithHalo), keyColor(semantic.faithTech), keyColor(semantic.faithGlassBlue), keyColor(semantic.faithGlassGold), keyColor(semantic.faithBeam)],
   lava: [keyColor(p.orange500), keyColor(p.yellow400), keyColor(p.red500), keyColor(semantic.lava), keyColor(semantic.lavaGlow)],
   window: [keyColor(p.sky800)],
+  // Lampen der Stuetzpunkte (mat.lamp in look.ts, dieselbe Mischung): nachts immer an / lamps of the bases (mat.lamp in look.ts, the same mix): always lit at night
+  lamp: [keyColor(p.yellow400).lerp(keyColor(p.paper50), 0.45)],
 };
 const near = (r: number, g: number, b: number, c: THREE.Color) => Math.abs(r - c.r) + Math.abs(g - c.g) + Math.abs(b - c.b) < 0.012;
 
@@ -95,6 +97,7 @@ export function withGlow(g: THREE.BufferGeometry, kind: GlowKind = 'nature', win
       else if (kind === 'bright' && Math.max(r, gg, b) > 0.62 && Math.max(r, gg, b) - Math.min(r, gg, b) > 0.3) arr[i * 2] = 0.8;
       else if (kind === 'lava' && KEYS.lava.some((c) => near(r, gg, b, c))) arr[i * 2] = 1;
       else if (kind === 'built' && KEYS.window.some((c) => near(r, gg, b, c))) arr[i * 2 + 1] = windows;
+      else if (kind === 'built' && KEYS.lamp.some((c) => near(r, gg, b, c))) arr[i * 2 + 1] = 1;
     }
   }
   g.setAttribute('glow', new THREE.BufferAttribute(arr, 2));

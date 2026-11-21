@@ -320,6 +320,9 @@ export function cityGeometry(
   return memo(key, () => city(faction, lv, flags).build());
 }
 
+// Stuetzpunkte: ein Modell je Art (bases.ts) / bases: one model per kind (bases.ts)
+export { baseGeometry, baseMeta, rotorGeometry, type BaseFlags, type BaseMeta } from './bases';
+
 export function buildingGeometry(kind: BuildingId | 'outpost' | GrandProjectId, faction: FactionId | null): THREE.BufferGeometry {
   const f = kind === 'road' ? null : faction;
   return memo(`building|${kind}|${f ?? 'neutral'}`, () => building(kind, f).build());
