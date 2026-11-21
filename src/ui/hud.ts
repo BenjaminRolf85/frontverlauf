@@ -36,33 +36,27 @@ import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './templ
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
 import { BASE_ICON, baseLineHtml, baseName, supplyNoteHtml } from './bases';
 import { troopCards, troopsHtml, type TroopCard } from './troops';
+import { UNIT_ROLE, unitRoleIcon } from './unitRoles';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
 const HINT_PRESS_MS = 450;
 
 const CITY_UPGRADE_ICON: Record<CityUpgradeId, string> = { radioTower: 'range', bunker: 'shield', barracks: 'helmet', hospital: 'heal', flak: 'attack', depot: 'star', satRelay: 'satellite' };
 const WEATHER_ICON: Record<string, string> = { clear: 'sun', rain: 'rain', snow: 'snow', wind: 'wind', dust: 'storm', meteor: 'lightning', acid: 'rain', quake: 'warning', calm: 'sun' };
-export const UNIT_ICON: Record<string, string> = {
-  infantry: 'helmet', sniper: 'range', jeep: 'move', pioneer: 'outpost', mg: 'attack', medic: 'heal', artillery: 'lightning',
-  spy: 'eye', heli: 'fuel', tank: 'shield', landingBoat: 'boot', submarine: 'eye', destroyer: 'sword', battleship: 'crown',
-  grey: 'lightning', terraformer: 'build', skimmer: 'move', mech: 'shield', tripod: 'range',
-  zealot: 'boot', torchbearer: 'lightning', prophet: 'heal', doomBuggy: 'move', rocketCart: 'range', doomCrawler: 'shield',
-  android: 'boot', spider: 'sword', quadDrone: 'move', railgun: 'range', titan: 'crown',
-  antiTank: 'attack', antiAir: 'range', mineLayer: 'warning', faustZealot: 'attack', flakDrone: 'range',
-  steppeRider: 'horse', stormbreaker: 'hammer', peacekeeper: 'shield', privateer: 'sail', protoWalker: 'walker',
-  // Velkar-Bauarten / Velkar designs
-  teslaTank: 'tesla', octocopter: 'fuel', railSniper: 'range',
-  // Alvenia-Bauarten / Alvenia designs
-  lightWarden: 'range', reliquary: 'emblemHalo', sunLance: 'sun',
-  // Korvat: Steppenkoloss / Korvat: Steppe Colossus
-  steppeColossus: 'heavyTank',
-  // NEXUS: Cyborg, Flammenwerferpanzer, Kamikaze-Drohne / NEXUS: cyborg, flamethrower tank, kamikaze drone
-  cyborg: 'cyborg', flameTank: 'flame', kamikazeDrone: 'kamikaze',
-  // Meridon-Schattenflotte / Meridon shadow fleet
-  shadowCommando: 'commando', fogCutter: 'fogCutter', guidedMissile: 'missile', radarTruck: 'radar',
-  // Wunder der Siegbedingungen / victory wonders
-  portal: 'trophy', hackRelay: 'tesla', fusionPlant: 'lightning', waal: 'crown', coreDrill: 'warning',
-};
+/**
+ * Symbol je Einheitentyp: das Rollensymbol (unitRoles.ts), dasselbe wie auf der LP-Plakette ueber der Einheit.
+ * Icon per unit type: the role icon (unitRoles.ts), the same as on the HP badge above the unit.
+ */
+export const UNIT_ICON: Record<string, string> = Object.fromEntries((Object.keys(UNIT_ROLE) as UnitTypeId[]).map((k) => [k, unitRoleIcon(k)]));
+
+/**
+ * Rollensymbol im Einheitenfeld (neben dem Typnamen): wie die Kappe der LP-Plakette, Rollenname als Tooltip.
+ * Role icon in the unit panel (next to the type name): like the cap of the HP badge, role name as tooltip.
+ */
+function roleChip(type: UnitTypeId): string {
+  const name = t(`unitRoles.${UNIT_ROLE[type]}`);
+  return `<span class="role-cap" title="${esc(name)}">${icon(unitRoleIcon(type), 'icon-sm')}<span class="sr-only">${esc(name)}</span></span>`;
+}
 const COUNTER_KEY: Record<CounterClass, string> = { vehicle: 'counter.vsVehicle', air: 'counter.vsAir', foot: 'counter.vsFoot' };
 
 /** Konter-Boni als Text, z. B. "+150 % gegen Fahrzeuge" / counter bonuses as text */
@@ -692,7 +686,7 @@ export class Hud {
       // 3D-Portraet statt Symbol / 3D portrait instead of an icon
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
-        <div class="muted unit-sub"><span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
+        <div class="muted unit-sub">${roleChip(vUnit.type)}<span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
           <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>

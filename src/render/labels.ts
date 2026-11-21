@@ -36,23 +36,74 @@ export function clearLabelCache() {
   cache.clear();
 }
 
-/** sin = Fraktion als Suender gezeichnet, blessed = Maertyrer-Segen (Heiliges Alvenia) / sin = faction marked as a sinner, blessed = Martyr's Blessing (Holy Alvenia) */
-export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number; sin?: boolean; blessed?: boolean }
+/**
+ * sin = Fraktion als Suender gezeichnet, blessed = Maertyrer-Segen (Heiliges Alvenia); icon = Rollensymbol der Einheit
+ * (unitRoles.ts), ohne icon die Plakette ohne Symbolkappe.
+ * sin = faction marked as a sinner, blessed = Martyr's Blessing (Holy Alvenia); icon = role icon of the unit
+ * (unitRoles.ts), without icon the badge has no icon cap.
+ */
+export interface BadgeInfo { hp: number; maxHp: number; color: string; ink: string; veteran: boolean; done: boolean; fuel: number | null; maxFuel: number; sin?: boolean; blessed?: boolean; icon?: string }
+
+/** Lage der Teile auf der Plakette in Canvas-Pixeln, ab der linken Kante des Schilds / layout of the badge parts in canvas pixels, from the left edge of the pill */
+export interface BadgeLayout { width: number; pill: number; cap: boolean; textX: number; starX: number; sinX: number }
+
+/**
+ * Plakette von links nach rechts: Symbolkappe (Tuschekreis mit hellem Rollensymbol, fuellt das linke Ende des Schilds),
+ * Zahl, Veteranenstern, Suendenzeichen. Das Schild ist nur so breit wie sein Inhalt; ohne Kappe wie bisher mindestens
+ * BADGE.minPill. textWidth = gemessene Breite der Zahl.
+ * Badge from left to right: icon cap (ink disc with a light role icon, filling the left end of the pill), number, veteran
+ * star, sinner mark. The pill is only as wide as its content; without a cap at least BADGE.minPill as before.
+ * textWidth = measured width of the number.
+ */
+export function badgeLayout(textWidth: number, cap: boolean, veteran: boolean, sin: boolean): BadgeLayout {
+  const tw = Math.ceil(textWidth);
+  let x = cap ? BADGE.cap + BADGE.gap : BADGE.pad;
+  const textX = x + tw / 2;
+  x += tw;
+  const starX = veteran ? x + BADGE.gap + BADGE.star / 2 : 0;
+  if (veteran) x += BADGE.gap + BADGE.star;
+  const sinX = sin ? x + BADGE.gap + BADGE.sin / 2 : 0;
+  if (sin) x += BADGE.gap + BADGE.sin;
+  const pill = cap ? x + BADGE.padEnd : Math.max(BADGE.minPill, x + BADGE.pad);
+  // links 2 Pixel Rand, rechts der Schatten (4) und 2 Pixel / 2 pixels margin on the left, the shadow (4) and 2 pixels on the right
+  return { width: pill + 8, pill, cap, textX, starX, sinX };
+}
+
+/**
+ * Zwischenspeicher der LP-Plaketten begrenzen: Sind es mehr als BADGE.cacheMax, werden alle freigegeben, die keine
+ * Einheit gerade zeigt (shown). Mit dem Rollensymbol gibt es je Typ eigene Plaketten; ohne Grenze wuechse der Speicher
+ * ueber eine lange Partie mit jeder neuen LP-Zahl.
+ * Bound the cache of the HP badges: with more than BADGE.cacheMax, every badge no unit shows right now (shown) is
+ * released. With the role icon there are badges per type; without a bound the memory would grow over a long game with
+ * every new HP value.
+ */
+export function pruneBadgeCache(shown: Set<THREE.Material>) {
+  let n = 0;
+  for (const k of cache.keys()) if (k.startsWith('hp-')) n++;
+  if (n <= BADGE.cacheMax) return;
+  for (const [k, m] of cache) {
+    if (!k.startsWith('hp-') || shown.has(m)) continue;
+    m.map?.dispose(); m.dispose(); cache.delete(k);
+  }
+}
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+const badgeFont = () => `44px ${primitives.font.display}`;
 
 /** LP-Plakette / HP badge */
 export function hpBadge(b: BadgeInfo): THREE.Sprite {
-  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}-${!!b.sin}-${!!b.blessed}`;
-  const W = 128, H = b.fuel !== null ? 84 : 64;
+  const key = `hp-${b.hp}-${b.maxHp}-${b.color}-${b.veteran}-${b.done}-${b.fuel}-${!!b.sin}-${!!b.blessed}-${b.icon ?? ''}`;
+  const txt = `${Math.max(0, Math.ceil(b.hp))}`;
+  measureCtx ??= document.createElement('canvas').getContext('2d')!;
+  measureCtx.font = badgeFont();
+  const L = badgeLayout(measureCtx.measureText(txt).width, !!b.icon, b.veteran, !!b.sin);
+  const fuelW = b.fuel !== null ? b.maxFuel * 22 + (b.maxFuel - 1) * 6 + 8 : 0;
+  // gerade Breite, damit die Mitte auf einem Pixel liegt / even width so the centre lies on a pixel
+  const W = Math.ceil(Math.max(L.width, fuelW) / 2) * 2, H = b.fuel !== null ? 84 : 64;
   const m = material(key, W, H, (ctx) => {
     const ink = semantic.ink;
     ctx.globalAlpha = b.done ? 0.62 : 1;
-    // Schild nur so breit wie die Zahl (volle Breite mit Stern oder Suendenzeichen): verdeckt weniger von der Einheit dahinter
-    // pill only as wide as the number (full width with a star or sinner mark): hides less of the unit behind it
-    const txt = `${Math.max(0, Math.ceil(b.hp))}`;
-    ctx.font = `44px ${primitives.font.display}`;
-    const full = W - 10;
-    const pw = b.veteran || b.sin ? full : Math.min(full, Math.max(BADGE.minPill, Math.ceil(ctx.measureText(txt).width) + BADGE.pad * 2));
-    const px = (full - pw) / 2;
+    const px = (W - L.width) / 2, pw = L.pill;
     ctx.fillStyle = ink;
     roundRect(ctx, px + 6, 6, pw, 52, 16); ctx.fill();
     ctx.fillStyle = b.color;
@@ -63,22 +114,32 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
       roundRect(ctx, px + 5, 5, pw - 6, 46, 14); ctx.lineWidth = 7; ctx.strokeStyle = semantic.faithHalo; ctx.stroke();
       roundRect(ctx, px + 2, 2, pw, 52, 16); ctx.lineWidth = 3; ctx.strokeStyle = ink; ctx.stroke();
     }
+    // Symbolkappe: Tuschekreis mit hellem Symbol, auf jeder Fraktionsfarbe lesbar (wie das Stuetzpunkt-Schild)
+    // icon cap: ink disc with a light icon, readable on every faction colour (like the base sign)
+    if (b.icon) {
+      const r = BADGE.cap / 2, cx = px + 2 + r, cy = 28;
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+      drawIcon(ctx, b.icon, cx - BADGE.icon / 2, cy - BADGE.icon / 2, BADGE.icon, semantic.surfaceRaised);
+    }
     ctx.fillStyle = b.ink;
+    ctx.font = badgeFont();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.lineWidth = 6; ctx.strokeStyle = ink; ctx.strokeText(txt, full / 2 + 2 + (b.veteran ? 10 : 0), 31);
-    ctx.fillText(txt, full / 2 + 2 + (b.veteran ? 10 : 0), 31);
+    ctx.lineWidth = 6; ctx.strokeStyle = ink; ctx.strokeText(txt, px + 2 + L.textX, 31);
+    ctx.fillText(txt, px + 2 + L.textX, 31);
     if (b.veteran) {
+      const sx = px + 2 + L.starX;
       ctx.fillStyle = semantic.accent; ctx.strokeStyle = ink; ctx.lineWidth = 3;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 7 : 16;
-        ctx.lineTo(26 + Math.cos(a) * r, 29 + Math.sin(a) * r);
+        ctx.lineTo(sx + Math.cos(a) * r, 29 + Math.sin(a) * r);
       }
       ctx.closePath(); ctx.fill(); ctx.stroke();
     }
     // Suendenzeichen: roter Kreis mit gesprungenem Sonnenkranz rechts / sinner mark: red disc with a cracked sun halo on the right
     if (b.sin) {
-      const cx = W - 26, cy = 29;
+      const cx = px + 2 + L.sinX, cy = 29;
       ctx.fillStyle = semantic.sinMark; ctx.strokeStyle = ink; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = semantic.textInverse; ctx.lineWidth = 3;
@@ -95,7 +156,8 @@ export function hpBadge(b: BadgeInfo): THREE.Sprite {
     }
   });
   const s = new THREE.Sprite(m);
-  s.scale.set(0.42, 0.42 * (H / W), 1);
+  // gleicher Massstab je Canvas-Pixel wie bisher (128 Pixel = 0.42) / same scale per canvas pixel as before (128 pixels = 0.42)
+  s.scale.set(BADGE.world * W, BADGE.world * H, 1);
   s.renderOrder = 10;
   return s;
 }

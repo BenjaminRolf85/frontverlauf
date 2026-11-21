@@ -206,31 +206,33 @@ function containers(b: Builder, L: Look, z: number, y: number) {
 export function landingBoat(f: FactionId, carried: THREE.BufferGeometry | null): Builder {
   const b = new Builder();
   const L = look(f);
-  const len = 0.62, w = 0.3, top = 0.07;
+  // Proportion: kurz und breit (0.46 x 0.34 statt 0.62 x 0.3), das kleinste Schiff; Zerstoerer schlank, Schlachtschiff lang
+  // proportion: short and wide (0.46 x 0.34 instead of 0.62 x 0.3), the smallest ship; destroyer slim, battleship long
+  const len = 0.46, w = 0.34, top = 0.07, k = len / 0.62;
   // flacher Kasten-Rumpf mit gefasten Kanten / flat box hull with chamfered edges
   b.add(geo.cbox(w - 0.02, 0.03, len - 0.02, 0.03), L.hullDark, { p: [0, -0.015, 0] });
   b.add(geo.cbox(w, 0.014, len, 0.03), mat.ink, { p: [0, 0.007, 0] });
   b.block(0, 0.014, -0.02, w - 0.02, 0.012, len - 0.06, mat.woodLight);
-  for (let i = 0; i < 4; i++) b.block(0, 0.026, -0.22 + i * 0.13, w - 0.06, 0.003, 0.008, mat.wood);
+  for (let i = 0; i < 4; i++) b.block(0, 0.026, (-0.22 + i * 0.13) * k, w - 0.06, 0.003, 0.008, mat.wood);
   for (const s of [-1, 1]) {
     b.add(geo.cbox(0.03, top - 0.014, len - 0.02, 0.008), L.hull, { p: [s * (w / 2 - 0.015), 0.014 + (top - 0.014) / 2, -0.01] });
     b.block(s * (w / 2 - 0.015), top, -0.01, 0.034, 0.006, len - 0.02, L.trim);
     // Poller, Fender, Seitenrippen / bollards, fenders, side ribs
-    for (const z of [-0.2, 0.15]) b.cyl(0.008, 0.009, 0.016, 6, mat.dark, [s * (w / 2 - 0.015), top + 0.011, z]);
-    for (const z of [-0.05, 0.15]) b.cyl(0.011, 0.011, 0.03, 8, mat.dark, [s * (w / 2 + 0.008), 0.035, z]);
-    for (let i = 0; i < 3; i++) b.box(0.004, top - 0.02, 0.008, L.hullDark, [s * (w / 2 + 0.001), top / 2 + 0.005, -0.2 + i * 0.15]);
+    for (const z of [-0.2, 0.15]) b.cyl(0.008, 0.009, 0.016, 6, mat.dark, [s * (w / 2 - 0.015), top + 0.011, z * k]);
+    for (const z of [-0.05, 0.15]) b.cyl(0.011, 0.011, 0.03, 8, mat.dark, [s * (w / 2 + 0.008), 0.035, z * k]);
+    for (let i = 0; i < 3; i++) b.box(0.004, top - 0.02, 0.008, L.hullDark, [s * (w / 2 + 0.001), top / 2 + 0.005, (-0.2 + i * 0.15) * k]);
   }
   // Rettungsring + Bootsfuehrer / life ring + helmsman
-  b.add(geo.torus(0.022, 0.007, 4, 10), mat.white, { p: [w / 2 + 0.004, 0.05, -0.2], r: [0, HALF_PI, 0] });
-  b.add(geo.torus(0.022, 0.0072, 4, 4), L.primary, { p: [w / 2 + 0.0045, 0.05, -0.2], r: [0, HALF_PI, Math.PI / 4] });
-  b.group({ p: [0.08, top - 0.02, -0.22], s: 0.6 }, () => soldier(b, f, standPose([[-0.06, 0.24, -0.08], [0.06, 0.24, -0.08]]), { detail: 0, seed: 9, noLegs: true }));
+  b.add(geo.torus(0.022, 0.007, 4, 10), mat.white, { p: [w / 2 + 0.004, 0.05, -0.16], r: [0, HALF_PI, 0] });
+  b.add(geo.torus(0.022, 0.0072, 4, 4), L.primary, { p: [w / 2 + 0.0045, 0.05, -0.16], r: [0, HALF_PI, Math.PI / 4] });
+  b.group({ p: [0.08, top - 0.02, -0.17], s: 0.6 }, () => soldier(b, f, standPose([[-0.06, 0.24, -0.08], [0.06, 0.24, -0.08]]), { detail: 0, seed: 9, noLegs: true }));
   b.block(0, 0.014, -len / 2 + 0.03, w, top - 0.014 + 0.015, 0.06, L.hull);
   // Bugrampe mit Rippen / bow ramp with ribs
   b.group({ p: [0, 0.06, len / 2 - 0.03], r: [-0.2, 0, 0] }, () => {
     b.add(geo.cbox(w - 0.02, 0.1, 0.018, 0.006), L.hullDark, {});
     for (const y of [-0.03, 0.0, 0.03]) b.box(w - 0.04, 0.008, 0.008, L.trim, [0, y, 0.011]);
   });
-  for (const s of [-1, 1]) b.tube([s * 0.13, top + 0.004, len / 2 - 0.06], [s * 0.13, 0.1, len / 2 - 0.03], 0.003, 4, mat.metal);
+  for (const s of [-1, 1]) b.tube([s * (w / 2 - 0.02), top + 0.004, len / 2 - 0.06], [s * (w / 2 - 0.02), 0.1, len / 2 - 0.03], 0.003, 4, mat.metal);
   // Steuerstand mit Motorabdeckung / helm station with engine cover
   b.add(geo.cbox(0.1, 0.08, 0.07, 0.012), L.hull, { p: [0.08, top + 0.04, -len / 2 + 0.05] });
   b.block(0.08, top + 0.045, -len / 2 + 0.05, 0.104, 0.02, 0.074, mat.window);
@@ -239,14 +241,14 @@ export function landingBoat(f: FactionId, carried: THREE.BufferGeometry | null):
   b.cyl(0.008, 0.01, 0.05, 6, mat.darkMid, [-0.1, top + 0.05, -len / 2 + 0.04]);
   b.cyl(0.004, 0.004, 0.12, 4, mat.dark, [0.11, top + 0.14, -len / 2 + 0.04]);
   b.add(geo.profileZY([[0, 0], [-0.06, -0.012], [0, -0.024]], 0.004), L.trim, { p: [0.11, top + 0.2, -len / 2 + 0.036] });
-  b.box(0.01, 0.01, 0.01, mat.red, [-0.135, top + 0.02, 0.2]);
-  b.box(0.01, 0.01, 0.01, mat.green, [0.135, top + 0.02, 0.2]);
-  addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [w / 2 + 0.003, 0.045, -0.08], r: [0, HALF_PI, 0] });
+  b.box(0.01, 0.01, 0.01, mat.red, [-(w / 2 - 0.015), top + 0.02, 0.2 * k]);
+  b.box(0.01, 0.01, 0.01, mat.green, [w / 2 - 0.015, top + 0.02, 0.2 * k]);
+  addEmblem(b, f, 0.035, 0.006, L.emblem, { p: [w / 2 + 0.003, 0.045, -0.06], r: [0, HALF_PI, 0] });
   // Velkar: Leuchtleisten auf den Bordwaenden / Velkar: light strips on the side walls
   if (f === 'velkar') for (const sx of [-1, 1]) b.box(0.036, 0.004, len * 0.6, TECH.glow, [sx * (w / 2 - 0.015), top + 0.004, 0.0]);
   // Ladung: kleine getragene Einheit / cargo: tiny carried unit marker
-  if (carried) b.addColored(carried, { p: [-0.02, 0.029, 0.04], s: 0.5 });
-  else b.add(geo.cbox(0.08, 0.05, 0.08, 0.012), L.gear, { p: [0, 0.054, 0.04] });
+  if (carried) b.addColored(carried, { p: [-0.02, 0.029, 0.03], s: 0.5 });
+  else b.add(geo.cbox(0.08, 0.05, 0.08, 0.012), L.gear, { p: [0, 0.054, 0.03] });
   return b;
 }
 

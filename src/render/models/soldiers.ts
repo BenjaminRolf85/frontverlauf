@@ -2,8 +2,8 @@
  * Soldaten-Grundform mit Gelenken und Infanterie-Einheiten / jointed base soldier and infantry-type units.
  * Arme und Beine werden per Zwei-Knochen-IK zu Zielpunkten (Haende, Knoechel) gefuehrt.
  * Arms and legs are posed by two-bone IK towards targets (hands, ankles).
- * Comic-Proportionen: grosser Kopf und Helm, kurze Beine. Blickrichtung +z.
- * Comic proportions: big head and helmet, short legs. Facing +z.
+ * Comic-Proportionen: kurze Beine, Kopf und Helm maessig gross (HEAD_FOOT), damit Haltung und Ausruestung lesbar bleiben. Blickrichtung +z.
+ * Comic proportions: short legs, head and helmet moderately big (HEAD_FOOT) so stance and equipment stay readable. Facing +z.
  * Detailstufen / detail levels: 2 = Einzelfigur / hero figure, 1 = Trupp / team, 0 = Besatzung / crew.
  */
 import * as THREE from 'three';
@@ -26,6 +26,17 @@ const TORSO_Y = 0.02;
 const SHOULDER_X = 0.098;
 const SHOULDER_Y = 0.098;
 const NECK_Y = 0.115;
+/**
+ * Kopfmassstab (Kopf und Helm), vorher 1.22 fuer alle: von oben deckte der Helm fast die ganze Figur ab und alle Fusstruppen
+ * einer Fraktion sahen gleich aus. Fusstruppen bekommen einen deutlich kleineren Helm, damit Koerper, Haltung und Ausruestung
+ * den Umriss bestimmen; Besatzungen in Luken (ohne Beine) behalten einen etwas groesseren Kopf, dort traegt er die Fraktion.
+ * Form und Farbe der Helme bleiben gleich.
+ * Head scale (head and helmet), before 1.22 for all: from above the helmet covered almost the whole figure and all foot
+ * troops of a faction looked alike. Foot troops get a clearly smaller helmet so body, stance and equipment shape the
+ * outline; crews in hatches (no legs) keep a somewhat larger head, there it carries the faction. Helmet shape and colour stay.
+ */
+export const HEAD_CREW = 1.05;
+export const HEAD_FOOT = 0.84;
 const THIGH = 0.062;
 const SHIN = 0.058;
 const UPPER = 0.072;
@@ -74,6 +85,8 @@ export interface SoldierOpts {
   coatColor?: ColorLike;
   /** eigener Kopf statt Helm (Wissenschaftler) / own head instead of the helmet (scientist) */
   head?: (b: Builder, L: Look, d: Detail) => void;
+  /** Kopfmassstab (fehlt = HEAD_CREW ohne Beine, sonst HEAD_FOOT) / head scale (missing = HEAD_CREW without legs, else HEAD_FOOT) */
+  headScale?: number;
 }
 
 /** Zwei-Knochen-IK / two-bone IK */
@@ -300,7 +313,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         }
       }
       // Kopf / head
-      b.group({ p: [0, NECK_Y, 0], r: pose.head, s: 1.22 }, () => {
+      b.group({ p: [0, NECK_Y, 0], r: pose.head, s: o.headScale ?? (o.noLegs ? HEAD_CREW : HEAD_FOOT) }, () => {
         b.add(drum(0.03, 0.034, 0.03, segs), mat.skin, { p: [0, -0.005, 0] });
         if (o.head) o.head(b, L, d); else headgear(b, f, L, d, o.hat === 'fedora', o.seed ?? 1);
       });
@@ -453,6 +466,9 @@ export function infantry(f: FactionId, lite = false): Builder {
   const d: Detail = lite ? 1 : 2;
   const G: V3 = [0.035, 0.2, 0.06];
   const D: V3 = [-0.3, 0.12, 1];
+  // Proportion: Figur um 0.05 nach hinten, damit das Gewehr nicht die Vergroesserung begrenzt (mittlere Groessenklasse)
+  // proportion: figure moved back by 0.05 so the rifle does not limit the enlargement (medium size class)
+  b.group({ p: [0, 0, -0.05] }, () => {
   soldier(b, f, {
     ...standPose([along(G, D, 0.092), G]),
     footL: [-0.05, 0.034, 0.04],
@@ -473,6 +489,7 @@ export function infantry(f: FactionId, lite = false): Builder {
       b.cyl(0.015, 0.015, 0.03, 10, mat.darkMid, [x + 0.01, 0.2, 0.072], [0.2, 0, 0.3]);
     }
   }
+  });
   return b;
 }
 
@@ -674,7 +691,8 @@ export function mgTeam(f: FactionId, lite = false): Builder {
     soldier(b, f, { ...kneelPose([[-0.03 * K, (gy - 0.005) * K, 0.105], [0.03 * K, (gy - 0.005) * K, 0.105]]), pelvis: [0, 0.105 + (K - 1) * 0.06, 0], head: [0.25, 0, 0] }, { detail: lite ? 0 : 1, seed: 41 }),
   );
   // Ladeschuetze mit Gurt / loader feeding the belt
-  if (!lite) b.group({ p: [-0.2, 0, -0.1], r: [0, 0.85, 0] }, () => {
+  // Proportion: Ladeschuetze weiter seitlich, das MG-Nest ist breit und niedrig / proportion: loader further to the side, the MG nest is wide and low
+  if (!lite) b.group({ p: [-0.25, 0, -0.12], r: [0, 1.1, 0] }, () => {
     soldier(b, f, kneelPose([[-0.03, 0.15, 0.11], [0.04, 0.14, 0.11]]), { detail: 0, pack: 'pack', seed: 43 });
     b.add(geo.cbox(0.07, 0.05, 0.045, 0.01), L.gear, { p: [0.0, 0.025, 0.14] });
   });
@@ -757,7 +775,8 @@ export function spy(f: FactionId, lite = false): Builder {
   b.add(geo.rbox(0.03, 0.07, 0.012, 0.004), L.secondary, { p: [0.03, 0.25, 0.055], r: [0.1, 0, 0.1] });
   if (f === 'velkar') {
     // Datensammler: Leuchtbrille unter dem Hut, Handscanner mit Antenne / data collector: glowing goggles under the hat, hand scanner with antenna
-    b.box(0.1, 0.016, 0.01, TECH.glow, [0, 0.355, 0.068], [0, 0.25, 0]);
+    // auf Augenhoehe des kleineren Kopfes (HEAD_FOOT) / at eye level of the smaller head (HEAD_FOOT)
+    b.box(0.07, 0.014, 0.01, TECH.glow, [0, 0.335, 0.05], [0, 0.25, 0]);
     b.add(geo.cbox(0.05, 0.03, 0.07, 0.006), TECH.shell, { p: [-0.11, 0.17, 0.07] });
     b.box(0.03, 0.006, 0.04, TECH.glow, [-0.11, 0.187, 0.07]);
     b.tube([-0.125, 0.18, 0.04], [-0.135, 0.27, 0.02], 0.003, 4, mat.dark);
