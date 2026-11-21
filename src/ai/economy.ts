@@ -5,8 +5,8 @@
 import {
   unitClass, twinCheck, upkeepFactor, netIncome, canResearch, computePower, computeStats, isCultFaction, isRobotFaction, recruitCheck, recruitSpot, recruitTypes, recruitWait, hordeCount, rosterUnits,
   aliveFactions, buildCheck, cityUpgradeCheck, isAlienFaction, terraformCheck, radioTargets, cityById, cityTiles, dist, embassyCost, grandProjectCheck, hasTech, hqOf, idx,
-  income, isLand, isShip, isWater, neighbors, researchCost, supportedUnits, territoryOwner, trainCheck, unitAt,
-  unitCost, unitLimit, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
+  income, isLand, isShip, isWater, neighbors, researchCost, freeUnitSlots, noTraining, territoryOwner, trainCheck, unitAt,
+  unitCost, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, factionVariant, rosterShips,
 } from '../core';
@@ -658,7 +658,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   const upFor = (t: UnitTypeId) => (ctx.my.length >= UPKEEP.freeUnits ? (UPKEEP.flat[t] ?? Math.ceil((UNITS[t].cost ?? 0) * UPKEEP.share)) * upkeepFactor(s, f) : 0);
   // Kult bildet in Staedten nicht aus / the cult does not train in cities
   for (const c of isCultFaction(s, f) ? [] : ctx.myCities) {
-    if (unitAt(s, c.x, c.y) || supportedUnits(s, c) >= unitLimit(s, c)) continue;
+    // Wohnbloecke und Supermarkt bilden nie aus; volle Staedte nutzen die Plaetze der Versorger (freeUnitSlots)
+    // residential blocks and supermarket never train; full cities use the suppliers' slots (freeUnitSlots)
+    if (noTraining(c) || unitAt(s, c.x, c.y) || freeUnitSlots(s, c) <= 0) continue;
     const urgent = ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0);
     const type = chooseUnitType(ctx, c, urgent);
     if (!type) continue;
@@ -919,7 +921,7 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (chk !== 'ok' && chk !== 'notEnoughStars') continue;
     if (ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0)) continue;
     let value = levelUpCost(s, c) * popVal * 0.9;
-    if (deficit > 0 && supportedUnits(s, c) >= unitLimit(s, c)) value += 15 * prof.militaryW;
+    if (deficit > 0 && freeUnitSlots(s, c) <= 0) value += 15 * prof.militaryW;
     if (prof.difficulty === 'easy') value *= 0.5;
     buys.push({ cmd: { type: 'buyLevel', city: c.id }, cost: buyLevelCost(c), value, save: false });
   }

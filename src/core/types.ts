@@ -1,5 +1,5 @@
 import type {
-  BiomeId, BuildingId, CityUpgradeId, Difficulty, ProductionSiteId, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
+  BaseKind, BiomeId, BuildingId, CityUpgradeId, Difficulty, ProductionSiteId, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
   UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId, SinDeed,
 } from '../data/balance';
 
@@ -125,6 +125,13 @@ export interface City {
    * Campaign transmitter tower: trains like a supply line, does not grow, no upgrades (TOWER).
    */
   tower?: boolean;
+  /**
+   * Stuetzpunkt: Art des Orts mit eigener Eigenschaft (BASES); bleibt beim Besitzwechsel. Fehlt = gewoehnliche Stadt
+   * (Hauptquartiere, andere Welten, Kampagne, Sendetuerme dort, alte Spielstaende).
+   * Base: kind of the place with its own property (BASES); stays when the owner changes. Missing = ordinary city
+   * (headquarters, other worlds, campaign, transmitter towers there, old saves).
+   */
+  base?: BaseKind;
   /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
   plundered?: number;
   /** Kult: wie oft diese Stadt schon gepluendert wurde (fehlt = nie) / cult: how often this city has been plundered (missing = never) */
@@ -293,11 +300,20 @@ export interface GameConfig {
   campaign?: { mission: string };
   /**
    * Sendetuerme in freien Partien (fehlt = an; Anzahl nach Kartengroesse, TOWER); das Tutorial schaltet sie ab, die Kampagne
-   * setzt ihre eigenen (MissionDef.towers).
+   * setzt ihre eigenen (MissionDef.towers). Mit Stuetzpunkten (bases) stehen an denselben Feldern Stuetzpunkte statt der
+   * Tuerme; false laesst auch diese Orte weg.
    * Transmitter towers in free games (missing = on; count by map size, TOWER); the tutorial turns them off, the campaign
-   * places its own (MissionDef.towers).
+   * places its own (MissionDef.towers). With bases the same tiles carry bases instead of the towers; false leaves out
+   * these places too.
    */
   towers?: boolean;
+  /**
+   * Stuetzpunkte statt neutraler Siedlungen (fehlt = an in freien Partien der Standardwelt, sonst aus; BASES). Das Tutorial
+   * schaltet sie ab. Wirkt nur beim Anlegen der Partie: die Art steht danach an jedem Ort (City.base).
+   * Bases instead of neutral villages (missing = on in free games on the default world, otherwise off; BASES). The tutorial
+   * turns them off. Only matters when the game is created: afterwards the kind is stored on every place (City.base).
+   */
+  bases?: boolean;
   /** Anteil neutraler Siedlungen (fehlt = 1, freie Partien); Kampagne siehe CAMPAIGN_SETTLEMENTS / share of neutral settlements (missing = 1, free games); campaign see CAMPAIGN_SETTLEMENTS */
   settlements?: number;
   /**
@@ -645,7 +661,7 @@ export type ErrorCode =
   | 'cannotCapture' | 'pendingReward' | 'noReward' | 'onePerCity' | 'notInTerritory' | 'alreadyBuilt'
   | 'notUnlocked' | 'noContact' | 'invalid' | 'fresh' | 'noResearch' | 'notTerraformed' | 'wrongFaction'
   | 'notPreacher' | 'recruitCooldown' | 'computeMissing' | 'cultRecruit' | 'cityLevel' | 'cannotRetreat' | 'retreatCooldown' | 'noRetreatTile' | 'cannotRepair' | 'noWreck' | 'noXenoGround' | 'noRockets'
-  | 'enemyTerritory' | 'cannotBuild' | 'quake' | 'emplacementLimit' | 'emplacementSpacing' | 'outpostSpacing'
+  | 'enemyTerritory' | 'cannotBuild' | 'noTraining' | 'quake' | 'emplacementLimit' | 'emplacementSpacing' | 'outpostSpacing'
   // Orbitallaser / orbital laser
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
   // Kriegsplaene (m4) / war plans (m4)

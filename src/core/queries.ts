@@ -3,7 +3,7 @@
  * Read-only queries of the game core (never mutate the state).
  */
 import {
-  COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
+  BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
   UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, TWIN_TRAINING, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
@@ -152,6 +152,9 @@ export function unitCost(s: GameState, f: number, type: UnitTypeId): number | nu
   // Doktrinen Bergbau (Panzerwerk) und Forstwirtschaft (Geschuetzgiesserei) / mining (tank works) and forestry (foundry) doctrines
   if (hasDoctrine(s, f, 'mining') && PRODUCTION.units.tankWorks.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.miningDiscount));
   if (hasDoctrine(s, f, 'forestry') && PRODUCTION.units.foundry.includes(type)) cost = Math.ceil(cost * (1 - DOCTRINE.forestryDiscount));
+  // Stuetzpunkt-Rabatt fuer Zyrr, Kult und NEXUS (BASES.discount) / base discount for Zyrr, cult and NEXUS (BASES.discount)
+  const bd = baseDiscount(s, f, type);
+  if (bd > 0) cost = Math.ceil(cost * (1 - bd));
   return cost;
 }
 
@@ -175,7 +178,8 @@ export function unitLimit(s: GameState, c: City): number {
   if (supplyLines(s)) return (mainShaft(c) ? SUPPLY_LINE.mainShaftUnitLimit : SUPPLY_LINE.unitLimit) + extra;
   // Sendeturm: feste kleine Zahl / transmitter tower: small fixed number
   if (c.tower) return TOWER.unitLimit + extra;
-  return c.level + CITY.unitLimitExtra + extra + upgradeUnitLimit(s, c);
+  // Stuetzpunkt: zusaetzlich getragene Einheiten (Nachschubdepot, Wohnbloecke, Supermarkt) / base: additionally supported units
+  return c.level + CITY.unitLimitExtra + extra + upgradeUnitLimit(s, c) + baseUnits(c);
 }
 
 /**
@@ -298,8 +302,9 @@ export function outpostClaim(s: GameState, f: number, x: number, y: number): { c
 
 export function cityIncome(s: GameState, c: City): number {
   if (c.owner === null || c.noIncomeNext) return 0;
-  // Kult-Staedte bringen nichts ein, nur Plaetze (CULT) / cult cities bring no income, only slots (CULT)
-  if (isCultFaction(s, c.owner)) return 0;
+  // Kult-Staedte bringen nichts ein, nur Plaetze (CULT); Sterne eines Stuetzpunkts gehen als Tribut auch an den Kult (BASES.stars)
+  // cult cities bring no income, only slots (CULT); a base's stars go to the cult too, as tribute (BASES.stars)
+  if (isCultFaction(s, c.owner)) return baseStars(s, c);
   let inc = INCOME.perCityLevel * c.level;
   if (c.isHQ && c.hqOf === c.owner) inc += INCOME.hq;
   // Nachschublinie: festes Einkommen statt Stufe und HQ-Bonus / supply line: fixed income instead of level and HQ bonus
@@ -311,6 +316,8 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
+  // Stuetzpunkt: Fabrik, Nachschubdepot, Kraftwerke (NEXUS dazu Energie) / base: factory, supply depot, power kinds (NEXUS energy on top)
+  inc += baseStars(s, c);
   for (const p of cityTiles(s, c)) {
     const b = tileAt(s, p.x, p.y)!.building;
     if (b === 'logisticsCenter') inc += logisticsIncome(s, p.x, p.y);
@@ -1189,6 +1196,8 @@ export function healAmount(s: GameState, u: Unit): number {
   if (t.xeno && isAlien(u)) h += XENO.groundHeal;
   // Lazarett auf oder neben der Stadt / hospital on or next to the city
   if (s.cities.some((c) => c.owner === u.owner && dist(c, u) <= 1 && (c.upgrades ?? []).includes('hospital'))) h += CITY_UPGRADES.hospitalHeal;
+  // Stuetzpunkt Lazarett: mehr, auf und neben dem Ort / field hospital base: more, on and next to the place
+  h += baseHeal(s, u);
   // Zweites Merkmal: Waldbrut im Wald (Zyrr) / second trait: forest spawn in forests
   if (perk2Of(s, u.owner) === 'forestSpawn' && t.terrain === 'forest') h += PERKS2.forestSpawnHeal;
   // Klosterweingut (Alvenia, ID hillVineyard) im Gebiet der Stadt, auf der die Einheit steht / monastery vineyard (Alvenia, ID hillVineyard) in the territory of the city the unit stands in
@@ -1349,6 +1358,11 @@ export function buildCheck(s: GameState, f: number, b: BuildingId, x: number, y:
   if (isCultFaction(s, f) && !CULT.buildings.includes(b)) return { ok: false, error: 'cannotBuild', cost };
   // Produktionsstaetten nur fuer Menschen (der Marinestuetzpunkt fuer alle) / production sites for humans only (the naval base for everyone)
   if (isProductionSite(b) && b !== 'navalBase' && !usesSites(s, f)) return { ok: false, error: 'wrongFaction', cost };
+  // Wohnbloecke und Supermarkt bilden nie aus: keine Produktionsstaette in ihrem Gebiet (der Marinestuetzpunkt bleibt als
+  // Einschiffungsort erlaubt, Kriegsschiffe liefert er dort nicht)
+  // residential blocks and supermarket never train: no production site in their territory (the naval base stays allowed
+  // as an embarking point, it delivers no warships there)
+  if (isProductionSite(b) && b !== 'navalBase' && t.territory !== null && noTraining(cityById(s, t.territory))) return { ok: false, error: 'cannotBuild', cost };
   // Ressourcengebaeude der Fraktion: eigene Ortsregeln / the faction's resource building: own site rules
   if (RESOURCE_BUILDINGS.includes(b)) return resourceBuildCheck(s, f, b, x, y);
   // Zyrr bauen nur Xeno-Gebaeude auf Xeno-Boden, alle anderen nie / Zyrr build only xeno buildings on xeno ground
@@ -1525,6 +1539,134 @@ export function barrierCost(s: GameState, f: number): number {
   return perk2Of(s, f) === 'engineerCorps' ? PERKS2.engineerCorpsBarrierCost : BARRIER.cost;
 }
 
+// ---------- Stuetzpunkte / bases ----------
+
+/**
+ * Stuetzpunkte statt Siedlungen beim Anlegen der Partie: ausdruecklich gesetzt, sonst in freien Partien der Standardwelt.
+ * Bases instead of villages when the game is created: set explicitly, otherwise in free games on the default world.
+ */
+export const basesOn = (cfg: GameConfig): boolean => cfg.bases ?? (!cfg.theme && !cfg.campaign);
+/** Art des Stuetzpunkts (null = gewoehnliche Stadt, Hauptquartier, Sendeturm, alter Spielstand) / kind of the base (null = ordinary city, HQ, tower, old save) */
+export const baseOf = (c: City): BaseKind | null => c.base ?? null;
+/** Wohnbloecke, Supermarkt: hier entsteht nie eine Einheit / residential blocks, supermarket: no unit is ever created here */
+export const noTraining = (c: City | undefined | null): boolean => !!c?.base && BASES.noTraining.includes(c.base);
+/** Verteidigung fuer eigene Bodeneinheiten auf dem Stuetzpunkt / defence for own ground units on the base */
+export const baseDefense = (c: City): number => (c.base ? BASES.defense[c.base] ?? 0 : 0);
+/** zusaetzlich getragene Einheiten / additionally supported units */
+export const baseUnits = (c: City): number => (c.base ? BASES.units[c.base] ?? 0 : 0);
+/** Haelt f mindestens einen Stuetzpunkt dieser Art? / does f hold at least one base of this kind? */
+export const holdsBase = (s: GameState, f: number, kind: BaseKind): boolean => s.cities.some((c) => c.owner === f && c.base === kind);
+/** Bekommt diese Fraktion von der Art Sterne statt des Rabatts (keine passende Einheit, BASES.gap)? / does this faction get stars instead of the discount from the kind (no matching unit, BASES.gap)? */
+export const baseGap = (kind: BaseKind, id: FactionId): boolean => !!BASES.gap[kind]?.includes(id);
+
+/**
+ * Sterne pro Runde, die der Stuetzpunkt seinem Besitzer zusaetzlich bringt: BASES.stars und BASES.gapStars fuer eine
+ * Fraktion ohne passende Einheit; der Kult bekommt davon den Anteil BASES.cultTribute (tributeStars).
+ * Stars per round the base gives its owner on top: BASES.stars and BASES.gapStars for a faction without a matching unit;
+ * the cult receives the share BASES.cultTribute of it (tributeStars).
+ */
+export function baseStars(s: GameState, c: City): number {
+  if (c.owner === null || !c.base || !s.factions[c.owner]) return 0;
+  const id = s.factions[c.owner].id;
+  const n = (BASES.stars[c.base] ?? 0) + (baseGap(c.base, id) ? BASES.gapStars : 0);
+  return id === CULT.faction ? tributeStars(n) : n;
+}
+
+/** Tribut des Kults aus n Stuetzpunkt-Sternen: Anteil BASES.cultTribute, gerundet, mindestens 1 / the cult's tribute from n base stars: share BASES.cultTribute, rounded, at least 1 */
+export const tributeStars = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * BASES.cultTribute)) : 0);
+
+/**
+ * Felder, die fuer die Zyrr beim Einnehmen einer Fabrik sofort zu Xeno-Boden werden (BASES.zyrrFactoryXeno): das Stadtfeld
+ * und die Felder ihres Gebiets im Umkreis, kein Ozean. Leer fuer andere Orte und Fraktionen.
+ * Tiles that turn to xeno ground at once when the Zyrr capture a factory (BASES.zyrrFactoryXeno): the city tile and the
+ * tiles of its territory within the radius, no ocean. Empty for other places and factions.
+ */
+export function factoryXenoTiles(s: GameState, c: City): Pos[] {
+  if (c.base !== 'factory' || c.owner === null || !isAlienFaction(s, c.owner)) return [];
+  return area(s.size, c.x, c.y, BASES.zyrrFactoryXeno).filter((p) => {
+    const t = tileAt(s, p.x, p.y)!;
+    return t.terrain !== 'ocean' && (t.cityId === c.id || t.territory === c.id);
+  });
+}
+
+/** Energie (Rechenleistung) eines Kraftwerk-Stuetzpunkts, nur fuer NEXUS, zusaetzlich zu den Sternen / energy (compute) of a power base, for NEXUS only, on top of the stars */
+export function baseEnergy(s: GameState, c: City): number {
+  if (c.owner === null || !c.base || s.factions[c.owner]?.id !== NEXUS.faction) return 0;
+  return BASES.energy[c.base] ?? 0;
+}
+
+/**
+ * Preisnachlass fuer einen Einheitentyp durch Stuetzpunkte: nur Zyrr, Kult und NEXUS (keine Produktionsstaetten), solange
+ * sie einen Stuetzpunkt halten, dessen Liste (BASES.discountUnits) den Typ enthaelt. Nicht stapelbar.
+ * Price reduction for a unit type from bases: only Zyrr, cult and NEXUS (no production sites) while they hold a base whose
+ * list (BASES.discountUnits) contains the type. Does not stack.
+ */
+export function baseDiscount(s: GameState, f: number, type: UnitTypeId): number {
+  if (!s.factions[f] || usesSites(s, f)) return 0;
+  for (const kind of Object.keys(BASES.discountUnits) as BaseKind[]) {
+    if (BASES.discountUnits[kind]!.includes(type) && holdsBase(s, f, kind)) return BASES.discount;
+  }
+  return 0;
+}
+
+/** Zusaetzliche Heilung durch ein eigenes Lazarett (Stuetzpunkt) auf oder neben der Einheit / extra healing from an own field hospital (base) on or next to the unit */
+export const baseHeal = (s: GameState, u: Unit): number =>
+  (s.cities.some((c) => c.base === 'fieldHospital' && c.owner === u.owner && dist(c, u) <= 1) ? BASES.heal : 0);
+
+/** Zusaetzliche LP fuer eine in Stadt c ausgebildete Einheit (Kaserne: Fusstruppen) / extra HP for a unit trained in city c (barracks: foot troops) */
+export const trainFootHp = (c: City, type: UnitTypeId): number => (c.base === 'barracks' && unitClass(type) === 'foot' ? BASES.footHp : 0);
+
+/**
+ * Kult: zusaetzliche LP fuer einen Rekruten auf (x, y), wenn eine eigene Kaserne auf dem Feld oder daneben liegt (nur
+ * Fusstruppen), sonst 0.
+ * Cult: extra HP for a recruit at (x, y) if an own barracks lies on the tile or next to it (foot troops only), else 0.
+ */
+export function recruitFootHp(s: GameState, f: number, type: UnitTypeId, x: number, y: number): number {
+  if (unitClass(type) !== 'foot') return 0;
+  return s.cities.some((c) => c.base === 'barracks' && c.owner === f && dist(c, { x, y }) <= 1) ? BASES.footHp : 0;
+}
+
+/**
+ * Versorger: der erste eigene Stuetzpunkt ohne Ausbildung (Wohnbloecke, Supermarkt; nach ID) mit freiem Platz, sonst null.
+ * Er traegt Einheiten, die in einer vollen Stadt der Fraktion ausgebildet werden. Der Kult braucht das nicht: sein Limit
+ * zaehlt ohnehin alle Plaetze zusammen.
+ * Supplier: the first own base without training (residential blocks, supermarket; by id) with a free slot, else null. It
+ * supports units trained in a full city of the faction. The cult does not need this: its cap adds up all slots anyway.
+ */
+export function supplyBase(s: GameState, f: number): City | null {
+  for (const c of s.cities) {
+    if (c.owner === f && noTraining(c) && supportedUnits(s, c) < unitLimit(s, c)) return c;
+  }
+  return null;
+}
+
+/** Freie Plaetze aller eigenen Versorger zusammen / free slots of all own suppliers together */
+export function supplySlots(s: GameState, f: number): number {
+  let n = 0;
+  for (const c of s.cities) if (c.owner === f && noTraining(c)) n += Math.max(0, unitLimit(s, c) - supportedUnits(s, c));
+  return n;
+}
+
+/**
+ * Freie Plaetze fuer eine Ausbildung in Stadt c: das eigene Limit, dazu die freien Plaetze der Versorger der Fraktion.
+ * Free slots for training in city c: its own limit plus the free slots of the faction's suppliers.
+ */
+export function freeUnitSlots(s: GameState, c: City): number {
+  const own = Math.max(0, unitLimit(s, c) - supportedUnits(s, c));
+  return c.owner === null ? own : own + supplySlots(s, c.owner);
+}
+
+/**
+ * Heimatstadt einer jetzt in c ausgebildeten Einheit: c selbst, solange ihr Limit Platz hat, sonst der Versorger mit
+ * freiem Platz; null, wenn nichts frei ist.
+ * Home city of a unit trained in c now: c itself while its limit has room, otherwise the supplier with a free slot; null
+ * if nothing is free.
+ */
+export function trainHome(s: GameState, c: City): number | null {
+  if (supportedUnits(s, c) < unitLimit(s, c)) return c.id;
+  return c.owner === null ? null : supplyBase(s, c.owner)?.id ?? null;
+}
+
 // ---------- Produktionsstaetten und Doktrinen / production sites and doctrines ----------
 
 /** Hat Fraktion f Produktionsstaetten und Doktrinen (die fuenf Menschen-Fraktionen)? / does faction f use production sites and doctrines (the five human factions)? */
@@ -1547,6 +1689,10 @@ export const DOCTRINE_TECHS: TechId[] = ['motorization', 'aerodynamics', 'armyAv
  * PRODUCTION.hqSites in the own HQ, PRODUCTION.citySites in every city of the faction, plus City.works.
  */
 export function builtInSite(s: GameState, c: City, site: ProductionSiteId): boolean {
+  // Stuetzpunkt: Wohnbloecke und Supermarkt haben nie eine Staette, die anderen ihre eingebaute (BASES.sites)
+  // base: residential blocks and supermarket never have a site, the others their built-in one (BASES.sites)
+  if (noTraining(c)) return false;
+  if (c.base && BASES.sites[c.base] === site) return true;
   if (site === PRODUCTION.builtIn && (c.isHQ || c.tower || supplyLines(s))) return true;
   // Fraktions-Extra im eigenen Hauptquartier (Dravon: Fahrzeugwerk) / faction extra in the own HQ (Dravon: motor pool)
   if (c.isHQ && c.hqOf !== null && c.hqOf === c.owner && PRODUCTION.hqSites[s.factions[c.owner].id]?.includes(site)) return true;
@@ -1557,6 +1703,7 @@ export function builtInSite(s: GameState, c: City, site: ProductionSiteId): bool
 
 /** Produktionsstaetten der Stadt (Gebaeude im Gebiet und eingebaute), in fester Reihenfolge / production sites of the city (buildings in the territory and built-in ones), in fixed order */
 export function citySites(s: GameState, c: City): ProductionSiteId[] {
+  if (noTraining(c)) return [];
   const have = new Set<ProductionSiteId>();
   for (const site of PRODUCTION.sites) if (builtInSite(s, c, site)) have.add(site);
   for (const p of cityTiles(s, c)) {
@@ -1567,7 +1714,7 @@ export function citySites(s: GameState, c: City): ProductionSiteId[] {
 }
 /** Hat die Stadt die Staette (Gebaeude im Gebiet oder eingebaut)? / does the city have the site (building in the territory or built in)? */
 export const cityHasSite = (s: GameState, c: City, site: ProductionSiteId): boolean =>
-  builtInSite(s, c, site) || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === site);
+  !noTraining(c) && (builtInSite(s, c, site) || cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === site));
 
 /**
  * Fehlende Voraussetzung, um die Staette b im Gebiet der Stadt c zu bauen (Liste der moeglichen Gebaeude), sonst null.
@@ -1576,6 +1723,8 @@ export const cityHasSite = (s: GameState, c: City, site: ProductionSiteId): bool
 export function siteNeed(s: GameState, c: City, b: BuildingId): BuildingId[] | null {
   const need = isProductionSite(b) ? PRODUCTION.needs[b] : undefined;
   if (!need) return null;
+  // eine eingebaute Staette zaehlt als Voraussetzung (Stuetzpunkt Marinestuetzpunkt fuer das Trockendock) / a built-in site counts as the prerequisite (naval base for the dry dock)
+  if (need.some((x) => isProductionSite(x) && builtInSite(s, c, x))) return null;
   return cityTiles(s, c).some((p) => { const x = tileAt(s, p.x, p.y)!.building; return !!x && need.includes(x); }) ? null : need;
 }
 
@@ -1689,15 +1838,17 @@ function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (isCultFaction(s, f)) {
     const h = hordeCount(s, f);
     if (h.units >= h.cap) return 'unitLimit';
-  } else if (supportedUnits(s, c) >= unitLimit(s, c)) return 'unitLimit';
+  } else if (freeUnitSlots(s, c) <= 0) return 'unitLimit';
   if (s.factions[f].stars < unitCost(s, f, type)!) return 'notEnoughStars';
   return 'ok';
 }
 
-export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile';
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining';
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
+  // Wohnbloecke und Supermarkt liefern keine Truppen: nichts wird hier ausgebildet, auch kein Schiff / residential blocks and supermarket deliver no troops: nothing is trained here, no ship either
+  if (noTraining(c)) return 'noTraining';
   const st = UNITS[type];
   // Schiffe: Werft der Kuestenstadt / ships: shipyard of the coastal city
   if (st.ship) return shipTrainCheck(s, c, type);
@@ -1728,18 +1879,20 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
     if (site && !cityHasSite(s, c, site)) return 'buildingMissing';
   }
   if (unitAt(s, c.x, c.y)) return 'occupied';
-  if (supportedUnits(s, c) >= unitLimit(s, c)) return 'unitLimit';
+  if (freeUnitSlots(s, c) <= 0) return 'unitLimit';
   if (s.factions[c.owner].stars < unitCost(s, c.owner, type)!) return 'notEnoughStars';
   return 'ok';
 }
 
-export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' | 'buildingMissing' {
+export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'techMissing' | 'notEnoughStars' | 'invalid' | 'notInTerritory' | 'buildingMissing' | 'noTraining' {
   if (!isShip(u) || !UNITS[to].ship || to === u.type || to === 'landingBoat' || to === 'fogCutter') return 'invalid';
   if (u.fresh) return 'invalid';
   // Fraktionsschiffe (Kaperschiff) nur fuer ihre Fraktion / faction ships (privateer) only for their faction
   if (UNITS[to].faction && UNITS[to].faction !== s.factions[u.owner].id) return 'invalid';
   const t = tileAt(s, u.x, u.y)!;
   if (territoryOwner(s, t) !== u.owner) return 'notInTerritory';
+  // im Gebiet von Wohnbloecken oder Supermarkt wird nicht aufgeruestet (dort entstehen keine Truppen) / no upgrading in the territory of residential blocks or a supermarket (no troops come from there)
+  if (t.territory !== null && noTraining(cityById(s, t.territory))) return 'noTraining';
   if (usesSites(s, u.owner)) {
     // Menschen: im Gebiet einer Stadt mit Marinestuetzpunkt bzw. Trockendock / humans: in the territory of a city with a naval base or dry dock
     const site = siteOf(to);
@@ -1754,7 +1907,10 @@ export function upgradeCheck(s: GameState, u: Unit, to: UnitTypeId): 'ok' | 'tec
 export function shipUpgradeCost(s: GameState, f: number, to: UnitTypeId): number {
   const base = UNITS[to].cost ?? 0;
   // Seemacht (Meridon) nach der Doktrin Schiffbau / sea power (Meridon) after the shipbuilding doctrine
-  return seaPrice(s, f, hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base);
+  const price = seaPrice(s, f, hasDoctrine(s, f, 'shipbuilding') ? Math.ceil(base * (1 - DOCTRINE.shipbuildingDiscount)) : base);
+  // Stuetzpunkt Marinestuetzpunkt: Rabatt fuer Kult und NEXUS (BASES.discount) / naval base: discount for cult and NEXUS (BASES.discount)
+  const bd = baseDiscount(s, f, to);
+  return bd > 0 ? Math.ceil(price * (1 - bd)) : price;
 }
 
 /**
@@ -1792,7 +1948,8 @@ export function rewardOptions(c: City, level: number): [RewardId, RewardId] {
   // Grenzerweiterung nur, solange das Gebiet noch wachsen kann; schon 7x7: Sterne statt einer leeren Wahl
   // border expansion only while the territory can still grow; already 7x7: stars instead of an empty choice
   if (level === 4) return [c.radius < CITY.growMaxRadius ? 'expand' : 'stars', 'population'];
-  return [c.govQuarter ? 'stars' : 'govQuarter', 'tank'];
+  // Wohnbloecke und Supermarkt liefern keine Truppen: Zuzug statt des Panzers / residential blocks and supermarket deliver no troops: influx instead of the tank
+  return [c.govQuarter ? 'stars' : 'govQuarter', noTraining(c) ? 'population' : 'tank'];
 }
 
 export function visionRadius(s: GameState, u: Unit): number {
@@ -1978,6 +2135,8 @@ export function effectiveDefense(s: GameState, u: Unit): number {
   if (t && t.cityId !== null && !isShip(u) && !has(u, 'fly')) {
     const c = cityById(s, t.cityId);
     if (c && c.owner === u.owner && hasCityUpgrade(c, 'bunker')) d += CITY_UPGRADES.bunkerDefense;
+    // Stuetzpunkt: Bunker viel, Wohnbloecke etwas (BASES.defense) / base: bunker a lot, residential blocks a little (BASES.defense)
+    if (c && c.owner === u.owner) d += baseDefense(c);
   }
   // Maertyrer-Segen (Alvenia) / Martyr's Blessing (Alvenia)
   return d * (1 + blessingOf(s, u));
@@ -1992,6 +2151,8 @@ export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgra
   if (only && s.factions[f].id !== only) return 'wrongFaction';
   const ups = cityUpgrades(c);
   if (ups.includes(up)) return 'alreadyBuilt';
+  // der Stuetzpunkt hat diesen Ausbau schon eingebaut (Bunker, Lazarett, Nachschubdepot) / the base already has this upgrade built in (bunker, field hospital, supply depot)
+  if (c.base && BASES.builtInUpgrade[c.base] === up) return 'alreadyBuilt';
   const max = CITY_UPGRADES.perFaction[up];
   if (max !== undefined && s.cities.filter((o) => o.owner === f && hasCityUpgrade(o, up)).length >= max) return 'relayLimit';
   // Nachschublinien und Sendetuerme lassen sich nicht ausbauen / supply lines and transmitter towers cannot be upgraded
@@ -2097,7 +2258,7 @@ export function rosterUnits(s: GameState, f: number): UnitTypeId[] {
 }
 
 /** Rechenzentren und Kraftwerke im eigenen Gebiet / data centers and power plants in own territory */
-export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; depotNodes: number; compute: number } {
+export function computeStats(s: GameState, f: number): { dataCenters: number; powerPlants: number; depotNodes: number; energy: number; compute: number } {
   let dataCenters = 0, powerPlants = 0;
   for (const t of s.tiles) {
     if (t.building !== 'dataCenter' && t.building !== 'powerPlant') continue;
@@ -2106,7 +2267,10 @@ export function computeStats(s: GameState, f: number): { dataCenters: number; po
   }
   // Depotknoten: eigene Rechenleistung ohne Kraftwerk / depot nodes: own compute without a power plant
   const depotNodes = countBuildings(s, f, 'depotNode');
-  return { dataCenters, powerPlants, depotNodes, compute: Math.min(dataCenters, powerPlants) + depotNodes * (BUILDINGS.depotNode.compute ?? 0) };
+  // Energie aus Kraftwerk-Stuetzpunkten: Rechenleistung direkt (BASES.energy) / energy from power bases: compute directly (BASES.energy)
+  let energy = 0;
+  for (const c of s.cities) if (c.owner === f) energy += baseEnergy(s, c);
+  return { dataCenters, powerPlants, depotNodes, energy, compute: Math.min(dataCenters, powerPlants) + depotNodes * (BUILDINGS.depotNode.compute ?? 0) + energy };
 }
 export const computePower = (s: GameState, f: number) => computeStats(s, f).compute;
 
@@ -2202,6 +2366,8 @@ export function recruitCheck(s: GameState, f: number, unitId: number, type: Unit
   if (unitAt(s, x, y) || t.wonderOf || t.turret || t.feature === 'mothership' || t.temple) return 'occupied';
   // nie in eine fremde Stadt / never into a foreign city
   if (t.cityId !== null && cityById(s, t.cityId)?.owner !== f) return 'invalidTile';
+  // nie auf Wohnbloecke oder einen Supermarkt: dort entstehen keine Truppen / never onto residential blocks or a supermarket: no troops come from there
+  if (t.cityId !== null && noTraining(cityById(s, t.cityId))) return 'invalidTile';
   if (st.tech && !hasTech(s, f, st.tech)) return 'techMissing';
   if (wonder) {
     if (s.units.filter((o) => o.owner === f && o.type === type).length >= WONDERS.drillMax) return 'alreadyBuilt';
@@ -2217,7 +2383,8 @@ export function recruitSpot(s: GameState, u: Unit, type: UnitTypeId, horde?: Hor
   const h = horde ?? hordeCount(s, u.owner);
   const spots = neighbors(s.size, u.x, u.y).filter((p) => recruitCheck(s, u.owner, u.id, type, p.x, p.y, h) === 'ok');
   // zuerst neben einer Pilgerstaette (Veteranen) / next to a pilgrimage site first (veterans)
-  return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots[0] ?? null;
+  // dann auf oder neben einer eigenen Kaserne (Stuetzpunkt: mehr LP) / then on or next to an own barracks (base: more HP)
+  return spots.find((p) => pilgrimVeteranAt(s, u.owner, p.x, p.y)) ?? spots.find((p) => recruitFootHp(s, u.owner, type, p.x, p.y) > 0) ?? spots[0] ?? null;
 }
 /**
  * Grund, warum der Rekrutierer diese Einheit nicht rufen kann (Feldfehler nur, wenn kein Feld frei ist): 'ok', wenn ein Feld passt.
@@ -2294,7 +2461,7 @@ export function twinSpot(s: GameState, c: City): Pos | null {
  */
 export function twinCheck(s: GameState, c: City, type: UnitTypeId): 'twin' | 'limit' | 'noRoom' | null {
   if (c.owner === null || !twinTrained(s, c.owner, type)) return null;
-  if (supportedUnits(s, c) + 2 > unitLimit(s, c)) return 'limit';
+  if (freeUnitSlots(s, c) < 2) return 'limit';
   return twinSpot(s, c) ? 'twin' : 'noRoom';
 }
 

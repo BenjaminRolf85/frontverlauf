@@ -560,7 +560,7 @@
     "wreckSmelter": "{pop} population and +{stars} stars per round. Only on a wreck or a salvaged crash site, consumes it; needs no xeno ground, Zyrr only",
     "pilgrimSite": "Recruits on or next to the site start as veterans. Only in desert or steppe or next to a volcano, without a resource, one per city, Vesper only",
     "depotNode": "{pop} population and +{compute} compute without a power plant. Only on ore, NEXUS only",
-    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters and transmitter tower has one built in, and for Korvat and Dravon every own city.",
+    "trainingCamp": "Trains in this city: {units}. One per city; every headquarters, barracks base and transmitter tower has one built in, and for Korvat and Dravon every own city.",
     "armory": "Trains in this city: {units}. One per city.",
     "motorPool": "Trains in this city: {units}. One per city.",
     "tankWorks": "Trains in this city: {units}. Needs {needs} in the city territory. One per city.",
@@ -841,7 +841,8 @@
     "sabotageCooldown": "Sabotage is not ready again yet.",
     "radarCooldown": "The radar is not ready again yet.",
     "noTarget": "There is nothing to sabotage there.",
-    "siloLimit": "No further silos possible."
+    "siloLimit": "No further silos possible.",
+    "noTraining": "Residential blocks and supermarkets train no troops."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -2802,7 +2803,9 @@
     "computeNeed": "Needs {n} compute",
     "noResearch": "NEXUS does not research. Build data centres and power plants for more compute.",
     "computeState": "Compute {have} ({dc} data centres, {pp} power plants)",
-    "computeStateDepot": "Compute {have} ({dc} data centres, {pp} power plants, {dn} depot nodes)"
+    "computeStateDepot": "Compute {have} ({dc} data centres, {pp} power plants, {dn} depot nodes)",
+    "computeStateEnergy": "Compute {have} ({dc} data centres, {pp} power plants, {en} energy from bases)",
+    "computeStateDepotEnergy": "Compute {have} ({dc} data centres, {pp} power plants, {dn} depot nodes, {en} energy from bases)"
   },
   "hazards": {
     "title": "Map features",
@@ -3622,7 +3625,7 @@
     },
     "cities": {
       "title": "Cities & research",
-      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+      "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers (in the campaign; in free games bases stand there) are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Research unlocks units, buildings and upgrades and gets dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
     },
     "outposts": {
       "title": "Outposts",
@@ -3651,7 +3654,7 @@
     },
     "sites": {
       "title": "Production sites (humans)",
-      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters and transmitter tower has barracks built in, Korvat and Dravon have them in every own city, and Dravon's headquarters also has a motor pool. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
+      "text": "The five human factions train a unit only in a city whose territory holds the matching production site: one per city, buildable without a doctrine. Every headquarters, every base of the barracks kind and every transmitter tower has barracks built in, Korvat and Dravon have them in every own city, and Dravon's headquarters also has a motor pool. Whoever captures a city takes over its sites. The Zyrr, NEXUS and the cult train as before."
     },
     "ships": {
       "title": "Ships and shipyard",
@@ -3668,6 +3671,10 @@
     "shadowFleet": {
       "title": "Shadow fleet (Meridon)",
       "text": "Only the Shadow Commando and the Fog Cutter are camouflaged: enemies only see them once one of their units, cities or structures stands right next to them, and after an own attack or a sabotage until the next own turn. Radar sweeps, the recon drone and the radio tower find them. Withdraw: after an own attack without moving first, a land unit falls back up to {withdraw} tiles and does not attack again. Meridon builds no tanks but rocket silos: pioneers build one for {cost} stars on a free adjacent tile in own territory, at most {per} per city and {max} in total, {spacing} tiles apart. On command the silo launches a rocket at an explored tile (or a tile inside a radar sweep) up to {range} tiles away: {dmg} damage to every unit in the 2×2 area of target tile, right, below and diagonal, own ones too; cities and buildings stay. The land tiles without a city then burn for {fire} rounds: at the start of every round each unit on them loses {burn} HP. Then {cd} rounds of reloading. The Guided Missile replaces artillery (the “Tank” city reward brings {rewardMissiles} Guided Missiles), the Radar Truck shows every hostile unit within radius {radius} for {rr} rounds, even under the clouds ({rcd} rounds of pause). The Shadow Commando sabotages a hostile outpost, building or road on its own tile or next to it ({scd} rounds of pause). In return Meridon land units deal {weak} % less damage; ships and the naval base cost {sea} % less."
+    },
+    "bases": {
+      "title": "Bases",
+      "text": "In free games on the default world every neutral place is a base of one of {kinds} kinds, including where transmitter towers would otherwise stand. It is unguarded: whoever finds it captures it like any village and uses it from the next turn. Tap it to see what it gives you before you capture it. Once captured it behaves like a city: it grows, levels up and can be upgraded, and its property applies on top for as long as you hold it. Next to every headquarters lies a barracks, the same for everyone. The other kinds are dealt as a mix: in turn one each of production, power, supply and protection, and no kind appears twice while another one would still find a place; with NEXUS in the game there is at least one power kind if a place suits it. For the five human factions the barracks, tank factory, military airfield, gun works and naval base come with the matching production site built in. Zyrr, cult and NEXUS have no production sites: for them the matching units cost {pct} % less everywhere while they hold the base; a faction without a matching unit gets {gap} stars per round instead. Residential blocks and the supermarket train troops for nobody (at most a quarter of the places other than the home barracks): their slots support units you train in other, full cities. Bunker, field hospital and supply depot contain the city upgrade of the same name in a stronger form; it cannot be bought there again. Of a base's stars the cult receives {tribute} % as tribute."
     }
   },
   "lore": {
@@ -3864,7 +3871,7 @@
       },
       "cities": {
         "title": "Cities & production",
-        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
+        "text": "Move a unit onto a settlement or enemy city; at the start of your next turn you can capture it. Buildings on resources in the city area add population, a full population raises the city level: more income, more units and a reward. With every level the city territory grows by up to {grow} free tiles in the next ring, nearest first, up to at most {max} x {max} tiles; foreign territory stays foreign. Transmitter towers (in the campaign; in free games bases stand there) are neutral places: they train troops and bring {towerInc} stars per round, but do not grow. Every city has {slots} slots for upgrades. Every upgrade also raises the unit limit by {cap}. Buy level: for {buy} × (level + 1) stars a city rises one level at once (level 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), with the usual reward; once per city and round, not for transmitter towers, supply lines or the cult. Units come from production sites in the city territory (see below). Doctrines unlock buildings and upgrades, bring advantages and get dearer with every city: tier 1 costs {t1} stars with one city, {t1c3} with three cities, tier 3 costs {t3c3} with three cities. The tile panel shows locked buildings with “Requires: …”."
       },
       "factions": {
         "text": "Can be switched off in the setup. It needs the faction's own victory doctrine (tier 3), drawn with a dashed rim in the doctrine tree. The victory tracker in the menu shows the progress of all known factions."
@@ -4181,5 +4188,69 @@
       "toast0": "Radar sweep: no contacts in range",
       "echo": "Radar contact"
     }
+  },
+  "bases": {
+    "neutral": "{kind} · base (free)",
+    "likeCity": "Once captured it grows like a city, levels up and can be upgraded.",
+    "noTraining": "Trains no troops.",
+    "supply": "Supplies units of your other cities: {n} of {max} slots used.",
+    "supplyFree": "+{n} free at suppliers",
+    "supplyTip": "When the city is full, residential blocks and supermarkets support further units: {n} slots are still free there.",
+    "discount": "While you hold this base, these cost {baseDiscountPct} % less everywhere: {units}. Does not stack.",
+    "gap": "{faction} has no matching unit and gets +{baseGapStars} stars per round instead.",
+    "captured": "{name} has taken {city}: {kind}.",
+    "name": {
+      "barracks": "Barracks",
+      "bunker": "Bunker",
+      "tankFactory": "Tank factory",
+      "airbase": "Military airfield",
+      "supplyDepot": "Supply depot",
+      "navalStation": "Naval base",
+      "gunWorks": "Gun works",
+      "fieldHospital": "Field hospital",
+      "housing": "Residential blocks",
+      "supermarket": "Supermarket",
+      "factory": "Factory",
+      "nuclearPlant": "Nuclear power plant",
+      "solarFarm": "Solar farm",
+      "windFarm": "Wind turbines"
+    },
+    "effect": {
+      "barracks": "Barracks built in: trains foot troops right away. Foot troops trained here start with +{baseFootHp} HP.",
+      "bunker": "A lot of protection: own ground units on the bunker get +{baseBunkerDef} defence.",
+      "tankFactory": "Tank works built in: tanks can be built here right away, without a mine.",
+      "airbase": "Airfield built in: helicopters can be built here right away.",
+      "supplyDepot": "+{baseDepotStars} stars per round, supports {baseDepotUnits} more unit and reloads rockets like the depot upgrade.",
+      "navalStation": "Naval base built in: destroyers can be built here right away, and the dry dock needs no further naval base here.",
+      "gunWorks": "Foundry built in: artillery can be built here right away, without a lumber camp.",
+      "fieldHospital": "Own units on and next to the field hospital heal {baseHeal} HP more.",
+      "housing": "Trains no troops. Supports {baseHousingUnits} more units; all slots supply units from your other cities once those are full. Some protection: own ground units here get +{baseHousingDef} defence.",
+      "supermarket": "Trains no troops. Supports {baseSupermarketUnits} more units; all slots supply units from your other cities once those are full.",
+      "factory": "+{baseFactoryStars} stars per round. The Zyrr get more out of it: when they capture the factory, its territory turns to xeno ground at once.",
+      "nuclearPlant": "+{baseNuclearStars} stars per round. NEXUS gets energy on top: +{baseNuclearEnergy} compute. Stands only at water, at most one per map.",
+      "solarFarm": "+{baseSolarStars} stars per round. NEXUS gets energy on top: +{baseSolarEnergy} compute. Stands only on open plain.",
+      "windFarm": "+{baseWindStars} stars per round. NEXUS gets energy on top: +{baseWindEnergy} compute. They stand on the coast, next to mountains or in the hills."
+    },
+    "other": {
+      "barracks": "Foot troops trained here start with +{baseFootHp} HP."
+    },
+    "zyrr": {
+      "factory": "+{baseFactoryStars} stars per round. On top, the factory's territory turns to xeno ground at once when you capture it, as at your headquarters."
+    },
+    "cult": {
+      "barracks": "Foot troops recruited on or next to the barracks start with +{baseFootHp} HP.",
+      "housing": "No recruiting on this tile. Provides {baseHousingUnits} more slots for the horde, plus +{baseHousingDef} defence for own ground units here.",
+      "supermarket": "No recruiting on this tile. Provides {baseSupermarketUnits} more slots for the horde.",
+      "supplyDepot": "Provides {baseDepotUnits} more slot for the horde."
+    },
+    "nexus": {
+      "nuclearPlant": "+{baseNuclearStars} stars per round and energy on top: +{baseNuclearEnergy} compute, without data centre and power plant. Stands only at water, at most one per map.",
+      "solarFarm": "+{baseSolarStars} stars per round and energy on top: +{baseSolarEnergy} compute, without data centre and power plant. Stands only on open plain.",
+      "windFarm": "+{baseWindStars} stars per round and energy on top: +{baseWindEnergy} compute, without data centre and power plant. They stand on the coast, next to mountains or in the hills."
+    },
+    "supplyDefense": "Own ground units here get +{baseHousingDef} defence.",
+    "unitTip": "Plus +{n} from the base.",
+    "tribute": "Tribute for the cult: +{n} stars per round ({baseTributePct} % of what others get here).",
+    "gapCult": "The cult has no matching unit. Tribute: +{n} stars per round."
   }
 }

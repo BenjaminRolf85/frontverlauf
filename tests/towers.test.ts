@@ -42,9 +42,13 @@ describe('Sendetuerme / transmitter towers', () => {
       }
       expect(JSON.stringify(towers(createGame(missionConfig(m.id, f)))), tag).toBe(JSON.stringify(list));
     }
-    const free = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
-    // freie Partien haben jetzt auch Sendetuerme (Spielerwunsch): 16x16 = 4 / free games now have towers too (player request): 16x16 = 4
+    const free = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', bases: false, factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
+    // freie Partien ohne Stuetzpunkte haben Sendetuerme (Spielerwunsch): 16x16 = 4 / free games without bases have towers (player request): 16x16 = 4
     expect(towers(free)).toHaveLength(4);
+    // mit Stuetzpunkten (Standard) stehen an denselben Feldern Stuetzpunkte statt der Tuerme / with bases (default) the same tiles carry bases instead of the towers
+    const based = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
+    expect(towers(based)).toHaveLength(0);
+    for (const t of towers(free)) expect(based.cities.find((c) => c.x === t.x && c.y === t.y)?.base).toBeDefined();
     // das Tutorial schaltet sie ab / the tutorial turns them off
     const tut = createGame(defaultConfig({ seed: 5, size: 16, mapType: 'continent', towers: false, factions: [{ id: 'korvat', human: true, difficulty: 'normal' }, { id: 'zyrr', human: false, difficulty: 'normal' }] }));
     expect(towers(tut)).toHaveLength(0);

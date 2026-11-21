@@ -2,7 +2,10 @@
  * Modell-Vorschau / model preview (preview/models.html).
  * Zeigt alle Modelle fuer alle Fraktionen im Raster mit Toon-Material und Inverted-Hull-Kontur.
  * Shows all models for all factions in a grid with toon material and inverted-hull outline.
- * URL-Parameter / URL params: ?cat=units|ships|buildings|resource|grand|cities|nature|counters|unique|leaders|wonders|artifact|all &view=iso|top|front|34 &f=<faction>
+ * URL-Parameter / URL params: ?cat=units|ships|buildings|resource|grand|cities|bases|basesF|naval|nature|counters|unique|leaders|wonders|artifact|all &view=iso|top|front|34 &f=<faction>
+ * cat=bases: Stuetzpunkte je Art (neutral, besetzt Stufe 1/4/8, mit allen Ausbauten; &f= waehlt die Fraktion), cat=basesF: je Art alle Fraktionen (&lv= Stufe),
+ * cat=naval: Marinestuetzpunkt je Seeseite / cat=bases: bases per kind (neutral, owned level 1/4/8, with all extensions; &f= picks the faction),
+ * cat=basesF: every faction per kind (&lv= level), cat=naval: naval base per sea side
  * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
  * cat=special: Sonderbauarten der Fraktionen / faction designs
  */
@@ -11,11 +14,11 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {
-  ALIEN_UNITS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
+  ALIEN_UNITS, BASE_KINDS, CULT_UNITS, FACTION_IDS, ROBOT_UNITS, GRAND_PROJECT_IDS, RESOURCE, RESOURCE_BUILDINGS, UNIQUE, UNIQUE_BUILDINGS, UNIQUE_UNITS, type BuildingId, type GrandProjectId, type FactionId, type ResourceId, type TerrainId, type UnitTypeId,
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, setUnitQuality, unitGeometry, xenoDecoration, UNIT_TRI_LIMIT, UNIT_TRI_LIMIT_BOSS,
+  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, setUnitQuality, unitGeometry, xenoDecoration, UNIT_TRI_LIMIT, UNIT_TRI_LIMIT_BOSS,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -114,6 +117,49 @@ function sheet(): Sheet {
           label: fname(f),
           cells: variants.map((v) => ({ geo: cityGeometry(f, v.level, v.flags), ground: f ? factionTokens[f].terrain : plainGround })),
         })),
+      };
+    }
+    case 'bases': {
+      // Stuetzpunkte: neutral, besetzt in niedriger, mittlerer und hoher Stufe, mit allen Ausbauten / bases: neutral, owned at a low, middle and high level, with all extensions
+      const fid = onlyFaction ?? 'korvat';
+      const none = { factory: false, bunkerRing: false, govQuarter: false }, all = { factory: true, bunkerRing: true, govQuarter: true };
+      const variants: { label: string; f: FactionId | null; level: number; flags: typeof none }[] = [
+        { label: 'neutral', f: null, level: 1, flags: none },
+        { label: `${fid} L1`, f: fid, level: 1, flags: none },
+        { label: `${fid} L4`, f: fid, level: 4, flags: none },
+        { label: `${fid} L8`, f: fid, level: 8, flags: none },
+        { label: `${fid} L8 all`, f: fid, level: 8, flags: all },
+      ];
+      return {
+        cols: variants.map((v) => v.label),
+        rows: BASE_KINDS.map((k) => ({
+          label: k,
+          cells: variants.map((v) => ({ geo: baseGeometry(k, v.f, v.level, v.flags), ground: v.f === 'zyrr' ? semantic.xenoGround : v.f ? factionTokens[v.f].terrain : plainGround })),
+        })),
+      };
+    }
+    case 'basesF': {
+      // je Art alle Fraktionen / every faction per kind
+      const lv = Number(params.get('lv') ?? 4);
+      const none = { factory: false, bunkerRing: false, govQuarter: false };
+      return {
+        cols: factions.map(fname),
+        rows: BASE_KINDS.map((k) => ({ label: k, cells: factions.map((f) => ({ geo: baseGeometry(k, f, lv, none), ground: f === 'zyrr' ? semantic.xenoGround : factionTokens[f].terrain })) })),
+      };
+    }
+    case 'naval': {
+      // Marinestuetzpunkt je Seeseite (0 = +z, 1 = +x, 2 = -z, 3 = -x) / naval base per sea side
+      const fid = onlyFaction ?? 'meridon';
+      const none = { factory: false, bunkerRing: false, govQuarter: false }, all = { factory: true, bunkerRing: true, govQuarter: true };
+      return {
+        cols: ['neutral', `${fid} L1`, `${fid} L4`, `${fid} L8`, `${fid} L8 all`],
+        rows: [0, 1, 2, 3].map((sea) => ({ label: `sea ${sea}`, cells: [
+          { geo: baseGeometry('navalStation', null, 1, none, sea), ground: plainGround },
+          { geo: baseGeometry('navalStation', fid, 1, none, sea), ground: plainGround },
+          { geo: baseGeometry('navalStation', fid, 4, none, sea), ground: plainGround },
+          { geo: baseGeometry('navalStation', fid, 8, none, sea), ground: plainGround },
+          { geo: baseGeometry('navalStation', fid, 8, all, sea), ground: plainGround },
+        ] })),
       };
     }
     case 'terrain': {
@@ -396,7 +442,7 @@ async function buildScene() {
     sh.cols = keep.map((i) => sh.cols[i]);
     for (const r of sh.rows) r.cells = keep.map((i) => r.cells[i]).filter(Boolean);
   }
-  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' ? 1.5 : 1.2;
+  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' ? 1.5 : 1.2;
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
@@ -495,6 +541,11 @@ function checkAll(): string[] {
     for (let lv = 1; lv <= 9; lv++) for (let m = 0; m < 16; m++) {
       all.push([`city ${f} ${lv} ${m}`, cityGeometry(f, lv, { hq: !!(m & 1), factory: !!(m & 2), bunkerRing: !!(m & 4), govQuarter: !!(m & 8) })]);
     }
+  }
+  // Stuetzpunkte: jede Art und Stufe, ohne und mit allen Ausbauten; Budget wie die Staedte (Name beginnt mit 'city')
+  // bases: every kind and level, without and with all extensions; budget like the cities (name starts with 'city')
+  for (const f of withNeutral) for (const k of BASE_KINDS) for (let lv = 1; lv <= 8; lv++) for (const on of [false, true]) {
+    all.push([`city base ${k} ${f} ${lv} ${on ? 'all' : 'none'}`, baseGeometry(k, f, lv, { factory: on, bunkerRing: on, govQuarter: on }, lv % 4)]);
   }
   all.push(['bunker', featureGeometry('bunker')], ['radar', featureGeometry('radar')]);
   for (const f of withNeutral) all.push([`mine ${f}`, mineGeometry(f)]);

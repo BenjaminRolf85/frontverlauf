@@ -1998,18 +1998,244 @@ export const MAPGEN = {
 export const CAMPAIGN_SETTLEMENTS = { surface: 0.5, alien: 0.5, desert: 0.3, cavern: 1 };
 
 /**
- * Sendetuerme der Kampagne (nicht in der Hoehle) und freier Partien (Spielerwunsch; nicht im Tutorial): neutrale Orte wie
+ * Sendetuerme der Kampagne (nicht in der Hoehle) und freier Partien ohne Stuetzpunkte (mit Stuetzpunkten, dem Standard,
+ * werden dieselben Orte Stuetzpunkte, siehe BASES; nicht im Tutorial): neutrale Orte wie
  * Nachschublinien, einnehmbar, bilden aus, wachsen nicht, keine Ausbauten. Anzahl je Karte: Felder / perTiles, begrenzt
  * auf min..max (11x11: 2, 14x14: 3, ab 16x16: 4); MissionDef.towers ueberschreibt. Abstand zu Hauptquartieren
  * hqDistance, zu Staedten cityDistance, untereinander spacing. Freie Partien: reicht der Platz nicht (viele Fraktionen
  * auf kleiner Karte), duerfen die uebrigen Tuerme bis freeHqDistance an ein Hauptquartier heran.
- * Transmitter towers of the campaign (not in the cavern) and of free games (player request; not in the tutorial):
+ * Transmitter towers of the campaign (not in the cavern) and of free games without bases (with bases, the default, the
+ * same places become bases, see BASES; not in the tutorial):
  * neutral places like supply lines, capturable, they train, do not grow, no upgrades. Count per map: tiles / perTiles,
  * clamped to min..max (11x11: 2, 14x14: 3, from 16x16: 4); MissionDef.towers overrides. Distance to HQs hqDistance, to
  * cities cityDistance, to each other spacing. Free games: if there is not enough room (many factions on a small map), the
  * remaining towers may come as close as freeHqDistance to an HQ.
  */
 export const TOWER = { income: 2, unitLimit: 2, perTiles: 70, min: 2, max: 4, hqDistance: 4, freeHqDistance: 3, cityDistance: 2, spacing: 4 };
+
+/**
+ * Stuetzpunkte (Spielerwunsch): in freien Partien der Standardwelt ist jeder neutrale Ort ein Stuetzpunkt einer von vierzehn
+ * Arten (City.base), auch die Orte, an denen sonst Sendetuerme stuenden (Spielerwunsch: Vielfalt auf allen Karten, ohne mehr
+ * Orte; die Turm-Regeln TOWER gelten dort nicht mehr). Eingenommen verhaelt er sich wie eine Stadt (waechst, steigt auf, laesst
+ * sich ausbauen) und bringt dazu seine Eigenschaft. Hauptquartiere bleiben gewoehnliche Staedte. Alle Zahlen stehen hier.
+ * Bases (player request): in free games on the default world every neutral place is a base of one of fourteen kinds
+ * (City.base), including the places where transmitter towers would otherwise stand (player request: variety on all maps
+ * without more places; the tower rules TOWER no longer apply there). Once captured it behaves like a city (grows, levels up, can be upgraded) and adds
+ * its property. Headquarters stay ordinary cities. All numbers live here.
+ *
+ * Namen: gleicher Name wie eine Produktionsstaette oder ein Stadt-Ausbau heisst, dass genau diese Einrichtung eingebaut ist
+ * (Kaserne, Marinestuetzpunkt; Bunker, Lazarett, Nachschubdepot mit staerkerer Wirkung). Die Kennungen im Code weichen ab,
+ * wo es sonst zwei gleiche gaebe (airbase statt airfield, navalStation statt navalBase, supplyDepot, fieldHospital).
+ * Names: the same name as a production site or a city upgrade means exactly that facility is built in (barracks, naval
+ * base; bunker, field hospital, supply depot with a stronger effect). The code ids differ where two would otherwise be
+ * identical (airbase instead of airfield, navalStation instead of navalBase, supplyDepot, fieldHospital).
+ */
+export type BaseKind =
+  | 'barracks' | 'bunker' | 'tankFactory' | 'airbase' | 'supplyDepot' | 'navalStation' | 'gunWorks' | 'fieldHospital'
+  | 'housing' | 'supermarket' | 'factory' | 'nuclearPlant' | 'solarFarm' | 'windFarm';
+export const BASE_KINDS: BaseKind[] = [
+  'barracks', 'bunker', 'tankFactory', 'airbase', 'supplyDepot', 'navalStation', 'gunWorks', 'fieldHospital',
+  'housing', 'supermarket', 'factory', 'nuclearPlant', 'solarFarm', 'windFarm',
+];
+/** Gruppen fuer die Verteilung auf der Karte / groups for the distribution on the map */
+export type BaseGroup = 'production' | 'power' | 'supply' | 'protection';
+/** Standortregel einer Art (BASES.place) / site rule of a kind (BASES.place) */
+export type BasePlace = 'coast' | 'water' | 'wind' | 'plain';
+export const BASES = {
+  /**
+   * Heimat-Stuetzpunkt neben jedem Hauptquartier: fuer alle dieselbe Art. Die Kaserne ist die einzige Art, deren Kern
+   * (Fusstruppen starten staerker) fuer alle acht Fraktionen gleich wirkt und ab Runde 1 zaehlt; sie haengt weder an Kueste,
+   * Fahrzeugen noch Forschung und bildet immer aus.
+   * Home base next to every headquarters: the same kind for everyone. The barracks is the only kind whose core (foot
+   * troops start stronger) works the same for all eight factions and matters from round 1; it depends on neither coast,
+   * vehicles nor research and always trains.
+   */
+  home: 'barracks' as BaseKind,
+  /**
+   * Eingebaute Produktionsstaette je Art (wirkt fuer die fuenf Menschen-Fraktionen, PRODUCTION): "sofort baubar". Der
+   * Marinestuetzpunkt bringt die Staette Marinestuetzpunkt (Zerstoerer, Kaperschiff) und zaehlt als Voraussetzung fuer das
+   * Trockendock; das Trockendock selbst (U-Boot, Schlachtschiff) muss gebaut werden, sonst gaebe es das Schlachtschiff ab Runde 1.
+   * Built-in production site per kind (works for the five human factions, PRODUCTION): "can be built right away". The naval
+   * base brings the naval base site (destroyer, privateer) and counts as the prerequisite of the dry dock; the dry dock
+   * itself (submarine, battleship) has to be built, otherwise the battleship would be available from round 1.
+   */
+  sites: { barracks: 'trainingCamp', tankFactory: 'tankWorks', airbase: 'airfield', gunWorks: 'foundry', navalStation: 'navalBase' } as Partial<Record<BaseKind, ProductionSiteId>>,
+  /**
+   * Kaserne: hier ausgebildete Fusstruppen (Klasse 'foot') starten mit so vielen zusaetzlichen LP; beim Kult gilt es fuer
+   * Rekruten, die auf oder neben der Kaserne gerufen werden. Kein Veteranenstatus: der kommt weiter ueber Abschuesse.
+   * Gemessen (BALANCING.md): mit +3 verschob die Kaserne die ganze Balance, weil jede Fraktion sie ab Runde 1 hat (im
+   * Vergleich mit und ohne den Bonus: Zyrr 9 Punkte weniger, Korvat 8, Dravon 5, Kult 4 mehr, 6 Punkte weniger entschiedene
+   * Partien). Mit +1 bleibt sie spuerbar, ohne das Gefuege zu verschieben.
+   * Barracks: foot troops (class 'foot') trained here start with this many extra HP; for the cult it applies to recruits
+   * called up on or next to the barracks. No veteran status: that still comes from kills.
+   * Measured (BALANCING.md): at +3 the barracks shifted the whole balance because every faction has it from round 1
+   * (comparing with and without the bonus: Zyrr 9 points fewer, Korvat 8, Dravon 5, cult 4 more, 6 points fewer decided
+   * games). At +1 it stays noticeable without shifting the structure.
+   */
+  footHp: 1,
+  /**
+   * Verteidigung fuer eigene Bodeneinheiten auf dem Stuetzpunkt (wie der Ausbau Bunker, CITY_UPGRADES.bunkerDefense = 2):
+   * Bunker viel, Wohnbloecke etwas.
+   * Defence for own ground units on the base (like the bunker upgrade, CITY_UPGRADES.bunkerDefense = 2): bunker a lot,
+   * residential blocks a little.
+   */
+  defense: { bunker: 3, housing: 1 } as Partial<Record<BaseKind, number>>,
+  /** Lazarett: zusaetzliche Heilung auf und neben dem Stuetzpunkt (Ausbau Lazarett: 2) / field hospital: extra healing on and next to the base (hospital upgrade: 2) */
+  heal: 4,
+  /**
+   * Sterne pro Runde zusaetzlich zum Stadteinkommen. Fabrik: nur Sterne, am meisten. Nachschubdepot: Sterne und Einheiten.
+   * Kraftwerke: Sterne fuer alle, weniger als die Fabrik; NEXUS bekommt dazu Energie. Der Kult bekommt den Anteil
+   * cultTribute dieser Sterne als Tribut, obwohl seine Staedte sonst nichts einbringen.
+   * Stars per round on top of the city income. Factory: stars only, the most. Supply depot: stars and units. Power kinds:
+   * stars for everyone, fewer than the factory; NEXUS gets energy on top. The cult receives the share cultTribute of these
+   * stars as tribute although its cities bring nothing otherwise.
+   */
+  stars: { factory: 6, supplyDepot: 3, nuclearPlant: 5, solarFarm: 3, windFarm: 2 } as Partial<Record<BaseKind, number>>,
+  /**
+   * Anteil der Stuetzpunkt-Sterne (auch der Ersatz-Sterne), den der Kult als Tribut bekommt (gerundet, mindestens 1).
+   * Gemessen (BALANCING.md): der Kult reagiert stark auf Einkommen. Der volle Betrag (im Mittel 3,5 Sterne je Runde auf 14
+   * Einkommen) hob ihn um 6 Punkte und kostete Alvenia 8; mit einem Drittel fiel er 3 Punkte unter die Vergleichsmessung;
+   * mit der Haelfte liegt er gleichauf (Fabrik 3, Atomkraftwerk 3, Solarfarm 2, Windraeder 1, Depot 2, Ersatz-Sterne 2).
+   * Share of a base's stars (substitute stars too) the cult receives as tribute (rounded, at least 1). Measured
+   * (BALANCING.md): the cult reacts strongly to income. The full amount (3.5 stars per round on average on an income of
+   * 14) lifted it by 6 points and cost Alvenia 8; with a third it fell 3 points below the baseline; with half it is level
+   * (factory 3, nuclear plant 3, solar farm 2, wind turbines 1, depot 2, substitute stars 2).
+   */
+  cultTribute: 1 / 2,
+  /**
+   * Energie fuer NEXUS, zusaetzlich zu den Sternen: so viel Rechenleistung direkt, ohne Rechenzentrum und Kraftwerk. Damit
+   * sind die Kraftwerke fuer NEXUS, was die Fabriken fuer die Menschen sind: staerkere Einheiten sofort. Zuerst bekam NEXUS
+   * die Energie statt der Sterne; gemessen hat die NEXUS-KI aber schon in Runde 12 im Mittel 8 Rechenleistung aus eigenen
+   * Rechenzentren (mehr als die 4, die ihre staerkste Einheit braucht), die Energie allein war ihr also nichts wert und die
+   * Kraftwerke fuer NEXUS weniger als fuer alle anderen.
+   * Energy for NEXUS, on top of the stars: this much compute directly, without data centre and power plant. That makes the
+   * power kinds for NEXUS what the factories are for the humans: stronger units right away. At first NEXUS got the energy
+   * instead of the stars; measured, though, the NEXUS AI already has 8 compute on average from its own data centres in
+   * round 12 (more than the 4 its strongest unit needs), so the energy alone was worth nothing to it and the power kinds
+   * less to NEXUS than to everyone else.
+   */
+  energy: { nuclearPlant: 3, solarFarm: 2, windFarm: 1 } as Partial<Record<BaseKind, number>>,
+  /**
+   * Zusaetzlich getragene Einheiten (zum Stadtlimit Stufe + 1). Wohnbloecke und Supermarkt bilden nicht aus: ihre Plaetze
+   * (das ganze Limit) versorgen Einheiten, die in anderen Staedten der Fraktion ausgebildet werden, sobald deren eigenes
+   * Limit voll ist.
+   * Additionally supported units (on top of the city limit level + 1). Residential blocks and supermarket do not train:
+   * their slots (the whole limit) supply units trained in the faction's other cities once those are at their own limit.
+   */
+  units: { supplyDepot: 1, housing: 2, supermarket: 3 } as Partial<Record<BaseKind, number>>,
+  /** Arten ohne Ausbildung: keine Einheit entsteht hier, fuer keine Fraktion / kinds without training: no unit is created here, for any faction */
+  noTraining: ['housing', 'supermarket'] as BaseKind[],
+  /**
+   * Stadt-Ausbau, den die Art schon eingebaut hat und der dort nicht noch einmal gekauft werden kann. Das Nachschubdepot
+   * laedt wie der Ausbau Depot Raketen nach.
+   * City upgrade the kind already has built in and that cannot be bought there again. Like the depot upgrade, the supply
+   * depot reloads rockets.
+   */
+  builtInUpgrade: { bunker: 'bunker', fieldHospital: 'hospital', supplyDepot: 'depot' } as Partial<Record<BaseKind, CityUpgradeId>>,
+  /**
+   * Zyrr, Kult und NEXUS haben keine Produktionsstaetten: fuer sie kosten die passenden Einheiten ueberall so viel weniger,
+   * solange sie mindestens einen Stuetzpunkt der Art halten (nicht stapelbar).
+   * Zyrr, cult and NEXUS have no production sites: for them the matching units cost this much less everywhere while they
+   * hold at least one base of the kind (does not stack).
+   */
+  discount: 0.2,
+  discountUnits: {
+    tankFactory: ['mech', 'doomCrawler', 'doomBuggy', 'titan', 'flameTank', 'spider'],
+    airbase: ['skimmer', 'quadDrone'],
+    gunWorks: ['tripod', 'rocketCart', 'faustZealot', 'railgun', 'flakDrone'],
+    navalStation: ['landingBoat', 'destroyer', 'submarine', 'battleship'],
+  } as Partial<Record<BaseKind, UnitTypeId[]>>,
+  /**
+   * Hat eine Fraktion keine passende Einheit (Kult: keine Flieger, Zyrr: keine Schiffe, Meridon: keine Panzer), bringt ihr
+   * die Art stattdessen gapStars Sterne pro Runde. So ist keine Art fuer irgendeine Fraktion wertlos.
+   * Where a faction has no matching unit (cult: no aircraft, Zyrr: no ships, Meridon: no tanks), the kind gives it
+   * gapStars stars per round instead. So no kind is worthless for any faction.
+   */
+  gap: { tankFactory: ['meridon'], airbase: ['vesper'], navalStation: ['zyrr'] } as Partial<Record<BaseKind, FactionId[]>>,
+  gapStars: 3,
+  /**
+   * Fabrik und Zyrr (Spielerwunsch: die Zyrr bekommen dort einen eigenen Bonus): die Zyrr leben von Xeno-Boden (nur dort
+   * bilden sie aus, heilen, bauen Brutstaetten und Ernter; Terraformen kostet XENO.terraformCost je Feld). Nehmen sie eine
+   * Fabrik ein, wird deren Stadtfeld und ihr Gebiet im Umkreis zyrrFactoryXeno sofort zu Xeno-Boden, wie an ihrem
+   * Hauptquartier (3x3 = bis zu 9 Felder, sonst 63 Sterne). Die Sterne der Fabrik bekommen sie wie alle.
+   * Factory and Zyrr (player request: the Zyrr get a bonus of their own there): the Zyrr live off xeno ground (only there
+   * do they train, heal, build hives and harvesters; terraforming costs XENO.terraformCost per tile). When they capture a
+   * factory, its city tile and its territory within zyrrFactoryXeno turn to xeno ground at once, as at their headquarters
+   * (3x3 = up to 9 tiles, otherwise 63 stars). They get the factory's stars like everyone.
+   */
+  zyrrFactoryXeno: 1,
+  /** Militaerische Arten (Vorliebe der Menschen-KI, BASES.ai.prefer) / military kinds (preference of the human AI, BASES.ai.prefer) */
+  military: ['barracks', 'bunker', 'tankFactory', 'airbase', 'navalStation', 'gunWorks', 'fieldHospital'] as BaseKind[],
+  /**
+   * Verteilung (assignBaseKinds in mapgen.ts, eigener Zufallsstrom seedSalt, Gelaende und Orte eines Seeds bleiben unveraendert): der
+   * Heimat-Stuetzpunkt jedes Startpunkts ist home. Die uebrigen Orte bekommen Karten aus einem Stapel: jede Gruppe wird
+   * gemischt, dann wird reihum je eine Karte pro Gruppe gelegt (Reihenfolge der Gruppen nach Groesse gewichtet gezogen, damit
+   * bei wenigen Orten jede Art gleich oft vorkommt; spielt NEXUS mit, wird zuerst ein Kraftwerk gelegt, das erste, das
+   * irgendwo stehen darf). Jede Karte geht an einen zufaelligen noch freien Ort, an dem sie stehen darf; passt sie nirgends
+   * oder ist ihre Obergrenze erreicht, verfaellt sie und die Gruppe legt gleich ihre naechste. Ist kein passender Ort mehr frei, weicht ein schon gelegter
+   * Stuetzpunkt auf einen anderen passenden Ort aus (groesste Zuordnung). Ist der Stapel leer, wird neu gemischt. So hat
+   * eine Karte so viele verschiedene Arten wie Orte (bis zu allen dreizehn ausser der Kaserne), mit vier Orten je eine aus
+   * Produktion, Energie, Versorgung und Schutz, und keine Art doppelt, solange sich eine andere noch unterbringen liesse.
+   * Distribution (mapgen.ts, own random stream seedSalt, terrain and places of a seed stay unchanged): the home base of
+   * every start is home. The other places get cards from a deck: every group is shuffled, then one card per group is laid
+   * in turn (group order drawn weighted by size so that with few places every kind appears equally often; with NEXUS in the
+   * game one power kind is laid first, the first that may stand somewhere). Each card goes to a random free
+   * place where it may stand; if it fits nowhere or its cap is reached it is discarded and the group lays its next one at once. If no fitting place is free any more, an already laid base moves
+   * to another fitting place (maximum matching). When the deck is empty it is
+   * reshuffled. So a map has as many different kinds as places (up to all thirteen besides the barracks), with four places one
+   * each of production, power, supply and protection, and no kind twice while another one could still be accommodated.
+   */
+  seedSalt: 0x51b7c3d,
+  groups: {
+    production: ['tankFactory', 'airbase', 'navalStation', 'gunWorks'],
+    power: ['nuclearPlant', 'solarFarm', 'windFarm'],
+    supply: ['factory', 'supplyDepot', 'supermarket', 'housing'],
+    protection: ['bunker', 'fieldHospital'],
+  } as Record<BaseGroup, BaseKind[]>,
+  /**
+   * Standort: Marinestuetzpunkt nur an der Kueste (Wasser neben dem Ort); Atomkraftwerk nur am Wasser (Kueste oder Fluss,
+   * Kuehlwasser); Windraeder an der Kueste, neben einem Berg oder im Huegelland; Solarfarm nur auf offener Ebene (kein Wald).
+   * Site: naval base only on the coast (water next to the place); nuclear plant only at water (coast or river, cooling
+   * water); wind turbines on the coast, next to a mountain or in the hills; solar farm only on open plain (no forest).
+   */
+  place: { navalStation: 'coast', nuclearPlant: 'water', windFarm: 'wind', solarFarm: 'plain' } as Partial<Record<BaseKind, BasePlace>>,
+  /** Kueste heisst: ein Gewaesser aus mindestens so vielen Feldern grenzt an (kein Tuempel) / coast means: a body of water of at least this many tiles is adjacent (no pond) */
+  minSea: 8,
+  /** hoechstens so viele je Karte (Atomkraftwerk: eines, der hoechste Ertrag) / at most this many per map (nuclear plant: one, the highest yield) */
+  maxPerMap: { nuclearPlant: 1 } as Partial<Record<BaseKind, number>>,
+  /**
+   * Hoechstanteil der Arten ohne Ausbildung an den Orten ausser den Heimat-Stuetzpunkten (abgerundet). Jede Fraktion hat
+   * mit Hauptquartier und Heimat-Kaserne immer zwei Orte, die ausbilden; von den uebrigen bilden so mindestens drei von vier
+   * aus (bis 3 Orte: keiner ohne Ausbildung, 4 bis 7: hoechstens einer, 8 bis 11: hoechstens zwei).
+   * Maximum share of the kinds without training among the places other than the home bases (rounded down). With the HQ and
+   * the home barracks every faction always has two places that train; of the others at least three in four train (up to
+   * 3 places: none without training, 4 to 7: at most one, 8 to 11: at most two).
+   */
+  noTrainShare: 0.25,
+  /**
+   * KI: Wert eines Stuetzpunkts zusaetzlich zum Ortswert (Einnehmen, Angreifen, Verteidigen). perStar je Stern pro Runde,
+   * site fuer eine eingebaute Staette, discount fuer den Rabatt, perUnit je zusaetzlich getragener Einheit, perDefense je
+   * Verteidigungspunkt, heal fuer das Lazarett, footHp fuer die Kaserne, perEnergy je Energie fuer NEXUS, denyEnergy je
+   * Energie, die man NEXUS wegnimmt. defendShare: Anteil davon beim Verteidigen eigener Stuetzpunkte.
+   * AI: value of a base on top of the place value (capture, attack, defend). perStar per star per round, site for a
+   * built-in site, discount for the price reduction, perUnit per additionally supported unit, perDefense per defence
+   * point, heal for the field hospital, footHp for the barracks, perEnergy per energy for NEXUS, denyEnergy per energy
+   * taken away from NEXUS. defendShare: share of it when defending own bases.
+   * xeno: Wert des sofortigen Xeno-Bodens einer Fabrik fuer die Zyrr. prefer: Vorliebe je Fraktionsgruppe (Spielerwunsch),
+   * ein fester Zuschlag auf den sachlichen Wert: Menschen fuer die militaerischen Arten (BASES.military), Zyrr fuer die
+   * Fabrik, NEXUS fuer die Kraftwerke; der Kult hat keine. Der Zuschlag entspricht etwa einem Zug Weg (Ortsziele verlieren
+   * 9 je Zug Anmarsch): eine Vorliebe entscheidet unter aehnlich guten Zielen, zieht aber nie an einem deutlich besseren
+   * oder naeheren vorbei.
+   * xeno: worth of a factory's instant xeno ground for the Zyrr. prefer: preference per faction group (player request), a
+   * fixed bonus on the objective worth: humans for the military kinds (BASES.military), Zyrr for the factory, NEXUS for
+   * the power kinds; the cult has none. The bonus equals about one turn of travel (place goals lose 9 per turn of
+   * approach): a preference decides among similarly good targets but never walks past a clearly better or closer one.
+   */
+  ai: {
+    perStar: 2.5, site: 14, discount: 12, perUnit: 4, perDefense: 3, heal: 8, footHp: 8, perEnergy: 14, denyEnergy: 8, defendShare: 0.6, xeno: 10,
+    prefer: { human: 12, zyrr: 9, nexus: 9 },
+  },
+};
 
 /**
  * Turm-Ziel der Kampagne (m1 Funkenregen): alle Sendetuerme gleichzeitig m1Rounds Runden in Folge halten; m1Towers Tuerme

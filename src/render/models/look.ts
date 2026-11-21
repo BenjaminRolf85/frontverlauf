@@ -31,6 +31,8 @@ export const mat = {
   glassDark: mix(p.sky700, p.water500, 0.35),
   window: col(p.sky800),
   windowLit: col(p.yellow400),
+  /** Lampe: tags blassgelb, nachts immer an (Leuchtmaske 'built', KEYS.lamp in atmosphere.ts) / lamp: pale yellow by day, always lit at night (glow mask 'built', KEYS.lamp in atmosphere.ts) */
+  lamp: mix(p.yellow400, p.paper50, 0.45),
   gold: col(p.yellow500),
   yellow: col(p.yellow400),
   red: col(p.red500),

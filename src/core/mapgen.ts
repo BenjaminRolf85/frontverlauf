@@ -1,5 +1,5 @@
 import {
-  BIOMES, FACTIONS, MAPGEN, MAP_TYPES, type BiomeId, type FactionId, type MapSize, type MapType, type ResourceId, type TerrainId,
+  BASES, BIOMES, FACTIONS, MAPGEN, MAP_TYPES, NEXUS, type BaseGroup, type BaseKind, type BiomeId, type FactionId, type MapSize, type MapType, type ResourceId, type TerrainId,
 } from '../data/balance';
 import { area, dist, idx, inBounds, neighbors } from './grid';
 import { nextRandom, randInt, shuffle } from './rng';
@@ -9,6 +9,11 @@ export interface GeneratedMap {
   tiles: Tile[];
   starts: Pos[];
   villages: Pos[];
+  /**
+   * Anzahl der Heimatsiedlungen: die ersten homes Eintraege von villages liegen je an einem Startpunkt (BASES.home).
+   * Number of home villages: the first homes entries of villages each lie at a start (BASES.home).
+   */
+  homes: number;
   bunkers: Pos[];
   radars: Pos[];
 }
@@ -278,7 +283,116 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   const seabed = theme === 'desert' ? drainSea(seed, size, tiles) : null;
   assignBiomes(seed, size, tiles, factions);
   if (seabed) desertBiomes(seed, size, tiles, seabed);
-  return { tiles, starts, villages, bunkers, radars };
+  return { tiles, starts, villages, homes, bunkers, radars };
+}
+
+/**
+ * Arten der Stuetzpunkte verteilen (BASES). places: alle neutralen Orte der Partie (Siedlungen und, in freien Partien, die
+ * frueheren Sendetuerme); die ersten homes sind die Heimat-Stuetzpunkte der Startpunkte und bekommen alle BASES.home.
+ * Fuer die uebrigen wird jede Gruppe gemischt; reihum legt jede Gruppe ihre naechste Karte, die sich unterbringen laesst
+ * (Standort BASES.place, Obergrenzen BASES.maxPerMap und BASES.noTrainShare). Die Reihenfolge der Gruppen wird nach
+ * Groesse gewichtet gezogen; mit NEXUS wird zuerst ein Kraftwerk gelegt. Unterbringen heisst: ein freier passender Ort,
+ * oder ein schon gelegter Stuetzpunkt weicht auf einen anderen passenden Ort aus (groesste Zuordnung, Verfahren der
+ * erweiternden Wege). So zeigt die Karte so viele verschiedene Arten, wie sie Orte hat, und keine Art kommt doppelt vor,
+ * solange sich noch eine andere unterbringen liesse. Eigener Zufallsstrom (BASES.seedSalt), liest das fertige Gelaende nur.
+ * Assign the kinds of the bases (BASES). places: all neutral places of the game (villages and, in free games, the former
+ * transmitter towers); the first homes are the home bases of the starts and all get BASES.home. For the others every
+ * group is shuffled; in turn each group lays its next card that can be accommodated (site BASES.place, caps
+ * BASES.maxPerMap and BASES.noTrainShare). The order of the groups is drawn weighted by size; with NEXUS one power kind
+ * is laid first. Accommodated means: a free fitting place, or an already laid base moves to another fitting place
+ * (maximum matching by augmenting paths). So the map shows as many different kinds as it has places, and no kind appears
+ * twice while another one could still be accommodated. Own random stream (BASES.seedSalt), only reads the finished terrain.
+ */
+export function assignBaseKinds(seed: number, size: number, tiles: Tile[], places: Pos[], homes: number, factions: FactionId[]): BaseKind[] {
+  const rng = { rng: (seed ^ BASES.seedSalt) | 0 };
+  const kinds: (BaseKind | null)[] = places.map((_, i) => (i < homes ? BASES.home : null));
+  const water = (k: number) => tiles[k].terrain === 'shallow' || tiles[k].terrain === 'ocean';
+  // Gewaessergroessen (8er-Nachbarschaft), einmal berechnet / sizes of the bodies of water (8-neighbourhood), computed once
+  const sea = new Int32Array(size * size);
+  for (let k0 = 0; k0 < size * size; k0++) {
+    if (!water(k0) || sea[k0]) continue;
+    const body = [k0]; const seen = new Set([k0]);
+    for (let i = 0; i < body.length; i++) {
+      for (const p of neighbors(size, body[i] % size, Math.floor(body[i] / size))) {
+        const q = idx(size, p.x, p.y);
+        if (water(q) && !seen.has(q)) { seen.add(q); body.push(q); }
+      }
+    }
+    for (const k of body) sea[k] = body.length;
+  }
+  const near = (p: Pos) => neighbors(size, p.x, p.y).map((q) => idx(size, q.x, q.y));
+  const coast = (p: Pos) => near(p).some((k) => sea[k] >= BASES.minSea);
+  const fits = (kind: BaseKind, p: Pos): boolean => {
+    const t = tiles[idx(size, p.x, p.y)];
+    switch (BASES.place[kind]) {
+      case 'coast': return coast(p);
+      case 'water': return coast(p) || !!t.river || near(p).some((k) => tiles[k].river);
+      case 'wind': return coast(p) || t.biome === 'hills' || near(p).some((k) => tiles[k].terrain === 'mountain');
+      case 'plain': return t.terrain === 'plain';
+      default: return true;
+    }
+  };
+  // Reihenfolge der Gruppen: gewichtet nach Groesse gezogen, damit bei wenigen Orten jede Art gleich oft vorkommt
+  // order of the groups: drawn weighted by size so that with few places every kind appears equally often
+  const order: BaseGroup[] = [];
+  const left = Object.keys(BASES.groups) as BaseGroup[];
+  while (left.length) {
+    let roll = nextRandom(rng) * left.reduce((a, g) => a + BASES.groups[g].length, 0);
+    let k = 0;
+    while (k < left.length - 1 && (roll -= BASES.groups[left[k]].length) >= 0) k++;
+    order.push(left.splice(k, 1)[0]);
+  }
+  const rest = places.length - homes;
+  const noTrainCap = Math.floor(rest * BASES.noTrainShare);
+  const count = new Map<BaseKind, number>();
+  let noTrain = 0, open = rest;
+  /**
+   * Art unterbringen (erweiternder Weg): an einem freien passenden Ort, sonst weicht der dortige Stuetzpunkt auf einen
+   * anderen passenden Ort aus. Freie Orte zuerst, sonst zufaellige Reihenfolge.
+   * Accommodate a kind (augmenting path): on a free fitting place, otherwise the base standing there moves to another
+   * fitting place. Free places first, otherwise random order.
+   */
+  const seat = (kind: BaseKind, seen: Set<number>): boolean => {
+    const fitting: number[] = [];
+    for (let i = homes; i < places.length; i++) if (!seen.has(i) && fits(kind, places[i])) fitting.push(i);
+    shuffle(rng, fitting);
+    fitting.sort((a, b) => (kinds[a] === null ? 0 : 1) - (kinds[b] === null ? 0 : 1));
+    for (const i of fitting) {
+      if (seen.has(i)) continue;
+      seen.add(i);
+      const there = kinds[i];
+      if (there === null || seat(there, seen)) { kinds[i] = kind; return true; }
+    }
+    return false;
+  };
+  /** Karte legen, wenn Obergrenzen und Orte es erlauben / lay a card if caps and places allow */
+  const place = (kind: BaseKind): boolean => {
+    if (open === 0 || (count.get(kind) ?? 0) >= (BASES.maxPerMap[kind] ?? Infinity)) return false;
+    const untrained = BASES.noTraining.includes(kind);
+    if (untrained && noTrain >= noTrainCap) return false;
+    if (!seat(kind, new Set())) return false;
+    count.set(kind, (count.get(kind) ?? 0) + 1);
+    if (untrained) noTrain++;
+    open--;
+    return true;
+  };
+  for (let round = 0; open > 0 && round < 8; round++) {
+    const piles = order.map((g) => shuffle(rng, BASES.groups[g].slice()));
+    /** naechste Karte der Gruppe legen, die sich unterbringen laesst; die uebersprungenen verfallen / lay the group's next card that can be accommodated; skipped ones are discarded */
+    const serve = (pile: BaseKind[]): boolean => {
+      while (pile.length) if (place(pile.shift()!)) return true;
+      return false;
+    };
+    // NEXUS im Spiel: vor allem anderen ein Kraftwerk legen (Ziel von NEXUS); die Gruppe setzt dafuer in der ersten Reihe aus
+    // NEXUS in the game: before anything else lay one power kind (NEXUS's target); the group then sits out the first turn
+    const power = order.indexOf('power');
+    const served = round === 0 && factions.includes(NEXUS.faction) && serve(piles[power]);
+    for (let turn = 0; open > 0 && piles.some((p) => p.length); turn++) {
+      piles.forEach((pile, gi) => { if (!(turn === 0 && served && gi === power)) serve(pile); });
+    }
+  }
+  // Sicherheitsnetz (nie erreicht: Fabrik, Depot, Bunker und Lazarett passen ueberall) / safety net (never reached: factory, depot, bunker and hospital fit anywhere)
+  return kinds.map((k) => k ?? 'factory');
 }
 
 /**

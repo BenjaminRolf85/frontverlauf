@@ -8,7 +8,7 @@ import {
 import {
   burning, isJungle, roundsToEruption, corruptionRule, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
-  has, healAmount, income, isExplored, levelUpCost, outpostCheck, score, supportedUnits, unitAt, unitById,
+  has, healAmount, income, noTraining, supplySlots, baseUnits, isExplored, levelUpCost, outpostCheck, score, supportedUnits, unitAt, unitById,
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
   supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
@@ -34,6 +34,7 @@ import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFlee
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
 import { SITE_ICON, buildLockReason, citySitesHtml, siteDescVars } from './production';
+import { BASE_ICON, baseLineHtml, baseName, supplyNoteHtml } from './bases';
 import { troopCards, troopsHtml, type TroopCard } from './troops';
 
 /** Langes Druecken auf eine Aktion zeigt ihre Erklaerung (ms) / long-press on an action shows its explanation (ms) */
@@ -296,8 +297,10 @@ function unitStatsLine(type: UnitTypeId, faction?: FactionId): string {
  */
 function unitLimitStat(s: GameState, c: City): string {
   const up = upgradeUnitLimit(s, c);
-  const tip = t('hud.unitLimitRule', { lv: c.level + CITY.unitLimitExtra, up, per: CITY.unitLimitPerUpgrade });
-  return `<span class="stat" title="${esc(tip)}">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, c), max: unitLimit(s, c) }))}${up ? ` <span class="muted">${esc(t('hud.unitLimitUpgrades', { n: up }))}</span>` : ''}</span>`;
+  // freie Plaetze der Versorger (Wohnbloecke, Supermarkt) tragen weitere Einheiten dieser Stadt / free slots of the suppliers (residential blocks, supermarket) support further units of this city
+  const supply = c.owner !== null && !noTraining(c) ? supplySlots(s, c.owner) : 0;
+  const tip = `${t('hud.unitLimitRule', { lv: c.level + CITY.unitLimitExtra, up, per: CITY.unitLimitPerUpgrade })}${baseUnits(c) ? ` ${t('bases.unitTip', { n: baseUnits(c) })}` : ''}${supply ? ` ${t('bases.supplyTip', { n: supply })}` : ''}`;
+  return `<span class="stat" title="${esc(tip)}">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, c), max: unitLimit(s, c) }))}${up ? ` <span class="muted">${esc(t('hud.unitLimitUpgrades', { n: up }))}</span>` : ''}${supply ? ` <span class="muted">${esc(t('bases.supplyFree', { n: supply }))}</span>` : ''}</span>`;
 }
 
 /** Treffsicherheit einer Einheit als Kurztext und Tooltip / accuracy of a unit as short text and tooltip */
@@ -720,7 +723,11 @@ export class Hud {
     } else if ((tab === 'city' || (tab === 'unit' && !vUnit)) && city) {
       const name = cityName(s, city.id);
       if (city.owner === null) {
-        head = `<span class="unit-badge">${icon('capture')}</span><div class="grow"><h3 class="display">${esc(name)}</h3><div class="muted">${esc(t(city.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village'))}</div></div>`;
+        // Stuetzpunkt: Art im Kopf, Wirkung fuer die Fraktion des Betrachters immer sichtbar (vor dem Einnehmen)
+        // base: kind in the head, the effect for the viewer's faction always visible (before capturing)
+        const vf = viewer >= 0 ? s.factions[viewer].id : null;
+        head = `<span class="unit-badge">${icon(city.base ? BASE_ICON[city.base] : 'capture')}</span><div class="grow"><h3 class="display">${esc(name)}</h3><div class="muted">${esc(city.base ? t('bases.neutral', { kind: baseName(city.base) }) : t(city.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village'))}</div></div>`;
+        if (city.base) body += `${baseLineHtml(city.base, vf)}<p class="muted sheet-more">${esc(t('bases.likeCity'))}</p>`;
         if (city.tower) body += `<p class="muted sheet-more">${esc(t('tower.desc', { n: TOWER.income, max: TOWER.unitLimit }))}</p>`;
         body += lootTag(s, viewer, city);
       } else if (isCultFaction(s, city.owner)) {
@@ -729,11 +736,13 @@ export class Hud {
         const shrine = cityTiles(s, city).some((p) => s.tiles[p.y * s.size + p.x].building === 'shrine');
         const own = city.isHQ && city.hqOf === city.owner;
         head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
-          <div class="muted unit-sub">${esc(t('cult.city'))} · ${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${own ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
+          <div class="muted unit-sub">${city.base ? `${esc(baseName(city.base))} · ` : ''}${esc(t('cult.city'))} · ${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${own ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
         body += `<div class="row"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('cult.slots', { n: cultSlots(s, city) }))}</span>
           <span class="stat">${icon('people', 'icon-sm')}${esc(t('cult.horde', { n: cultUnits(s, city.owner).length, max: cultCap(s, city.owner) }))}</span>
           ${own ? `<span class="tag">${esc(t('hud.hq'))} +${CULT.hqSlots}</span>` : ''}${shrine ? `<span class="tag">${esc(t('buildings.shrine'))} +${CULT.shrineSlots}</span>` : ''}</div>
           <p class="muted sheet-more">${esc(t('cult.cityDesc', { n: city.level + CITY.unitLimitExtra, hq: CULT.hqSlots, shrine: CULT.shrineSlots }))}</p>`;
+        // Stuetzpunkt in Kult-Hand: Wirkung fuer den Kult / base in cult hands: effect for the cult
+        if (city.base) body += baseLineHtml(city.base, fid, 'muted');
         body += lootTag(s, viewer, city);
         this.cityNote = '';
         // Kult: Schiffe aus der Werft, Landtruppen gesperrt (Rekrutieren im Feld) / cult: ships from the shipyard, land troops locked (recruiting in the field)
@@ -764,8 +773,13 @@ export class Hud {
         const need = levelUpCost(s, city);
         // Stufe in der Unterzeile, damit der Name nicht abgeschnitten wird / level in the subline so the name is not cut off
         head = `${factionBadge(fid, 'city')}<div class="grow"><h3 class="display" title="${esc(name)}">${esc(name)}</h3>
-          <div class="muted unit-sub">${isDesert(s) ? `${esc(t('desert.outpost'))} · ` : isAlienWorld(s) ? `${esc(t(fid === 'zyrr' ? 'burrow.zyrr' : 'burrow.own'))} · ` : ''}${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
-        body += `<div class="row">${icon('people', 'icon-sm')}<span>${esc(t('hud.population', { pop: city.pop, need }))}</span><div class="grow">${progress(city.pop, need, '', t('hud.population', { pop: city.pop, need }))}</div></div>
+          <div class="muted unit-sub">${city.base ? `${esc(baseName(city.base))} · ` : ''}${isDesert(s) ? `${esc(t('desert.outpost'))} · ` : isAlienWorld(s) ? `${esc(t(fid === 'zyrr' ? 'burrow.zyrr' : 'burrow.own'))} · ` : ''}${esc(t('hud.level', { n: city.level }))} · ${esc(t(`factions.${fid}.short`))}${city.isHQ && city.hqOf === city.owner ? ` · ${esc(t('hud.hq'))}` : ''}</div></div>`;
+        // Stuetzpunkt: Wirkung fuer den Besitzer direkt unter der Bevoelkerung (Handy: unter "mehr", die Art steht im Kopf);
+        // ohne Ausbildung stattdessen der Hinweis mit den Plaetzen, immer sichtbar, er ersetzt die Truppenleiste
+        // base: effect for the owner right below the population (phone: under "more", the kind is in the head); without
+        // training the note with the slots instead, always visible, it replaces the troop strip
+        const baseLine = !city.base ? '' : noTraining(city) ? supplyNoteHtml(s, city) : baseLineHtml(city.base, fid, 'muted sheet-more');
+        body += `<div class="row">${icon('people', 'icon-sm')}<span>${esc(t('hud.population', { pop: city.pop, need }))}</span><div class="grow">${progress(city.pop, need, '', t('hud.population', { pop: city.pop, need }))}</div></div>${baseLine}
           <div class="sheet-more"><div class="stats">${unitLimitStat(s, city)}
           <span class="stat">${icon('star', 'icon-sm')}${esc(t('hud.income'))} +${cityIncome(s, city)}</span>
           ${city.factory ? `<span class="tag">${esc(t('rewards.factory'))}</span>` : ''}${city.bunkerRing ? `<span class="tag">${esc(t('rewards.bunkerRing'))}</span>` : ''}
@@ -775,12 +789,14 @@ export class Hud {
             ? `<span class="slot filled" title="${esc(`${t(`cityUpgrades.${up}Desc`, orbitalVars())} ${t('cityUpgrades.capacity', { n: CITY.unitLimitPerUpgrade })}`)}">${icon(CITY_UPGRADE_ICON[up], 'icon-sm')}${esc(t(`cityUpgrades.${up}`))}</span>`
             : `<span class="slot empty">${esc(t('cityUpgrades.empty'))}</span>`; }).join('')}${city.noIncomeNext ? `<span class="tag warn">${esc(t('hud.noIncomeNext'))}</span>` : ''}</div></div>`;
         // Produktionsstaetten der Stadt (Menschen), immer sichtbar / the city's production sites (humans), always visible
-        body += citySitesHtml(s, city);
+        if (!noTraining(city)) body += citySitesHtml(s, city);
         // Kult: Beute dieser Stadt; NEXUS: Rechenleistung / cult: loot of this city; NEXUS: compute
         body += lootTag(s, viewer, city);
         if (isRobotFaction(s, city.owner)) {
           const cs = computeStats(s, city.owner);
-          body += `<p class="muted icon-line">${icon('lightning', 'icon-sm')}<span>${esc(t(cs.depotNodes ? 'nexus.computeStateDepot' : 'nexus.computeState', { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes }))}</span></p>`;
+          // mit Energie aus Kraftwerk-Stuetzpunkten eigene Fassung / with energy from power bases its own variant
+          const ck = `nexus.computeState${cs.depotNodes ? 'Depot' : ''}${cs.energy ? 'Energy' : ''}`;
+          body += `<p class="muted icon-line">${icon('lightning', 'icon-sm')}<span>${esc(t(ck, { have: cs.compute, dc: cs.dataCenters, pp: cs.powerPlants, dn: cs.depotNodes, en: cs.energy }))}</span></p>`;
         }
         this.cityNote = '';
         if (myTurn && city.owner === s.current) this.cityActions(s, city.id);

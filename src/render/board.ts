@@ -3,7 +3,7 @@
  * The game map as a 3D diorama. Reads the state, never changes it.
  */
 import * as THREE from 'three';
-import type { BiomeId, FactionId, TerrainId } from '../data/balance';
+import type { BaseKind, BiomeId, FactionId, TerrainId } from '../data/balance';
 import type { Tile } from '../core';
 import { FUEL, M2, WAR_MARKS } from '../data/balance';
 import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, canSeeMine, canSeeUnit, submerged as isWading, cityById, isExplored, weather, isCavern, dist, blessingOf, isSinner, judgeAlive, onFire, radarEcho, camouflaged, type GameState, type Unit } from '../core';
@@ -38,6 +38,7 @@ import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGe
 import { alienBurrowGeometry } from './models/alienFlora';
 import { towerGeometry } from './models/towers';
 import { cityHeight, hqMastTop } from './models/city';
+import { BASE_ICON, baseName } from '../ui/bases';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
 import { caveMouthGeometry, verdanOutpostGeometry, desertGroundDeco, giantSkeletonGeometry, mesaGeometry, ruinSiteGeometry, sandify, thornScrubGeometry, verdanDesertRuin } from './models/desert';
@@ -116,6 +117,28 @@ export function coreHeading(u: Pick<Unit, 'type' | 'facing'> | undefined): numbe
 const WONDER_OFFSET: Partial<Record<string, { x: number; z: number }>> = {};
 const cityGeometry = (f: Parameters<typeof models.cityGeometry>[0], l: number, fl: Parameters<typeof models.cityGeometry>[2]) =>
   safe(models.cityGeometry, f ? factionTokens[f].primary : semantic.neutral, f, l, fl)!;
+/** Stuetzpunkt-Modell je Art (models/bases.ts) / base model per kind (models/bases.ts) */
+const baseModelGeometry = (k: BaseKind, f: FactionId | null, l: number, fl: models.BaseFlags, sea: number, spin: boolean) =>
+  safe(models.baseGeometry, f ? factionTokens[f].primary : semantic.neutral, k, f, l, fl, sea, spin)!;
+/**
+ * Seeseite eines Orts fuer den Marinestuetzpunkt: 0 = +z, 1 = +x, 2 = -z, 3 = -x. Zuerst die Kanten (vorn vor hinten),
+ * dann die Ecken; ohne Wasser 0. Nur Optik, aus dem Gelaende abgeleitet.
+ * Sea side of a place for the naval base: 0 = +z, 1 = +x, 2 = -z, 3 = -x. Edges first (front before back), then the
+ * corners; 0 without water. Visual only, derived from the terrain.
+ */
+function seaSide(s: GameState, x: number, y: number): number {
+  const wet = (dx: number, dy: number) => {
+    const xx = x + dx, yy = y + dy;
+    if (xx < 0 || yy < 0 || xx >= s.size || yy >= s.size) return false;
+    const t = s.tiles[yy * s.size + xx].terrain;
+    return t === 'shallow' || t === 'ocean';
+  };
+  const edges: [number, number][] = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  const edge = edges.findIndex(([dx, dy]) => wet(dx, dy));
+  if (edge >= 0) return edge;
+  const corners: [number, number, number][] = [[1, 1, 0], [-1, 1, 0], [1, -1, 1], [-1, -1, 2]];
+  return corners.find(([dx, dy]) => wet(dx, dy))?.[2] ?? 0;
+}
 const buildingGeometry = (k: Parameters<typeof models.buildingGeometry>[0], f: Parameters<typeof models.buildingGeometry>[1]) =>
   safe(models.buildingGeometry, f ? factionTokens[f].secondary : semantic.neutral, k, f);
 const featureGeometry = (k: 'bunker' | 'radar') => safe(models.featureGeometry, semantic.neutralDark, k);
@@ -383,6 +406,8 @@ export class Board {
   private placeCityMasks() {
     const c = Math.cos(CAMERA.elevation) * CITY_MASK.push, sy = Math.sin(CAMERA.elevation) * CITY_MASK.push;
     for (const m of this.cityMasks) m.mesh.position.set(m.base.x - this.front.x * c, m.base.y - sy, m.base.z - this.front.y * c);
+    // Rotoren der Windraeder: eine gemeinsame Maske, dieselbe Verschiebung / wind turbine rotors: one shared mask, the same shift
+    this.town.rotorMask?.position.set(-this.front.x * c, -sy, -this.front.y * c);
   }
 
   /**
@@ -1179,25 +1204,34 @@ export class Board {
       // Fensterlicht: groessere Staedte haben mehr beleuchtete Fenster / window light: larger cities have more lit windows
       // Hoehle: Nachschublinie statt Stadt, Hauptschacht groesser / cavern: supply line instead of a city, main shaft bigger
       // Alienwelt: neutrale Siedlungen in gedaempfter Zyrr-Bauweise / alien world: neutral settlements in muted Zyrr style
+      // Stuetzpunkt (City.base, nur Standardwelt): eigenes Modell je Art, geht dem Sendeturm vor
+      // base (City.base, default world only): its own model per kind, takes precedence over the transmitter tower
+      const kind: BaseKind | null = !cave && !alien && !desert && !flags.hq ? c.base ?? null : null;
+      const tower = !!c.tower && !kind;
+      const windows = Math.min(0.85, 0.4 + Math.min(8, level) * 0.06);
       const g = cave ? withGlow(supplyLineGeometry(fid, flags.hq), 'built', 0)
+        : kind ? withGlow(baseModelGeometry(kind, fid, level, flags, kind === 'navalStation' ? seaSide(s, c.x, c.y) : 0, this.animations), 'built', windows)
         // Wueste: alle Orte sind Aussenposten der Verdan (Kuppelbunker, Relaismast, Wappen) / desert: every place is a Verdan outpost (domed bunker, relay mast, emblem)
         // Sendeturm je Welt / transmitter tower per world
-        : c.tower ? withGlow(towerGeometry(alien ? 'alien' : desert ? 'desert' : 'earth', fid), 'built', 0.4)
+        : tower ? withGlow(towerGeometry(alien ? 'alien' : desert ? 'desert' : 'earth', fid), 'built', 0.4)
         // Alienwelt: alle Orte sind Hoehlen, in die sich Einheiten eingraben / alien world: every place is a burrow units dig into
         : withGlow(alien ? alienBurrowGeometry(fid, level, flags.hq)
           : desert ? verdanOutpostGeometry(fid, level, flags.hq) : cityGeometry(fid, level, flags),
-          'built', Math.min(0.85, 0.4 + Math.min(8, level) * 0.06));
+          'built', windows);
+      const meta = kind ? models.baseMeta(g) : undefined;
       const obj = outlined(g, OUTLINE.building, landMaterial());
       obj.position.copy(this.tileCenter(s, c.x, c.y));
       // Siedlungen der anderen Welten etwas groesser, wie die Staedte / settlements of the other worlds a little larger, like the cities
-      if (cave || ((alien || desert) && !c.tower)) obj.scale.setScalar(SETTLEMENT_SCALE);
+      if (cave || ((alien || desert) && !tower)) obj.scale.setScalar(SETTLEMENT_SCALE);
       // Hoehlen und Aussenposten schauen mit Oeffnung und Wappen zur Standardkamera / burrows and outposts face the default camera with opening and emblem
       if (alien || desert) obj.rotation.y = Math.PI / 4;
       obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
       this.staticLayer.add(obj);
       if (cave) glowSpots.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, size: flags.hq ? 1.7 : 1.35, color: amber });
       else townCities.push({ x: obj.position.x, y: obj.position.y, z: obj.position.z, level, faction: fid, hq: flags.hq, govQuarter: flags.govQuarter, geo: g,
-        ...(!alien && !desert && !c.tower ? { beacon: hqMastTop(level) } : {}) });
+        ...(!alien && !desert && !tower ? { beacon: hqMastTop(level) } : {}),
+        // Stuetzpunkt: Rauch nur an den Schloten des Modells; verlassen = dunkel / base: smoke only at the model's stacks; abandoned = dark
+        ...(meta ? { smoke: meta.smoke, dark: fid === null, rotors: meta.rotors } : {}) });
       // Tiefenmaske: dieselbe Geometrie, nur Tiefe, nach dem Leeren des Tiefenpuffers und vor den Einheiten
       // depth mask: the same geometry, depth only, after the depth clear and before the units
       if (!low && !cave && !alien && !desert) {
@@ -1208,12 +1242,15 @@ export class Board {
         this.cityMasks.push({ mesh: mask, base: obj.position.clone() });
       }
       // Trefferkoerper: breiter Sockel der Haeuser und schlankes Wahrzeichen / hit bodies: broad base of the houses and slim landmark
-      if (!cave && (c.tower || (!alien && !desert))) {
-        const h = c.tower ? 0.95 : cityHeight(level, fid === null);
-        const bodies: [number, number][] = c.tower ? [[0.26, h]] : [[0.78, Math.min(h, 0.14 + level * 0.03)], [0.26, h]];
-        for (const [w, bh] of bodies) {
+      if (!cave && (tower || (!alien && !desert))) {
+        const h = tower ? 0.95 : cityHeight(level, fid === null);
+        // [Breite, Hoehe, Versatz x, Versatz z]; Stuetzpunkt: Platz und Wahrzeichen aus dem Modell / [width, height, offset x, offset z]; base: plaza and landmark from the model
+        const bodies: [number, number, number, number][] = meta ? meta.hit.map(([hx, hz, w, bh]) => [w, bh, hx, hz])
+          : tower ? [[0.26, h, 0, 0]] : [[0.78, Math.min(h, 0.14 + level * 0.03), 0, 0], [0.26, h, 0, 0]];
+        for (const [w, bh, hx, hz] of bodies) {
           const proxy = new THREE.Mesh(proxyGeometry(), proxyMaterial());
           proxy.position.copy(obj.position);
+          proxy.position.x += hx; proxy.position.z += hz;
           proxy.scale.set(w, bh, w);
           proxy.userData.tile = c.y * size + c.x;
           this.staticLayer.add(proxy);
@@ -1237,8 +1274,10 @@ export class Board {
         // Stufe und Fortschritt zur naechsten Stufe (nur fuer Staedte von Fraktionen) / level and progress to the next level (faction cities only)
         // Nachschublinien wachsen nicht: kein Stufenkreis, kein Fortschritt / supply lines do not grow: no level, no progress
         // Sendetuerme wachsen nicht: ohne Stufe wie Nachschublinien / transmitter towers do not grow: no level, like supply lines
-        const need = c.owner !== null && !cave && !c.tower ? levelUpCost(s, c) : 0;
-        const label = cityLabel(cname, cave || c.tower ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need);
+        const need = c.owner !== null && !cave && !tower ? levelUpCost(s, c) : 0;
+        // Stuetzpunkt: Symbol und Name der Art auf dem Schild, auch neutral / base: icon and name of the kind on the sign, neutral too
+        const label = cityLabel(cname, cave || tower ? '' : c.owner === null ? 0 : c.level, color, ink, c.isHQ && c.hqOf === c.owner, c.pop, need,
+          kind ? { icon: BASE_ICON[kind], name: baseName(kind) } : undefined);
         label.center.set(0.5, 1);
         this.labelLayer.add(label);
         this.citySigns.push({ sprite: label, x: c.x, y: c.y, top: obj.position.y });
@@ -1276,7 +1315,8 @@ export class Board {
       this.staticLayer.add(mesh, line);
     }
     // Stadtlichter, Lava-Schein, Rauch / city lights, lava glow, smoke
-    this.town.build({ cities: townCities, lava: lavaSpots, glow: glowSpots });
+    this.town.build({ cities: townCities, lava: lavaSpots, glow: glowSpots, ...(low ? {} : { rotorMask: { material: maskMaterial(), order: UNIT_ORDER - 0.8 } }) });
+    this.placeCityMasks();
     this.orbital.setRelays(relayLamps);
     // Hoehlenhuelle und Getier / cave shell and creatures
     if (cave) { this.caveShell.build(size, seed, low); this.caveLife.build(creatures); } else { this.caveShell.clear(); this.caveLife.clear(); }

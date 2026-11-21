@@ -1,19 +1,35 @@
 /**
  * Leben in Staedten und Glut auf der Karte: Lichtkegel am Boden (Stadtlicht in der Daemmerung und Nacht, Lava-Schein),
  * blinkendes Leuchtfeuer am Hauptquartier und Schornsteinrauch, der langsam aufsteigt (mehr Rauch mit der Stadtstufe).
+ * Dazu die Rotoren der Windraeder besetzter Stuetzpunkte: eine instanzierte Geometrie fuer die ganze Karte.
  * Life in cities and glow on the map: light pools on the ground (city light at dusk and night, lava glow),
  * a blinking beacon on the HQ and chimney smoke that rises slowly (more smoke with the city level).
+ * Plus the rotors of the wind turbines of owned bases: one instanced geometry for the whole map.
  */
 import * as THREE from 'three';
 import type { FactionId } from '../data/balance';
 import { factionTokens, hex, semantic } from '../design/tokens';
-import { ATMO } from './atmosphere';
+import { ATMO, landMaterial, withGlow } from './atmosphere';
+import { OUTLINE } from './config';
+import { rotorGeometry } from './models/bases';
 import { flatToon, outlinedInstanced } from './toon';
 import { glowColor } from './post';
 
 export interface TownInput {
   /** beacon: Spitze des HQ-Masts relativ zur Feldmitte (fehlt = alte feste Stelle) / beacon: top of the HQ mast relative to the tile centre (missing = the old fixed spot) */
-  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry; beacon?: [number, number, number] }[];
+  /**
+   * smoke: Rauchquellen relativ zur Feldmitte statt der hoechsten Punkte der Zellen (Stuetzpunkte: nur die Schlote);
+   * dark: kein Lichtkegel (verlassener Stuetzpunkt).
+   * smoke: smoke sources relative to the tile centre instead of the highest cell points (bases: the stacks only);
+   * dark: no light pool (abandoned base).
+   * rotors: drehende Rotoren relativ zur Feldmitte (BaseMeta.rotors) / spinning rotors relative to the tile centre (BaseMeta.rotors).
+   */
+  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry; beacon?: [number, number, number]; smoke?: [number, number, number][]; dark?: boolean; rotors?: [number, number, number, number, number, number][] }[];
+  /**
+   * Tiefenmaske fuer die Rotoren (hohe Qualitaet): Material und Zeichenreihenfolge wie bei den Stadtmasken (CITY_MASK).
+   * Depth mask for the rotors (high quality): material and render order as for the city masks (CITY_MASK).
+   */
+  rotorMask?: { material: THREE.Material; order: number };
   /** Lava und Vulkane / lava and volcanoes */
   lava: { x: number; z: number; y: number; size: number }[];
   /** Hoehle: farbige Lichtflecken (Pilze, Teiche, Krater, Laternen, Verdan-Auge) / cavern: coloured light pools */
@@ -107,12 +123,24 @@ function cellTops(g: THREE.BufferGeometry) {
 interface Emitter { x: number; y: number; z: number; phase: number }
 const PUFFS = 4;
 const PUFF_PERIOD = 4.2;
+/** Drehzahl der Rotoren in rad/s; je Windrad um bis zu spread verschieden / rotor speed in rad/s; differs per turbine by up to spread */
+const ROTOR_SPIN = { speed: 1.5, spread: 0.25 };
+interface Rotor { x: number; y: number; z: number; yaw: number; phase: number; scale: number; rate: number }
 
 export class TownFx {
   readonly group = new THREE.Group();
   private smoke: { mesh: THREE.InstancedMesh; line: THREE.InstancedMesh } | null = null;
   private emitters: Emitter[] = [];
   private beacons: { core: THREE.Mesh; halo: THREE.Sprite; phase: number }[] = [];
+  private rotors: Rotor[] = [];
+  private rotorMeshes: THREE.InstancedMesh[] = [];
+  /**
+   * Tiefenmaske der Rotoren (fehlt ohne Rotoren oder bei niedriger Qualitaet); das Brett schiebt sie wie die Stadtmasken
+   * entlang der Blickachse nach hinten.
+   * Depth mask of the rotors (absent without rotors or on low quality); the board pushes it back along the view axis
+   * like the city masks.
+   */
+  rotorMask: THREE.InstancedMesh | null = null;
   private tmp = new THREE.Object3D();
   private poolMats = {
     city: poolMaterial(ATMO.uWindow, 0, 0.55),
@@ -139,6 +167,9 @@ export class TownFx {
     this.beacons = [];
     this.emitters = [];
     this.pools = [];
+    this.rotors = [];
+    this.rotorMeshes = [];
+    this.rotorMask = null;
     const plane = this.plane;
     // Stadtlicht: warm, bei NEXUS cyan, bei Zyrr violett / city light: warm, cyan for NEXUS, violet for Zyrr
     const warm = new THREE.Color(hex(semantic.cityWindow));
@@ -157,7 +188,7 @@ export class TownFx {
       this.group.add(m);
       this.pools.push({ mesh: m, mix: mat.uniforms.uMix, base: mat.uniforms.uBase.value });
     };
-    pools(inp.cities.map((c) => ({ x: c.x, y: c.y + 0.015, z: c.z, s: 1.2 + Math.min(8, c.level) * 0.08, c: tint(c.faction) })), this.poolMats.city);
+    pools(inp.cities.filter((c) => !c.dark).map((c) => ({ x: c.x, y: c.y + 0.015, z: c.z, s: 1.2 + Math.min(8, c.level) * 0.08, c: tint(c.faction) })), this.poolMats.city);
     const lavaC = new THREE.Color(hex(semantic.lavaLight));
     pools(inp.lava.map((l) => ({ x: l.x, y: l.y + 0.02, z: l.z, s: l.size, c: lavaC })), this.poolMats.lava);
     pools((inp.glow ?? []).map((l) => ({ x: l.x, y: l.y + 0.018, z: l.z, s: l.size, c: l.color })), this.poolMats.cave);
@@ -176,6 +207,12 @@ export class TownFx {
         this.beacons.push({ core, halo, phase: (c.x * 3.1 + c.z * 1.7) % 6 });
       }
       // Schornsteine: hoechste Punkte der Zellen, ohne Mast und Regierungskuppel / chimneys: highest cell points, no mast or gov dome
+      if (c.smoke) {
+        c.smoke.slice(0, 4).forEach(([sx, sy, sz], i) => {
+          this.emitters.push({ x: c.x + sx, y: c.y + sy + 0.02, z: c.z + sz, phase: (c.x * 0.37 + c.z * 0.61 + i * 0.29) % 1 });
+        });
+        continue;
+      }
       const skip = new Set<string>();
       if (c.hq) skip.add('-1,1');
       if (c.govQuarter) skip.add('1,-1');
@@ -183,6 +220,22 @@ export class TownFx {
       cellTops(c.geo).filter((e) => !skip.has(e.cell) && e.y > 0.06).slice(0, count).forEach((e, i) => {
         this.emitters.push({ x: c.x + e.x, y: c.y + e.y + 0.02, z: c.z + e.z, phase: (c.x * 0.37 + c.z * 0.61 + i * 0.29) % 1 });
       });
+    }
+    // Rotoren: Netz, Tuschelinie und (hohe Qualitaet) Tiefenmaske, je einmal fuer die ganze Karte
+    // rotors: mesh, ink line and (high quality) depth mask, once each for the whole map
+    for (const c of inp.cities) for (const [rx, ry, rz, yaw, phase, scale] of c.rotors ?? []) {
+      this.rotors.push({ x: c.x + rx, y: c.y + ry, z: c.z + rz, yaw, phase, scale, rate: 1 + ROTOR_SPIN.spread * Math.sin(phase * 7 + c.x * 1.3 + c.z * 2.1) });
+    }
+    if (this.rotors.length) {
+      const g = withGlow(rotorGeometry(), 'none');
+      const { mesh, line } = outlinedInstanced(g, this.rotors.length, OUTLINE.building, landMaterial());
+      this.rotorMeshes = [mesh, line];
+      if (inp.rotorMask) {
+        this.rotorMask = new THREE.InstancedMesh(g, inp.rotorMask.material, this.rotors.length);
+        this.rotorMask.renderOrder = inp.rotorMask.order;
+        this.rotorMeshes.push(this.rotorMask);
+      }
+      for (const m of this.rotorMeshes) { m.raycast = () => {}; m.frustumCulled = false; this.group.add(m); }
     }
     if (this.emitters.length) {
       this.smoke = outlinedInstanced(this.puffGeo, this.emitters.length * PUFFS, 0.012, this.smokeMat);
@@ -211,6 +264,17 @@ export class TownFx {
         }
       }
       mesh.instanceMatrix.needsUpdate = true; line.instanceMatrix.needsUpdate = true;
+    }
+    if (this.rotors.length) {
+      this.rotors.forEach((r, i) => {
+        o.position.set(r.x, r.y, r.z);
+        // erst um die Rotorachse (z), dann zur Blickrichtung des Windrads (y) / first about the rotor axis (z), then to the turbine's heading (y)
+        o.rotation.set(0, r.yaw, r.phase + time * ROTOR_SPIN.speed * r.rate);
+        o.scale.setScalar(r.scale);
+        o.updateMatrix();
+        for (const m of this.rotorMeshes) m.setMatrixAt(i, o.matrix);
+      });
+      for (const m of this.rotorMeshes) m.instanceMatrix.needsUpdate = true;
     }
     // Lichtkegel ohne Wirkung gar nicht zeichnen (spart Fuellrate am Tag) / skip pools without effect (saves fill rate by day)
     for (const p of this.pools) p.mesh.visible = p.base + p.mix.value > 0.02;

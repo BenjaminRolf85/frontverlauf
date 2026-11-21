@@ -31,6 +31,7 @@ import { factionIdOf, rewardText, techIcon, techT } from './terms';
 import { orbitalVars } from './orbital';
 import { TUTORIAL_FACTION } from './tutorial';
 import { doctrineText } from './production';
+import { baseLineHtml, baseName } from './bases';
 import {
   MAX_OPPONENTS, addOpponent, addRandomOpponent, availableFactions, canAddOpponent, canStart, initialPlayers, missingOpponents, opponentCount,
   removeOpponent, setDifficulty, setFaction, setHuman, type SetupPlayer,
@@ -793,7 +794,9 @@ export function detailsDialog(host: ScreenHost, x: number, y: number) {
       ${counterTags(u.type).length ? `<p>${counterTags(u.type).map((c) => esc(c.text)).join(' · ')}</p>` : ''}${hasText(`unitDesc.${u.type}`) ? `<p>${esc(t(`unitDesc.${u.type}`))}</p>` : ''}`;
   }
   if (c) {
-    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(t(c.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(c.tower ? t('tower.name') : supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : `${isDesert(s) ? `${t('desert.outpost')} · ` : isAlienWorld(s) ? `${t(s.factions[c.owner].id === 'zyrr' ? 'burrow.zyrr' : 'burrow.own')} · ` : ''}${t('hud.level', { n: c.level })}`)}`}</p>`;
+    html += `<h3 class="display">${esc(cityName(s, c.id))}</h3><p>${c.owner === null ? esc(c.base ? t('bases.neutral', { kind: baseName(c.base) }) : t(c.tower ? 'tower.neutral' : supplyLines(s) ? 'cavern.neutralLine' : isDesert(s) ? 'desert.neutralOutpost' : isAlienWorld(s) ? 'burrow.neutral' : 'features.village')) : `${factionChip(s.factions[c.owner].id, t(`factions.${s.factions[c.owner].id}.short`))} ${esc(c.tower ? t('tower.name') : supplyLines(s) ? t(c.isHQ && c.hqOf === c.owner ? 'cavern.mainShaft' : 'cavern.supplyLine') : `${isDesert(s) ? `${t('desert.outpost')} · ` : isAlienWorld(s) ? `${t(s.factions[c.owner].id === 'zyrr' ? 'burrow.zyrr' : 'burrow.own')} · ` : ''}${t('hud.level', { n: c.level })}`)}`}</p>`;
+    // Stuetzpunkt: Wirkung fuer den Betrachter (neutral) bzw. den Besitzer / base: effect for the viewer (neutral) or the owner
+    if (c.base) html += baseLineHtml(c.base, c.owner !== null ? s.factions[c.owner].id : viewer >= 0 ? s.factions[viewer].id : null);
   }
   const gun = turretAt(s, x, y);
   if (gun && gun.owner !== undefined && (viewer < 0 || isExplored(s, viewer, x, y))) {
