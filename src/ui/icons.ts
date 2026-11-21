@@ -28,6 +28,16 @@ const P: Record<string, string> = {
   close: '<path d="M5 5l14 14M19 5L5 19"/>',
   check: '<path d="M4 12.5l5 5L20 6.5"/>',
   /** Satellitenschuessel mit Strahl: Satelliten-Relay und Orbitallaser / satellite dish with beam: satellite relay and orbital laser */
+  /** Schwebende Akademie: Plattform mit Kuppel, Turm und Duesen / floating academy: platform with dome, tower and nozzles */
+  academy: '<path d="M3 13h18l-2 3H5z"/><path d="M8 13a4 4 0 0 1 8 0"/><path d="M15.5 13V6.5h2V13"/><path d="M16.5 6.5V4"/><path d="M7 16l-1 3M12 16v3.5M17 16l1 3" stroke-dasharray="1.5 1.5"/>',
+  /** Abheben: Plattform mit Pfeil nach oben / lift off: platform with an arrow upwards */
+  liftOff: '<path d="M4 17h16l-1.5 2.5h-13z"/><path d="M12 14V3M8 7l4-4 4 4"/><path d="M8 21.5l-.5 1M16 21.5l.5 1"/>',
+  /** Landen: Pfeil nach unten auf eine Plattform / land: arrow down onto a platform */
+  land: '<path d="M12 3v11M8 10l4 4 4-4"/><path d="M4 17h16l-1.5 2.5h-13z"/><path d="M3 21.5h18"/>',
+  /** Beamer: Plattform mit Strahlenringen / beamer: pad with beam rings */
+  beam: '<ellipse cx="12" cy="19" rx="8" ry="2.5"/><path d="M6 18V8M18 18V8"/><ellipse cx="12" cy="13" rx="5" ry="1.4" stroke-dasharray="2 1.5"/><ellipse cx="12" cy="8" rx="5" ry="1.4" stroke-dasharray="2 1.5"/><path d="M12 3v2"/>',
+  /** Forschungsposten: Kuppel mit Mast und Schuessel / research post: dome with mast and dish */
+  researchPost: '<path d="M3 20h18"/><path d="M5 20a5 5 0 0 1 10 0"/><path d="M17 20V7"/><path d="M14 6a4 4 0 0 0 6 3z"/><circle cx="17" cy="4" r="1" fill="currentColor"/>',
   satellite: '<path d="M4 20h9"/><path d="M8.5 20l1-4"/><path d="M4.5 9.5a7 7 0 0 0 9 9z"/><path d="M9 14l3.5-3.5"/><path d="M15 3l2 2-2.5 2.5-2-2zM18.5 6.5l2 2"/><path d="M17 11l3 9" stroke-dasharray="2 2"/>',
   lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
   soundOn: '<path d="M4 9.5h4l5-4.5v14l-5-4.5H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',

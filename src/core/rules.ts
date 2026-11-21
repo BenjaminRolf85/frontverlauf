@@ -5,7 +5,7 @@
 import {
   BASES, COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
-  type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY,
+  type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY, ACADEMY,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { assignBaseKinds, generateMap } from './mapgen';
@@ -18,6 +18,7 @@ import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacemen
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloBuyCheck, siloCheck, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
+import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, forcedSpot, landCheck, liftCheck, nearestStand, shieldCheck, shieldOver } from './academy';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
 import { canFace, faceTowards, facingTowards, spawnFacing } from './facing';
@@ -30,7 +31,7 @@ import {
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
-  basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome,
+  basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome, academyOf, postsOf, trainSpot, trainedNow,
   medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile, canWithdrawAfterAttack,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -83,6 +84,10 @@ export function createGame(cfg: GameConfig): GameState {
     const c = addCity(s, p.x, p.y, i, nameIndex++);
     c.isHQ = true; c.hqOf = i; c.level = START.hqLevel;
     claimTerritory(s, c, CITY.baseRadius);
+    // Velkar: die Hauptstadt ist die schwebende Akademie (ACADEMY), nur in freien Partien der Oberflaeche; die Kampagne und
+    // die Hoehle behalten die alten Regeln / Velkar: the capital is the floating academy (ACADEMY), only in free games on
+    // the surface; the campaign and the cavern keep the old rules
+    if (config.factions[i].id === ACADEMY.faction && !config.campaign && config.theme !== 'cavern') c.academy = true;
   });
   const neutral = map.villages.map((v) => addCity(s, v.x, v.y, null, nameIndex++));
   map.starts.forEach((p, i) => {
@@ -256,7 +261,7 @@ function raiseLevel(s: GameState, c: City, ev: GameEvent[], bought = false) {
 function growTerritory(s: GameState, c: City, ev: GameEvent[]) {
   const f = c.owner;
   // Kult, Sendetuerme und Nachschublinien wachsen nicht / cult, transmitter towers and supply lines do not grow
-  if (f === null || c.tower || supplyLines(s) || isCultFaction(s, f)) return;
+  if (f === null || c.tower || c.post || supplyLines(s) || isCultFaction(s, f)) return;
   let left = CITY.growTiles;
   while (left > 0 && c.radius < CITY.growMaxRadius) {
     const ring = c.radius + 1;
@@ -272,6 +277,12 @@ function growTerritory(s: GameState, c: City, ev: GameEvent[]) {
 }
 
 function addPop(s: GameState, c: City, amount: number, ev: GameEvent[]) {
+  // Forschungsposten wachsen nicht: ihre Bevoelkerung geht an die Akademie / research posts do not grow: their population goes to the academy
+  if (c.post && c.owner !== null) {
+    const ac = academyOf(s, c.owner);
+    if (ac) addPop(s, ac, amount, ev);
+    return;
+  }
   // Nachschublinien, Sendetuerme und Kult-Staedte wachsen nicht / supply lines, transmitter towers and cult cities do not grow
   if (supplyLines(s) || c.tower || (c.owner !== null && isCultFaction(s, c.owner))) return;
   c.pop += amount;
@@ -559,6 +570,8 @@ function checkElimination(s: GameState, ev: GameEvent[], cultOnly = false) {
       f.eliminatedRound = s.round;
       // verbliebene Einheiten verschwinden mit Ereignis (Wunder: auch 'destroyed') / remaining units vanish with an event (wonders: also 'destroyed')
       for (const u of s.units.filter((o) => o.owner === f.index)) killUnit(s, u, null, ev, false);
+      // gebeamte Einheiten unterwegs verschwinden mit / beamed units in transit vanish too
+      if (s.transit) { s.transit = s.transit.filter((b) => b.unit.owner !== f.index); if (!s.transit.length) delete s.transit; }
       // Minen und Sperren verschwinden, Aussenposten werden frei / mines and barriers vanish, outposts are released
       for (const t of s.tiles) {
         if (t.mine?.owner === f.index) t.mine = null;
@@ -626,6 +639,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
       if (buildingWorksFor(s, f, 'kolkhoz') && cityTiles(s, c).some((p) => tileAt(s, p.x, p.y)!.building === 'kolkhoz')) addPop(s, c, UNIQUE.kolkhozPop, ev);
     }
   }
+  // gebeamte Einheiten erscheinen vor dem Zuruecksetzen und sind sofort einsatzbereit / beamed units appear before the reset and are ready at once
+  beamArrivals(s, f, ev);
   for (const u of s.units) {
     if (u.owner !== f) continue;
     // Selbstheilung (Friedenswacht) / self-repair (peacekeepers)
@@ -646,10 +661,64 @@ function startTurn(s: GameState, ev: GameEvent[]) {
       if (c && c.owner === f && ((c.upgrades ?? []).includes('depot') || (c.base !== undefined && BASES.builtInUpgrade[c.base] === 'depot'))) u.rockets = ROCKETS.max;
     }
   }
+  // Akademie: hebt ab -> schwebt, Felder fuer diesen Zug, Schild laedt auf / academy: lifting -> floating, tiles for this turn, the shield recharges
+  const ac = academyOf(s, f);
+  if (ac) academyTurn(s, ac, ev);
   ev.push({ t: 'turn', faction: f, round: s.round, income: inc, weather: weather(s) });
   for (const u of s.units.filter((o) => o.owner === f && isBoss(o))) bossTurn(s, u, ev);
   afterAction(s, f, ev);
   processFactionVictory(s, f, stillDrills, ev);
+}
+
+/** Akademie zu Beginn des eigenen Zuges / academy at the start of the own turn */
+function academyTurn(s: GameState, c: City, ev: GameEvent[]) {
+  if (c.air) {
+    if (c.air.phase === 'lifting') ev.push({ t: 'academy', what: 'float', city: c.id, faction: c.owner!, x: c.x, y: c.y });
+    c.air = { phase: 'flying', steps: ACADEMY.move };
+  }
+  if (c.shield && c.shield.hp < c.shield.max) {
+    c.shield.hp = Math.min(c.shield.max, c.shield.hp + ACADEMY.shield.regen);
+    ev.push({ t: 'shield', what: 'regen', city: c.id, faction: c.owner!, hp: c.shield.hp });
+  }
+}
+
+/**
+ * Schild der Akademie faengt bis zu dmg Schaden ab (Angriff auf eine Einheit auf ihrem Feld); liefert den Rest.
+ * The academy's shield absorbs up to dmg damage (attack on a unit on its tile); returns the rest.
+ */
+function shieldTake(s: GameState, c: City, dmg: number, by: number | null, ev: GameEvent[]): number {
+  const sh = c.shield;
+  if (!sh || sh.hp <= 0 || dmg <= 0) return dmg;
+  const took = Math.min(sh.hp, dmg);
+  sh.hp -= took;
+  ev.push({ t: 'shield', what: 'hit', city: c.id, faction: c.owner!, hp: sh.hp, dmg: took, ...(by !== null ? { unit: by } : {}) });
+  if (sh.hp <= 0) {
+    delete c.shield;
+    c.shieldReady = s.round + ACADEMY.shield.rebuildRounds;
+    ev.push({ t: 'shield', what: 'down', city: c.id, faction: c.owner!, hp: 0 });
+  }
+  return dmg - took;
+}
+
+/**
+ * Notlandung: die Akademie setzt auf dem naechsten freien Land auf; ihre Produktion ruht bis nach dem naechsten eigenen Zug.
+ * Emergency landing: the academy touches down on the nearest free land; its production rests until after the next own turn.
+ */
+function forceLanding(s: GameState, c: City, by: number, ev: GameEvent[]) {
+  const p = forcedSpot(s, c);
+  const from = { x: c.x, y: c.y };
+  if (p && (p.x !== c.x || p.y !== c.y)) {
+    tileAt(s, c.x, c.y)!.cityId = null;
+    c.x = p.x; c.y = p.y;
+    tileAt(s, c.x, c.y)!.cityId = c.id;
+  }
+  const t = tileAt(s, c.x, c.y)!;
+  t.territory = c.id; t.resource = null;
+  delete c.air;
+  const own = c.owner!;
+  // naechster eigener Zug: diese Runde, wenn die Fraktion noch dran kommt, sonst die naechste / next own turn: this round if the faction still moves, else the next
+  c.calm = (own > s.current ? s.round : s.round + 1) + 1;
+  ev.push({ t: 'academy', what: 'forced', city: c.id, faction: own, x: c.x, y: c.y, from, by });
 }
 
 /**
@@ -1083,6 +1152,11 @@ function exploreBunker(s: GameState, u: Unit, ev: GameEvent[]) {
 
 function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   const from = c.owner;
+  // Velkar mit Akademie: der Ort wird ein Forschungsposten (ACADEMY) / Velkar with an academy: the place becomes a research post (ACADEMY)
+  const academy = academyOf(s, u.owner);
+  const level = c.level;
+  const lostAcademy = !!c.academy;
+  const wasPost = !!c.post;
   // Kult: Pluenderung vor dem Besitzwechsel (Stufe der Stadt zaehlt) / cult: plunder before the change of owner (the city's level counts)
   const plunder = plunderValue(s, u.owner, c);
   c.owner = u.owner;
@@ -1094,9 +1168,13 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   }
   // Satelliten-Relay geht mit der Stadt verloren (abgebaut), der Slot wird frei / the satellite relay is lost with the city (dismantled), the slot frees up
   if (c.upgrades?.includes(ORBITAL.relay)) c.upgrades = c.upgrades.filter((x) => x !== ORBITAL.relay);
+  // Akademie oder Posten wechselt den Besitzer: der Ort wird eine gewoehnliche Stadt / academy or post changes hands: the place becomes an ordinary city
+  if (lostAcademy || wasPost) dropAcademyState(c);
   if (from === null) {
-    c.level = 1; c.pop = 0;
-    claimTerritory(s, c, CITY.baseRadius);
+    if (!academy) {
+      c.level = 1; c.pop = 0;
+      claimTerritory(s, c, CITY.baseRadius);
+    }
   } else {
     for (const o of s.units) if (o.homeCity === c.id) o.homeCity = null;
     s.pendingRewards = s.pendingRewards.filter((p) => p.cityId !== c.id);
@@ -1106,6 +1184,11 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
       for (const f of s.factions) f.embassies = f.embassies.filter((g) => g !== c.hqOf);
     }
   }
+  if (academy) makePost(s, c, academy, from, level, ev);
+  // verlorene Akademie: ein Posten wird die neue Akademie; ein eroberter Posten nimmt sein Umland mit
+  // lost academy: a post becomes the new academy; a captured post takes its surroundings along
+  if (lostAcademy && from !== null) transferAcademy(s, c, from, ev);
+  if (wasPost && from !== null && !academy) reclaimAround(s, c, from);
   // Zyrr nehmen eine Fabrik ein: Stadtfeld und Gebiet werden sofort zu Xeno-Boden (BASES.zyrrFactoryXeno)
   // the Zyrr capture a factory: city tile and territory turn to xeno ground at once (BASES.zyrrFactoryXeno)
   for (const p of factoryXenoTiles(s, c)) tileAt(s, p.x, p.y)!.xeno = true;
@@ -1114,10 +1197,111 @@ function captureCity(s: GameState, u: Unit, c: City, ev: GameEvent[]) {
   if (isCultFaction(s, u.owner) && plunder > 0) markSin(s, u.owner, 'plunder', ev);
   else if (from !== null && from !== u.owner) markSin(s, u.owner, 'capture', ev);
   noteCapture(s, u.owner); // Statistik / statistics
-  reveal(s, u.owner, c.x, c.y, c.radius + VISION.cityExtra, ev);
+  reveal(s, u.owner, c.x, c.y, c.post ? ACADEMY.postVision : c.radius + VISION.cityExtra, ev);
   updateConnections(s, u.owner, ev);
   if (from !== null) updateConnections(s, from, ev);
   checkElimination(s, ev);
+}
+
+/** Zustand der Akademie und des Postens entfernen / remove the academy and post state */
+function dropAcademyState(c: City) {
+  delete c.academy; delete c.post; delete c.air; delete c.calm; delete c.shield; delete c.shieldReady; delete c.trained;
+  delete c.relay; delete c.beamed;
+}
+
+/**
+ * Gebeamte Einheiten der Fraktion f kommen an (Zugbeginn): am Relay, sonst (Relay verloren, kein Platz) an der Akademie,
+ * sonst auf dem naechsten freien Feld. Keine Einheit geht unbemerkt verloren.
+ * Beamed units of faction f arrive (turn start): at the relay, otherwise (relay lost, no room) at the academy, otherwise on
+ * the nearest free tile. No unit is lost silently.
+ */
+function beamArrivals(s: GameState, f: number, ev: GameEvent[]) {
+  const list = s.transit?.filter((b) => b.unit.owner === f) ?? [];
+  if (!list.length) return;
+  s.transit = s.transit!.filter((b) => b.unit.owner !== f);
+  if (!s.transit.length) delete s.transit;
+  for (const b of list) {
+    const u = b.unit;
+    const relay = cityById(s, b.relay);
+    let at = relay && relay.owner === f && relay.relay ? arrivalSpot(s, u, relay.x, relay.y) : null;
+    let what: 'arrive' | 'return' = 'arrive';
+    if (!at) {
+      what = 'return';
+      const ac = academyOf(s, f);
+      const home = ac ?? relay ?? { x: u.x, y: u.y };
+      at = (ac ? arrivalSpot(s, u, ac.x, ac.y) : null) ?? nearestStand(s, u, home.x, home.y);
+    }
+    if (!at) continue;
+    u.x = at.x; u.y = at.y; u.startX = at.x; u.startY = at.y;
+    s.units.push(u);
+    ev.push({ t: 'beam', what, city: what === 'arrive' ? b.relay : academyOf(s, f)?.id ?? b.relay, faction: f, x: at.x, y: at.y, unit: u.id, unitType: u.type });
+  }
+}
+
+/**
+ * Eingenommener Ort wird Forschungsposten der Akademie ac: ein Feld, Stufe 1, kein Wachstum; sein Gebiet (neutral: der
+ * Umkreis CITY.baseRadius) und Bevoelkerung (ACADEMY.postPop + postPopPerLevel je Stufe ueber 1) gehen an die Akademie.
+ * Captured place becomes a research post of academy ac: one tile, level 1, no growth; its territory (neutral: the radius
+ * CITY.baseRadius) and population (ACADEMY.postPop + postPopPerLevel per level above 1) pass to the academy.
+ */
+function makePost(s: GameState, c: City, ac: City, from: number | null, level: number, ev: GameEvent[]) {
+  c.post = true; c.level = 1; c.pop = 0; c.radius = 0; c.connected = false;
+  let tiles = 0;
+  if (from === null) {
+    for (const p of area(s.size, c.x, c.y, CITY.baseRadius)) {
+      const t = tileAt(s, p.x, p.y)!;
+      if (t.territory === null && t.cityId === null) { t.territory = ac.id; tiles++; }
+    }
+  } else {
+    for (const p of area(s.size, c.x, c.y, CITY.growMaxRadius + 2)) {
+      const t = tileAt(s, p.x, p.y)!;
+      if (t.territory === c.id && t.cityId !== c.id) { t.territory = ac.id; tiles++; }
+    }
+  }
+  tileAt(s, c.x, c.y)!.territory = c.id;
+  const pop = ACADEMY.postPop + ACADEMY.postPopPerLevel * Math.max(0, (from === null ? 1 : level) - 1);
+  ev.push({ t: 'post', city: c.id, academy: ac.id, faction: ac.owner!, pop, tiles });
+  addPop(s, ac, pop, ev);
+}
+
+/**
+ * Akademie verloren: ihr Umland (Radius, mindestens 1) bleibt bei der Stadt; der naechste Posten wird die neue Akademie
+ * (halbe Stufe, am Boden) und erbt das uebrige Gebiet. Ohne Posten wird das uebrige Gebiet frei.
+ * Academy lost: its surroundings (radius, at least 1) stay with the city; the nearest post becomes the new academy (half
+ * the level, on the ground) and inherits the remaining territory. Without a post the remaining territory turns neutral.
+ */
+function transferAcademy(s: GameState, c: City, f: number, ev: GameEvent[]) {
+  const keep = Math.max(1, c.radius);
+  const next = postsOf(s, f).sort((a, b) => dist(a, c) - dist(b, c) || a.id - b.id)[0];
+  if (next) {
+    delete next.post;
+    next.academy = true;
+    next.level = Math.max(1, Math.floor(c.level / 2));
+    next.pop = 0;
+    next.radius = 1;
+    for (const p of area(s.size, next.x, next.y, 1)) {
+      const t = tileAt(s, p.x, p.y)!;
+      if (t.territory === null && t.cityId === null) t.territory = next.id;
+    }
+  }
+  for (let k = 0; k < s.tiles.length; k++) {
+    const t = s.tiles[k];
+    if (t.territory !== c.id || t.cityId === c.id) continue;
+    if (dist(c, { x: k % s.size, y: Math.floor(k / s.size) }) <= keep) continue;
+    t.territory = next ? next.id : null;
+  }
+  if (next) ev.push({ t: 'academy', what: 'transfer', city: next.id, faction: f, x: next.x, y: next.y, from: { x: c.x, y: c.y } });
+}
+
+/** Eroberter Posten: das Umland im Radius 1, das noch der alten Akademie gehoert, kommt mit / captured post: the surroundings within radius 1 still held by the old academy come along */
+function reclaimAround(s: GameState, c: City, from: number) {
+  const ac = academyOf(s, from);
+  c.radius = CITY.baseRadius;
+  for (const p of area(s.size, c.x, c.y, CITY.baseRadius)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (t.cityId !== null && t.cityId !== c.id) continue;
+    if (t.territory === null || (ac && t.territory === ac.id && !t.building)) t.territory = c.id;
+  }
 }
 
 function applyReward(s: GameState, c: City, level: number, choice: 'a' | 'b', ev: GameEvent[]) {
@@ -1258,7 +1442,9 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   const pre = combatPreview(s, u, target, rocket);
   // Trefferglueck des Angreifers / attacker's hit luck
   const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
-  const dealt = hitDamage(pre.toDefender, hit);
+  // Schutzschild der Akademie faengt zuerst ab (ACADEMY.shield) / the academy's shield absorbs first (ACADEMY.shield)
+  const guard = shieldOver(s, target);
+  const dealt = guard ? shieldTake(s, guard, hitDamage(pre.toDefender, hit), u.id, ev) : hitDamage(pre.toDefender, hit);
   const kills = dealt >= target.hp;
   // Gegenschlag nur, wenn das Ziel ueberlebt, mit den LP nach dem Treffer; eigenes Trefferglueck des Verteidigers
   // return fire only if the target survives, with the HP left after the hit; defender's own hit luck
@@ -1277,8 +1463,10 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
     const dmg = Math.round(dealt * COMBAT.splashFactor);
     for (const o of s.units.slice()) {
       if (o.id === target.id || o.owner === u.owner || !isHostile(s, u.owner, o.owner) || dist(o, target) !== 1) continue;
-      o.hp -= dmg;
-      splash.push({ unit: o.id, dmg });
+      const g = shieldOver(s, o);
+      const d = g ? shieldTake(s, g, dmg, u.id, ev) : dmg;
+      o.hp -= d;
+      splash.push({ unit: o.id, dmg: d });
     }
   }
   target.hp -= dealt;
@@ -1394,7 +1582,8 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = retreatCheck(s, u, target);
       if (check !== 'ok') return fail(check);
       const to = retreatTile(s, u, target)!;
-      const dmg = retreatDamage(s, u, target);
+      const guard = shieldOver(s, target);
+      const dmg = guard ? shieldTake(s, guard, retreatDamage(s, u, target), u.id, ev) : retreatDamage(s, u, target);
       // Rueckzug: Schuss zum Ziel, der Schritt zurueck behaelt die Ausrichtung (Front zum Feind)
       // retreat: shot towards the target, the step back keeps the facing (front towards the enemy)
       const foe = { x: target.x, y: target.y };
@@ -1529,7 +1718,10 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         break;
       }
       // volle Stadt: ein Versorger (Wohnbloecke, Supermarkt) traegt die Einheit / full city: a supplier (residential blocks, supermarket) supports the unit
-      const u = spawnUnit(s, cmd.unitType, f, c.x, c.y, trainHome(s, c));
+      // Akademie: auf dem Akademiefeld oder einem freien Nachbarfeld, mehrere je Zug (ACADEMY) / academy: on the academy tile or a free adjacent tile, several per turn (ACADEMY)
+      const at = c.academy ? trainSpot(s, c)! : { x: c.x, y: c.y };
+      const u = spawnUnit(s, cmd.unitType, f, at.x, at.y, trainHome(s, c));
+      if (c.academy) c.trained = { round: s.round, n: trainedNow(s, c) + 1 };
       ev.push({ t: 'train', unit: u.id, city: c.id });
       if (isWonder(u)) {
         ev.push({ t: 'wonder', what: 'started', kind: u.type as WonderUnitId, unit: u.id, faction: f, x: u.x, y: u.y, stage: 0 });
@@ -1896,6 +2088,117 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const check = siloBuyCheck(s, f, cmd.x, cmd.y, cmd.unitType);
       if (check !== 'ok') return fail(check);
       buySilo(s, f, cmd.x, cmd.y, cmd.unitType, ev, (type, x, y, home) => spawnUnit(s, type, f, x, y, home));
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'liftAcademy': {
+      const c = cityById(s, cmd.city);
+      const chk = liftCheck(s, f, c);
+      if (chk !== 'ok') return fail(chk);
+      c!.air = { phase: 'lifting', steps: 0 };
+      ev.push({ t: 'academy', what: 'lift', city: c!.id, faction: f, x: c!.x, y: c!.y });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'moveAcademy': {
+      const c = cityById(s, cmd.city);
+      const chk = academyMoveCheck(s, f, c, cmd.to);
+      if (chk !== 'ok') return fail(chk);
+      const from = { x: c!.x, y: c!.y };
+      tileAt(s, from.x, from.y)!.cityId = null;
+      c!.x = cmd.to.x; c!.y = cmd.to.y;
+      tileAt(s, c!.x, c!.y)!.cityId = c!.id;
+      c!.air!.steps -= dist(from, cmd.to);
+      reveal(s, f, c!.x, c!.y, ACADEMY.postVision, ev);
+      ev.push({ t: 'academy', what: 'move', city: c!.id, faction: f, x: c!.x, y: c!.y, from });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'landAcademy': {
+      const c = cityById(s, cmd.city);
+      const chk = landCheck(s, f, c);
+      if (chk !== 'ok') return fail(chk);
+      delete c!.air;
+      // Landen: Feld und neutrales Umland (ACADEMY.landClaim) werden Akademie-Gebiet; Produktion ab dem naechsten Zug
+      // landing: the tile and neutral surroundings (ACADEMY.landClaim) become academy territory; production from the next turn
+      c!.radius = ACADEMY.landClaim;
+      for (const p of area(s.size, c!.x, c!.y, ACADEMY.landClaim)) {
+        const t = tileAt(s, p.x, p.y)!;
+        if (t.territory === null && t.cityId === null) t.territory = c!.id;
+      }
+      tileAt(s, c!.x, c!.y)!.territory = c!.id;
+      c!.calm = s.round + 1;
+      reveal(s, f, c!.x, c!.y, c!.radius + VISION.cityExtra, ev);
+      ev.push({ t: 'academy', what: 'land', city: c!.id, faction: f, x: c!.x, y: c!.y });
+      updateConnections(s, f, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'academyShield': {
+      const c = cityById(s, cmd.city);
+      const chk = shieldCheck(s, f, c);
+      if (chk !== 'ok') return fail(chk);
+      fa.stars -= ACADEMY.shield.cost;
+      c!.shield = { hp: ACADEMY.shield.hp, max: ACADEMY.shield.hp };
+      delete c!.shieldReady;
+      ev.push({ t: 'shield', what: 'built', city: c!.id, faction: f, hp: c!.shield.hp });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'buildBeamer': {
+      const c = cityById(s, cmd.city);
+      const chk = beamerCheck(s, f, c);
+      if (chk !== 'ok') return fail(chk);
+      fa.stars -= ACADEMY.beamer.cost;
+      c!.relay = true;
+      ev.push({ t: 'beam', what: 'built', city: c!.id, faction: f, x: c!.x, y: c!.y });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'beam': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const c = cityById(s, cmd.city);
+      const chk = beamCheck(s, u, c);
+      if (chk !== 'ok') return fail(chk);
+      // Einheit verlaesst die Karte fuer eine Runde (Radarimpuls endet, Verschanzung faellt) / the unit leaves the map for one round (radar sweep ends, entrenchment falls)
+      if (has(u, 'radar')) dropSightings(s, u.id);
+      if (u.entrenched) u.entrenched = false;
+      s.units = s.units.filter((o) => o.id !== u.id);
+      u.exhausted = true; u.moved = true;
+      (s.transit ??= []).push({ unit: u, relay: c!.id, round: s.round });
+      c!.beamed = s.round;
+      ev.push({ t: 'beam', what: 'depart', city: c!.id, faction: f, x: u.x, y: u.y, unit: u.id, unitType: u.type });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'attackAcademy': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const c = cityById(s, cmd.city);
+      const chk = academyAttackCheck(s, u, c);
+      if (chk !== 'ok') return fail(chk);
+      const pre = academyAttackPreview(s, u, c!);
+      const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
+      faceTowards(u, c!);
+      if (pre.forced) {
+        // schwebend ohne Schild: jeder Treffer erzwingt die Notlandung / floating without a shield: every hit forces an emergency landing
+        if (!academyMissed(hit)) forceLanding(s, c!, u.id, ev);
+        else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: 0, dmg: 0, unit: u.id, hit });
+      } else {
+        const dmg = hitDamage(pre.toShield, hit);
+        if (dmg > 0) shieldTake(s, c!, dmg, u.id, ev);
+        else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: c!.shield!.hp, dmg: 0, unit: u.id, hit });
+      }
+      addMark(s, c!.x, c!.y, 'scorch', scarWeight(u));
+      fa.lastAttackRound = s.round;
+      if (has(u, 'submerged') || has(u, 'camo')) u.revealed = true;
+      if (has(u, 'kamikaze')) { killUnit(s, u, null, ev, false); res = { ok: true, events: ev }; break; }
+      const withdraw = canWithdrawAfterAttack(s, u);
+      u.attacked = true;
+      if (withdraw) u.withdraw = true;
+      else if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
+      if (u.moved && u.attacked) u.exhausted = true;
       res = { ok: true, events: ev };
       break;
     }

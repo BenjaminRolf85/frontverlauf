@@ -9,7 +9,7 @@
 import {
   BASES, CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
-  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY,
+  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY,
 } from '../data/balance';
 
 const pct = (x: number) => Math.round(x * 100);
@@ -182,4 +182,18 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   windFuel: WEATHER.wind.fuelBurn,
   xenoDef: XENO.groundDefense,
   xenoHeal: XENO.groundHeal,
+  // Schwebende Akademie und Beamer (Velkar, ACADEMY) / floating academy and beamer (Velkar, ACADEMY)
+  academyMove: ACADEMY.move,
+  academyLift: ACADEMY.liftRounds,
+  academyLandGap: ACADEMY.landGap,
+  academyBaseSlots: ACADEMY.baseSlots,
+  academyMaxSlots: ACADEMY.maxSlots,
+  academyPostUnits: ACADEMY.postUnits,
+  academyPostPop: ACADEMY.postPop,
+  academyDefense: ACADEMY.defense,
+  academyShieldHp: ACADEMY.shield.hp,
+  academyShieldCost: ACADEMY.shield.cost,
+  academyShieldRegen: ACADEMY.shield.regen,
+  academyShieldRebuild: ACADEMY.shield.rebuildRounds,
+  beamerCost: ACADEMY.beamer.cost,
 };

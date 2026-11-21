@@ -547,7 +547,8 @@ function buildGoals(ctx: Ctx): Goal[] {
   for (const c of ctx.myCities) {
     const near = ctx.enemies.filter((e) => dist(e, c) <= 3 && UNITS[e.type].attack > 0);
     if (!near.length) continue;
-    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + 8 * near.length + baseDefendWorth(s, f, c);
+    // Akademie (Velkar): das Herz der Fraktion, entschlossen verteidigen / academy (Velkar): the faction's heart, defend it firmly
+    const value = 55 + 10 * c.level + (c.isHQ ? 25 : 0) + (c.academy ? 30 : 0) + 8 * near.length + baseDefendWorth(s, f, c);
     goals.push({ kind: 'defend', x: c.x, y: c.y, value, cap: Math.min(3, near.length + 1), distW: 12, src: tileSrc(c.x, c.y), water: false });
   }
   // Feindliche Wunder: hoechster Vorrang, jeder Treffer unterbricht oder schwaecht / hostile wonders: top priority, every hit interrupts or weakens

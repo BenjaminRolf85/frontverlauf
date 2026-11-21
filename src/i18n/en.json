@@ -184,13 +184,15 @@
       "leader": "Aurel Kesh",
       "leaderTitle": "Director of the Technocracy",
       "quote": "Who calculates, wins. Who guesses, loses.",
-      "lore": "In Velkar, in the icy north, the Academy rules. Director Kesh ran the polar laboratory before he proclaimed the Technocracy; since then the formula decides, not the people. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
+      "lore": "In Velkar, in the icy north, the Academy rules, and it floats: Director Kesh had the polar laboratory set on thrusters before he proclaimed the Technocracy. Since then the formula decides, not the people, and where Velkar takes a place, no new realm arises but a research post that works for the Academy. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
       "style": "production, labs, prototypes, cold",
-      "aiStyle": "Unlocks production first, secures itself with pioneers and sets ambushes with ranged units.",
+      "aiStyle": "Takes places as research posts, moves the floating academy to the front, guards it with the shield and beams reinforcements through relays.",
       "perk2": "Engineer corps",
       "perk2Desc": "Tank barriers cost {engineerBarrierCost} instead of {barrierCost} stars.",
       "feature": "Lab in the field",
-      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss} % misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values)."
+      "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss} % misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values).",
+      "feature2": "Floating Academy",
+      "feature2Desc": "Velkar grows through its capital: captured places become one-tile research posts with stars and vision, their territory and growth pass to the academy. It trains {academyBaseSlots} units per turn plus one per post (at most {academyMaxSlots}), lifts off in {academyLift} round, moves {academyMove} tiles per turn and builds a shield ({academyShieldHp} HP). Beam relays ({beamerCost} stars) on posts bring reinforcements to the front in one round."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -848,7 +850,19 @@
     "siloLimit": "No further silos possible.",
     "noTraining": "Residential blocks and supermarkets train no troops.",
     "siloOnly": "Only the rocket silo builds this unit.",
-    "noRoom": "No free tile for the new unit."
+    "noRoom": "No free tile for the new unit.",
+    "notAcademy": "That is not an academy.",
+    "airborne": "The academy is already floating.",
+    "grounded": "The academy is on the ground: lift off first.",
+    "lifting": "The academy is still lifting off: it moves and lands from the next turn.",
+    "noSteps": "The academy has no tiles left this turn.",
+    "landingSite": "The academy cannot land here: free land without mountain, resource and building, not in foreign territory, at least {academyLandGap} tiles from every other place.",
+    "academyBusy": "The academy's production rests: in the air and until the turn after landing.",
+    "shieldUp": "The shield is up: break the shield first.",
+    "airTarget": "While floating, only flyers, flak and tanks can attack the academy.",
+    "noBeamer": "There is no own beam relay there.",
+    "beamUsed": "This relay has already beamed this round.",
+    "notAtAcademy": "Only units on or next to the academy can be beamed."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -3693,6 +3707,10 @@
     "unitIcons": {
       "title": "Unit icons",
       "text": "Every unit carries its badge: on the left the icon of its role, next to it the hit points, after that a veteran's star. Same role, same icon, for every faction; the troop cards and the unit panel show the same icons."
+    },
+    "academy": {
+      "title": "Floating academy (Velkar)",
+      "text": "Velkar's capital is a floating academy (in free games; the campaign keeps the old rules). Captured places become research posts: one tile, stars and vision, no training, no upgrades. Their territory passes to the academy, plus {pop} population (+{perLevel} per level of the place above 1), and each post supports {units} more units. Territory stays where it is, even when the academy moves. The academy trains {base} units per turn plus one per post (at most {max}), on the academy or free tiles next to it. Lift-off: after {lift} round it floats and moves {move} tiles per turn over any terrain; it can land on free land without mountain, resource and building, not in foreign territory and at least {gap} tiles from every other place, free surroundings within radius {claim} become territory. From lift-off until the turn after landing, production rests. While floating, only flyers, flak and tanks attack; without a shield every hit forces an emergency landing. Shield ({cost} stars): {hp} HP, absorbs attacks on the academy and units on its tile first, recharges {regen} HP per turn, once destroyed it can be rebuilt only after {rebuild} rounds; while it stands the academy cannot be captured. Beam relay ({beamer} stars) on a post: one unit per round from the academy to it, one round in transit, arrives ready; if the relay falls, the unit returns to the academy. If the academy is lost, the nearest post becomes the new academy at half the level."
     }
   },
   "lore": {
@@ -4295,5 +4313,62 @@
     "battleship": "Battleship",
     "wonder": "Wonder",
     "boss": "Boss"
+  },
+  "academy": {
+    "name": "Floating Academy",
+    "short": "Academy",
+    "post": "Research post",
+    "grounded": "Landed",
+    "lifting": "Lifting off: floats from the next turn",
+    "flying": "Floating: {n} tiles left this turn",
+    "flying1": "Floating: 1 tile left this turn",
+    "flyingDone": "Floating: no tiles left this turn",
+    "calm": "Just landed: production from the next turn",
+    "slots": "Training {n}/{max} this round",
+    "posts": "Research posts: {n}",
+    "transit": "In transit (beamer): {n}",
+    "desc": "Velkar's only training site: {academyBaseSlots} units per turn and one more per research post (at most {academyMaxSlots}), on free tiles around the academy. Lifting off takes {academyLift} round, then it moves {academyMove} tiles per turn over any terrain. From lift-off until the turn after landing, production rests.",
+    "airRule": "While floating, only flyers, flak and tanks attack; every hit without a shield forces an emergency landing.",
+    "lift": "Lift off",
+    "liftDesc": "The academy lifts off and floats after {academyLift} round; then it moves {academyMove} tiles per turn. No production until the turn after landing. While floating, only flyers, flak and tanks can attack it.",
+    "move": "Move",
+    "moveDesc": "Tap a target on the map: up to {n} tiles, over water and mountains too.",
+    "moveHint": "Tap a highlighted tile to move the academy there.",
+    "land": "Land",
+    "landDesc": "Lands here: the tile and free surroundings become academy territory. Production from the next turn.",
+    "shield": "Shield",
+    "shieldDesc": "{academyShieldHp} HP. Absorbs attacks on the academy and on units on its tile first, on the ground and in the air, even without a garrison. Recharges {academyShieldRegen} HP per turn; once destroyed, it can be rebuilt after {academyShieldRebuild} rounds.",
+    "shieldHp": "Shield {hp}/{max} HP",
+    "noShield": "No shield",
+    "shieldWait": "Shield buildable again in {n} rounds",
+    "attack": "Attack academy",
+    "attackShield": "Shield -{dmg}",
+    "attackForce": "Force a landing",
+    "attackDesc": "No return fire: the academy is unarmed. On the ground without a shield it is captured like any city.",
+    "postDesc": "Captured place: one tile, gives stars and vision, trains nothing. Territory and growth pass to the academy.",
+    "postOf": "Post of the academy {city}.",
+    "defense": "Academy +{academyDefense} defence",
+    "toastLift": "{city} lifts off",
+    "toastFloat": "{city} is floating",
+    "toastLand": "{city} has landed",
+    "toastForced": "{city}: emergency landing!",
+    "toastTransfer": "{city} is the new academy",
+    "toastPost": "{city} is now a research post: +{pop} population for the academy",
+    "toastShield": "Shield over {city} active",
+    "toastShieldDown": "Shield over {city} collapsed",
+    "slotsUsed": "All {max} trainings of this round used or no free tile at the academy."
+  },
+  "beam": {
+    "name": "Beam relay",
+    "build": "Build beamer",
+    "buildDesc": "Teleporter on this post: once per round a unit can be beamed here from the academy. It is in transit for one round and arrives ready at the start of the next turn.",
+    "built": "Beam relay ready",
+    "action": "Beam: {city}",
+    "actionDesc": "The unit vanishes and appears at the start of the next turn at the relay in {city}, ready for action.",
+    "pending": "Arriving next turn: {n}",
+    "toastBuilt": "Beam relay built in {city}",
+    "toastDepart": "{unit} is beamed to {city}",
+    "toastArrive": "{unit} arrived at the beamer in {city}",
+    "toastReturn": "{unit}: relay lost, back at the academy"
   }
 }

@@ -83,7 +83,9 @@ describe('Forschung / Produktion / research / production', () => {
     for (const lang of ['de', 'en'] as const) {
       setLanguage(lang);
       const human = rulesHtml(null, 'alvenia');
-      expect(human, lang).not.toMatch(lang === 'de' ? /Forschung|erforsch/ : /research/i);
+      // "Forschungsposten" / "research post" ist der Name der eroberten Orte der Velkar (Wunsch des Auftraggebers), keine Forschung
+      // "Forschungsposten" / "research post" is the name of Velkar's captured places (client's wish), not research
+      expect(human, lang).not.toMatch(lang === 'de' ? /Forschung(?!sposten)|erforsch/ : /research(?! post)/i);
       expect(human, lang).toMatch(lang === 'de' ? /Produktion/ : /production/i);
       expect(human).not.toContain(t('rules.productionNote'));
       const alien = rulesHtml(null, 'zyrr');
@@ -97,9 +99,10 @@ describe('Forschung / Produktion / research / production', () => {
   it('Velkar-Texte sprechen von Produktion / Velkar texts talk about production', () => {
     setLanguage('de');
     expect(t('factions.velkar.perkDesc')).toBe('Alle Doktrinen kosten 12 % weniger.');
-    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/forsch/i);
+    // ausser dem Namen der Forschungsposten (Wunsch des Auftraggebers) / except the name of the research posts (client's wish)
+    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/forsch(?!ungsposten)/i);
     setLanguage('en');
-    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/research/i);
+    for (const k of ['perk', 'perkDesc', 'style', 'aiStyle', 'alignment', 'lore']) expect(t(`factions.velkar.${k}`), k).not.toMatch(/research(?! post)/i);
     // die anderen Rassen bleiben bei Forschung / the other races stay with research
     expect(t('xeno.noResearch')).toMatch(/research/i);
     expect(t('nexus.noResearch')).toMatch(/research/i);

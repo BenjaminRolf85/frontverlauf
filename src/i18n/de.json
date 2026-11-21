@@ -184,13 +184,15 @@
       "leader": "Aurel Kesh",
       "leaderTitle": "Direktor der Technokratie",
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
-      "lore": "Im eisigen Norden regiert in Velkar die Akademie. Direktor Kesh leitete das Polarlabor, bevor er die Technokratie ausrief; seitdem entscheidet die Formel, nicht das Volk. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
+      "lore": "Im eisigen Norden regiert in Velkar die Akademie, und sie schwebt: Direktor Kesh ließ das Polarlabor auf Triebwerke setzen, bevor er die Technokratie ausrief. Seitdem entscheidet die Formel, nicht das Volk, und wo Velkar einen Ort nimmt, entsteht kein neues Reich, sondern ein Forschungsposten, der der Akademie zuarbeitet. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
       "style": "Produktion, Labore, Prototypen, Kälte",
-      "aiStyle": "Schaltet zuerst Produktion frei, sichert sich mit Pionieren und legt Hinterhalte mit Fernkämpfern.",
+      "aiStyle": "Nimmt Orte als Forschungsposten, versetzt die schwebende Akademie an die Front, schützt sie mit dem Schild und beamt Verstärkung über Relays.",
       "perk2": "Ingenieurkorps",
       "perk2Desc": "Panzersperren kosten {engineerBarrierCost} statt {barrierCost} Sterne.",
       "feature": "Labor im Feld",
-      "featureDesc": "Eigene Bauarten statt der Standardtruppen: Tesla-Panzer statt Panzer (Angriff {tesla} statt {tank}, {miss} % Fehlschuss), Railgun-Schütze statt Scharfschütze (Reichweite {rail} statt {sniper}, nur aus dem Stand) und Oktokopter statt Kampfhubschrauber (gleiche Werte)."
+      "featureDesc": "Eigene Bauarten statt der Standardtruppen: Tesla-Panzer statt Panzer (Angriff {tesla} statt {tank}, {miss} % Fehlschuss), Railgun-Schütze statt Scharfschütze (Reichweite {rail} statt {sniper}, nur aus dem Stand) und Oktokopter statt Kampfhubschrauber (gleiche Werte).",
+      "feature2": "Schwebende Akademie",
+      "feature2Desc": "Velkar wächst durch die Hauptstadt: eingenommene Orte werden einfeldrige Forschungsposten mit Sternen und Sicht, ihr Gebiet und Wachstum gehen an die Akademie. Sie bildet {academyBaseSlots} Einheiten je Zug plus eine je Posten aus (höchstens {academyMaxSlots}), hebt in {academyLift} Runde ab, zieht {academyMove} Felder je Zug und baut einen Schutzschild ({academyShieldHp} LP). Beamer-Relays ({beamerCost} Sterne) auf Posten holen Verstärkung in einer Runde an die Front."
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -848,7 +850,19 @@
     "siloLimit": "Keine weiteren Silos möglich.",
     "noTraining": "Wohnblöcke und Supermärkte bilden keine Truppen aus.",
     "siloOnly": "Diese Einheit baut nur das Raketensilo.",
-    "noRoom": "Kein freies Feld für die neue Einheit."
+    "noRoom": "Kein freies Feld für die neue Einheit.",
+    "notAcademy": "Das ist keine Akademie.",
+    "airborne": "Die Akademie schwebt bereits.",
+    "grounded": "Die Akademie steht am Boden: erst abheben.",
+    "lifting": "Die Akademie hebt noch ab: ziehen und landen erst im nächsten Zug.",
+    "noSteps": "Die Akademie hat in diesem Zug keine Felder mehr.",
+    "landingSite": "Hier kann die Akademie nicht landen: freies Land ohne Berg, Rohstoff und Gebäude, nicht in fremdem Gebiet, mindestens {academyLandGap} Felder von jedem anderen Ort.",
+    "academyBusy": "Die Produktion der Akademie ruht: in der Luft und bis zum Zug nach der Landung.",
+    "shieldUp": "Der Schutzschild steht: erst den Schild brechen.",
+    "airTarget": "Schwebend greifen nur Flieger, Flak und Panzer die Akademie an.",
+    "noBeamer": "Dort steht kein eigenes Beamer-Relay.",
+    "beamUsed": "Dieses Relay hat in dieser Runde schon gebeamt.",
+    "notAtAcademy": "Nur Einheiten auf oder neben der Akademie können gebeamt werden."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -3693,6 +3707,10 @@
     "unitIcons": {
       "title": "Einheitensymbole",
       "text": "Über jeder Einheit schwebt ihre Plakette: links das Symbol ihrer Rolle, daneben die Lebenspunkte, dahinter der Stern eines Veteranen. Gleiche Rolle, gleiches Symbol, bei allen Fraktionen; dieselben Symbole stehen auf den Truppenkarten und im Einheitenfeld."
+    },
+    "academy": {
+      "title": "Schwebende Akademie (Velkar)",
+      "text": "Die Hauptstadt der Velkar ist eine schwebende Akademie (in freien Partien; die Kampagne behält die alten Regeln). Eingenommene Orte werden Forschungsposten: ein Feld, Sterne und Sicht, keine Ausbildung, keine Ausbauten. Ihr Gebiet geht an die Akademie, dazu {pop} Bevölkerung (+{perLevel} je Stufe des Orts über 1), und jeder Posten trägt {units} Einheiten mehr. Gebiet bleibt, wo es ist, auch wenn die Akademie umzieht. Die Akademie bildet {base} Einheiten je Zug plus eine je Posten aus (höchstens {max}), auf der Akademie oder freien Feldern daneben. Abheben: Nach {lift} Runde schwebt sie und zieht {move} Felder je Zug über jedes Gelände; landen kann sie auf freiem Land ohne Berg, Rohstoff und Gebäude, nicht in fremdem Gebiet und mindestens {gap} Felder von jedem anderen Ort, freies Umland im Umkreis {claim} wird Gebiet. Vom Abheben bis zum Zug nach der Landung ruht die Produktion. Schwebend greifen nur Flieger, Flak und Panzer an; ohne Schild erzwingt jeder Treffer die Notlandung. Schutzschild ({cost} Sterne): {hp} LP, fängt Angriffe auf die Akademie und Einheiten auf ihrem Feld zuerst ab, lädt {regen} LP je Zug auf, nach der Zerstörung erst nach {rebuild} Runden neu baubar; solange er steht, ist die Akademie nicht einzunehmen. Beamer-Relay ({beamer} Sterne) auf einem Posten: je Runde eine Einheit von der Akademie dorthin, eine Runde unterwegs, Ankunft einsatzbereit; fällt das Relay, kehrt sie zur Akademie zurück. Geht die Akademie verloren, wird der nächste Posten zur neuen Akademie mit halber Stufe."
     }
   },
   "lore": {
@@ -4295,5 +4313,62 @@
     "battleship": "Kriegsschiff",
     "wonder": "Wunder",
     "boss": "Endgegner"
+  },
+  "academy": {
+    "name": "Schwebende Akademie",
+    "short": "Akademie",
+    "post": "Forschungsposten",
+    "grounded": "Gelandet",
+    "lifting": "Hebt ab: schwebt ab dem nächsten Zug",
+    "flying": "Schwebt: noch {n} Felder in diesem Zug",
+    "flying1": "Schwebt: noch 1 Feld in diesem Zug",
+    "flyingDone": "Schwebt: keine Felder mehr in diesem Zug",
+    "calm": "Eben gelandet: Produktion ab dem nächsten Zug",
+    "slots": "Ausbildung {n}/{max} in dieser Runde",
+    "posts": "Forschungsposten: {n}",
+    "transit": "Unterwegs (Beamer): {n}",
+    "desc": "Einzige Ausbildungsstätte der Velkar: {academyBaseSlots} Einheiten je Zug und eine mehr je Forschungsposten (höchstens {academyMaxSlots}), auf freien Feldern rund um die Akademie. Abheben dauert {academyLift} Runde, danach zieht sie {academyMove} Felder je Zug über jedes Gelände. Vom Abheben bis zum Zug nach der Landung ruht die Produktion.",
+    "airRule": "Schwebend greifen nur Flieger, Flak und Panzer an; jeder Treffer ohne Schild erzwingt die Notlandung.",
+    "lift": "Abheben",
+    "liftDesc": "Die Akademie hebt ab und schwebt nach {academyLift} Runde; dann zieht sie {academyMove} Felder je Zug. Bis zum Zug nach der Landung keine Produktion. Schwebend greifen sie nur Flieger, Flak und Panzer an.",
+    "move": "Ziehen",
+    "moveDesc": "Ziel auf der Karte antippen: bis zu {n} Felder, auch über Wasser und Berge.",
+    "moveHint": "Tippe ein markiertes Feld an, um die Akademie dorthin zu ziehen.",
+    "land": "Landen",
+    "landDesc": "Landet hier: das Feld und freies Umland werden Gebiet der Akademie. Produktion ab dem nächsten Zug.",
+    "shield": "Schutzschild",
+    "shieldDesc": "{academyShieldHp} LP. Fängt Angriffe auf die Akademie und auf Einheiten auf ihrem Feld zuerst ab, am Boden und in der Luft, auch ohne Besatzung. Lädt {academyShieldRegen} LP je Zug auf; zerstört erst nach {academyShieldRebuild} Runden neu baubar.",
+    "shieldHp": "Schild {hp}/{max} LP",
+    "noShield": "Kein Schild",
+    "shieldWait": "Schild wieder baubar in {n} Runden",
+    "attack": "Akademie angreifen",
+    "attackShield": "Schild -{dmg}",
+    "attackForce": "Notlandung erzwingen",
+    "attackDesc": "Kein Gegenschlag: die Akademie ist unbewaffnet. Am Boden wird sie ohne Schild eingenommen wie jede Stadt.",
+    "postDesc": "Eingenommener Ort: ein Feld, bringt Sterne und Sicht, bildet nichts aus. Gebiet und Wachstum gehen an die Akademie.",
+    "postOf": "Posten der Akademie {city}.",
+    "defense": "Akademie +{academyDefense} Verteidigung",
+    "toastLift": "{city} hebt ab",
+    "toastFloat": "{city} schwebt",
+    "toastLand": "{city} ist gelandet",
+    "toastForced": "{city}: Notlandung!",
+    "toastTransfer": "{city} ist die neue Akademie",
+    "toastPost": "{city} ist jetzt ein Forschungsposten: +{pop} Bevölkerung für die Akademie",
+    "toastShield": "Schutzschild über {city} aktiv",
+    "toastShieldDown": "Schutzschild über {city} zusammengebrochen",
+    "slotsUsed": "Alle {max} Ausbildungen dieser Runde vergeben oder kein freies Feld an der Akademie."
+  },
+  "beam": {
+    "name": "Beamer-Relay",
+    "build": "Beamer bauen",
+    "buildDesc": "Teleporter auf diesem Posten: je Runde kann eine Einheit von der Akademie hierher gebeamt werden. Sie ist eine Runde unterwegs und kommt zu Beginn des nächsten Zuges einsatzbereit an.",
+    "built": "Beamer-Relay steht",
+    "action": "Beamen: {city}",
+    "actionDesc": "Die Einheit verschwindet und erscheint zu Beginn des nächsten Zuges am Relay in {city}, einsatzbereit.",
+    "pending": "Ankunft im nächsten Zug: {n}",
+    "toastBuilt": "Beamer-Relay in {city} gebaut",
+    "toastDepart": "{unit} wird nach {city} gebeamt",
+    "toastArrive": "{unit} ist am Beamer in {city} angekommen",
+    "toastReturn": "{unit}: Relay verloren, zurück an der Akademie"
   }
 }

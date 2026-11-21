@@ -144,6 +144,34 @@ export interface City {
    */
   works?: ProductionSiteId[];
   nameIndex: number;
+  /**
+   * Schwebende Akademie (Velkar, ACADEMY): Hauptstadt, die abheben, fliegen und landen kann; fehlt = gewoehnliche Stadt
+   * (Kampagne, alte Spielstaende). Geht beim Verlust der Stadt verloren (ein Posten wird zur neuen Akademie).
+   * Floating academy (Velkar, ACADEMY): capital that can lift off, fly and land; missing = ordinary city (campaign, old
+   * saves). Is lost with the city (a post becomes the new academy).
+   */
+  academy?: boolean;
+  /** Forschungsposten (Velkar): ein Feld, Sterne und Sicht, keine Produktion / research post (Velkar): one tile, stars and vision, no production */
+  post?: boolean;
+  /**
+   * Akademie in der Luft: lifting = hebt ab (zieht ab dem naechsten eigenen Zug), flying = schwebt; steps = Felder, die in
+   * diesem Zug noch gehen. Fehlt = am Boden.
+   * Academy in the air: lifting = lifting off (moves from the next own turn), flying = floating; steps = tiles left this
+   * turn. Missing = on the ground.
+   */
+  air?: { phase: 'lifting' | 'flying'; steps: number };
+  /** Produktion ruht bis vor diese Runde (Landung, Notlandung) / production rests until before this round (landing, emergency landing) */
+  calm?: number;
+  /** Schutzschild der Akademie (LP); fehlt = keiner / the academy's shield (HP); missing = none */
+  shield?: { hp: number; max: number };
+  /** Schild wieder baubar ab dieser Runde (nach der Zerstoerung) / shield buildable again from this round (after its destruction) */
+  shieldReady?: number;
+  /** Ausbildungen in dieser Runde (Akademie: mehrere je Zug) / trainings this round (academy: several per turn) */
+  trained?: { round: number; n: number };
+  /** Beamer-Relay auf dem Forschungsposten (ACADEMY.beamer) / beam relay on the research post (ACADEMY.beamer) */
+  relay?: boolean;
+  /** Runde des letzten Beamvorgangs zu diesem Relay (einer je Runde) / round of the last beam to this relay (one per round) */
+  beamed?: number;
 }
 
 export interface Unit {
@@ -474,6 +502,13 @@ export interface GameState {
   droughts?: { faction: number; until: number }[];
   /** Art des Sieges (fehlt in alten Spielstaenden) / kind of victory (missing in old saves) */
   victory?: Victory;
+  /**
+   * Gebeamte Einheiten unterwegs (Velkar, ACADEMY.beamer): erscheinen zu Beginn des naechsten Zuges ihrer Fraktion am Relay
+   * (relay = Posten), sonst an der Akademie. Fehlt = keine (auch alte Spielstaende).
+   * Beamed units in transit (Velkar, ACADEMY.beamer): appear at the start of their faction's next turn at the relay
+   * (relay = post), otherwise at the academy. Missing = none (old saves too).
+   */
+  transit?: { unit: Unit; relay: number; round: number }[];
 }
 
 /** Siegart: Punkte, Eroberung oder Fraktions-Siegbedingung / victory kind: points, conquest or faction condition */
@@ -598,6 +633,24 @@ export type GameEvent =
   | { t: 'radarSweep'; unit: number; x: number; y: number; radius: number; until: number; faction: number }
   | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
   | { t: 'fireHit'; hits: { unit: number; dmg: number; x: number; y: number }[] }
+  /**
+   * Schwebende Akademie: abgehoben, schwebt, gezogen (from -> x, y), gelandet, notgelandet (by = Angreifer), verlegt (neue
+   * Akademie nach dem Verlust der alten).
+   * Floating academy: lifted, floating, moved (from -> x, y), landed, emergency landing (by = attacker), moved over (new
+   * academy after losing the old one).
+   */
+  | { t: 'academy'; what: 'lift' | 'float' | 'move' | 'land' | 'forced' | 'transfer'; city: number; faction: number; x: number; y: number; from?: Pos; by?: number }
+  /** Schutzschild der Akademie: gebaut, getroffen (dmg, unit = Angreifer), zerstoert, aufgeladen / academy shield: built, hit, destroyed, recharged */
+  | { t: 'shield'; what: 'built' | 'hit' | 'down' | 'regen'; city: number; faction: number; hp: number; dmg?: number; unit?: number; hit?: HitKind }
+  /**
+   * Beamer: Einheit gebeamt (depart, x, y = Abflug, city = Relay), angekommen (arrive), zur Akademie zurueckgekehrt (return,
+   * Relay verloren oder kein Platz), Relay gebaut (built).
+   * Beamer: unit beamed (depart, x, y = departure, city = relay), arrived (arrive), returned to the academy (return, relay
+   * lost or no room), relay built (built).
+   */
+  | { t: 'beam'; what: 'built' | 'depart' | 'arrive' | 'return'; city: number; faction: number; x: number; y: number; unit?: number; unitType?: UnitTypeId }
+  /** Ort als Forschungsposten eingenommen: pop = Bevoelkerung fuer die Akademie, tiles = uebergebene Felder / place taken as a research post */
+  | { t: 'post'; city: number; academy: number; faction: number; pop: number; tiles: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
 
 /** Treffer des Orbitallasers: Einheit oder Geschuetz auf (x, y) / hit of the orbital laser: unit or gun at (x, y) */
@@ -652,6 +705,16 @@ export type Command =
   | { type: 'siloLaunch'; x: number; y: number; tx: number; ty: number }
   /** Raketensilo auf (x, y) baut eine Einheit (SILO.units) / rocket silo at (x, y) builds a unit (SILO.units) */
   | { type: 'siloBuy'; x: number; y: number; unitType: UnitTypeId }
+  /** Schwebende Akademie: abheben, ziehen (bis ACADEMY.move Felder je Zug), landen, Schild bauen / floating academy: lift off, move, land, build the shield */
+  | { type: 'liftAcademy'; city: number }
+  | { type: 'moveAcademy'; city: number; to: Pos }
+  | { type: 'landAcademy'; city: number }
+  | { type: 'academyShield'; city: number }
+  /** Beamer-Relay auf einem Posten bauen; Einheit zum Relay beamen / build a beam relay on a post; beam a unit to the relay */
+  | { type: 'buildBeamer'; city: number }
+  | { type: 'beam'; unit: number; city: number }
+  /** Akademie angreifen: Schild, in der Luft ohne Schild Notlandung / attack the academy: shield, in the air without a shield an emergency landing */
+  | { type: 'attackAcademy'; unit: number; city: number }
   | { type: 'endTurn' };
 
 export type ErrorCode =
@@ -675,7 +738,14 @@ export type ErrorCode =
   // Schattenflotte: Silo, Sabotage und Radar noch gesperrt, kein Ziel / shadow fleet: silo, sabotage and radar still locked, no target
   | 'siloCooldown' | 'sabotageCooldown' | 'radarCooldown' | 'noTarget' | 'siloLimit'
   // Einheit nur am Raketensilo zu haben; kein freies Feld am Silo / unit only available at a rocket silo; no free tile at the silo
-  | 'siloOnly' | 'noRoom';
+  | 'siloOnly' | 'noRoom'
+  // Schwebende Akademie: keine Akademie, in der Luft, am Boden, hebt noch ab, keine Felder mehr, Landeplatz ungeeignet,
+  // Produktion ruht, Schild steht, schwebend nicht angreifbar fuer diese Einheit
+  // floating academy: no academy, airborne, grounded, still lifting, no tiles left, landing site unsuitable, production
+  // rests, shield is up, not attackable by this unit while floating
+  | 'notAcademy' | 'airborne' | 'grounded' | 'lifting' | 'noSteps' | 'landingSite' | 'academyBusy' | 'shieldUp' | 'airTarget'
+  // Beamer: kein Relay, schon gebeamt, Einheit nicht an der Akademie / beamer: no relay, already beamed, unit not at the academy
+  | 'noBeamer' | 'beamUsed' | 'notAtAcademy';
 
 export interface CommandResult {
   ok: boolean;

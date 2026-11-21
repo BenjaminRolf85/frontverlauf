@@ -9,10 +9,10 @@ import {
   unitCost, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, factionVariant, rosterShips,
-  siloUnit,
+  siloUnit, academyOf, shieldCheck, beamerCheck,
 } from '../core';
 import {
-  AI, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, ACADEMY, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, MARINES, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -664,7 +664,8 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
   for (const c of isCultFaction(s, f) ? [] : ctx.myCities) {
     // Wohnbloecke und Supermarkt bilden nie aus; volle Staedte nutzen die Plaetze der Versorger (freeUnitSlots)
     // residential blocks and supermarket never train; full cities use the suppliers' slots (freeUnitSlots)
-    if (noTraining(c) || unitAt(s, c.x, c.y) || freeUnitSlots(s, c) <= 0) continue;
+    // Akademie: mehrere Ausbildungen je Zug auf Nachbarfelder (trainCheck prueft) / academy: several trainings per turn onto adjacent tiles (trainCheck checks)
+    if (noTraining(c) || c.post || (!c.academy && unitAt(s, c.x, c.y)) || freeUnitSlots(s, c) <= 0) continue;
     const urgent = ctx.enemies.some((e) => dist(e, c) <= 2 && UNITS[e.type].attack > 0);
     const type = chooseUnitType(ctx, c, urgent);
     if (!type) continue;
@@ -910,6 +911,31 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
       }
       if (prof.difficulty === 'easy') value *= 0.5;
       buys.push({ cmd, cost, value, save: up !== 'bunker' || !front });
+    }
+  }
+
+  // Schutzschild der Akademie (Velkar): bei Bedrohung dringend, sonst ab ACADEMY.ai.shieldRound / the academy's shield (Velkar): urgent when threatened, otherwise from ACADEMY.ai.shieldRound
+  const ac = academyOf(s, f);
+  if (ac) {
+    const chk = shieldCheck(s, f, ac);
+    if (chk === 'ok' || chk === 'notEnoughStars') {
+      const threatened = ctx.enemies.some((e) => dist(e, ac) <= 4 && UNITS[e.type].attack > 0);
+      const cost = ACADEMY.shield.cost;
+      const value = threatened ? cost * 3 : s.round >= ACADEMY.ai.shieldRound ? cost * 1.1 * prof.militaryW : 0;
+      if (value > 0) buys.push({ cmd: { type: 'academyShield', city: ac.id }, cost, value, save: !threatened });
+    }
+    // Beamer-Relay auf fernen Posten nahe der Front, hoechstens eines je ACADEMY.ai.relaysPerPosts Posten (mindestens eines)
+    // beam relay on distant posts near the front, at most one per ACADEMY.ai.relaysPerPosts posts (at least one)
+    const posts = ctx.myCities.filter((c) => c.post);
+    const relays = posts.filter((c) => c.relay).length;
+    if (relays < Math.max(1, Math.floor(posts.length / ACADEMY.ai.relaysPerPosts))) {
+      for (const c of posts) {
+        const chk = beamerCheck(s, f, c);
+        if ((chk !== 'ok' && chk !== 'notEnoughStars') || dist(c, ac) < ACADEMY.ai.relayDist) continue;
+        const front = ctx.hostileCities.length ? Math.min(...ctx.hostileCities.map((h) => dist(h, c))) : 10;
+        const value = ACADEMY.beamer.cost * (1.6 - 0.08 * Math.min(10, front)) * prof.militaryW;
+        if (value > 0) buys.push({ cmd: { type: 'buildBeamer', city: c.id }, cost: ACADEMY.beamer.cost, value, save: true });
+      }
     }
   }
 

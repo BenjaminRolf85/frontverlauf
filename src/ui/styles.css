@@ -301,6 +301,10 @@ h1, h2, h3, .display {
 .progress > i { display: block; height: 100%; background: var(--c-progress-fill); transition: width var(--p-duration-slow); }
 .progress.hp > i { background: var(--c-unit-card-hp-fill); }
 .progress.hp.low > i { background: var(--c-unit-card-hp-low); }
+/* Schutzschild der Akademie (Velkar) / the academy's shield (Velkar) */
+.progress.shield > i { background: var(--s-velkar-tech-glow); }
+.academy-state.airborne strong { color: var(--s-velkar-tech-gear); }
+.academy-shield.muted { opacity: 0.8; }
 
 /* ---------- Dialog ---------- */
 .overlay {

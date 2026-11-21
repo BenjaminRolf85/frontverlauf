@@ -5,7 +5,7 @@
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES, ACADEMY,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -24,6 +24,64 @@ export const cityAt = (s: GameState, x: number, y: number) => {
 export const ownCities = (s: GameState, f: number) => s.cities.filter((c) => c.owner === f);
 export const ownUnits = (s: GameState, f: number) => s.units.filter((u) => u.owner === f);
 export const hqOf = (s: GameState, f: number) => s.cities.find((c) => c.isHQ && c.hqOf === f && c.owner === f);
+
+// ---------- Schwebende Akademie (Velkar, ACADEMY) / floating academy (Velkar, ACADEMY) ----------
+
+/** Akademie der Fraktion f (fehlt = alte Regeln: Kampagne, alte Spielstaende) / academy of faction f (missing = old rules: campaign, old saves) */
+export const academyOf = (s: GameState, f: number): City | undefined => s.cities.find((c) => c.academy && c.owner === f);
+/** Forschungsposten der Fraktion f / research posts of faction f */
+export const postsOf = (s: GameState, f: number): City[] => s.cities.filter((c) => c.post && c.owner === f);
+/** Schwebt oder hebt die Akademie ab? / is the academy floating or lifting off? */
+export const airborne = (c: City | null | undefined): boolean => !!c?.academy && !!c.air;
+/**
+ * Ruht die Produktion der Akademie? Vom Abheben bis zum Zug nach der Landung (City.calm): keine Ausbildung, keine
+ * Ausbauten, kein Schild.
+ * Does the academy's production rest? From lift-off until the turn after landing (City.calm): no training, no upgrades,
+ * no shield.
+ */
+export const academyBusy = (s: GameState, c: City): boolean => !!c.academy && (!!c.air || (c.calm !== undefined && s.round < c.calm));
+/** Schild-LP der Akademie (0 = keiner) / shield HP of the academy (0 = none) */
+export const shieldHp = (c: City | null | undefined): number => (c?.academy && c.shield ? c.shield.hp : 0);
+/**
+ * Ausbildungen je Zug der Akademie: baseSlots + Posten / postsPerSlot, hoechstens maxSlots; andere Staedte 1.
+ * Trainings per turn of the academy: baseSlots + posts / postsPerSlot, at most maxSlots; other cities 1.
+ */
+export function trainSlots(s: GameState, c: City): number {
+  if (!c.academy || c.owner === null) return 1;
+  const n = postsOf(s, c.owner).length;
+  return Math.min(ACADEMY.maxSlots, ACADEMY.baseSlots + Math.floor(n / ACADEMY.postsPerSlot));
+}
+/** Einheiten der Fraktion f im Transit (Beamer) / units of faction f in transit (beamer) */
+export const inTransit = (s: GameState, f: number): Unit[] => (s.transit ?? []).filter((b) => b.unit.owner === f).map((b) => b.unit);
+/** Ausbildungen der Stadt in dieser Runde / trainings of the city this round */
+export const trainedNow = (s: GameState, c: City): number => (c.trained?.round === s.round ? c.trained.n : 0);
+/**
+ * Feld fuer eine neue Einheit der Akademie: das Akademiefeld, sonst ein freies Nachbarfeld an Land (eigenes Gebiet zuerst,
+ * kein fremdes Gebiet, keine Stadt, kein Berg ohne Gebirgsausbildung). Andere Staedte: nur das Stadtfeld.
+ * Tile for a new unit of the academy: the academy tile, otherwise a free adjacent land tile (own territory first, no
+ * foreign territory, no city, no mountain without mountain training). Other cities: only the city tile.
+ */
+export function trainSpot(s: GameState, c: City): Pos | null {
+  if (!unitAt(s, c.x, c.y)) return { x: c.x, y: c.y };
+  if (!c.academy || c.owner === null) return null;
+  let best: Pos | null = null, bs = -Infinity;
+  for (const p of neighbors(s.size, c.x, c.y)) {
+    const t = tileAt(s, p.x, p.y)!;
+    if (unitAt(s, p.x, p.y) || !isLand(t) || t.cityId !== null || t.wonderOf || t.turret || t.temple || t.feature === 'mothership' || t.volcano || burning(s, t)) continue;
+    if (t.terrain === 'mountain' && !hasTech(s, c.owner, 'mountainTraining')) continue;
+    const owner = territoryOwner(s, t);
+    if (owner !== null && owner !== c.owner) continue;
+    const sc = (owner === c.owner ? 1 : 0) - idx(s.size, p.x, p.y) * 1e-6;
+    if (sc > bs) { bs = sc; best = p; }
+  }
+  return best;
+}
+/**
+ * Darf die Einheit u eine schwebende Akademie angreifen? Nur Flieger, Flak und Panzer (ACADEMY.tankClass).
+ * May unit u attack a floating academy? Only flyers, flak and tanks (ACADEMY.tankClass).
+ */
+export const canHitAirborne = (u: Unit): boolean => has(u, 'fly') || has(u, 'flak') || ACADEMY.tankClass.includes(u.type);
+
 /** Kontakt zwischen f und g in mindestens einer Richtung / contact between f and g in at least one direction */
 export const inContact = (s: GameState, f: number, g: number) => s.factions[f].contacts.includes(g) || !!s.factions[g]?.contacts.includes(f);
 
@@ -172,6 +230,8 @@ export function seaPrice(s: GameState, f: number, cost: number): number {
 }
 
 export function unitLimit(s: GameState, c: City): number {
+  // Forschungsposten tragen keine Einheiten, ihre Plaetze gehen an die Akademie / research posts support no units, their slots go to the academy
+  if (c.post) return 0;
   const extra = c.owner !== null && FACTIONS[s.factions[c.owner].id].perk === 'massMobilization'
     ? PERKS.massMobilizationExtraUnits : 0;
   // Nachschublinie: feste Zahl statt Stufe / supply line: fixed number instead of the level
@@ -179,7 +239,15 @@ export function unitLimit(s: GameState, c: City): number {
   // Sendeturm: feste kleine Zahl / transmitter tower: small fixed number
   if (c.tower) return TOWER.unitLimit + extra;
   // Stuetzpunkt: zusaetzlich getragene Einheiten (Nachschubdepot, Wohnbloecke, Supermarkt) / base: additionally supported units
-  return c.level + CITY.unitLimitExtra + extra + upgradeUnitLimit(s, c) + baseUnits(c);
+  return c.level + CITY.unitLimitExtra + extra + upgradeUnitLimit(s, c) + baseUnits(c) + academyUnits(s, c);
+}
+
+/** Zusaetzliche Plaetze der Akademie: je Posten ACADEMY.postUnits und die Plaetze seiner Stuetzpunkt-Art / extra slots of the academy: ACADEMY.postUnits per post and its base kind's slots */
+export function academyUnits(s: GameState, c: City): number {
+  if (!c.academy || c.owner === null) return 0;
+  let n = 0;
+  for (const p of postsOf(s, c.owner)) n += ACADEMY.postUnits + baseUnits(p);
+  return n;
 }
 
 /**
@@ -193,7 +261,9 @@ export function upgradeUnitLimit(s: GameState, c: City): number {
   return cityUpgrades(c).length * CITY.unitLimitPerUpgrade;
 }
 // Wunder zaehlen nicht zum Stadtlimit / wonders do not count towards the city limit
-export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length;
+// gebeamte Einheiten unterwegs zaehlen mit / beamed units in transit count too
+export const supportedUnits = (s: GameState, c: City) => s.units.filter((u) => u.homeCity === c.id && u.owner === c.owner && !isWonder(u)).length
+  + (s.transit?.filter((b) => b.unit.homeCity === c.id && b.unit.owner === c.owner).length ?? 0);
 
 export function levelUpCost(s: GameState, c: City): number {
   const cost = CITY.levelUpCost(c.level);
@@ -215,7 +285,7 @@ export type BuyLevelCheck = 'ok' | 'notYourCity' | 'cannotBuild' | 'alreadyBough
  */
 export function buyLevelCheck(s: GameState, f: number, c: City): BuyLevelCheck {
   if (c.owner !== f) return 'notYourCity';
-  if (supplyLines(s) || c.tower || isCultFaction(s, f)) return 'cannotBuild';
+  if (supplyLines(s) || c.tower || isCultFaction(s, f) || c.post) return 'cannotBuild';
   if (c.levelBought === s.round) return 'alreadyBought';
   if (s.factions[f].stars < buyLevelCost(c)) return 'notEnoughStars';
   return 'ok';
@@ -266,6 +336,11 @@ export function logisticsIncome(s: GameState, x: number, y: number): number {
 
 export function cityTiles(s: GameState, c: City): Pos[] {
   const out: Pos[] = [];
+  // Akademie: Flickenteppich ueber die ganze Karte (eroberte Gebiete bleiben, wo sie sind) / academy: patchwork across the map (captured land stays where it is)
+  if (c.academy) {
+    for (let k = 0; k < s.tiles.length; k++) if (s.tiles[k].territory === c.id) out.push({ x: k % s.size, y: Math.floor(k / s.size) });
+    return out;
+  }
   // + Reichweite der Aussenposten, die das Gebiet erweitern / + reach of outposts that extend the territory
   for (const p of area(s.size, c.x, c.y, c.radius + OUTPOST_REACH)) if (tileAt(s, p.x, p.y)!.territory === c.id) out.push(p);
   return out;
@@ -282,9 +357,12 @@ const OUTPOST_REACH = 2;
  */
 export function outpostClaim(s: GameState, f: number, x: number, y: number): { city: number; tiles: number[] } | null {
   let city: City | null = null, best = Infinity;
+  // Akademie: jedes eigene Gebiet gehoert ihr, der Abstand zur Akademie zaehlt nicht / academy: all own land is hers, the distance to the academy does not count
+  const ac = academyOf(s, f);
   for (const p of area(s.size, x, y, 1)) {
     const t = tileAt(s, p.x, p.y)!;
     if (territoryOwner(s, t) !== f) continue;
+    if (ac) { city = ac; break; }
     const c = cityById(s, t.territory!)!;
     // nicht weiter als die Reichweite von der Stadt / not further than the reach from the city
     if (dist(c, { x, y }) > c.radius + OUTPOST_REACH - 1) continue;
@@ -629,6 +707,8 @@ export function reachable(s: GameState, u: Unit, ignoreState = false): Reach[] {
         // Stadt einer befriedeten Fraktion: nicht betretbar / city of faction at peace: not enterable
         continue;
       }
+      // schwebende Akademie: ihr Feld ist fuer Fremde gesperrt / floating academy: its tile is closed to others
+      if (city && city.air && city.owner !== f) continue;
       if (zoc(s, u, n.x, n.y)) stop = true;
       if (has(u, 'uprising') && city && city.owner !== null && city.owner !== f && isHostile(s, f, city.owner)) stop = true;
       const key = idx(s.size, n.x, n.y);
@@ -1279,6 +1359,8 @@ export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   const t = tileAt(s, u.x, u.y)!;
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
+    // Akademie: nicht in der Luft und nicht, solange der Schild steht / academy: not in the air and not while the shield stands
+    if (airborne(c) || shieldHp(c) > 0) return null;
     if (c.owner === null) return 'village';
     if (c.owner !== u.owner && isHostile(s, u.owner, c.owner)) return 'city';
     return null;
@@ -1571,7 +1653,10 @@ export const baseGap = (kind: BaseKind, id: FactionId): boolean => !!BASES.gap[k
 export function baseStars(s: GameState, c: City): number {
   if (c.owner === null || !c.base || !s.factions[c.owner]) return 0;
   const id = s.factions[c.owner].id;
-  const n = (BASES.stars[c.base] ?? 0) + (baseGap(c.base, id) ? BASES.gapStars : 0);
+  // Forschungsposten auf einem Produktions-Stuetzpunkt: keine Produktion, dafuer die Ersatz-Sterne (wie BASES.gap)
+  // research post on a production base: no production, the substitute stars instead (like BASES.gap)
+  const gap = baseGap(c.base, id) || (!!c.post && !!BASES.sites[c.base]);
+  const n = (BASES.stars[c.base] ?? 0) + (gap ? BASES.gapStars : 0);
   return id === CULT.faction ? tributeStars(n) : n;
 }
 
@@ -1705,7 +1790,7 @@ export const DOCTRINE_TECHS: TechId[] = ['motorization', 'aerodynamics', 'armyAv
 export function builtInSite(s: GameState, c: City, site: ProductionSiteId): boolean {
   // Stuetzpunkt: Wohnbloecke und Supermarkt haben nie eine Staette, die anderen ihre eingebaute (BASES.sites)
   // base: residential blocks and supermarket never have a site, the others their built-in one (BASES.sites)
-  if (noTraining(c)) return false;
+  if (noTraining(c) || c.post) return false;
   if (c.base && BASES.sites[c.base] === site) return true;
   if (site === PRODUCTION.builtIn && (c.isHQ || c.tower || supplyLines(s))) return true;
   // Fraktions-Extra im eigenen Hauptquartier (Dravon: Fahrzeugwerk) / faction extra in the own HQ (Dravon: motor pool)
@@ -1717,7 +1802,7 @@ export function builtInSite(s: GameState, c: City, site: ProductionSiteId): bool
 
 /** Produktionsstaetten der Stadt (Gebaeude im Gebiet und eingebaute), in fester Reihenfolge / production sites of the city (buildings in the territory and built-in ones), in fixed order */
 export function citySites(s: GameState, c: City): ProductionSiteId[] {
-  if (noTraining(c)) return [];
+  if (noTraining(c) || c.post) return [];
   const have = new Set<ProductionSiteId>();
   for (const site of PRODUCTION.sites) if (builtInSite(s, c, site)) have.add(site);
   for (const p of cityTiles(s, c)) {
@@ -1840,6 +1925,7 @@ export function trainTechNeed(s: GameState, f: number, type: UnitTypeId): TechId
  */
 function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   const f = c.owner!;
+  if (academyBusy(s, c)) return 'academyBusy';
   if (!rosterShips(s, f).includes(type)) return 'invalid';
   if (!isCoastalCity(s, c)) return 'noCoast';
   if (trainTechNeed(s, f, type)) return 'techMissing';
@@ -1857,12 +1943,14 @@ function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   return 'ok';
 }
 
-export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining' | 'siloOnly';
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining' | 'siloOnly' | 'academyBusy';
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
   // Wohnbloecke und Supermarkt liefern keine Truppen: nichts wird hier ausgebildet, auch kein Schiff / residential blocks and supermarket deliver no troops: nothing is trained here, no ship either
-  if (noTraining(c)) return 'noTraining';
+  if (noTraining(c) || c.post) return 'noTraining';
+  // Akademie: vom Abheben bis zum Zug nach der Landung keine Ausbildung / academy: no training from lift-off until the turn after landing
+  if (academyBusy(s, c)) return 'academyBusy';
   const st = UNITS[type];
   // Schiffe: Werft der Kuestenstadt / ships: shipyard of the coastal city
   if (st.ship) return shipTrainCheck(s, c, type);
@@ -1894,7 +1982,8 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
     const site = siteOf(type);
     if (site && !cityHasSite(s, c, site)) return 'buildingMissing';
   }
-  if (unitAt(s, c.x, c.y)) return 'occupied';
+  // Akademie: mehrere Ausbildungen je Zug auf freie Nachbarfelder (trainSlots, trainSpot) / academy: several trainings per turn onto free adjacent tiles
+  if (c.academy ? trainedNow(s, c) >= trainSlots(s, c) || !trainSpot(s, c) : unitAt(s, c.x, c.y)) return 'occupied';
   if (freeUnitSlots(s, c) <= 0) return 'unitLimit';
   if (s.factions[c.owner].stars < unitCost(s, c.owner, type)!) return 'notEnoughStars';
   return 'ok';
@@ -2153,12 +2242,14 @@ export function effectiveDefense(s: GameState, u: Unit): number {
     if (c && c.owner === u.owner && hasCityUpgrade(c, 'bunker')) d += CITY_UPGRADES.bunkerDefense;
     // Stuetzpunkt: Bunker viel, Wohnbloecke etwas (BASES.defense) / base: bunker a lot, residential blocks a little (BASES.defense)
     if (c && c.owner === u.owner) d += baseDefense(c);
+    // Akademie: Grundverteidigung (ACADEMY.defense) / academy: base defence (ACADEMY.defense)
+    if (c && c.owner === u.owner && c.academy) d += ACADEMY.defense;
   }
   // Maertyrer-Segen (Alvenia) / Martyr's Blessing (Alvenia)
   return d * (1 + blessingOf(s, u));
 }
 
-export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel' | 'wrongFaction' | 'relayLimit';
+export type CityUpgradeCheck = 'ok' | 'notYourCity' | 'alreadyBuilt' | 'noSlot' | 'notEnoughStars' | 'invalidTarget' | 'techMissing' | 'cityLevel' | 'wrongFaction' | 'relayLimit' | 'academyBusy';
 
 export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgradeId, target?: Pos): CityUpgradeCheck {
   if (c.owner !== f) return 'notYourCity';
@@ -2175,6 +2266,10 @@ export function cityUpgradeCheck(s: GameState, f: number, c: City, up: CityUpgra
   if (supplyLines(s) || c.tower) return 'noSlot';
   // Kult-Staedte haben keine Ausbauten / cult cities have no upgrades
   if (isCultFaction(s, f)) return 'noSlot';
+  // Forschungsposten haben keine Ausbauten; die Akademie baut nicht, solange ihre Produktion ruht
+  // research posts have no upgrades; the academy builds nothing while its production rests
+  if (c.post) return 'noSlot';
+  if (academyBusy(s, c)) return 'academyBusy';
   if (ups.length >= CITY_UPGRADES.slots) return 'noSlot';
   const need = cityUpgradeRequirement(s, f, up);
   if (need.tech && !hasTech(s, f, need.tech)) return 'techMissing';

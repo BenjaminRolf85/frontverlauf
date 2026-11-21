@@ -1282,6 +1282,90 @@ export const ORBITAL = {
   },
 };
 
+/**
+ * Schwebende Akademie (Velkar, Spielerwunsch): Velkar waechst durch die Hauptstadt, eine schwebende Akademie, die sich
+ * versetzen kann. Eroberte Orte werden einfeldrige Forschungsposten (Sterne und Sicht, keine Produktion); ihr Gebiet und
+ * ihr Wachstum gehen an die Akademie. Gilt in freien Partien (createGame setzt City.academy); die Kampagne behaelt die
+ * alten Regeln, weil ihre Missionsziele mit Velkar-Staedten rechnen.
+ * Floating academy (Velkar, player request): Velkar grows through its capital, a floating academy that can relocate.
+ * Captured places become one-tile research posts (stars and vision, no production); their territory and growth pass to
+ * the academy. Applies in free games (createGame sets City.academy); the campaign keeps the old rules because its mission
+ * objectives count on Velkar cities.
+ */
+export const ACADEMY = {
+  faction: 'velkar' as FactionId,
+  /** Runden vom Abheben bis zum Schweben (die Akademie zieht ab dem naechsten eigenen Zug) / rounds from lift-off until floating (the academy moves from the next own turn) */
+  liftRounds: 1,
+  /** Felder je Zug in der Luft (Schachbrett-Abstand, ueber jedes Gelaende) / tiles per turn in the air (Chebyshev distance, over any terrain) */
+  move: 2,
+  /** Abstand der Landestelle zu jedem anderen Ort mindestens / minimum distance of the landing site to every other place */
+  landGap: 2,
+  /** beim Landen: neutrale Felder in diesem Umkreis werden Akademie-Gebiet / on landing: neutral tiles within this radius become academy territory */
+  landClaim: 1,
+  /**
+   * Ausbildung (Spielerwunsch: mit jedem Posten mehr Einheiten auf einmal): Einheiten je Zug = baseSlots + floor(Posten /
+   * postsPerSlot), hoechstens maxSlots; sie erscheinen auf der Akademie oder auf freien Nachbarfeldern (die Hauptstadt ist
+   * die einzige Staette). Dazu gelten Einheitenlimit und Sterne wie immer.
+   * Training (player request: more units at once with every post): units per turn = baseSlots + floor(posts /
+   * postsPerSlot), at most maxSlots; they appear on the academy or on free adjacent tiles (the capital is the only site).
+   * Unit limit and stars apply as always.
+   */
+  baseSlots: 2,
+  postsPerSlot: 1,
+  maxSlots: 6,
+  /** Einheitenlimit der Akademie je Forschungsposten (dazu Plaetze der Stuetzpunkt-Art) / academy unit limit per research post (plus the base kind's slots) */
+  postUnits: 3,
+  /** Bevoelkerung fuer die Akademie je eingenommenem Ort: base + perLevel x (Stufe - 1) / population for the academy per captured place */
+  postPop: 2,
+  postPopPerLevel: 1,
+  /** Sicht des Postens beim Einnehmen (Umkreis) / vision of the post on capture (radius) */
+  postVision: 2,
+  /**
+   * Schwebend greifen nur Flieger ('fly'), Flak ('flak') und diese Panzer an; jeder Treffer ohne Schild erzwingt die
+   * Notlandung. Am Boden wird die Akademie wie jede Stadt eingenommen (nicht solange der Schild steht).
+   * While floating only flyers ('fly'), flak ('flak') and these tanks attack; every hit without a shield forces an
+   * emergency landing. On the ground the academy is captured like any city (not while the shield stands).
+   */
+  tankClass: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'titan', 'flameTank', 'mech', 'tripod', 'doomCrawler'] as UnitTypeId[],
+  /**
+   * Schutzschild: eigene LP, faengt Angriffe auf die Akademie und auf Einheiten auf ihrem Feld zuerst ab (am Boden und in der
+   * Luft, ohne Besatzung). Laedt sich zu Beginn des eigenen Zuges um regen auf; zerstoert erst nach rebuildRounds neu baubar.
+   * defense = Abwehrwert gegen Angriffe auf den Schild (wie ein Geschuetz).
+   * Shield: own HP, absorbs attacks on the academy and on units on its tile first (on the ground and in the air, without a
+   * garrison). Recharges by regen at the start of the own turn; once destroyed it can be rebuilt after rebuildRounds.
+   * defense = defence value against attacks on the shield (like a gun).
+   */
+  shield: { cost: 30, hp: 20, regen: 3, rebuildRounds: 3, defense: 3 },
+  /**
+   * Beamer-Relay (Spielerwunsch): auf einem Forschungsposten gebaut (cost Sterne, ohne eigene LP, geht mit dem Posten
+   * verloren). Eine Einheit auf oder neben der Akademie wird zum Relay gebeamt: sie ist eine Runde unterwegs und erscheint
+   * zu Beginn des naechsten eigenen Zuges auf oder neben dem Relay, voll einsatzbereit. Ein Beamvorgang je Relay und Runde,
+   * kostenlos ("Aufwand 1 Runde"). Faellt das Relay unterwegs, kehrt die Einheit zur Akademie zurueck.
+   * Beam relay (player request): built on a research post (cost stars, no HP of its own, lost with the post). A unit on or
+   * next to the academy is beamed to the relay: it is in transit for one round and appears at the start of the next own
+   * turn on or next to the relay, fully ready. One beam per relay and round, free of charge ("effort 1 round"). If the
+   * relay falls meanwhile, the unit returns to the academy.
+   */
+  beamer: { cost: 25 },
+  /** Grundverteidigung der Akademie fuer eigene Bodeneinheiten auf ihrem Feld (wie BASES.defense) / base defence of the academy for own ground units on its tile */
+  defense: 1,
+  /**
+   * KI: Umzug, wenn ein Landeplatz im Umkreis search um minGain besser ist (Abstand zur Front, nicht naeher als frontKeep,
+   * Bedrohung, freies Land), hoechstens alle cooldown Runden nach einer Landung; Flucht nur ohne Schild und ohne Flieger,
+   * Flak oder Panzer in der Naehe vor threatRatio-facher Uebermacht; Schild ab shieldRound oder bei Bedrohung. Beamer:
+   * Relay auf Posten ab relayDist Feldern von der Akademie, eines je relaysPerPosts Posten; beamen, wenn das Relay dem Ziel
+   * der Einheit beamGain Felder naeher ist. Profil der Velkar mit Akademie: armyPerCity und aggression mehr (gemessen,
+   * BALANCING.md: alles kommt aus einer Stadt, ohne den Zuschlag hortete die KI Sterne).
+   * AI: relocate when a landing site within search is better by minGain (distance to the front, not closer than frontKeep,
+   * threat, free land), at most every cooldown rounds after a landing; flee only without a shield and without flyers, flak
+   * or tanks nearby, from a threatRatio times superior force; shield from shieldRound or when threatened. Beamer: relay on
+   * posts from relayDist tiles away from the academy, one per relaysPerPosts posts; beam when the relay is beamGain tiles
+   * closer to the unit's goal. Profile of Velkar with an academy: more armyPerCity and aggression (measured, BALANCING.md:
+   * everything comes from one city, without the bonus the AI hoarded stars).
+   */
+  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3 },
+};
+
 /** Stadt-Ausbauten in Slots / city upgrades in slots */
 export type CityUpgradeId = 'radioTower' | 'bunker' | 'barracks' | 'hospital' | 'flak' | 'depot' | 'satRelay';
 export const CITY_UPGRADE_IDS: CityUpgradeId[] = ['radioTower', 'bunker', 'barracks', 'hospital', 'flak', 'depot', 'satRelay'];

@@ -39,6 +39,8 @@ import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGe
 import { alienBurrowGeometry } from './models/alienFlora';
 import { towerGeometry } from './models/towers';
 import { cityHeight, hqMastTop } from './models/city';
+import { ACADEMY_MODEL, academyBeacon, academyGeometry, hoverShadowColor, researchPostGeometry, shieldColor, shieldGeometry } from './models/academy';
+import type { City } from '../core';
 import { BASE_ICON, baseName } from '../ui/bases';
 import { DesertWorldFx } from './desertWorld';
 import { RiftFx } from './rift';
@@ -266,6 +268,11 @@ export class Board {
   private staticLayer = new THREE.Group();
   /** schwebender Teil des Artefakts (Kampagnenfinale) / floating part of the artifact (campaign finale) */
   private artifactOrbit: THREE.Object3D | null = null;
+  /**
+   * Schwebende Akademien (Velkar): Modell je Stadt, schwebende mit Auf und Ab; nur Darstellung.
+   * Floating academies (Velkar): model per city, floating ones bob up and down; render state only.
+   */
+  private academyObjs = new Map<number, { group: THREE.Group; obj: THREE.Object3D; hover: boolean; baseY: number; animating: boolean }>();
   private unitLayer = new THREE.Group();
   private highlightLayer = new THREE.Group();
   private labelLayer = new THREE.Group();
@@ -621,6 +628,7 @@ export class Board {
     const seed = s.config.seed;
     this.clearGroup(this.staticLayer);
     this.artifactOrbit = null;
+    this.academyObjs.clear();
     this.clearGroup(this.labelLayer);
     this.pickMeshes = [];
     this.cityProxies = [];
@@ -1201,6 +1209,8 @@ export class Board {
       if (!explored(c.x, c.y)) continue;
       const fid = c.owner !== null ? s.factions[c.owner].id : null;
       const level = c.owner === null ? 1 : c.level;
+      // Schwebende Akademie und Forschungsposten (Velkar) / floating academy and research post (Velkar)
+      if ((c.academy || c.post) && fid && !cave && !alien && !desert) { this.buildAcademy(s, c, fid, townCities); continue; }
       const flags = { hq: c.isHQ && c.hqOf === c.owner, factory: c.factory, bunkerRing: c.bunkerRing, govQuarter: c.govQuarter };
       // Fensterlicht: groessere Staedte haben mehr beleuchtete Fenster / window light: larger cities have more lit windows
       // Hoehle: Nachschublinie statt Stadt, Hauptschacht groesser / cavern: supply line instead of a city, main shaft bigger
@@ -1900,6 +1910,15 @@ export class Board {
   tick(now: number): boolean {
     const fx = this.combat.update();
     let lived = this.life.update(now, this.animations);
+    // Schwebende Akademie: sanftes Auf und Ab / floating academy: gentle bob
+    if (this.animations) {
+      const t = now / 1000;
+      for (const [id, a] of this.academyObjs) {
+        if (!a.hover || a.animating) continue;
+        a.obj.position.y = a.baseY + Math.sin((t * Math.PI * 2) / ACADEMY_MODEL.bobPeriod + id) * ACADEMY_MODEL.bob;
+        lived = true;
+      }
+    }
     if (this.techParts.update(now, this.animations)) lived = true;
     // Artefakt: langsame Drehung und leichtes Schweben / artifact: slow spin and gentle bob
     if (this.artifactOrbit && this.animations) {
@@ -1922,6 +1941,91 @@ export class Board {
   }
 
   get busy() { return this.anims.length > 0 || this.combat.active; }
+
+  /**
+   * Akademie oder Forschungsposten aufbauen: Modell (am Boden, abhebend, schwebend), Bodenschatten und Schutzschild mit
+   * LP-Anzeige (Deckkraft und Farbe), Lichter, Trefferkoerper und Schild mit Namen.
+   * Build an academy or research post: model (grounded, lifting, floating), ground shadow and shield showing its HP
+   * (opacity and colour), lights, hit bodies and the name sign.
+   */
+  private buildAcademy(s: GameState, c: City, fid: FactionId, townCities: TownInput['cities']) {
+    const air = !!c.academy && !!c.air;
+    const g = withGlow(c.post ? researchPostGeometry(fid, !!c.relay) : academyGeometry(fid, c.level, air), 'built', 0.6);
+    const group = new THREE.Group();
+    group.position.copy(this.tileCenter(s, c.x, c.y));
+    const obj = outlined(g, OUTLINE.building, landMaterial());
+    obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
+    // etwas groesser als ein Feldmodell: die Hauptstadt ist das wichtigste Objekt der Karte / a little larger than a tile model: the capital is the most important object on the map
+    if (c.academy) obj.scale.setScalar(ACADEMY_MODEL.scale);
+    const baseY = !air ? 0 : c.air!.phase === 'lifting' ? ACADEMY_MODEL.liftY : ACADEMY_MODEL.airY;
+    obj.position.y = baseY;
+    group.add(obj);
+    if (air) {
+      // Bodenschatten: kleiner und blasser, je hoeher sie schwebt / ground shadow: smaller and paler the higher it floats
+      const k = 1 - baseY * 0.6;
+      const shadow = new THREE.Mesh(new THREE.CircleGeometry(ACADEMY_MODEL.radius * k, 24), academyMat('shadow', () => new THREE.MeshBasicMaterial({ color: hoverShadowColor(), transparent: true, opacity: 0.32, depthWrite: false })));
+      shadow.rotation.x = -Math.PI / 2;
+      shadow.position.y = 0.012;
+      shadow.raycast = () => {};
+      shadow.userData.dispose = true;
+      group.add(shadow);
+    }
+    const sh = c.academy && c.shield && c.shield.hp > 0 ? c.shield : null;
+    if (sh) {
+      // Schild: Kuppel ueber der Plattform, Deckkraft nach LP, schwach in Warnfarbe / shield: dome over the platform, opacity by HP, weak in the warning colour
+      // LP in fuenf Stufen (Deckkraft), unter 35 % in Warnfarbe / HP in five steps (opacity), below 35 % in the warning colour
+      const step = Math.max(1, Math.ceil((sh.hp / Math.max(1, sh.max)) * 5));
+      const weak = sh.hp / Math.max(1, sh.max) < 0.35;
+      const color = () => (weak ? new THREE.Color(hex(semantic.warning)) : shieldColor());
+      const bubble = new THREE.Mesh(shieldGeometry(), academyMat(`bubble${step}${weak}`, () => new THREE.MeshBasicMaterial({ color: color(), transparent: true, opacity: 0.04 + 0.025 * step, depthWrite: false, side: THREE.DoubleSide })));
+      const edges = new THREE.LineSegments(shieldEdges(), academyMat(`edges${step}${weak}`, () => new THREE.LineBasicMaterial({ color: color(), transparent: true, opacity: 0.15 + 0.1 * step, depthWrite: false })));
+      for (const m of [bubble, edges]) { m.position.y = air ? 0.05 : ACADEMY_MODEL.legs + 0.05; m.scale.set(1, 0.8, 1); m.raycast = () => {}; obj.add(m); }
+    }
+    this.staticLayer.add(group);
+    if (c.academy) this.academyObjs.set(c.id, { group, obj, hover: air, baseY, animating: false });
+    // Lichtschein am Boden, Leuchtfeuer an der Antenne, kein Schornsteinrauch / light pool on the ground, beacon on the antenna, no chimney smoke
+    townCities.push({ x: group.position.x, y: group.position.y, z: group.position.z, level: c.post ? 1 : c.level, faction: fid, hq: !!c.academy, govQuarter: false, geo: g, smoke: [],
+      ...(c.academy ? { beacon: academyBeacon(c.level, baseY, air) } : {}) });
+    // Trefferkoerper ueber dem ganzen Modell / hit body over the whole model
+    const h = c.post ? 0.5 : baseY + 0.75;
+    const proxy = new THREE.Mesh(proxyGeometry(), proxyMaterial());
+    proxy.position.copy(group.position);
+    proxy.scale.set(0.8, h, 0.8);
+    proxy.userData.tile = c.y * s.size + c.x;
+    this.staticLayer.add(proxy);
+    this.cityProxies.push(proxy);
+    const cname = this.showLabels ? cityNameOf(s, c.id) : '';
+    if (cname) {
+      const color = factionTokens[fid].primary, ink = factionTokens[fid].ink;
+      const label = cityLabel(cname, c.post ? '' : c.level, color, ink, !!c.academy, c.post ? 0 : c.pop, c.post ? 0 : levelUpCost(s, c));
+      label.center.set(0.5, 1);
+      this.labelLayer.add(label);
+      this.citySigns.push({ sprite: label, x: c.x, y: c.y, top: group.position.y + (air ? baseY : 0) });
+    }
+  }
+
+  /**
+   * Uebergang der Akademie: Abheben, Schweben, Ziehen, Landen, Notlandung (das Brett baut danach neu).
+   * Academy transition: lift-off, floating, moving, landing, emergency landing (the board rebuilds afterwards).
+   */
+  animateAcademy(s: GameState, c: City, what: string, from: { x: number; y: number } | null, animate: boolean): Promise<void> {
+    const a = this.academyObjs.get(c.id);
+    if (!a || !animate || what === 'transfer') return Promise.resolve();
+    a.animating = true;
+    const y0 = a.obj.position.y;
+    const ease = (t: number) => t * t * (3 - 2 * t);
+    if (what === 'move' && from) {
+      const p0 = this.tileCenter(s, from.x, from.y), p1 = this.tileCenter(s, c.x, c.y);
+      return this.addAnim(ANIM.move * 2, (t) => { a.group.position.lerpVectors(p0, p1, ease(t)); });
+    }
+    const y1 = what === 'lift' ? ACADEMY_MODEL.liftY : what === 'float' ? ACADEMY_MODEL.airY : 0;
+    const p0 = a.group.position.clone(), p1 = this.tileCenter(s, c.x, c.y);
+    return this.addAnim(what === 'forced' ? ANIM.death * 1.5 : ANIM.move * 2.5, (t) => {
+      const k = what === 'forced' ? t * t : ease(t);
+      a.obj.position.y = y0 + (y1 - y0) * k;
+      if (what === 'forced') a.group.position.lerpVectors(p0, p1, k);
+    });
+  }
 
   /** Zielvorschau des Orbitallasers (leere Liste = aus) / orbital laser target preview (empty list = off) */
   showOrbitalPreview(s: GameState, tiles: { x: number; y: number }[], cols: number, tags: { x: number; y: number; text: string; own: boolean }[], blocked: boolean) {
@@ -1994,3 +2098,14 @@ export class Board {
 }
 
 export type { Unit };
+
+/** Materialien der Akademie (Schatten, Schild je LP-Stufe), einmal je Art / academy materials (shadow, shield per HP step), once per kind */
+const ACADEMY_MATS = new Map<string, THREE.Material>();
+function academyMat(key: string, make: () => THREE.Material): THREE.Material {
+  let m = ACADEMY_MATS.get(key);
+  if (!m) { m = make(); ACADEMY_MATS.set(key, m); }
+  return m;
+}
+/** Kanten des Schilds (Wabenlinien), einmal berechnet / shield edges (honeycomb lines), computed once */
+let SHIELD_EDGES: THREE.BufferGeometry | null = null;
+const shieldEdges = () => (SHIELD_EDGES ??= new THREE.EdgesGeometry(shieldGeometry(), 1));

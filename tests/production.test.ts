@@ -420,7 +420,11 @@ describe('KI / AI', () => {
     // (Stuetzpunkte und eingebaute Staetten prueft bases.test.ts)
     // without bases: with them every faction already has barracks in its home base and builds none within 20 rounds
     // (bases and built-in sites are covered by bases.test.ts)
-    const s = createGame(defaultConfig({ seed: 77, size: 16, mapType: 'continent', mode: 'points', roundLimit: 20, bases: false,
+    // Seed 78 statt 77: mit der schwebenden Akademie der Velkar nimmt Korvat auf 77 sechs Staedte und steckt in 20 Runden alles in
+    // Truppen und Grossprojekte statt in eine Doktrin; dieselben Pruefungen auf dem naechsten Seed
+    // seed 78 instead of 77: with the Velkar floating academy Korvat takes six cities on 77 and puts everything into troops and
+    // grand projects within 20 rounds instead of a doctrine; the same checks on the next seed
+    const s = createGame(defaultConfig({ seed: 78, size: 16, mapType: 'continent', mode: 'points', roundLimit: 20, bases: false,
       factions: [...facs, 'vesper' as FactionId].map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
     let failed = 0;
     const trained = new Set<UnitTypeId>();

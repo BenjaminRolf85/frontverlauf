@@ -5,7 +5,7 @@
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
-  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait,
+  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById,
   type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
@@ -74,6 +74,10 @@ export class Controller {
   siloAim: { x: number; y: number } | null = null;
   /** Zielauswahl fuer die Sabotage des Schattenkommandos / target selection for the Shadow Commando's sabotage */
   sabotageMode = false;
+  /** Zielauswahl fuer das Ziehen der schwebenden Akademie: Stadt-ID / target selection for moving the floating academy: city id */
+  academyMoveCity: number | null = null;
+  /** angewaehlte feindliche Akademie (zweites Antippen greift an) / selected hostile academy (a second tap attacks) */
+  pendingAcademy: number | null = null;
   onCommand: ((cmd: Command, res: CommandResult) => void) | null = null;
   ui!: UiHooks;
 
@@ -261,7 +265,16 @@ export class Controller {
     this.radioCity = null;
     this.terraformUnit = null;
     this.selected = null; this.selectedUnit = null; this.pendingTarget = null; this.pendingTurret = null;
+    this.academyMoveCity = null; this.pendingAcademy = null;
     this.updateHighlights();
+  }
+
+  /** Ziehen der schwebenden Akademie ein- oder ausschalten / toggle moving the floating academy */
+  toggleAcademyMove(cityId: number) {
+    this.academyMoveCity = this.academyMoveCity === cityId ? null : cityId;
+    if (this.academyMoveCity !== null) this.ui.toast(t('academy.moveHint'), 'move');
+    this.updateHighlights();
+    this.ui.update();
   }
 
   selectedUnitObj(): Unit | undefined {
@@ -279,6 +292,11 @@ export class Controller {
     if (this.terraformUnit !== null && this.isHumanTurn) {
       const tu = unitById(s, this.terraformUnit);
       if (tu) for (const p of terraformTargets(s, tu)) list.push({ ...p, kind: 'build' });
+    }
+    // schwebende Akademie: erreichbare Felder / floating academy: reachable tiles
+    if (this.academyMoveCity !== null && this.isHumanTurn) {
+      const c = cityById(s, this.academyMoveCity);
+      if (c) for (const p of academyMoves(s, c)) list.push({ ...p, kind: 'move' });
     }
     if (this.radioCity !== null && this.isHumanTurn) {
       const c = s.cities.find((cc) => cc.id === this.radioCity);
@@ -305,6 +323,8 @@ export class Controller {
       if (isSampler(s, u)) for (const p of workSpots(s)) if (!unitAt(s, p.x, p.y)) list.push({ ...p, kind: 'build' });
       // Verdan-Geschuetze in Reichweite / Verdan guns in range
       for (const p of turretTargets(s, u)) list.push({ ...p, kind: this.pendingTurret && this.pendingTurret.x === p.x && this.pendingTurret.y === p.y ? 'target' : 'attack' });
+      // feindliche Akademien (Schild, schwebend) / hostile academies (shield, floating)
+      for (const c of academyTargets(s, u)) list.push({ x: c.x, y: c.y, kind: this.pendingAcademy === c.id ? 'target' : 'attack' });
       if (u.fuel !== null) {
         for (let y = 0; y < s.size; y++) for (let x = 0; x < s.size; x++) {
           const tl = s.tiles[y * s.size + x];
@@ -372,6 +392,22 @@ export class Controller {
       const tu = unitById(s, uid);
       if (tu && terraformTargets(s, tu).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'terraform', x, y, unit: uid });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
+    if (this.academyMoveCity !== null) {
+      const cityId = this.academyMoveCity;
+      this.academyMoveCity = null;
+      const c = cityById(s, cityId);
+      if (c && academyMoves(s, c).some((p) => p.x === x && p.y === y)) {
+        await this.exec({ type: 'moveAcademy', city: cityId, to: { x, y } });
+        this.selected = { x, y }; this.tab = 'city';
+        const left = cityById(s, cityId);
+        // weitere Felder in diesem Zug: Zielauswahl bleibt an / more tiles this turn: targeting stays on
+        if (left && academyMoves(s, left).length) this.academyMoveCity = cityId;
+        this.updateHighlights(); this.ui.update();
         return;
       }
       this.updateHighlights(); this.ui.update();
@@ -447,6 +483,18 @@ export class Controller {
           return;
         }
       }
+      // feindliche Akademie: erst anwaehlen, zweites Antippen greift an / hostile academy: select first, a second tap attacks
+      const hostileAcademy = academyTargets(s, u).find((c) => c.x === x && c.y === y);
+      if (hostileAcademy) {
+        if (this.pendingAcademy === hostileAcademy.id) {
+          this.pendingAcademy = null;
+          await this.exec({ type: 'attackAcademy', unit: u.id, city: hostileAcademy.id });
+          return;
+        }
+        this.pendingAcademy = hostileAcademy.id; this.pendingTarget = null; this.pendingTurret = null; this.tab = 'unit';
+        this.play('select'); this.updateHighlights(); this.ui.update();
+        return;
+      }
       // Verdan-Geschuetz: erst anwaehlen, zweites Antippen greift an / Verdan gun: select first, a second tap attacks
       if (turretTargets(s, u).some((p) => p.x === x && p.y === y)) {
         if (this.pendingTurret && this.pendingTurret.x === x && this.pendingTurret.y === y) {
@@ -471,6 +519,7 @@ export class Controller {
     this.selected = { x, y };
     this.pendingTarget = null;
     this.pendingTurret = null;
+    this.pendingAcademy = null;
     const unit = unitAt(s, x, y);
     const visibleUnit = unit && (this.viewer < 0 || canSeeUnit(s, this.viewer, unit)) ? unit : undefined;
     const city = cityAt(s, x, y);
@@ -769,6 +818,28 @@ export class Controller {
               await new Promise((r) => setTimeout(r, RIFT_OPEN_MS));
             }
             this.view.invalidate();
+            break;
+          }
+          // Schwebende Akademie: Abheben, Ziehen, Landen und Notlandung als Uebergang / floating academy: lift-off, move, landing and emergency landing as a transition
+          case 'academy': {
+            const c = cityById(s, e.city);
+            if (!c || !(visible(e.x, e.y) || (e.from && visible(e.from.x, e.from.y)))) break;
+            if (e.what === 'lift' || e.what === 'land' || e.what === 'forced') this.play('build');
+            if (e.what === 'forced') { this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.wreck, 420); }
+            await board.animateAcademy(s, c, e.what, e.from ?? null, animate);
+            break;
+          }
+          // Schild: Treffer als Zahl ueber der Akademie / shield: hits as a number above the academy
+          case 'shield': {
+            const c = cityById(s, e.city);
+            if (c && visible(c.x, c.y) && e.what === 'hit') this.ui.fx('num', c.x, c.y, e.dmg ? `${t('academy.shield')} -${e.dmg}` : hitText(e.hit, 0));
+            if (c && visible(c.x, c.y) && e.what === 'down') this.ui.fx('boom', c.x, c.y);
+            break;
+          }
+          // Beamer: Lichtsaeule an Abflug und Ankunft / beamer: column of light at departure and arrival
+          case 'beam': {
+            if (visible(e.x, e.y) && e.what !== 'built') { this.play('build'); this.ui.fx('levelUp', e.x, e.y); }
+            if (e.what === 'depart') this.refresh();
             break;
           }
           // Orbitallaser: Strahl aus dem Himmel, Einschlag mit Beben und Schadenszahlen / orbital laser: beam from the sky, impact with shake and damage numbers

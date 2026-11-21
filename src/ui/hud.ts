@@ -30,6 +30,7 @@ import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
+import { academyActions, academySheet, postActions, unitAcademyActions } from './academy';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
@@ -741,6 +742,18 @@ export class Hud {
         this.cityNote = '';
         // Kult: Schiffe aus der Werft, Landtruppen gesperrt (Rekrutieren im Feld) / cult: ships from the shipyard, land troops locked (recruiting in the field)
         if (myTurn && city.owner === s.current) this.setTroops(s, city);
+      } else if (city.academy || city.post) {
+        // Schwebende Akademie und Forschungsposten (Velkar): eigener Kopf, Zustand, Schild, Aktionen / floating academy and research post (Velkar): own head, state, shield, actions
+        const a = academySheet(s, city);
+        head = a.head;
+        body += a.body;
+        this.cityNote = '';
+        if (myTurn && city.owner === s.current) {
+          this.actions.push(...(city.academy ? academyActions(s, g, city, (c) => this.err(c)) : postActions(s, g, city, (c) => this.err(c))));
+          // Ausbildung, Ausbauten und Stufe nur an der Akademie / training, upgrades and level only at the academy
+          if (city.academy) this.cityActions(s, city.id);
+        }
+        if (city.academy) body += citySitesHtml(s, city);
       } else if (city.tower) {
         // Sendeturm: bildet aus, waechst nicht, festes Einkommen / transmitter tower: trains, does not grow, fixed income
         const fid = s.factions[city.owner].id;
@@ -903,6 +916,8 @@ export class Hud {
 
   private unitActions(s: GameState, u: Unit) {
     const g = this.game;
+    // Beamer und Angriff auf eine Akademie / beamer and attack on an academy
+    this.actions.push(...unitAcademyActions(s, g, u, (c) => this.err(c)));
     const gunAt = g.pendingTurret;
     if (gunAt && turretTargets(s, u).some((p) => p.x === gunAt.x && p.y === gunAt.y)) {
       const gun = turretAt(s, gunAt.x, gunAt.y)!;
