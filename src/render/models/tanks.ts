@@ -14,7 +14,7 @@
  */
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, shade, type ColorLike, type V3 } from './kit';
+import { Builder, fine, geo, shade, unitLow, type ColorLike, type V3 } from './kit';
 import { look, mat, type Look } from './look';
 import { soldier, standPose } from './soldiers';
 
@@ -67,8 +67,10 @@ export function tracks(b: Builder, o: TrackOpts) {
       const z = -span * 0.3 + (i / Math.max(1, rollers - 1)) * span * 0.6;
       b.cyl(0.01, 0.01, 0.012, 6, mat.metal, [ox, h * 0.86, z], [0, 0, HALF_PI]);
     }
-    // einzelne Kettenglieder oben, unten und an den Enden / individual track plates top, bottom and ends
-    const n = Math.round((o.links ?? 10) * 1.8);
+    // einzelne Kettenglieder oben, unten und an den Enden; Einheiten in niedriger Qualitaet mit halb so vielen (spart rund
+    // 500 Dreiecke je Kettenfahrzeug fuer die Kennteile der Lesbarkeit) / individual track plates top, bottom and ends; units
+    // on low quality get about half as many (saves about 500 triangles per tracked vehicle for the readability parts)
+    const n = Math.round((o.links ?? 10) * (unitLow() ? 1 : 1.8));
     for (let i = 0; i < n; i++) {
       const z = -hl + 0.04 + (i / (n - 1)) * (o.len - 0.08);
       b.box(o.w + 0.006, 0.007, 0.012, mat.ink, [s * o.x, h + 0.002, z]);

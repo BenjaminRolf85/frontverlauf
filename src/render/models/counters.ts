@@ -12,7 +12,7 @@ import type { FactionId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { dish } from './architecture';
 import { addEmblem } from './emblems';
-import { Builder, col, geo, rng, shade, type ColorLike, type V3 } from './kit';
+import { Builder, capsule, col, fine, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { kneelPose, soldier } from './soldiers';
 import { antenna, commander, tracks } from './tanks';
@@ -93,10 +93,14 @@ export function antiTank(f: FactionId, lite = false): Builder {
   const L = look(f);
   const st = styleOf(f);
   // Schuetze kniend, Rohr auf der rechten Schulter, leicht nach oben / gunner kneeling, tube on the right shoulder, slightly raised
-  const pitch = -0.12;
-  const tubeR = st === 'dravon' ? 0.034 : 0.028;
-  const tubeLen = st === 'dravon' ? 0.46 : 0.42;
-  const sy = 0.262, sx = 0.075, sz = 0.0;
+  // Lesbarkeit: uebergrosses Rohr (doppelt so dick wie zuvor, laenger als die Figur breit ist) in dunklem Ton, damit es sich
+  // von der Uniform abhebt: ein langer Balken auf Kopfhoehe ist die Kennform der Panzerabwehr.
+  // Readability: oversized tube (twice as thick as before, longer than the figure is wide) in a dark tone so it stands out
+  // from the uniform: a long bar at head height is the anti-tank signature.
+  const pitch = -0.1;
+  const tubeR = st === 'dravon' ? 0.05 : 0.046;
+  const tubeLen = st === 'dravon' ? 0.5 : 0.48;
+  const sy = 0.275, sx = 0.08, sz = -0.01;
   b.group({ p: [0.02, 0, -0.02] }, () => {
     soldier(b, f, {
       ...kneelPose([[0.05, 0.24, 0.13], [0.07, 0.215, 0.03]]),
@@ -104,7 +108,7 @@ export function antiTank(f: FactionId, lite = false): Builder {
       elbowPoleL: [-0.6, -1, 0.3],
       elbowPoleR: [0.8, -1, 0],
     }, { detail: lite ? 0 : 1, seed: 71 });
-    rocketTube(b, [sx, sy, sz], pitch, { r: tubeR, len: tubeLen, c: st === 'velkar' ? L.hullDark : L.hull, band: L.secondary, style: st, lite });
+    rocketTube(b, [sx, sy, sz], pitch, { r: tubeR, len: tubeLen, c: st === 'velkar' ? L.hullDark : mix(mat.metal, mat.dark, 0.35), band: L.secondary, style: st, lite });
   });
   // Ladeschuetze mit Rakete / loader with a rocket
   if (!lite) {
@@ -191,14 +195,25 @@ export function antiAir(f: FactionId, lite = false): Builder {
     b.cyl(0.09, 0.1, 0.025, lite ? 8 : 12, L.hullDark, [0, top + 0.012, tz]);
     b.block(0, top + 0.02, tz, 0.2, 0.04, 0.16, L.hull);
     for (const s of [-1, 1]) {
-      if (st === 'alvenia') b.add(geo.rtaper(0.014, 0.16, 0.014, 0.1, 0.09, 0.006), L.hull, { p: [s * 0.105, top + 0.1, tz] });
-      else b.add(geo.taper(0.014, 0.16, 0.014, 0.1, 0.09, 0.0), L.hull, { p: [s * 0.105, top + 0.1, tz] });
-      if (st === 'dravon') b.box(0.016, 0.012, 0.16, L.trim, [s * 0.105, top + 0.06, tz]);
+      // hohe Seitenschilde: die Flak-Lafette wird ein hoher Block / tall side shields: the AA mount becomes a tall block
+      if (st === 'alvenia') b.add(geo.rtaper(0.016, 0.17, 0.016, 0.07, 0.17, 0.006), L.hull, { p: [s * 0.105, top + 0.135, tz] });
+      else if (st === 'velkar') b.add(geo.taper(0.014, 0.16, 0.014, 0.1, 0.07, 0.0), L.hull, { p: [s * 0.105, top + 0.075, tz] });
+      else b.add(geo.taper(0.016, 0.17, 0.016, 0.07, 0.17, 0.0), L.hull, { p: [s * 0.105, top + 0.135, tz] });
+      if (st === 'dravon') b.box(0.018, 0.012, 0.17, L.trim, [s * 0.105, top + 0.06, tz]);
     }
     const quad = st === 'korvat' || st === 'meridon';
     const dravon = st === 'dravon';
-    b.group({ p: [0, top + 0.1, tz], r: [-0.95, 0, 0] }, () => {
-      aaGuns(b, L, quad ? 4 : 2, dravon ? 0.3 : 0.24, dravon ? 0.013 : 0.01, quad ? 0.04 : 0.045, lite, st === 'velkar' ? L.secondary : undefined);
+    // Lesbarkeit: Rohre steil (66 Grad) und lang, das hoechste Fahrzeug mit senkrechten Spitzen (Kennform der Flak); Hoehe bleibt unter MAX_H
+    // readability: barrels steep (66 degrees) and long, the tallest vehicle with vertical spikes (the AA signature); height stays below MAX_H
+    b.group({ p: [0, top + 0.1, tz], r: [st === 'velkar' ? -0.62 : -1.15, 0, 0] }, () => {
+      if (st === 'velkar') {
+        // Velkar: Raketenkasten mit sechs Zellen statt Rohren (ein grosser Block, unterscheidet sich von den runden Tesla-Spulen)
+        // Velkar: six-cell missile box instead of barrels (one big block, unlike the round Tesla coils)
+        b.add(lite ? geo.box(0.2, 0.1, 0.3) : geo.cbox(0.2, 0.1, 0.3, 0.016), L.hull, { p: [0, 0, 0.16] });
+        b.add(lite ? geo.box(0.208, 0.02, 0.24) : geo.cbox(0.208, 0.02, 0.24, 0.005), L.hullDark, { p: [0, 0.042, 0.15] });
+        for (let i = 0; i < 6; i++) b.add(geo.cyl(0.02, 0.02, 0.012, lite ? 6 : 10), i % 2 ? L.secondary : mat.dark, { p: [-0.06 + (i % 3) * 0.06, -0.02 + Math.floor(i / 3) * 0.04, 0.312], r: [HALF_PI, 0, 0] });
+        b.add(geo.cbox(0.2, 0.05, 0.08, 0.01), L.hullDark, {});
+      } else aaGuns(b, L, quad ? 4 : 2, dravon ? 0.32 : 0.3, quad ? 0.012 : 0.016, quad ? 0.04 : 0.045, lite);
     });
     // Visier / sight
     b.add(geo.cbox(0.03, 0.03, 0.03, 0.006), mat.dark, { p: [-0.07, top + 0.14, tz + 0.03] });
@@ -249,28 +264,31 @@ export function mineLayer(f: FactionId, lite = false): Builder {
       if (st === 'meridon') for (const z of [-0.12, -0.06, 0.0]) b.block(0, 0.062, z, 0.254, 0.076, 0.008, shade(L.hull, 0.8));
       break;
   }
-  // Fahrerhaus vorn / cab at the front
+  // Fahrerhaus vorn, flach: der Minenleger ist das niedrigste Kettenfahrzeug (kein Turm) / cab at the front, low: the mine
+  // layer is the lowest tracked vehicle (no turret)
   const top = 0.14;
-  b.add(lite ? geo.box(0.16, 0.07, 0.1) : geo.cbox(0.16, 0.07, 0.1, 0.012), L.hullDark, { p: [0, top + 0.035, 0.08] });
-  b.box(0.13, 0.03, 0.006, mat.glass, [0, top + 0.045, 0.132], [-0.15, 0, 0]);
-  if (!lite) commander(b, f, -0.04, top + 0.075, 0.06, 81);
-  // Raeumschild vorn mit Warnstreifen / mine plough at the front with hazard stripes
-  b.group({ p: [0, 0.05, 0.25], r: [0.25, 0, 0] }, () => {
-    b.add(lite ? geo.box(0.32, 0.07, 0.016) : geo.cbox(0.32, 0.07, 0.016, 0.004), L.trim, {});
-    hazardStripes(b, 0, 0.0, 0.01, 0.3, 0.03, 6);
+  b.add(lite ? geo.box(0.16, 0.05, 0.1) : geo.cbox(0.16, 0.05, 0.1, 0.012), L.hullDark, { p: [0, top + 0.025, 0.08] });
+  b.box(0.13, 0.022, 0.006, mat.glass, [0, top + 0.03, 0.132], [-0.15, 0, 0]);
+  if (!lite) commander(b, f, -0.04, top + 0.045, 0.06, 81);
+  // Raeumschild vorn mit Warnstreifen; Lesbarkeit: breiter als die Ketten und hoch (Kennform des Minenlegers: flache Wanne mit
+  // Schaufel vorn, kein Turm) / mine plough at the front with hazard stripes; readability: wider than the tracks and tall
+  // (the mine layer's signature: a flat hull with a blade in front, no turret)
+  b.group({ p: [0, 0.085, 0.25], r: [0.25, 0, 0] }, () => {
+    b.add(lite ? geo.box(0.42, 0.14, 0.018) : geo.cbox(0.42, 0.14, 0.018, 0.005), L.trim, {});
+    for (const s of [-1, 1]) b.add(lite ? geo.box(0.018, 0.14, 0.07) : geo.cbox(0.018, 0.14, 0.07, 0.004), L.trim, { p: [s * 0.205, 0, -0.03] });
+    hazardStripes(b, 0, 0.02, 0.011, 0.38, 0.05, 8);
     // Zinken / tines
-    for (let i = 0; i < (lite ? 4 : 7); i++) b.add(geo.cone(0.01, 0.05, 4), mat.metal, { p: [-0.135 + i * (0.27 / (lite ? 3 : 6)), -0.045, 0.012], r: [Math.PI + 0.3, 0, 0] });
+    for (let i = 0; i < (lite ? 5 : 9); i++) b.add(geo.cone(0.011, 0.055, 4), mat.metal, { p: [-0.18 + i * (0.36 / (lite ? 4 : 8)), -0.082, 0.012], r: [Math.PI + 0.3, 0, 0] });
   });
-  for (const s of [-1, 1]) b.tube([s * 0.1, 0.1, 0.16], [s * 0.1, 0.06, 0.24], 0.01, 5, mat.dark);
-  // Minengestell hinten / mine rack at the rear
-  const rz = -0.11;
-  for (const s of [-1, 1]) for (const z of [rz - 0.07, rz + 0.07]) b.tube([s * 0.1, top, z], [s * 0.1, top + 0.11, z], 0.006, 4, mat.dark);
-  for (const y of [top + 0.005, top + 0.055]) {
-    b.box(0.22, 0.008, 0.16, mat.darkMid, [0, y, rz]);
-    for (const x of [-0.055, 0.055]) for (const z of [rz - 0.04, rz + 0.04]) discMine(b, [x, y + 0.016, z], 0.034, L.hullDark, L.secondary, lite);
-  }
-  b.box(0.22, 0.008, 0.008, mat.dark, [0, top + 0.11, rz - 0.07]);
-  b.box(0.22, 0.008, 0.008, mat.dark, [0, top + 0.11, rz + 0.07]);
+  for (const s of [-1, 1]) b.tube([s * 0.1, 0.11, 0.16], [s * 0.1, 0.09, 0.24], 0.01, 5, mat.dark);
+  // Minenwanne hinten: eine flache Lage Tellerminen hinter niedrigen Bordwaenden (statt des hohen Gestells, das wie ein Turm wirkte)
+  // mine tray at the rear: one flat layer of disc mines behind low side boards (instead of the tall rack that read as a turret)
+  const rz = -0.1;
+  b.box(0.23, 0.01, 0.2, mat.darkMid, [0, top + 0.005, rz]);
+  for (const s of [-1, 1]) b.add(lite ? geo.box(0.012, 0.035, 0.2) : geo.cbox(0.012, 0.035, 0.2, 0.004), L.trim, { p: [s * 0.115, top + 0.022, rz] });
+  b.add(lite ? geo.box(0.23, 0.035, 0.012) : geo.cbox(0.23, 0.035, 0.012, 0.004), L.trim, { p: [0, top + 0.022, rz - 0.1] });
+  if (!lite) hazardStripes(b, 0, top + 0.022, rz - 0.107, 0.2, 0.024, 5, Math.PI);
+  for (const x of [-0.06, 0.0, 0.06]) for (const z of [rz - 0.05, rz + 0.04]) discMine(b, [x, top + 0.022, z], 0.03, L.hullDark, L.secondary, lite);
   // Rutsche mit fallender Mine / chute with a dropping mine
   b.group({ p: [0, 0.09, -0.22], r: [-0.7, 0, 0] }, () => {
     b.box(0.08, 0.006, 0.12, mat.metal, [0, 0, -0.04]);
@@ -282,8 +300,8 @@ export function mineLayer(f: FactionId, lite = false): Builder {
     addEmblem(b, f, 0.028, 0.006, L.emblem, { p: [-0.128, 0.1, 0.0], r: [0, -HALF_PI, 0] });
     // Markierungsfaehnchen / marker pennants
     for (const s of [-1, 1]) {
-      b.tube([s * 0.12, top, -0.19], [s * 0.12, top + 0.13, -0.19], 0.003, 4, mat.dark);
-      b.box(0.004, 0.03, 0.045, s > 0 ? mat.yellow : L.primary, [s * 0.12, top + 0.115, -0.165]);
+      b.tube([s * 0.12, top, -0.19], [s * 0.12, top + 0.1, -0.19], 0.003, 4, mat.dark);
+      b.box(0.004, 0.026, 0.04, s > 0 ? mat.yellow : L.primary, [s * 0.12, top + 0.088, -0.168]);
     }
   }
   return b;
@@ -301,7 +319,8 @@ export function faustZealot(f: FactionId, lite = false): Builder {
       elbowPoleL: [-0.6, -1, 0.3],
       elbowPoleR: [0.8, -1, 0],
     }, { detail: lite ? 1 : 2, robe: true, seed: 91 });
-    rocketTube(b, [0.075, 0.262, 0], -0.15, { r: 0.03, len: 0.4, c: mat.rust, band: L.primary, style: 'cult', lite });
+    // uebergrosses Rohr wie beim Panzerabwehr-Trupp (Kennform gegen die anderen Kuttentraeger) / oversized tube like the anti-tank squad (signature against the other robed units)
+    rocketTube(b, [0.08, 0.275, -0.01], -0.12, { r: 0.044, len: 0.46, c: mat.rust, band: L.primary, style: 'cult', lite });
   });
   // Bueschel Ersatzraketen am Strick / bundle of spare rockets on a cord
   b.group({ p: [-0.13, 0, -0.12], r: [0, 0.5, 0] }, () => {
@@ -328,19 +347,35 @@ export function flakDrone(f: FactionId, lite = false): Builder {
   const L = look(f);
   const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
   const y = 0.13;
-  // vier kurze Laeufer-Beine / four short walker legs
+  // vier kurze Laeufer-Beine; Feinschliff: runde Glieder (Kapseln) mit Hydraulikzylinder, Kniekappe und Fussteller statt
+  // Vierkantstaeben / four short walker legs; polish: round limbs (capsules) with a hydraulic ram, knee cap and foot pad
+  // instead of square bars
+  // niedrige Qualitaet: Kapseln mit weniger Segmenten, ohne Zylinder und Kappen / low quality: capsules with fewer segments, without rams and caps
+  const lo = lite || !fine();
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const hip: V3 = [sx * 0.08, y, sz * 0.08];
     const knee: V3 = [sx * 0.17, y + 0.05, sz * 0.17];
-    const foot: V3 = [sx * 0.2, 0.01, sz * 0.2];
-    b.segment(new THREE.Vector3(...hip), new THREE.Vector3(...knee), (l) => (lite ? geo.box(0.03, l, 0.03) : geo.rbox(0.03, l, 0.03, 0.007)), metal);
-    b.segment(new THREE.Vector3(...knee), new THREE.Vector3(...foot), (l) => (lite ? geo.box(0.024, l, 0.024) : geo.rbox(0.024, l, 0.024, 0.006)), plate);
-    b.add(geo.sphere(0.02, lite ? 6 : 8, lite ? 3 : 4), metal, { p: knee });
-    b.add(geo.cyl(0.02, 0.026, 0.012, lite ? 6 : 8), glow, { p: [foot[0], 0.006, foot[2]] });
+    const foot: V3 = [sx * 0.2, 0.024, sz * 0.2];
+    b.segment(new THREE.Vector3(...hip), new THREE.Vector3(...knee), (l) => (lite ? geo.box(0.03, l, 0.03) : capsule(0.017, 0.015, l + 0.02, lo ? 6 : 10, 1)), metal);
+    b.segment(new THREE.Vector3(...knee), new THREE.Vector3(...foot), (l) => (lite ? geo.box(0.024, l, 0.024) : capsule(0.014, 0.011, l + 0.01, lo ? 6 : 10, 1)), plate, (l) => {
+      if (!lo) b.add(geo.cyl(0.0165, 0.0165, l * 0.3, 10, true), mat.dark, { p: [0, l * 0.62, 0] });
+    });
+    if (!lo) b.tube([hip[0] * 1.05, y + 0.035, hip[2] * 1.05], [knee[0] * 0.93, knee[1] + 0.02, knee[2] * 0.93], 0.005, 6, mat.metalLight);
+    b.add(geo.sphere(0.022, lite ? 6 : 10, lite ? 3 : 5), metal, { p: knee });
+    if (!lo) b.add(geo.hemi(0.024, 10, 3), plate, { p: [knee[0] * 1.06, knee[1] + 0.004, knee[2] * 1.06], r: [sz * 0.9, 0, -sx * 0.9] });
+    b.add(geo.cyl(0.022, 0.03, 0.014, lite ? 6 : 10), glow, { p: [foot[0], 0.007, foot[2]] });
+    if (!lo) b.add(geo.cyl(0.016, 0.022, 0.012, 10), metal, { p: [foot[0], 0.019, foot[2]] });
   }
-  // Sechseck-Plattform / hexagonal platform
+  // Sechseck-Plattform mit Unterbau und Lueftern / hexagonal platform with an underbody and vents
   b.add(geo.cyl(0.13, 0.11, 0.05, 6), plate, { p: [0, y, 0] });
   b.add(geo.cyl(0.132, 0.132, 0.008, 6), glow, { p: [0, y + 0.012, 0] });
+  if (!lo) {
+    b.add(geo.cyl(0.09, 0.05, 0.04, 6), metal, { p: [0, y - 0.044, 0] });
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 + Math.PI / 6;
+      b.box(0.04, 0.006, 0.012, mat.dark, [Math.sin(a) * 0.105, y + 0.026, Math.cos(a) * 0.105], [0, a, 0]);
+    }
+  }
   // Drehkopf mit vier Laeufen nach oben / turret head with four barrels pointing up
   b.cyl(0.06, 0.07, 0.03, lite ? 8 : 12, metal, [0, y + 0.04, 0]);
   b.add(lite ? geo.box(0.14, 0.07, 0.1) : geo.rbox(0.14, 0.07, 0.1, 0.018), plate, { p: [0, y + 0.085, -0.01] });

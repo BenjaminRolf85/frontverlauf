@@ -271,14 +271,32 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         });
       }
       if (o.pack === 'medbag') {
-        // uebergrosser Sanitaetsrucksack / oversized medical pack
-        b.add(part(0.2, 0.2, 0.11, 0.18, 1), mat.white, { p: [0, 0.085, -0.11] });
+        // Lesbarkeit: hohe Sanitaetskraxe, die ueber den Helm ragt (Kennform des Sanitaeters), Seiten- und Rueckenfeld gruen mit
+        // weissem Kreuz (kein rotes Kreuz auf Weiss: geschuetztes Zeichen). Velkar: niedriger Rucksack, der Kryo-Kanister ragt hoch.
+        // Readability: tall medical frame pack rising above the helmet (the medic's signature shape), side and back panels green
+        // with a white cross (no red cross on white: protected emblem). Velkar: low pack, the cryo canister rises instead.
+        const tall = f !== 'velkar';
+        const ph = tall ? 0.33 : 0.2, py = tall ? 0.185 : 0.085;
+        b.add(part(0.2, ph, 0.11, 0.18, 1), mat.white, { p: [0, py, -0.11] });
         b.add(part(0.206, 0.04, 0.116, 0.25, 1), L.primary, { p: [0, 0.11, -0.11] });
+        if (tall) {
+          // Feld mit Kreuz bundig in der Flaeche (duenne Aufsaetze blaehen die Tuschelinie auf) / panel with cross flush in the face (thin add-ons inflate the ink line)
+          const cross = (pp: V3, ry: number, s: number) => b.group({ p: pp, r: [0, ry, 0] }, () => {
+            b.add(geo.box(0.13 * s, 0.13 * s, 0.006), mat.green, {});
+            b.add(geo.box(0.084 * s, 0.026 * s, 0.009), mat.white, {});
+            b.add(geo.box(0.026 * s, 0.084 * s, 0.009), mat.white, {});
+          });
+          cross([0, 0.255, -0.1635], Math.PI, 1);
+          if (d >= 1) for (const s of [-1, 1]) cross([s * 0.1005, 0.255, -0.11], s * HALF_PI, 0.75);
+          // Deckel und Tragegestell / lid and carrying frame
+          b.add(part(0.21, 0.03, 0.118, 0.3, 1), shade(mat.white, 0.88), { p: [0, 0.345, -0.11] });
+          if (d >= 1) for (const s of [-1, 1]) b.box(0.012, 0.34, 0.012, L.gear, [s * 0.098, 0.18, -0.052]);
+        }
         if (d >= 1) {
           for (const s of [-1, 1]) b.add(part(0.04, 0.1, 0.08, 0.2, 1), shade(mat.white, 0.92), { p: [s * 0.118, 0.05, -0.105] });
-          b.add(part(0.17, 0.035, 0.1, 0.25, 1), shade(mat.white, 0.88), { p: [0, 0.2, -0.11] });
+          if (!tall) b.add(part(0.17, 0.035, 0.1, 0.25, 1), shade(mat.white, 0.88), { p: [0, 0.2, -0.11] });
           b.box(0.12, 0.05, 0.012, shade(mat.white, 0.85), [0, 0.04, -0.17]);
-          for (const s of [-1, 1]) b.box(0.016, 0.2, 0.01, L.gear, [s * 0.05, 0.085, -0.168]);
+          if (!tall) for (const s of [-1, 1]) b.box(0.016, 0.2, 0.01, L.gear, [s * 0.05, 0.085, -0.168]);
         }
       }
       // Kopf / head
@@ -620,11 +638,16 @@ export function mgTeam(f: FactionId, lite = false): Builder {
     b.cyl(0.016, 0.013, 0.03, 8, mat.dark, [0, gy + 0.004, 0.3], [HALF_PI, 0, 0]);
     // Griffe / grips
     for (const s of [-1, 1]) b.box(0.012, 0.035, 0.012, mat.wood, [s * 0.03, gy - 0.005, -0.075], [0.3, 0, 0]);
-    // Schutzschild mit Fraktionsfarbe + Emblem / gun shield in faction colour + emblem
-    b.add(geo.rtaper(0.15, 0.012, 0.13, 0.012, 0.1, 0.006), L.primary, { p: [0, gy + 0.03, 0.075], r: [-0.12, 0, 0] });
-    b.box(0.152, 0.016, 0.016, L.secondary, [0, gy + 0.077, 0.08], [-0.12, 0, 0]);
-    b.box(0.04, 0.03, 0.006, L.secondary, [0.045, gy + 0.035, 0.083], [-0.12, 0, 0]);
-    if (!lite) addEmblem(b, f, 0.022, 0.006, L.emblem, { p: [-0.035, gy + 0.03, 0.084], r: [-0.12, 0, 0] });
+    // Lesbarkeit: breiter, hoher Schutzschild mit Fluegeln (Kennform des MG-Nests: eine Wand mit Rohr), Fraktionsfarbe + Emblem
+    // readability: wide, tall gun shield with wings (signature of the MG nest: a wall with a barrel), faction colour + emblem
+    // Stahlgrau statt Uniformfarbe, damit sich die Wand von der Bedienung abhebt / steel grey instead of the uniform colour so the wall stands out from the crew
+    const steel = mix(mat.metal, L.primary, 0.22);
+    b.add(geo.rtaper(0.2, 0.014, 0.18, 0.014, 0.17, 0.006), steel, { p: [0, gy + 0.05, 0.075], r: [-0.12, 0, 0] });
+    if (!lite && fine()) for (const s of [-1, 1]) b.add(geo.rtaper(0.07, 0.012, 0.06, 0.012, 0.15, 0.005), shade(steel, 0.82), { p: [s * 0.124, gy + 0.045, 0.06], r: [-0.12, s * 0.5, 0] });
+    b.box(0.2, 0.016, 0.018, L.secondary, [0, gy + 0.137, 0.09], [-0.12, 0, 0]);
+    b.box(0.04, 0.012, 0.022, mat.ink, [-0.04, gy + 0.105, 0.085], [-0.12, 0, 0]);
+    b.box(0.04, 0.03, 0.006, L.secondary, [0.05, gy + 0.05, 0.084], [-0.12, 0, 0]);
+    if (!lite) addEmblem(b, f, 0.026, 0.006, L.primary, { p: [-0.045, gy + 0.05, 0.085], r: [-0.12, 0, 0] });
     // Munitionskasten + Gurt / ammo box + belt
     b.add(geo.cbox(0.07, 0.055, 0.045, 0.01), L.gear, { p: [0.085, 0.028, 0.0] });
     b.box(0.03, 0.012, 0.03, mat.dark, [0.085, 0.06, 0.0]);
@@ -669,15 +692,12 @@ export function medic(f: FactionId, lite = false): Builder {
   }, { detail: d, pack: 'medbag', armband: true, seed: 51 });
   if (f === 'velkar') {
     // Kryo-Kanister auf dem Rucksack: Frostzylinder mit Leuchtfenster und Ventilkappen / cryo canister on the pack: frost cylinder with glowing window and valve caps
-    b.cyl(0.042, 0.042, 0.17, 12, TECH.shell, [0, 0.39, -0.11]);
-    b.add(geo.cyl(0.044, 0.044, 0.07, 12, true), TECH.glow, { p: [0, 0.39, -0.11] });
-    for (const y of [0.3, 0.48]) b.cyl(0.03, 0.036, 0.022, 10, TECH.gear, [0, y, -0.11]);
-    b.tube([0.0, 0.48, -0.11], [0.06, 0.52, -0.06], 0.005, 4, TECH.gearDark);
-    techDot(b, [0.06, 0.525, -0.06], 0.009);
-  } else {
-    // zusammengerollte Decke oben auf dem Rucksack / rolled blanket on top of the pack
-    b.cyl(0.03, 0.03, 0.2, 12, shade(L.gear, 1.25), [0, 0.37, -0.11], [0, 0, HALF_PI]);
-    for (const x of [-0.06, 0.06]) b.add(geo.torus(0.032, 0.005, 3, 12), mat.dark, { p: [x, 0.37, -0.11], r: [0, HALF_PI, 0] });
+    // hoeher und dicker als zuvor: die Kennform ragt ueber den Helm wie die Kraxe der anderen / taller and thicker than before: the signature rises above the helmet like the others' frame pack
+    b.cyl(0.05, 0.05, 0.2, 12, TECH.shell, [0, 0.45, -0.11]);
+    b.add(geo.cyl(0.052, 0.052, 0.08, 12, true), TECH.glow, { p: [0, 0.45, -0.11] });
+    for (const y of [0.35, 0.55]) b.cyl(0.036, 0.042, 0.022, 10, TECH.gear, [0, y, -0.11]);
+    b.tube([0.0, 0.55, -0.11], [0.06, 0.575, -0.06], 0.005, 4, TECH.gearDark);
+    techDot(b, [0.06, 0.58, -0.06], 0.009);
   }
   });
   // Krankentrage neben dem Sanitaeter / stretcher on the ground next to the medic

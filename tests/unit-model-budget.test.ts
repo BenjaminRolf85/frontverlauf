@@ -26,6 +26,13 @@ const tris = (g: THREE.BufferGeometry) => g.getAttribute('position').count / 3;
  * the old state by at most LOW_SLACK per type and is below it in total.
  */
 const LOW_SLACK = 1.03;
+/**
+ * Bewusst ausgebaute Modelle (Feinschliff Runde 3, vorher die groebsten): fuer sie gilt die Vorher-Grenze der niedrigen
+ * Qualitaet nicht, nur ihre eigene Grenze in BUDGET. Keines davon steht in der Szene des spaeten Spiels der Grundfraktionen.
+ * Deliberately extended models (polish round 3, before the coarsest ones): the before limit of low quality does not apply
+ * to them, only their own limit in BUDGET. None of them is in the late-game scene of the base factions.
+ */
+const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [5750, 4550, 4891], // 5453 / 4300
@@ -54,15 +61,15 @@ const BUDGET: Record<string, [number, number, number]> = {
   torchbearer: [6100, 5100, 4984], // 5768 / 4848
   prophet: [5750, 4800, 5026], // 5454 / 4534
   doomBuggy: [5550, 4800, 5576], // 5240 / 4556
-  rocketCart: [5650, 5000, 5392], // 5340 / 4724
+  rocketCart: [6150, 5500, 5392], // 5834 / 5218 (Lesbarkeit: grosses Raketengestell / readability: big rocket rack)
   doomCrawler: [7650, 7350, 8023], // 7247 / 6983
   faustZealot: [6200, 5250, 4967], // 5883 / 4963
   android: [4700, 4300, 4376], // 4472 / 4088
   cyborg: [4500, 3850, 3692], // 4276 / 3636
-  kamikazeDrone: [3450, 3450, 3864], // 3280 / 3280
+  kamikazeDrone: [4600, 3800, 3864], // 4364 / 3616 (Feinschliff Runde 3 / polish round 3)
   spider: [4750, 4600, 4456], // 4492 / 4364
   quadDrone: [4450, 4400, 4742], // 4230 / 4166
-  flakDrone: [2150, 2100, 2074], // 2042 / 1978
+  flakDrone: [3800, 2400, 2074], // 3602 / 2242 (Feinschliff Runde 3 / polish round 3)
   railgun: [5950, 5650, 5580], // 5636 / 5380
   flameTank: [7450, 7200, 7006], // 7070 / 6814
   titan: [7000, 6100, 5772], // 6620 / 5788
@@ -78,9 +85,9 @@ const BUDGET: Record<string, [number, number, number]> = {
   reliquary: [6250, 6050, 6278], // 5910 / 5750
   sunLance: [5100, 4550, 5013], // 4843 / 4295
   steppeColossus: [9350, 8800, 8643], // 8868 / 8369
-  shadowCommando: [4750, 3450, 3531], // 4479 / 3273
-  fogCutter: [800, 750, 704], // 736 / 696
-  guidedMissile: [700, 700, 668], // 648 / 648
+  shadowCommando: [5150, 3800, 3531], // 4883 / 3613 (Lesbarkeit: Sprengrucksack / readability: demolition pack)
+  fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)
+  guidedMissile: [4200, 1400, 668], // 3976 / 1324 (Feinschliff Runde 3 / polish round 3)
   radarTruck: [4200, 3600, 3470], // 3962 / 3386
   swarmMother: [16350, 16250, 15432], // 15560 / 15432
   scientist: [4350, 3150, 3038], // 4102 / 2998
@@ -131,7 +138,7 @@ describe('Einheitenmodelle: Budget / unit models: budget', () => {
         if (n > (t === 'swarmMother' ? UNIT_TRI_LIMIT_BOSS : UNIT_TRI_LIMIT)) over.push(`${t} ${f}: ${n} above the model ceiling`);
       }
       // niedrige Qualitaet: kein Typ nennenswert teurer als vor dem Feinschliff / low quality: no type notably more expensive than before the polish
-      if (q === 'low') for (const [t, n] of max) if (n > BUDGET[t][2] * LOW_SLACK) over.push(`${t}: low ${n} > before ${BUDGET[t][2]}`);
+      if (q === 'low') for (const [t, n] of max) if (!RAISED.has(t) && n > BUDGET[t][2] * LOW_SLACK) over.push(`${t}: low ${n} > before ${BUDGET[t][2]}`);
       expect(over).toEqual([]);
       expect(sum).toBeLessThanOrEqual(SUMME[qi]);
       // niedrige Qualitaet bleibt unter dem Stand vor dem Feinschliff / low quality stays below the pre-polish state

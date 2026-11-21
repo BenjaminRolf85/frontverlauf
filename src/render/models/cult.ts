@@ -9,7 +9,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, geo, mix, rng, shade, type V3 } from './kit';
+import { Builder, fine, geo, mix, rng, shade, type V3 } from './kit';
 import { look, mat } from './look';
 import { rifle, seatPose, soldier, standPose } from './soldiers';
 import { antenna, commander, roofMg, tracks } from './tanks';
@@ -144,9 +144,12 @@ export function prophet(f: FactionId, lite = false): Builder {
   const L = look(f);
   const d = lite ? 1 : 2;
   b.group({ s: 1.12 }, () => {
+    // Lesbarkeit: predigt mit dem Buch hoch ueber dem Kopf (Kennform des Propheten: ein erhobener Arm) / readability: preaches
+    // with the book held high above the head (the prophet's signature: one raised arm)
     soldier(b, f, {
-      ...standPose([[-0.06, 0.2, 0.1], [0.12, 0.22, 0.04]]),
-      head: [0.1, 0, 0],
+      ...standPose([[-0.1, 0.43, 0.07], [0.12, 0.22, 0.04]]),
+      head: [-0.25, 0, 0.1],
+      elbowPoleL: [-1, 0.2, 0.3],
     }, { detail: d, robe: true, seed: 31 });
     // Stab mit Glutlaterne / staff with ember lantern
     b.tube([0.13, 0.0, 0.05], [0.12, 0.5, 0.035], 0.008, 6, mat.wood);
@@ -154,10 +157,18 @@ export function prophet(f: FactionId, lite = false): Builder {
     b.tube([0.15, 0.53, 0.035], [0.15, 0.505, 0.035], 0.002, 3, mat.dark);
     lantern(b, [0.15, 0.44, 0.035], 1.5);
     // heiliges Buch / holy book
-    b.add(geo.rbox(0.07, 0.016, 0.055, 0.004), L.primaryDark, { p: [-0.06, 0.205, 0.11], r: [0.5, 0.2, 0] });
-    b.add(geo.box(0.064, 0.012, 0.05), mat.bone, { p: [-0.06, 0.212, 0.107], r: [0.5, 0.2, 0] });
-    // Mitra-Hut mit Sonnenzeichen / mitre-like hat with sun mark
-    b.add(geo.taper(0.09, 0.07, 0.03, 0.03, 0.1), L.primary, { p: [0, 0.48, 0.0] });
+    b.group({ p: [-0.1, 0.47, 0.075], r: [-1.2, 0.3, 0] }, () => {
+      b.add(geo.rbox(0.1, 0.02, 0.075, 0.005), L.primaryDark, {});
+      b.add(geo.box(0.092, 0.016, 0.068), mat.bone, { p: [0, 0.004, 0] });
+      b.box(0.012, 0.022, 0.078, mat.ember, [0, 0.0, 0]);
+    });
+    // Lesbarkeit: weites, glockenfoermiges Ornat bis zum Boden (Kennform: ein Dreieck statt der schmalen Kutte der Eiferer)
+    // readability: wide bell-shaped vestment down to the ground (signature: a triangle instead of the zealots' narrow robe)
+    b.add(geo.rtaper(0.36, 0.29, 0.17, 0.13, 0.29, 0.014), shade(L.primary, 0.78), { p: [0, 0.155, -0.005] });
+    b.add(geo.rtaper(0.368, 0.298, 0.36, 0.29, 0.022, 0.008), mat.ember, { p: [0, 0.022, -0.005] });
+    b.box(0.05, 0.25, 0.012, mat.bone, [0, 0.15, 0.1], [-0.2, 0, 0]);
+    // Mitra-Hut mit Sonnenzeichen, hoeher als zuvor / mitre-like hat with sun mark, taller than before
+    b.add(geo.taper(0.1, 0.078, 0.032, 0.032, 0.13), L.primary, { p: [0, 0.48, 0.0] });
     b.box(0.092, 0.012, 0.072, mat.ember, [0, 0.44, 0.0]);
     addEmblem(b, 'vesper', 0.022, 0.004, mat.bone, { p: [0, 0.49, 0.03], r: [-0.18, 0, 0] });
     // rote Stola / red stole
@@ -244,18 +255,21 @@ export function rocketCart(f: FactionId, lite = false): Builder {
   b.block(0, by, -0.1, 0.22, 0.012, 0.2, mat.rustDark);
   for (const sx of [-1, 1]) b.block(sx * 0.105, by, -0.1, 0.012, 0.05, 0.2, L.hull);
   b.block(0, by, -0.198, 0.22, 0.05, 0.012, L.hull);
-  // Raketengestell aus Rohren / rocket rack from pipes
-  b.group({ p: [0, by + 0.14, -0.09], r: [-0.4, 0, 0] }, () => {
-    b.box(0.18, 0.01, 0.17, mat.gunmetal, [0, -0.035, 0]);
-    for (const sx of [-1, 1]) b.box(0.01, 0.08, 0.17, mat.gunmetal, [sx * 0.085, 0.0, 0]);
-    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
-      const x = -0.05 + c * 0.05, y = -0.012 + r * 0.04;
-      b.cyl(0.018, 0.018, 0.17, lite ? 6 : 10, (r + c) % 2 ? mat.rust : shade(mat.rust, 1.25), [x, y, 0], [HALF_PI, 0, 0]);
-      if (!lite) b.add(geo.cyl(0.019, 0.019, 0.012, 10, true), mat.rustDark, { p: [x, y, 0.06], r: [HALF_PI, 0, 0] });
-      b.add(geo.cone(0.013, 0.04, lite ? 5 : 8), (r + c) % 2 ? L.primary : mat.ember, { p: [x, y, 0.1], r: [HALF_PI, 0, 0] });
+  // Raketengestell aus Rohren; Lesbarkeit: gross und steil aufgerichtet (drei mal drei lange Raketen), die Kennform gegen den
+  // Buggy mit Geschuetz / rocket rack from pipes; readability: big and raised steeply (three by three long rockets), the
+  // signature against the buggy with its gun
+  b.group({ p: [0, by + 0.23, -0.1], r: [-0.85, 0, 0] }, () => {
+    b.box(0.21, 0.012, 0.32, mat.gunmetal, [0, -0.05, 0]);
+    for (const sx of [-1, 1]) b.box(0.012, 0.14, 0.32, mat.gunmetal, [sx * 0.1, 0.0, 0]);
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      const x = -0.06 + c * 0.06, y = -0.03 + r * 0.046;
+      b.cyl(0.021, 0.021, 0.32, lite || !fine() ? 6 : 10, (r + c) % 2 ? mat.rust : shade(mat.rust, 1.25), [x, y, 0], [HALF_PI, 0, 0]);
+      if (!lite && fine()) b.add(geo.cyl(0.022, 0.022, 0.012, 10, true), mat.rustDark, { p: [x, y, 0.1], r: [HALF_PI, 0, 0] });
+      b.add(geo.cone(0.016, 0.05, lite || !fine() ? 5 : 8), (r + c) % 2 ? L.primary : mat.ember, { p: [x, y, 0.185], r: [HALF_PI, 0, 0] });
     }
   });
-  b.cyl(0.014, 0.018, 0.12, 6, mat.gunmetal, [0, by + 0.06, -0.1]);
+  b.cyl(0.018, 0.022, 0.2, 6, mat.gunmetal, [0, by + 0.1, -0.1]);
+  b.tube([0, by + 0.02, -0.19], [0, by + 0.16, -0.18], 0.012, 6, mat.gunmetal);
   if (!lite) {
     // Fahrer, Banner, Kisten, Stossstange / driver, banners, crates, bumper
     for (const sx of [-1, 1]) {

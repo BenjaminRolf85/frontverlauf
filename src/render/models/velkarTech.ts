@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import type { FactionId, UnitTypeId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { addEmblem } from './emblems';
-import { Builder, col, geo, rng, shade, type V3 } from './kit';
+import { Builder, col, fine, geo, rng, shade, type V3 } from './kit';
 import { look, mat } from './look';
 import { kneelPose, seatPose, soldier, standPose, type Detail } from './soldiers';
 import { tracks } from './tanks';
@@ -334,10 +334,16 @@ export function sensorCarrier(f: FactionId, lite = false): Builder {
   b.cyl(0.014, 0.016, 0.12, 8, TECH.shellShade, [mx, my + 0.18, mz]);
   b.cyl(0.009, 0.01, 0.08, 6, TECH.gear, [mx, my + 0.28, mz]);
   for (const y of [my + 0.12, my + 0.24]) b.add(geo.torus(0.019, 0.004, 3, 10), TECH.glow, { p: [mx, y, mz], r: [HALF_PI, 0, 0] });
-  b.group({ p: [mx, my + 0.33, mz], r: [0, 0.5, 0] }, () => {
-    b.add(geo.cyl(0.065, 0.02, 0.03, lite ? 8 : 12, true), TECH.shell, { p: [0, 0, 0.02], r: [HALF_PI - 0.4, 0, 0] });
-    b.cyl(0.006, 0.006, 0.05, 4, mat.dark, [0, 0.0, 0.04], [HALF_PI - 0.4, 0, 0]);
-    techDot(b, [0, 0.012, 0.065], 0.01);
+  // Lesbarkeit: flacher, breiter Radardom (Linse) oben auf dem Mast: eine waagrechte Scheibe ueber der Wanne ist die Kennform
+  // des Sensortraegers gegen die senkrechten Tesla-Spulen / readability: flat, wide radar dome (lens) on top of the mast: a
+  // horizontal disc above the hull is the sensor carrier's signature against the upright Tesla coils
+  // niedrige Qualitaet: weniger Segmente / low quality: fewer segments
+  const ds = lite || !fine() ? 0 : 1;
+  b.group({ p: [mx, my + 0.31, mz] }, () => {
+    b.add(geo.sphere(0.15, ds ? 20 : 10, ds ? 10 : 4), TECH.shell, { s: [1, 0.2, 1] });
+    b.add(geo.cyl(0.152, 0.152, 0.012, ds ? 20 : 10, true), TECH.gearDark, { p: [0, 0, 0] });
+    b.add(geo.cyl(0.04, 0.03, 0.02, ds ? 12 : 6), TECH.gear, { p: [0, 0.03, 0] });
+    techDot(b, [0, 0.045, 0], 0.011);
   });
   // Antenne und kleines MG / antenna and small MG
   b.tube([-0.07, by + 0.095, -0.15], [-0.08, by + 0.27, -0.17], 0.003, 4, mat.dark);

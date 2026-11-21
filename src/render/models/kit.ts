@@ -153,6 +153,14 @@ export function fine(): boolean {
   return DETAIL.fine;
 }
 /**
+ * Einheit in niedriger Qualitaet (Feinbereich ohne fine)? Gebaeude und Wunder liegen nicht im Feinbereich und bleiben
+ * davon unberuehrt. / unit on low quality (fine scope without fine)? Buildings and wonders are outside the fine scope
+ * and stay unaffected.
+ */
+export function unitLow(): boolean {
+  return DETAIL.smooth && !DETAIL.fine;
+}
+/**
  * Segmentanzahl im aktuellen Detailbereich. Im Feinbereich bekommen Kleinstteile (Radius `size` unter TINY bzw. SMALL)
  * keine oder weniger zusaetzliche Segmente: dort sieht sie niemand, die Dreiecke gehen an die grossen Rundungen.
  * Segment count in the current detail scope. In the fine scope tiny parts (radius `size` below TINY or SMALL) get no
