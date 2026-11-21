@@ -671,7 +671,7 @@ export const NEXUS = { faction: 'nexus' as FactionId };
  */
 export const HACK = {
   factions: ['nexus'] as FactionId[],
-  place: { cost: 20, perLevel: 5, perHacked: 5, recharge: 10, firstRound: 6, perTurn: 1 },
+  place: { cost: 15, perLevel: 5, perHacked: 5, recharge: 10, firstRound: 6, perTurn: 1 },
   /**
    * Stadt-Hack (Spielerwunsch): eine aufgedeckte feindliche Stadt (Kriegsgegner) hacken, nicht einnehmen. rounds Runden lang
    * sieht NEXUS alle Einheiten im Umkreis radius + Stadtradius (Sichtung, auch unter den Wolken), die Felder werden aufgedeckt,
@@ -685,7 +685,7 @@ export const HACK = {
    */
   city: { cost: 10, rounds: 3, radius: 2, cooldown: 4 },
   tower: {
-    cost: 40, hp: 18, attack: 0, defense: 2.5,
+    cost: 30, hp: 24, attack: 0, defense: 3,
     /** kein Gegenschlag: Schussweite 0 / no return fire: firing range 0 */
     range: 0,
     race: 'robot' as HitRace,
@@ -696,7 +696,7 @@ export const HACK = {
     /** Zuege unter NEXUS-Steuerung / turns under NEXUS control */
     rounds: 2,
     /** Runden ab der Uebernahme bis zur naechsten / rounds from a takeover to the next */
-    cooldown: 4,
+    cooldown: 3,
     /**
      * Ausgang am regulaeren Ende (Spielerwunsch, bewusst laestig: NEXUS ist eine KI): mit keep bleibt die Einheit dauerhaft
      * bei NEXUS, mit shutdown schaltet sie sich ab und wird zum Wrack (Wurf aus dem Zufallsstrom des Spiels); sonst kehrt
@@ -716,7 +716,9 @@ export const HACK = {
    */
   ai: { placeValue: 60, baseBonus: 15, minCities: 2, frontRange: 6, towerValue: 70, minValue: 20, reserve: 10,
     /** Stadt-Hack: Wert, hoechstens so weit von eigenen Einheiten oder Staedten / city hack: value, at most this far from own units or cities */
-    cityValue: 10, cityRange: 6 },
+    cityValue: 10, cityRange: 4,
+    /** Wertfaktor einer uebernommenen Einheit (analysis.ts worth) / worth factor of a taken-over unit (analysis.ts worth) */
+    hijackedWorth: 0.4 },
 };
 
 /**

@@ -3,7 +3,7 @@
  * Game HUD: slim status bar on top, map controls, action bar in the thumb zone.
  */
 import {
-  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SILO, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
+  type FactionId, type UnitTypeId, type CounterClass, type WonderKind, WONDERS, COUNTER, CRASH, CULT, CITY, INCOME, JUNGLE, VOLCANO, XENO, BARRIER, CITY_UPGRADES, CITY_UPGRADE_IDS, BUILDINGS, type CityUpgradeId, GRAND_PROJECT_IDS, INFANTRY_TYPES, SHIP_UPGRADES, UNIQUE, UNITS, UPKEEP, HIT_KINDS, VERDAN, EMPLACEMENT, SILO, HACK, SUPPLY_LINE, TOWER, ROCKETS, RESEARCH_CENTER_TECH, RESOURCE, type BuildingId, type TechId,
 } from '../data/balance';
 import {
   burning, isJungle, roundsToEruption, corruptionRule, paidUnits, unitUpkeep, upkeepFactor, upkeep, neighbors, canResearch, computeStats, isCultFaction, isRobotFaction, recruitSpot, recruitReason, recruitTypes, recruitWait, cultCap, cultSlots, cultUnits, plunderValue, cityTiles,
@@ -933,12 +933,15 @@ export class Hud {
       const owned = gun.owner !== undefined;
       // Raketensilo: eigener Name, kein Gegenschlag / rocket silo: own name, no return fire
       const isSilo = gun.kind === 'silo';
-      const sub = kill ? t(isSilo ? 'shadow.silo.previewKill' : owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
+      // Hackturm (NEXUS): eigener Name, kein Gegenschlag / hack tower (NEXUS): own name, no return fire
+      const isHack = gun.kind === 'hack';
+      const sub = kill ? t(isSilo ? 'shadow.silo.previewKill' : isHack ? 'hack.tower.previewKill' : owned ? 'emplacement.previewKill' : 'verdan.previewKill') : t('verdan.preview', { dmg: pre.toTurret, ret: pre.ret(gun.hp - pre.toTurret) });
       const about = isSilo ? `${t('shadow.silo.nameOf', { name: t(`factions.${s.factions[gun.owner!].id}.short`) })}: ${t('shadow.silo.stats', { hp: gun.hp, max: SILO.hp, range: SILO.launchRange, dmg: SILO.damage })}`
+        : isHack ? `${t('hack.tower.nameOf', { name: t(`factions.${s.factions[gun.owner!].id}.short`) })}: ${t('hack.tower.stats', { hp: gun.hp, max: HACK.tower.hp, reach: HACK.tower.reach })}`
         : owned ? `${emplacementName(s, gun.owner!)}: ${emplacementStats(gun.hp)}` : t('verdan.desc', { wake: VERDAN.wakeRange, range: VERDAN.range });
       if (pre.moveFire) this.combatNote = moveFireHint(s, u);
       this.actions.push({
-        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(isSilo ? 'shadow.silo.attack' : owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
+        id: 'attackTurret', icon: 'attack', variant: 'danger', enabled: true, label: t(isSilo ? 'shadow.silo.attack' : isHack ? 'hack.tower.attack' : owned ? 'emplacement.attack' : 'verdan.attack'), sub, desc: `${sub}${pre.moveFire ? `. ${moveFireHint(s, u)}` : ''}. ${about}`,
         run: () => void g.exec({ type: 'attackTurret', unit: u.id, x: gunAt.x, y: gunAt.y }),
       });
     }
