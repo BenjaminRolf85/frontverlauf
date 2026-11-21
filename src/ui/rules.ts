@@ -13,6 +13,7 @@ import { baseRulesLines } from './bases';
 import { has, num, t } from '../i18n/i18n';
 import { dialogTitle, esc, factionChip, openDialog } from './components';
 import { icon } from './icons';
+import { ROLE_ICON, UNIT_ROLES } from './unitRoles';
 import { techT } from './terms';
 import { victoryShortText } from './victory';
 import { emplacementRuleParams } from './emplacement';
@@ -33,6 +34,8 @@ function sections(): Section[] {
     { id: 'upkeep', icon: 'helmet', params: { free: UPKEEP.freeUnits, pct: pct(UPKEEP.share), tank: UPKEEP.flat.tank ?? 0, korvat: Math.round((1 - (UPKEEP.faction.korvat ?? 1)) * 100) } },
     { id: 'combat', icon: 'dice', params: { miss: pct(HIT.mult.miss), graze: pct(HIT.mult.graze), partial: pct(HIT.mult.partial), full: pct(HIT.mult.full), crit: pct(HIT.mult.crit), move: pct(MOVE_FIRE.damage) }, extra: () => rearLine() + combatBonusLines() + unitHitLines() },
     { id: 'cover', icon: 'shield', params: { ring: t('rewards.bunkerRing'), city: fac(DEFENSE_BONUS.city), bunker: fac(DEFENSE_BONUS.cityWithBunker), outpost: fac(DEFENSE_BONUS.outpost), terrain: fac(DEFENSE_BONUS.terrainWithTech), ranged: fac(RANGED_COVER.factor) } },
+    // Einheitensymbole: Legende der Rollen auf der LP-Plakette (unitRoles.ts) / unit icons: legend of the roles on the HP badge (unitRoles.ts)
+    { id: 'unitIcons', icon: 'roleInfantry', extra: roleLegend },
     { id: 'abilities', icon: 'move', params: { retreat: pct(RETREAT.damage), cooldown: RETREAT.cooldown, repair: pct(REPAIR.factor), range: ROCKETS.range, max: ROCKETS.max, depot: t('cityUpgrades.depot'), move: pct(MOVE_FIRE.damage) } },
     { id: 'cities', icon: 'city', params: { t1: ECON.researchCost(1, 1), t1c3: ECON.researchCost(1, 3), t3c3: ECON.researchCost(3, 3), slots: CITY_UPGRADES.slots,
       cap: CITY.unitLimitPerUpgrade, buy: CITY.buyLevelBase, ex2: CITY.buyLevelCost(1), ex3: CITY.buyLevelCost(2), ex4: CITY.buyLevelCost(3),
@@ -75,6 +78,14 @@ function siteLines(): string {
     const extra = site === PRODUCTION.builtIn ? ` · ${t('sites.builtIn')}: ${t('hud.hq')}` : '';
     return `<li><strong>${esc(t(`buildings.${site}`))}</strong> (${BUILDINGS[site].cost} ${esc(t('hud.stars'))}${esc(extra)}): ${esc(units)}${need ? `. ${esc(t('sites.needs', { site: t(`buildings.${site}`), needs: needsText(need) }))}` : ''}</li>`;
   }).join('')}</ul>`;
+}
+
+/**
+ * Legende der Einheitensymbole: je Rolle das Symbol wie auf der Plakette (Tuschekreis, helles Symbol) und ihr Name.
+ * Legend of the unit icons: per role the icon as on the badge (ink disc, light icon) and its name.
+ */
+function roleLegend(): string {
+  return `<ul class="rules-roles">${UNIT_ROLES.map((r) => `<li><span class="role-cap">${icon(ROLE_ICON[r], 'icon-sm')}</span><span>${esc(t(`unitRoles.${r}`))}</span></li>`).join('')}</ul>`;
 }
 
 /** Eine Zeile je neuer Doktrin-Wirkung / one line per new doctrine effect */

@@ -10,7 +10,8 @@ import { FACING_DIRS, canFace, attackTargets, levelUpCost, burning, memorialAt, 
 import { factionTokens, hex, semantic } from '../design/tokens';
 import { cityNameOf } from '../i18n/cityNames';
 import { ANIM, CAMERA, CITY_MASK, CITY_SIGN, CLOUD_Y, GARRISON, MARKER, OUTLINE, SETTLEMENT_SCALE, SLAB_DEPTH, TILE_BOTTOM, TILE_TOP } from './config';
-import { attackIcon, cityLabel, hpBadge, raceBadge } from './labels';
+import { attackIcon, cityLabel, hpBadge, pruneBadgeCache, raceBadge } from './labels';
+import { unitRoleIcon } from '../ui/unitRoles';
 import * as models from './models';
 import { WeatherFx } from './weather';
 import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
@@ -1438,10 +1439,11 @@ export class Board {
         (u.exhausted || u.fresh || u.attacked || (u.moved && attackTargets(s, u).length === 0));
       // Heiliges Alvenia: Suendenzeichen und Segen auf der Plakette / Holy Alvenia: sinner mark and blessing on the badge
       const sin = isSinner(s, u.owner) && judgeAlive(s), blessed = blessingOf(s, u) > 0;
-      const badgeKey = `${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}-${sin}-${blessed}`;
+      const badgeKey = `${u.type}-${u.hp}-${u.maxHp}-${u.veteran}-${done}-${u.fuel}-${sin}-${blessed}`;
       if (v.badgeKey !== badgeKey) {
         if (v.badge) v.group.remove(v.badge);
-        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed });
+        // Rollensymbol links auf der Plakette (unitRoles.ts) / role icon on the left of the badge (unitRoles.ts)
+        v.badge = hpBadge({ hp: u.hp, maxHp: u.maxHp, color: ft.primary, ink: ft.ink, veteran: u.veteran, done, fuel: u.fuel, maxFuel: FUEL.tank, sin, blessed, icon: unitRoleIcon(u.type) });
         // Endgegner: Balken ueber der Krone / boss: badge above the crown
         v.badge.position.set(0, u.type === 'heli' || u.type === 'octocopter' ? 1.02 : u.type === 'swarmMother' ? 2.15 : 0.8, 0);
         v.badge.userData.size = v.badge.scale.clone();
@@ -1488,6 +1490,11 @@ export class Board {
       if (!seen.has(id) && !this.isAnimating(id)) { this.unitLayer.remove(v.group); this.units.delete(id); this.techParts.detach(id); }
     }
     for (const m of [this.facing, this.turretAim]) for (const id of m.keys()) if (!alive.has(id) && !this.isAnimating(id)) m.delete(id);
+    // Plaketten-Zwischenspeicher begrenzen: nicht mehr gezeigte Plaketten freigeben (BADGE.cacheMax)
+    // bound the badge cache: release badges no longer shown (BADGE.cacheMax)
+    const shown = new Set<THREE.Material>();
+    for (const v of this.units.values()) if (v.badge) shown.add(v.badge.material);
+    pruneBadgeCache(shown);
     this.life.endSync(seen);
     this.updateShadows();
     this.dirty = true;

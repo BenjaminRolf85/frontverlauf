@@ -3675,6 +3675,10 @@
     "bases": {
       "title": "Bases",
       "text": "In free games on the default world every neutral place is a base of one of {kinds} kinds, including where transmitter towers would otherwise stand. It is unguarded: whoever finds it captures it like any village and uses it from the next turn. Tap it to see what it gives you before you capture it. Once captured it behaves like a city: it grows, levels up and can be upgraded, and its property applies on top for as long as you hold it. Next to every headquarters lies a barracks, the same for everyone. The other kinds are dealt as a mix: in turn one each of production, power, supply and protection, and no kind appears twice while another one would still find a place; with NEXUS in the game there is at least one power kind if a place suits it. For the five human factions the barracks, tank factory, military airfield, gun works and naval base come with the matching production site built in. Zyrr, cult and NEXUS have no production sites: for them the matching units cost {pct} % less everywhere while they hold the base; a faction without a matching unit gets {gap} stars per round instead. Residential blocks and the supermarket train troops for nobody (at most a quarter of the places other than the home barracks): their slots support units you train in other, full cities. Bunker, field hospital and supply depot contain the city upgrade of the same name in a stronger form; it cannot be bought there again. Of a base's stars the cult receives {tribute} % as tribute."
+    },
+    "unitIcons": {
+      "title": "Unit icons",
+      "text": "Every unit carries its badge: on the left the icon of its role, next to it the hit points, after that a veteran's star. Same role, same icon, for every faction; the troop cards and the unit panel show the same icons."
     }
   },
   "lore": {
@@ -4252,5 +4256,32 @@
     "unitTip": "Plus +{n} from the base.",
     "tribute": "Tribute for the cult: +{n} stars per round ({baseTributePct} % of what others get here).",
     "gapCult": "The cult has no matching unit. Tribute: +{n} stars per round."
+  },
+  "unitRoles": {
+    "infantry": "Infantry",
+    "sniper": "Snipers",
+    "mg": "Machine gun",
+    "antiTank": "Anti-tank",
+    "flame": "Flamethrowers",
+    "medic": "Healers",
+    "engineer": "Engineers and builders",
+    "spy": "Spy",
+    "commando": "Commando",
+    "scientist": "Scientist",
+    "artillery": "Artillery",
+    "tank": "Tanks",
+    "walker": "Walkers and mechs",
+    "antiAir": "Anti-air",
+    "mines": "Mine layer",
+    "recon": "Recon",
+    "radar": "Radar",
+    "air": "Aircraft",
+    "kamikaze": "Kamikaze (explodes when attacking)",
+    "transport": "Transport boat",
+    "submarine": "Submarine",
+    "warship": "Destroyer and privateer",
+    "battleship": "Battleship",
+    "wonder": "Wonder",
+    "boss": "Boss"
   }
 }

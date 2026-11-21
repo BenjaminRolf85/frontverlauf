@@ -3675,6 +3675,10 @@
     "bases": {
       "title": "Stützpunkte",
       "text": "In freien Partien der Standardwelt ist jeder neutrale Ort ein Stützpunkt einer von {kinds} Arten, auch dort, wo sonst Sendetürme stünden. Er ist unbewacht: Wer ihn findet, nimmt ihn ein wie jede Siedlung und nutzt ihn ab dem nächsten Zug. Tippe ihn an, um vor dem Einnehmen zu sehen, was er dir bringt. Eingenommen verhält er sich wie eine Stadt: Er wächst, steigt auf und lässt sich ausbauen, und dazu wirkt seine Eigenschaft, solange du ihn hältst. Neben jedem Hauptquartier liegt eine Kaserne, für alle gleich. Die übrigen Arten sind gemischt verteilt: reihum je eine aus Produktion, Energie, Versorgung und Schutz, und keine Art kommt doppelt vor, solange eine andere noch Platz fände; spielt NEXUS mit, gibt es mindestens ein Kraftwerk, wenn ein Ort dafür taugt. Den fünf Menschen-Fraktionen bringen Kaserne, Panzerfabrik, Militärflughafen, Geschützwerk und Marinestützpunkt die passende Produktionsstätte fertig eingebaut. Zyrr, Kult und NEXUS haben keine Produktionsstätten: Für sie kosten die passenden Einheiten überall {pct} % weniger, solange sie den Stützpunkt halten; wer keine passende Einheit hat, bekommt stattdessen {gap} Sterne pro Runde. Wohnblöcke und Supermarkt bilden für niemanden Truppen aus (höchstens ein Viertel der Orte außer den Heimat-Kasernen): Ihre Plätze tragen Einheiten, die du in anderen, vollen Städten ausbildest. Bunker, Lazarett und Nachschubdepot enthalten den gleichnamigen Stadt-Ausbau in stärkerer Form; dort lässt er sich nicht noch einmal kaufen. Von den Sternen eines Stützpunkts bekommt der Kult {tribute} % als Tribut."
+    },
+    "unitIcons": {
+      "title": "Einheitensymbole",
+      "text": "Über jeder Einheit schwebt ihre Plakette: links das Symbol ihrer Rolle, daneben die Lebenspunkte, dahinter der Stern eines Veteranen. Gleiche Rolle, gleiches Symbol, bei allen Fraktionen; dieselben Symbole stehen auf den Truppenkarten und im Einheitenfeld."
     }
   },
   "lore": {
@@ -4252,5 +4256,32 @@
     "unitTip": "Dazu +{n} durch den Stützpunkt.",
     "tribute": "Tribut für den Kult: +{n} Sterne pro Runde ({baseTributePct} % dessen, was andere hier bekommen).",
     "gapCult": "Der Kult hat keine passende Einheit. Tribut: +{n} Sterne pro Runde."
+  },
+  "unitRoles": {
+    "infantry": "Infanterie",
+    "sniper": "Scharfschützen",
+    "mg": "Maschinengewehr",
+    "antiTank": "Panzerabwehr",
+    "flame": "Flammenwerfer",
+    "medic": "Heiler",
+    "engineer": "Pioniere und Bauer",
+    "spy": "Spion",
+    "commando": "Kommando",
+    "scientist": "Wissenschaftler",
+    "artillery": "Artillerie",
+    "tank": "Panzer",
+    "walker": "Läufer und Mechs",
+    "antiAir": "Flugabwehr",
+    "mines": "Minenleger",
+    "recon": "Aufklärung",
+    "radar": "Radar",
+    "air": "Luftfahrzeuge",
+    "kamikaze": "Kamikaze (explodiert beim Angriff)",
+    "transport": "Transportboot",
+    "submarine": "U-Boot",
+    "warship": "Zerstörer und Kaperschiff",
+    "battleship": "Kriegsschiff",
+    "wonder": "Wunder",
+    "boss": "Endgegner"
   }
 }

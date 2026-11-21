@@ -29,10 +29,18 @@ export const MARKER = {
   segments: 40, lift: 0.012,
 };
 /**
- * LP-Plakette: Mindestbreite und Innenabstand des Schilds in Canvas-Pixeln (Canvas 128 breit, Ziffern 44 hoch).
- * HP badge: minimum width and padding of the pill in canvas pixels (canvas 128 wide, digits 44 high).
+ * LP-Plakette in Canvas-Pixeln (Ziffern 44 hoch, Schild 52 hoch): Mindestbreite und Innenabstand des Schilds ohne
+ * Symbol; cap = Durchmesser der Symbolkappe am linken Ende, icon = Rollensymbol darin, gap = Abstand zwischen den Teilen,
+ * padEnd = Innenabstand rechts mit Kappe, star/sin = Breite von Veteranenstern und Suendenzeichen; world = Weltgroesse
+ * je Canvas-Pixel (128 Pixel = 0.42 Feldbreiten); cacheMax = so viele Plaketten bleiben zwischengespeichert, darueber
+ * werden die nicht gezeigten freigegeben. Der Canvas ist so breit wie der Inhalt.
+ * HP badge in canvas pixels (digits 44 high, pill 52 high): minimum width and padding of the pill without an icon;
+ * cap = diameter of the icon cap at the left end, icon = role icon inside it, gap = space between the parts, padEnd =
+ * right padding with a cap, star/sin = width of the veteran star and the sinner mark; world = world size per canvas
+ * pixel (128 pixels = 0.42 tile widths); cacheMax = this many badges stay cached, above that the ones not shown are
+ * released. The canvas is as wide as its content.
  */
-export const BADGE = { minPill: 72, pad: 17 };
+export const BADGE = { minPill: 72, pad: 17, cap: 54, icon: 42, gap: 4, padEnd: 13, star: 32, sin: 30, world: 0.42 / 128, cacheMax: 160 };
 /**
  * Besatzung: Eine Einheit auf einem Stadtfeld (auch Sendeturm, Aussenposten, Hoehle, Nachschublinie) rueckt um shift
  * Feldbreiten zur Kamera hin an die vordere Ecke und wird mit scale verkleinert gezeichnet; die Stadt dahinter bleibt

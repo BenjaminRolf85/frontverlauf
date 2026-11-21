@@ -249,6 +249,9 @@ h1, h2, h3, .display {
 /* Symbolgruppe in der Unterzeile (Raketensilo: Brand) auf der Textzeile / icon group in the sub line (rocket silo: fire) on the text line */
 .unit-sub .stat { vertical-align: bottom; }
 .sheet-head .unit-type { font-style: italic; }
+/* Rollensymbol vor dem Typnamen / role icon before the type name */
+.unit-sub .role-cap { display: inline-flex; width: 1.6em; height: 1.6em; vertical-align: middle; margin-inline-end: var(--p-space-1); }
+.unit-sub .role-cap .icon-sm { width: 1.1em; height: 1.1em; }
 .nav-bar { display: flex; gap: var(--p-space-2); max-width: var(--c-layout-sheet-max-width); width: 100%; margin: 0 auto; }
 .nav-bar .btn { flex: 1; padding: 0 var(--p-space-2); font-size: var(--p-font-size-md); min-height: var(--p-size-touch-lg); }
 .nav-bar .btn.end { flex: 1.6; font-size: var(--p-font-size-lg); }
@@ -835,6 +838,10 @@ input[type="text"], select {
 .rules-factions { list-style: none; margin: var(--p-space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-1); }
 .rules-factions li { display: flex; align-items: center; gap: var(--p-space-2); font-size: var(--p-font-size-sm); }
 .rules-factions .faction-chip .label { display: none; }
+/* Einheitensymbole: Legende wie die Kappe der LP-Plakette / unit icons: legend like the cap of the HP badge */
+.rules-roles { list-style: none; margin: var(--p-space-2) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--p-space-1) var(--p-space-3); }
+.rules-roles li { display: flex; align-items: center; gap: var(--p-space-2); font-size: var(--p-font-size-sm); }
+.role-cap { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--p-size-icon); height: var(--p-size-icon); border-radius: var(--p-radius-pill); background: var(--s-ink); color: var(--s-surface-raised); }
 /* Stuetzpunkte: Zeile im Stadtfeld und Liste in den Regeln / bases: line in the city panel and list in the rules */
 .base-line, .base-supply { margin: var(--p-space-2) 0 0; }
 .rules-bases { list-style: none; margin: var(--p-space-2) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--p-space-2); }
