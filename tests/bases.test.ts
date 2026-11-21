@@ -10,15 +10,15 @@ import { describe, expect, it } from 'vitest';
 import {
   applyCommand, baseDiscount, baseStars, buildCheck, cityHasSite, cityIncome, cityUpgradeCheck, citySites, computeStats, createGame, defaultConfig,
   dist, effectiveDefense, freeUnitSlots, generateMap, healAmount, income, missionConfig, recruitCheck, rewardOptions, rosterUnits, siteNeed,
-  supplySlots, trainCheck, unitCost, buyLevelCheck, levelUpCost, unitLimit, upgradeCheck, usesSites, basesOn, noTraining, neighbors, idx,
-  type City, type GameState,
+  supplySlots, trainCheck, unitCost, buyLevelCheck, levelUpCost, tributeStars, unitLimit, upgradeCheck, usesSites, basesOn, noTraining, neighbors, idx,
+  type City, type GameConfig, type GameState,
 } from '../src/core';
 import { planNextCommand, aiDebug } from '../src/ai/ai';
 import { baseCaptureWorth, basePreference, baseWorth } from '../src/ai/bases';
 import { buildCtx } from '../src/ai/analysis';
 import {
   AI, BASES, BASE_KINDS, CITY_UPGRADES, FACTION_IDS, HEALING, INCOME, PRODUCTION, ROCKETS, UNITS, XENO,
-  type BaseGroup, type BaseKind, type FactionId, type MapSize, type MapType, type UnitTypeId,
+  type BaseKind, type FactionId, type MapSize, type MapType, type UnitTypeId,
 } from '../src/data/balance';
 import { isValidState, migrateState } from '../src/save/save';
 import { TUTORIAL_CONFIG } from '../src/ui/tutorial';
@@ -35,42 +35,57 @@ function addBase(s: GameState, x: number, y: number, owner: number | null, kind:
   c.base = kind;
   return c;
 }
-const groupOf = (k: BaseKind): BaseGroup | 'home' => (Object.keys(BASES.groups) as BaseGroup[]).find((g) => BASES.groups[g].includes(k)) ?? 'home';
 
 describe('Verteilung / distribution', () => {
-  // Fingerabdruecke von Gelaende, Startpunkten, Orten, Bunkern und Radars, berechnet auf main (39a7514) mit denselben Aufrufen
-  // fingerprints of terrain, starts, places, bunkers and radars, computed on main (39a7514) with the same calls
-  const CASES: [number, MapSize, MapType, FactionId[], string][] = [
-    [1, 14, 'continent', ['korvat', 'dravon', 'vesper'], '261cf154'],
-    [2, 16, 'lakes', ['zyrr', 'nexus', 'alvenia', 'meridon'], 'b06394ca'],
-    [3, 14, 'continents', ['velkar', 'vesper', 'korvat', 'nexus', 'zyrr'], '1bebe3d5'],
-    [900001, 16, 'continent', ['meridon', 'dravon'], 'f649d6bc'],
-    [4242, 11, 'continent', ['korvat', 'dravon'], 'a80d61e8'],
-    [77, 18, 'islands', ['alvenia', 'zyrr', 'vesper'], 'dd805166'],
-    [5, 22, 'waterworld', ['nexus', 'velkar', 'meridon', 'korvat'], 'f6bb2f09'],
+  // Fingerabdruecke berechnet auf main (c8efa9c) mit denselben Aufrufen: Gelaende, Startpunkte, Siedlungen, Bunker, Radars
+  // der Karte, und alle Orte der Partie in Reihenfolge (Hauptquartiere, Siedlungen, Sendetuerme) samt Zahl der Tuerme
+  // fingerprints computed on main (c8efa9c) with the same calls: terrain, starts, villages, bunkers, radars of the map, and
+  // all places of the game in order (headquarters, villages, transmitter towers) with the number of towers
+  const CASES: [number, MapSize, MapType, FactionId[], string, string][] = [
+    [1, 14, 'continent', ['korvat', 'dravon', 'vesper'], '261cf154', '4758e5:3'],
+    [2, 16, 'lakes', ['zyrr', 'nexus', 'alvenia', 'meridon'], 'b06394ca', 'f3b9ab8c:4'],
+    [3, 14, 'continents', ['velkar', 'vesper', 'korvat', 'nexus', 'zyrr'], '1bebe3d5', '24e621cf:2'],
+    [900001, 16, 'continent', ['meridon', 'dravon'], 'f649d6bc', '9ded648a:4'],
+    [4242, 11, 'continent', ['korvat', 'dravon'], 'a80d61e8', '29773e15:2'],
+    [77, 18, 'islands', ['alvenia', 'zyrr', 'vesper'], 'dd805166', 'cb78e989:4'],
+    [5, 22, 'waterworld', ['nexus', 'velkar', 'meridon', 'korvat'], 'f6bb2f09', 'c630d7ac:3'],
   ];
-  it('Gelaende und Orte eines Seeds bleiben wie auf main / terrain and places of a seed stay as on main', () => {
-    for (const [seed, size, type, facs, hash] of CASES) {
+  const game = (seed: number, size: MapSize, mapType: MapType, facs: FactionId[], extra: Partial<GameConfig> = {}) =>
+    createGame(defaultConfig({ seed, size, mapType, factions: facs.map((id) => ({ id, human: false, difficulty: 'normal' as const })), ...extra }));
+
+  it('Gelaende und Orte eines Seeds bleiben wie auf main; die Sendetuerme sind dort jetzt Stuetzpunkte / terrain and places of a seed stay as on main; the transmitter towers there are bases now', () => {
+    for (const [seed, size, type, facs, hash, placeHash] of CASES) {
       const m = generateMap(seed, size, type, facs);
       expect(fnv(JSON.stringify({ tiles: m.tiles, starts: m.starts, villages: m.villages, bunkers: m.bunkers, radars: m.radars })), `seed ${seed}`).toBe(hash);
-      expect(m.kinds).toHaveLength(m.villages.length);
+      // dieselben Felder wie auf main; was dort Sendeturm war (nach Hauptquartieren und Siedlungen), ist hier ein Stuetzpunkt
+      // the same tiles as on main; what was a transmitter tower there (after HQs and villages) is a base here
+      const s = game(seed, size, type, facs);
+      const formerTower = (i: number) => i >= facs.length + m.villages.length;
+      expect(`${fnv(JSON.stringify(s.cities.map((c, i) => [c.x, c.y, c.isHQ, formerTower(i)])))}:${s.cities.filter((_, i) => formerTower(i)).length}`, `seed ${seed}`).toBe(placeHash);
+      expect(s.cities.some((c) => c.tower)).toBe(false);
+      s.cities.forEach((c, i) => { if (formerTower(i)) { expect(c.base, `seed ${seed}`).toBeDefined(); expect(c.base).not.toBe(BASES.home); } });
+      // ohne Stuetzpunkte bleiben es Sendetuerme / without bases they stay transmitter towers
+      const off = game(seed, size, type, facs, { bases: false });
+      expect(`${fnv(JSON.stringify(off.cities.map((c) => [c.x, c.y, c.isHQ, !!c.tower])))}:${off.cities.filter((c) => c.tower).length}`, `seed ${seed}`).toBe(placeHash);
     }
   });
 
-  it('deterministisch, Standortregeln, Obergrenzen, gleiche Heimat-Art / deterministic, site rules, caps, same home kind', () => {
+  it('deterministisch, Standortregeln, Obergrenzen, gleiche Heimat-Art, garantierte Mischung / deterministic, site rules, caps, same home kind, guaranteed mix', () => {
     const types: MapType[] = ['continent', 'lakes', 'continents'];
     const pool: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar', 'zyrr', 'vesper', 'nexus'];
-    let maps = 0, mixed = 0, mixable = 0, powerWithNexus = 0, nexusMaps = 0, allHomes = 0;
+    const always = BASE_KINDS.filter((k) => k !== BASES.home && !BASES.place[k] && !BASES.noTraining.includes(k));
+    let maps = 0, nexusMaps = 0, allHomes = 0, full = 0;
     const seen = new Set<BaseKind>();
+    const few: Record<number, number> = { 14: 0, 16: 0 };
+    const count: Record<number, number> = { 14: 0, 16: 0 };
     for (let seed = 1; seed <= 240; seed++) {
-      const size: MapSize = seed % 2 ? 14 : 16;
+      const size: MapSize = seed % 6 === 0 ? 22 : seed % 2 ? 14 : 16;
       const n = 2 + (seed % 4);
       const facs = Array.from({ length: n }, (_, i) => pool[(seed + i * 3) % pool.length]).filter((f, i, a) => a.indexOf(f) === i);
-      const m = generateMap(seed, size, types[seed % 3], facs);
-      const again = generateMap(seed, size, types[seed % 3], facs);
-      expect(again.kinds, `seed ${seed}`).toEqual(m.kinds);
+      const s = game(seed, size, types[seed % 3], facs);
+      expect(game(seed, size, types[seed % 3], facs).cities.map((c) => c.base), `seed ${seed}`).toEqual(s.cities.map((c) => c.base));
       maps++;
-      const T = (p: { x: number; y: number }) => m.tiles[idx(size, p.x, p.y)];
+      const T = (p: { x: number; y: number }) => s.tiles[idx(size, p.x, p.y)];
       const water = (p: { x: number; y: number }) => T(p).terrain === 'shallow' || T(p).terrain === 'ocean';
       const seaSize = (p: { x: number; y: number }) => {
         const seenK = new Set([idx(size, p.x, p.y)]); const q = [p];
@@ -78,83 +93,118 @@ describe('Verteilung / distribution', () => {
         return q.length;
       };
       const coast = (p: { x: number; y: number }) => neighbors(size, p.x, p.y).some((o) => water(o) && seaSize(o) >= BASES.minSea);
-      // Heimat: jeder Startpunkt hat seine Kaserne in der Naehe, die Kaserne kommt sonst nicht vor / home: every start has its barracks nearby, the barracks appears nowhere else
+      const fits = (k: BaseKind, p: { x: number; y: number }): boolean => {
+        switch (BASES.place[k]) {
+          case 'coast': return coast(p);
+          case 'water': return coast(p) || !!T(p).river || neighbors(size, p.x, p.y).some((o) => T(o).river);
+          case 'wind': return coast(p) || T(p).biome === 'hills' || neighbors(size, p.x, p.y).some((o) => T(o).terrain === 'mountain');
+          case 'plain': return T(p).terrain === 'plain';
+          default: return true;
+        }
+      };
+      const places = s.cities.filter((c) => !c.isHQ);
+      for (const c of places) { expect(c.base, `seed ${seed}`).toBeDefined(); expect(c.tower).toBeUndefined(); expect(c.owner).toBeNull(); }
+      // Heimat: jede Kaserne liegt bei einem eigenen Startpunkt, sonst kommt die Kaserne nicht vor
       // (selten findet die Kartenerzeugung fuer einen Startpunkt keinen Heimatort, wie schon auf main; dann fehlt nur dessen Kaserne)
+      // home: every barracks lies at a start of its own, the barracks appears nowhere else
       // (rarely map generation finds no home place for a start, as on main already; then only its barracks is missing)
-      const homes = m.kinds.filter((k) => k === BASES.home).length;
-      expect(homes, `seed ${seed}`).toBeLessThanOrEqual(m.starts.length);
-      if (homes === m.starts.length) allHomes++;
+      const hqs = s.cities.filter((c) => c.isHQ);
+      const homes = places.filter((c) => c.base === BASES.home);
+      expect(homes.length, `seed ${seed}`).toBeLessThanOrEqual(hqs.length);
+      if (homes.length === hqs.length) allHomes++;
       const taken = new Set<number>();
-      for (let i = 0; i < homes; i++) {
-        expect(m.kinds[i], `seed ${seed} home ${i}`).toBe(BASES.home);
-        const own = m.starts.findIndex((st, k) => !taken.has(k) && dist(st, m.villages[i]) <= 5);
-        expect(own, `seed ${seed} home ${i}`).toBeGreaterThanOrEqual(0);
+      for (const h of homes) {
+        const own = hqs.findIndex((q, k) => !taken.has(k) && dist(q, h) <= 5);
+        expect(own, `seed ${seed}`).toBeGreaterThanOrEqual(0);
         taken.add(own);
       }
-      const rest = m.kinds.slice(homes);
-      const restAt = m.villages.slice(homes);
-      rest.forEach((k, i) => {
-        const p = restAt[i];
-        seen.add(k);
-        expect(k, `seed ${seed}`).not.toBe(BASES.home);
-        if (k === 'navalStation') expect(coast(p), `seed ${seed} naval`).toBe(true);
-        if (k === 'solarFarm') expect(T(p).terrain, `seed ${seed} solar`).toBe('plain');
-        if (k === 'windFarm') expect(coast(p) || T(p).biome === 'hills' || neighbors(size, p.x, p.y).some((o) => T(o).terrain === 'mountain'), `seed ${seed} wind`).toBe(true);
-        if (k === 'nuclearPlant') expect(coast(p) || !!T(p).river || neighbors(size, p.x, p.y).some((o) => T(o).river), `seed ${seed} nuclear`).toBe(true);
-      });
+      const rest = places.filter((c) => c.base !== BASES.home);
+      for (const c of rest) { seen.add(c.base!); expect(fits(c.base!, c), `seed ${seed} ${c.base}`).toBe(true); }
       // Obergrenzen: Atomkraftwerk, Arten ohne Ausbildung / caps: nuclear plant, kinds without training
-      expect(rest.filter((k) => k === 'nuclearPlant').length, `seed ${seed}`).toBeLessThanOrEqual(BASES.maxPerMap.nuclearPlant!);
-      expect(rest.filter((k) => BASES.noTraining.includes(k)).length, `seed ${seed}`).toBeLessThanOrEqual(Math.floor(rest.length * BASES.noTrainShare));
-      // keine Art doppelt, solange der erste Stapel reicht (13 Karten, einige passen nicht ueberall) / no kind twice while the first deck lasts
+      const noTrainCap = Math.floor(rest.length * BASES.noTrainShare);
+      const noTrain = rest.filter((c) => BASES.noTraining.includes(c.base!)).length;
+      expect(rest.filter((c) => c.base === 'nuclearPlant').length, `seed ${seed}`).toBeLessThanOrEqual(BASES.maxPerMap.nuclearPlant!);
+      expect(noTrain, `seed ${seed}`).toBeLessThanOrEqual(noTrainCap);
+      // Mischung: so viele verschiedene Arten wie Orte, solange die Arten reichen, die ueberall stehen duerfen
+      // mix: as many different kinds as places while the kinds that may stand anywhere last
       const counts = new Map<BaseKind, number>();
-      for (const k of rest) counts.set(k, (counts.get(k) ?? 0) + 1);
-      if (rest.length <= 6) expect(Math.max(0, ...counts.values()), `seed ${seed}`).toBeLessThanOrEqual(1);
-      expect(Math.max(0, ...counts.values()), `seed ${seed}`).toBeLessThanOrEqual(2);
-      // Mischung: ab vier freien Orten mindestens drei der vier Gruppen, meist alle vier / mix: from four free places at least three of the four groups, mostly all four
-      if (rest.length >= 4) {
-        const groups = new Set(rest.map(groupOf));
-        expect(groups.size, `seed ${seed}`).toBeGreaterThanOrEqual(3);
-        mixable++;
-        if (groups.size === 4) mixed++;
+      for (const c of rest) counts.set(c.base!, (counts.get(c.base!) ?? 0) + 1);
+      if (rest.length <= always.length) expect(counts.size, `seed ${seed}`).toBe(rest.length);
+      if (counts.size === rest.length) full++;
+      // keine Art doppelt, solange sich eine fehlende noch unterbringen liesse: einer fehlenden Art bleiben nur Orte, an
+      // denen eine andere Art mit Standortregel steht (oder ihre Obergrenze ist erreicht)
+      // no kind twice while a missing one could still be accommodated: a missing kind only has places left where another
+      // kind with a site rule stands (or its cap is reached)
+      if (counts.size < rest.length) {
+        for (const k of BASE_KINDS) {
+          if (k === BASES.home || counts.has(k)) continue;
+          if (BASES.noTraining.includes(k) && noTrain >= noTrainCap) continue;
+          for (const c of rest) if (fits(k, c)) expect(BASES.place[c.base!], `seed ${seed}: ${k} fehlt, ${c.base} doppelt`).toBeDefined();
+        }
+        expect(Math.max(...counts.values()), `seed ${seed}`).toBeLessThanOrEqual(Math.ceil(rest.length / always.length) + 1);
       }
       // mit NEXUS: ein Kraftwerk, sobald ein freier Ort eines tragen kann (offene Ebene reicht fuer die Solarfarm)
       // with NEXUS: a power kind as soon as a free place can carry one (open plain is enough for the solar farm)
-      if (facs.includes('nexus') && restAt.some((p) => T(p).terrain === 'plain')) {
+      if (facs.includes('nexus') && rest.some((c) => T(c).terrain === 'plain')) {
         nexusMaps++;
-        if (rest.some((k) => BASES.energy[k] !== undefined)) powerWithNexus++;
+        expect(rest.some((c) => BASES.energy[c.base!] !== undefined), `seed ${seed}`).toBe(true);
+      }
+      // Vielfalt auf den ueblichen Karten: 14x14 mindestens 3, 16x16 mindestens 4 verschiedene Arten ausser der Kaserne,
+      // auf engen Karten mit 5 Fraktionen gelegentlich weniger
+      // variety on the usual maps: 14x14 at least 3, 16x16 at least 4 different kinds besides the barracks, on crowded maps
+      // with 5 factions occasionally fewer
+      if (size === 14 || size === 16) {
+        count[size]++;
+        if (counts.size < (size === 14 ? 3 : 4)) few[size]++;
+        // harte Untergrenzen: bis 3 Fraktionen 2 (14x14) bzw. 3 (16x16), bis 4 Fraktionen nie keine / hard minima: up to 3 factions 2 (14x14) or 3 (16x16), up to 4 factions never none
+        if (n <= 3) expect(counts.size, `seed ${seed}`).toBeGreaterThanOrEqual(size === 14 ? 2 : 3);
+        if (n <= 4) expect(counts.size, `seed ${seed}`).toBeGreaterThanOrEqual(1);
       }
     }
     expect(maps).toBe(240);
     expect(allHomes / maps).toBeGreaterThan(0.95);
-    expect(powerWithNexus).toBe(nexusMaps);
     expect(nexusMaps).toBeGreaterThan(20);
-    expect(mixed / mixable).toBeGreaterThan(0.8);
-    // ueber viele Karten kommt jede Art vor / over many maps every kind appears
+    // ueber viele Karten kommt jede Art vor, und fast jede Karte zeigt so viele Arten wie Orte
+    // over many maps every kind appears, and almost every map shows as many kinds as places
     for (const k of BASE_KINDS) if (k !== BASES.home) expect(seen.has(k), k).toBe(true);
-   }, 120_000);
+    expect(full / maps).toBeGreaterThan(0.8);
+    expect(few[14] / count[14]).toBeLessThan(0.15);
+    expect(few[16] / count[16]).toBeLessThan(0.1);
+  }, 240_000);
 
-  it('createGame: Stuetzpunkte nur in freien Partien der Standardwelt; Hauptquartiere und Sendetuerme bleiben / bases only in free games on the default world; HQs and towers stay', () => {
-    const facs = [{ id: 'korvat' as FactionId, human: true, difficulty: 'normal' as const }, { id: 'nexus' as FactionId, human: false, difficulty: 'normal' as const }];
-    const s = createGame(defaultConfig({ seed: 11, size: 16, mapType: 'continent', factions: facs }));
+  it('createGame: Stuetzpunkte nur in freien Partien der Standardwelt; Hauptquartiere bleiben Staedte, die Kampagne behaelt ihre Sendetuerme / bases only in free games on the default world; HQs stay cities, the campaign keeps its towers', () => {
+    const facs: FactionId[] = ['korvat', 'nexus'];
+    const s = game(11, 16, 'continent', facs);
     expect(basesOn(s.config)).toBe(true);
     for (const c of s.cities) {
-      if (c.isHQ || c.tower) expect(c.base).toBeUndefined();
-      else { expect(BASE_KINDS).toContain(c.base); expect(c.owner).toBeNull(); }
+      if (c.isHQ) expect(c.base).toBeUndefined();
+      else { expect(BASE_KINDS).toContain(c.base); expect(c.owner).toBeNull(); expect(c.tower).toBeUndefined(); }
     }
-    expect(s.cities.some((c) => c.tower)).toBe(true);
     expect(s.cities.filter((c) => c.base === BASES.home)).toHaveLength(2);
-    // aus: gewoehnliche Siedlungen an denselben Orten / off: ordinary villages at the same places
-    const off = createGame(defaultConfig({ seed: 11, size: 16, mapType: 'continent', factions: facs, bases: false }));
+    // die frueheren Sendetuerme verhalten sich wie jeder Stuetzpunkt: Stadtlimit und Einkommen einer Stadt, Ausbauten moeglich
+    // the former transmitter towers behave like any base: a city's unit limit and income, upgrades possible
+    const former = s.cities[s.cities.length - 1];
+    former.owner = 0;
+    expect(unitLimit(s, former)).toBeGreaterThanOrEqual(former.level + 1);
+    expect(cityIncome(s, former)).toBeGreaterThanOrEqual(INCOME.perCityLevel);
+    expect(cityUpgradeCheck(s, 0, former, 'radioTower')).not.toBe('noSlot');
+    former.owner = null;
+    // aus: gewoehnliche Siedlungen und Sendetuerme an denselben Orten / off: ordinary villages and transmitter towers at the same places
+    const off = game(11, 16, 'continent', facs, { bases: false });
     expect(off.cities.every((c) => c.base === undefined)).toBe(true);
+    expect(off.cities.some((c) => c.tower)).toBe(true);
     expect(off.cities.map((c) => [c.x, c.y])).toEqual(s.cities.map((c) => [c.x, c.y]));
     expect(JSON.stringify(off.tiles.map((t) => t.terrain))).toBe(JSON.stringify(s.tiles.map((t) => t.terrain)));
-    // Tutorial und Kampagne (alle Welten) bleiben bei Siedlungen / tutorial and campaign (all worlds) keep villages
+    // ohne die zusaetzlichen Orte (towers: false) bleiben nur die Siedlungen als Stuetzpunkte / without the extra places only the villages remain as bases
+    const few = game(11, 16, 'continent', facs, { towers: false });
+    expect(few.cities.length).toBe(off.cities.filter((c) => !c.tower).length);
+    expect(few.cities.every((c) => c.isHQ || c.base !== undefined)).toBe(true);
+    // Tutorial und Kampagne (alle Welten) bleiben bei Siedlungen und Sendetuermen / tutorial and campaign (all worlds) keep villages and towers
     expect(createGame(TUTORIAL_CONFIG).cities.every((c) => c.base === undefined)).toBe(true);
-    for (const m of ['m1', 'm4', 'm7', 'm9', 'm12']) {
-      const cfg = missionConfig(m, 'korvat');
-      expect(basesOn(cfg), m).toBe(false);
-    }
-    expect(createGame(missionConfig('m1', 'korvat')).cities.every((c) => c.base === undefined)).toBe(true);
+    for (const m of ['m1', 'm4', 'm7', 'm9', 'm12']) expect(basesOn(missionConfig(m, 'korvat')), m).toBe(false);
+    const m1 = createGame(missionConfig('m1', 'korvat'));
+    expect(m1.cities.every((c) => c.base === undefined)).toBe(true);
+    expect(m1.cities.some((c) => c.tower)).toBe(true);
   });
 });
 
@@ -262,7 +312,8 @@ describe('Wirkung je Art / effect per kind', () => {
     expect(unitCost(s, 3, 'doomCrawler')).toBe(cut('doomCrawler'));
     expect(unitCost(s, 3, 'rocketCart')).toBe(cut('rocketCart'));
     expect(unitCost(s, 3, 'zealot')).toBe(full('zealot'));
-    expect(cityIncome(s, ab)).toBe(BASES.gapStars);
+    expect(cityIncome(s, ab)).toBe(tributeStars(BASES.gapStars));
+    expect(cityIncome(s, ab)).toBeGreaterThan(0);
     expect(cityIncome(s, tf)).toBe(0);
     // Meridon baut keine Panzer: an der Panzerfabrik Ersatz-Sterne / Meridon builds no tanks: substitute stars at the tank factory
     tf.owner = 4;
@@ -333,7 +384,7 @@ describe('Wirkung je Art / effect per kind', () => {
     expect(nh.base).toBe('fieldHospital');
   });
 
-  it('Nachschubdepot, Fabrik, Kraftwerke: Sterne; NEXUS bekommt von den Kraftwerken Energie statt Sterne / supply depot, factory, power kinds: stars; NEXUS gets energy instead of stars from the power kinds', () => {
+  it('Nachschubdepot, Fabrik, Kraftwerke: Sterne; NEXUS bekommt von den Kraftwerken dazu Energie / supply depot, factory, power kinds: stars; NEXUS gets energy on top from the power kinds', () => {
     const s = blankGame({ factions: ['alvenia', 'nexus', 'vesper'], stars: 300 });
     const depot = addBase(s, 2, 2, 0, 'supplyDepot');
     const factory = addBase(s, 5, 2, 0, 'factory');
@@ -360,15 +411,15 @@ describe('Wirkung je Art / effect per kind', () => {
     s.factions[0].techs.push(CITY_UPGRADES.tech.depot);
     expect(cityUpgradeCheck(s, 0, depot, 'depot')).toBe('alreadyBuilt');
     expect(cityUpgradeCheck(s, 0, factory, 'depot')).toBe('ok');
-    // NEXUS: keine Sterne von den Kraftwerken, dafuer Energie = Rechenleistung ohne Rechenzentrum; Fabrik bringt ihm Sterne
-    // NEXUS: no stars from the power kinds but energy = compute without a data centre; the factory gives it stars
+    // NEXUS: dieselben Sterne wie alle und dazu Energie = Rechenleistung ohne Rechenzentrum
+    // NEXUS: the same stars as everyone and on top energy = compute without a data centre
     expect(computeStats(s, 1)).toMatchObject({ energy: 0, compute: 0 });
     const nexusTown = addBase(s, 2, 9, 1, 'factory');
     expect(trainCheck(s, nexusTown, 'railgun')).toBe('computeMissing');
     for (const c of [nuclear, solar, wind]) c.owner = 1;
-    expect(cityIncome(s, nuclear)).toBe(base);
-    expect(cityIncome(s, solar)).toBe(base);
-    expect(cityIncome(s, wind)).toBe(base);
+    expect(cityIncome(s, nuclear)).toBe(base + BASES.stars.nuclearPlant!);
+    expect(cityIncome(s, solar)).toBe(base + BASES.stars.solarFarm!);
+    expect(cityIncome(s, wind)).toBe(base + BASES.stars.windFarm!);
     expect(cityIncome(s, nexusTown)).toBe(base + BASES.stars.factory!);
     const sum = BASES.energy.nuclearPlant! + BASES.energy.solarFarm! + BASES.energy.windFarm!;
     expect(computeStats(s, 1)).toMatchObject({ energy: sum, compute: sum, dataCenters: 0, powerPlants: 0 });
@@ -383,9 +434,12 @@ describe('Wirkung je Art / effect per kind', () => {
     const cultTown = addCity(s, 8, 9, 2);
     expect(cityIncome(s, cultTown)).toBe(0);
     factory.owner = 2; nuclear.owner = 2;
-    expect(cityIncome(s, factory)).toBe(BASES.stars.factory!);
-    expect(cityIncome(s, nuclear)).toBe(BASES.stars.nuclearPlant!);
-    expect(income(s, 2)).toBeGreaterThanOrEqual(BASES.stars.factory! + BASES.stars.nuclearPlant!);
+    const tribute = tributeStars;
+    expect(tribute(BASES.stars.factory!)).toBeLessThan(BASES.stars.factory!);
+    expect(cityIncome(s, factory)).toBe(tribute(BASES.stars.factory!));
+    expect(cityIncome(s, nuclear)).toBe(tribute(BASES.stars.nuclearPlant!));
+    expect(cityIncome(s, factory)).toBeGreaterThan(0);
+    expect(income(s, 2)).toBeGreaterThanOrEqual(tribute(BASES.stars.factory!) + tribute(BASES.stars.nuclearPlant!));
   });
 
   it('Nachschubdepot laedt Raketen nach wie der Ausbau Depot / the supply depot reloads rockets like the depot upgrade', () => {
@@ -568,6 +622,48 @@ describe('Einnahme, Verlust, Spielstaende / capture, loss, saves', () => {
     expect(trainCheck(s, home, 'teslaTank')).toBe('buildingMissing');
   });
 
+  it('leere Panzerfabrik finden, einnehmen, nutzen: keine Verteidiger, ein Zug spaeter rollt der Panzer, ohne weitere Voraussetzung / find an empty tank factory, capture it, use it: no defenders, one turn later the tank rolls, no further prerequisite', () => {
+    // jede Produktionsart mit einer Menschen-Fraktion durchgespielt: einnehmen, naechster Zug, Einheit der Art ausbilden
+    // every production kind played through with a human faction: capture, next turn, train the kind's unit
+    const cases: [BaseKind, UnitTypeId][] = [['tankFactory', 'tank'], ['airbase', 'heli'], ['gunWorks', 'artillery'], ['navalStation', 'destroyer'], ['barracks', 'infantry']];
+    for (const [kind, unit] of cases) {
+      const s = blankGame({ factions: ['dravon', 'korvat'], stars: 0 });
+      for (let y = 0; y < s.size; y++) setTerrain(s, 0, y, 'shallow');
+      const hq = addCity(s, 9, 9, 0, { hq: true });
+      addCity(s, 9, 1, 1, { hq: true });
+      const base = addBase(s, 1, 5, null, kind);
+      // neutral: niemand steht darauf, kein Gebiet, kein Gebaeude, keine Forschung der Fraktion / neutral: nobody stands on it, no territory, no building, no research of the faction
+      expect(s.units.some((u) => u.x === base.x && u.y === base.y)).toBe(false);
+      expect(s.tiles.some((t) => t.building !== null)).toBe(false);
+      s.factions[0].techs = [];
+      // die Einheit steht seit Zugbeginn auf dem Stuetzpunkt und nimmt ihn ein (wie jede Siedlung) / the unit has stood on the base since the start of the turn and captures it (like any village)
+      const inf = addUnit(s, 'infantry', 0, base.x, base.y);
+      ok(s, { type: 'capture', unit: inf.id });
+      expect(base.owner, kind).toBe(0);
+      expect(base.level).toBe(1);
+      // naechster eigener Zug: Einheit zieht vom Stadtfeld, die Fabrik liefert / next own turn: the unit leaves the city tile, the factory delivers
+      ok(s, { type: 'endTurn' });
+      ok(s, { type: 'endTurn' });
+      expect(s.current).toBe(0);
+      ok(s, { type: 'move', unit: inf.id, to: { x: 2, y: 5 } });
+      // einzige Bedingung sind die Sterne / the only condition is the stars
+      s.factions[0].stars = 0;
+      expect(trainCheck(s, base, unit), kind).toBe('notEnoughStars');
+      s.factions[0].stars = unitCost(s, 0, unit)!;
+      expect(trainCheck(s, base, unit), kind).toBe('ok');
+      const r = ok(s, { type: 'train', city: base.id, unitType: unit });
+      const made = s.units.find((u) => u.id === (r.events.find((e) => e.t === 'train') as { unit: number }).unit)!;
+      expect(made.type, kind).toBe(unit);
+      expect(made.owner).toBe(0);
+      expect(made.homeCity).toBe(base.id);
+      expect(s.factions[0].stars).toBe(0);
+      // im Hauptquartier ohne die Staette geht dasselbe nicht (ausser der Kaserne, die es dort eingebaut hat)
+      // the same does not work at the HQ without the site (except the barracks, which is built in there)
+      s.factions[0].stars = 500;
+      expect(trainCheck(s, hq, unit), kind).toBe(kind === 'barracks' ? 'ok' : kind === 'navalStation' ? 'noCoast' : 'buildingMissing');
+    }
+  });
+
   it('alter Spielstand ohne Arten laedt und spielt wie zuvor / an old save without kinds loads and plays as before', () => {
     const facs = [{ id: 'alvenia' as FactionId, human: false, difficulty: 'normal' as const }, { id: 'nexus' as FactionId, human: false, difficulty: 'normal' as const }];
     const fresh = createGame(defaultConfig({ seed: 21, size: 14, mapType: 'continent', mode: 'conquest', factions: facs }));
@@ -719,9 +815,12 @@ describe('KI / AI', () => {
     expect(target('zyrr', 'factory', 'bunker')).toBe('factory');
     expect(target('nexus', 'factory', 'solarFarm')).toBe('solarFarm');
     expect(target('nexus', 'windFarm', 'tankFactory')).toBe('windFarm');
-    // der Kult hat keine Vorliebe und waehlt nach dem, was er bekommt: die Sterne der Fabrik vor dem Schutz der Wohnbloecke
-    // the cult has no preference and chooses by what it gets: the factory's stars before the residential blocks' protection
-    expect(target('vesper', 'housing', 'factory')).toBe('factory');
+    // der Kult hat keine Vorliebe und waehlt nach dem, was er bekommt: Plaetze und Schutz der Wohnbloecke vor dem Drittel
+    // der Fabrik-Sterne, das ihm als Tribut bleibt
+    // the cult has no preference and chooses by what it gets: the residential blocks' slots and protection before the
+    // third of the factory's stars it keeps as tribute
+    expect(target('vesper', 'housing', 'factory')).toBe('housing');
+    expect(target('vesper', 'factory', 'supermarket')).toBe('supermarket');
     // liegt der bevorzugte Stuetzpunkt deutlich weiter weg (vier Zuege mehr), nimmt die KI den naeheren
     // if the preferred base is clearly farther away (four more turns), the AI takes the closer one
     expect(target('korvat', 'factory', 'bunker', 2, 10)).toBe('factory');
@@ -746,12 +845,14 @@ describe('Texte / texts', () => {
         expect(baseEffectText(k, 'dravon')).toContain('NEXUS');
         expect(baseEffectText(k, 'dravon')).toContain(`+${BASES.stars[k]}`);
         expect(baseEffectText(k, 'nexus')).toContain(`+${BASES.energy[k]}`);
-        expect(baseEffectText(k, 'nexus')).not.toContain(`+${BASES.stars[k]} `);
+        expect(baseEffectText(k, 'nexus')).toContain(`+${BASES.stars[k]} `);
       }
       expect(baseEffectText('bunker', 'vesper')).toContain(`+${BASES.defense.bunker}`);
       expect(baseEffectText('tankFactory', 'nexus')).toContain(`${Math.round(BASES.discount * 100)} %`);
       expect(baseEffectText('tankFactory', 'meridon')).toContain(`+${BASES.gapStars}`);
-      expect(baseEffectText('airbase', 'vesper')).toContain(`+${BASES.gapStars}`);
+      expect(baseEffectText('airbase', 'vesper')).toContain(`+${tributeStars(BASES.gapStars)}`);
+      expect(baseEffectText('factory', 'vesper')).toContain(`+${tributeStars(BASES.stars.factory!)} `);
+      expect(baseEffectText('factory', 'vesper')).not.toContain(`+${BASES.stars.factory} `);
       expect(baseEffectText('navalStation', 'zyrr')).toContain(`+${BASES.gapStars}`);
       const rules = rulesHtml('bases', 'korvat');
       expect(rules).toContain('data-rule="bases"');

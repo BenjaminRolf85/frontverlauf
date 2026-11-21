@@ -4,7 +4,7 @@ export * from './queries';
 export * from './emplacements';
 export * from './facing';
 export { applyCommand, createGame, cloneState, continueEndless, defaultConfig, replay } from './rules';
-export { generateMap } from './mapgen';
+export { assignBaseKinds, generateMap } from './mapgen';
 export { towerCountFor } from './towers';
 export { hashSeed } from './rng';
 export { dist, idx, inBounds, isLand, isWater, neighbors, tileAt, area } from './grid';

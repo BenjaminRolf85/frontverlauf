@@ -127,9 +127,9 @@ export interface City {
   tower?: boolean;
   /**
    * Stuetzpunkt: Art des Orts mit eigener Eigenschaft (BASES); bleibt beim Besitzwechsel. Fehlt = gewoehnliche Stadt
-   * (Hauptquartiere, Sendetuerme, andere Welten, Kampagne, alte Spielstaende).
+   * (Hauptquartiere, andere Welten, Kampagne, Sendetuerme dort, alte Spielstaende).
    * Base: kind of the place with its own property (BASES); stays when the owner changes. Missing = ordinary city
-   * (headquarters, transmitter towers, other worlds, campaign, old saves).
+   * (headquarters, other worlds, campaign, transmitter towers there, old saves).
    */
   base?: BaseKind;
   /** Kult: Runde der letzten Pluenderung (fehlt = nie gepluendert) / cult: round of the last plunder (missing = never plundered) */
@@ -300,9 +300,11 @@ export interface GameConfig {
   campaign?: { mission: string };
   /**
    * Sendetuerme in freien Partien (fehlt = an; Anzahl nach Kartengroesse, TOWER); das Tutorial schaltet sie ab, die Kampagne
-   * setzt ihre eigenen (MissionDef.towers).
+   * setzt ihre eigenen (MissionDef.towers). Mit Stuetzpunkten (bases) stehen an denselben Feldern Stuetzpunkte statt der
+   * Tuerme; false laesst auch diese Orte weg.
    * Transmitter towers in free games (missing = on; count by map size, TOWER); the tutorial turns them off, the campaign
-   * places its own (MissionDef.towers).
+   * places its own (MissionDef.towers). With bases the same tiles carry bases instead of the towers; false leaves out
+   * these places too.
    */
   towers?: boolean;
   /**

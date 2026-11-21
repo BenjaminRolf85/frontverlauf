@@ -165,6 +165,7 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   baseSupermarketUnits: BASES.units.supermarket ?? 0,
   baseDiscountPct: pct(BASES.discount),
   baseGapStars: BASES.gapStars,
+  baseTributePct: pct(BASES.cultTribute),
   // Wetter und Xeno-Boden / weather and xeno ground
   weatherCycle: WEATHER.cycleRounds,
   windFuel: WEATHER.wind.fuelBurn,

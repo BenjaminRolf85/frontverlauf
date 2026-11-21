@@ -8,7 +8,7 @@ import {
   type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
-import { generateMap } from './mapgen';
+import { assignBaseKinds, generateMap } from './mapgen';
 import { addHazards, burning, erupts } from './hazards';
 import { placeTowers, towerCountFor } from './towers';
 import { noteCapture, noteDeath, recordRound } from './history';
@@ -84,13 +84,7 @@ export function createGame(cfg: GameConfig): GameState {
     c.isHQ = true; c.hqOf = i; c.level = START.hqLevel;
     claimTerritory(s, c, CITY.baseRadius);
   });
-  // Stuetzpunkte: jeder neutrale Ort bekommt seine Art aus der Kartenerzeugung (BASES); sonst gewoehnliche Siedlungen
-  // bases: every neutral place gets its kind from map generation (BASES); otherwise ordinary villages
-  const bases = basesOn(config);
-  map.villages.forEach((v, i) => {
-    const c = addCity(s, v.x, v.y, null, nameIndex++);
-    if (bases) c.base = map.kinds[i];
-  });
+  const neutral = map.villages.map((v) => addCity(s, v.x, v.y, null, nameIndex++));
   map.starts.forEach((p, i) => {
     const alien = s.factions[i].id === XENO.faction;
     // Zyrr: Hauptquartier startet terraformt / Zyrr: HQ starts terraformed
@@ -124,7 +118,21 @@ export function createGame(cfg: GameConfig): GameState {
   // verdraengen; die Kampagne setzt ihre eigenen (setupMission), die Hoehle hat keine, das Tutorial schaltet sie ab
   // free game: transmitter towers by map size (TOWER), after villages, start units and hazards so they displace nothing;
   // the campaign places its own (setupMission), the cavern has none, the tutorial turns them off
-  if (!config.campaign && config.theme !== 'cavern' && config.towers !== false) placeTowers(s, towerCountFor(s.size), undefined, [TOWER.hqDistance, TOWER.freeHqDistance]);
+  const bases = basesOn(config);
+  if (!config.campaign && config.theme !== 'cavern' && config.towers !== false) {
+    const placed = placeTowers(s, towerCountFor(s.size), undefined, [TOWER.hqDistance, TOWER.freeHqDistance]);
+    // Stuetzpunkte an (Spielerwunsch: Vielfalt auf allen Karten): die Orte der Sendetuerme werden Stuetzpunkte wie alle
+    // anderen, an denselben Feldern; sie wachsen, lassen sich ausbauen und bekommen eine Art statt der Turm-Regeln (TOWER)
+    // bases on (player request: variety on all maps): the transmitter towers' places become bases like all others, on the
+    // same tiles; they grow, can be upgraded and get a kind instead of the tower rules (TOWER)
+    if (bases) for (const c of placed) { delete c.tower; neutral.push(c); }
+  }
+  // Stuetzpunkte: jeder neutrale Ort bekommt seine Art (BASES, assignBaseKinds); sonst gewoehnliche Siedlungen und Sendetuerme
+  // bases: every neutral place gets its kind (BASES, assignBaseKinds); otherwise ordinary villages and transmitter towers
+  if (bases) {
+    const kinds = assignBaseKinds(config.seed, s.size, s.tiles, neutral, map.homes, ids);
+    neutral.forEach((c, i) => { c.base = kinds[i]; });
+  }
   for (const f of s.factions) {
     const hq = hqOf(s, f.index)!;
     reveal(s, f.index, hq.x, hq.y, hq.radius + VISION.cityExtra, []);

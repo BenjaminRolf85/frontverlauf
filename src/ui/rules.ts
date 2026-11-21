@@ -40,7 +40,7 @@ function sections(): Section[] {
     // Produktionsstaetten und Doktrinen der Menschen / human production sites and doctrines
     { id: 'sites', icon: 'build', extra: siteLines },
     // Stuetzpunkte: Arten, Wirkung je Fraktionsgruppe, Verteilung / bases: kinds, effect per faction group, distribution
-    { id: 'bases', icon: 'baseBunker', params: { kinds: BASE_KINDS.length, pct: pct(BASES.discount), gap: BASES.gapStars }, extra: baseRulesLines },
+    { id: 'bases', icon: 'baseBunker', params: { kinds: BASE_KINDS.length, pct: pct(BASES.discount), gap: BASES.gapStars, tribute: pct(BASES.cultTribute) }, extra: baseRulesLines },
     // Werft der Kuestenstaedte: Schiffe kaufen, Transportboot, Einsteigen / shipyard of coastal cities: buying ships, transport boat, boarding
     { id: 'ships', icon: 'sail', params: { boat: SHIPYARD.transportCost, hull: SHIPYARD.hullHp.landingBoat ?? 0, base: t('buildings.navalBase'), dock: t('buildings.dryDock'), tech: t('techs.coastalEconomy') } },
     { id: 'doctrines', icon: 'lightning', extra: doctrineLines },

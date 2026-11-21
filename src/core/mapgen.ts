@@ -10,10 +10,10 @@ export interface GeneratedMap {
   starts: Pos[];
   villages: Pos[];
   /**
-   * Art des Stuetzpunkts je Siedlung (gleiche Reihenfolge wie villages, BASES); createGame setzt sie nur, wenn Stuetzpunkte an sind.
-   * Kind of base per village (same order as villages, BASES); createGame applies it only when bases are on.
+   * Anzahl der Heimatsiedlungen: die ersten homes Eintraege von villages liegen je an einem Startpunkt (BASES.home).
+   * Number of home villages: the first homes entries of villages each lie at a start (BASES.home).
    */
-  kinds: BaseKind[];
+  homes: number;
   bunkers: Pos[];
   radars: Pos[];
 }
@@ -283,26 +283,29 @@ export function generateMap(seed: number, size: MapSize, mapType: MapType, facti
   const seabed = theme === 'desert' ? drainSea(seed, size, tiles) : null;
   assignBiomes(seed, size, tiles, factions);
   if (seabed) desertBiomes(seed, size, tiles, seabed);
-  // Stuetzpunkte zuletzt und im eigenen Zufallsstrom: Gelaende und Orte des Seeds bleiben, wie sie sind
-  // bases last and on their own random stream: terrain and places of the seed stay as they are
-  const kinds = assignBaseKinds(seed, size, tiles, villages, homes, factions);
-  return { tiles, starts, villages, kinds, bunkers, radars };
+  return { tiles, starts, villages, homes, bunkers, radars };
 }
 
 /**
- * Arten der Stuetzpunkte verteilen (BASES): die ersten homes Orte sind die Heimat-Stuetzpunkte der Startpunkte und bekommen
- * alle BASES.home. Fuer die uebrigen wird jede Gruppe gemischt; reihum legt jede Gruppe ihre naechste Karte, die irgendwo
- * stehen darf (BASES.place, Obergrenzen BASES.maxPerMap und BASES.noTrainShare), an einen zufaelligen freien Ort. Die
- * Reihenfolge der Gruppen wird nach Groesse gewichtet gezogen; mit NEXUS wird zuerst ein Kraftwerk gelegt. Eigener
- * Zufallsstrom (BASES.seedSalt), liest das fertige Gelaende nur.
- * Assign the kinds of the bases (BASES): the first homes places are the home bases of the starts and all get BASES.home.
- * For the others every group is shuffled; in turn each group lays its next card that may stand somewhere (BASES.place,
- * caps BASES.maxPerMap and BASES.noTrainShare) on a random free place. The order of the groups is drawn weighted by size;
- * with NEXUS one power kind is laid first. Own random stream (BASES.seedSalt), only reads the finished terrain.
+ * Arten der Stuetzpunkte verteilen (BASES). places: alle neutralen Orte der Partie (Siedlungen und, in freien Partien, die
+ * frueheren Sendetuerme); die ersten homes sind die Heimat-Stuetzpunkte der Startpunkte und bekommen alle BASES.home.
+ * Fuer die uebrigen wird jede Gruppe gemischt; reihum legt jede Gruppe ihre naechste Karte, die sich unterbringen laesst
+ * (Standort BASES.place, Obergrenzen BASES.maxPerMap und BASES.noTrainShare). Die Reihenfolge der Gruppen wird nach
+ * Groesse gewichtet gezogen; mit NEXUS wird zuerst ein Kraftwerk gelegt. Unterbringen heisst: ein freier passender Ort,
+ * oder ein schon gelegter Stuetzpunkt weicht auf einen anderen passenden Ort aus (groesste Zuordnung, Verfahren der
+ * erweiternden Wege). So zeigt die Karte so viele verschiedene Arten, wie sie Orte hat, und keine Art kommt doppelt vor,
+ * solange sich noch eine andere unterbringen liesse. Eigener Zufallsstrom (BASES.seedSalt), liest das fertige Gelaende nur.
+ * Assign the kinds of the bases (BASES). places: all neutral places of the game (villages and, in free games, the former
+ * transmitter towers); the first homes are the home bases of the starts and all get BASES.home. For the others every
+ * group is shuffled; in turn each group lays its next card that can be accommodated (site BASES.place, caps
+ * BASES.maxPerMap and BASES.noTrainShare). The order of the groups is drawn weighted by size; with NEXUS one power kind
+ * is laid first. Accommodated means: a free fitting place, or an already laid base moves to another fitting place
+ * (maximum matching by augmenting paths). So the map shows as many different kinds as it has places, and no kind appears
+ * twice while another one could still be accommodated. Own random stream (BASES.seedSalt), only reads the finished terrain.
  */
-function assignBaseKinds(seed: number, size: number, tiles: Tile[], villages: Pos[], homes: number, factions: FactionId[]): BaseKind[] {
+export function assignBaseKinds(seed: number, size: number, tiles: Tile[], places: Pos[], homes: number, factions: FactionId[]): BaseKind[] {
   const rng = { rng: (seed ^ BASES.seedSalt) | 0 };
-  const kinds: (BaseKind | null)[] = villages.map((_, i) => (i < homes ? BASES.home : null));
+  const kinds: (BaseKind | null)[] = places.map((_, i) => (i < homes ? BASES.home : null));
   const water = (k: number) => tiles[k].terrain === 'shallow' || tiles[k].terrain === 'ocean';
   // Gewaessergroessen (8er-Nachbarschaft), einmal berechnet / sizes of the bodies of water (8-neighbourhood), computed once
   const sea = new Int32Array(size * size);
@@ -339,19 +342,35 @@ function assignBaseKinds(seed: number, size: number, tiles: Tile[], villages: Po
     while (k < left.length - 1 && (roll -= BASES.groups[left[k]].length) >= 0) k++;
     order.push(left.splice(k, 1)[0]);
   }
-  const rest = villages.length - homes;
+  const rest = places.length - homes;
   const noTrainCap = Math.floor(rest * BASES.noTrainShare);
   const count = new Map<BaseKind, number>();
   let noTrain = 0, open = rest;
-  /** Karte legen: an einen zufaelligen freien Ort, an dem die Art stehen darf / lay a card: on a random free place where the kind may stand */
+  /**
+   * Art unterbringen (erweiternder Weg): an einem freien passenden Ort, sonst weicht der dortige Stuetzpunkt auf einen
+   * anderen passenden Ort aus. Freie Orte zuerst, sonst zufaellige Reihenfolge.
+   * Accommodate a kind (augmenting path): on a free fitting place, otherwise the base standing there moves to another
+   * fitting place. Free places first, otherwise random order.
+   */
+  const seat = (kind: BaseKind, seen: Set<number>): boolean => {
+    const fitting: number[] = [];
+    for (let i = homes; i < places.length; i++) if (!seen.has(i) && fits(kind, places[i])) fitting.push(i);
+    shuffle(rng, fitting);
+    fitting.sort((a, b) => (kinds[a] === null ? 0 : 1) - (kinds[b] === null ? 0 : 1));
+    for (const i of fitting) {
+      if (seen.has(i)) continue;
+      seen.add(i);
+      const there = kinds[i];
+      if (there === null || seat(there, seen)) { kinds[i] = kind; return true; }
+    }
+    return false;
+  };
+  /** Karte legen, wenn Obergrenzen und Orte es erlauben / lay a card if caps and places allow */
   const place = (kind: BaseKind): boolean => {
     if (open === 0 || (count.get(kind) ?? 0) >= (BASES.maxPerMap[kind] ?? Infinity)) return false;
     const untrained = BASES.noTraining.includes(kind);
     if (untrained && noTrain >= noTrainCap) return false;
-    const free: number[] = [];
-    for (let i = homes; i < villages.length; i++) if (kinds[i] === null && fits(kind, villages[i])) free.push(i);
-    if (!free.length) return false;
-    kinds[free[randInt(rng, free.length)]] = kind;
+    if (!seat(kind, new Set())) return false;
     count.set(kind, (count.get(kind) ?? 0) + 1);
     if (untrained) noTrain++;
     open--;
@@ -359,7 +378,7 @@ function assignBaseKinds(seed: number, size: number, tiles: Tile[], villages: Po
   };
   for (let round = 0; open > 0 && round < 8; round++) {
     const piles = order.map((g) => shuffle(rng, BASES.groups[g].slice()));
-    /** naechste Karte der Gruppe legen, die irgendwo stehen darf; die uebersprungenen verfallen / lay the group's next card that may stand somewhere; skipped ones are discarded */
+    /** naechste Karte der Gruppe legen, die sich unterbringen laesst; die uebersprungenen verfallen / lay the group's next card that can be accommodated; skipped ones are discarded */
     const serve = (pile: BaseKind[]): boolean => {
       while (pile.length) if (place(pile.shift()!)) return true;
       return false;

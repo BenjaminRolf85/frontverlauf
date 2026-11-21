@@ -316,7 +316,7 @@ export function cityIncome(s: GameState, c: City): number {
   if (c.factory) inc += INCOME.factory;
   if (c.govQuarter) inc += INCOME.govQuarter;
   if ((c.upgrades ?? []).includes('depot')) inc += CITY_UPGRADES.depotIncome;
-  // Stuetzpunkt: Fabrik, Nachschubdepot, Kraftwerke (NEXUS: Energie statt Sterne) / base: factory, supply depot, power kinds (NEXUS: energy instead of stars)
+  // Stuetzpunkt: Fabrik, Nachschubdepot, Kraftwerke (NEXUS dazu Energie) / base: factory, supply depot, power kinds (NEXUS energy on top)
   inc += baseStars(s, c);
   for (const p of cityTiles(s, c)) {
     const b = tileAt(s, p.x, p.y)!.building;
@@ -1560,17 +1560,20 @@ export const holdsBase = (s: GameState, f: number, kind: BaseKind): boolean => s
 export const baseGap = (kind: BaseKind, id: FactionId): boolean => !!BASES.gap[kind]?.includes(id);
 
 /**
- * Sterne pro Runde, die der Stuetzpunkt seinem Besitzer zusaetzlich bringt: BASES.stars (Kraftwerke nicht fuer NEXUS, das
- * bekommt Energie) und BASES.gapStars fuer eine Fraktion ohne passende Einheit.
- * Stars per round the base gives its owner on top: BASES.stars (power kinds not for NEXUS, which gets energy) and
- * BASES.gapStars for a faction without a matching unit.
+ * Sterne pro Runde, die der Stuetzpunkt seinem Besitzer zusaetzlich bringt: BASES.stars und BASES.gapStars fuer eine
+ * Fraktion ohne passende Einheit; der Kult bekommt davon den Anteil BASES.cultTribute (tributeStars).
+ * Stars per round the base gives its owner on top: BASES.stars and BASES.gapStars for a faction without a matching unit;
+ * the cult receives the share BASES.cultTribute of it (tributeStars).
  */
 export function baseStars(s: GameState, c: City): number {
   if (c.owner === null || !c.base || !s.factions[c.owner]) return 0;
   const id = s.factions[c.owner].id;
-  if (BASES.energy[c.base] !== undefined && id === NEXUS.faction) return 0;
-  return (BASES.stars[c.base] ?? 0) + (baseGap(c.base, id) ? BASES.gapStars : 0);
+  const n = (BASES.stars[c.base] ?? 0) + (baseGap(c.base, id) ? BASES.gapStars : 0);
+  return id === CULT.faction ? tributeStars(n) : n;
 }
+
+/** Tribut des Kults aus n Stuetzpunkt-Sternen: Anteil BASES.cultTribute, gerundet, mindestens 1 / the cult's tribute from n base stars: share BASES.cultTribute, rounded, at least 1 */
+export const tributeStars = (n: number): number => (n > 0 ? Math.max(1, Math.round(n * BASES.cultTribute)) : 0);
 
 /**
  * Felder, die fuer die Zyrr beim Einnehmen einer Fabrik sofort zu Xeno-Boden werden (BASES.zyrrFactoryXeno): das Stadtfeld
@@ -1586,7 +1589,7 @@ export function factoryXenoTiles(s: GameState, c: City): Pos[] {
   });
 }
 
-/** Energie (Rechenleistung) eines Kraftwerk-Stuetzpunkts, nur fuer NEXUS / energy (compute) of a power base, for NEXUS only */
+/** Energie (Rechenleistung) eines Kraftwerk-Stuetzpunkts, nur fuer NEXUS, zusaetzlich zu den Sternen / energy (compute) of a power base, for NEXUS only, on top of the stars */
 export function baseEnergy(s: GameState, c: City): number {
   if (c.owner === null || !c.base || s.factions[c.owner]?.id !== NEXUS.faction) return 0;
   return BASES.energy[c.base] ?? 0;

@@ -560,7 +560,7 @@
     "wreckSmelter": "{pop} Bevölkerungspunkte und +{stars} Sterne pro Runde. Nur auf einem Wrack oder einer geborgenen Absturzstelle, verbraucht sie; braucht keinen Xeno-Boden, nur Zyrr",
     "pilgrimSite": "Rekruten auf oder neben der Stätte starten als Veteranen. Nur in Wüste oder Steppe oder neben einem Vulkan, ohne Ressource, eine je Stadt, nur Vesper",
     "depotNode": "{pop} Bevölkerungspunkt und +{compute} Rechenleistung ohne Kraftwerk. Nur auf Erz, nur NEXUS",
-    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier und jeder Sendeturm hat eine eingebaut, bei Korvat und Dravon jede eigene Stadt.",
+    "trainingCamp": "Bildet in dieser Stadt aus: {units}. Eine je Stadt; jedes Hauptquartier, jeder Stützpunkt Kaserne und jeder Sendeturm hat eine eingebaut, bei Korvat und Dravon jede eigene Stadt.",
     "armory": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
     "motorPool": "Bildet in dieser Stadt aus: {units}. Eines je Stadt.",
     "tankWorks": "Bildet in dieser Stadt aus: {units}. Braucht {needs} im Stadtgebiet. Eines je Stadt.",
@@ -3625,7 +3625,7 @@
     },
     "cities": {
       "title": "Städte & Forschung",
-      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+      "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme (in der Kampagne; in freien Partien stehen dort Stützpunkte) sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Forschung schaltet Einheiten, Gebäude und Ausbauten frei und wird mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
     },
     "outposts": {
       "title": "Außenposten",
@@ -3654,7 +3654,7 @@
     },
     "sites": {
       "title": "Produktionsstätten (Menschen)",
-      "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier und jeder Sendeturm hat eine Kaserne eingebaut, Korvat und Dravon haben sie in jeder eigenen Stadt, Dravon im Hauptquartier dazu ein Fahrzeugwerk. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
+      "text": "Die fünf Menschen-Fraktionen bilden eine Einheit nur in einer Stadt aus, in deren Gebiet die passende Produktionsstätte steht: eine je Stadt, ohne Doktrin baubar. Jedes Hauptquartier, jeder Stützpunkt der Art Kaserne und jeder Sendeturm hat eine Kaserne eingebaut, Korvat und Dravon haben sie in jeder eigenen Stadt, Dravon im Hauptquartier dazu ein Fahrzeugwerk. Wer eine Stadt erobert, übernimmt ihre Stätten. Zyrr, NEXUS und Kult bilden aus wie bisher."
     },
     "ships": {
       "title": "Schiffe und Werft",
@@ -3674,7 +3674,7 @@
     },
     "bases": {
       "title": "Stützpunkte",
-      "text": "In freien Partien der Standardwelt ist jeder neutrale Ort außer den Sendetürmen ein Stützpunkt einer von {kinds} Arten. Tippe ihn an, um vor dem Einnehmen zu sehen, was er dir bringt. Eingenommen verhält er sich wie eine Stadt: Er wächst, steigt auf und lässt sich ausbauen, und dazu wirkt seine Eigenschaft, solange du ihn hältst. Neben jedem Hauptquartier liegt eine Kaserne, für alle gleich. Die übrigen Arten sind gemischt verteilt: reihum je eine aus Produktion, Energie, Versorgung und Schutz; spielt NEXUS mit, gibt es mindestens ein Kraftwerk, wenn ein Ort dafür taugt. Den fünf Menschen-Fraktionen bringen Kaserne, Panzerfabrik, Militärflughafen, Geschützwerk und Marinestützpunkt die passende Produktionsstätte fertig eingebaut. Zyrr, Kult und NEXUS haben keine Produktionsstätten: Für sie kosten die passenden Einheiten überall {pct} % weniger, solange sie den Stützpunkt halten; wer keine passende Einheit hat, bekommt stattdessen {gap} Sterne pro Runde. Wohnblöcke und Supermarkt bilden für niemanden Truppen aus (höchstens ein Viertel der Orte außer den Heimat-Kasernen): Ihre Plätze tragen Einheiten, die du in anderen, vollen Städten ausbildest. Bunker, Lazarett und Nachschubdepot enthalten den gleichnamigen Stadt-Ausbau in stärkerer Form; dort lässt er sich nicht noch einmal kaufen. Sterne eines Stützpunkts bekommt auch der Kult, als Tribut."
+      "text": "In freien Partien der Standardwelt ist jeder neutrale Ort ein Stützpunkt einer von {kinds} Arten, auch dort, wo sonst Sendetürme stünden. Er ist unbewacht: Wer ihn findet, nimmt ihn ein wie jede Siedlung und nutzt ihn ab dem nächsten Zug. Tippe ihn an, um vor dem Einnehmen zu sehen, was er dir bringt. Eingenommen verhält er sich wie eine Stadt: Er wächst, steigt auf und lässt sich ausbauen, und dazu wirkt seine Eigenschaft, solange du ihn hältst. Neben jedem Hauptquartier liegt eine Kaserne, für alle gleich. Die übrigen Arten sind gemischt verteilt: reihum je eine aus Produktion, Energie, Versorgung und Schutz, und keine Art kommt doppelt vor, solange eine andere noch Platz fände; spielt NEXUS mit, gibt es mindestens ein Kraftwerk, wenn ein Ort dafür taugt. Den fünf Menschen-Fraktionen bringen Kaserne, Panzerfabrik, Militärflughafen, Geschützwerk und Marinestützpunkt die passende Produktionsstätte fertig eingebaut. Zyrr, Kult und NEXUS haben keine Produktionsstätten: Für sie kosten die passenden Einheiten überall {pct} % weniger, solange sie den Stützpunkt halten; wer keine passende Einheit hat, bekommt stattdessen {gap} Sterne pro Runde. Wohnblöcke und Supermarkt bilden für niemanden Truppen aus (höchstens ein Viertel der Orte außer den Heimat-Kasernen): Ihre Plätze tragen Einheiten, die du in anderen, vollen Städten ausbildest. Bunker, Lazarett und Nachschubdepot enthalten den gleichnamigen Stadt-Ausbau in stärkerer Form; dort lässt er sich nicht noch einmal kaufen. Von den Sternen eines Stützpunkts bekommt der Kult {tribute} % als Tribut."
     }
   },
   "lore": {
@@ -3871,7 +3871,7 @@
       },
       "cities": {
         "title": "Städte & Produktion",
-        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
+        "text": "Ziehe eine Einheit auf eine Siedlung oder feindliche Stadt; zu Beginn deines nächsten Zuges kannst du sie einnehmen. Gebäude auf Ressourcen im Stadtgebiet bringen Bevölkerung, volle Bevölkerung hebt die Stadtstufe: mehr Einkommen, mehr Einheiten und eine Belohnung. Mit jeder Stufe wächst das Stadtgebiet um bis zu {grow} freie Felder im nächsten Ring, die nächsten zuerst, bis höchstens {max} x {max} Felder; fremdes Gebiet bleibt fremd. Sendetürme (in der Kampagne; in freien Partien stehen dort Stützpunkte) sind neutrale Orte: Sie bilden Truppen aus und bringen {towerInc} Sterne je Runde, wachsen aber nicht. Jede Stadt hat {slots} Plätze für Ausbauten. Jeder Ausbau hebt außerdem das Einheitenlimit um {cap}. Stufe kaufen: Für {buy} × (Stufe + 1) Sterne steigt eine Stadt sofort eine Stufe (Stufe 1 → 2: {ex2}, 2 → 3: {ex3}, 3 → 4: {ex4}), mit der üblichen Belohnung; einmal je Stadt und Runde, nicht für Sendetürme, Nachschublinien und den Kult. Einheiten kommen aus Produktionsstätten im Stadtgebiet (siehe unten). Doktrinen schalten Gebäude und Ausbauten frei, bringen Vorteile und werden mit jeder Stadt teurer: Stufe 1 kostet mit einer Stadt {t1} Sterne, mit drei Städten {t1c3}, Stufe 3 mit drei Städten {t3c3}. Gesperrte Gebäude zeigt das Feld mit „Benötigt: …“."
       },
       "factions": {
         "text": "In der Einsatzplanung abschaltbar. Voraussetzung ist die eigene Siegdoktrin (Stufe 3), im Doktrinen-Baum gestrichelt umrandet. Die Siegverfolgung im Menü zeigt den Fortschritt aller bekannten Fraktionen."
@@ -4227,9 +4227,9 @@
       "housing": "Bildet keine Truppen aus. Trägt {baseHousingUnits} Einheiten mehr; alle Plätze versorgen Einheiten aus deinen anderen Städten, sobald diese voll sind. Etwas Schutz: eigene Bodeneinheiten hier erhalten +{baseHousingDef} Verteidigung.",
       "supermarket": "Bildet keine Truppen aus. Trägt {baseSupermarketUnits} Einheiten mehr; alle Plätze versorgen Einheiten aus deinen anderen Städten, sobald diese voll sind.",
       "factory": "+{baseFactoryStars} Sterne pro Runde. Die Zyrr holen mehr heraus: Nehmen sie die Fabrik ein, wird ihr Gebiet sofort zu Xeno-Boden.",
-      "nuclearPlant": "+{baseNuclearStars} Sterne pro Runde. NEXUS bekommt stattdessen Energie: +{baseNuclearEnergy} Rechenleistung. Steht nur am Wasser, höchstens eines je Karte.",
-      "solarFarm": "+{baseSolarStars} Sterne pro Runde. NEXUS bekommt stattdessen Energie: +{baseSolarEnergy} Rechenleistung. Steht nur auf offener Ebene.",
-      "windFarm": "+{baseWindStars} Sterne pro Runde. NEXUS bekommt stattdessen Energie: +{baseWindEnergy} Rechenleistung. Stehen an der Küste, an Bergen oder im Hügelland."
+      "nuclearPlant": "+{baseNuclearStars} Sterne pro Runde. NEXUS bekommt dazu Energie: +{baseNuclearEnergy} Rechenleistung. Steht nur am Wasser, höchstens eines je Karte.",
+      "solarFarm": "+{baseSolarStars} Sterne pro Runde. NEXUS bekommt dazu Energie: +{baseSolarEnergy} Rechenleistung. Steht nur auf offener Ebene.",
+      "windFarm": "+{baseWindStars} Sterne pro Runde. NEXUS bekommt dazu Energie: +{baseWindEnergy} Rechenleistung. Stehen an der Küste, an Bergen oder im Hügelland."
     },
     "other": {
       "barracks": "Hier ausgebildete Fußtruppen starten mit +{baseFootHp} LP."
@@ -4240,14 +4240,17 @@
     "cult": {
       "barracks": "Fußtruppen, die auf oder neben der Kaserne rekrutiert werden, starten mit +{baseFootHp} LP.",
       "housing": "Kein Rekrutieren auf diesem Feld. Stellt {baseHousingUnits} Plätze mehr für die Horde, dazu +{baseHousingDef} Verteidigung für eigene Bodeneinheiten hier.",
-      "supermarket": "Kein Rekrutieren auf diesem Feld. Stellt {baseSupermarketUnits} Plätze mehr für die Horde."
+      "supermarket": "Kein Rekrutieren auf diesem Feld. Stellt {baseSupermarketUnits} Plätze mehr für die Horde.",
+      "supplyDepot": "Stellt {baseDepotUnits} Platz mehr für die Horde."
     },
     "nexus": {
-      "nuclearPlant": "Energie: +{baseNuclearEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk (andere Fraktionen bekommen hier Sterne). Steht nur am Wasser, höchstens eines je Karte.",
-      "solarFarm": "Energie: +{baseSolarEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk (andere Fraktionen bekommen hier Sterne). Steht nur auf offener Ebene.",
-      "windFarm": "Energie: +{baseWindEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk (andere Fraktionen bekommen hier Sterne). Stehen an der Küste, an Bergen oder im Hügelland."
+      "nuclearPlant": "+{baseNuclearStars} Sterne pro Runde und dazu Energie: +{baseNuclearEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk. Steht nur am Wasser, höchstens eines je Karte.",
+      "solarFarm": "+{baseSolarStars} Sterne pro Runde und dazu Energie: +{baseSolarEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk. Steht nur auf offener Ebene.",
+      "windFarm": "+{baseWindStars} Sterne pro Runde und dazu Energie: +{baseWindEnergy} Rechenleistung, ohne Rechenzentrum und Kraftwerk. Stehen an der Küste, an Bergen oder im Hügelland."
     },
     "supplyDefense": "Eigene Bodeneinheiten hier erhalten +{baseHousingDef} Verteidigung.",
-    "unitTip": "Dazu +{n} durch den Stützpunkt."
+    "unitTip": "Dazu +{n} durch den Stützpunkt.",
+    "tribute": "Tribut für den Kult: +{n} Sterne pro Runde ({baseTributePct} % dessen, was andere hier bekommen).",
+    "gapCult": "Der Kult hat keine passende Einheit. Tribut: +{n} Sterne pro Runde."
   }
 }

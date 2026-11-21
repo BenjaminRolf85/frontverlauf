@@ -5,7 +5,7 @@
  * (analysis.ts). Numbers: BASES.ai.
  */
 import { baseGap, holdsBase, isAlienFaction, rosterUnits, usesSites, type City, type GameState } from '../core';
-import { BASES, NEXUS, PRODUCTION, type BaseKind } from '../data/balance';
+import { BASES, CULT, NEXUS, PRODUCTION, type BaseKind } from '../data/balance';
 
 /**
  * Was Fraktion f von diesem Stuetzpunkt sachlich haette (0 fuer gewoehnliche Orte): Sterne, Energie (NEXUS), eingebaute
@@ -23,11 +23,12 @@ export function baseWorth(s: GameState, f: number, c: City): number {
   if (!kind || !fa) return 0;
   const A = BASES.ai;
   let v = 0;
+  // Sterne (Kult: nur der Tribut-Anteil), fuer NEXUS dazu die Energie / stars (cult: the tribute share only), for NEXUS the energy on top
+  v += (BASES.stars[kind] ?? 0) * A.perStar * (fa.id === CULT.faction ? BASES.cultTribute : 1);
   const energy = BASES.energy[kind];
   if (energy !== undefined && fa.id === NEXUS.faction) v += energy * A.perEnergy;
-  else v += (BASES.stars[kind] ?? 0) * A.perStar;
   const site = BASES.sites[kind];
-  if (baseGap(kind, fa.id)) v += BASES.gapStars * A.perStar;
+  if (baseGap(kind, fa.id)) v += BASES.gapStars * A.perStar * (fa.id === CULT.faction ? BASES.cultTribute : 1);
   else if (site && usesSites(s, f)) {
     const everywhere = PRODUCTION.citySites[fa.id]?.includes(site);
     const useful = site === 'navalBase' || rosterUnits(s, f).some((t) => PRODUCTION.units[site].includes(t));

@@ -6,7 +6,7 @@
  * site; Zyrr, cult, NEXUS: discount, energy, xeno ground, substitute stars), lines for the tile and city panels and for
  * the rules. All numbers come from BASES through the balance placeholders (balanceVars.ts).
  */
-import { baseGap, noTraining, supportedUnits, unitLimit, type City, type GameState } from '../core';
+import { baseGap, noTraining, supportedUnits, tributeStars, unitLimit, type City, type GameState } from '../core';
 import { BASES, BASE_KINDS, CULT, NEXUS, PRODUCTION, UNITS, XENO, type BaseKind, type FactionId, type UnitTypeId } from '../data/balance';
 import { has, t } from '../i18n/i18n';
 import { esc } from './components';
@@ -43,6 +43,12 @@ const unitList = (list: UnitTypeId[]): string => list.map((u) => t(`units.${u}`)
  * Effect of the kind for faction f in one sentence. Without a faction (rules, main menu) the general human text.
  */
 export function baseEffectText(kind: BaseKind, f: FactionId | null): string {
+  // Kult: von Sternen (auch Ersatz-Sternen) nur der Tribut-Anteil / cult: of stars (substitute stars too) only the tribute share
+  if (f === CULT.faction) {
+    if (baseGap(kind, f)) return t('bases.gapCult', { n: tributeStars(BASES.gapStars) });
+    const stars = BASES.stars[kind];
+    if (stars) return [t('bases.tribute', { n: tributeStars(stars) }), has(`bases.cult.${kind}`) ? t(`bases.cult.${kind}`) : ''].filter(Boolean).join(' ');
+  }
   // ohne passende Einheit: Ersatz-Sterne (Kult am Flughafen, Zyrr am Marinestuetzpunkt, Meridon an der Panzerfabrik)
   // without a matching unit: substitute stars (cult at the airfield, Zyrr at the naval base, Meridon at the tank factory)
   if (f && baseGap(kind, f)) return t('bases.gap', { faction: t(`factions.${f}.short`) });
@@ -92,7 +98,7 @@ export function baseRulesLines(): string {
         if (has(`bases.${own}.${kind}`) && BASES.energy[kind] === undefined && kind !== 'factory') extra.push(`${short(f)}: ${t(`bases.${own}.${kind}`)}`);
       }
     }
-    for (const f of BASES.gap[kind] ?? []) extra.push(t('bases.gap', { faction: short(f) }));
+    for (const f of BASES.gap[kind] ?? []) extra.push(f === CULT.faction ? t('bases.gapCult', { n: tributeStars(BASES.gapStars) }) : t('bases.gap', { faction: short(f) }));
     return `<li class="icon-line">${icon(BASE_ICON[kind], 'icon-sm')}<span><strong>${esc(baseName(kind))}:</strong> ${esc(t(`bases.effect.${kind}`))}${extra.map((x) => ` <span class="muted">${esc(x)}</span>`).join('')}</span></li>`;
   });
   return `<ul class="rules-bases">${rows.join('')}</ul>`;

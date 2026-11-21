@@ -41,7 +41,11 @@ describe('Siedlungsabstand / settlement spacing', () => {
 
 const towers = (s: GameState) => s.cities.filter((c) => c.tower);
 const freeGame = (seed: number, size: GameConfig['size'], mapType: MapType, mode: GameConfig['mode'] = 'conquest', ids: FactionId[] = ['vesper', 'korvat', 'dravon']) =>
-  createGame(defaultConfig({ seed, size, mapType, mode, factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
+  // ohne Stuetzpunkte (bases: false): mit ihnen werden die Orte der Sendetuerme zu Stuetzpunkten (bases.test.ts); die
+  // Turm-Regeln gelten weiter fuer Partien ohne Stuetzpunkte, die Kampagne und alte Spielstaende
+  // without bases (bases: false): with them the transmitter towers' places become bases (bases.test.ts); the tower rules
+  // still apply to games without bases, the campaign and old saves
+  createGame(defaultConfig({ seed, size, mapType, mode, bases: false, factions: ids.map((id) => ({ id, human: false, difficulty: 'normal' as const })) }));
 
 describe('Sendetuerme in freien Partien / transmitter towers in free games', () => {
   it('2 bis 4 je nach Kartengroesse, mit den Abstaenden aus TOWER, deterministisch / 2 to 4 by map size, with the distances from TOWER, deterministic', () => {
