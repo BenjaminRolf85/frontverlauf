@@ -1383,6 +1383,19 @@ export const ACADEMY = {
   /** beim Landen: neutrale Felder in diesem Umkreis werden Akademie-Gebiet / on landing: neutral tiles within this radius become academy territory */
   landClaim: 1,
   /**
+   * Terraformen vor der Landung (Spielerwunsch): "Landen" startet eine Terraform-Runde auf dem jetzigen Feld; die Akademie
+   * bleibt so lange in der Luft (gleiche Angreifbarkeit, kein Ziehen) und landet zu Beginn ihres naechsten eigenen Zuges.
+   * Das Feld wird zu Ebene und Wiese (Berg, Wald, Flachwasser, Wueste, Tundra, Sumpf), tiefes Meer nicht. Ein Rohstoff wird
+   * aufgenommen: resourcePop Bevoelkerung fuer die Akademie. Neutrale Orte und Bauwerke werden eingeebnet (Spielerwunsch:
+   * "fuer die Wissenschaft ist alles rational ok"), nie etwas, das einer Fraktion gehoert, Wunder oder Wahrzeichen.
+   * Terraforming before landing (player request): "land" starts a terraforming round on the current tile; the academy
+   * stays in the air meanwhile (same vulnerability, no moving) and lands at the start of its next own turn. The tile
+   * becomes plain grassland (mountain, forest, shallow water, desert, tundra, swamp), deep ocean not. A resource is absorbed:
+   * resourcePop population for the academy. Neutral places and structures are levelled (player request: "for science
+   * everything is rationally fine"), never anything owned by a faction, wonders or landmarks.
+   */
+  terraform: { rounds: 1, resourcePop: 1 },
+  /**
    * Ausbildung (Spielerwunsch: mit jedem Posten mehr Einheiten auf einmal): Einheiten je Zug = baseSlots + floor(Posten /
    * postsPerSlot), hoechstens maxSlots; sie erscheinen auf der Akademie oder auf freien Nachbarfeldern (die Hauptstadt ist
    * die einzige Staette). Dazu gelten Einheitenlimit und Sterne wie immer.
@@ -1442,8 +1455,16 @@ export const ACADEMY = {
    * posts from relayDist tiles away from the academy, one per relaysPerPosts posts; beam when the relay is beamGain tiles
    * closer to the unit's goal. Profile of Velkar with an academy: more armyPerCity and aggression (measured, BALANCING.md:
    * everything comes from one city, without the bonus the AI hoarded stars).
+   * Terraformen (ACADEMY.terraform): jede Runde ohne Produktion (Flug und Terraform-Runde) kostet turnCost; ohne Schild
+   * kostet jeder Flieger, jede Flak und jeder Panzer bis hunterRange Felder vom Platz hunterCost, am Ziel weicht sie einmal
+   * je Flug aus, und ohne Schild zieht sie nicht um, solange solche Jaeger bis hunterRange heran sind; einen neutralen Ort
+   * einzuebnen kostet razePenalty plus seine Stufe (Einnehmen als Posten ist mehr wert). Gemessen, BALANCING.md.
+   * Terraforming (ACADEMY.terraform): each round without production (flight and terraforming round) costs turnCost;
+   * without a shield each flyer, flak and tank within hunterRange tiles of the site costs hunterCost, at the goal it dodges
+   * once per flight, and without a shield it does not relocate while such hunters are within hunterRange; levelling a
+   * neutral place costs razePenalty plus its level (capturing it as a post is worth more). Measured, BALANCING.md.
    */
-  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3 },
+  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3, turnCost: 0.6, hunterRange: 4, hunterCost: 3, razePenalty: 6 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */

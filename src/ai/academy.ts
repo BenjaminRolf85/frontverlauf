@@ -8,7 +8,7 @@
  * Deterministisch, Gleichstand nach Feldindex / deterministic, ties broken by tile index.
  */
 import {
-  academyMoves, academyOf, academyTargets, airborne, area, beamTargets, canHitAirborne, dist, shieldHp, idx, isWonder, landCheck, landingOk, liftCheck, type City, type Command,
+  academyMoves, academyOf, academyTargets, airborne, area, beamTargets, canHitAirborne, dist, shieldHp, idx, isWonder, landCheck, landingOk, liftCheck, terraformPlan, type City, type Command,
   type GameState, type Pos, type Unit,
 } from '../core';
 import { ACADEMY, UNITS } from '../data/balance';
@@ -20,6 +20,8 @@ const ok = (failed: Failed, c: Command) => !failed.has(cmdKey(c));
 
 /** Flugziel je Partie und Fraktion / flight target per game and faction */
 const targets = new WeakMap<GameState, Map<number, Pos>>();
+/** Schon einmal vor Jaegern ausgewichen (je Flug) / already dodged hunters once (per flight) */
+const dodged = new WeakMap<GameState, Set<number>>();
 /** Entscheidung zum Abheben, einmal je Zug / lift decision, once per turn */
 const liftMemo = new WeakMap<GameState, Map<number, { key: string; to: Pos | null }>>();
 
@@ -27,7 +29,17 @@ function targetOf(s: GameState, f: number): Pos | undefined { return targets.get
 function setTarget(s: GameState, f: number, p: Pos | null) {
   let m = targets.get(s);
   if (!m) { m = new Map(); targets.set(s, m); }
-  if (p) m.set(f, p); else m.delete(f);
+  if (p) m.set(f, p); else { m.delete(f); dodged.get(s)?.delete(f); }
+}
+
+/**
+ * Feinde, die eine schwebende Akademie treffen koennen (Flieger, Flak, Panzer), im Umkreis ACADEMY.ai.hunterRange von p.
+ * Enemies able to hit a floating academy (flyers, flak, tanks) within ACADEMY.ai.hunterRange of p.
+ */
+function huntersNear(ctx: Ctx, p: Pos): number {
+  let n = 0;
+  for (const e of ctx.enemies) if (dist(e, p) <= ACADEMY.ai.hunterRange && canHitAirborne(e)) n++;
+  return n;
 }
 
 /** Staerke feindlicher bzw. eigener Einheiten im Umkreis r / strength of hostile or own units within radius r */
@@ -59,16 +71,33 @@ function siteScore(ctx: Ctx, p: Pos): number {
   return -Math.max(front, ACADEMY.ai.frontKeep) - 2.5 * threat - foes / 40 + 0.25 * free;
 }
 
-/** Bester Landeplatz im Suchradius (null = keiner) / best landing site within the search radius (null = none) */
+/**
+ * Bester Landeplatz im Suchradius (null = keiner). Mit Terraformen sind mehr Plaetze gueltig; die Terraform-Runde
+ * (ACADEMY.terraform.rounds) zaehlt zur Flugzeit, jede Runde ohne Produktion kostet ACADEMY.ai.turnCost. Ohne Schild
+ * kosten Jaeger nahe dem Platz (die Akademie haengt eine Runde laenger fest in der Luft). Einen neutralen Ort einzuebnen
+ * kostet razePenalty plus seine Stufe: als Posten eingenommen bringt er mehr (Ausbildungsplaetze), also nur, wenn der
+ * Platz sonst deutlich besser ist.
+ * Best landing site within the search radius (null = none). With terraforming more sites are valid; the terraforming
+ * round (ACADEMY.terraform.rounds) counts towards the flight time, each round without production costs
+ * ACADEMY.ai.turnCost. Without a shield, hunters near the site cost (the academy is stuck in the air one round longer).
+ * Levelling a neutral place costs razePenalty plus its level: captured as a post it is worth more (training slots), so
+ * only when the site is otherwise clearly better.
+ */
 function bestSite(ctx: Ctx, ac: City, from: Pos, flee: boolean, radius: number = ACADEMY.ai.search): { p: Pos; v: number } | null {
   const { s } = ctx;
+  const bare = shieldHp(ac) <= 0;
   let best: { p: Pos; v: number } | null = null;
   for (const p of area(s.size, from.x, from.y, radius)) {
     if (!landingOk(s, ac, p)) continue;
-    // Flugzeit kostet: keine Produktion, solange sie fliegt / flight time costs: no production while flying
-    const turns = 1 + Math.ceil(dist(from, p) / ACADEMY.move);
-    const v = flee ? -2.5 * ctx.threat[idx(s.size, p.x, p.y)].length - strengthNear(ctx.enemies, p, 3) / 20 - 0.2 * turns
-      : siteScore(ctx, p) - 0.6 * turns;
+    const plan = terraformPlan(s, ac, p);
+    // ein Ort auf dem Feld wird vom Nachbarfeld aus terraformt / a place on the tile is terraformed from the adjacent tile
+    const d = Math.max(0, dist(from, p) - (plan.razed ? 1 : 0));
+    // Flugzeit kostet: keine Produktion, solange sie fliegt und terraformt / flight time costs: no production while flying and terraforming
+    const turns = 1 + Math.ceil(d / ACADEMY.move) + ACADEMY.terraform.rounds;
+    const hunt = bare ? huntersNear(ctx, p) * ACADEMY.ai.hunterCost : 0;
+    const raze = plan.razed ? ACADEMY.ai.razePenalty + plan.razed.level : 0;
+    const v = flee ? -2.5 * ctx.threat[idx(s.size, p.x, p.y)].length - strengthNear(ctx.enemies, p, 3) / 20 - 0.2 * turns - hunt - raze
+      : siteScore(ctx, p) - ACADEMY.ai.turnCost * turns - hunt - raze;
     if (!best || v > best.v + 1e-9) best = { p, v };
   }
   return best;
@@ -90,15 +119,30 @@ export function planAcademyFlight(ctx: Ctx, failed: Failed): Command | null {
     goal = (bestSite(ctx, ac, ac, false) ?? bestSite(ctx, ac, ac, false, s.size))?.p;
     setTarget(s, f, goal ?? null);
   }
-  const land: Command = { type: 'landAcademy', city: ac.id };
-  if (goal && goal.x === ac.x && goal.y === ac.y) {
-    if (landCheck(s, f, ac) === 'ok' && ok(failed, land)) { setTarget(s, f, null); return land; }
+  // Ziel mit Ort: vom Nachbarfeld aus terraformen (der Ort wird eingeebnet) / goal with a place: terraform from the adjacent tile (the place is levelled)
+  const placeGoal = !!goal && (goal.x !== ac.x || goal.y !== ac.y) && s.tiles[idx(s.size, goal.x, goal.y)].cityId !== null;
+  const there = !!goal && (dist(ac, goal) === 0 || (placeGoal && dist(ac, goal) <= 1));
+  const land: Command = placeGoal && there ? { type: 'landAcademy', city: ac.id, at: { x: goal!.x, y: goal!.y } } : { type: 'landAcademy', city: ac.id };
+  if (goal && there) {
+    // ohne Schild und mit Jaegern in der Naehe einmal je Flug ausweichen (die Terraform-Runde haelt sie fest)
+    // without a shield and with hunters nearby dodge once per flight (the terraforming round pins it down)
+    let d = dodged.get(s);
+    if (!d) { d = new Set(); dodged.set(s, d); }
+    if (shieldHp(ac) <= 0 && ac.air.steps > 0 && !d.has(f) && huntersNear(ctx, goal) > 0) {
+      d.add(f);
+      const alt = bestSite(ctx, ac, ac, true, ACADEMY.move + 1);
+      if (alt && (alt.p.x !== goal.x || alt.p.y !== goal.y) && huntersNear(ctx, alt.p) < huntersNear(ctx, goal)) {
+        targets.get(s)!.set(f, alt.p);
+        return planAcademyFlight(ctx, failed);
+      }
+    }
+    if (landCheck(s, f, ac, land.type === 'landAcademy' ? land.at : undefined) === 'ok' && ok(failed, land)) { setTarget(s, f, null); return land; }
   }
   if (goal) {
     let step: Pos | null = null, bd = dist(ac, goal);
     for (const p of academyMoves(s, ac)) {
-      const d = dist(p, goal);
-      if (d < bd || (d === bd && step && idx(s.size, p.x, p.y) < idx(s.size, step.x, step.y))) { bd = d; step = p; }
+      const dd = dist(p, goal);
+      if (dd < bd || (dd === bd && step && idx(s.size, p.x, p.y) < idx(s.size, step.x, step.y))) { bd = dd; step = p; }
     }
     if (step) {
       const cmd: Command = { type: 'moveAcademy', city: ac.id, to: step };
@@ -106,8 +150,9 @@ export function planAcademyFlight(ctx: Ctx, failed: Failed): Command | null {
     }
   }
   // kein Fortschritt mehr moeglich: landen, wenn es hier geht / no more progress possible: land if possible here
-  if ((!goal || ac.air.steps <= 0 || !academyMoves(s, ac).length) && landCheck(s, f, ac) === 'ok' && ok(failed, land)) {
-    if (!goal || (goal.x === ac.x && goal.y === ac.y) || !academyMoves(s, ac).length) { setTarget(s, f, null); return land; }
+  const here: Command = { type: 'landAcademy', city: ac.id };
+  if ((!goal || ac.air.steps <= 0 || !academyMoves(s, ac).length) && landCheck(s, f, ac) === 'ok' && ok(failed, here)) {
+    if (!goal || (goal.x === ac.x && goal.y === ac.y) || !academyMoves(s, ac).length) { setTarget(s, f, null); return here; }
   }
   return null;
 }
@@ -139,7 +184,9 @@ export function planAcademyLift(ctx: Ctx, failed: Failed): Command | null {
     to = bestSite(ctx, ac, ac, true)?.p ?? null;
   } else {
     const last = ac.calm !== undefined ? ac.calm - 1 : 0;
-    if (s.round - last >= ACADEMY.ai.cooldown && foes === 0) {
+    // Umzug ohne Schild nicht vor Jaegern: Flug und Terraform-Runde halten sie in der Luft / no relocation without a shield in front of hunters: flight and terraforming round keep it in the air
+    const exposed = shieldHp(ac) <= 0 && huntersNear(ctx, ac) > 0;
+    if (s.round - last >= ACADEMY.ai.cooldown && foes === 0 && !exposed) {
       const best = bestSite(ctx, ac, ac, false);
       if (best && best.v - siteScore(ctx, ac) >= ACADEMY.ai.minGain) to = best.p;
     }

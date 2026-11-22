@@ -39,7 +39,7 @@ import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGe
 import { alienBurrowGeometry } from './models/alienFlora';
 import { towerGeometry } from './models/towers';
 import { cityHeight, hqMastTop } from './models/city';
-import { ACADEMY_MODEL, academyBeacon, academyGeometry, hoverShadowColor, researchPostGeometry, shieldColor, shieldGeometry } from './models/academy';
+import { ACADEMY_MODEL, academyBeacon, academyGeometry, academyPose, academyRadarAt, academyRadarGeometry, hoverShadowColor, poseY, researchPostGeometry, shieldColor, shieldGeometry, terraformColor } from './models/academy';
 import type { City } from '../core';
 import { BASE_ICON, baseName } from '../ui/bases';
 import { DesertWorldFx } from './desertWorld';
@@ -275,7 +275,14 @@ export class Board {
    * Schwebende Akademien (Velkar): Modell je Stadt, schwebende mit Auf und Ab; nur Darstellung.
    * Floating academies (Velkar): model per city, floating ones bob up and down; render state only.
    */
-  private academyObjs = new Map<number, { group: THREE.Group; obj: THREE.Object3D; hover: boolean; baseY: number; animating: boolean }>();
+  /**
+   * Akademien auf dem Brett: Gruppe (Feld), Modell (Hoehe), Auf und Ab, drehende Radarantenne, Terraform-Strahl und
+   * Bodenflimmern; base = gebaute Lage der Gruppe (das Leuchtfeuer folgt der Verschiebung).
+   * Academies on the board: group (tile), model (height), bob, rotating radar array, terraform beam and ground shimmer;
+   * base = built position of the group (the beacon follows the offset).
+   */
+  private academyObjs = new Map<number, { group: THREE.Group; obj: THREE.Object3D; hover: boolean; baseY: number; animating: boolean; base: THREE.Vector3;
+    radar: THREE.Object3D | null; beam: THREE.Mesh | null; ring: THREE.Mesh | null }>();
   private unitLayer = new THREE.Group();
   private highlightLayer = new THREE.Group();
   private labelLayer = new THREE.Group();
@@ -1977,8 +1984,14 @@ export class Board {
     if (this.animations) {
       const t = now / 1000;
       for (const [id, a] of this.academyObjs) {
+        // Radarantenne dreht, Terraform-Strahl flackert, Bodenring kreist / radar array spins, terraform beam flickers, ground ring circles
+        if (a.radar) a.radar.rotation.y = t * 1.1 + id;
+        if (a.beam) (a.beam.material as THREE.MeshBasicMaterial).opacity = 0.38 + 0.1 * Math.sin(t * 9 + id) + 0.04 * Math.sin(t * 23);
+        if (a.ring) { a.ring.rotation.z = t * 0.8; const k = 1 + 0.06 * Math.sin(t * 3.2); a.ring.scale.set(k, k, 1); }
+        if (a.radar || a.beam) lived = true;
         if (!a.hover || a.animating) continue;
         a.obj.position.y = a.baseY + Math.sin((t * Math.PI * 2) / ACADEMY_MODEL.bobPeriod + id) * ACADEMY_MODEL.bob;
+        this.followBeacon(id, a);
         lived = true;
       }
     }
@@ -2013,16 +2026,34 @@ export class Board {
    */
   private buildAcademy(s: GameState, c: City, fid: FactionId, townCities: TownInput['cities']) {
     const air = !!c.academy && !!c.air;
-    const g = withGlow(c.post ? researchPostGeometry(fid, !!c.relay) : academyGeometry(fid, c.level, air), 'built', 0.6);
+    const pose = c.academy ? academyPose(c.air) : 'ground';
+    const low = this.quality === 'low';
+    const g = withGlow(c.post ? researchPostGeometry(fid, !!c.relay) : academyGeometry(fid, c.level, pose, low), 'built', 0.6);
     const group = new THREE.Group();
     group.position.copy(this.tileCenter(s, c.x, c.y));
     const obj = outlined(g, OUTLINE.building, landMaterial());
     obj.traverse((o) => { o.raycast = () => {}; if (o === obj.userData.mesh) o.castShadow = true; });
     // etwas groesser als ein Feldmodell: die Hauptstadt ist das wichtigste Objekt der Karte / a little larger than a tile model: the capital is the most important object on the map
     if (c.academy) obj.scale.setScalar(ACADEMY_MODEL.scale);
-    const baseY = !air ? 0 : c.air!.phase === 'lifting' ? ACADEMY_MODEL.liftY : ACADEMY_MODEL.airY;
+    const baseY = poseY(pose);
     obj.position.y = baseY;
     group.add(obj);
+    // drehende Radarantenne auf dem Laborturm (eigenes Teil, mit Tuschelinie) / rotating radar array on the lab tower (own part, with ink line)
+    let radar: THREE.Object3D | null = null;
+    if (c.academy) {
+      radar = outlined(withGlow(academyRadarGeometry(), 'built', 0.6), OUTLINE.building * 0.8, landMaterial());
+      radar.position.set(...academyRadarAt(c.level, pose));
+      radar.traverse((o) => { o.raycast = () => {}; });
+      obj.add(radar);
+    }
+    // Terraformen: Strahl vom Projektor zum Zielfeld und flimmernder Ring am Boden / terraforming: beam from the projector to the target tile and a shimmering ring on the ground
+    let beam: THREE.Mesh | null = null, ring: THREE.Mesh | null = null;
+    if (c.academy && c.air?.phase === 'terraform') {
+      const at = c.air.at ?? { x: c.x, y: c.y };
+      const fx = this.terraformFx(s, group.position, at, baseY);
+      beam = fx.beam; ring = fx.ring;
+      group.add(beam, ring);
+    }
     if (air) {
       // Bodenschatten: kleiner und blasser, je hoeher sie schwebt / ground shadow: smaller and paler the higher it floats
       const k = 1 - baseY * 0.6;
@@ -2045,10 +2076,11 @@ export class Board {
       for (const m of [bubble, edges]) { m.position.y = air ? 0.05 : ACADEMY_MODEL.legs + 0.05; m.scale.set(1, 0.8, 1); m.raycast = () => {}; obj.add(m); }
     }
     this.staticLayer.add(group);
-    if (c.academy) this.academyObjs.set(c.id, { group, obj, hover: air, baseY, animating: false });
+    // Terraformen: ruhig verankert, kein Auf und Ab / terraforming: steadily anchored, no bob
+    if (c.academy) this.academyObjs.set(c.id, { group, obj, hover: air && pose !== 'terraform', baseY, animating: false, base: group.position.clone(), radar, beam, ring });
     // Lichtschein am Boden, Leuchtfeuer an der Antenne, kein Schornsteinrauch / light pool on the ground, beacon on the antenna, no chimney smoke
     townCities.push({ x: group.position.x, y: group.position.y, z: group.position.z, level: c.post ? 1 : c.level, faction: fid, hq: !!c.academy, govQuarter: false, geo: g, smoke: [],
-      ...(c.academy ? { beacon: academyBeacon(c.level, baseY, air) } : {}) });
+      ...(c.academy ? { beacon: academyBeacon(c.level, baseY, pose), beaconKey: c.id } : {}) });
     // Trefferkoerper ueber dem ganzen Modell / hit body over the whole model
     const h = c.post ? 0.5 : baseY + 0.75;
     const proxy = new THREE.Mesh(proxyGeometry(), proxyMaterial());
@@ -2077,17 +2109,86 @@ export class Board {
     a.animating = true;
     const y0 = a.obj.position.y;
     const ease = (t: number) => t * t * (3 - 2 * t);
+    const id = c.id;
     if (what === 'move' && from) {
       const p0 = this.tileCenter(s, from.x, from.y), p1 = this.tileCenter(s, c.x, c.y);
-      return this.addAnim(ANIM.move * 2, (t) => { a.group.position.lerpVectors(p0, p1, ease(t)); });
+      return this.addAnim(ANIM.move * 2, (t) => { a.group.position.lerpVectors(p0, p1, ease(t)); this.followBeacon(id, a); });
     }
-    const y1 = what === 'lift' ? ACADEMY_MODEL.liftY : what === 'float' ? ACADEMY_MODEL.airY : 0;
+    if (what === 'terraform') {
+      // absinken auf Arbeitshoehe, Strahl waechst zum Zielfeld / sink to working height, the beam grows towards the target tile
+      const at = { x: c.air?.at?.x ?? c.x, y: c.air?.at?.y ?? c.y };
+      const fx = this.terraformFx(s, a.group.position, at, ACADEMY_MODEL.terraformY);
+      a.group.add(fx.beam, fx.ring);
+      return this.addAnim(ANIM.move * 3, (t) => {
+        const k = ease(t);
+        a.obj.position.y = y0 + (ACADEMY_MODEL.terraformY - y0) * k;
+        fx.beam.scale.set(k, k, k);
+        fx.ring.scale.set(k, k, 1);
+        this.followBeacon(id, a);
+      });
+    }
+    const y1 = what === 'lift' ? ACADEMY_MODEL.liftY : what === 'float' || what === 'cancel' || what === 'abort' ? ACADEMY_MODEL.airY : 0;
     const p0 = a.group.position.clone(), p1 = this.tileCenter(s, c.x, c.y);
+    if (what === 'land') {
+      // Landung nach dem Terraformen: Strahl erlischt, Lichtwelle formt das Feld um, sanftes Aufsetzen
+      // landing after terraforming: the beam fades, a wave of light reshapes the tile, gentle touch-down
+      const wave = new THREE.Mesh(new THREE.CircleGeometry(0.5, 32), academyMat('wave', () => new THREE.MeshBasicMaterial({ color: terraformColor(), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending })));
+      wave.rotation.x = -Math.PI / 2;
+      wave.position.copy(p1).sub(a.group.position).setY(0.03);
+      wave.userData.dispose = true;
+      a.group.add(wave);
+      const beam = a.beam, ring = a.ring;
+      return this.addAnim(ANIM.move * 3.5, (t) => {
+        const k = ease(t);
+        a.obj.position.y = y0 + (y1 - y0) * k;
+        a.group.position.lerpVectors(p0, p1, k);
+        wave.position.copy(p1).sub(a.group.position).setY(0.03);
+        const w = Math.min(1, t * 1.6);
+        wave.scale.setScalar(0.3 + 0.9 * w);
+        (wave.material as THREE.MeshBasicMaterial).opacity = 0.6 * (1 - t);
+        if (beam) beam.scale.setScalar(Math.max(0.001, 1 - k));
+        if (ring) ring.scale.set(1 + k, 1 + k, 1);
+        this.followBeacon(id, a);
+      });
+    }
     return this.addAnim(what === 'forced' ? ANIM.death * 1.5 : ANIM.move * 2.5, (t) => {
       const k = what === 'forced' ? t * t : ease(t);
       a.obj.position.y = y0 + (y1 - y0) * k;
       if (what === 'forced') a.group.position.lerpVectors(p0, p1, k);
+      if ((what === 'cancel' || what === 'abort') && a.beam) a.beam.scale.setScalar(Math.max(0.001, 1 - k));
+      this.followBeacon(id, a);
     });
+  }
+
+  /** Leuchtfeuer der Akademie folgt Auf und Ab und Uebergang / the academy's beacon follows the bob and the transition */
+  private followBeacon(id: number, a: { group: THREE.Group; obj: THREE.Object3D; baseY: number; base: THREE.Vector3 }) {
+    this.town.shiftBeacon(id, a.group.position.x - a.base.x, a.obj.position.y - a.baseY, a.group.position.z - a.base.z);
+  }
+
+  /**
+   * Terraform-Effekt (Gruppe der Akademie als Bezug): Lichtkegel vom Projektor unter dem Rumpf (Hoehe hover) zum Zielfeld
+   * at und ein flimmernder Ring auf dessen Boden. Additiv, ohne Tiefenschreiben, Farbe aus dem Token.
+   * Terraform effect (relative to the academy's group): light cone from the projector below the hull (height hover) to
+   * the target tile at and a shimmering ring on its ground. Additive, no depth write, colour from the token.
+   */
+  private terraformFx(s: GameState, origin: THREE.Vector3, at: { x: number; y: number }, hover: number): { beam: THREE.Mesh; ring: THREE.Mesh } {
+    const k = ACADEMY_MODEL.scale;
+    const top = new THREE.Vector3(0, hover - (ACADEMY_MODEL.hull + 0.04) * k, 0);
+    const ground = this.tileCenter(s, at.x, at.y).sub(origin).setY(0.03);
+    const dir = top.clone().sub(ground);
+    const len = Math.max(0.05, dir.length());
+    const geo = new THREE.CylinderGeometry(0.06, 0.42, len, 20, 1, true);
+    geo.translate(0, len / 2, 0);
+    const beam = new THREE.Mesh(geo, academyMat('beam', () => new THREE.MeshBasicMaterial({ color: terraformColor(), transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })));
+    beam.position.copy(ground);
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
+    beam.userData.dispose = true;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.26, 0.47, 6, 1), academyMat('ring', () => new THREE.MeshBasicMaterial({ color: terraformColor(), transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })));
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.copy(ground);
+    ring.userData.dispose = true;
+    for (const m of [beam, ring]) { m.raycast = () => {}; m.renderOrder = 5; }
+    return { beam, ring };
   }
 
   /** Zielvorschau des Orbitallasers (leere Liste = aus) / orbital laser target preview (empty list = off) */

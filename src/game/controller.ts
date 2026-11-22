@@ -6,12 +6,13 @@ import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
   orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
-  type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
+  landingTargets, terraformPlan, type Command, type Pos, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
 import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
 import { ORBITAL, SILO, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
+import { cityNameOf } from '../i18n/cityNames';
 import { audio, type Sfx } from '../audio/audio';
 import { coreHeading, type HighlightKind } from '../render/board';
 import type { View } from '../render/view';
@@ -316,9 +317,24 @@ export class Controller {
   /** Ziehen der schwebenden Akademie ein- oder ausschalten / toggle moving the floating academy */
   toggleAcademyMove(cityId: number) {
     this.academyMoveCity = this.academyMoveCity === cityId ? null : cityId;
-    if (this.academyMoveCity !== null) this.ui.toast(t('academy.moveHint'), 'move');
+    if (this.academyMoveCity !== null) this.ui.toast(`${t('academy.moveHint')} ${t('academy.landTargetsHint')}`, 'move');
     this.updateHighlights();
     this.ui.update();
+  }
+
+  /**
+   * Terraformen und landen (ACADEMY.terraform); at = benachbarter neutraler Ort. Wird ein Ort eingeebnet, fragt die
+   * Oberflaeche vorher nach ("Neutraler Ort wird eingeebnet").
+   * Terraform and land (ACADEMY.terraform); at = adjacent neutral place. If a place is levelled, the UI asks first
+   * ("neutral place will be levelled").
+   */
+  async landAcademy(cityId: number, at?: Pos) {
+    const s = this.state;
+    const c = s ? cityById(s, cityId) : undefined;
+    if (!s || !c) return;
+    const plan = terraformPlan(s, c, at ?? c);
+    if (plan.razed && !(await this.ui.confirm(t('academy.razeConfirm', { city: cityNameOf(s, plan.razed.id) }), t('academy.razeOk')))) return;
+    await this.exec({ type: 'landAcademy', city: cityId, ...(at ? { at } : {}) });
   }
 
   selectedUnitObj(): Unit | undefined {
@@ -340,7 +356,14 @@ export class Controller {
     // schwebende Akademie: erreichbare Felder / floating academy: reachable tiles
     if (this.academyMoveCity !== null && this.isHumanTurn) {
       const c = cityById(s, this.academyMoveCity);
-      if (c) for (const p of academyMoves(s, c)) list.push({ ...p, kind: 'move' });
+      // Landeziele (Terraformen moeglich) gruen, neutrale Orte zum Einebnen rot, sonst nur Ziehen / landing targets (terraforming possible) green, neutral places to level red, otherwise move only
+      if (c) {
+        const land = landingTargets(s, c);
+        const at = (x: number, y: number) => land.find((p) => p.x === x && p.y === y);
+        for (const p of academyMoves(s, c)) list.push({ ...p, kind: at(p.x, p.y) ? 'build' : 'move' });
+        for (const p of land) if (p.razed) list.push({ x: p.x, y: p.y, kind: 'attack' });
+        if (at(c.x, c.y)) list.push({ x: c.x, y: c.y, kind: 'build' });
+      }
     }
     if (this.radioCity !== null && this.isHumanTurn) {
       const c = s.cities.find((cc) => cc.id === this.radioCity);
@@ -466,6 +489,12 @@ export class Controller {
       const cityId = this.academyMoveCity;
       this.academyMoveCity = null;
       const c = cityById(s, cityId);
+      // benachbarter neutraler Ort: einebnen und landen (mit Rueckfrage) / adjacent neutral place: level and land (with a confirmation)
+      if (c && landingTargets(s, c).some((p) => p.razed && p.x === x && p.y === y)) {
+        await this.landAcademy(cityId, { x, y });
+        this.updateHighlights(); this.ui.update();
+        return;
+      }
       if (c && academyMoves(s, c).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'moveAcademy', city: cityId, to: { x, y } });
         this.selected = { x, y }; this.tab = 'city';
@@ -920,7 +949,9 @@ export class Controller {
           case 'academy': {
             const c = cityById(s, e.city);
             if (!c || !(visible(e.x, e.y) || (e.from && visible(e.from.x, e.from.y)))) break;
-            if (e.what === 'lift' || e.what === 'land' || e.what === 'forced') this.play('build');
+            if (e.what === 'lift' || e.what === 'land' || e.what === 'forced' || e.what === 'terraform') this.play('build');
+            // eingeebneter neutraler Ort: kurze Staubwolke und Beben / levelled neutral place: a short dust cloud and quake
+            if (e.what === 'land' && e.razed) { this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.wreck * 0.6, 300); }
             if (e.what === 'forced') { this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.wreck, 420); }
             await board.animateAcademy(s, c, e.what, e.from ?? null, animate);
             break;

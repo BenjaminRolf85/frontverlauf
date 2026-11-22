@@ -12,6 +12,7 @@ import {
   isHostile, memorialMult, moveFireFactor, shieldHp, submerged, territoryOwner, unitAt, unitLuckFactor, movedThisTurn, has,
 } from './queries';
 import type { City, ErrorCode, GameState, Pos, Unit } from './types';
+import type { ResourceId, TerrainId } from '../data/balance';
 
 /** Akademie c der Fraktion f am Zug? / academy c of faction f to move? */
 function ownAcademy(s: GameState, f: number, c: City | undefined): ErrorCode | null {
@@ -49,6 +50,7 @@ export function academyMoveCheck(s: GameState, f: number, c: City | undefined, p
   if (e) return e;
   if (!c!.air) return 'grounded';
   if (c!.air.phase === 'lifting') return 'lifting';
+  if (c!.air.phase === 'terraform') return 'terraforming';
   const d = dist(c!, p);
   if (d === 0) return 'invalidTile';
   if (d > c!.air.steps) return c!.air.steps <= 0 ? 'noSteps' : 'outOfRange';
@@ -63,33 +65,122 @@ export function academyMoves(s: GameState, c: City): Pos[] {
 }
 
 /**
- * Landeplatz p fuer die Akademie c: flaches Land oder Wald ohne Gebaeude, Rohstoff, Merkmal, Strasse zum Hafen, Geschuetz und
- * fremde Einheit; nicht im fremden Gebiet; mindestens ACADEMY.landGap Felder von jedem anderen Ort.
- * Landing site p for academy c: flat land or forest without building, resource, feature, gun and foreign unit; not in
- * foreign territory; at least ACADEMY.landGap tiles from every other place.
+ * Neutraler Ort o, den die Akademie c beim Terraformen einebnen darf (Spielerwunsch: "fuer die Wissenschaft ist alles
+ * rational ok"): Siedlung, Stuetzpunkt oder Sendeturm ohne Besitzer, kein (ehemaliges) Hauptquartier.
+ * Neutral place o the academy c may level when terraforming (player request: "for science everything is rationally
+ * fine"): settlement, base or transmitter tower without an owner, no (former) headquarters.
+ */
+export function razable(c: City, o: City): boolean {
+  return o.id !== c.id && o.owner === null && !o.isHQ && o.hqOf === null && !o.academy && !o.post;
+}
+
+/**
+ * Landeplatz p fuer die Akademie c (mit Terraformen, ACADEMY.terraform): Land oder Flachwasser, kein tiefes Meer, kein
+ * Vulkan, kein Brand; Berg, Wald und Wasser werden zu Ebene. Nicht im fremden Gebiet, keine fremde Einheit, kein Geschuetz,
+ * Wunder, Tempel, Mutterschiff, Aussenposten, Grossprojekt, keine fremde Sperre, kein eigenes Gebaeude (ausser Strasse).
+ * Neutrale Orte, neutrale Gebaeude, Rohstoffe und Merkmale werden eingeebnet. Abstand ACADEMY.landGap nur zu Orten mit
+ * Besitzer (neutrale sperren nicht mehr). forced = Notlandung: jedes freie Land ohne Merkmal, Aussenposten und Gebaeude
+ * (ohne Terraformen, unveraendert).
+ * Landing site p for academy c (with terraforming, ACADEMY.terraform): land or shallow water, no deep ocean, no volcano,
+ * no fire; mountain, forest and water become plain. Not in foreign territory, no foreign unit, no gun, wonder, temple,
+ * mothership, outpost, grand project, no foreign barrier, no own building (except a road). Neutral places, neutral
+ * buildings, resources and features are levelled. Distance ACADEMY.landGap only to places with an owner (neutral ones no
+ * longer block). forced = emergency landing: any free land without feature, outpost and building (no terraforming,
+ * unchanged).
  */
 export function landingOk(s: GameState, c: City, p: Pos, forced = false): boolean {
   if (!inBounds(s.size, p.x, p.y)) return false;
   const t = tileAt(s, p.x, p.y)!;
-  if (!isLand(t) || t.volcano || burning(s, t) || t.turret || t.wonderOf || t.temple || (t.cityId !== null && t.cityId !== c.id)) return false;
+  if (t.volcano || burning(s, t) || t.turret || t.wonderOf || t.temple || t.feature === 'mothership') return false;
   const o = unitAt(s, p.x, p.y);
   if (o && o.owner !== c.owner) return false;
   // Notlandung: jedes freie Land genuegt / emergency landing: any free land will do
-  if (forced) return !t.feature && !t.outpost && !t.building;
-  if (t.terrain === 'mountain' || t.building || t.resource || t.feature || t.outpost || t.grandProject) return false;
+  if (forced) return isLand(t) && (t.cityId === null || t.cityId === c.id) && !t.feature && !t.outpost && !t.building;
+  if (t.terrain === 'ocean' || t.outpost || t.grandProject) return false;
+  if (t.cityId !== null && t.cityId !== c.id) {
+    const v = cityById(s, t.cityId);
+    if (!v || !razable(c, v)) return false;
+  }
+  if (t.barrier && t.barrier.owner !== c.owner) return false;
+  if (t.memorial && t.memorial.until >= s.round) return false;
   const owner = territoryOwner(s, t);
   if (owner !== null && owner !== c.owner) return false;
-  return s.cities.every((o2) => o2.id === c.id || dist(o2, p) >= ACADEMY.landGap);
+  // eigene Gebaeude bleiben stehen (nie eingeebnet); neutrale werden eingeebnet / own buildings stay (never levelled); neutral ones are levelled
+  if (t.building && t.building !== 'road' && owner !== null) return false;
+  return s.cities.every((o2) => o2.id === c.id || o2.owner === null || dist(o2, p) >= ACADEMY.landGap);
 }
 
-/** Landen auf dem jetzigen Feld / landing on the current tile */
-export function landCheck(s: GameState, f: number, c: City | undefined): 'ok' | ErrorCode {
+/**
+ * Was das Terraformen auf p veraendert (Vorschau fuer Oberflaeche und KI): Gelaende vorher, ob es umgeformt wird,
+ * eingeebneter neutraler Ort, aufgenommener Rohstoff, eingeebnetes Gebaeude oder Merkmal.
+ * What terraforming changes on p (preview for the UI and the AI): terrain before, whether it is reshaped, levelled neutral
+ * place, absorbed resource, levelled building or feature.
+ */
+export function terraformPlan(s: GameState, c: City, p: Pos): { terrain: TerrainId; reshape: boolean; razed: City | null; resource: ResourceId | null; cleared: string | null } {
+  const t = tileAt(s, p.x, p.y)!;
+  const v = t.cityId !== null && t.cityId !== c.id ? cityById(s, t.cityId) ?? null : null;
+  const cleared = t.building && t.building !== 'road' ? t.building : t.feature;
+  return { terrain: t.terrain, reshape: t.terrain !== 'plain' || (!!t.biome && t.biome !== 'grassland'), razed: v, resource: t.resource, cleared: cleared ?? null };
+}
+
+/** Art eines eingeebneten Orts (Meldung) / kind of a levelled place (toast) */
+export const razedKind = (v: City): 'village' | 'base' | 'tower' => (v.tower ? 'tower' : v.base ? 'base' : 'village');
+
+/** Landeziel: das eigene Feld oder ein benachbarter neutraler Ort (wird eingeebnet) / landing target: the own tile or an adjacent neutral place (levelled) */
+export function landTarget(s: GameState, c: City, at?: Pos): Pos {
+  return at ?? (c.air?.phase === 'terraform' && c.air.at ? c.air.at : { x: c.x, y: c.y });
+}
+
+/**
+ * Terraformen und landen auf dem jetzigen Feld oder (at) einem benachbarten neutralen Ort, den die Akademie nicht
+ * ueberfliegen kann (Ort auf dem Feld).
+ * Terraform and land on the current tile or (at) an adjacent neutral place the academy cannot hover over (a place on the
+ * tile).
+ */
+export function landCheck(s: GameState, f: number, c: City | undefined, at?: Pos): 'ok' | ErrorCode {
   const e = ownAcademy(s, f, c);
   if (e) return e;
   if (!c!.air) return 'grounded';
   if (c!.air.phase === 'lifting') return 'lifting';
-  if (!landingOk(s, c!, c!)) return 'landingSite';
+  if (c!.air.phase === 'terraform') return 'terraforming';
+  if (at && (at.x !== c!.x || at.y !== c!.y)) {
+    if (!inBounds(s.size, at.x, at.y) || dist(c!, at) > 1) return 'outOfRange';
+    const id = tileAt(s, at.x, at.y)!.cityId;
+    if (id === null) return 'invalidTile';
+  }
+  if (!landingOk(s, c!, at ?? c!)) return 'landingSite';
   return 'ok';
+}
+
+/** Terraformen abbrechen / cancel terraforming */
+export function cancelTerraformCheck(s: GameState, f: number, c: City | undefined): 'ok' | ErrorCode {
+  const e = ownAcademy(s, f, c);
+  if (e) return e;
+  if (c!.air?.phase !== 'terraform') return 'notTerraforming';
+  return 'ok';
+}
+
+/**
+ * Landeziele der schwebenden Akademie in diesem Zug: Felder, die sie erreichen und dort terraformen kann (dazu das eigene
+ * Feld und benachbarte neutrale Orte); reshape = das Feld wird umgeformt, razed = ein neutraler Ort wird eingeebnet.
+ * Landing targets of the floating academy this turn: tiles it can reach and terraform there (plus the own tile and
+ * adjacent neutral places); reshape = the tile is reshaped, razed = a neutral place is levelled.
+ */
+export function landingTargets(s: GameState, c: City): { x: number; y: number; reshape: boolean; razed: boolean }[] {
+  if (!c.air || c.air.phase !== 'flying' || c.owner === null) return [];
+  const out: { x: number; y: number; reshape: boolean; razed: boolean }[] = [];
+  const seen = new Set<number>();
+  const push = (p: Pos) => {
+    const k = p.y * s.size + p.x;
+    if (seen.has(k) || !landingOk(s, c, p)) return;
+    seen.add(k);
+    const plan = terraformPlan(s, c, p);
+    out.push({ x: p.x, y: p.y, reshape: plan.reshape, razed: !!plan.razed });
+  };
+  push(c);
+  for (const p of academyMoves(s, c)) push(p);
+  for (const p of area(s.size, c.x, c.y, 1)) if (tileAt(s, p.x, p.y)!.cityId !== null) push(p);
+  return out;
 }
 
 /** Schutzschild bauen / build the shield */

@@ -5,10 +5,14 @@
  * UI of the floating academy (Velkar, ACADEMY): head and values in the city panel (state, shield, training, posts,
  * beamer), actions lift off, move, land, shield and beamer, unit actions beam and attack academy, toasts. Numbers from
  * ACADEMY, texts from academy.* and beam.* (DE and EN).
+ * Landen heisst Terraformen (ACADEMY.terraform): "Terraformen und landen" mit Beschreibung, was aus dem Feld wird,
+ * "Einebnen und landen" fuer benachbarte neutrale Orte (mit Rueckfrage), Statuszeile und Abbrechen.
+ * Landing means terraforming (ACADEMY.terraform): "terraform and land" with a description of what the tile becomes,
+ * "level and land" for adjacent neutral places (with a confirmation), status line and cancel.
  */
 import {
-  academyAttackCheck, academyAttackPreview, academyBusy, academyMoves, academyOf, beamCheck, beamerCheck, cityById, cityIncome, landCheck, liftCheck,
-  postsOf, shieldCheck, shieldHp, trainSlots, trainedNow, unitLimit, supportedUnits, type City, type GameEvent, type GameState, type Unit,
+  academyAttackCheck, academyAttackPreview, academyBusy, academyMoves, academyOf, area, beamCheck, beamerCheck, cancelTerraformCheck, cityById, cityIncome, landCheck, landTarget, liftCheck,
+  postsOf, shieldCheck, shieldHp, terraformPlan, tileAt, trainSlots, trainedNow, unitLimit, supportedUnits, type City, type GameEvent, type GameState, type Pos, type Unit,
 } from '../core';
 import { ACADEMY } from '../data/balance';
 import type { Controller } from '../game/controller';
@@ -22,6 +26,7 @@ const cname = (s: GameState, id: number) => (cityById(s, id) ? cityNameOf(s, id)
 /** Zustandszeile der Akademie / state line of the academy */
 export function academyState(s: GameState, c: City): string {
   if (c.air?.phase === 'lifting') return t('academy.lifting');
+  if (c.air?.phase === 'terraform') return t('academy.terraforming');
   if (c.air) return c.air.steps <= 0 ? t('academy.flyingDone') : c.air.steps === 1 ? t('academy.flying1') : t('academy.flying', { n: c.air.steps });
   if (academyBusy(s, c)) return t('academy.calm');
   return t('academy.grounded');
@@ -60,7 +65,10 @@ export function academySheet(s: GameState, c: City): { head: string; body: strin
   const transit = (s.transit ?? []).filter((b) => b.unit.owner === c.owner).length;
   const state = academyState(s, c);
   const air = !!c.air;
+  // Terraformen: was aus dem Zielfeld wird, sichtbar ohne Tooltip (auch am Telefon) / terraforming: what the target tile becomes, visible without a tooltip (phones too)
+  const tf = c.air?.phase === 'terraform' || c.air?.phase === 'flying' ? `<p class="muted academy-terraform">${esc(terraformHint(s, c))}</p>` : '';
   const body = `<div class="row academy-state ${air ? 'airborne' : ''}">${icon(air ? 'liftOff' : 'academy', 'icon-sm')}<strong>${esc(state)}</strong></div>
+    ${tf}
     ${shieldLine(s, c)}
     <div class="stats sheet-more"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, c), max: unitLimit(s, c) }))}</span>
       <span class="stat">${icon('train', 'icon-sm')}${esc(t('academy.slots', { n: trainedNow(s, c), max: trainSlots(s, c) }))}</span>
@@ -68,6 +76,37 @@ export function academySheet(s: GameState, c: City): { head: string; body: strin
       ${transit ? `<span class="stat">${icon('beam', 'icon-sm')}${esc(t('academy.transit', { n: transit }))}</span>` : ''}</div>
     <p class="muted sheet-more">${esc(t('academy.desc'))} ${esc(t('academy.airRule'))}</p>`;
   return { head, body };
+}
+
+/**
+ * Beschreibung des Terraformens auf p: Zusatzrunde, was aus dem Feld wird, aufgenommener Rohstoff, Eingeebnetes.
+ * Description of terraforming on p: extra round, what the tile becomes, absorbed resource, what is levelled.
+ */
+export function landDesc(s: GameState, c: City, p: Pos): string {
+  const plan = terraformPlan(s, c, p);
+  const tile = tileAt(s, p.x, p.y)!;
+  const now = [t(`terrain.${plan.terrain}`), tile.biome && tile.biome !== 'grassland' ? t(`biomes.${tile.biome}`) : ''].filter(Boolean).join(' · ');
+  const parts = [t('academy.landDesc', { into: (plan.reshape ? t('academy.terraformInto', { terrain: now }) : t('academy.terraformFlat')) })];
+  if (plan.resource) parts.push(t('academy.landResource', { resource: t(`resources.${plan.resource}`) }));
+  if (plan.cleared) parts.push(t('academy.landCleared', { what: t(plan.cleared in FEATURE_KEYS ? `academy.feature.${plan.cleared}` : `buildings.${plan.cleared}`) }));
+  return parts.join(' ');
+}
+const FEATURE_KEYS: Record<string, true> = { bunker: true, radar: true, crashSite: true, labRuin: true };
+
+/** Ziel des laufenden Terraformens (fuer das Brett) / target of the running terraforming (for the board) */
+export const terraformTarget = (s: GameState, c: City): Pos | null => (c.air?.phase === 'terraform' ? landTarget(s, c) : null);
+
+/**
+ * Kurzzeile zum Terraformen: im Flug "Landen kostet eine Terraform-Runde ...", waehrend des Terraformens das Ziel.
+ * Short terraforming line: in flight "landing takes a terraforming round ...", while terraforming the target.
+ */
+export function terraformHint(s: GameState, c: City): string {
+  const p = landTarget(s, c);
+  const plan = terraformPlan(s, c, p);
+  const tile = tileAt(s, p.x, p.y)!;
+  const now = [t(`terrain.${plan.terrain}`), tile.biome && tile.biome !== 'grassland' ? t(`biomes.${tile.biome}`) : ''].filter(Boolean).join(' · ');
+  const into = (plan.reshape ? t('academy.terraformInto', { terrain: now }) : t('academy.terraformFlat'));
+  return c.air?.phase === 'terraform' ? `${t('academy.terraformNext')} ${into}${plan.razed ? ` ${t('academy.razeWarn')}` : ''}` : `${t('academy.landHint')} ${into}`;
 }
 
 /** Aktionen der eigenen Akademie / actions of the own academy */
@@ -81,12 +120,30 @@ export function academyActions(s: GameState, g: Controller, c: City, err: (code:
   } else {
     const moves = academyMoves(s, c);
     const active = g.academyMoveCity === c.id;
-    const moveReason = c.air.phase === 'lifting' ? err('lifting') : c.air.steps <= 0 ? err('noSteps') : t('academy.moveDesc', { n: c.air.steps });
+    const moveReason = c.air.phase === 'lifting' ? err('lifting') : c.air.phase === 'terraform' ? err('terraforming') : c.air.steps <= 0 ? err('noSteps') : t('academy.moveDesc', { n: c.air.steps });
     out.push({ id: 'academy-move', icon: 'move', label: active ? t('actions.cancel') : t('academy.move'), variant: 'primary', enabled: active || moves.length > 0,
       desc: t('academy.moveDesc', { n: c.air.steps }), reason: moveReason, run: () => g.toggleAcademyMove(c.id) });
-    const chk = landCheck(s, f, c);
-    out.push({ id: 'academy-land', icon: 'land', label: t('academy.land'), variant: 'primary', enabled: chk === 'ok', desc: t('academy.landDesc'),
-      reason: chk === 'ok' ? t('academy.landDesc') : err(chk), run: () => void g.exec({ type: 'landAcademy', city: c.id }) });
+    if (c.air.phase === 'terraform') {
+      // Terraformen laeuft: abbrechen (schwebt weiter, Felder des Zuges verbraucht) / terraforming running: cancel (keeps floating, the turn's tiles used up)
+      const chk = cancelTerraformCheck(s, f, c);
+      out.push({ id: 'academy-cancel', icon: 'close', label: t('academy.cancelTerraform'), enabled: chk === 'ok', desc: t('academy.cancelDesc'),
+        reason: chk === 'ok' ? t('academy.cancelDesc') : err(chk), run: () => void g.exec({ type: 'cancelTerraform', city: c.id }) });
+    } else {
+      const chk = landCheck(s, f, c);
+      const desc = landDesc(s, c, c);
+      out.push({ id: 'academy-land', icon: 'land', label: t('academy.land'), variant: 'primary', enabled: chk === 'ok', desc,
+        reason: chk === 'ok' ? desc : err(chk), run: () => void g.landAcademy(c.id) });
+      // benachbarte neutrale Orte: einebnen und landen (mit Rueckfrage) / adjacent neutral places: level and land (with a confirmation)
+      for (const p of area(s.size, c.x, c.y, 1)) {
+        const id = tileAt(s, p.x, p.y)!.cityId;
+        const v = id !== null && id !== c.id ? cityById(s, id) : undefined;
+        if (!v || v.owner !== null || landCheck(s, f, c, p) !== 'ok') continue;
+        const city = cname(s, v.id);
+        const rd = `${t('academy.razeDesc', { city })} ${landDesc(s, c, p)}`;
+        out.push({ id: `academy-raze-${v.id}`, icon: 'land', label: t('academy.raze'), sub: t('academy.razeSub', { city }), variant: 'danger', enabled: true, desc: rd, reason: rd,
+          run: () => void g.landAcademy(c.id, { x: p.x, y: p.y }) });
+      }
+    }
   }
   const sh = shieldCheck(s, f, c);
   if (sh !== 'alreadyBuilt') {
@@ -145,8 +202,10 @@ export function academyToast(e: GameEvent, s: GameState, viewer: number): { text
   if (e.t === 'academy') {
     const city = cname(s, e.city);
     if (e.faction !== viewer && !(e.what === 'forced' && seen(e.x, e.y))) return null;
-    const key = { lift: 'toastLift', float: 'toastFloat', move: '', land: 'toastLand', forced: 'toastForced', transfer: 'toastTransfer' }[e.what];
-    return key ? { text: t(`academy.${key}`, { city }), icon: e.what === 'forced' ? 'warning' : e.what === 'land' ? 'land' : 'liftOff' } : null;
+    if (e.what === 'land' && e.razed) return { text: t('academy.toastRazed', { city, kind: t(`academy.razed.${e.razed}`) }), icon: 'land' };
+    if (e.what === 'land' && (e.terrain || e.biome)) return { text: t('academy.toastLandTerraform', { city, terrain: e.terrain ? t(`terrain.${e.terrain}`) : t(`biomes.${e.biome}`) }), icon: 'land' };
+    const key = { lift: 'toastLift', float: 'toastFloat', move: '', land: 'toastLand', forced: 'toastForced', transfer: 'toastTransfer', terraform: 'toastTerraform', cancel: 'toastCancel', abort: 'toastAbort' }[e.what];
+    return key ? { text: t(`academy.${key}`, { city }), icon: e.what === 'forced' || e.what === 'abort' ? 'warning' : e.what === 'land' || e.what === 'terraform' ? 'land' : 'liftOff' } : null;
   }
   if (e.t === 'shield') {
     if (e.what !== 'built' && e.what !== 'down') return null;

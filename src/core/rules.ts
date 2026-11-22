@@ -18,7 +18,7 @@ import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacemen
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
 import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloBuyCheck, siloCheck, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
-import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, forcedSpot, landCheck, liftCheck, nearestStand, shieldCheck, shieldOver } from './academy';
+import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, cancelTerraformCheck, forcedSpot, landCheck, landingOk, landTarget, liftCheck, nearestStand, razedKind, shieldCheck, shieldOver } from './academy';
 import { applyCityHack, applyHack, applyHijack, buildHackTower, cityHackCheck, endHijacks, hackCheck, hackTowerCheck, hijackCheck, releaseHijacks, sweepHijacks, type HackKit } from './hacking';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
@@ -37,7 +37,7 @@ import {
 } from './queries';
 import { nextRandom, randInt } from './rng';
 import type { Reach } from './queries';
-import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Tile, Unit, Victory } from './types';
+import type { City, Command, CommandResult, ErrorCode, Faction, GameConfig, GameEvent, GameState, Pos, Tile, Unit, Victory } from './types';
 
 const fail = (error: ErrorCode): CommandResult => ({ ok: false, error, events: [] });
 
@@ -675,7 +675,22 @@ function startTurn(s: GameState, ev: GameEvent[]) {
 
 /** Akademie zu Beginn des eigenen Zuges / academy at the start of the own turn */
 function academyTurn(s: GameState, c: City, ev: GameEvent[]) {
-  if (c.air) {
+  if (c.air?.phase === 'terraform') {
+    // Terraformen: zu Beginn des naechsten eigenen Zuges landen; geht es nicht mehr (fremdes Gebiet, fremde Einheit, neuer Ort
+    // daneben ...), schwebt sie weiter mit vollen Feldern
+    // terraforming: land at the start of the next own turn; if that is no longer possible (foreign territory, foreign unit,
+    // new place next to it ...), it keeps floating with full tiles
+    const left = (c.air.left ?? 1) - 1;
+    if (left > 0) c.air.left = left;
+    else {
+      const at = landTarget(s, c);
+      if (landingOk(s, c, at)) touchDown(s, c, at, ev);
+      else {
+        c.air = { phase: 'flying', steps: ACADEMY.move };
+        ev.push({ t: 'academy', what: 'abort', city: c.id, faction: c.owner!, x: c.x, y: c.y });
+      }
+    }
+  } else if (c.air) {
     if (c.air.phase === 'lifting') ev.push({ t: 'academy', what: 'float', city: c.id, faction: c.owner!, x: c.x, y: c.y });
     c.air = { phase: 'flying', steps: ACADEMY.move };
   }
@@ -683,6 +698,75 @@ function academyTurn(s: GameState, c: City, ev: GameEvent[]) {
     c.shield.hp = Math.min(c.shield.max, c.shield.hp + ACADEMY.shield.regen);
     ev.push({ t: 'shield', what: 'regen', city: c.id, faction: c.owner!, hp: c.shield.hp });
   }
+}
+
+/**
+ * Neutralen Ort v einebnen (ACADEMY.terraform): er verschwindet aus dem Spiel, sein Gebiet wird Akademie-Gebiet; kein
+ * Einnehmen, keine Belohnung. Er bleibt in GameState.razed, damit die uebrigen Orte ihre Namen behalten.
+ * Level the neutral place v (ACADEMY.terraform): it vanishes from the game, its territory becomes academy territory; no
+ * capture, no reward. It stays in GameState.razed so the other places keep their names.
+ */
+function razePlace(s: GameState, c: City, v: City) {
+  for (const t of s.tiles) {
+    if (t.territory === v.id) t.territory = c.id;
+    if (t.cityId === v.id) t.cityId = null;
+  }
+  for (const u of s.units) if (u.homeCity === v.id) u.homeCity = null;
+  s.cities = s.cities.filter((o) => o.id !== v.id);
+  (s.razed ??= []).push({ ...v, upgrades: undefined, works: undefined });
+}
+
+/**
+ * Landung nach dem Terraformen auf p (eigenes Feld oder benachbarter neutraler Ort): Ort einebnen, Rohstoff aufnehmen
+ * (ACADEMY.terraform.resourcePop Bevoelkerung), neutrale Gebaeude, Merkmale, Truemmer und Spuren raeumen, Gelaende wird
+ * Ebene (bleibt nach dem Abheben so). Dann wie bisher: Feld und freies Umland (ACADEMY.landClaim) werden Akademie-Gebiet,
+ * Produktion ab dem naechsten eigenen Zug.
+ * Landing after terraforming on p (own tile or adjacent neutral place): level the place, absorb the resource
+ * (ACADEMY.terraform.resourcePop population), clear neutral buildings, features, debris and marks, the terrain becomes
+ * plain (and stays so after lift-off). Then as before: the tile and free surroundings (ACADEMY.landClaim) become academy
+ * territory, production from the next own turn.
+ */
+function touchDown(s: GameState, c: City, p: Pos, ev: GameEvent[]) {
+  const f = c.owner!;
+  const t = tileAt(s, p.x, p.y)!;
+  const terrain = t.terrain;
+  const v = t.cityId !== null && t.cityId !== c.id ? cityById(s, t.cityId) : undefined;
+  const razed = v ? razedKind(v) : undefined;
+  if (v) razePlace(s, c, v);
+  const from = { x: c.x, y: c.y };
+  if (p.x !== c.x || p.y !== c.y) {
+    tileAt(s, c.x, c.y)!.cityId = null;
+    c.x = p.x; c.y = p.y;
+  }
+  t.cityId = c.id;
+  delete c.air;
+  const resource = t.resource ?? undefined;
+  if (t.resource) t.resource = null;
+  const cleared = (t.building && t.building !== 'road' ? t.building : null) ?? t.feature ?? undefined;
+  if (t.building && t.building !== 'road') { t.building = null; t.researchBuilt = null; }
+  t.feature = null; delete t.looted;
+  t.remains = null; t.barrier = null; t.xeno = false; t.memorial = null;
+  delete t.marks; delete t.scar; delete t.tracks; delete t.turretRuin; delete t.turretRuinOwner;
+  // Gelaende wird Ebene, Landschaft wird Wiese (Laborrasen; sichtbare Terraform-Spur, die bleibt) / terrain becomes plain, biome becomes grassland (lab lawn; a visible terraform mark that stays)
+  const biome = t.biome && t.biome !== 'grassland' ? t.biome : undefined;
+  t.terrain = 'plain';
+  t.biome = 'grassland';
+  delete t.peak;
+  if (resource) addPop(s, c, ACADEMY.terraform.resourcePop, ev);
+  // Landen: Feld und neutrales Umland (ACADEMY.landClaim) werden Akademie-Gebiet; Produktion ab dem naechsten eigenen Zug
+  // landing: the tile and neutral surroundings (ACADEMY.landClaim) become academy territory; production from the next own turn
+  c.radius = ACADEMY.landClaim;
+  for (const q of area(s.size, c.x, c.y, ACADEMY.landClaim)) {
+    const o = tileAt(s, q.x, q.y)!;
+    if (o.territory === null && o.cityId === null) o.territory = c.id;
+  }
+  t.territory = c.id;
+  // Landung zu Beginn des eigenen Zuges: Produktion ab dem naechsten eigenen Zug / landing at the start of the own turn: production from the next own turn
+  c.calm = s.round + 1;
+  reveal(s, f, c.x, c.y, c.radius + VISION.cityExtra, ev);
+  ev.push({ t: 'academy', what: 'land', city: c.id, faction: f, x: c.x, y: c.y, ...(from.x !== c.x || from.y !== c.y ? { from } : {}),
+    ...(terrain !== 'plain' ? { terrain } : {}), ...(biome ? { biome } : {}), ...(razed ? { razed } : {}), ...(resource ? { resource } : {}), ...(cleared ? { cleared } : {}) });
+  updateConnections(s, f, ev);
 }
 
 /**
@@ -2122,21 +2206,24 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     }
     case 'landAcademy': {
       const c = cityById(s, cmd.city);
-      const chk = landCheck(s, f, c);
+      const chk = landCheck(s, f, c, cmd.at);
       if (chk !== 'ok') return fail(chk);
-      delete c!.air;
-      // Landen: Feld und neutrales Umland (ACADEMY.landClaim) werden Akademie-Gebiet; Produktion ab dem naechsten Zug
-      // landing: the tile and neutral surroundings (ACADEMY.landClaim) become academy territory; production from the next turn
-      c!.radius = ACADEMY.landClaim;
-      for (const p of area(s.size, c!.x, c!.y, ACADEMY.landClaim)) {
-        const t = tileAt(s, p.x, p.y)!;
-        if (t.territory === null && t.cityId === null) t.territory = c!.id;
-      }
-      tileAt(s, c!.x, c!.y)!.territory = c!.id;
-      c!.calm = s.round + 1;
-      reveal(s, f, c!.x, c!.y, c!.radius + VISION.cityExtra, ev);
-      ev.push({ t: 'academy', what: 'land', city: c!.id, faction: f, x: c!.x, y: c!.y });
-      updateConnections(s, f, ev);
+      // Terraformen: schwebt weiter, landet zu Beginn des naechsten eigenen Zuges (academyTurn) / terraforming: keeps floating, lands at the start of the next own turn (academyTurn)
+      const at = cmd.at && (cmd.at.x !== c!.x || cmd.at.y !== c!.y) ? { x: cmd.at.x, y: cmd.at.y } : undefined;
+      c!.air = { phase: 'terraform', steps: 0, ...(ACADEMY.terraform.rounds !== 1 ? { left: ACADEMY.terraform.rounds } : {}), ...(at ? { at } : {}) };
+      const plan = at ?? { x: c!.x, y: c!.y };
+      const pt = tileAt(s, plan.x, plan.y)!;
+      ev.push({ t: 'academy', what: 'terraform', city: c!.id, faction: f, x: plan.x, y: plan.y, from: { x: c!.x, y: c!.y }, terrain: pt.terrain });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'cancelTerraform': {
+      const c = cityById(s, cmd.city);
+      const chk = cancelTerraformCheck(s, f, c);
+      if (chk !== 'ok') return fail(chk);
+      // zurueck zum Schweben, die Felder dieses Zuges sind verbraucht / back to floating, this turn's tiles are used up
+      c!.air = { phase: 'flying', steps: 0 };
+      ev.push({ t: 'academy', what: 'cancel', city: c!.id, faction: f, x: c!.x, y: c!.y });
       res = { ok: true, events: ev };
       break;
     }

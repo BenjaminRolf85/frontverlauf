@@ -205,6 +205,8 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   academyMove: ACADEMY.move,
   academyLift: ACADEMY.liftRounds,
   academyLandGap: ACADEMY.landGap,
+  academyTerraform: ACADEMY.terraform.rounds,
+  academyTerraformPop: ACADEMY.terraform.resourcePop,
   academyBaseSlots: ACADEMY.baseSlots,
   academyMaxSlots: ACADEMY.maxSlots,
   academyPostUnits: ACADEMY.postUnits,

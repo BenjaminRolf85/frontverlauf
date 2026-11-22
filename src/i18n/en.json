@@ -858,7 +858,7 @@
     "grounded": "The academy is on the ground: lift off first.",
     "lifting": "The academy is still lifting off: it moves and lands from the next turn.",
     "noSteps": "The academy has no tiles left this turn.",
-    "landingSite": "The academy cannot land here: free land without mountain, resource and building, not in foreign territory, at least {academyLandGap} tiles from every other place.",
+    "landingSite": "The academy cannot terraform here: no deep ocean, volcano or fire, not in foreign territory, no foreign unit, no own building, nothing owned by a faction, no wonder; at least {academyLandGap} tiles from every place with an owner.",
     "academyBusy": "The academy's production rests: in the air and until the turn after landing.",
     "shieldUp": "The shield is up: break the shield first.",
     "airTarget": "While floating, only flyers, flak and tanks can attack the academy.",
@@ -873,7 +873,9 @@
     "towerCooldown": "The hack tower is still recharging.",
     "notMechanised": "Only vehicles and flyers can be taken over.",
     "cityHackCooldown": "The next city hack is not ready yet.",
-    "noDataCenter": "Build a data centre first."
+    "noDataCenter": "Build a data centre first.",
+    "terraforming": "The academy is terraforming: it lands at the start of the next turn (you can cancel).",
+    "notTerraforming": "The academy is not terraforming."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -3721,7 +3723,7 @@
     },
     "academy": {
       "title": "Floating academy (Velkar)",
-      "text": "Velkar's capital is a floating academy (in free games; the campaign keeps the old rules). Captured places become research posts: one tile, stars and vision, no training, no upgrades. Their territory passes to the academy, plus {pop} population (+{perLevel} per level of the place above 1), and each post supports {units} more units. Territory stays where it is, even when the academy moves. The academy trains {base} units per turn plus one per post (at most {max}), on the academy or free tiles next to it. Lift-off: after {lift} round it floats and moves {move} tiles per turn over any terrain; it can land on free land without mountain, resource and building, not in foreign territory and at least {gap} tiles from every other place, free surroundings within radius {claim} become territory. From lift-off until the turn after landing, production rests. While floating, only flyers, flak and tanks attack; without a shield every hit forces an emergency landing. Shield ({cost} stars): {hp} HP, absorbs attacks on the academy and units on its tile first, recharges {regen} HP per turn, once destroyed it can be rebuilt only after {rebuild} rounds; while it stands the academy cannot be captured. Beam relay ({beamer} stars) on a post: one unit per round from the academy to it, one round in transit, arrives ready; if the relay falls, the unit returns to the academy. If the academy is lost, the nearest post becomes the new academy at half the level."
+      "text": "Velkar's capital is a floating academy (in free games; the campaign keeps the old rules). Captured places become research posts: one tile, stars and vision, no training, no upgrades. Their territory passes to the academy, plus {pop} population (+{perLevel} per level of the place above 1), and each post supports {units} more units. Territory stays where it is, even when the academy moves. The academy trains {base} units per turn plus one per post (at most {max}), on the academy or free tiles next to it. Lift-off: after {lift} round it floats and moves {move} tiles per turn over any terrain; landing means terraforming: the academy reshapes the tile for {tf} round and lands at the start of its next turn; meanwhile it keeps floating (same attack rules), does not move and can cancel (the turn's tiles are then used up). Mountain, forest and shallow water become plain, desert, steppe, tundra, hills and swamp become grassland, and this stays after lift-off; deep ocean, volcanoes and fires do not. A resource is absorbed (+{tfPop} population), neutral buildings, ruins and features are levelled, and so is an adjacent neutral place (it vanishes, its territory passes to the academy, no reward). Nothing owned by a faction, no wonder, gun or landmark is ever levelled. Not in foreign territory, no foreign unit, no own building, at least {gap} tiles from every place with an owner; free surroundings within radius {claim} become territory. If the landing is no longer possible at the start of the turn, it keeps floating. From lift-off until the turn after landing, production rests. While floating, only flyers, flak and tanks attack; without a shield every hit forces an emergency landing. Shield ({cost} stars): {hp} HP, absorbs attacks on the academy and units on its tile first, recharges {regen} HP per turn, once destroyed it can be rebuilt only after {rebuild} rounds; while it stands the academy cannot be captured. Beam relay ({beamer} stars) on a post: one unit per round from the academy to it, one round in transit, arrives ready; if the relay falls, the unit returns to the academy. If the academy is lost, the nearest post becomes the new academy at half the level."
     },
     "hacking": {
       "title": "Hacking (NEXUS)",
@@ -4342,15 +4344,15 @@
     "slots": "Training {n}/{max} this round",
     "posts": "Research posts: {n}",
     "transit": "In transit (beamer): {n}",
-    "desc": "Velkar's only training site: {academyBaseSlots} units per turn and one more per research post (at most {academyMaxSlots}), on free tiles around the academy. Lifting off takes {academyLift} round, then it moves {academyMove} tiles per turn over any terrain. From lift-off until the turn after landing, production rests.",
+    "desc": "Velkar's only training site: {academyBaseSlots} units per turn and one more per research post (at most {academyMaxSlots}), on free tiles around the academy. Lifting off takes {academyLift} round, then it moves {academyMove} tiles per turn over any terrain. Before landing it terraforms for {academyTerraform} round. From lift-off until the turn after landing, production rests.",
     "airRule": "While floating, only flyers, flak and tanks attack; every hit without a shield forces an emergency landing.",
     "lift": "Lift off",
     "liftDesc": "The academy lifts off and floats after {academyLift} round; then it moves {academyMove} tiles per turn. No production until the turn after landing. While floating, only flyers, flak and tanks can attack it.",
     "move": "Move",
     "moveDesc": "Tap a target on the map: up to {n} tiles, over water and mountains too.",
     "moveHint": "Tap a highlighted tile to move the academy there.",
-    "land": "Land",
-    "landDesc": "Lands here: the tile and free surroundings become academy territory. Production from the next turn.",
+    "land": "Terraform and land",
+    "landDesc": "Terraforms for {academyTerraform} round and lands at the start of the next turn; until then it keeps floating (same attack rules) and does not move. {into} The tile and free surroundings become academy territory. Production from the turn after landing.",
     "shield": "Shield",
     "shieldDesc": "{academyShieldHp} HP. Absorbs attacks on the academy and on units on its tile first, on the ground and in the air, even without a garrison. Recharges {academyShieldRegen} HP per turn; once destroyed, it can be rebuilt after {academyShieldRebuild} rounds.",
     "shieldHp": "Shield {hp}/{max} HP",
@@ -4371,7 +4373,39 @@
     "toastPost": "{city} is now a research post: +{pop} population for the academy",
     "toastShield": "Shield over {city} active",
     "toastShieldDown": "Shield over {city} collapsed",
-    "slotsUsed": "All {max} trainings of this round used or no free tile at the academy."
+    "slotsUsed": "All {max} trainings of this round used or no free tile at the academy.",
+    "terraforming": "Terraforming: lands next turn",
+    "terraformInto": "The tile becomes plain (now: {terrain}).",
+    "landResource": "The resource ({resource}) is absorbed: +{academyTerraformPop} population.",
+    "landCleared": "Levelled: {what}.",
+    "raze": "Level and land",
+    "razeSub": "{city}",
+    "razeDesc": "Neutral place will be levelled: {city} vanishes, its territory becomes academy territory. No capture, no reward. Then like terraform and land: {academyTerraform} round, landing next turn.",
+    "razeConfirm": "Neutral place will be levelled: {city} vanishes for good instead of being captured as a research post. Terraform anyway?",
+    "razeOk": "Level it",
+    "cancelTerraform": "Cancel terraforming",
+    "cancelDesc": "The academy keeps floating; this turn's tiles are used up.",
+    "landTargetsHint": "Highlighted tiles: landing possible (tap a target to move there).",
+    "toastTerraform": "{city} is terraforming: lands next turn",
+    "toastCancel": "{city}: terraforming cancelled",
+    "toastAbort": "{city}: landing cancelled, the tile is no longer free",
+    "toastLandTerraform": "{city} has landed: {terrain} became plain",
+    "toastRazed": "{city} has landed: {kind} levelled",
+    "razed": {
+      "village": "neutral settlement",
+      "base": "neutral base",
+      "tower": "transmitter tower"
+    },
+    "feature": {
+      "bunker": "abandoned bunker",
+      "radar": "radar station",
+      "crashSite": "crash site",
+      "labRuin": "lab ruin"
+    },
+    "terraformNext": "Lands at the start of the next turn, production from the turn after.",
+    "landHint": "Landing takes a terraforming round.",
+    "razeWarn": "Neutral place will be levelled.",
+    "terraformFlat": "The tile is already plain grassland."
   },
   "beam": {
     "name": "Beam relay",

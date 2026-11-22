@@ -167,8 +167,12 @@ export interface City {
    * diesem Zug noch gehen. Fehlt = am Boden.
    * Academy in the air: lifting = lifting off (moves from the next own turn), flying = floating; steps = tiles left this
    * turn. Missing = on the ground.
+   * terraform = formt das Feld fuer die Landung um (ACADEMY.terraform): schwebt weiter, zieht nicht; left = eigene Zugbeginne
+   * bis zur Landung (fehlt = 1). terraform = reshapes the tile for landing (ACADEMY.terraform): keeps floating, does not move;
+   * left = own turn starts until the landing (missing = 1). at = Landeziel, wenn es ein benachbarter neutraler Ort ist
+   * (fehlt = das eigene Feld) / at = landing target when it is an adjacent neutral place (missing = the own tile).
    */
-  air?: { phase: 'lifting' | 'flying'; steps: number };
+  air?: { phase: 'lifting' | 'flying' | 'terraform'; steps: number; left?: number; at?: Pos };
   /** Produktion ruht bis vor diese Runde (Landung, Notlandung) / production rests until before this round (landing, emergency landing) */
   calm?: number;
   /** Schutzschild der Akademie (LP); fehlt = keiner / the academy's shield (HP); missing = none */
@@ -534,6 +538,13 @@ export interface GameState {
    * (relay = post), otherwise at the academy. Missing = none (old saves too).
    */
   transit?: { unit: Unit; relay: number; round: number }[];
+  /**
+   * Von der Akademie eingeebnete neutrale Orte (ACADEMY.terraform): nur fuer die Namensvergabe, damit die uebrigen Orte
+   * ihre Namen behalten. Fehlt = keine (auch alte Spielstaende).
+   * Neutral places levelled by the academy (ACADEMY.terraform): only for naming, so the remaining places keep their names.
+   * Missing = none (old saves too).
+   */
+  razed?: City[];
 }
 
 /** Siegart: Punkte, Eroberung oder Fraktions-Siegbedingung / victory kind: points, conquest or faction condition */
@@ -686,7 +697,16 @@ export type GameEvent =
    * Floating academy: lifted, floating, moved (from -> x, y), landed, emergency landing (by = attacker), moved over (new
    * academy after losing the old one).
    */
-  | { t: 'academy'; what: 'lift' | 'float' | 'move' | 'land' | 'forced' | 'transfer'; city: number; faction: number; x: number; y: number; from?: Pos; by?: number }
+  /**
+   * terraform = Terraformen begonnen, cancel = abgebrochen (schwebt weiter), abort = Landung zu Zugbeginn nicht mehr
+   * moeglich (schwebt weiter). Bei land: terrain = Gelaende vorher (fehlt = unveraendert Ebene), razed = eingeebneter neutraler
+   * Ort (Art), resource = aufgenommener Rohstoff, cleared = eingeebnetes Bauwerk oder Merkmal, biome = Landschaft vorher.
+   * terraform = terraforming started, cancel = cancelled (keeps floating), abort = landing no longer possible at turn start
+   * (keeps floating). With land: terrain = terrain before (missing = unchanged plain), razed = levelled neutral place
+   * (kind), resource = absorbed resource, cleared = levelled structure or feature, biome = biome before.
+   */
+  | { t: 'academy'; what: 'lift' | 'float' | 'move' | 'land' | 'forced' | 'transfer' | 'terraform' | 'cancel' | 'abort'; city: number; faction: number; x: number; y: number; from?: Pos; by?: number;
+      terrain?: TerrainId; biome?: BiomeId; razed?: 'village' | 'base' | 'tower'; resource?: ResourceId; cleared?: string }
   /** Schutzschild der Akademie: gebaut, getroffen (dmg, unit = Angreifer), zerstoert, aufgeladen / academy shield: built, hit, destroyed, recharged */
   | { t: 'shield'; what: 'built' | 'hit' | 'down' | 'regen'; city: number; faction: number; hp: number; dmg?: number; unit?: number; hit?: HitKind }
   /**
@@ -755,7 +775,10 @@ export type Command =
   /** Schwebende Akademie: abheben, ziehen (bis ACADEMY.move Felder je Zug), landen, Schild bauen / floating academy: lift off, move, land, build the shield */
   | { type: 'liftAcademy'; city: number }
   | { type: 'moveAcademy'; city: number; to: Pos }
-  | { type: 'landAcademy'; city: number }
+  /** Terraformen und landen; at = benachbarter neutraler Ort (fehlt = eigenes Feld) / terraform and land; at = adjacent neutral place (missing = own tile) */
+  | { type: 'landAcademy'; city: number; at?: Pos }
+  /** Terraformen abbrechen: schwebt weiter, die Felder dieses Zuges sind verbraucht / cancel terraforming: keeps floating, this turn's tiles are used up */
+  | { type: 'cancelTerraform'; city: number }
   | { type: 'academyShield'; city: number }
   /** Beamer-Relay auf einem Posten bauen; Einheit zum Relay beamen / build a beam relay on a post; beam a unit to the relay */
   | { type: 'buildBeamer'; city: number }
@@ -799,6 +822,9 @@ export type ErrorCode =
   // floating academy: no academy, airborne, grounded, still lifting, no tiles left, landing site unsuitable, production
   // rests, shield is up, not attackable by this unit while floating
   | 'notAcademy' | 'airborne' | 'grounded' | 'lifting' | 'noSteps' | 'landingSite' | 'academyBusy' | 'shieldUp' | 'airTarget'
+  // Terraformen: laeuft schon (kein Ziehen, kein zweites Landen), laeuft nicht (nichts abzubrechen)
+  // terraforming: already running (no moving, no second landing), not running (nothing to cancel)
+  | 'terraforming' | 'notTerraforming'
   // Beamer: kein Relay, schon gebeamt, Einheit nicht an der Akademie / beamer: no relay, already beamed, unit not at the academy
   | 'noBeamer' | 'beamUsed' | 'notAtAcademy'
   // Hacken (NEXUS): keine Ladung, zu frueh, schon gehackt in diesem Zug, uebernommene Einheit, Turm belegt, nicht mechanisiert

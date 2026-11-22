@@ -57,13 +57,15 @@ export function cityNameSlots(s: GameState): Map<number, CityNameSlot> {
   const general = generalList().length;
   const lens = `${general}:${(s.factions.map((f) => factionList(f.id).length)).join(',')}`;
   const hit = cache.get(s);
-  if (hit && hit.count === s.cities.length && hit.lens === lens) return hit.slots;
+  // eingeebnete Orte (Akademie) behalten ihren Platz, damit die uebrigen ihre Namen behalten / levelled places (academy) keep their slot so the others keep their names
+  const all = s.razed?.length ? [...s.cities, ...s.razed] : s.cities;
+  if (hit && hit.count === all.length && hit.lens === lens) return hit.slots;
   const slots = new Map<number, CityNameSlot>();
   const seed = Math.abs(s.config.seed | 0);
   const byOrder = (a: City, b: City) => a.nameIndex - b.nameIndex || a.id - b.id;
   const pools = new Map<FactionId, { c: City; d: number; hq: boolean }[]>();
   const rest: City[] = [];
-  for (const c of [...s.cities].sort(byOrder)) {
+  for (const c of [...all].sort(byOrder)) {
     // Sendetuerme heissen nach ihrer Art (cityNameOf) und belegen keinen Namen / transmitter towers are named by their kind (cityNameOf) and take no name
     if (c.tower) continue;
     const fid = cityCulture(s, c);
@@ -89,7 +91,7 @@ export function cityNameSlots(s: GameState): Map<number, CityNameSlot> {
   rest.sort(byOrder);
   const shift = general ? seed % general : 0;
   rest.forEach((c, i) => slots.set(c.id, { list: null, index: general ? (i + shift) % general : 0 }));
-  cache.set(s, { count: s.cities.length, lens, slots });
+  cache.set(s, { count: all.length, lens, slots });
   return slots;
 }
 

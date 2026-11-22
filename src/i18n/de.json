@@ -858,7 +858,7 @@
     "grounded": "Die Akademie steht am Boden: erst abheben.",
     "lifting": "Die Akademie hebt noch ab: ziehen und landen erst im nächsten Zug.",
     "noSteps": "Die Akademie hat in diesem Zug keine Felder mehr.",
-    "landingSite": "Hier kann die Akademie nicht landen: freies Land ohne Berg, Rohstoff und Gebäude, nicht in fremdem Gebiet, mindestens {academyLandGap} Felder von jedem anderen Ort.",
+    "landingSite": "Hier kann die Akademie nicht terraformen: kein tiefes Meer, Vulkan oder Brand, nicht in fremdem Gebiet, keine fremde Einheit, kein eigenes Gebäude, kein Besitz einer Fraktion, kein Wunder; mindestens {academyLandGap} Felder von jedem Ort mit Besitzer.",
     "academyBusy": "Die Produktion der Akademie ruht: in der Luft und bis zum Zug nach der Landung.",
     "shieldUp": "Der Schutzschild steht: erst den Schild brechen.",
     "airTarget": "Schwebend greifen nur Flieger, Flak und Panzer die Akademie an.",
@@ -873,7 +873,9 @@
     "towerCooldown": "Der Hackturm lädt noch nach.",
     "notMechanised": "Nur Fahrzeuge und Flieger lassen sich übernehmen.",
     "cityHackCooldown": "Der nächste Stadt-Hack ist noch nicht bereit.",
-    "noDataCenter": "Erst ein Rechenzentrum bauen."
+    "noDataCenter": "Erst ein Rechenzentrum bauen.",
+    "terraforming": "Die Akademie terraformt: sie landet zu Beginn des nächsten Zuges (abbrechen ist möglich).",
+    "notTerraforming": "Die Akademie terraformt gerade nicht."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -3721,7 +3723,7 @@
     },
     "academy": {
       "title": "Schwebende Akademie (Velkar)",
-      "text": "Die Hauptstadt der Velkar ist eine schwebende Akademie (in freien Partien; die Kampagne behält die alten Regeln). Eingenommene Orte werden Forschungsposten: ein Feld, Sterne und Sicht, keine Ausbildung, keine Ausbauten. Ihr Gebiet geht an die Akademie, dazu {pop} Bevölkerung (+{perLevel} je Stufe des Orts über 1), und jeder Posten trägt {units} Einheiten mehr. Gebiet bleibt, wo es ist, auch wenn die Akademie umzieht. Die Akademie bildet {base} Einheiten je Zug plus eine je Posten aus (höchstens {max}), auf der Akademie oder freien Feldern daneben. Abheben: Nach {lift} Runde schwebt sie und zieht {move} Felder je Zug über jedes Gelände; landen kann sie auf freiem Land ohne Berg, Rohstoff und Gebäude, nicht in fremdem Gebiet und mindestens {gap} Felder von jedem anderen Ort, freies Umland im Umkreis {claim} wird Gebiet. Vom Abheben bis zum Zug nach der Landung ruht die Produktion. Schwebend greifen nur Flieger, Flak und Panzer an; ohne Schild erzwingt jeder Treffer die Notlandung. Schutzschild ({cost} Sterne): {hp} LP, fängt Angriffe auf die Akademie und Einheiten auf ihrem Feld zuerst ab, lädt {regen} LP je Zug auf, nach der Zerstörung erst nach {rebuild} Runden neu baubar; solange er steht, ist die Akademie nicht einzunehmen. Beamer-Relay ({beamer} Sterne) auf einem Posten: je Runde eine Einheit von der Akademie dorthin, eine Runde unterwegs, Ankunft einsatzbereit; fällt das Relay, kehrt sie zur Akademie zurück. Geht die Akademie verloren, wird der nächste Posten zur neuen Akademie mit halber Stufe."
+      "text": "Die Hauptstadt der Velkar ist eine schwebende Akademie (in freien Partien; die Kampagne behält die alten Regeln). Eingenommene Orte werden Forschungsposten: ein Feld, Sterne und Sicht, keine Ausbildung, keine Ausbauten. Ihr Gebiet geht an die Akademie, dazu {pop} Bevölkerung (+{perLevel} je Stufe des Orts über 1), und jeder Posten trägt {units} Einheiten mehr. Gebiet bleibt, wo es ist, auch wenn die Akademie umzieht. Die Akademie bildet {base} Einheiten je Zug plus eine je Posten aus (höchstens {max}), auf der Akademie oder freien Feldern daneben. Abheben: Nach {lift} Runde schwebt sie und zieht {move} Felder je Zug über jedes Gelände; Landen heißt Terraformen: Die Akademie formt das Feld {tf} Runde lang um und landet zu Beginn ihres nächsten Zuges; so lange schwebt sie weiter (gleiche Angriffsregeln), zieht nicht und kann abbrechen (die Felder des Zuges sind dann verbraucht). Berg, Wald und Flachwasser werden zu Ebene, Wüste, Steppe, Tundra, Hügel und Sumpf zu Wiese, und das bleibt auch nach dem Abheben; tiefes Meer, Vulkane und Brände nicht. Ein Rohstoff wird aufgenommen (+{tfPop} Bevölkerung), neutrale Gebäude, Ruinen und Merkmale werden eingeebnet, ebenso ein benachbarter neutraler Ort (er verschwindet, sein Gebiet geht an die Akademie, keine Belohnung). Nie eingeebnet wird Besitz einer Fraktion, Wunder, Geschütze und Wahrzeichen. Nicht in fremdem Gebiet, keine fremde Einheit, kein eigenes Gebäude, mindestens {gap} Felder von jedem Ort mit Besitzer; freies Umland im Umkreis {claim} wird Gebiet. Geht die Landung zu Zugbeginn nicht mehr, schwebt sie weiter. Vom Abheben bis zum Zug nach der Landung ruht die Produktion. Schwebend greifen nur Flieger, Flak und Panzer an; ohne Schild erzwingt jeder Treffer die Notlandung. Schutzschild ({cost} Sterne): {hp} LP, fängt Angriffe auf die Akademie und Einheiten auf ihrem Feld zuerst ab, lädt {regen} LP je Zug auf, nach der Zerstörung erst nach {rebuild} Runden neu baubar; solange er steht, ist die Akademie nicht einzunehmen. Beamer-Relay ({beamer} Sterne) auf einem Posten: je Runde eine Einheit von der Akademie dorthin, eine Runde unterwegs, Ankunft einsatzbereit; fällt das Relay, kehrt sie zur Akademie zurück. Geht die Akademie verloren, wird der nächste Posten zur neuen Akademie mit halber Stufe."
     },
     "hacking": {
       "title": "Hacken (NEXUS)",
@@ -4342,15 +4344,15 @@
     "slots": "Ausbildung {n}/{max} in dieser Runde",
     "posts": "Forschungsposten: {n}",
     "transit": "Unterwegs (Beamer): {n}",
-    "desc": "Einzige Ausbildungsstätte der Velkar: {academyBaseSlots} Einheiten je Zug und eine mehr je Forschungsposten (höchstens {academyMaxSlots}), auf freien Feldern rund um die Akademie. Abheben dauert {academyLift} Runde, danach zieht sie {academyMove} Felder je Zug über jedes Gelände. Vom Abheben bis zum Zug nach der Landung ruht die Produktion.",
+    "desc": "Einzige Ausbildungsstätte der Velkar: {academyBaseSlots} Einheiten je Zug und eine mehr je Forschungsposten (höchstens {academyMaxSlots}), auf freien Feldern rund um die Akademie. Abheben dauert {academyLift} Runde, danach zieht sie {academyMove} Felder je Zug über jedes Gelände. Vor der Landung terraformt sie {academyTerraform} Runde lang. Vom Abheben bis zum Zug nach der Landung ruht die Produktion.",
     "airRule": "Schwebend greifen nur Flieger, Flak und Panzer an; jeder Treffer ohne Schild erzwingt die Notlandung.",
     "lift": "Abheben",
     "liftDesc": "Die Akademie hebt ab und schwebt nach {academyLift} Runde; dann zieht sie {academyMove} Felder je Zug. Bis zum Zug nach der Landung keine Produktion. Schwebend greifen sie nur Flieger, Flak und Panzer an.",
     "move": "Ziehen",
     "moveDesc": "Ziel auf der Karte antippen: bis zu {n} Felder, auch über Wasser und Berge.",
     "moveHint": "Tippe ein markiertes Feld an, um die Akademie dorthin zu ziehen.",
-    "land": "Landen",
-    "landDesc": "Landet hier: das Feld und freies Umland werden Gebiet der Akademie. Produktion ab dem nächsten Zug.",
+    "land": "Terraformen und landen",
+    "landDesc": "Terraformt {academyTerraform} Runde lang und landet zu Beginn des nächsten Zuges; bis dahin schwebt sie weiter (gleiche Angriffsregeln) und zieht nicht. {into} Das Feld und freies Umland werden Gebiet der Akademie. Produktion ab dem Zug nach der Landung.",
     "shield": "Schutzschild",
     "shieldDesc": "{academyShieldHp} LP. Fängt Angriffe auf die Akademie und auf Einheiten auf ihrem Feld zuerst ab, am Boden und in der Luft, auch ohne Besatzung. Lädt {academyShieldRegen} LP je Zug auf; zerstört erst nach {academyShieldRebuild} Runden neu baubar.",
     "shieldHp": "Schild {hp}/{max} LP",
@@ -4371,7 +4373,39 @@
     "toastPost": "{city} ist jetzt ein Forschungsposten: +{pop} Bevölkerung für die Akademie",
     "toastShield": "Schutzschild über {city} aktiv",
     "toastShieldDown": "Schutzschild über {city} zusammengebrochen",
-    "slotsUsed": "Alle {max} Ausbildungen dieser Runde vergeben oder kein freies Feld an der Akademie."
+    "slotsUsed": "Alle {max} Ausbildungen dieser Runde vergeben oder kein freies Feld an der Akademie.",
+    "terraforming": "Terraformt: landet im nächsten Zug",
+    "terraformInto": "Das Feld wird zu Ebene (jetzt: {terrain}).",
+    "landResource": "Der Rohstoff ({resource}) wird aufgenommen: +{academyTerraformPop} Bevölkerung.",
+    "landCleared": "Eingeebnet wird: {what}.",
+    "raze": "Einebnen und landen",
+    "razeSub": "{city}",
+    "razeDesc": "Neutraler Ort wird eingeebnet: {city} verschwindet, sein Gebiet wird Gebiet der Akademie. Kein Einnehmen, keine Belohnung. Danach wie Terraformen und landen: {academyTerraform} Runde, Landung im nächsten Zug.",
+    "razeConfirm": "Neutraler Ort wird eingeebnet: {city} verschwindet für immer, statt ihn als Forschungsposten einzunehmen. Trotzdem terraformen?",
+    "razeOk": "Einebnen",
+    "cancelTerraform": "Terraformen abbrechen",
+    "cancelDesc": "Die Akademie schwebt weiter; die Felder dieses Zuges sind verbraucht.",
+    "landTargetsHint": "Markierte Felder: Landung möglich (Ziel antippen zieht dorthin).",
+    "toastTerraform": "{city} terraformt: landet im nächsten Zug",
+    "toastCancel": "{city}: Terraformen abgebrochen",
+    "toastAbort": "{city}: Landung abgebrochen, das Feld ist nicht mehr frei",
+    "toastLandTerraform": "{city} ist gelandet: {terrain} wurde zu Ebene",
+    "toastRazed": "{city} ist gelandet: {kind} eingeebnet",
+    "razed": {
+      "village": "neutrale Siedlung",
+      "base": "neutraler Stützpunkt",
+      "tower": "Sendeturm"
+    },
+    "feature": {
+      "bunker": "verlassener Bunker",
+      "radar": "Radarstation",
+      "crashSite": "Absturzstelle",
+      "labRuin": "Laborruine"
+    },
+    "terraformNext": "Landet zu Beginn des nächsten Zuges, Produktion ab dem Zug danach.",
+    "landHint": "Landen kostet eine Terraform-Runde.",
+    "razeWarn": "Neutraler Ort wird eingeebnet.",
+    "terraformFlat": "Das Feld ist schon ebene Wiese."
   },
   "beam": {
     "name": "Beamer-Relay",
