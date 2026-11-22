@@ -13,7 +13,7 @@ import type { IconName } from './icons';
 /** Rollen in der Reihenfolge der Legende / roles in legend order */
 export const UNIT_ROLES = [
   'infantry', 'sniper', 'mg', 'antiTank', 'flame', 'medic', 'engineer', 'spy', 'commando', 'scientist',
-  'artillery', 'tank', 'walker', 'antiAir', 'mines', 'recon', 'radar', 'air', 'kamikaze',
+  'artillery', 'tank', 'walker', 'antiAir', 'mines', 'recon', 'radar', 'air', 'kamikaze', 'berserker',
   'transport', 'submarine', 'warship', 'battleship', 'wonder', 'boss',
 ] as const;
 export type UnitRole = (typeof UNIT_ROLES)[number];
@@ -23,7 +23,7 @@ export const ROLE_ICON: Record<UnitRole, IconName> = {
   infantry: 'roleInfantry', sniper: 'roleSniper', mg: 'roleMg', antiTank: 'roleAntiTank', flame: 'fire', medic: 'roleMedic',
   engineer: 'roleEngineer', spy: 'roleSpy', commando: 'roleCommando', scientist: 'roleScientist',
   artillery: 'roleArtillery', tank: 'roleTank', walker: 'roleWalker', antiAir: 'roleAntiAir', mines: 'roleMine',
-  recon: 'roleRecon', radar: 'roleRadar', air: 'roleAir', kamikaze: 'roleKamikaze',
+  recon: 'roleRecon', radar: 'roleRadar', air: 'roleAir', kamikaze: 'roleKamikaze', berserker: 'roleBerserker',
   transport: 'roleTransport', submarine: 'roleSubmarine', warship: 'roleWarship', battleship: 'roleBattleship',
   wonder: 'roleWonder', boss: 'roleBoss',
 };
@@ -59,6 +59,8 @@ export const UNIT_ROLE: Record<UnitTypeId, UnitRole> = {
   heli: 'air', octocopter: 'air', skimmer: 'air', quadDrone: 'air',
   // explodiert beim Angriff / explodes when attacking
   kamikazeDrone: 'kamikaze', guidedMissile: 'kamikaze',
+  // zwei Hiebe je Zug, sprengt sich gegen Panzerung (Kult) / two blows per turn, blows himself up against armour (cult)
+  berserker: 'berserker',
   landingBoat: 'transport', fogCutter: 'transport',
   submarine: 'submarine',
   destroyer: 'warship', privateer: 'warship',

@@ -1,7 +1,7 @@
 /**
  * Einheiten des Kults der Letzten Stunde (Vesper) / units of the Last Hour cult (Vesper):
- * Eiferer, Fackeltraeger, Prophet, Untergangs-Buggy, Raketenkarren, Untergangs-Raupe.
- * Zealot, torchbearer, prophet, doom buggy, rocket cart, doom crawler.
+ * Eiferer, Fackeltraeger, Prophet, Berserker, Untergangs-Buggy, Raketenkarren, Untergangs-Raupe.
+ * Zealot, torchbearer, prophet, berserker, doom buggy, rocket cart, doom crawler.
  * Zerlumpte Kutten, Knochenmasken, Blutrot, Glut, Schrott, Ketten und Glocken.
  * Ragged robes, bone masks, blood red, ember glow, scrap, chains and bells.
  * Blick nach +z, Ursprung unten mittig / facing +z, origin bottom centre.
@@ -11,6 +11,7 @@ import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { Builder, fine, geo, mix, rng, shade, type V3 } from './kit';
 import { look, mat } from './look';
+import { face } from './headgear';
 import { rifle, seatPose, soldier, standPose } from './soldiers';
 import { antenna, commander, roofMg, tracks } from './tanks';
 import { wheel } from './vehicles';
@@ -134,6 +135,96 @@ export function torchbearer(f: FactionId, lite = false): Builder {
   b.cyl(0.012, 0.014, 0.024, 8, mat.rustDark, [0.01, 0.321, 0.068], [HALF_PI, 0, 0]);
   b.cyl(0.009, 0.009, 0.006, 8, mat.dark, [0.01, 0.321, 0.082], [HALF_PI, 0, 0]);
   });
+  return b;
+}
+
+// ---------- Berserker ----------
+
+/**
+ * Handaxt: Stiel von der Hand entlang dir, Klinge am Ende, um spin um den Stiel gedreht (damit die Flaeche von vorn und schraeg oben lesbar ist).
+ * Hand axe: haft from the hand along dir, blade at the end, turned by spin around the haft (so the face reads from the front and from above at an angle).
+ */
+function handAxe(b: Builder, hand: V3, dir: V3, len: number, spin: number, lite: boolean) {
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), V(dir).normalize());
+  const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
+  b.group({ p: hand, r: [e.x, e.y, e.z] }, () => {
+    b.cyl(0.0085, 0.01, len + 0.05, lite ? 5 : 7, mat.wood, [0, len / 2 - 0.025, 0]);
+    b.group({ p: [0, len - 0.012, 0], r: [0, spin, 0] }, () => {
+      // breite Bartklinge mit heller Schneide und Rost / broad bearded blade with a bright edge and rust
+      b.add(geo.profileZY([[-0.014, -0.026], [0.035, -0.062], [0.088, -0.04], [0.094, 0.026], [0.062, 0.05], [-0.014, 0.028]], 0.01), mat.metal, {});
+      b.box(0.012, 0.086, 0.01, mat.metalLight, [0, -0.006, 0.09]);
+      if (!lite) b.box(0.012, 0.02, 0.024, mat.rust, [0, -0.02, 0.04]);
+      b.cyl(0.012, 0.012, 0.02, lite ? 5 : 7, mat.rustDark, [0, 0, 0]);
+    });
+  });
+}
+
+export function berserker(f: FactionId, lite = false): Builder {
+  const b = new Builder();
+  const L = look(f);
+  const d = lite ? 1 : 2;
+  const paint = L.primary;
+  const R = rng(57);
+  const pelvis: V3 = [0, 0.15, 0];
+  const twist: V3 = [0, -0.28, 0];
+  // Lesbarkeit: breitbeiniger Sturmlauf, rechte Axt hoch ueber dem Kopf, linke vorgestreckt (Kennform: zwei Klingen, kein Gewehr)
+  // readability: wide-legged charge, right axe high above the head, left one thrust forward (signature: two blades, no rifle)
+  const handR: V3 = [0.125, 0.395, -0.01], handL: V3 = [-0.11, 0.21, 0.12];
+  soldier(b, f, {
+    pelvis, twist, head: [0.12, 0.25, 0],
+    handL, handR,
+    footL: [-0.066, 0.034, 0.075], footR: [0.07, 0.034, -0.065], bootR: [0, 0.4, 0], bootL: [0, -0.2, 0],
+    elbowPoleR: [1, -0.2, -0.4], elbowPoleL: [-0.8, -0.8, 0.2],
+  }, {
+    detail: d, bare: true, plain: true, seed: 57,
+    // wilde Maehne, Kriegsbemalung quer ueber die Augen, Bart / wild mane, war paint across the eyes, beard
+    head: (hb, HL, hd) => {
+      face(hb, hd, 'none', 57);
+      hb.box(0.108, 0.018, 0.006, HL.primary, [0, 0.058, 0.052]);
+      if (hd >= 1) for (const sx of [-1, 1]) hb.box(0.008, 0.03, 0.005, HL.primary, [sx * 0.03, 0.03, 0.052], [0, 0, sx * 0.2]);
+      hb.add(geo.rbox(0.11, 0.03, 0.1, 0.01), mat.dark, { p: [0, 0.1, -0.006] });
+      const spikes = hd >= 1 ? 7 : 4;
+      for (let i = 0; i < spikes; i++) {
+        const a = (i / (spikes - 1) - 0.5) * 2.2;
+        hb.add(geo.cone(0.02, 0.07 + R() * 0.03, hd >= 1 ? 5 : 4), mat.dark, { p: [Math.sin(a) * 0.045, 0.12, -0.01 - Math.cos(a) * 0.02], r: [-0.5 - R() * 0.4, 0, -a * 0.6] });
+      }
+      // Bart / beard
+      hb.add(geo.cone(0.034, 0.05, hd >= 1 ? 6 : 4), mat.dark, { p: [0, -0.002, 0.034], r: [Math.PI - 0.35, 0, 0] });
+    },
+  });
+  // Kriegsbemalung und Narben auf der nackten Brust (im Rumpfrahmen) / war paint and scars on the bare chest (in the torso frame)
+  b.group({ p: pelvis }, () => b.group({ p: [0, 0.02, 0], r: twist }, () => {
+    for (let i = 0; i < 3; i++) b.box(0.012, 0.085, 0.005, paint, [-0.042 + i * 0.03, 0.07, 0.052 - i * 0.001], [0.04, 0, 0.5]);
+    if (!lite) {
+      // Kultzeichen auf dem Ruecken / cult sign on the back
+      addEmblem(b, 'vesper', 0.03, 0.004, paint, { p: [0, 0.075, -0.054], r: [0, Math.PI, 0] });
+      for (const sx of [-1, 1]) b.box(0.005, 0.05, 0.004, shade(mat.skin, 0.7), [sx * 0.05, 0.03, 0.051], [0, 0, sx * 0.3]);
+    }
+    // Schulterriemen mit Sprengladungen / shoulder strap with charges
+    b.box(0.018, 0.16, 0.012, mat.dark, [0.0, 0.06, 0.054], [0.0, 0, -0.62]);
+    b.box(0.018, 0.16, 0.012, mat.dark, [0.0, 0.06, -0.054], [0.0, 0, 0.62]);
+    for (let i = 0; i < (lite ? 2 : 3); i++) b.box(0.022, 0.03, 0.018, i % 2 ? mat.rust : paint, [-0.035 + i * 0.033, 0.098 - i * 0.025, 0.062], [0, 0, -0.62]);
+  }));
+  // Sprenggurt: Stangen um die Huefte, Zuender mit Glut, Draehte / explosive belt: sticks around the hips, detonator with glow, wires
+  b.group({ p: [pelvis[0], pelvis[1] + 0.012, pelvis[2]] }, () => {
+    b.add(geo.cyl(0.084, 0.084, 0.02, lite ? 10 : 14, true), mat.dark, { s: [1, 1, 0.68] });
+    const n = lite ? 6 : 9;
+    for (let i = 0; i < n; i++) {
+      const a = ((i - (n - 1) / 2) / n) * Math.PI * 1.75;
+      const p: V3 = [Math.sin(a) * 0.09, -0.004, Math.cos(a) * 0.064];
+      b.cyl(0.0115, 0.0115, 0.058, lite ? 5 : 7, paint, p);
+      if (!lite) b.cyl(0.004, 0.004, 0.012, 4, mat.dark, [p[0], 0.03, p[2]]);
+    }
+    b.add(geo.rbox(0.04, 0.03, 0.02, 0.004), mat.gunmetal, { p: [0.02, 0.012, 0.075] });
+    b.box(0.012, 0.01, 0.006, mat.ember, [0.026, 0.02, 0.086]);
+    if (!lite) {
+      b.tube([0.0, 0.02, 0.078], [-0.05, 0.03, 0.06], 0.0025, 4, mat.red);
+      b.tube([0.04, 0.02, 0.075], [0.07, 0.03, 0.05], 0.0025, 4, mat.yellow);
+    }
+  });
+  // zwei Handaexte / two hand axes
+  handAxe(b, handR, [0.35, 1, 0.25], 0.15, 1.0, lite);
+  handAxe(b, handL, [-0.25, 0.5, 1], 0.15, -1.2, lite);
   return b;
 }
 

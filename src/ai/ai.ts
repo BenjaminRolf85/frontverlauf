@@ -48,7 +48,7 @@ function fingerprint(s: GameState, f: number): string {
   for (const g of s.factions) parts.push(g.peaceOffers.length, g.relations.join(''));
   for (const u of s.units) {
     if (u.owner !== f) continue;
-    parts.push(u.id, u.x, u.y, u.hp, u.type, (u.moved ? 1 : 0) | (u.attacked ? 2 : 0) | (u.exhausted ? 4 : 0) | (u.moveDone ? 8 : 0));
+    parts.push(u.id, u.x, u.y, u.hp, u.type, (u.moved ? 1 : 0) | (u.attacked ? 2 : 0) | (u.exhausted ? 4 : 0) | (u.moveDone ? 8 : 0) | ((u.strikes ?? 0) << 4));
   }
   // Akademie: Schuesse des Neutronenstrahls zaehlen als Wirkung (auch ein Fehlschuss) / academy: neutron beam shots count as an effect (a miss too)
   for (const c of s.cities) if (c.owner === f) parts.push(c.id, c.ray?.round === s.round ? c.ray.n : 0);

@@ -34,7 +34,7 @@ const LOW_SLACK = 1.03;
  * to them, only their own limit in BUDGET. None of them is in the late-game scene of the base factions. Likewise new models
  * without a before state (Meridon's marines).
  */
-const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine']);
+const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [5750, 4550, 4891], // 5453 / 4300
@@ -66,6 +66,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   rocketCart: [6150, 5500, 5392], // 5834 / 5218 (Lesbarkeit: grosses Raketengestell / readability: big rocket rack)
   doomCrawler: [7650, 7350, 8023], // 7247 / 6983
   faustZealot: [6200, 5250, 4967], // 5883 / 4963
+  // neu (Berserker des Kults), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (the cult's berserker), no before state: before holds its own low value
+  berserker: [4050, 2950, 2808], // 3824 / 2808
   android: [4700, 4300, 4376], // 4472 / 4088
   cyborg: [4500, 3850, 3692], // 4276 / 3636
   kamikazeDrone: [4600, 3800, 3864], // 4364 / 3616 (Feinschliff Runde 3 / polish round 3)
@@ -118,7 +120,9 @@ function cases(): [UnitTypeId, FactionId][] {
 }
 
 /** Summe ueber alle geprueften Modelle: [hoch, niedrig]; vor dem Feinschliff waren es 603819 / sum over all checked models: [high, low]; before the polish it was 603819 */
-const SUMME: [number, number] = [651000, 568000];
+// hoch um das Budget des neuen Berserker-Modells angehoben (651000 + 4050), niedrig unveraendert (passt weiter)
+// high raised by the budget of the new berserker model (651000 + 4050), low unchanged (still fits)
+const SUMME: [number, number] = [655050, 568000];
 /** Stand vor dem Feinschliff (gleiche Modelle, eine Detailstufe) / state before the polish (same models, one detail level) */
 const BEFORE_SUM = 603819;
 

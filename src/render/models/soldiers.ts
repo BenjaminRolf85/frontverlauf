@@ -91,6 +91,11 @@ export interface SoldierOpts {
   colors?: Partial<Pick<Look, 'jacket' | 'pants' | 'gear'>>;
   /** ohne Fraktionszubehoer an Rumpf, Armen und Stiefeln (eigene Ausruestung, Marines) / without faction extras on torso, arms and boots (own equipment, marines) */
   plain?: boolean;
+  /**
+   * Nackter Oberkoerper (Berserker): Rumpf und Arme in Hautfarbe, ohne Jackendetails, Aermelbund, Armband und Koppeltaschen.
+   * Bare upper body (berserker): torso and arms in skin colour, without jacket details, cuffs, armband and belt pouches.
+   */
+  bare?: boolean;
 }
 
 /** Zwei-Knochen-IK / two-bone IK */
@@ -174,14 +179,14 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
   const Mp = xfMatrix({ p: pose.pelvis, r: pose.body });
   const Mt = Mp.clone().multiply(xfMatrix({ p: [0, TORSO_Y, 0], r: pose.twist }));
   const coatC = o.coatColor ?? L.primary;
-  const sleeve = o.coat ? coatC : L.jacket;
+  const sleeve = o.bare ? mat.skin : o.coat ? coatC : L.jacket;
 
   // ---- Becken + Oberkoerper + Kopf / pelvis + torso + head ----
   b.group({ p: pose.pelvis, r: pose.body }, () => {
     b.add(part(0.148, 0.05, 0.094, 0.22, 1), L.pants, { p: [0, 0, 0] });
     b.add(part(0.156, 0.022, 0.1, 0.25, 1), L.gear, { p: [0, 0.02, 0] });
     if (d >= 1) b.box(0.026, 0.02, 0.01, L.secondary, [0, 0.02, 0.051]);
-    if (d === 2 && !o.coat) {
+    if (d === 2 && !o.coat && !o.bare) {
       // Taschen am Koppel / belt pouches
       for (const [x, z] of [[-0.05, 0.048], [0.05, 0.048]] as [number, number][]) {
         b.box(0.034, 0.032, 0.016, shade(L.gear, 0.85), [x, 0.008, z]);
@@ -213,7 +218,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       if (d >= 1) b.box(0.236, 0.014, 0.166, L.primaryDark, [0, -0.115, 0]);
     }
     b.group({ p: [0, TORSO_Y, 0], r: pose.twist }, () => {
-      const jacket = o.coat ? coatC : L.jacket;
+      const jacket = o.bare ? mat.skin : o.coat ? coatC : L.jacket;
       // Rumpf mit runden Schultern / torso with round shoulders
       if (lowCrew) b.add(d >= 1 ? geo.ctaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.016) : geo.taper(0.146, 0.09, 0.17, 0.102, 0.11), jacket, { p: [0, 0.055, 0] });
       else b.add(geo.softTaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.024, 0, tier === 3 ? 1 : 0), jacket, { p: [0, 0.055, 0] });
@@ -225,7 +230,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
         }
         b.add(part(0.168, 0.018, 0.104, 0.3, 1), L.primaryDark, { p: [0, 0.0, 0] });
         b.box(0.045, 0.03, 0.006, L.secondary, [0, 0.085, 0.052]);
-      } else if (d >= 1) {
+      } else if (d >= 1 && !o.bare) {
         b.box(0.07, 0.018, 0.06, shade(jacket, 0.85), [0, 0.108, 0.0]);
         if (d === 2) {
           for (const s of [-1, 1]) {
@@ -335,7 +340,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const { joint: E, end: H } = ik(S, T, UPPER, FORE, pole);
     b.segment(S, E, (len) => limb(0.029, 0.0265, len + 0.034), sleeve, (len) => {
       if (o.armband && side < 0) b.add(band(0.0305, 0.024), L.secondary, { p: [0, len * 0.45, 0] });
-      if (d === 2 && !o.armband && !o.coat) {
+      if (d === 2 && !o.armband && !o.coat && !o.bare) {
         b.add(band(0.0295, 0.015), L.secondary, { p: [0, len * 0.25, 0] });
         if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.029, len * 0.58, 0], r: [0, -HALF_PI, 0] });
       }
@@ -350,7 +355,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     });
     b.segment(E, H, (len) => limb(0.0265, 0.024, len - 0.002).translate(0, -0.014, 0), sleeve, (len) => {
       // Aermelbund / cuff
-      if (d === 2) b.add(band(0.0265, 0.014), shade(sleeve, 0.82), { p: [0, len - 0.03, 0] });
+      if (d === 2 && !o.bare) b.add(band(0.0265, 0.014), shade(sleeve, 0.82), { p: [0, len - 0.03, 0] });
       // Hand als runder Faeustling mit Daumen / hand as a round mitt with thumb
       const [hw, hh] = HAND_SEG[tier];
       if (lowCrew) b.add(geo.box(0.04, 0.042, 0.044), mat.skin, { p: [0, len, 0] });

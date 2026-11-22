@@ -30,7 +30,9 @@ export type LifeKind = 'foot' | 'vehicle' | 'walker' | 'flyer' | 'ship';
 /** Fusstruppen / foot troops */
 const FOOT = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'android', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist',
   // NEXUS: Cyborg-Infanterie, Kamikaze-Laufdrohne (klein und flink) / NEXUS: cyborg infantry, kamikaze walker drone (small and nimble)
-  'cyborg', 'kamikazeDrone']);
+  'cyborg', 'kamikazeDrone',
+  // Kult: Berserker / cult: berserker
+  'berserker']);
 /** Laeufer: schwer und langsam / walkers: heavy and slow */
 const WALKERS = new Set<UnitTypeId>(['mech', 'tripod', 'titan', 'spider', 'flakDrone', 'protoWalker']);
 

@@ -5,12 +5,12 @@
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
-  orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
+  orbitalPreview, orbitalWait, sabotageTargets, detonateTargets, strikeKind, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
   landingTargets, terraformPlan, rayCheck, rayReach, rayReadyCheck, rayTargets, type Command, type Pos, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
 import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
-import { ORBITAL, SILO, UNITS, type HitKind } from '../data/balance';
+import { ORBITAL, SILO, TWIN_STRIKE, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
 import { audio, type Sfx } from '../audio/audio';
@@ -76,6 +76,8 @@ export class Controller {
   siloAim: { x: number; y: number } | null = null;
   /** Zielauswahl fuer die Sabotage des Schattenkommandos / target selection for the Shadow Commando's sabotage */
   sabotageMode = false;
+  /** Berserker: Sprengziel waehlen / berserker: pick a detonation target */
+  detonateMode = false;
   /** Zielauswahl fuer das Ziehen der schwebenden Akademie: Stadt-ID / target selection for moving the floating academy: city id */
   academyMoveCity: number | null = null;
   /** angewaehlte feindliche Akademie (zweites Antippen greift an) / selected hostile academy (a second tap attacks) */
@@ -152,6 +154,17 @@ export class Controller {
     this.emplacementMode = true;
     this.barrierMode = false;
     this.mineMode = false;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Berserker: Sprengziele auf der Karte zeigen / berserker: show the detonation targets on the map */
+  startDetonate() {
+    this.detonateMode = true;
+    this.sabotageMode = false;
+    this.barrierMode = false;
+    this.mineMode = false;
+    this.emplacementMode = false;
     this.updateHighlights();
     this.ui.update();
   }
@@ -355,6 +368,7 @@ export class Controller {
     this.hackFrom = null;
     this.hackAim = null;
     this.sabotageMode = false;
+    this.detonateMode = false;
     this.barrierMode = false;
     this.mineMode = false;
     this.emplacementMode = false;
@@ -429,6 +443,10 @@ export class Controller {
       for (const p of emplacementTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && this.sabotageMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of sabotageTargets(s, u)) list.push({ ...p, kind: 'attack' });
+    } else if (u && this.detonateMode && u.owner === s.current && this.isHumanTurn) {
+      // Berserker: Panzerung (voller Sprengschaden) als Ziel markiert, andere Bodeneinheiten als Angriff
+      // berserker: armour (full blast damage) marked as target, other ground units as attack
+      for (const o of detonateTargets(s, u)) list.push({ x: o.x, y: o.y, kind: strikeKind(o.type) === 'armour' ? 'target' : 'attack' });
     } else if (u && u.owner === s.current && this.isHumanTurn) {
       for (const r of reachable(s, u)) {
         const kind: HighlightKind = u.fuel !== null ? (heliSafe(s, u, r.x, r.y) ? 'safe' : 'unsafe') : 'move';
@@ -611,6 +629,16 @@ export class Controller {
       this.updateHighlights(); this.ui.update();
       return;
     }
+    if (u && this.detonateMode) {
+      this.detonateMode = false;
+      const o = unitAt(s, x, y);
+      if (o && detonateTargets(s, u).some((d) => d.id === o.id)) {
+        await this.exec({ type: 'detonate', unit: u.id, target: o.id });
+        return;
+      }
+      this.updateHighlights(); this.ui.update();
+      return;
+    }
     if (u && this.sabotageMode) {
       this.sabotageMode = false;
       if (sabotageTargets(s, u).some((p) => p.x === x && p.y === y)) {
@@ -684,7 +712,7 @@ export class Controller {
     // Auswahl / selection
     const same = this.selected && this.selected.x === x && this.selected.y === y;
     this.selected = { x, y };
-    this.pendingTarget = null;
+    this.pendingTarget = null; this.detonateMode = false;
     this.pendingTurret = null;
     this.pendingAcademy = null;
     const unit = unitAt(s, x, y);
@@ -743,7 +771,7 @@ export class Controller {
     this.tab = tab;
     const u = unitAt(s, this.selected.x, this.selected.y);
     this.selectedUnit = tab === 'unit' && u && (this.viewer < 0 || canSeeUnit(s, this.viewer, u)) ? u.id : null;
-    this.pendingTarget = null;
+    this.pendingTarget = null; this.detonateMode = false;
     this.pendingTurret = null;
     this.play('click');
     this.updateHighlights();
@@ -803,9 +831,11 @@ export class Controller {
             const seen = (pos && visible(pos.x, pos.y)) || (ab && visible(ab.x, ab.y));
             const shown = !!pos && visible(pos.x, pos.y);
             // Klang und Anzeigen, mit animiertem Schuss und Einschlag synchron / sound and markers, in sync with the animated shot and impact
+            // Selbstsprengung des Berserkers: Sprengladung statt Axt, grosse Explosion / the berserker's self-detonation: blast charge instead of the axe, big explosion
+            const weapon = e.detonate ? 'blast' as const : weaponOf(ab?.type ?? 'infantry');
             const fire = () => {
               if (!seen || !ab) return;
-              audio.weapon(ab.type);
+              audio.weapon(ab.type, weapon);
               // eigener Angriff: gelegentlich ein Kampfschrei / own attack: an occasional battle cry
               if (ab.owner === this.viewer && Math.random() < 0.35) audio.battleCry(fid(ab.owner));
             };
@@ -813,7 +843,9 @@ export class Controller {
               if (seen && tb && !killedIds.has(e.target)) audio.impact(tb.type, false, fid(tb.owner));
               if (!shown || !pos) return;
               this.ui.fx('hit', pos.x, pos.y);
-              this.ui.fx('num', pos.x, pos.y, e.retreat ? `${t('retreat.fx')} -${e.dmg}` : e.rocket && (!e.hit || e.hit === 'full') ? `${t('rockets.fx')} -${e.dmg}` : hitText(e.hit, e.dmg));
+              this.ui.fx('num', pos.x, pos.y, e.retreat ? `${t('retreat.fx')} -${e.dmg}` : e.detonate ? `${t('berserker.fxDetonate')} -${e.dmg}` : e.rocket && (!e.hit || e.hit === 'full') ? `${t('rockets.fx')} -${e.dmg}` : hitText(e.hit, e.dmg));
+              // Berserker: erster Hieb, der zweite folgt / berserker: first blow, the second follows
+              if (e.strike === 1 && ab) { const ap = unitById(s, e.unit); if (ap) this.ui.fx('num', ap.x, ap.y, t('berserker.fxStrike', { n: e.strike, max: TWIN_STRIKE.strikes })); }
               for (const sp of e.splash ?? []) { const p = before.get(sp.unit); if (p) this.ui.fx('num', p.x, p.y, `-${sp.dmg}`); }
             };
             // Gegenschlag / retaliation
@@ -827,11 +859,12 @@ export class Controller {
             };
             if (animate && ab && tb && board.unitObject(e.unit) && board.unitObject(e.target)) {
               const water = (p: { x: number; y: number }) => { const tt = s.tiles[p.y * s.size + p.x].terrain; return tt === 'shallow' || tt === 'ocean'; };
-              const shake = seen ? impactShake(weaponOf(ab.type)) : 0;
+              const shake = seen ? impactShake(weapon) * (e.detonate ? 1.5 : 1) : 0;
               const retShake = seen ? impactShake(weaponOf(tb.type)) * 0.8 : 0;
               await board.animateAttack(e.unit, e.target, {
                 attacker: ab.type, target: tb.type, attackerFaction: fid(ab.owner), targetFaction: fid(tb.owner),
                 attackerWater: water(ab), targetWater: water(tb), retaliate: retaliates, splash: (e.splash ?? []).map((sp) => sp.unit),
+                ...(e.detonate ? { weapon, blast: 1.7 } : {}),
                 // Wanne nach der Ausrichtung im Spielstand / hull from the facing in the game state
                 attackerHull: coreHeading(unitById(s, e.unit)), targetHull: retaliates ? coreHeading(unitById(s, e.target)) : undefined,
                 onFire: fire,

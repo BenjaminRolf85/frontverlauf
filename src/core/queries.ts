@@ -5,7 +5,7 @@
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, HACK, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, type AcademyModule, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, BERSERKER, TWIN_STRIKE, ROBOT_UNITS, type AcademyModule, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -634,8 +634,74 @@ export function canWithdrawAfterAttack(s: GameState, u: Unit): boolean {
   return !st.ship && !has(u, 'fly') && !has(u, 'escape') && !has(u, 'wonder') && !has(u, 'boss') && !has(u, 'kamikaze') && st.move > 0;
 }
 
+/**
+ * Berserker (TWIN_STRIKE): hat er in diesem Zug schon zugeschlagen und noch einen Hieb uebrig? Dann bleibt er angriffsbereit,
+ * obwohl attacked gesetzt ist (alle anderen Handlungen sperrt attacked wie ueblich).
+ * Berserker (TWIN_STRIKE): has he already struck this turn and a blow left? Then he stays ready to attack although
+ * attacked is set (attacked blocks every other action as usual).
+ */
+export function secondStrike(u: Unit): boolean {
+  const n = u.strikes ?? 0;
+  return n > 0 && n < TWIN_STRIKE.strikes && has(u, 'twinStrike');
+}
+/** Verbleibende Angriffe in diesem Zug (Berserker bis TWIN_STRIKE.strikes, sonst 0 oder 1) / attacks left this turn (berserker up to TWIN_STRIKE.strikes, else 0 or 1) */
+export function strikesLeft(u: Unit): number {
+  if (!canAttackNow(u)) return 0;
+  return has(u, 'twinStrike') ? TWIN_STRIKE.strikes - (u.strikes ?? 0) : 1;
+}
+
+/**
+ * Zielart fuer die feste Schlagkraft (UNITS.strike) und die Selbstsprengung: Panzerung = Fahrzeuge (VEHICLE_UNITS samt
+ * Laeufern und Mechs) und Roboter (ROBOT_UNITS) am Boden; Fusstruppen = uebrige Bodeneinheiten; sonst Flieger, Schiffe,
+ * Bauwerke und Endgegner.
+ * Target kind for the fixed striking power (UNITS.strike) and the self-detonation: armour = vehicles (VEHICLE_UNITS incl.
+ * walkers and mechs) and robots (ROBOT_UNITS) on the ground; foot = other ground units; else flyers, ships, structures and bosses.
+ */
+export function strikeKind(type: UnitTypeId): 'foot' | 'armour' | 'other' {
+  const cls = unitClass(type);
+  if (UNITS[type].abilities.includes('boss') || cls === 'ship' || cls === 'air' || cls === 'structure') return 'other';
+  if (cls === 'vehicle' || (ROBOT_UNITS as UnitTypeId[]).includes(type)) return 'armour';
+  return 'foot';
+}
+/** Feste Schlagkraft eines vollen Treffers (null = normale Formel) / fixed striking power of a full hit (null = normal formula) */
+export function strikeDamage(attacker: UnitTypeId, target: UnitTypeId | null): number | null {
+  const st = UNITS[attacker].strike;
+  if (!st) return null;
+  return target === null ? st.other : st[strikeKind(target)];
+}
+
+/**
+ * Schaden der Selbstsprengung am Ziel (BERSERKER.detonate), 0 = kein gueltiges Ziel: keine Flieger, Schiffe, Bauwerke,
+ * Endgegner und nichts im Wasser.
+ * Damage of the self-detonation on the target (BERSERKER.detonate), 0 = no valid target: no flyers, ships, structures,
+ * bosses and nothing in the water.
+ */
+export function detonateDamage(s: GameState, target: Unit): number {
+  const st = UNITS[target.type];
+  if (st.ship || st.abilities.includes('fly') || st.abilities.includes('boss') || isStructureType(target.type)) return 0;
+  const t = tileAt(s, target.x, target.y);
+  if (!t || !walkable(t)) return 0;
+  return strikeKind(target.type) === 'armour' ? BERSERKER.detonate.armour : BERSERKER.detonate.other;
+}
+/** Ziele, an denen u sich jetzt sprengen kann / targets u can blow himself up at now */
+export function detonateTargets(s: GameState, u: Unit): Unit[] {
+  if (!has(u, 'detonate') || !canAttackNow(u) || submerged(s, u)) return [];
+  return s.units.filter((o) => o.owner !== u.owner && isHostile(s, u.owner, o.owner) && dist(u, o) <= BERSERKER.detonate.range
+    && canSeeUnit(s, u.owner, o) && detonateDamage(s, o) > 0);
+}
+/** Pruefung der Selbstsprengung / check of the self-detonation */
+export function detonateCheck(s: GameState, u: Unit, target: Unit): 'ok' | 'cannotDetonate' | 'cannotAttack' | 'outOfRange' | 'detonateTarget' | 'peace' {
+  if (!has(u, 'detonate')) return 'cannotDetonate';
+  if (!isHostile(s, u.owner, target.owner)) return 'peace';
+  if (!canAttackNow(u) || submerged(s, u)) return 'cannotAttack';
+  if (dist(u, target) > BERSERKER.detonate.range || !canSeeUnit(s, u.owner, target)) return 'outOfRange';
+  return detonateDamage(s, target) > 0 ? 'ok' : 'detonateTarget';
+}
+
 export function canAttackNow(u: Unit): boolean {
-  if (u.fresh || u.exhausted || u.attacked) return false;
+  if (u.fresh || u.exhausted) return false;
+  // Berserker: zweiter Hieb trotz attacked / berserker: second blow despite attacked
+  if (u.attacked && !secondStrike(u)) return false;
   // Waal schiesst erst nach der ersten Bauphase / the Waal fires only after its first build phase
   if (u.type === 'waal' && !waalArmed(u)) return false;
   if (UNITS[u.type].attack <= 0 || UNITS[u.type].range <= 0) return false;
@@ -937,7 +1003,10 @@ export function memorialMult(s: GameState, u: Unit, x = u.x, y = u.y): number {
 
 /** Schadensfaktor des Angreifers jetzt (1 = nicht gezogen) / attacker's damage factor now (1 = not moved) */
 // Kamikaze: die Drohne laeuft ins Ziel, kein Abzug (KAMIKAZE) / kamikaze: the drone walks into the target, no penalty (KAMIKAZE)
-export const moveFireFactor = (s: GameState, u: Unit): number => (movedThisTurn(u) && !has(u, 'kamikaze') ? moveFireMult(s, u) : 1);
+// Berserker (feste Schlagkraft): er stuermt heran, kein Abzug / berserker (fixed striking power): he charges in, no penalty
+export const moveFireFactor = (s: GameState, u: Unit): number => (movesFireFree(u) ? 1 : moveFireMult(s, u));
+/** Kein Abzug fuer Feuern nach Bewegung (nicht gezogen, Kamikaze, feste Schlagkraft) / no penalty for firing after moving (not moved, kamikaze, fixed striking power) */
+export const movesFireFree = (u: Unit): boolean => !movedThisTurn(u) || has(u, 'kamikaze') || !!UNITS[u.type].strike;
 
 /** Deckungsfaktor gegen Fernangriffe (1 = keine) / cover factor against ranged attacks (1 = none) */
 export function rangedCover(s: GameState, att: Unit, def: Unit): number {
@@ -1214,7 +1283,7 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // Konter-Faktor gegen die Zielklasse / counter factor against the target class
   // nach Bewegung weniger Schaden, vor dem Trefferglueck; der Gegenschlag bleibt ungeschmaelert
   // less damage after moving, before hit luck; return fire stays undiminished
-  const moveFire = movedThisTurn(att) && !has(att, 'kamikaze');
+  const moveFire = !movesFireFree(att);
   // Strafgericht (Alvenia gegen Suender): eigener Faktor auf den Schaden, vor dem Trefferglueck / judgement (Alvenia against sinners): own factor on the damage, before hit luck
   // Mahnmal des Kults unter dem Angreifer (nur eigener Angriff, nicht der Gegenschlag) / cult memorial under the attacker (own attack only, not return fire)
   const memorial = memorialMult(s, att);
@@ -1224,7 +1293,9 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
   // Angriff von hinten: Ausrichtung des Ziels vor dem Angriff, nur eigener Angriff (der Gegenschlag rechnet in returnFire)
   // attack from behind: the target's facing before the attack, own attack only (return fire is computed in returnFire)
   const rear = rearAttackBonus(att, def);
-  const toDefender = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench * (1 + rear) * firepowerFactor(s, att)) : 0;
+  // Berserker: feste Schlagkraft je Zielart statt der Formel (UNITS.strike) / berserker: fixed striking power per target kind instead of the formula
+  const fixed = strikeDamage(att.type, def.type);
+  const toDefender = fixed !== null ? fixed : total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * counterFactor(att.type, def.type) * moveFireFactor(s, att) * unitLuckFactor(s, att) * (1 + judgement) * memorial * trench * (1 + rear) * firepowerFactor(s, att)) : 0;
   const kills = toDefender >= def.hp;
   // Gegenschlag mit den LP nach dem vollen Treffer / return fire with the HP left after a full hit
   const retFull = kills ? 0 : returnFire(s, att, def, def.hp - toDefender);
@@ -1245,6 +1316,8 @@ export function combatPreview(s: GameState, att: Unit, def: Unit, rocket = false
     const defOdds = hitOdds(s, { ...def, hp: def.hp - dmg }, false, att);
     expectedRet += odds[k] * HIT_KINDS.reduce((a, j) => a + defOdds[j] * hitDamage(rb, j), 0);
   }
+  // feste Schlagkraft: Mahnmal, Strafgericht und Ruecken wirken nicht (die Hinweise schweigen) / fixed striking power: memorial, judgement and rear do not apply (the notes stay silent)
+  if (fixed !== null) return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense: 0, judgement: 0, blessing: 0, memorial: 1, entrenched: entrenchMiss(s, def), rear: 0 };
   return { toDefender, toAttacker, kills, retaliates, expected, expectedRet, killChance, min: min === Infinity ? 0 : min, max, odds, retFull, moveFire, homeDefense, judgement, blessing: blessingOf(s, def), memorial, entrenched: entrenchMiss(s, def), rear };
 }
 
@@ -2901,7 +2974,9 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
   const defenseForce = G.defense * (t.hp / G.hp);
   const total = attackForce + defenseForce;
   // nach Bewegung weniger Schaden (MOVE_FIRE) / less damage after moving (MOVE_FIRE)
-  const toTurret = total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u)) : 0;
+  // Berserker: feste Schlagkraft (UNITS.strike.other) / berserker: fixed striking power (UNITS.strike.other)
+  const fixed = strikeDamage(u.type, null);
+  const toTurret = fixed !== null ? fixed : total > 0 ? Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u)) : 0;
   const near = dist(u, p) <= G.range;
   const ret = (hp: number) => {
     if (hp <= 0 || !near || has(u, 'shock') || has(u, 'kamikaze')) return 0;
@@ -2910,7 +2985,7 @@ export function turretPreview(s: GameState, u: Unit, p: Pos): { toTurret: number
     // verschanzter Angreifer (Korvat) / entrenched attacker (Korvat)
     return tt > 0 ? Math.round((df / tt) * G.defense * COMBAT.damageFactor * entrenchFactor(s, HIT.odds[G.race], u)) : 0;
   };
-  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: movedThisTurn(u) && !has(u, 'kamikaze') };
+  return { toTurret, ret, odds: hitOdds(s, u, dist(u, p) >= 2), moveFire: !movesFireFree(u) };
 }
 
 /**

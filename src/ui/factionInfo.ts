@@ -26,7 +26,7 @@ const SIGNATURE_BUILDING: Partial<Record<FactionId, BuildingId>> = {
 };
 
 /** Symbol des Fraktionsmerkmals / icon of the faction feature */
-const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'silo', nexus: 'kamikaze' };
+const FEATURE_ICON: Partial<Record<FactionId, string>> = { velkar: 'tesla', alvenia: 'emblemHalo', korvat: 'heavyTank', meridon: 'silo', nexus: 'kamikaze', vesper: 'roleBerserker' };
 /** Symbol des zweiten Fraktionsmerkmals (Meridon: Marines, Rollensymbol Infanterie) / icon of the second faction feature (Meridon: marines, infantry role icon) */
 const FEATURE2_ICON: Partial<Record<FactionId, string>> = { meridon: 'roleInfantry', velkar: 'academy', nexus: 'hack' };
 
@@ -102,7 +102,8 @@ export function featureParams(f: FactionId): Record<string, string | number> {
     return { cyborgC: UNITS.cyborg.compute ?? 0, cyborgHp: UNITS.cyborg.hp, droneC: d.compute ?? 0, droneMove: d.move, droneFoot: pct(race(false)), droneAlien: pct(race(true)),
       flameC: UNITS.flameTank.compute ?? 0, flameFoot: pct(UNITS.flameTank.bonusVs?.foot ?? 1) };
   }
-  if (f === 'meridon') return {};
+  // Meridon und Kult (Berserker): Zahlen kommen aus BALANCE_VARS / Meridon and the cult (berserker): numbers come from BALANCE_VARS
+  if (f === 'meridon' || f === 'vesper') return {};
   return { cost: EMPLACEMENT.cost, range: EMPLACEMENT.range };
 }
 

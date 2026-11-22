@@ -306,7 +306,7 @@ export function applyHijack(s: GameState, f: number, x: number, y: number, u: Un
   const until = s.round + HACK.tower.rounds - 1;
   u.hijack = { from, until, x, y };
   u.owner = f;
-  u.moved = false; u.attacked = false; u.moveDone = false; u.exhausted = false; u.fresh = false;
+  u.moved = false; u.attacked = false; u.moveDone = false; u.exhausted = false; u.fresh = false; delete u.strikes;
   u.startX = u.x; u.startY = u.y;
   if (u.withdraw) delete u.withdraw;
   if (u.entrenched) u.entrenched = false;

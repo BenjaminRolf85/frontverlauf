@@ -5,7 +5,7 @@
 import {
   BASES, SILO, COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
-  type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY, ACADEMY,
+  type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY, ACADEMY, TWIN_STRIKE,
 } from '../data/balance';
 import { area, dist, idx, isLand, isWater, neighbors, tileAt } from './grid';
 import { assignBaseKinds, generateMap } from './mapgen';
@@ -24,7 +24,7 @@ import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
 import { canFace, faceTowards, facingTowards, spawnFacing } from './facing';
 import {
-  recruitCheck, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, withEntrench, entrenchMiss, canEntrench, effectiveRange, mineCheck, mineTriggers,
+  recruitCheck, detonateCheck, detonateDamage, plunderValue, isCultFaction, cultUnits, cultInGame, leavesMemorial, supplyLines, turretGuard, turretTargets, weatherHurts, quakeLocked, turretPreview, turretShotDamage, turretTarget, turretList, raceOdds, withEntrench, entrenchMiss, canEntrench, effectiveRange, mineCheck, mineTriggers,
   upkeep, attackTargets, submerged, barrierCheck, terraformCheck, buildCheck, cityUpgradeCheck, cityUpgrades, hasCityUpgrade, canAttackNow, canHeal, captureKind, cityById, combatPreview, contactStars,
   convertTargets, canActStill, canSeeUnit, embassyCost, grandProjectCheck, grandProjectConditionMet, has, healAmount,
   hasTech, hqOf, inContact, income, isHostile, weather, isRefuelSpot, levelUpCost, outpostCheck, ownCities, reachable, researchCost,
@@ -653,6 +653,8 @@ function startTurn(s: GameState, ev: GameEvent[]) {
       ev.push({ t: 'heal', unit: u.id, amount });
     }
     u.moved = false; u.attacked = false; u.moveDone = false; u.exhausted = false; u.fresh = false;
+    // Berserker: Hiebe des letzten Zuges vergessen / berserker: forget last turn's blows
+    if (u.strikes !== undefined) delete u.strikes;
     u.startX = u.x; u.startY = u.y; u.revealed = false;
     if (u.withdraw) delete u.withdraw;
     u.slowed = !!u.slowedNext; u.slowedNext = false;
@@ -1210,6 +1212,7 @@ function doAttackTurret(s: GameState, u: Unit, x: number, y: number, ev: GameEve
   // Kamikaze: auch am Geschuetz explodiert die Drohne / kamikaze: the drone explodes at a gun too
   if (has(u, 'kamikaze')) { killUnit(s, u, null, ev, false); return { ok: true, events: ev }; }
   u.attacked = true;
+  if (twinStrikeLeft(u)) return { ok: true, events: ev };
   if (withdraw) u.withdraw = true;
   else if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
   if (u.moved && u.attacked) u.exhausted = true;
@@ -1546,6 +1549,54 @@ function doMove(s: GameState, u: Unit, to: { x: number; y: number }, ev: GameEve
   return { ok: true, events: ev };
 }
 
+/**
+ * Berserker (TWIN_STRIKE): Hieb zaehlen (nach dem Setzen von attacked); true = noch ein Hieb uebrig. Dann endet die
+ * Bewegung (kein Ziehen zwischen den Hieben), die Einheit bleibt aber angriffsbereit (secondStrike).
+ * Berserker (TWIN_STRIKE): count the blow (after attacked is set); true = a blow is left. Then the movement ends (no moving
+ * between the blows), but the unit stays ready to attack (secondStrike).
+ */
+function twinStrikeLeft(u: Unit): boolean {
+  if (!has(u, 'twinStrike')) return false;
+  u.strikes = (u.strikes ?? 0) + 1;
+  if (u.strikes >= TWIN_STRIKE.strikes) return false;
+  u.moveDone = true;
+  return true;
+}
+
+/**
+ * Selbstsprengung des Berserkers (BERSERKER.detonate): fester Schaden ohne Wurf und ohne Gegenschlag, der Berserker stirbt
+ * (keine Leiche, kein Mahnmal); das Maertyrertum des Kults zaehlt ihn als Gefallenen.
+ * Self-detonation of the berserker (BERSERKER.detonate): fixed damage without a roll and without return fire, the berserker
+ * dies (no corpse, no memorial); the cult's martyrdom counts him as fallen.
+ */
+function doDetonate(s: GameState, u: Unit, target: Unit, ev: GameEvent[]): CommandResult {
+  const chk = detonateCheck(s, u, target);
+  if (chk !== 'ok') return fail(chk);
+  const base = detonateDamage(s, target);
+  // Schutzschild der Akademie faengt zuerst ab (ACADEMY.shield) / the academy's shield absorbs first (ACADEMY.shield)
+  const guard = shieldOver(s, target);
+  const dealt = guard ? shieldTake(s, guard, base, u.id, ev) : base;
+  faceTowards(u, target);
+  target.hp -= dealt;
+  spare(s, target);
+  if (dealt > 0 && target.hp > 0) interruptWonder(s, target, ev);
+  addMark(s, target.x, target.y, 'crater', WAR_MARKS.scar.blast);
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret: 0, splash: [], detonate: true });
+  s.factions[u.owner].lastAttackRound = s.round;
+  // Frevel: Angriff auf die richtende Fraktion / sacrilege: attack on the judging faction
+  if (judges(s, target.owner)) markSin(s, u.owner, 'sacrilege', ev);
+  if (target.hp <= 0) {
+    killUnit(s, target, u.id, ev);
+    // Abschuss zaehlt (Statistik), Befoerderung entfaellt / the kill counts (statistics), no promotion
+    u.kills++;
+    s.factions[u.owner].kills++;
+  }
+  killUnit(s, u, null, ev, false);
+  // Maertyrertum (Kult): der gesprengte Berserker zaehlt als Gefallener / martyrdom (cult): the detonated berserker counts as fallen
+  if (perk2Of(s, u.owner) === 'martyrdom' && s.factions[u.owner].alive) s.factions[u.owner].stars += PERKS2.martyrdomStars;
+  return { ok: true, events: ev };
+}
+
 function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket = false): CommandResult {
   if (target.owner !== u.owner && !isHostile(s, u.owner, target.owner)) return fail('peace');
   if (rocket) {
@@ -1609,7 +1660,7 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   addMark(s, target.x, target.y, markKind, has(u, 'kamikaze') ? WAR_MARKS.scar.blast : scarWeight(u, rocket));
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch', WAR_MARKS.scar.splash); }
   if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
-  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(pd ? { intercepted: true } : {}), ...(rocket ? { rocket: true } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(pd ? { intercepted: true } : {}), ...(rocket ? { rocket: true } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}), ...(has(u, 'twinStrike') ? { strike: (u.strikes ?? 0) + 1 } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   // Suende: Brandschatzen (Brand-Angriff) oder Frevel (Angriff auf die richtende Fraktion), erst nach dem Treffer
   // sin: burning (burn attack) or sacrilege (attack on the judging faction), only after the hit
@@ -1637,6 +1688,8 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
     return { ok: true, events: ev };
   }
   u.attacked = true;
+  // Berserker: mit einem Hieb uebrig bleibt er angriffsbereit, ziehen darf er nicht mehr / berserker: with a blow left he stays ready to attack, but may no longer move
+  if (twinStrikeLeft(u)) return { ok: true, events: ev };
   if (killed && has(u, 'persist')) {
     u.attacked = false; // Folgeangriff / follow-up attack
     // ohne Rueckzug keine Bewegung nach dem Angriff / no movement after attacking without escape
@@ -1684,6 +1737,14 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const target = unitById(s, cmd.target);
       if (!target || target.owner === f) return fail('invalidTarget');
       res = doAttack(s, u, target, ev);
+      break;
+    }
+    case 'detonate': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const target = unitById(s, cmd.target);
+      if (!target || target.owner === f) return fail('invalidTarget');
+      res = doDetonate(s, u, target, ev);
       break;
     }
     case 'attackTurret': {
@@ -2415,6 +2476,7 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       if (has(u, 'kamikaze')) { killUnit(s, u, null, ev, false); res = { ok: true, events: ev }; break; }
       const withdraw = canWithdrawAfterAttack(s, u);
       u.attacked = true;
+      if (twinStrikeLeft(u)) { res = { ok: true, events: ev }; break; }
       if (withdraw) u.withdraw = true;
       else if (!(has(u, 'escape') && !u.moved)) u.exhausted = true;
       if (u.moved && u.attacked) u.exhausted = true;
