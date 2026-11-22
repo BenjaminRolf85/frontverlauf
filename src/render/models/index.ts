@@ -48,7 +48,7 @@ import { artillery, heli, jeep } from './vehicles';
 import { grey, mech, skimmer, terraformer, tripod } from './aliens';
 import { xenoFlora } from './xeno';
 import { crashSite, jungle, labRuin, lava, volcano, volcanoSmoke } from './terrain';
-import { doomBuggy, doomCrawler, memorial, prophet, rocketCart, torchbearer, zealot } from './cult';
+import { berserker, doomBuggy, doomCrawler, memorial, prophet, rocketCart, torchbearer, zealot } from './cult';
 import { android, quadDrone, railgun, spider, titan } from './robots';
 import { antiAir, antiTank, faustZealot, flakDrone, mineLayer, mineModel } from './counters';
 import { peacekeeper, privateer, protoWalker, steppeRider, stormbreaker } from './unique';
@@ -138,6 +138,7 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'zealot': return zealot(faction).build();
       case 'torchbearer': return torchbearer(faction).build();
       case 'prophet': return prophet(faction).build();
+      case 'berserker': return berserker(faction).build();
       case 'doomBuggy': return doomBuggy(faction).build();
       case 'rocketCart': return rocketCart(faction).build();
       case 'doomCrawler': return doomCrawler(faction).build();
@@ -205,7 +206,7 @@ function techGlow(faction: FactionId, g: THREE.BufferGeometry): THREE.BufferGeom
 const UNIT_SIZE: Partial<Record<UnitTypeId, number>> = {
   // Fusstruppen / foot troops
   infantry: 1.2, sniper: 1.2, pioneer: 1.2, mg: 1.25, medic: 1.25, spy: 0.92, antiTank: 1.2, scientist: 1.25,
-  zealot: 1.2, torchbearer: 1.2, prophet: 1.25, faustZealot: 1.15, grey: 1.2, android: 1.2, cyborg: 1.2,
+  zealot: 1.2, torchbearer: 1.2, prophet: 1.25, faustZealot: 1.15, grey: 1.2, android: 1.2, cyborg: 1.2, berserker: 1.2,
   shadowCommando: 0.95, railSniper: 1.2, lightWarden: 1.2,
   // Helden und schwere Fusstruppen (Marines: Elite, groesser als der Schuetze) / heroes and heavy foot troops (marines: elite, larger than the rifleman)
   steppeRider: 1.1, stormbreaker: 1.4, marine: 1.3, peacekeeper: 1.15, protoWalker: 1.1,
@@ -299,6 +300,7 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'zealot': return zealot(faction, true).build();
       case 'torchbearer': return torchbearer(faction, true).build();
       case 'prophet': return prophet(faction, true).build();
+      case 'berserker': return berserker(faction, true).build();
       case 'doomBuggy': return doomBuggy(faction, true).build();
       case 'rocketCart': return rocketCart(faction, true).build();
       case 'doomCrawler': return doomCrawler(faction, true).build();

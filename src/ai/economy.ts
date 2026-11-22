@@ -12,7 +12,7 @@ import {
   siloUnit, academyOf, shieldCheck, beamerCheck, moduleCheck, moduleCost,
 } from '../core';
 import {
-  AI, ACADEMY, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, ACADEMY, BERSERKER, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, MARINES, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -543,6 +543,8 @@ export function chooseUnitType(ctx: Ctx, c: City, urgent: boolean): UnitTypeId |
 /** Kult und NEXUS: Armeemischung / cult and NEXUS: army mix */
 const ROSTER_SHARE: Partial<Record<UnitTypeId, number>> = {
   zealot: 0.4, torchbearer: 0.2, prophet: 0.1, doomBuggy: 0.12, rocketCart: 0.12, doomCrawler: 0.18,
+  // Kult: Berserker als Stosstrupp gegen Fusstruppen (BERSERKER.ai.share) / cult: berserkers as shock troops against foot soldiers
+  berserker: BERSERKER.ai.share,
   android: 0.2, spider: 0.22, quadDrone: 0.12, railgun: 0.12, titan: 0.2,
   // NEXUS: Cyborgs loesen Androiden ab, Flammenwerferpanzer gegen Fusstruppen, Kamikaze-Drohnen als billige Jaeger
   // NEXUS: cyborgs take over from androids, flamethrower tanks against foot troops, kamikaze drones as cheap hunters

@@ -208,6 +208,8 @@ const P: Record<string, string> = {
   roleAir: '<path d="M12 2c1 0 1.6 1.4 1.6 3v4l7.4 4.6v2.4l-7.4-2.3v4l2.2 1.7V21L12 20l-3.8 1v-1.6l2.2-1.7v-4L3 16v-2.4l7.4-4.6V5c0-1.6.6-3 1.6-3z" fill="currentColor" stroke-width="1.2"/>',
   /** Kamikaze (Selbstzerstoerung beim Angriff): Explosion / kamikaze (self-destructs on attack): explosion */
   roleKamikaze: '<path d="M12 1.8l2.1 5.4 4.9-2.8-1.6 5.3 5 1.3-4.4 2.9 3.2 4.3-5.4-.6L15 23l-3-4.2L9 23l-.8-5.4-5.4.6 3.2-4.3L1.6 11l5-1.3-1.6-5.3 4.9 2.8z" fill="currentColor" stroke-width="1.2"/>',
+  /** Berserker (zwei Hiebe je Zug): zwei gekreuzte Aexte / berserker (two blows per turn): two crossed axes */
+  roleBerserker: '<path d="M4.5 21L16.5 9M19.5 21L7.5 9" stroke-width="2.8"/><path d="M14.2 3.2l6.6 6.6-2.9 2.1c-.6-2.6-2.2-4.2-5.8-5.8zM9.8 3.2L3.2 9.8l2.9 2.1c.6-2.6 2.2-4.2 5.8-5.8z" fill="currentColor" stroke-width="1.4"/>',
   /** Transportboot: Rumpf mit Ladekiste / transport boat: hull with a cargo crate */
   roleTransport: '<path d="M1.8 13.5h20.4l-3.4 6.5H5z" fill="currentColor" stroke-width="1.4"/><path d="M7 13V7h10v6M7 7l10 6M17 7L7 13" stroke-width="2.2"/>',
   /** U-Boot: Rumpf mit Turm und Sehrohr / submarine: hull with tower and periscope */

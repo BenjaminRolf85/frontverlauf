@@ -10,7 +10,7 @@ import {
   barrierCost, outpostCost, canSeeMine, mineCheck, mineTargets, barrierCheck, barrierTargets, isAlienFaction, terraformCheck, terraformTargets, isDesert, isAlienWorld, weather, weatherAt, hasWeather, nextWeatherRound, cityUpgradeCheck, hasCityUpgrade, radioTargets, cityUpgrades, buildCheck, canActStill, canHeal, captureKind, cityAt, cityIncome, cityById, combatPreview, grandProjectCheck,
   has, healAmount, income, noTraining, supplySlots, baseUnits, isExplored, levelUpCost, outpostCheck, score, supportedUnits, unitAt, unitById,
   unitCost, unitLimit, upgradeUnitLimit, buyLevelCheck, buyLevelCost, unitRange, upgradeCheck, canSeeUnit, territoryOwner, MAX_FUEL, isWonder, wonderCheck, wonderKindOf, factionVictoryOn, hasTech, victoryTechOf, hitChanceOn, hitOdds, factionCrit, unitHitProfile, unitRace, isWonderStructure, attackTargets, canOrderlyRetreat, retreatCheck, retreatDamage, repairCheck, repairAmount, cultFrenzy, alienHealBlocked, rocketTargets, rocketsLeft, persuadeCheck, persuadeCost, persuadeTargets, type CombatPreview,
-  supplyLines, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
+  supplyLines, movesFireFree, rearAttackBonus, turretAt, turretTargets, turretPreview, missionById, movedThisTurn, moveFireBonus, moveFireMult, homeDefenseAt, entrenchMiss, canAttackNow, memorialAt, memorialEffect, memorialMult,
   blessingOf, blessingRoundsLeft, judgementAt, usesSites, siteOf, shipUpgradeCost, isProductionSite, builtInSite, scarTier,
   trueOwner, emplacementBlock, emplacementLimit, emplacementTargets, emplacementsOf, isEmplacementBuilder, buildsSilos, silosOf,
   type City, type GameState, type Unit,
@@ -32,6 +32,7 @@ import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { academyActions, academySheet, beamSheet, postActions, unitAcademyActions } from './academy';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
+import { berserkerActions, berserkerStats, strikeTags, strikeVars } from './berserker';
 import { cityHackHtml, hackCityAction, hackPlaceAction, hackTowerBuildAction, hackTowerTile, hijackSheet, hijackTag } from './hacking';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
@@ -69,6 +70,8 @@ export function counterTags(type: UnitTypeId): { text: string; good: boolean }[]
     const pct = Math.round((f - 1) * 100);
     return { text: t(COUNTER_KEY[cls], { pct: sign(pct) }), good: pct > 0 };
   });
+  // feste Schlagkraft (Berserker): stark gegen Fusstruppen, schwach gegen Panzerung / fixed striking power (berserker): strong vs foot troops, weak vs armour
+  out.push(...strikeTags(type));
   // Rassen-Bonus (Kamikaze-Drohne): menschliche Fusstruppen, Zyrr / race bonus (kamikaze drone): human foot troops, Zyrr
   for (const r of UNITS[type].bonusRace ?? []) {
     const pct = Math.round((r.factor - 1) * 100);
@@ -268,7 +271,7 @@ function homeDefenseTag(s: GameState, u: Unit): string {
  * Note in the unit panel: moved this turn, an attack now counts as firing after moving (MOVE_FIRE).
  */
 function moveFireTag(s: GameState, u: Unit): string {
-  if (u.owner !== s.current || !movedThisTurn(u) || !canAttackNow(u)) return '';
+  if (u.owner !== s.current || !movedThisTurn(u) || !canAttackNow(u) || movesFireFree(u)) return '';
   const tip = t('moveFire.tagDesc', { pct: Math.round(moveFireMult(s, u) * 100) });
   return `<span class="stat tag warn" title="${esc(tip)}" aria-label="${esc(tip)}">${icon('warning', 'icon-sm')}${esc(moveFireHint(s, u, 'tag'))}</span>`;
 }
@@ -285,7 +288,9 @@ function unitStatsLine(type: UnitTypeId, faction?: FactionId): string {
   const abil = st.abilities.filter((a) => a !== 'carry').map((a) => t(`abilities.${a}`));
   // Reichweite mit Fraktionsbonus (Korvat-Artillerie) / range with the faction bonus (Korvat artillery)
   const range = unitRange(type, faction);
-  return [`${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`, `${t('stats.range')} ${range ? num(range) : t('stats.noRange')}`, ...abil].join(' · ');
+  // Berserker: feste Schlagkraft statt Angriff / berserker: fixed striking power instead of attack
+  const sv = strikeVars(type);
+  return [sv ? t('berserker.strikeStat', sv) : `${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`, `${t('stats.range')} ${range ? num(range) : t('stats.noRange')}`, ...abil].join(' · ');
 }
 
 /**
@@ -697,7 +702,7 @@ export class Hud {
         <div class="muted unit-sub">${roleChip(vUnit.type)}<span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
       body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${hijackTag(s, vUnit)}${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
-          <span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>
+          ${st.strike ? berserkerStats(s, vUnit) : `<span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>`}
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
           <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${num(st.move)}</span>
           ${(() => { const r = unitRange(vUnit.type, fid); return `<span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${r ? num(r) : esc(t('stats.noRange'))}</span>`; })()}
@@ -1119,6 +1124,8 @@ export class Hud {
     }
     // Schattenflotte: Sabotage und Radarimpuls / shadow fleet: sabotage and radar sweep
     for (const a of shadowUnitActions(s, u, g, (c) => this.err(c), () => this.render())) this.actions.push(a);
+    // Berserker (Kult): Sprengen / berserker (cult): detonate
+    for (const a of berserkerActions(s, u, g, (c) => this.err(c), () => this.render())) this.actions.push(a);
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);
       this.actions.push({ id: 'outpost', icon: 'outpost', label: t('actions.outpost'), cost: outpostCost(s, u.owner), enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk === 'cannotCapture' ? 'unitExhausted' : chk), run: () => void g.exec({ type: 'outpost', unit: u.id }) });

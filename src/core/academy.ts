@@ -9,7 +9,7 @@ import { area, dist, inBounds, isLand, tileAt } from './grid';
 import { burning } from './hazards';
 import {
   academyBusy, academyOf, airborne, canAttackNow, hasTech, canHitAirborne, cityById, effectiveAttack, effectiveRange, firepowerFactor, hitOdds, isExplored,
-  isHostile, memorialMult, moveFireFactor, shieldHp, submerged, territoryOwner, unitAt, unitLuckFactor, movedThisTurn, has,
+  isHostile, memorialMult, moveFireFactor, shieldHp, submerged, territoryOwner, unitAt, unitLuckFactor, has, movesFireFree, strikeDamage,
   beamFired, beamShots, canSeeUnit, entrenchFactor, entrenchMiss, hitChanceOn, hitDamage, hullHp, interceptsLeft, moduleLevel, moduleMax, raceOdds, unitById, withEntrench,
 } from './queries';
 import type { City, ErrorCode, GameState, Pos, Unit } from './types';
@@ -234,8 +234,10 @@ export function academyAttackPreview(s: GameState, u: Unit, c: City): { toShield
   const base = layer === 'hull' ? ACADEMY.modules.armour.defense : ACADEMY.shield.defense;
   const def = base * (sh ? sh.hp / Math.max(1, sh.max) : 1);
   const total = attackForce + def;
-  const toShield = total > 0 ? Math.max(1, Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u))) : 0;
-  return { toShield, odds: hitOdds(s, u, dist(u, c) >= 2), forced: airborne(c) && layer === 'none', moveFire: movedThisTurn(u) && !has(u, 'kamikaze'), layer,
+  // Berserker: feste Schlagkraft (UNITS.strike.other) / berserker: fixed striking power (UNITS.strike.other)
+  const fixed = strikeDamage(u.type, null);
+  const toShield = fixed !== null ? fixed : total > 0 ? Math.max(1, Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u))) : 0;
+  return { toShield, odds: hitOdds(s, u, dist(u, c) >= 2), forced: airborne(c) && layer === 'none', moveFire: !movesFireFree(u), layer,
     intercept: c.owner !== null && !!interceptor(s, u, c, c.owner) };
 }
 

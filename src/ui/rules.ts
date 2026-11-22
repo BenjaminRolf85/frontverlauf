@@ -70,7 +70,8 @@ function sections(): Section[] {
     // Kult: Pluendern statt Wirtschaft, Rekrutieren im Feld / cult: plunder instead of economy, recruiting in the field
     { id: 'cult', icon: 'people', params: { base: CULT.plunderBase, level: CULT.plunderPerLevel, hq: CULT.plunderHq, again: CULT.replunderRounds, cap: CULT.baseCap, hqSlots: CULT.hqSlots, shrine: CULT.shrineSlots, cooldown: CULT.recruitCooldown, tithe: fac(CULT.tithePerUnit), titheMax: CULT.titheMax, titheRival: CULT.titheRival, score: CULT.plunderScore, scoreDuel: CULT.plunderScoreByRivals[1], half: Math.round(CULT.plunderDecay[1] * 100), quarter: Math.round(CULT.plunderDecay[2] * 100) },
       // Mahnmal: zur Schau gestellte Gefallene / memorial: the fallen put on display
-      extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p>` },
+      // Berserker: zwei Hiebe, keine Verteidigung, Selbstsprengung (Zahlen aus BALANCE_VARS) / berserker: two blows, no defence, self-detonation (numbers from BALANCE_VARS)
+      extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p><p><strong>${esc(t('units.berserker'))}:</strong> ${esc(t('berserker.rule'))}</p>` },
     // Heiliges Alvenia: Suende, Strafgericht, Segen / Holy Alvenia: sin, judgement, blessing
     { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] } },
     // Eigene Bauarten und Ausbildungsregeln (Korvat, Meridon, Velkar, Alvenia, NEXUS) / own designs and training rules

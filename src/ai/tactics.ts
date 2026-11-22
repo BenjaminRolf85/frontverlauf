@@ -3,7 +3,7 @@
  * Tactics: captures, attacks, conversions, moves, healing and outposts per unit.
  */
 import {
-  canSeeMine, mineTargets, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
+  canSeeMine, mineTargets, detonateTargets, detonateDamage, erupts, retreatCheck, retreatDamage, repairCheck, repairAmount, alienHealBlocked, rocketTargets, fuelBurn, area, attackTargets, barrierTargets, terraformTargets, canActStill, canAttackNow, canHeal, captureKind, persuadeCheck, persuadeTargets, cityById, combatPreview, convertTargets,
   dist, effectiveRange, unitRange, has, healAmount, heliSafe, idx, isRefuelSpot, isShip, outpostCheck, reachable, territoryOwner, isWonder, victoryStatus,
   turretList, turretTargets, turretPreview, hitDamage, weatherAt, weatherHurts, homeDefenseAt, memorialMult, gunHostile, gunStats, facingTowards, onFire, sabotageThing, type Command, type Reach, type Unit, type Pos,
 } from '../core';
@@ -11,7 +11,7 @@ import { emplacementOption } from './emplacements';
 import { sabotageValue, siloOption } from './shadowFleet';
 import { scientistAttackBonus, truceExposure, workSpotPenalty } from './mothership';
 import { carrierAttackBonus, planSeize } from './temple';
-import { AI, ALVENIA_UNITS, BARRIER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type AlveniaUnitId, type WonderUnitId } from '../data/balance';
+import { AI, ALVENIA_UNITS, BARRIER, BERSERKER, CAMPAIGN_AI, COUNTER, ECON, EMPLACEMENT, HIT_KINDS, INFANTRY_TYPES, UNITS, VERDAN, WONDERS, type AlveniaUnitId, type WonderUnitId } from '../data/balance';
 import {
   defBonusAt, expectedDamage, fieldAt, goalField, layerOf, worth, type Ctx, type Goal,
 } from './analysis';
@@ -66,6 +66,25 @@ export function attackValue(ctx: Ctx, a: Unit, d: Unit, ax = a.x, ay = a.y): num
   return v;
 }
 
+/**
+ * Wert einer Selbstsprengung des Berserkers u an d (von (ax, ay)): Schaden oder Abschuss gegen den Wert des Berserkers
+ * (nach LP-Anteil, BERSERKER.ai.detonateCost); steht er ohnehin in toedlicher Gefahr, kostet er weniger.
+ * Value of the berserker u blowing himself up at d (from (ax, ay)): damage or kill against the berserker's worth (by HP
+ * share, BERSERKER.ai.detonateCost); if he stands in mortal danger anyway, he costs less.
+ */
+export function detonateValue(ctx: Ctx, u: Unit, d: Unit, ax = u.x, ay = u.y): number {
+  const dmg = detonateDamage(ctx.s, d);
+  if (dmg <= 0) return -Infinity;
+  let v = dmg >= d.hp ? worth(d) + 8 : (dmg / d.hp) * worth(d) * 0.75;
+  // Feindliches Wunder (Bohrer) und Gegner in eigener Stadt wie beim Angriff / hostile wonder (drill) and enemies inside an own city as for the attack
+  if (isWonder(d)) v += 45;
+  const t = ctx.s.tiles[idx(ctx.s.size, d.x, d.y)];
+  if (t.cityId !== null && cityById(ctx.s, t.cityId)?.owner === ctx.f) v += 30;
+  const own = worth(u) * (u.hp / u.maxHp) * BERSERKER.ai.detonateCost;
+  const doomed = expectedDamage(ctx, u, ax, ay) >= u.hp;
+  return v - (doomed ? own * 0.5 : own);
+}
+
 /** Bester Angriff von hypothetischer Position / best attack from a hypothetical position */
 function bestAttackFrom(ctx: Ctx, u: Unit, x: number, y: number): number {
   const st = UNITS[u.type];
@@ -73,9 +92,14 @@ function bestAttackFrom(ctx: Ctx, u: Unit, x: number, y: number): number {
   // Reichweite inkl. Wetter und Fraktionsbonus (Korvat-Artillerie) / range incl. weather and faction bonus (Korvat artillery)
   const range = effectiveRange(ctx.s, u);
   let best = 0;
+  // Berserker: ein zweiter Hieb folgt (zweites Ziel oder dasselbe) / berserker: a second blow follows (another target or the same)
+  const twin = has(u, 'twinStrike') && (u.strikes ?? 0) === 0 ? 1 + BERSERKER.ai.secondStrike : 1;
   for (const e of ctx.enemies) {
     if (dist(e, { x, y }) > range) continue;
-    best = Math.max(best, attackValue(ctx, u, e, x, y));
+    const v = attackValue(ctx, u, e, x, y);
+    best = Math.max(best, v > 0 ? v * twin : v);
+    // Selbstsprengung gegen Panzerung / self-detonation against armour
+    if (has(u, 'detonate') && dist(e, { x, y }) <= BERSERKER.detonate.range) best = Math.max(best, detonateValue(ctx, u, e, x, y) - BERSERKER.ai.detonateMin);
   }
   return best;
 }
@@ -147,6 +171,16 @@ export function planAttack(ctx: Ctx, failed: Failed): Command | null {
         const rc: Command = { type: 'retreat', unit: u.id, target: t.id };
         if (rv > bv && ok(failed, rc)) { bv = rv; best = rc; }
       }
+    }
+  }
+  // Berserker: Selbstsprengung nur, wenn sie sich lohnt (Wert des Berserkers abgezogen) / berserker: self-detonation only when worth it (the berserker's worth subtracted)
+  for (const u of ctx.my) {
+    if (!has(u, 'detonate') || lazyUnit(ctx, u)) continue;
+    for (const t of detonateTargets(s, u)) {
+      const v = detonateValue(ctx, u, t);
+      if (v < BERSERKER.ai.detonateMin) continue;
+      const c: Command = { type: 'detonate', unit: u.id, target: t.id };
+      if (v > bv && ok(failed, c)) { bv = v; best = c; }
     }
   }
   // Verdan-Geschuetze: lohnende Ziele, besonders wach / Verdan guns: worthwhile targets, especially when awake

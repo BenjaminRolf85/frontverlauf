@@ -23,7 +23,7 @@ const FX_ORDER = 70;
 /** Explosive Waffen: Feuerball, Truemmer, Rauch / explosive weapons: fireball, debris, smoke */
 const EXPLOSIVE = new Set<Weapon>(['cannon', 'artillery', 'rocket', 'heliRockets', 'droneRockets', 'naval', 'bigNaval', 'torpedo', 'plasma', 'blast']);
 /** Nahkampf: Ausfall statt Geschoss; die Kamikaze-Drohne (blast) springt ins Ziel / melee: lunge instead of a projectile; the kamikaze drone (blast) leaps into the target */
-const MELEE = new Set<Weapon>(['buzz', 'none', 'blast']);
+const MELEE = new Set<Weapon>(['buzz', 'none', 'blast', 'axe']);
 
 /**
  * Kamerawackeln je Einschlag (0 = keines) / camera shake per impact (0 = none).
@@ -646,7 +646,8 @@ function shoot(fx: CombatFx, w: Weapon, from: THREE.Vector3, to: THREE.Vector3, 
     // Kamikaze-Drohne: kein Geschoss, der Sprung dauert bis zur Explosion / kamikaze drone: no projectile, the leap lasts until the blast
     case 'blast':
       return 240;
-    case 'buzz': case 'none': default:
+    // Berserker: Axthieb, kein Geschoss / berserker: axe blow, no projectile
+    case 'buzz': case 'axe': case 'none': default:
       return 130;
   }
 }
@@ -767,6 +768,18 @@ function impact(fx: CombatFx, w: Weapon, at: THREE.Vector3, floor: number, surfa
       sparks(fx, at, w === 'railgun' ? 7 : 5, col, delay, 1.3);
       if (surface !== 'water') puff(fx, ground, new THREE.Vector3(0, 0.35, 0), 0.1, 0.24, semantic.fxSmokeDark, delay + 40, 380, { to: semantic.fxSmoke });
       break;
+    case 'axe': {
+      // Berserker: zwei gekreuzte Hiebspuren (Tusche unter heller Klinge) / berserker: two crossed slash streaks (ink under a bright blade)
+      for (const [i, sx] of [[0, 1], [1, -1]] as [number, number][]) {
+        const a = at.clone().add(new THREE.Vector3(-0.1 * sx, 0.12, 0.02)), b = at.clone().add(new THREE.Vector3(0.1 * sx, -0.08, -0.02));
+        beam(fx, a, b, semantic.ink, delay + i * 70, 170, (k) => ({ w: 0.04, o: fade(k, 0.4) * 0.8, reach: Math.min(1, k / 0.25) }));
+        beam(fx, a, b, semantic.fxSpark, delay + i * 70, 170, (k) => ({ w: 0.022, o: fade(k, 0.4), reach: Math.min(1, k / 0.25) })).obj.renderOrder = FX_ORDER + 1;
+      }
+      flash(fx, at, 0.3, semantic.fxSpark, delay, 100);
+      if (surface === 'metal') sparks(fx, at, 6, semantic.fxSpark, delay, 1.3);
+      else if (surface === 'flesh') dirt(fx, ground, 4, delay, 1);
+      break;
+    }
     default:
       // Handfeuerwaffen und Nahkampf / small arms and melee
       flash(fx, at, 0.24, semantic.fxSpark, delay, 90);
@@ -830,6 +843,12 @@ export interface AttackInfo {
   retaliate: boolean;
   /** weitere Einheiten im Explosionsradius / further units in the blast radius */
   splash?: number[];
+  /**
+   * Andere Waffe als die des Typs und Groesse des Einschlags (Selbstsprengung des Berserkers: Sprengladung, gross).
+   * Weapon other than the type's and size of the impact (the berserker's self-detonation: blast charge, big).
+   */
+  weapon?: Weapon;
+  blast?: number;
   /**
    * Wannenwinkel nach dem Kampf laut Spielstand (Unit.facing, 8 Richtungen); fehlt = zum Ziel bzw. Wanne bleibt (Turm).
    * Hull heading after the fight according to the game state (Unit.facing, 8 directions); missing = towards the target
@@ -928,7 +947,7 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const flat = dStart.clone().sub(aStart).setY(0);
   const dist = Math.max(0.001, flat.length());
   const dirN = flat.clone().divideScalar(dist);
-  const aw = info ? weaponOf(info.attacker) : 'none';
+  const aw = info ? info.weapon ?? weaponOf(info.attacker) : 'none';
   const a1 = headingOf(flat.x, flat.z);
   // Mit Turm: die Wanne bleibt stehen, nur der Turm dreht sich / with a turret: the hull stays, only the turret turns
   const aSwing = swing(aModel, host.facing(attackerId), a1, info?.attackerHull);
@@ -949,7 +968,12 @@ export function playAttack(host: FxHost, fx: CombatFx, attackerId: number, targe
   const flight = info ? shoot(fx, aw, muzzle(aStart, info.attacker, aSwing, aK), hitPoint(dStart, info.target, dK), info.attackerFaction, fireAt, info.attackerWater) : 130;
   const impactAt = fireAt + flight;
   if (info) {
-    impact(fx, aw, hitPoint(dStart, info.target, dK), dStart.y, surfaceOf(info.target, info.targetWater), info.attackerFaction, impactAt);
+    impact(fx, aw, hitPoint(dStart, info.target, dK), dStart.y, surfaceOf(info.target, info.targetWater), info.attackerFaction, impactAt, info.blast ?? 1);
+    // grosse Sprengung: zweite Welle und Druckring / big detonation: second wave and pressure ring
+    if ((info.blast ?? 1) > 1.2) {
+      impact(fx, aw, hitPoint(dStart, info.target, dK).add(new THREE.Vector3(0, 0.1, 0)), dStart.y, 'metal', info.attackerFaction, impactAt + 90, info.blast! * 0.7);
+      ring(fx, dStart.clone().setY(dStart.y + 0.03), 0.15, 0.95 * info.blast!, semantic.fxSmokeDark, impactAt + 30, 420);
+    }
     // Explosionsradius: kleinere Einschlaege bei Nachbarn / blast radius: smaller impacts at neighbours
     for (const id of info.splash ?? []) {
       const o = host.unitObject(id);

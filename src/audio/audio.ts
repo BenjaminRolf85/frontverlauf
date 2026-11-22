@@ -28,7 +28,9 @@ export type Weapon =
   // Heiliges Alvenia: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Holy Alvenia: light rifle, light gun, sun beam
   | 'radiant' | 'radiantGun' | 'sunBeam'
   // NEXUS: Sprengladung der Kamikaze-Drohne / NEXUS: blast charge of the kamikaze drone
-  | 'blast' | 'none';
+  | 'blast'
+  // Kult: Axthiebe des Berserkers (Nahkampf) / cult: the berserker's axe blows (melee)
+  | 'axe' | 'none';
 
 export const WEAPON: Record<UnitTypeId, Weapon> = {
   infantry: 'rifle', sniper: 'sniper', jeep: 'mg', pioneer: 'rifle', mg: 'mg', medic: 'none', artillery: 'artillery',
@@ -58,10 +60,12 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   shadowCommando: 'rifle', fogCutter: 'none', guidedMissile: 'blast', radarTruck: 'none',
   // Marines: Karabiner wie die Infanterie / marines: carbine like the infantry
   marine: 'rifle',
+  // Berserker: zwei Handaexte (die Sprengung klingt wie die Kamikaze-Ladung, siehe Controller) / berserker: two hand axes (the detonation sounds like the kamikaze charge, see controller)
+  berserker: 'axe',
 };
 
 /** Fusstruppen (Fleisch) statt Fahrzeuge (Metall) / foot troops (flesh) instead of vehicles (metal) */
-export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando', 'marine']);
+export const FLESH = new Set<UnitTypeId>(['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy', 'zealot', 'torchbearer', 'prophet', 'grey', 'terraformer', 'antiTank', 'faustZealot', 'steppeRider', 'stormbreaker', 'peacekeeper', 'scientist', 'railSniper', 'lightWarden', 'shadowCommando', 'marine', 'berserker']);
 
 interface Theme { tempo: number; root: number; scale: number[]; pattern: number[]; tense: number[]; bass: number[]; wave: OscillatorType }
 const THEMES: Record<FactionId, Theme> = {
@@ -304,8 +308,8 @@ export class AudioEngine {
 
   // ---------- Waffen / weapons ----------
 
-  /** Schuss einer Einheit / shot of a unit */
-  weapon(type: UnitTypeId) {
+  /** Schuss einer Einheit; w = andere Waffe (Selbstsprengung des Berserkers) / shot of a unit; w = other weapon (the berserker's self-detonation) */
+  weapon(type: UnitTypeId, w: Weapon = WEAPON[type]) {
     const ctx = this.ready();
     if (!ctx) return;
     const now = ctx.currentTime;
@@ -313,7 +317,7 @@ export class AudioEngine {
     this.lastWeapon = now;
     const t = now + 0.01;
     const out = this.fxOut(0.35);
-    switch (WEAPON[type]) {
+    switch (w) {
       case 'rifle':
         for (let i = 0; i < 3; i++) this.gunshot(t + i * 0.11, 0.95, 2400, out);
         break;
@@ -436,6 +440,13 @@ export class AudioEngine {
         break;
       case 'buzz':
         for (let i = 0; i < 6; i++) this.tone(700 + (i % 2) * 300, t + i * 0.06, 0.05, 'square', 0.14, out, 0.7, 0.002);
+        break;
+      case 'axe':
+        // Berserker: Luftzug, dumpfer Hieb, zweimal (zwei Aexte) / berserker: whoosh, dull chop, twice (two axes)
+        for (let i = 0; i < 2; i++) {
+          this.noise(t + i * 0.16, 0.12, 0.45, 1800, out, { type: 'bandpass', q: 1.2, freqEnd: 600, attack: 0.04 });
+          this.tone(150 - i * 20, t + 0.1 + i * 0.16, 0.08, 'square', 0.22, out, 0.4, 0.002);
+        }
         break;
       case 'none': break;
     }

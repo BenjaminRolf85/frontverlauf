@@ -220,6 +220,11 @@ export interface Unit {
   retreatReady?: number;
   /** Kult: Rekrutieren wieder moeglich ab dieser Runde / cult: recruiting available again from this round */
   recruitReady?: number;
+  /**
+   * Berserker (TWIN_STRIKE): Hiebe in diesem Zug (fehlt = keiner); zu Beginn des eigenen Zuges geloescht.
+   * Berserker (TWIN_STRIKE): blows struck this turn (missing = none); cleared at the start of the own turn.
+   */
+  strikes?: number;
   /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
   rockets?: number;
   /**
@@ -573,7 +578,13 @@ export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
   | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean; intercepted?: boolean;
     /** Kamikaze-Drohne: der Angriff war die Explosion, die Drohne ist danach zerstoert / kamikaze drone: the attack was the explosion, the drone is destroyed afterwards */
-    kamikaze?: boolean }
+    kamikaze?: boolean;
+    /**
+     * Berserker: Nummer des Hiebs in diesem Zug (1 oder 2, TWIN_STRIKE) bzw. Selbstsprengung (detonate, der Berserker ist
+     * danach tot, kein Gegenschlag) / berserker: number of the blow this turn (1 or 2, TWIN_STRIKE) or self-detonation
+     * (detonate, the berserker is dead afterwards, no return fire)
+     */
+    strike?: number; detonate?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
   /** plunder = vom Kult erbeutete Sterne (fehlt = keine Beute) / plunder = stars taken by the cult (missing = no loot) */
   | { t: 'capture'; city: number; faction: number; from: number | null; plunder?: number;
@@ -757,6 +768,8 @@ export type Command =
   | { type: 'attack'; unit: number; target: number }
   | { type: 'retreat'; unit: number; target: number }
   | { type: 'rocket'; unit: number; target: number }
+  /** Berserker: Selbstsprengung am Nachbarziel (BERSERKER.detonate) / berserker: self-detonation at the adjacent target */
+  | { type: 'detonate'; unit: number; target: number }
   /** Verdan-Geschuetz auf (x, y) angreifen / attack the Verdan gun at (x, y) */
   | { type: 'attackTurret'; unit: number; x: number; y: number }
   | { type: 'heal'; unit: number }
@@ -838,6 +851,8 @@ export type ErrorCode =
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
   // Kriegsplaene (m4) / war plans (m4)
   | 'cannotCarry'
+  // Berserker: kann sich nicht sprengen (keine Faehigkeit) bzw. kein gueltiges Ziel / berserker: cannot detonate (no ability) or no valid target
+  | 'cannotDetonate' | 'detonateTarget'
   // Produktionsstaette fehlt (Ausbilden) oder Voraussetzung fehlt (Bauen) / production site missing (training) or prerequisite missing (building)
   | 'buildingMissing'
   // Werft: keine Kueste bzw. kein freies Wasserfeld an der Stadt / shipyard: no coast or no free water tile at the city

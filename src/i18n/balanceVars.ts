@@ -9,7 +9,7 @@
 import {
   BASES, CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
-  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY, HACK,
+  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY, HACK, BERSERKER, TWIN_STRIKE,
 } from '../data/balance';
 
 const pct = (x: number) => Math.round(x * 100);
@@ -43,6 +43,16 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   faustRange: range('faustZealot'),
   protoRange: range('protoWalker'),
   droneMove: move('kamikazeDrone'),
+  // Berserker (Kult): Hiebe, feste Schlagkraft, Selbstsprengung / berserker (cult): blows, fixed striking power, self-detonation
+  berserkerMove: move('berserker'),
+  berserkerHp: UNITS.berserker.hp,
+  berserkerDef: UNITS.berserker.defense,
+  strikes: TWIN_STRIKE.strikes,
+  strikeFoot: UNITS.berserker.strike?.foot ?? 0,
+  strikeArmour: UNITS.berserker.strike?.armour ?? 0,
+  strikeOther: UNITS.berserker.strike?.other ?? 0,
+  blastArmour: BERSERKER.detonate.armour,
+  blastOther: BERSERKER.detonate.other,
   // Faehigkeiten / abilities
   medicHeal: HEALING.medic,
   fuelRounds: FUEL.tank,

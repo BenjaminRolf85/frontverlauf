@@ -19,7 +19,7 @@ export type ShipId = 'landingBoat' | 'submarine' | 'destroyer' | 'battleship';
 /** Ausserirdische Einheiten (nur Zyrr) / alien units (Zyrr only) */
 export type AlienUnitId = 'grey' | 'terraformer' | 'skimmer' | 'mech' | 'tripod';
 /** Einheiten des Weltuntergangskults (nur Vesper) / doomsday cult units (Vesper only) */
-export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler' | 'faustZealot';
+export type CultUnitId = 'zealot' | 'torchbearer' | 'prophet' | 'doomBuggy' | 'rocketCart' | 'doomCrawler' | 'faustZealot' | 'berserker';
 /** Robotereinheiten (nur NEXUS) / robot units (NEXUS only) */
 export type RobotUnitId = 'android' | 'spider' | 'quadDrone' | 'railgun' | 'titan' | 'flakDrone' | 'cyborg' | 'flameTank' | 'kamikazeDrone';
 /** Einzigartige Einheiten der fuenf klassischen Fraktionen (je eine) / unique units of the five classic factions (one each) */
@@ -69,6 +69,9 @@ export type Ability =
   // Kamikaze (NEXUS-Laufdrohne): der Angriff ist die Explosion, kein Gegenschlag, die Einheit ist danach zerstoert (KAMIKAZE)
   // kamikaze (NEXUS walker drone): the attack is the explosion, no return fire, the unit is destroyed afterwards (KAMIKAZE)
   | 'kamikaze'
+  // Berserker (Kult): zwei Angriffe je Zug (twinStrike) und Selbstsprengung als eigener Befehl (detonate), siehe BERSERKER
+  // berserker (cult): two attacks per turn (twinStrike) and self-detonation as an own command (detonate), see BERSERKER
+  | 'twinStrike' | 'detonate'
   // Meridon: Tarnung (unsichtbar ohne Nachbarn, siehe CAMO), Sabotage (SABOTAGE), Radarimpuls (RADAR)
   // Meridon: camouflage (invisible without neighbours, see CAMO), sabotage (SABOTAGE), radar sweep (RADAR)
   | 'camo' | 'sabotage' | 'radar'
@@ -150,6 +153,15 @@ export interface UnitStats {
    * the first matching entry applies, on top of bonusVs (attack and return fire).
    */
   bonusRace?: { races: HitRace[]; cls?: CounterClass; factor: number }[];
+  /**
+   * Feste Schlagkraft statt der Angriffsformel (Berserker, BERSERKER): Schaden eines vollen Treffers je Zielart, vor dem
+   * Trefferglueck; Deckung, Verteidigung, LP und Feuern nach Bewegung aendern ihn nicht. attack bleibt fuer den Gegenschlag
+   * des Ziels (Kraftverhaeltnis) und die Schaetzungen der KI.
+   * Fixed striking power instead of the attack formula (berserker, BERSERKER): damage of a full hit per target kind, before
+   * hit luck; cover, defence, HP and firing after moving do not change it. attack remains for the target's return fire
+   * (force ratio) and the AI's estimates.
+   */
+  strike?: { foot: number; armour: number; other: number };
 }
 
 /** Zielklassen fuer Konter-Boni / target classes for counter bonuses */
@@ -308,6 +320,12 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   mineLayer: { cost: 25, hp: 12, attack: 1, defense: 2, move: 1, range: 1, vision: 1, abilities: ['mines'], tech: null, ship: false },
   // Kult: Panzerfaust-Eiferer / cult: rocket zealot
   faustZealot: { cost: 14, hp: 7, attack: 1.6, defense: 1.5, move: 1, range: 2, vision: 1, abilities: ['fortify', 'preach'], tech: 'armsIndustry', ship: false, faction: 'vesper', bonusVs: { vehicle: 2.5, foot: 0.6 } },
+  // Berserker (Kult, BERSERKER): kaempft mit nacktem Oberkoerper, keine Verteidigung (0, kein Verschanzen), zwei Hiebe je Zug
+  // mit fester Schlagkraft (9 gegen Fusstruppen, 2 gegen Panzerung), sprengt sich gegen Panzer, Fahrzeuge und Roboter (20)
+  // berserker (cult, BERSERKER): fights bare-chested, no defence (0, no fortify), two blows per turn with fixed striking power
+  // (9 against foot troops, 2 against armour), blows himself up against tanks, vehicles and robots (20)
+  berserker: { cost: 18, hp: 12, attack: 3, defense: 0, move: 2, range: 1, vision: 1, abilities: ['dash', 'twinStrike', 'detonate'], tech: null, ship: false, faction: 'vesper',
+    strike: { foot: 9, armour: 2, other: 4 } },
   // NEXUS: Flak-Drohne (Bodenplattform, fliegt selbst nicht) / NEXUS: flak drone (ground platform, does not fly itself)
   flakDrone: { cost: 30, hp: 12, attack: 2, defense: 2, move: 1, range: 2, vision: 2, abilities: ['dash', 'flak'], tech: null, ship: false, faction: 'nexus', compute: 2, bonusVs: { air: 2, vehicle: 0.6, foot: 0.6 } },
   // Einzigartige Einheiten (siehe UNIQUE) / unique units (see UNIQUE)
@@ -412,7 +430,7 @@ export const SWARM_MOTHER = {
 
 /** Einheiten der Zyrr / Zyrr roster */
 export const ALIEN_UNITS: AlienUnitId[] = ['grey', 'terraformer', 'skimmer', 'mech', 'tripod'];
-export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'faustZealot'];
+export const CULT_UNITS: CultUnitId[] = ['zealot', 'torchbearer', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'faustZealot', 'berserker'];
 export const ROBOT_UNITS: RobotUnitId[] = ['android', 'cyborg', 'kamikazeDrone', 'spider', 'quadDrone', 'flakDrone', 'railgun', 'flameTank', 'titan'];
 export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
@@ -602,10 +620,10 @@ export const CULT = {
    * this turn and ready again only after recruitCooldown rounds; the recruit acts from the next turn.
    */
   recruiters: {
-    zealot: ['zealot', 'torchbearer', 'faustZealot', 'prophet'],
+    zealot: ['zealot', 'torchbearer', 'faustZealot', 'prophet', 'berserker'],
     torchbearer: ['zealot'],
     faustZealot: ['zealot'],
-    prophet: ['zealot', 'torchbearer', 'faustZealot', 'prophet', 'doomBuggy', 'rocketCart', 'doomCrawler', 'coreDrill'],
+    prophet: ['zealot', 'torchbearer', 'faustZealot', 'prophet', 'berserker', 'doomBuggy', 'rocketCart', 'doomCrawler', 'coreDrill'],
     doomCrawler: ['zealot', 'doomBuggy', 'rocketCart'],
   } as Partial<Record<UnitTypeId, UnitTypeId[]>>,
   recruitCooldown: 2,
@@ -734,6 +752,47 @@ export const HACK = {
 export const KAMIKAZE = {
   /** Abstand der Explosion: nur direkt daneben / explosion distance: right next to it only */
   range: 1,
+};
+
+/**
+ * Berserker des Kults (Faehigkeiten 'twinStrike' und 'detonate', Schlagkraft in UNITS.berserker.strike).
+ * Zwei Hiebe je Zug: der Berserker darf vor dem ersten Hieb ziehen (Sturm), danach nicht mehr; der zweite Hieb trifft dasselbe
+ * oder ein anderes Ziel in Reichweite. Jeder Hieb ist ein eigener Angriff: eigenes Trefferglueck, eigener Gegenschlag des
+ * Ziels (wenn es ueberlebt). Fester Schaden je voller Treffer: Fusstruppen strike.foot, Panzerung strike.armour (Fahrzeuge
+ * aus VEHICLE_UNITS samt Laeufern und Mechs, alle Roboter aus ROBOT_UNITS), alles andere strike.other (Flieger, Schiffe,
+ * Bauwerke, Endgegner, Geschuetze, Akademien). Kein Abzug fuer Feuern nach Bewegung (er stuermt heran), keine Deckung, kein
+ * Mahnmal, kein Strafgericht, kein Rueckenbonus.
+ * Selbstsprengung (Befehl 'detonate', statt eines Hiebs, auch nach dem ersten): ein Nachbarziel in Reichweite range am Boden
+ * (keine Flieger, Schiffe, Bauwerke, Endgegner, keine Einheit im Wasser) nimmt armour (Panzerung) bzw. other Schaden, ohne
+ * Wurf, ohne Gegenschlag, ohne Flaechenschaden; der Berserker ist danach tot (keine Leiche, kein Mahnmal), das
+ * Maertyrertum des Kults zaehlt ihn als Gefallenen.
+ * Berserker of the cult (abilities 'twinStrike' and 'detonate', striking power in UNITS.berserker.strike).
+ * Two blows per turn: the berserker may move before the first blow (dash), not after it; the second blow hits the same or
+ * another target in reach. Each blow is an own attack: own hit luck, own return fire of the target (if it survives).
+ * Fixed damage per full hit: foot troops strike.foot, armour strike.armour (vehicles from VEHICLE_UNITS incl. walkers and
+ * mechs, all robots from ROBOT_UNITS), everything else strike.other (flyers, ships, structures, bosses, guns, academies).
+ * No penalty for firing after moving (he charges in), no cover, no memorial, no judgement, no rear bonus.
+ * Self-detonation (command 'detonate', instead of a blow, also after the first one): one adjacent ground target within range
+ * (no flyers, ships, structures, bosses, no unit in the water) takes armour (armour) or other damage, without a roll, without
+ * return fire, without splash; the berserker is dead afterwards (no corpse, no memorial), the cult's martyrdom counts him
+ * as fallen.
+ */
+export const TWIN_STRIKE = {
+  /** Angriffe je Zug / attacks per turn */
+  strikes: 2,
+};
+export const BERSERKER = {
+  detonate: { range: 1, armour: 20, other: 6 },
+  ai: {
+    /** Anteil an der Horde (Wunsch) / share of the horde (target) */
+    share: 0.2,
+    /** Wert des Berserkers beim Sprengen: worth x LP-Anteil x detonateCost / worth of the berserker when detonating: worth x HP share x detonateCost */
+    detonateCost: 0.8,
+    /** Mindestwert einer Sprengung (Sterne-Gegenwert nach Abzug) / minimum value of a detonation (star equivalent after the deduction) */
+    detonateMin: 4,
+    /** Bewegung: Wert eines zweiten Hiebs relativ zum ersten / moves: worth of a second blow relative to the first */
+    secondStrike: 0.6,
+  },
 };
 
 /**
