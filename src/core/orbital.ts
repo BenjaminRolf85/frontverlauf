@@ -50,7 +50,7 @@ export function orbitalArea(s: GameState, x: number, y: number): Pos[] {
 }
 
 /** Besitzer eines Geschuetzes (Verdan: keiner; spaetere Stellungen koennen einen haben) / owner of a gun (Verdan: none; later emplacements may have one) */
-const gunOwner = (t: Tile): number | null => (t.turret as { owner?: number } | null | undefined)?.owner ?? null;
+export const gunOwner = (t: Tile): number | null => (t.turret as { owner?: number } | null | undefined)?.owner ?? null;
 
 /** Steht p in der Flaeche? / is p inside the area? */
 const inArea = (tiles: Pos[], p: Pos) => tiles.some((q) => q.x === p.x && q.y === p.y);
@@ -71,9 +71,9 @@ function contents(s: GameState, tiles: Pos[]): { units: Unit[]; guns: Pos[] } {
  * werden verschont. Eigene Einheiten, Kriegsgegner, Endgegner und neutrale Geschuetze nehmen Schaden.
  * Who is hit? Everything in the area except units of factions f is not at war with (peace, announced break, allies);
  * visible ones block the shot (like an attack: error 'peace'), hidden ones are spared. Own units, enemies at war,
- * bosses and neutral guns take damage.
+ * bosses and neutral guns take damage. Auch fuer den Goettlichen Funken (divineSpark.ts) / also used by the Divine Spark (divineSpark.ts).
  */
-function struck(s: GameState, f: number, tiles: Pos[]): { units: Unit[]; guns: Pos[]; blocked: boolean } {
+export function areaStruck(s: GameState, f: number, tiles: Pos[]): { units: Unit[]; guns: Pos[]; blocked: boolean } {
   const all = contents(s, tiles);
   let blocked = false;
   const units = all.units.filter((u) => {
@@ -99,7 +99,7 @@ export function orbitalCheck(s: GameState, f: number, x: number, y: number): 'ok
   if ((orbitalWait(s, f) ?? 0) > 0) return 'orbitalCooldown';
   // Sicht gilt fuer das Zielfeld; der Rest der Flaeche wird auch im Nebel getroffen / vision applies to the target tile; the rest of the area is hit even in fog
   if (ORBITAL.needsVision && !isExplored(s, f, x, y)) return 'notVisible';
-  if (struck(s, f, orbitalArea(s, x, y)).blocked) return 'peace';
+  if (areaStruck(s, f, orbitalArea(s, x, y)).blocked) return 'peace';
   return 'ok';
 }
 
@@ -117,7 +117,7 @@ export interface OrbitalPreview {
  */
 export function orbitalPreview(s: GameState, f: number, x: number, y: number): OrbitalPreview {
   const tiles = orbitalArea(s, x, y);
-  const st = struck(s, f, tiles);
+  const st = areaStruck(s, f, tiles);
   const dmg = ORBITAL.damage;
   const hits: OrbitalPreview['hits'] = [];
   for (const u of st.units) {
@@ -157,7 +157,7 @@ export function fireOrbital(s: GameState, f: number, x: number, y: number, ev: G
   const fa = s.factions[f];
   const tiles = orbitalArea(s, x, y);
   const anchor = tiles[0];
-  const st = struck(s, f, tiles);
+  const st = areaStruck(s, f, tiles);
   const dmg = ORBITAL.damage;
   const hits: OrbitalHit[] = [];
   for (const u of st.units) {

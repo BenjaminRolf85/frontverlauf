@@ -36,6 +36,9 @@ function dims(t: UnitTypeId, f: FactionId) {
 const OVER: Partial<Record<UnitTypeId, { ext?: number; h?: number }>> = {
   reliquary: { ext: 0.51 }, sunLance: { ext: 0.5 }, steppeRider: { h: 0.77 }, sniper: { ext: 0.47 }, prophet: { h: 0.64 },
   swarmMother: { ext: 0.51, h: 1.76 },
+  // Goettlicher Funke (Alvenia): bewusst riesig, ragt ueber die Kachel, bleibt unter der Plakette (Groessenklasse riesig)
+  // Divine Spark (Alvenia): deliberately giant, reaches beyond the tile, stays below the badge (giant size class)
+  divineSpark: { ext: 0.54 },
 };
 
 describe('Einheiten: Proportionen / units: proportions', () => {
@@ -80,6 +83,13 @@ describe('Einheiten: Proportionen / units: proportions', () => {
       expect(mar.wid).toBeGreaterThan(inf.wid * 1.2);
       expect(mar.h).toBeGreaterThanOrEqual(inf.h);
       expect(mar.h).toBeGreaterThan(dims('shadowCommando', 'meridon').h * 1.4);
+      // Goettlicher Funke (Alvenia): riesig, klar groesser als Artillerie und Sonnenlanze, hoeher als der Reliquiar-Panzer
+      // Divine Spark (Alvenia): giant, clearly larger than artillery and Sun Lance, taller than the Reliquary tank
+      const spark = dims('divineSpark', 'alvenia');
+      expect(spark.area).toBeGreaterThan(dims('artillery', 'alvenia').area * 1.2);
+      expect(spark.area).toBeGreaterThan(dims('sunLance', 'alvenia').area * 1.8);
+      expect(spark.h).toBeGreaterThan(dims('artillery', 'alvenia').h * 1.1);
+      expect(spark.h).toBeGreaterThan(dims('reliquary', 'alvenia').h * 1.2);
     });
 
     it(`alle Einheiten bleiben auf dem Feld und unter der Plakette (${q}) / all units stay on the tile and below the badge (${q})`, () => {

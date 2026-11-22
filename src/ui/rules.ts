@@ -73,7 +73,9 @@ function sections(): Section[] {
       // Berserker: zwei Hiebe, keine Verteidigung, Selbstsprengung (Zahlen aus BALANCE_VARS) / berserker: two blows, no defence, self-detonation (numbers from BALANCE_VARS)
       extra: () => `<p><strong>${esc(t('memorial.name'))}:</strong> ${esc(memorialText())}</p><p><strong>${esc(t('units.berserker'))}:</strong> ${esc(t('berserker.rule'))}</p>` },
     // Heiliges Alvenia: Suende, Strafgericht, Segen / Holy Alvenia: sin, judgement, blessing
-    { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] } },
+    { id: 'judgement', icon: 'emblemHalo', params: { rounds: SIN.rounds, pct: pct(SIN.judgement), heal: MARTYR.heal, bless: MARTYR.rounds, def: pct(MARTYR.defense), home: pct(HOME_DEFENSE.bonus.alvenia ?? 0), n: WONDERS.judgementKills[14] },
+      // Goettlicher Funke: Flaechenschuss, Reichweite, Beobachter, Nachladen (Zahlen aus BALANCE_VARS) / Divine Spark: area shot, range, spotter, reload (numbers from BALANCE_VARS)
+      extra: () => `<p><strong>${esc(t('units.divineSpark'))}:</strong> ${esc(t('spark.rule'))}</p>` },
     // Eigene Bauarten und Ausbildungsregeln (Korvat, Meridon, Velkar, Alvenia, NEXUS) / own designs and training rules
     { id: 'factionUnits', icon: 'heavyTank', extra: featureLines },
     { id: 'factions', icon: 'trophy', extra: factionLines },

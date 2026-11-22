@@ -12,7 +12,7 @@ import {
   siloUnit, academyOf, shieldCheck, beamerCheck, moduleCheck, moduleCost,
 } from '../core';
 import {
-  AI, ACADEMY, BERSERKER, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
+  AI, ACADEMY, BERSERKER, SPARK, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
   WONDERS, DOCTRINE, VEHICLE_UNITS, PRODUCTION, FACTIONS, SHIPYARD, MARINES, type BuildingId, type TechId, type UnitTypeId, type WonderKind,
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
@@ -21,6 +21,7 @@ import { academyStrategy, fortressReady, hashNoise, nextModule } from './profile
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
 import { siloBuy, siloMissileBuys, siloPioneerShare } from './shadowFleet';
+import { sparkBuy } from './divineSpark';
 import { hackCityBuy, hackPlaceBuy, hackTowerBuy } from './hacking';
 import { materialBonus, productionBuys, siteFor } from './production';
 
@@ -703,6 +704,9 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     }
   }
   transportBuys(ctx, buys, upFor, net);
+  // Goettlicher Funke (Alvenia): eigener Kaufwunsch in der Giesserei-Stadt, als Sparziel / Divine Spark (Alvenia): own purchase wish in the foundry city, as a savings goal
+  const spark = sparkBuy(ctx, net);
+  if (spark) buys.push({ ...spark, save: true, horizon: SPARK.ai.saveRounds });
   // Meridon: Raketensilo als Sparziel, sobald ein Pionier am Bauplatz steht / Meridon: rocket silo as a savings goal once a pioneer stands at the site
   const silo = siloBuy(ctx);
   if (silo) buys.push({ ...silo, save: true, horizon: SILO.ai.saveRounds });

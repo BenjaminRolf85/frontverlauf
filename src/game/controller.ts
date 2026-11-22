@@ -6,11 +6,11 @@ import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
   orbitalPreview, orbitalWait, sabotageTargets, detonateTargets, strikeKind, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
-  landingTargets, terraformPlan, rayCheck, rayReach, rayReadyCheck, rayTargets, type Command, type Pos, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
+  landingTargets, terraformPlan, rayCheck, rayReach, rayReadyCheck, rayTargets, sparkAnchorFor, sparkPreview, sparkReach, sparkReady, type Command, type Pos, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
 import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
-import { ORBITAL, SILO, TWIN_STRIKE, UNITS, type HitKind } from '../data/balance';
+import { ORBITAL, SILO, SPARK, TWIN_STRIKE, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
 import { audio, type Sfx } from '../audio/audio';
@@ -20,6 +20,7 @@ import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
 import { ORBITAL_FX } from '../render/fx/orbital';
 import { ROCKET_FX } from '../render/fx/rocket';
+import { SPARK_FX } from '../render/fx/spark';
 import { saveGame } from '../save/save';
 import type { FxKind } from '../ui/fx';
 
@@ -78,6 +79,9 @@ export class Controller {
   sabotageMode = false;
   /** Berserker: Sprengziel waehlen / berserker: pick a detonation target */
   detonateMode = false;
+  /** Zielauswahl des Goettlichen Funkens: Geschuetz und angepeilte Ecke der 2x2-Flaeche / Divine Spark targeting: gun and the aimed corner of the 2x2 area */
+  sparkUnit: number | null = null;
+  sparkAim: Pos | null = null;
   /** Zielauswahl fuer das Ziehen der schwebenden Akademie: Stadt-ID / target selection for moving the floating academy: city id */
   academyMoveCity: number | null = null;
   /** angewaehlte feindliche Akademie (zweites Antippen greift an) / selected hostile academy (a second tap attacks) */
@@ -304,6 +308,54 @@ export class Controller {
     await this.exec({ type: 'siloLaunch', x: from.x, y: from.y, tx: aim.x, ty: aim.y });
   }
 
+  /** Goettlicher Funke: Zielauswahl beginnen (eigenes, bereites Geschuetz am Zug) / Divine Spark: start targeting (own ready gun, on turn) */
+  startSpark(unitId: number) {
+    const s = this.state;
+    const u = s ? unitById(s, unitId) : undefined;
+    if (!s || !u || !this.isHumanTurn || u.owner !== s.current) return;
+    const chk = sparkReady(s, u);
+    if (chk !== 'ok') { this.play('error'); this.ui.errorCode(chk); return; }
+    this.clearSelection();
+    this.selected = { x: u.x, y: u.y }; this.selectedUnit = u.id; this.tab = 'unit';
+    this.sparkUnit = u.id;
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl des Funkens abbrechen, zurueck zum Geschuetz / cancel the spark targeting, back to the gun */
+  cancelSpark() {
+    if (this.sparkUnit === null) return;
+    this.sparkUnit = null;
+    this.sparkAim = null;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /**
+   * Feld anpeilen (Maus folgt, Antippen setzt): die Ecke der Flaeche, die das Feld enthaelt und gueltig liegt (sparkAnchorFor).
+   * Aim at a tile (mouse follows, a tap sets it): the corner of the area that contains the tile and lies validly (sparkAnchorFor).
+   */
+  aimSpark(x: number, y: number) {
+    const s = this.state;
+    const u = s && this.sparkUnit !== null ? unitById(s, this.sparkUnit) : undefined;
+    if (!s || !u) return;
+    const a = sparkAnchorFor(s, u, x, y);
+    if (this.sparkAim && this.sparkAim.x === a.x && this.sparkAim.y === a.y) return;
+    this.sparkAim = a;
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Funken auf die angepeilte Flaeche schleudern / hurl the spark at the aimed area */
+  async fireSpark() {
+    const s = this.state, aim = this.sparkAim, id = this.sparkUnit;
+    if (!s || !aim || id === null || this.busy) return;
+    this.sparkUnit = null;
+    this.sparkAim = null;
+    await this.exec({ type: 'divineSpark', unit: id, x: aim.x, y: aim.y });
+  }
+
   startTerraform(unitId: number) {
     this.terraformUnit = unitId;
     this.updateHighlights();
@@ -369,6 +421,8 @@ export class Controller {
     this.hackAim = null;
     this.sabotageMode = false;
     this.detonateMode = false;
+    this.sparkUnit = null;
+    this.sparkAim = null;
     this.barrierMode = false;
     this.mineMode = false;
     this.emplacementMode = false;
@@ -443,6 +497,9 @@ export class Controller {
       for (const p of emplacementTargets(s, u)) list.push({ ...p, kind: 'build' });
     } else if (u && this.sabotageMode && u.owner === s.current && this.isHumanTurn) {
       for (const p of sabotageTargets(s, u)) list.push({ ...p, kind: 'attack' });
+    } else if (u && this.sparkUnit === u.id && u.owner === s.current && this.isHumanTurn) {
+      // Goettlicher Funke: Wirkungsbereich (2 bis 5 Felder), die Flaeche zeigt die Vorschau / Divine Spark: reach (2 to 5 tiles), the area shows in the preview
+      for (const p of sparkReach(s, u)) list.push({ ...p, kind: 'reach' });
     } else if (u && this.detonateMode && u.owner === s.current && this.isHumanTurn) {
       // Berserker: Panzerung (voller Sprengschaden) als Ziel markiert, andere Bodeneinheiten als Angriff
       // berserker: armour (full blast damage) marked as target, other ground units as attack
@@ -509,6 +566,14 @@ export class Controller {
   private updateOrbitalPreview() {
     const s = this.state;
     if (!s) return;
+    // Goettlicher Funke: dieselbe Flaechenvorschau mit Schaden und Abschuss bei vollem Treffer / Divine Spark: the same area preview with damage and kill on a full hit
+    const su = this.sparkUnit !== null ? unitById(s, this.sparkUnit) : undefined;
+    if (su && this.sparkAim && this.isHumanTurn) {
+      const pre = sparkPreview(s, su, this.sparkAim.x, this.sparkAim.y);
+      const tags = pre.hits.map((h) => ({ x: h.x, y: h.y, own: h.own, text: t(h.killed ? 'spark.tagKill' : 'spark.tag', { dmg: h.dmg }) }));
+      this.view.board.showOrbitalPreview(s, pre.tiles.filter((p) => p.x >= 0 && p.y >= 0 && p.x < s.size && p.y < s.size), SPARK.area.w, tags, pre.check !== 'ok');
+      return;
+    }
     // Raketensilo: dieselbe Flaechenvorschau mit Schaden, Abschuss und Brand / rocket silo: the same area preview with damage, kill and fire
     if (this.siloFrom && this.siloAim && this.isHumanTurn) {
       const pre = siloPreview(s, s.current, this.siloFrom.x, this.siloFrom.y, this.siloAim.x, this.siloAim.y);
@@ -555,6 +620,16 @@ export class Controller {
       this.play(ok ? 'select' : 'error');
       this.updateHighlights();
       this.ui.update();
+      return;
+    }
+    // Goettlicher Funke: erstes Antippen peilt an, zweites auf dieselbe Flaeche feuert / Divine Spark: first tap aims, a second on the same area fires
+    if (this.sparkUnit !== null) {
+      const su = unitById(s, this.sparkUnit);
+      if (!su) { this.cancelSpark(); return; }
+      const a = sparkAnchorFor(s, su, x, y);
+      if (this.sparkAim && this.sparkAim.x === a.x && this.sparkAim.y === a.y && sparkPreview(s, su, a.x, a.y).check === 'ok') { await this.fireSpark(); return; }
+      this.aimSpark(x, y);
+      this.play('select');
       return;
     }
     // Raketensilo: erstes Antippen peilt an, zweites auf dieselbe Ecke startet / rocket silo: first tap aims, a second on the same corner launches
@@ -1135,6 +1210,26 @@ export class Controller {
             };
             audio.weapon('guidedMissile');
             await board.animateSilo(s, e.from, e.tiles, fid(e.faction) ?? null, animate, impact);
+            this.refresh();
+            break;
+          }
+          // Goettlicher Funke: Lichtbogen vom Geschuetz, Einschlag auf der 2x2-Flaeche mit Beben und Trefferzahlen
+          // Divine Spark: arc of light from the gun, impact on the 2x2 area with shake and hit numbers
+          case 'divineSpark': {
+            if (!(e.faction === this.viewer || e.tiles.some((p) => visible(p.x, p.y)) || visible(e.from.x, e.from.y))) break;
+            const impact = () => {
+              for (const h of e.hits) {
+                if (!visible(h.x, h.y)) continue;
+                const tb = h.unit !== undefined ? before.get(h.unit) : undefined;
+                if (tb) audio.impact(tb.type, h.killed, fid(tb.owner));
+                this.ui.fx('hit', h.x, h.y);
+                this.ui.fx('num', h.x, h.y, h.hit && h.hit !== 'full' ? hitText(h.hit, h.dmg) : `${t('spark.fx')} -${h.dmg}`);
+              }
+              if (animate) this.view.shake(SPARK_FX.shake, SPARK_FX.shakeMs);
+            };
+            audio.weapon('divineSpark');
+            board.faceTarget(s, e.unit, e.tiles[0]);
+            await board.animateSpark(s, e.from, e.tiles, fid(e.faction) ?? null, animate, impact);
             this.refresh();
             break;
           }

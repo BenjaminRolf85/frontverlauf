@@ -225,6 +225,11 @@ export interface Unit {
    * Berserker (TWIN_STRIKE): blows struck this turn (missing = none); cleared at the start of the own turn.
    */
   strikes?: number;
+  /**
+   * Goettlicher Funke (SPARK): wieder schussbereit ab dieser Runde (fehlt = bereit).
+   * Divine Spark (SPARK): ready to fire again from this round (missing = ready).
+   */
+  sparkReady?: number;
   /** Verbleibende Raketen (Mech; fehlt = voll) / rockets left (mech; missing = full) */
   rockets?: number;
   /**
@@ -717,6 +722,12 @@ export type GameEvent =
   | { t: 'sabotage'; unit: number; x: number; y: number; what: 'outpost' | 'building' | 'road'; building?: BuildingId; faction: number; victim: number }
   | { t: 'radarSweep'; unit: number; x: number; y: number; radius: number; until: number; faction: number }
   | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[]; intercepted?: boolean }
+  /**
+   * Goettlicher Funke (SPARK): Schuss des Geschuetzes unit von from auf die Flaeche (Ecke x, y); jeder Treffer mit eigenem
+   * Trefferglueck (hit) / Divine Spark (SPARK): shot of the gun unit from from onto the area (corner x, y); every hit with its
+   * own hit luck (hit)
+   */
+  | { t: 'divineSpark'; unit: number; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: (OrbitalHit & { hit?: HitKind })[] }
   | { t: 'fireHit'; hits: { unit: number; dmg: number; x: number; y: number }[] }
   /**
    * Schwebende Akademie: abgehoben, schwebt, gezogen (from -> x, y), gelandet, notgelandet (by = Angreifer), verlegt (neue
@@ -800,6 +811,8 @@ export type Command =
   | { type: 'diplomacy'; action: DiplomacyAction; target: number }
   /** Orbitallaser auf die Flaeche mit der linken oberen Ecke (x, y) / orbital laser on the area with top-left corner (x, y) */
   | { type: 'orbitalStrike'; x: number; y: number }
+  /** Goettlicher Funke: Flaechenschuss, (x, y) = linke obere Ecke der 2x2-Flaeche (SPARK) / Divine Spark: area shot, (x, y) = top-left corner of the 2x2 area (SPARK) */
+  | { type: 'divineSpark'; unit: number; x: number; y: number }
   /** Kampagne m2: der Wissenschaftler arbeitet am Mutterschiff (beendet seinen Zug) / campaign m2: the scientist works on the mothership (ends its turn) */
   | { type: 'workShip'; unit: number }
   /** Kampagne m4: Kriegsplaene am Tempel bergen oder fallen gelassene aufheben / campaign m4: seize the war plans at the temple or pick up dropped ones */
@@ -849,6 +862,8 @@ export type ErrorCode =
   | 'enemyTerritory' | 'cannotBuild' | 'noTraining' | 'quake' | 'emplacementLimit' | 'emplacementSpacing' | 'outpostSpacing'
   // Orbitallaser / orbital laser
   | 'noRelay' | 'orbitalCooldown' | 'notVisible' | 'relayLimit'
+  // Goettlicher Funke (SPARK): laedt nach, schon gezogen, Flaeche zu nah, kein Beobachter / Divine Spark (SPARK): recharging, already moved, area too close, no spotter
+  | 'sparkCooldown' | 'sparkMoved' | 'sparkTooClose' | 'noSpotter' | 'sparkLimit'
   // Kriegsplaene (m4) / war plans (m4)
   | 'cannotCarry'
   // Berserker: kann sich nicht sprengen (keine Faehigkeit) bzw. kein gueltiges Ziel / berserker: cannot detonate (no ability) or no valid target

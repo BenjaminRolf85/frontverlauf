@@ -3,12 +3,12 @@
  * Weisse Panzerplatten mit Goldborten, koenigsblaue Wappenroecke und Umhaenge, duenner goldener Sonnenkranz ueber dem Helm,
  * tuerkise Leuchten an Helm und Schulterstuecken, Weihrauchfaesser, Buntglas an Fahrzeugen. Leuchtfarben (Sonnenkranz,
  * Tuerkis, Buntglas, Strahl) leuchten ueber KEYS in atmosphere.ts. Emblem: vierzackiger Stern im Sonnenkranz (emblems.ts).
- * Dazu die eigenen Bauarten (Lichtschuetzen, Reliquiar, Sonnenlanze), die Ordenswacht und die Gebaeude (Lichtdom, Klosterweingut).
+ * Dazu die eigenen Bauarten (Lichtschuetzen, Reliquiar, Sonnenlanze, Goettlicher Funke), die Ordenswacht und die Gebaeude (Lichtdom, Klosterweingut).
  * Holy Alvenia "Order in the field": shared design language of the Alvenia units (high-tech paladins, not medieval).
  * White armour plates with gold trim, royal blue tabards and capes, a thin golden sun halo above the helmet, teal lights on
  * helmets and pauldrons, incense censers, stained glass on vehicles. Glow colours (halo, teal, stained glass, beam) glow via
  * KEYS in atmosphere.ts. Emblem: four-pointed star in the sun halo (emblems.ts).
- * Plus the own designs (Light Wardens, Reliquary, Sun Lance), the Order Guard and the buildings (Cathedral of Light,
+ * Plus the own designs (Light Wardens, Reliquary, Sun Lance, Divine Spark), the Order Guard and the buildings (Cathedral of Light,
  * monastery vineyard).
  * Blick nach +z, Ursprung unten mittig / facing +z, origin bottom centre.
  */
@@ -298,6 +298,97 @@ export function sunLance(f: FactionId, lite = false): Builder {
   }
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [0.101, 0.07, 0.06], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [-0.101, 0.07, 0.06], r: [0, -HALF_PI, 0] });
+  return b;
+}
+
+// ---------- Goettlicher Funke / Divine Spark ----------
+
+/**
+ * Goettlicher Funke: Riesengeschuetz auf breitem Kettenfahrgestell (weisse Wanne, blaue Schuerzen mit Goldsternen), Drehkranz
+ * mit hohem vergoldetem Lauf, Sonnenscheibe mit Strahlenkranz am Verschluss, drei schwebende Sonnenkraenze um den Lauf,
+ * grosse leuchtende Fokuslinse an der Muendung, Reliquienschrein mit Sonnenkranz am Heck, Klerikerin als Bedienung. Deutlich
+ * groesser als die Artillerie (gross-Klasse, ueber die Kachel hinaus, siehe tests/unit-proportions.test.ts).
+ * Divine Spark: giant gun on a wide tracked chassis (white hull, blue skirts with gold stars), turntable with a tall gilded
+ * barrel, a sun disc with a ray crown at the breech, three floating sun halos around the barrel, a big glowing focusing lens
+ * at the muzzle, a reliquary shrine with a sun halo at the rear, a cleric as crew. Clearly larger than the artillery (large
+ * class, beyond the tile, see tests/unit-proportions.test.ts).
+ */
+export function divineSpark(f: FactionId, lite = false): Builder {
+  const b = new Builder();
+  // Ketten in der einfachen Bauart (die Schuerzen verdecken die Seiten), oben eigene Kettenglieder / tracks in the simple build (the skirts cover the sides), own track plates on top
+  tracks(b, { x: 0.31, w: 0.12, len: 0.84, h: 0.1, wheels: 5, wr: 0.034, sprocket: FAITH.goldDark, hub: FAITH.gold, lite: true });
+  if (!lite) for (const s of [-1, 1]) for (let i = 0; i < 8; i++) b.box(0.124, 0.007, 0.014, mat.ink, [s * 0.31, 0.102, -0.36 + i * 0.103]);
+  const by = 0.1;
+  // Wanne mit Goldborte und schraeger Bugplatte / hull with gold trim and sloped glacis
+  b.add(geo.cbox(0.52, 0.07, 0.84, 0.02), FAITH.plate, { p: [0, by + 0.02, 0] });
+  b.add(geo.profileZY([[-0.42, 0], [0.38, 0], [0.43, 0.035], [0.4, 0.055], [-0.42, 0.055]], 0.5), FAITH.plateShade, { p: [0, by + 0.045, 0] });
+  b.box(0.53, 0.012, 0.85, FAITH.gold, [0, by + 0.055, 0]);
+  // blaue Schuerzen ueber den Ketten mit Goldsaum und Sternen / blue skirts over the tracks with a gold hem and stars
+  for (const s of [-1, 1]) {
+    b.add(geo.cbox(0.014, 0.07, 0.76, 0.004), FAITH.cloth, { p: [s * 0.385, by - 0.002, 0] });
+    b.box(0.016, 0.012, 0.76, FAITH.gold, [s * 0.385, by - 0.036, 0]);
+    if (!lite) for (const z of [-0.24, 0.24]) faithStar(b, [s * 0.394, by - 0.002, z], 0.02, [0, s * HALF_PI, 0], FAITH.goldLight);
+    addEmblem(b, f, 0.045, 0.006, FAITH.gold, { p: [s * 0.394, by - 0.002, 0], r: [0, s * HALF_PI, 0] });
+  }
+  // Reliquienschrein am Heck mit Spitzdach und Sonnenkranz / reliquary shrine at the rear with a pointed roof and a sun halo
+  const sy = by + 0.06;
+  b.add(geo.cbox(0.16, 0.1, 0.12, 0.01), FAITH.plate, { p: [0.12, sy + 0.05, -0.33] });
+  b.add(geo.profileXY([[-0.09, 0], [0.09, 0], [0, 0.07]], 0.13), FAITH.cloth, { p: [0.12, sy + 0.1, -0.395] });
+  b.add(geo.profileXY([[-0.02, 0], [0.02, 0], [0.02, 0.04], [0, 0.055], [-0.02, 0.04]], 0.006), FAITH.glassGold, { p: [0.12, sy + 0.025, -0.268] });
+  haloRing(b, [0.12, sy + 0.22, -0.33], 0.05, 0.005, 12);
+  // Drehkranz mit Lafette und dem Riesenlauf (dreht sich zum Ziel) / turntable with the cradle and the giant barrel (turns towards the target)
+  const ty = by + 0.06, tz = 0.02;
+  b.turret([0, ty, tz], () => {
+    b.cyl(0.17, 0.18, 0.04, 14, FAITH.goldDark, [0, ty + 0.02, tz]);
+    b.cyl(0.15, 0.15, 0.012, 14, FAITH.gold, [0, ty + 0.045, tz]);
+    // Lafettenwangen mit Schildzapfen / cradle cheeks with trunnions
+    for (const s of [-1, 1]) {
+      b.add(geo.profileZY([[-0.13, 0], [0.08, 0], [0.04, 0.14], [-0.08, 0.14]], 0.03), FAITH.plate, { p: [s * 0.11, ty + 0.04, tz] });
+      b.box(0.034, 0.012, 0.2, FAITH.gold, [s * 0.11, ty + 0.05, tz - 0.02]);
+      b.cyl(0.035, 0.035, 0.05, 8, FAITH.gold, [s * 0.11, ty + 0.16, tz], [0, 0, HALF_PI]);
+    }
+    // Lauf angehoben / barrel raised
+    b.group({ p: [0, ty + 0.16, tz], r: [-0.4, 0, 0] }, () => {
+      // Sonnenscheibe am Verschluss mit Strahlenkranz und leuchtendem Kern / sun disc at the breech with a ray crown and a glowing core
+      b.add(geo.cyl(0.13, 0.1, 0.05, 14), FAITH.gold, { p: [0, 0, -0.1], r: [HALF_PI, 0, 0] });
+      b.add(geo.cyl(0.07, 0.07, 0.012, 14), FAITH.glassGold, { p: [0, 0, -0.128], r: [HALF_PI, 0, 0] });
+      b.add(geo.cyl(0.035, 0.035, 0.016, 12), FAITH.halo, { p: [0, 0, -0.134], r: [HALF_PI, 0, 0] });
+      const rays = lite ? 6 : 8;
+      for (let i = 0; i < rays; i++) {
+        const a = (i / rays) * Math.PI * 2;
+        const len = lite || i % 2 === 0 ? 0.075 : 0.05;
+        b.add(geo.cone(0.018, len, 3), i % 2 ? FAITH.goldLight : FAITH.gold, { p: [Math.sin(a) * (0.13 + len / 2), Math.cos(a) * (0.13 + len / 2), -0.1], r: [0, 0, -a] });
+      }
+      // vergoldeter Riesenlauf: Verschluss, schlanker Hals, Glocke an der Muendung / gilded giant barrel: breech, slim neck, bell at the muzzle
+      const len = 0.5;
+      b.add(geo.lathe([[0, -0.08], [0.085, -0.08, true], [0.085, 0.06], [0.06, 0.14], [0.052, 0.34], [0.07, len - 0.02], [0.084, len, true], [0, len]], lite ? 10 : 14), FAITH.gold,
+        { p: [0, 0, 0], r: [HALF_PI, 0, 0] });
+      // weisse Laufbaender und Fokusringe / white barrel bands and focusing rings
+      for (const [z, r] of (lite ? [[0.08, 0.08]] : [[0.08, 0.08], [0.22, 0.058]]) as [number, number][]) b.add(geo.torus(r, 0.008, 3, 12), FAITH.plate, { p: [0, 0, z] });
+      // drei schwebende Sonnenkraenze um den Lauf / three floating sun halos around the barrel
+      for (const [z, r] of (lite ? [[0.16, 0.1], [0.36, 0.088]] : [[0.12, 0.11], [0.26, 0.098], [0.4, 0.09]]) as [number, number][]) {
+        b.add(geo.torus(r, 0.0055, 3, lite ? 12 : 16), FAITH.halo, { p: [0, 0, z] });
+      }
+      // Fokuslinse an der Muendung: Goldrand, Buntglas, leuchtender Kern, Lichtkristall / focusing lens at the muzzle: gold rim, stained glass, glowing core, light crystal
+      b.add(geo.torus(0.082, 0.012, 3, lite ? 12 : 16), FAITH.goldDark, { p: [0, 0, len + 0.004] });
+      b.add(geo.cyl(0.072, 0.072, 0.01, lite ? 10 : 14), FAITH.glassGold, { p: [0, 0, len], r: [HALF_PI, 0, 0] });
+      b.add(geo.cyl(0.042, 0.042, 0.014, 10), FAITH.halo, { p: [0, 0, len + 0.004], r: [HALF_PI, 0, 0] });
+      if (!lite) {
+        b.add(geo.cone(0.018, 0.05, 6), FAITH.halo, { p: [0, 0, len + 0.03], r: [HALF_PI, 0, 0] });
+        for (let i = 0; i < 4; i++) b.box(0.006, 0.15, 0.004, FAITH.goldDark, [0, 0, len + 0.008], [0, 0, (i * Math.PI) / 4]);
+      }
+    });
+  });
+  // Bedienung: Klerikerin mit Sonnenkranz am Heck, Weihrauchfass / crew: a cleric with a sun halo at the rear, incense censer
+  if (!lite) {
+    b.group({ p: [-0.16, by + 0.06, -0.3], r: [0, 0.4, 0], s: 0.9 }, () => {
+      soldier(b, f, standPose([[-0.04, 0.2, 0.08], [0.1, 0.17, 0.05]]), { detail: 1, seed: 23 });
+      censer(b, [0.1, 0.17, 0.05], false, 0.05);
+    });
+    b.tube([0.0, by + 0.06, -0.4], [0.0, by + 0.32, -0.44], 0.004, 4, FAITH.goldDark);
+    b.add(geo.box(0.1, 0.12, 0.006), FAITH.cloth, { p: [0.055, by + 0.27, -0.44] });
+    addEmblem(b, f, 0.03, 0.006, FAITH.plate, { p: [0.055, by + 0.28, -0.436] });
+  }
   return b;
 }
 

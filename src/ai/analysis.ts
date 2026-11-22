@@ -463,7 +463,7 @@ function computeNavalNeed(ctx: Ctx): boolean {
 
 function canCaptureType(u: Unit): boolean {
   const t = u.carried ?? u.type;
-  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'sunLance' && t !== 'medic' && u.type !== 'heli' && u.type !== 'octocopter';
+  return !has(u, 'fly') && t !== 'spy' && t !== 'artillery' && t !== 'sunLance' && t !== 'divineSpark' && t !== 'medic' && u.type !== 'heli' && u.type !== 'octocopter';
 }
 function isCombat(u: Unit): boolean {
   const t = u.type;
@@ -621,7 +621,7 @@ function eligible(u: Unit, g: Goal): boolean {
     case 'village': case 'city': return canCaptureType(u);
     case 'bunker': return g.water ? (fly || isShip(u)) : u.type !== 'spy' && !(g.hold && (u.type === 'artillery' || u.type === 'sunLance' || fly));
     case 'defend': case 'hunt': return isCombat(u) && u.type !== 'medic';
-    case 'explore': return u.type !== 'artillery' && u.type !== 'sunLance' && u.type !== 'medic' && u.type !== 'spy';
+    case 'explore': return u.type !== 'artillery' && u.type !== 'sunLance' && u.type !== 'divineSpark' && u.type !== 'medic' && u.type !== 'spy';
     default: return true;
   }
 }

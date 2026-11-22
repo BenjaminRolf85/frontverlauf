@@ -48,7 +48,8 @@ const withNeutral: (FactionId | null)[] = onlyFaction ? [onlyFaction] : [...FACT
 
 // Marines (Meridon) gleich neben der Infanterie, in allen acht Farbgebungen / marines (Meridon) right next to the infantry, in all eight colourings
 // Berserker (Kult) daneben, ebenfalls in allen Farbgebungen (bekehrt) / berserker (cult) next to them, also in every colouring (converted)
-const LAND: UnitTypeId[] = ['infantry', 'marine', 'berserker', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer', 'scientist'];
+// Goettlicher Funke (Alvenia) gleich unter der Artillerie zum Groessenvergleich / Divine Spark (Alvenia) right below the artillery for the size comparison
+const LAND: UnitTypeId[] = ['infantry', 'marine', 'berserker', 'sniper', 'jeep', 'pioneer', 'mg', 'medic', 'artillery', 'divineSpark', 'spy', 'heli', 'tank', 'antiTank', 'antiAir', 'mineLayer', 'scientist'];
 const SHIPS: UnitTypeId[] = ['landingBoat', 'submarine', 'destroyer', 'battleship'];
 const BUILDINGS: (BuildingId | 'outpost')[] = [
   'storehouse', 'ranch', 'fishery', 'lumberCamp', 'farm', 'mine', 'materialsPlant', 'foodFactory', 'steelMill',
@@ -367,7 +368,7 @@ function sheet(): Sheet {
     case 'special': {
       // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction
       const list: [UnitTypeId, FactionId][] = [
-        ['teslaTank', 'velkar'], ['octocopter', 'velkar'], ['railSniper', 'velkar'], ['lightWarden', 'alvenia'], ['reliquary', 'alvenia'], ['sunLance', 'alvenia'],
+        ['teslaTank', 'velkar'], ['octocopter', 'velkar'], ['railSniper', 'velkar'], ['lightWarden', 'alvenia'], ['reliquary', 'alvenia'], ['sunLance', 'alvenia'], ['divineSpark', 'alvenia'],
         ['steppeColossus', 'korvat'], ['shadowCommando', 'meridon'], ['fogCutter', 'meridon'], ['guidedMissile', 'meridon'], ['radarTruck', 'meridon'], ['marine', 'meridon'],
         ['swarmMother', 'zyrr'], ['scientist', 'korvat'], ['berserker', 'vesper'], ['zealot', 'vesper'], ['torchbearer', 'vesper'],
       ];

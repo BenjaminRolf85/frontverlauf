@@ -11,7 +11,8 @@
 import {
   isAlienFaction, noTraining, rosterShips, rosterUnits, siloBuyCheck, trainCheck, trainTechNeed, unitCost, unitRange,
   type City, type GameState, type SiloBuyCheck, type TrainCheck, trainSlots } from '../core';
-import { SHIPYARD, SILO, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { SHIPYARD, SILO, SPARK, UNITS, type FactionId, type UnitTypeId } from '../data/balance';
+import { sparkVars } from './divineSpark';
 import { has as hasText, num, t } from '../i18n/i18n';
 import { esc, price, type ActionItem } from './components';
 import { icon } from './icons';
@@ -47,6 +48,8 @@ function lockReason(s: GameState, c: City, type: UnitTypeId, chk: TrainCheck, fi
     case 'computeMissing': return t('nexus.computeNeed', { n: UNITS[type].compute ?? 0 });
     // Meridon: Lenkflugkoerper kommen aus dem Raketensilo / Meridon: Guided Missiles come from the rocket silo
     case 'siloOnly': return t('shadow.silo.onlyHere');
+    // Goettlicher Funke: Limit je Fraktion / Divine Spark: limit per faction
+    case 'sparkLimit': return t('errors.sparkLimit');
     // Akademie: alle Ausbildungen dieser Runde vergeben oder kein freies Feld / academy: all trainings of this round used or no free tile
     case 'occupied': return c.academy ? t('academy.slotsUsed', { max: trainSlots(s, c) }) : err(chk);
     case 'invalid':
@@ -122,6 +125,16 @@ function statsHtml(type: UnitTypeId, fid: FactionId): string {
   // ohne Reichweite ein Strich statt des Worts (das Wort sprengte die schmale Karte), vorgelesen wird das Wort
   // without range a dash instead of the word (the word overflowed the narrow card); screen readers get the word
   const none = `<span class="troop-stat" title="${esc(t('stats.range'))}: ${esc(t('stats.noRange'))}">${icon('range', 'icon-sm')}<span class="sr-only">${esc(t('stats.range'))} ${esc(t('stats.noRange'))}</span><span aria-hidden="true">&ndash;</span></span>`;
+  // Goettlicher Funke: Flaechenschaden statt Angriff, Reichweite mit Mindestabstand / Divine Spark: area damage instead of attack, range with minimum distance
+  if (type === SPARK.unit) {
+    return [
+      stat('hp', t('stats.hp'), num(cardHp(type))),
+      stat('divineSpark', t('spark.statDesc', sparkVars()), `${SPARK.damage} · ${SPARK.area.w}×${SPARK.area.h}`),
+      stat('shield', t('stats.defense'), num(st.defense)),
+      stat('boot', t('stats.move'), num(st.move)),
+      stat('range', t('stats.range'), `${SPARK.minRange}-${SPARK.range}`),
+    ].join('');
+  }
   return [
     stat('hp', t('stats.hp'), num(cardHp(type))),
     stat('sword', t('stats.attack'), num(st.attack)),

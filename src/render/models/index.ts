@@ -56,7 +56,7 @@ import { swarmMother } from './boss';
 import { mothership, mothershipSmoke } from './mothership';
 import { scientist } from './scientist';
 import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from './velkarTech';
-import { lightWarden, reliquary, sunLance } from './alveniaFaith';
+import { divineSpark, lightWarden, reliquary, sunLance } from './alveniaFaith';
 import { steppeColossus } from './korvatHeavy';
 import { cyborg, flameTank, kamikazeDrone } from './nexusSeries';
 import { fogCutter, guidedMissile, marine, radarTruck, shadowCommando } from './shadowFleet';
@@ -124,6 +124,8 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'lightWarden': return lightWarden(faction).build();
       case 'reliquary': return reliquary(faction).build();
       case 'sunLance': return sunLance(faction).build();
+      // Goettlicher Funke: Riesengeschuetz (Groessenklasse gross, wie gebaut) / Divine Spark: giant gun (large size class, as built)
+      case 'divineSpark': return divineSpark(faction).build();
       // Korvat: Steppenkoloss / Korvat: Steppe Colossus
       case 'steppeColossus': return steppeColossus(faction).build();
       case 'landingBoat': return landingBoat(faction, c ? carriedGeometry(c, faction) : null).build();
@@ -324,6 +326,7 @@ function carriedGeometry(type: UnitTypeId, faction: FactionId): THREE.BufferGeom
       case 'lightWarden': return lightWarden(faction, true).build();
       case 'reliquary': return reliquary(faction, true).build();
       case 'sunLance': return sunLance(faction, true).build();
+      case 'divineSpark': return divineSpark(faction, true).build();
       case 'steppeColossus': return steppeColossus(faction, true).build();
       case 'cyborg': return cyborg(faction, true).build();
       case 'flameTank': return flameTank(faction, true).build();

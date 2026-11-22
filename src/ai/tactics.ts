@@ -18,7 +18,7 @@ import {
 import { hashNoise } from './profile';
 import { coordinationValue, opAttackOrder, opAttackValue, opHoldsFire, opCaution, opRetreatValue, opTileValue } from './operations';
 // Endgegner der Kampagne / campaign boss
-import { isBoss } from '../core';
+import { isBoss, isSpark } from '../core';
 import { SWARM_MOTHER } from '../data/balance';
 import { bossHome } from './analysis';
 
@@ -516,6 +516,8 @@ export function planUnitMoves(ctx: Ctx, failed: Failed): Command | null {
   });
   for (const u of units) {
     if (u.fresh || u.exhausted) continue;
+    // Goettlicher Funke: eigene Stellungswahl (divineSpark.ts) / Divine Spark: own position choice (divineSpark.ts)
+    if (isSpark(u)) continue;
     const g = ctx.goals.get(u.id);
     if (!g) continue;
     const lazy = lazyUnit(ctx, u) && !(u.fuel !== null && !heliSafe(s, u, u.x, u.y));

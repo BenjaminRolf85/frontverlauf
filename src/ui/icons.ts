@@ -208,6 +208,11 @@ const P: Record<string, string> = {
   roleAir: '<path d="M12 2c1 0 1.6 1.4 1.6 3v4l7.4 4.6v2.4l-7.4-2.3v4l2.2 1.7V21L12 20l-3.8 1v-1.6l2.2-1.7v-4L3 16v-2.4l7.4-4.6V5c0-1.6.6-3 1.6-3z" fill="currentColor" stroke-width="1.2"/>',
   /** Kamikaze (Selbstzerstoerung beim Angriff): Explosion / kamikaze (self-destructs on attack): explosion */
   roleKamikaze: '<path d="M12 1.8l2.1 5.4 4.9-2.8-1.6 5.3 5 1.3-4.4 2.9 3.2 4.3-5.4-.6L15 23l-3-4.2L9 23l-.8-5.4-5.4.6 3.2-4.3L1.6 11l5-1.3-1.6-5.3 4.9 2.8z" fill="currentColor" stroke-width="1.2"/>',
+  /**
+   * Goettlicher Funke (Alvenia): vierzackiger Lichtfunke, der auf eine 2x2-Flaeche faellt / Divine Spark (Alvenia): four-pointed
+   * spark of light falling onto a 2x2 area
+   */
+  divineSpark: '<path d="M12.5 12.5h8.5v8.5h-8.5zM16.75 12.5v8.5M12.5 16.75h8.5"/><path d="M7 1.8l1.5 3.7L12.2 7 8.5 8.5 7 12.2 5.5 8.5 1.8 7l3.7-1.5z" fill="currentColor"/><path d="M9.8 10.3c1.9.4 3.3 1.3 4.2 2.6" stroke-dasharray="1.6 1.6"/>',
   /** Berserker (zwei Hiebe je Zug): zwei gekreuzte Aexte / berserker (two blows per turn): two crossed axes */
   roleBerserker: '<path d="M4.5 21L16.5 9M19.5 21L7.5 9" stroke-width="2.8"/><path d="M14.2 3.2l6.6 6.6-2.9 2.1c-.6-2.6-2.2-4.2-5.8-5.8zM9.8 3.2L3.2 9.8l2.9 2.1c.6-2.6 2.2-4.2 5.8-5.8z" fill="currentColor" stroke-width="1.4"/>',
   /** Transportboot: Rumpf mit Ladekiste / transport boat: hull with a cargo crate */

@@ -9,7 +9,7 @@
 import {
   BASES, CITY, CITY_UPGRADES, COUNTER, DEFENSE_BONUS, ECON, FUEL, GRAND_PROJECTS, HEALING, HIT, INCOME, MARTYR, PERKS,
   PERKS2, RANGE_BONUS, REMAINS, RETREAT, SCORE, SIN, UNIQUE, UNITS, VETERAN, WEATHER, XENO, BARRIER, CORRUPTION, type UnitTypeId,
-  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY, HACK, BERSERKER, TWIN_STRIKE,
+  SILO, RADAR, SABOTAGE, WITHDRAW, FIREPOWER, SEA_POWER, SHIPYARD, FACTIONS, REWARD_HEAVY, ACADEMY, HACK, BERSERKER, TWIN_STRIKE, SPARK, UPKEEP,
 } from '../data/balance';
 
 const pct = (x: number) => Math.round(x * 100);
@@ -53,6 +53,20 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   strikeOther: UNITS.berserker.strike?.other ?? 0,
   blastArmour: BERSERKER.detonate.armour,
   blastOther: BERSERKER.detonate.other,
+  // Goettlicher Funke (Alvenia): Reichweite, Flaeche, Schaden, Nachladen, Limit, Beobachter / Divine Spark (Alvenia): range, area, damage, reload, limit, spotter
+  sparkRange: SPARK.range,
+  sparkMin: SPARK.minRange,
+  sparkW: SPARK.area.w,
+  sparkH: SPARK.area.h,
+  sparkDmg: SPARK.damage,
+  sparkCd: SPARK.cooldown,
+  sparkMax: SPARK.max,
+  sparkSpot: SPARK.spot,
+  sparkCost: UNITS.divineSpark.cost ?? 0,
+  sparkUpkeep: UPKEEP.flat.divineSpark ?? 0,
+  sparkHp: UNITS.divineSpark.hp,
+  sparkDef: UNITS.divineSpark.defense,
+  sparkMove: move('divineSpark'),
   // Faehigkeiten / abilities
   medicHeal: HEALING.medic,
   fuelRounds: FUEL.tank,
