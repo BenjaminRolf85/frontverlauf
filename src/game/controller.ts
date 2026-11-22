@@ -6,14 +6,15 @@ import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
   orbitalPreview, orbitalWait, sabotageTargets, siloPreview, siloWait, academyMoves, academyTargets, cityById, hackReachTiles, hijackCheck, hijackTargets, towerLink, towerWait,
-  type Command, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
+  landingTargets, terraformPlan, rayCheck, rayReach, rayReadyCheck, rayTargets, type Command, type Pos, type CommandResult, type GameConfig, type GameEvent, type GameState, type Unit,
 } from '../core';
 import { plansHints } from '../core/temple';
 import { planNextCommand, takeOpNews, type OpNews } from '../ai/ai';
 import { ORBITAL, SILO, UNITS, type HitKind } from '../data/balance';
 import { t } from '../i18n/i18n';
+import { cityNameOf } from '../i18n/cityNames';
 import { audio, type Sfx } from '../audio/audio';
-import { coreHeading, type HighlightKind } from '../render/board';
+import { coreHeading, NEUTRON_FX, type HighlightKind } from '../render/board';
 import type { View } from '../render/view';
 import { SHAKE, impactShake, weaponOf } from '../render/combat';
 import { RIFT_OPEN_MS } from '../render/rift';
@@ -79,6 +80,9 @@ export class Controller {
   academyMoveCity: number | null = null;
   /** angewaehlte feindliche Akademie (zweites Antippen greift an) / selected hostile academy (a second tap attacks) */
   pendingAcademy: number | null = null;
+  /** Zielauswahl des Neutronenstrahls: Akademie und angepeiltes Feld / neutron beam targeting: academy and the aimed tile */
+  beamCity: number | null = null;
+  beamAim: Pos | null = null;
   /** Zielauswahl des Hackturms: Turm und angepeilte Einheit / hack tower targeting: tower and the aimed unit */
   hackFrom: { x: number; y: number } | null = null;
   hackAim: number | null = null;
@@ -214,6 +218,50 @@ export class Controller {
     if (u) { this.selected = { x: u.x, y: u.y }; this.selectedUnit = u.id; this.tab = 'unit'; this.updateHighlights(); this.ui.update(); }
   }
 
+  /** Neutronenstrahl: Zielauswahl beginnen (eigene Akademie, Strahl bereit, am Zug) / neutron beam: start targeting (own academy, beam ready, on turn) */
+  startBeam(cityId: number) {
+    const s = this.state;
+    if (!s || !this.isHumanTurn) return;
+    const c = cityById(s, cityId);
+    if (!c || c.owner !== s.current) return;
+    const chk = rayReadyCheck(s, s.current, c);
+    if (chk !== 'ok') { this.play('error'); this.ui.errorCode(chk); return; }
+    this.clearSelection();
+    this.beamCity = cityId;
+    this.beamAim = null;
+    this.play('select');
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Zielauswahl des Strahls abbrechen (zurueck zur Akademie) / cancel the beam targeting (back to the academy) */
+  cancelBeam() {
+    const s = this.state;
+    if (this.beamCity === null) return;
+    const c = s ? cityById(s, this.beamCity) : undefined;
+    this.beamCity = null;
+    this.beamAim = null;
+    if (c) { this.selected = { x: c.x, y: c.y }; this.tab = 'city'; }
+    this.updateHighlights();
+    this.ui.update();
+  }
+
+  /** Auf das angepeilte Ziel feuern / fire at the aimed target */
+  async fireBeam() {
+    const s = this.state, id = this.beamCity, aim = this.beamAim;
+    if (!s || id === null || !aim || this.busy) return;
+    this.beamCity = null;
+    this.beamAim = null;
+    const c = cityById(s, id);
+    await this.exec({ type: 'academyBeam', city: id, x: aim.x, y: aim.y });
+    // weitere Schuesse in diesem Zug: Zielauswahl bleibt an; sonst zurueck zur Akademie / more shots this turn: targeting stays on; otherwise back to the academy
+    const left = cityById(s, id);
+    if (left && left.owner === s.current && rayTargets(s, left).length) this.beamCity = id;
+    else if (c) { this.selected = { x: left?.x ?? c.x, y: left?.y ?? c.y }; this.tab = 'city'; }
+    this.updateHighlights();
+    this.ui.update();
+  }
+
   /** Zielauswahl des Silos abbrechen / cancel the silo targeting */
   cancelSilo() {
     if (!this.siloFrom) return;
@@ -296,10 +344,14 @@ export class Controller {
   }
 
   clearSelection() {
+    this.beamCity = null;
+    this.beamAim = null;
     this.orbitalMode = false;
     this.orbitalAim = null;
     this.siloFrom = null;
     this.siloAim = null;
+    this.beamCity = null;
+    this.beamAim = null;
     this.hackFrom = null;
     this.hackAim = null;
     this.sabotageMode = false;
@@ -316,9 +368,24 @@ export class Controller {
   /** Ziehen der schwebenden Akademie ein- oder ausschalten / toggle moving the floating academy */
   toggleAcademyMove(cityId: number) {
     this.academyMoveCity = this.academyMoveCity === cityId ? null : cityId;
-    if (this.academyMoveCity !== null) this.ui.toast(t('academy.moveHint'), 'move');
+    if (this.academyMoveCity !== null) this.ui.toast(`${t('academy.moveHint')} ${t('academy.landTargetsHint')}`, 'move');
     this.updateHighlights();
     this.ui.update();
+  }
+
+  /**
+   * Terraformen und landen (ACADEMY.terraform); at = benachbarter neutraler Ort. Wird ein Ort eingeebnet, fragt die
+   * Oberflaeche vorher nach ("Neutraler Ort wird eingeebnet").
+   * Terraform and land (ACADEMY.terraform); at = adjacent neutral place. If a place is levelled, the UI asks first
+   * ("neutral place will be levelled").
+   */
+  async landAcademy(cityId: number, at?: Pos) {
+    const s = this.state;
+    const c = s ? cityById(s, cityId) : undefined;
+    if (!s || !c) return;
+    const plan = terraformPlan(s, c, at ?? c);
+    if (plan.razed && !(await this.ui.confirm(t('academy.razeConfirm', { city: cityNameOf(s, plan.razed.id) }), t('academy.razeOk')))) return;
+    await this.exec({ type: 'landAcademy', city: cityId, ...(at ? { at } : {}) });
   }
 
   selectedUnitObj(): Unit | undefined {
@@ -340,7 +407,14 @@ export class Controller {
     // schwebende Akademie: erreichbare Felder / floating academy: reachable tiles
     if (this.academyMoveCity !== null && this.isHumanTurn) {
       const c = cityById(s, this.academyMoveCity);
-      if (c) for (const p of academyMoves(s, c)) list.push({ ...p, kind: 'move' });
+      // Landeziele (Terraformen moeglich) gruen, neutrale Orte zum Einebnen rot, sonst nur Ziehen / landing targets (terraforming possible) green, neutral places to level red, otherwise move only
+      if (c) {
+        const land = landingTargets(s, c);
+        const at = (x: number, y: number) => land.find((p) => p.x === x && p.y === y);
+        for (const p of academyMoves(s, c)) list.push({ ...p, kind: at(p.x, p.y) ? 'build' : 'move' });
+        for (const p of land) if (p.razed) list.push({ x: p.x, y: p.y, kind: 'attack' });
+        if (at(c.x, c.y)) list.push({ x: c.x, y: c.y, kind: 'build' });
+      }
     }
     if (this.radioCity !== null && this.isHumanTurn) {
       const c = s.cities.find((cc) => cc.id === this.radioCity);
@@ -389,6 +463,17 @@ export class Controller {
     if (this.hintTile) list.push({ ...this.hintTile, kind: 'hint' });
     // Raketensilo: das Silo selbst markieren / rocket silo: mark the silo itself
     if (this.siloFrom && this.isHumanTurn) list.push({ ...this.siloFrom, kind: 'select' });
+    // Neutronenstrahl: Reichweite, Ziele und angepeiltes Ziel / neutron beam: range, targets and the aimed target
+    if (this.beamCity !== null && this.isHumanTurn) {
+      const c = cityById(s, this.beamCity);
+      if (c) {
+        const targets = rayTargets(s, c);
+        const at = new Set(targets.map((p) => p.y * s.size + p.x));
+        for (const p of rayReach(s, c)) if (!at.has(p.y * s.size + p.x)) list.push({ ...p, kind: 'reach' });
+        for (const p of targets) list.push({ ...p, kind: this.beamAim && this.beamAim.x === p.x && this.beamAim.y === p.y ? 'target' : 'attack' });
+        list.push({ x: c.x, y: c.y, kind: 'select' });
+      }
+    }
     // Hackturm: Reichweite, Ziele und angepeiltes Ziel / hack tower: reach, targets and the aimed target
     if (this.hackFrom && this.isHumanTurn) {
       const from = this.hackFrom;
@@ -431,6 +516,17 @@ export class Controller {
       this.play('select');
       return;
     }
+    // Neutronenstrahl: erstes Antippen peilt ein Ziel an, zweites feuert / neutron beam: first tap aims at a target, a second fires
+    if (this.beamCity !== null) {
+      const c = cityById(s, this.beamCity);
+      const okTile = !!c && rayCheck(s, s.current, c, x, y) === 'ok';
+      if (okTile && this.beamAim && this.beamAim.x === x && this.beamAim.y === y) { await this.fireBeam(); return; }
+      this.beamAim = okTile ? { x, y } : null;
+      this.play(okTile ? 'select' : 'error');
+      this.updateHighlights();
+      this.ui.update();
+      return;
+    }
     // Hackturm: erstes Antippen peilt eine Einheit an, zweites uebernimmt sie / hack tower: first tap aims at a unit, a second takes it over
     if (this.hackFrom) {
       const from = this.hackFrom;
@@ -466,6 +562,12 @@ export class Controller {
       const cityId = this.academyMoveCity;
       this.academyMoveCity = null;
       const c = cityById(s, cityId);
+      // benachbarter neutraler Ort: einebnen und landen (mit Rueckfrage) / adjacent neutral place: level and land (with a confirmation)
+      if (c && landingTargets(s, c).some((p) => p.razed && p.x === x && p.y === y)) {
+        await this.landAcademy(cityId, { x, y });
+        this.updateHighlights(); this.ui.update();
+        return;
+      }
       if (c && academyMoves(s, c).some((p) => p.x === x && p.y === y)) {
         await this.exec({ type: 'moveAcademy', city: cityId, to: { x, y } });
         this.selected = { x, y }; this.tab = 'city';
@@ -920,7 +1022,9 @@ export class Controller {
           case 'academy': {
             const c = cityById(s, e.city);
             if (!c || !(visible(e.x, e.y) || (e.from && visible(e.from.x, e.from.y)))) break;
-            if (e.what === 'lift' || e.what === 'land' || e.what === 'forced') this.play('build');
+            if (e.what === 'lift' || e.what === 'land' || e.what === 'forced' || e.what === 'terraform') this.play('build');
+            // eingeebneter neutraler Ort: kurze Staubwolke und Beben / levelled neutral place: a short dust cloud and quake
+            if (e.what === 'land' && e.razed) { this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.wreck * 0.6, 300); }
             if (e.what === 'forced') { this.ui.fx('boom', e.x, e.y); if (animate) this.view.shake(SHAKE.wreck, 420); }
             await board.animateAcademy(s, c, e.what, e.from ?? null, animate);
             break;
@@ -930,6 +1034,43 @@ export class Controller {
             const c = cityById(s, e.city);
             if (c && visible(c.x, c.y) && e.what === 'hit') this.ui.fx('num', c.x, c.y, e.dmg ? `${t('academy.shield')} -${e.dmg}` : hitText(e.hit, 0));
             if (c && visible(c.x, c.y) && e.what === 'down') this.ui.fx('boom', c.x, c.y);
+            break;
+          }
+          // Neutronenstrahl: Strahl von der Spulenspitze, Einschlag mit Zahl und Beben / neutron beam: beam from the spire tip, impact with number and shake
+          case 'neutron': {
+            const c = cityById(s, e.city);
+            if (!c || !(e.faction === this.viewer || visible(e.x, e.y) || visible(e.from.x, e.from.y))) break;
+            const tb = e.unit !== undefined ? before.get(e.unit) : undefined;
+            const impact = () => {
+              if (tb) audio.impact(tb.type, e.killed, fid(tb.owner));
+              if (!visible(e.x, e.y)) return;
+              this.ui.fx('hit', e.x, e.y);
+              this.ui.fx(e.turret && e.killed ? 'boom' : 'num', e.x, e.y, e.turret && e.killed ? undefined : `${t('academy.beamFx')} ${hitText(e.hit, e.dmg)}`);
+              if (e.turret && e.killed && e.victim !== undefined) this.ui.toast(t('emplacement.destroyed', { name: t(`factions.${fid(e.victim)}.short`) }), 'trophy');
+              if (animate) this.view.shake(SHAKE.barrier * 1.5);
+            };
+            audio.orbital(animate && board.animations ? (NEUTRON_FX.ms * NEUTRON_FX.impact) / 1000 : 0);
+            await board.animateNeutron(s, c, { x: e.x, y: e.y }, animate, impact);
+            break;
+          }
+          // Abwehrraketen fangen ab: Blitz am Ziel und Hinweis / defence missiles intercept: flash at the target and a note
+          case 'intercept': {
+            if (!(e.faction === this.viewer || visible(e.x, e.y))) break;
+            this.play('hit');
+            this.ui.fx('hit', e.x, e.y);
+            this.ui.fx('num', e.x, e.y, t('academy.mod.missiles.fx'));
+            break;
+          }
+          // Rumpf: Treffer als Zahl / hull: hits as a number
+          case 'hull': {
+            const c = cityById(s, e.city);
+            if (c && visible(c.x, c.y) && e.what === 'hit') this.ui.fx('num', c.x, c.y, e.dmg ? `${t('academy.mod.armour.short')} -${e.dmg}` : hitText(e.hit, 0));
+            break;
+          }
+          // Ausbau gekauft: Modell neu (Module sichtbar) / upgrade bought: rebuild the model (modules visible)
+          case 'module': {
+            if (e.faction === this.viewer) this.play('build');
+            this.refresh();
             break;
           }
           // Beamer: Lichtsaeule an Abflug und Ankunft / beamer: column of light at departure and arrival
@@ -955,7 +1096,8 @@ export class Controller {
             const impact = () => {
               audio.impact('guidedMissile', true, fid(e.faction));
               for (const h of e.hits) if (visible(h.x, h.y)) { this.ui.fx('hit', h.x, h.y); this.ui.fx('num', h.x, h.y, `-${h.dmg}`); }
-              for (const p of e.tiles) if (visible(p.x, p.y)) this.ui.fx('boom', p.x, p.y);
+              // abgefangen (Abwehrraketen der Akademie): kein Einschlag / intercepted (academy defence missiles): no impact
+              if (!e.intercepted) for (const p of e.tiles) if (visible(p.x, p.y)) this.ui.fx('boom', p.x, p.y);
               if (animate) this.view.shake(ROCKET_FX.shake, ROCKET_FX.shakeMs);
             };
             audio.weapon('guidedMissile');

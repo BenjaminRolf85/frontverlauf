@@ -8,7 +8,7 @@
  * cat=basesF: every faction per kind (&lv= level), cat=naval: naval base per sea side
  * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
  * cat=special: Sonderbauarten der Fraktionen / faction designs
- * cat=academy: schwebende Akademie der Velkar (Boden, Luft, Stufen) und Forschungsposten (mit Beamer) / Velkar floating academy (ground, air, levels) and research posts (with beamer)
+ * cat=academy: schwebende Akademie der Velkar (Boden, Abheben, Luft, Terraformen, Stufen, niedrige Qualitaet) und Forschungsposten (mit Beamer) / Velkar floating academy (ground, lift, air, terraform, levels, low quality) and research posts (with beamer)
  */
 import '@fontsource/bangers';
 import * as THREE from 'three';
@@ -27,7 +27,7 @@ import { hackTowerGeometry } from './hacking';
 import { WONDER_FACTION, WONDER_TYPES, wonderGeometry } from './wonders';
 import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artifact';
 import { Builder } from './kit';
-import { ACADEMY_MODEL, academyGeometry, researchPostGeometry } from './academy';
+import { academyGeometry, academyRadarAt, academyRadarGeometry, poseY, researchPostGeometry, type AcademyPose } from './academy';
 import { look } from './look';
 
 /** tiles: Bodenflaeche in Brettfeldern (Wunder) / ground size in board tiles (wonders) */
@@ -124,16 +124,29 @@ function sheet(): Sheet {
       };
     }
     case 'academy': {
-      // Akademie am Boden und in der Luft (Luft: um die Schwebehoehe angehoben), Posten mit und ohne Beamer
-      // academy on the ground and in the air (air: raised by the hover height), post with and without beamer
+      // Akademie in allen Haltungen (am Boden, abhebend, schwebend, terraformend; um die Schwebehoehe angehoben, mit
+      // Radarantenne), niedrige Qualitaet, Posten mit und ohne Beamer
+      // academy in every pose (grounded, lifting, floating, terraforming; raised by the hover height, with the radar
+      // array), low quality, post with and without beamer
       const fs: FactionId[] = onlyFaction ? [onlyFaction] : ['velkar', 'korvat'];
-      const lift = (g: THREE.BufferGeometry) => { const c = g.clone(); c.translate(0, ACADEMY_MODEL.airY, 0); c.computeBoundingBox(); return c; };
+      const pose = (f: FactionId, lv: number, p: AcademyPose, low = false) => {
+        const b = new Builder();
+        b.addSmooth(academyGeometry(f, lv, p, low));
+        b.addSmooth(academyRadarGeometry(), { p: academyRadarAt(lv, p), r: [0, 0.8, 0] });
+        const g = b.build();
+        g.translate(0, poseY(p), 0);
+        g.computeBoundingBox();
+        return g;
+      };
       const variants: { label: string; geo: (f: FactionId) => THREE.BufferGeometry }[] = [
-        { label: 'ground L1', geo: (f) => academyGeometry(f, 1, false) },
-        { label: 'ground L4', geo: (f) => academyGeometry(f, 4, false) },
-        { label: 'ground L8', geo: (f) => academyGeometry(f, 8, false) },
-        { label: 'air L1', geo: (f) => lift(academyGeometry(f, 1, true)) },
-        { label: 'air L8', geo: (f) => lift(academyGeometry(f, 8, true)) },
+        { label: 'ground L1', geo: (f) => pose(f, 1, 'ground') },
+        { label: 'ground L4', geo: (f) => pose(f, 4, 'ground') },
+        { label: 'ground L8', geo: (f) => pose(f, 8, 'ground') },
+        { label: 'lift L4', geo: (f) => pose(f, 4, 'lift') },
+        { label: 'air L1', geo: (f) => pose(f, 1, 'air') },
+        { label: 'air L8', geo: (f) => pose(f, 8, 'air') },
+        { label: 'terraform L4', geo: (f) => pose(f, 4, 'terraform') },
+        { label: 'low L8', geo: (f) => pose(f, 8, 'ground', true) },
         { label: 'post', geo: (f) => researchPostGeometry(f, false) },
         { label: 'post relay', geo: (f) => researchPostGeometry(f, true) },
       ];

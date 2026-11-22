@@ -23,8 +23,10 @@ export interface TownInput {
    * smoke: smoke sources relative to the tile centre instead of the highest cell points (bases: the stacks only);
    * dark: no light pool (abandoned base).
    * rotors: drehende Rotoren relativ zur Feldmitte (BaseMeta.rotors) / spinning rotors relative to the tile centre (BaseMeta.rotors).
+   * beaconKey: Schluessel, unter dem das Brett das Leuchtfeuer verschieben kann (schwebende Akademie) / key under which the
+   * board can move the beacon (floating academy).
    */
-  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry; beacon?: [number, number, number]; smoke?: [number, number, number][]; dark?: boolean; rotors?: [number, number, number, number, number, number][] }[];
+  cities: { x: number; z: number; y: number; level: number; faction: FactionId | null; hq: boolean; govQuarter: boolean; geo: THREE.BufferGeometry; beacon?: [number, number, number]; beaconKey?: number; smoke?: [number, number, number][]; dark?: boolean; rotors?: [number, number, number, number, number, number][] }[];
   /**
    * Tiefenmaske fuer die Rotoren (hohe Qualitaet): Material und Zeichenreihenfolge wie bei den Stadtmasken (CITY_MASK).
    * Depth mask for the rotors (high quality): material and render order as for the city masks (CITY_MASK).
@@ -132,6 +134,8 @@ export class TownFx {
   private smoke: { mesh: THREE.InstancedMesh; line: THREE.InstancedMesh } | null = null;
   private emitters: Emitter[] = [];
   private beacons: { core: THREE.Mesh; halo: THREE.Sprite; phase: number }[] = [];
+  /** verschiebbare Leuchtfeuer (Akademie): Grundlage der Lage / movable beacons (academy): base position */
+  private movable = new Map<number, { core: THREE.Mesh; halo: THREE.Sprite; base: THREE.Vector3 }>();
   private rotors: Rotor[] = [];
   private rotorMeshes: THREE.InstancedMesh[] = [];
   /**
@@ -165,6 +169,7 @@ export class TownFx {
     // je Leuchtfeuer geklontes Halo-Material freigeben / dispose the halo material cloned per beacon
     for (const b of this.beacons) b.halo.material.dispose();
     this.beacons = [];
+    this.movable.clear();
     this.emitters = [];
     this.pools = [];
     this.rotors = [];
@@ -205,6 +210,7 @@ export class TownFx {
         halo.scale.setScalar(0.32);
         for (const o of [core, halo]) { o.raycast = () => {}; o.renderOrder = 6; this.group.add(o); }
         this.beacons.push({ core, halo, phase: (c.x * 3.1 + c.z * 1.7) % 6 });
+        if (c.beaconKey !== undefined) this.movable.set(c.beaconKey, { core, halo, base: core.position.clone() });
       }
       // Schornsteine: hoechste Punkte der Zellen, ohne Mast und Regierungskuppel / chimneys: highest cell points, no mast or gov dome
       if (c.smoke) {
@@ -242,6 +248,17 @@ export class TownFx {
       for (const m of [this.smoke.mesh, this.smoke.line]) { m.raycast = () => {}; m.frustumCulled = false; this.group.add(m); }
     } else this.smoke = null;
     this.update(0);
+  }
+
+  /**
+   * Leuchtfeuer key um (dx, dy, dz) gegen seine gebaute Lage verschieben (folgt dem Auf und Ab und den Uebergaengen der
+   * Akademie). Move beacon key by (dx, dy, dz) from its built position (follows the academy's bob and transitions).
+   */
+  shiftBeacon(key: number, dx: number, dy: number, dz: number) {
+    const b = this.movable.get(key);
+    if (!b) return;
+    b.core.position.set(b.base.x + dx, b.base.y + dy, b.base.z + dz);
+    b.halo.position.copy(b.core.position);
   }
 
   /** time in Sekunden (steht ohne Animationen) / time in seconds (frozen without animations) */

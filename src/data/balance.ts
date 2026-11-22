@@ -1372,6 +1372,9 @@ export const ORBITAL = {
  * the academy. Applies in free games (createGame sets City.academy); the campaign keeps the old rules because its mission
  * objectives count on Velkar cities.
  */
+/** Ausbau-Module der Akademie (ACADEMY.modules) / academy upgrade modules (ACADEMY.modules) */
+export type AcademyModule = 'shield' | 'missiles' | 'armour' | 'beam';
+export const ACADEMY_MODULES: AcademyModule[] = ['shield', 'missiles', 'armour', 'beam'];
 export const ACADEMY = {
   faction: 'velkar' as FactionId,
   /** Runden vom Abheben bis zum Schweben (die Akademie zieht ab dem naechsten eigenen Zug) / rounds from lift-off until floating (the academy moves from the next own turn) */
@@ -1382,6 +1385,23 @@ export const ACADEMY = {
   landGap: 2,
   /** beim Landen: neutrale Felder in diesem Umkreis werden Akademie-Gebiet / on landing: neutral tiles within this radius become academy territory */
   landClaim: 1,
+  /**
+   * Terraformen vor der Landung (Spielerwunsch): "Landen" startet eine Terraform-Runde auf dem jetzigen Feld; die Akademie
+   * bleibt so lange in der Luft (gleiche Angreifbarkeit, kein Ziehen) und landet zu Beginn ihres naechsten eigenen Zuges.
+   * Das Feld wird zu Ebene und Wiese (Berg, Wald, Flachwasser, Wueste, Tundra, Sumpf), tiefes Meer nicht. Ein Rohstoff wird
+   * aufgenommen: resourcePop Bevoelkerung fuer die Akademie. Neutrale Orte und Bauwerke werden eingeebnet (Spielerwunsch:
+   * "fuer die Wissenschaft ist alles rational ok"), nie etwas, das einer Fraktion gehoert, Wunder oder Wahrzeichen.
+   * Terraforming before landing (player request): "land" starts a terraforming round on the current tile; the academy
+   * stays in the air meanwhile (same vulnerability, no moving) and lands at the start of its next own turn. The tile
+   * becomes plain grassland (mountain, forest, shallow water, desert, tundra, swamp), deep ocean not. A resource is absorbed:
+   * resourcePop population for the academy. Neutral places and structures are levelled (player request: "for science
+   * everything is rationally fine"), never anything owned by a faction, wonders or landmarks.
+   * calmAfter: Runden ohne Produktion nach der Landung. 0 = die Akademie bildet schon im Landezug aus; die Terraform-Runde
+   * ersetzt so die fruehere Ruhe-Runde nach der Landung (gemessen: mit 1 fiel Velkar von 16,8 auf 12,5 % Siege).
+   * calmAfter: rounds without production after landing. 0 = the academy trains in the landing turn already; the
+   * terraforming round thus replaces the former rest round after landing (measured: with 1 Velkar fell from 16.8 to 12.5 % wins).
+   */
+  terraform: { rounds: 1, resourcePop: 1, calmAfter: 0 },
   /**
    * Ausbildung (Spielerwunsch: mit jedem Posten mehr Einheiten auf einmal): Einheiten je Zug = baseSlots + floor(Posten /
    * postsPerSlot), hoechstens maxSlots; sie erscheinen auf der Akademie oder auf freien Nachbarfeldern (die Hauptstadt ist
@@ -1427,6 +1447,64 @@ export const ACADEMY = {
    * relay falls meanwhile, the unit returns to the academy.
    */
   beamer: { cost: 25 },
+  /**
+   * Neutronenstrahl (Spielerwunsch: "die Akademie selbst hat Waffen, einen Neutronenstrahl der immerhin bis zu 10 Schaden
+   * macht", "Reichweite: 3 Felder"): die Akademie feuert auf eine sichtbare feindliche Einheit oder ein feindliches Bauwerk
+   * (Geschuetz, Silo, Hackturm) bis range Felder (Schachbrett-Abstand), keine Staedte. Am Boden, schwebend und beim
+   * Terraformen, nicht in der Runde des Abhebens. Fester Schaden damage ohne Kampfformel; mit Trefferglueck nach den Chancen
+   * von race, kritische Treffer zaehlen als volle (nie mehr als damage), Wind lenkt den Strahl nicht ab; ohne Trefferglueck
+   * immer damage (verschanzte Ziele wie beim Rueckzug ueber den Erwartungswert). Kein Gegenschlag, keine Befoerderung,
+   * unabhaengig von der Ausbildung. shots = Schuesse je eigenem Zug je Stufe des Moduls Strahl (Stufe 1 ist eingebaut),
+   * cooldown = zusaetzliche Ruherunden je Stufe, nachdem alle Schuesse eines Zuges verbraucht sind (0 = jeden Zug; gemessen,
+   * BALANCING.md: mit einem Schuss je Zug gewann Velkar 38 %, also feuert der eingebaute Strahl jeden zweiten Zug, der
+   * Verstaerker macht ihn zum Strahl jeden Zug; eine dritte Stufe mit zwei Schuessen gewann als Festung noch 41 %).
+   * Neutron beam (player request: "the academy itself has weapons, a neutron beam dealing up to 10 damage", "range: 3
+   * tiles"): the academy fires at one visible hostile unit or hostile structure (gun, silo, hack tower) within range tiles
+   * (Chebyshev distance), no cities. On the ground, floating and while terraforming, not in the lift-off round. Flat damage
+   * without the combat formula; with hit luck by the odds of race, critical hits count as full (never more than damage),
+   * wind does not deflect the beam; without hit luck always damage (entrenched targets via the expected value as for the
+   * retreat). No return fire, no promotion, independent of training. shots = shots per own turn per level of the beam module
+   * (level 1 is built in), cooldown = extra rest rounds per level after all shots of a turn are used (0 = every turn; measured,
+   * BALANCING.md: with a shot every turn Velkar won 38 %, so the built-in beam fires every other turn, the amplifier makes it
+   * every turn; a third level with two shots still won 41 % as the fortress).
+   */
+  beam: { damage: 10, range: 3, shots: [1, 1], cooldown: [1, 0], race: 'human' as HitRace },
+  /**
+   * Ausbau der Akademie (Spielerwunsch: entweder die typische Armee oder die Akademie zur fliegenden Festung erweitern,
+   * durchhalten und dann damit angreifen). Vier Module, je Stufe ein Preis (costs, Sterne); kaeuflich am Boden und in der
+   * Luft (die Festung baut im Flug aus, anders als Ausbildung und Grundschild), eine Stufe je Zug und Modul.
+   * - shield: Verstaerkung des Schutzschilds (der Grundschild bleibt wie bisher): je Stufe +hp LP und +regen Aufladung.
+   * - missiles: Abwehrraketen: je Stufe ein Abfang zwischen zwei eigenen Zuegen. Abgefangen werden Angriffe von Fliegern
+   *   (auch Drohnen, Lenkflugkoerper) und Mech-Raketen auf die Akademie und auf eigene Einheiten auf oder neben ihr (kein
+   *   Schaden, kein Gegenschlag, der Angriff ist verbraucht) sowie Raketensilo-Einschlaege, deren Flaeche die Akademie oder
+   *   ein Nachbarfeld trifft (die ganze Rakete). Bodenbeschuss, Rundenfeuer von Geschuetzen und Flak nicht (gemessen: mit
+   *   Fernangriffen aus 2 Feldern war die Festung zu stark).
+   * - armour: Panzerung: Rumpf mit hp LP je Stufe (laedt regen je eigenem Zug auf). Was durch den Schild kommt, trifft den
+   *   Rumpf; erst ohne Rumpf erzwingt ein Treffer in der Luft die Notlandung, am Boden ist die Akademie erst ohne Schild und
+   *   Rumpf einzunehmen (am Boden greifen Einheiten dann den Rumpf an). defense = Abwehrwert des Rumpfs wie beim Schild.
+   * - beam: Strahlverstaerker, Neutronenstrahl Stufe 2: feuert jeden Zug statt jeden zweiten (beam.cooldown); Schaden und
+   *   Reichweite bleiben (gemessen: eine dritte Stufe mit zwei Schuessen machte die Festung zu stark).
+   * Academy upgrades (player request: either the typical army or expand the academy into a flying fortress, hold out and
+   * then attack with it). Four modules, one price per level (costs, stars); bought on the ground and in the air (the
+   * fortress upgrades in flight, unlike training and the base shield), one level per turn and module.
+   * - shield: shield reinforcement (the base shield stays as before): per level +hp HP and +regen recharge.
+   * - missiles: defence missiles: one interception per level between two own turns. Intercepted are attacks by flyers
+   *   (drones and guided missiles too) and mech rockets on the academy and on own units on or next to it (no damage, no
+   *   return fire, the attack is spent) and rocket silo strikes whose area hits the academy or an adjacent tile (the whole
+   *   rocket). Ground fire, round fire of guns and flak is not (measured: with ranged attacks from 2 tiles the fortress was
+   *   too strong).
+   * - armour: hull with hp HP per level (recharges regen per own turn). What gets through the shield hits the hull; only
+   *   without a hull does a hit in the air force the emergency landing, on the ground the academy can only be captured
+   *   without shield and hull (on the ground units then attack the hull). defense = defence value of the hull like the shield.
+   * - beam: beam amplifier, neutron beam level 2: fires every turn instead of every other (beam.cooldown); damage and range
+   *   stay (measured: a third level with two shots made the fortress too strong).
+   */
+  modules: {
+    shield: { costs: [50, 70], hp: 10, regen: 2 },
+    missiles: { costs: [50, 70, 90] },
+    armour: { costs: [50, 70, 90], hp: 10, regen: 2, defense: 3 },
+    beam: { costs: [90] },
+  },
   /** Grundverteidigung der Akademie fuer eigene Bodeneinheiten auf ihrem Feld (wie BASES.defense) / base defence of the academy for own ground units on its tile */
   defense: 1,
   /**
@@ -1442,8 +1520,32 @@ export const ACADEMY = {
    * posts from relayDist tiles away from the academy, one per relaysPerPosts posts; beam when the relay is beamGain tiles
    * closer to the unit's goal. Profile of Velkar with an academy: more armyPerCity and aggression (measured, BALANCING.md:
    * everything comes from one city, without the bonus the AI hoarded stars).
+   * Terraformen (ACADEMY.terraform): jede Runde ohne Produktion (Flug und Terraform-Runde) kostet turnCost; ohne Schild
+   * kostet jeder Flieger, jede Flak und jeder Panzer bis hunterRange Felder vom Platz hunterCost, am Ziel weicht sie einmal
+   * je Flug aus, und ohne Schild zieht sie nicht um, solange solche Jaeger bis hunterRange heran sind; einen neutralen Ort
+   * einzuebnen kostet razePenalty plus seine Stufe (Einnehmen als Posten ist mehr wert). Gemessen, BALANCING.md.
+   * Terraforming (ACADEMY.terraform): each round without production (flight and terraforming round) costs turnCost;
+   * without a shield each flyer, flak and tank within hunterRange tiles of the site costs hunterCost, at the goal it dodges
+   * once per flight, and without a shield it does not relocate while such hunters are within hunterRange; levelling a
+   * neutral place costs razePenalty plus its level (capturing it as a post is worth more). Measured, BALANCING.md.
    */
-  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3 },
+  ai: { minGain: 4, cooldown: 10, threatRatio: 4, shieldRound: 6, search: 6, frontKeep: 3, beamGain: 4, relayDist: 5, relaysPerPosts: 3, armyPerCity: 0.6, aggression: 0.3, turnCost: 0.6, hunterRange: 4, hunterCost: 3, razePenalty: 6,
+    /**
+     * Neutronenstrahl und Festung (KI): Anteil der Partien mit Festungs-Strategie (fester Wurf aus Startwert und Fraktion),
+     * Wert eines Abschusses, Gewicht von Bedrohungen der Akademie; Festung: Reihenfolge der Modulstufen, Kern (die ersten
+     * fortressCore Stufen und der Grundschild) bis zum Angriff, Armee-Abschlag, Zielabstand zur Front im Angriff, Umzug-Abklingzeit und Mindestgewinn im Angriff, Reichweite der Belagerung (feindliche Stadt bis so viele Felder; die
+     * Akademie schwebt dann bis fortressFront heran und bleibt hoechstens fortressSiege Runden in der Luft), Ausbau erst ab Runde fortressRound, Wert je
+     * Modulstufe vor und nach dem Kern;
+     * Gegner: Gewicht des Strahls im erwarteten Schaden (leicht).
+     * Neutron beam and fortress (AI): share of games with the fortress strategy (fixed roll from seed and faction), value
+     * of a kill, weight of threats to the academy; fortress: order of module levels, core (the first fortressCore levels and
+     * the base shield) before the attack, army discount, target
+     * distance to the front while attacking, relocation cooldown while attacking, value per module level; enemies:
+     * weight of the beam in the expected damage (light).
+     */
+    fortressShare: 0.5, beamKill: 1.5, beamThreat: 1.5,
+    fortressOrder: ['armour', 'missiles', 'beam', 'shield', 'armour', 'missiles', 'shield', 'armour', 'missiles'] as AcademyModule[],
+    fortressCore: 3, fortressArmy: 0.5, fortressFront: 2, fortressCooldown: 4, fortressGain: 1.5, fortressReach: 9, fortressSiege: 10, fortressRound: 8, moduleValue: 2.2, moduleLate: 1, beamFear: 0.5 },
 };
 
 /** Stadt-Ausbauten in Slots / city upgrades in slots */

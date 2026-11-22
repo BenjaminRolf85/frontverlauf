@@ -205,6 +205,8 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   academyMove: ACADEMY.move,
   academyLift: ACADEMY.liftRounds,
   academyLandGap: ACADEMY.landGap,
+  academyTerraform: ACADEMY.terraform.rounds,
+  academyTerraformPop: ACADEMY.terraform.resourcePop,
   academyBaseSlots: ACADEMY.baseSlots,
   academyMaxSlots: ACADEMY.maxSlots,
   academyPostUnits: ACADEMY.postUnits,
@@ -215,4 +217,12 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   academyShieldRegen: ACADEMY.shield.regen,
   academyShieldRebuild: ACADEMY.shield.rebuildRounds,
   beamerCost: ACADEMY.beamer.cost,
+  // Neutronenstrahl und Ausbau der Akademie (ACADEMY.beam, ACADEMY.modules) / neutron beam and academy upgrades
+  academyBeamRange: ACADEMY.beam.range,
+  academyBeamDamage: ACADEMY.beam.damage,
+  academyBeamEvery: ACADEMY.beam.cooldown[0] + 1,
+  academyModShieldHp: ACADEMY.modules.shield.hp,
+  academyModShieldRegen: ACADEMY.modules.shield.regen,
+  academyModArmourHp: ACADEMY.modules.armour.hp,
+  academyModArmourRegen: ACADEMY.modules.armour.regen,
 };

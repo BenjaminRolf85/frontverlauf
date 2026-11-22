@@ -2,8 +2,8 @@
  * KI-Profile je Schwierigkeit, Fraktion und Spielmodus.
  * AI profiles per difficulty, faction and game mode.
  */
-import { ACADEMY, type Difficulty, type FactionId, type UnitTypeId } from '../data/balance';
-import { academyOf, type GameState } from '../core';
+import { ACADEMY, type AcademyModule, type Difficulty, type FactionId, type UnitTypeId } from '../data/balance';
+import { academyOf, moduleLevel, type GameState } from '../core';
 
 export interface Profile {
   difficulty: Difficulty;
@@ -81,7 +81,9 @@ export function profileFor(s: GameState, f: number): Profile {
     case 'velkar': {
       p.pref = { pioneer: 1.4, protoWalker: 1.2 }; // Forschungsvorsprung (Rabatt genuegt, kein Zusatzgewicht) / research lead (the discount suffices, no extra weight)
       // schwebende Akademie: alles kommt aus einer Stadt, also groessere und entschlossenere Armee (ACADEMY.ai) / floating academy: everything comes from one city, so a bigger, bolder army (ACADEMY.ai)
-      if (academyOf(s, f)) { p.armyPerCity += ACADEMY.ai.armyPerCity; p.aggression += ACADEMY.ai.aggression; }
+      // Festung (academyStrategy): bis der Kern steht, gehen Sterne in den Ausbau, also nur ein Teil des Zuschlags
+      // fortress (academyStrategy): until the core stands, stars go into the upgrades, so only part of the bonus
+      if (academyOf(s, f)) { p.armyPerCity += ACADEMY.ai.armyPerCity * (academyStrategy(s, f) === 'fortress' && !fortressReady(s, f) ? ACADEMY.ai.fortressArmy : 1); p.aggression += ACADEMY.ai.aggression; }
       break;
     }
     // Zyrr: opportunistische Pluenderer, Gleiter und Dreibeiner umgehen die Front und suchen unbewachte Staedte
@@ -116,6 +118,20 @@ export function profileFor(s: GameState, f: number): Profile {
 }
 
 /** Deterministisches Pseudo-Rauschen aus Zahlen (kein Math.random) / deterministic pseudo noise from numbers */
+/**
+ * Strategie der Velkar mit Akademie (Spielerwunsch: typische Armee oder fliegende Festung): fester Wurf aus Startwert und
+ * Fraktion, Anteil ACADEMY.ai.fortressShare; kleine Karten (Front nah) etwas mehr Festung, grosse etwas weniger. Ohne
+ * Akademie immer Armee. Kein Zustand im Spielstand noetig (nach dem Laden gleich).
+ * Strategy of Velkar with an academy (player request: typical army or flying fortress): fixed roll from seed and faction,
+ * share ACADEMY.ai.fortressShare; small maps (front close) a bit more fortress, big ones a bit less. Without an academy
+ * always army. No state in the save needed (the same after loading).
+ */
+export function academyStrategy(s: GameState, f: number): 'army' | 'fortress' {
+  if (!academyOf(s, f)) return 'army';
+  const share = ACADEMY.ai.fortressShare + (s.size <= 14 ? 0.1 : -0.1);
+  return hashNoise(s.config.seed, f, 7331) < share ? 'fortress' : 'army';
+}
+
 export function hashNoise(...xs: number[]): number {
   let h = 0x9e3779b9 | 0;
   for (const x of xs) {
@@ -124,4 +140,33 @@ export function hashNoise(...xs: number[]): number {
   }
   h ^= h >>> 13;
   return ((h >>> 0) % 10000) / 10000;
+}
+
+/**
+ * Naechste Modulstufe der Festungs-Strategie (null = Armee, fertig oder keine Akademie): der erste Eintrag in
+ * ACADEMY.ai.fortressOrder, dessen Stufe noch fehlt (das k-te Vorkommen eines Moduls ist seine k-te Stufe).
+ * Next module level of the fortress strategy (null = army, done or no academy): the first entry in
+ * ACADEMY.ai.fortressOrder whose level is still missing (the k-th occurrence of a module is its k-th level).
+ */
+export function nextModule(s: GameState, f: number): AcademyModule | null {
+  const ac = academyOf(s, f);
+  if (!ac || academyStrategy(s, f) !== 'fortress') return null;
+  const seen: Partial<Record<AcademyModule, number>> = {};
+  for (const m of ACADEMY.ai.fortressOrder) {
+    const k = (seen[m] = (seen[m] ?? 0) + 1);
+    if (moduleLevel(ac, m) < k) return m;
+  }
+  return null;
+}
+
+/** Kern der Festung fertig (Grundschild gebaut und die ersten ACADEMY.ai.fortressCore Stufen)? / fortress core done (base shield and the first fortressCore levels)? */
+export function fortressReady(s: GameState, f: number): boolean {
+  const ac = academyOf(s, f);
+  if (!ac || academyStrategy(s, f) !== 'fortress') return false;
+  const seen: Partial<Record<AcademyModule, number>> = {};
+  for (const m of ACADEMY.ai.fortressOrder.slice(0, ACADEMY.ai.fortressCore)) {
+    const k = (seen[m] = (seen[m] ?? 0) + 1);
+    if (moduleLevel(ac, m) < k) return false;
+  }
+  return !!ac.shield || ac.shieldReady !== undefined;
 }

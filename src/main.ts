@@ -275,7 +275,7 @@ function boot() {
         case 'siloLaunch': case 'fireHit': case 'sabotage': case 'radarSweep': { const st = shadowToast(e, s, viewer); if (st) toast(root, st.text, st.icon); break; }
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Schwebende Akademie, Schild, Posten, Beamer (Velkar) / floating academy, shield, post, beamer (Velkar)
-        case 'academy': case 'shield': case 'post': case 'beam': { const a = academyToast(e, s, viewer); if (a) toast(root, a.text, a.icon); break; }
+        case 'academy': case 'shield': case 'post': case 'beam': case 'module': case 'intercept': case 'hull': { const a = academyToast(e, s, viewer); if (a) toast(root, a.text, a.icon); break; }
         // Orbitallaser: fuer alle, die den Einschlag sehen / orbital laser: for everyone who sees the impact
         case 'orbitalStrike':
           if (viewer < 0 || e.faction === viewer || e.tiles.some((p) => s.factions[viewer].explored[p.y * s.size + p.x] === 1)) toast(root, t('orbital.toast', { name: fname(e.faction) }), 'satellite');

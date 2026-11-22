@@ -9,7 +9,7 @@ import {
   unitCost, upgradeCheck, rewardOptions, expandRadius, freeRingTiles, buyLevelCheck, buyLevelCost, levelUpCost, harbourCities, hasCityUpgrade, type City, type Command, type GameState, type Unit,
   factionVictoryOn, isWonder, victoryStatus, victoryTechOf, judges, deedSinner, sinnerCount, wonderKindOf, wonderSites, wondersOf, researchAllowed, korvatNeed, meridonNeed, ownCities,
   baseBuilding, countBuildings, inContact, pilgrimVeteranAt, resourceSiteOk, usesSites, shipUpgradeCost, siteOf, citySites, diplomacyLocked, canEmbark, has, shipSpawnTile, factionVariant, rosterShips,
-  siloUnit, academyOf, shieldCheck, beamerCheck,
+  siloUnit, academyOf, shieldCheck, beamerCheck, moduleCheck, moduleCost,
 } from '../core';
 import {
   AI, ACADEMY, CULT, UPKEEP, SILO, ROSTERS, ORBITAL, ALIEN_UNITS, XENO, BUILDINGS, RESOURCE, CITY_UPGRADES, CITY_UPGRADE_IDS, GRAND_PROJECT_IDS, LOGISTICS_SOURCES, RESEARCH_CENTER_TECH, TECHS, TECH_IDS, UNIQUE, UNITS,
@@ -17,7 +17,7 @@ import {
 } from '../data/balance';
 import { worth, type Ctx } from './analysis';
 import { relayTechBonus, relayValue } from './orbital';
-import { hashNoise } from './profile';
+import { academyStrategy, fortressReady, hashNoise, nextModule } from './profile';
 import { cmdKey } from './tactics';
 import { emplacementPioneerShare, emplacementTechBonus } from './emplacements';
 import { siloBuy, siloMissileBuys, siloPioneerShare } from './shadowFleet';
@@ -929,8 +929,21 @@ export function planPurchase(ctx: Ctx, failed: Failed): Command | null {
     if (chk === 'ok' || chk === 'notEnoughStars') {
       const threatened = ctx.enemies.some((e) => dist(e, ac) <= 4 && UNITS[e.type].attack > 0);
       const cost = ACADEMY.shield.cost;
-      const value = threatened ? cost * 3 : s.round >= ACADEMY.ai.shieldRound ? cost * 1.1 * prof.militaryW : 0;
+      // Festung: der Grundschild gehoert zum Kern, frueh und hoch bewertet / fortress: the base shield belongs to the core, early and highly valued
+      const fort = academyStrategy(s, f) === 'fortress';
+      const value = threatened ? cost * 3 : fort && s.round >= ACADEMY.ai.fortressRound ? cost * ACADEMY.ai.moduleValue : s.round >= ACADEMY.ai.shieldRound ? cost * 1.1 * prof.militaryW : 0;
       if (value > 0) buys.push({ cmd: { type: 'academyShield', city: ac.id }, cost, value, save: !threatened });
+    }
+    // Festung: Module in fester Reihenfolge (ACADEMY.ai.fortressOrder), immer nur die naechste Stufe; Armee kauft keine
+    // fortress: modules in a fixed order (ACADEMY.ai.fortressOrder), always only the next level; the army buys none
+    const next = s.round >= ACADEMY.ai.fortressRound ? nextModule(s, f) : null;
+    if (next) {
+      const chk = moduleCheck(s, f, ac, next);
+      if (chk === 'ok' || chk === 'notEnoughStars') {
+        const cost = moduleCost(ac, next);
+        // nach dem Kern weniger dringend: dann geht die Armee vor / after the core less urgent: then the army comes first
+        buys.push({ cmd: { type: 'academyModule', city: ac.id, module: next }, cost, value: cost * (fortressReady(s, f) ? ACADEMY.ai.moduleLate : ACADEMY.ai.moduleValue), save: true });
+      }
     }
     // Beamer-Relay auf fernen Posten nahe der Front, hoechstens eines je ACADEMY.ai.relaysPerPosts Posten (mindestens eines)
     // beam relay on distant posts near the front, at most one per ACADEMY.ai.relaysPerPosts posts (at least one)
@@ -1119,3 +1132,4 @@ function bestShip(ctx: Ctx, u: Unit): UnitTypeId | null {
   }
   return null;
 }
+
