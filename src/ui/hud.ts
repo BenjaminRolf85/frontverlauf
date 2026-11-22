@@ -30,7 +30,7 @@ import { techIcon, techT } from './terms';
 import { victoryGoalText, wonderPanel } from './victory';
 import { sinTag } from './sin';
 import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
-import { academyActions, academySheet, postActions, unitAcademyActions } from './academy';
+import { academyActions, academySheet, beamSheet, postActions, unitAcademyActions } from './academy';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
 import { cityHackHtml, hackCityAction, hackPlaceAction, hackTowerBuildAction, hackTowerTile, hijackSheet, hijackTag } from './hacking';
 import { shipSheet, workAction } from './mothership';
@@ -575,6 +575,8 @@ export class Hud {
     else if (g.siloFrom && g.isHumanTurn) { const o = siloSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     // Hackturm: Zielauswahl "Einheit uebernehmen" (NEXUS) / hack tower: "take over unit" targeting (NEXUS)
     else if (g.hackFrom && g.isHumanTurn) { const o = hijackSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    // Neutronenstrahl der Akademie: Zielauswahl (Velkar) / academy neutron beam: targeting (Velkar)
+    else if (g.beamCity !== null && g.isHumanTurn) { const o = beamSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.selected && !g.aiRunning) sheet = this.sheet(s, g.selected.x, g.selected.y);
     const humanTurn = g.isHumanTurn;
     this.bottom.innerHTML = `

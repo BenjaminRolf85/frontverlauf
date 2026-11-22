@@ -39,7 +39,7 @@ import { AlienWorldFx, alienCloud, alienPlantGeometry, alienTint, crystalSpireGe
 import { alienBurrowGeometry } from './models/alienFlora';
 import { towerGeometry } from './models/towers';
 import { cityHeight, hqMastTop } from './models/city';
-import { ACADEMY_MODEL, academyBeacon, academyGeometry, academyPose, academyRadarAt, academyRadarGeometry, hoverShadowColor, poseY, researchPostGeometry, shieldColor, shieldGeometry, terraformColor } from './models/academy';
+import { ACADEMY_MODEL, academyBeacon, academyEmitter, academyGeometry, academyPose, academyRadarAt, academyRadarGeometry, hoverShadowColor, poseY, researchPostGeometry, shieldColor, shieldGeometry, terraformColor } from './models/academy';
 import type { City } from '../core';
 import { BASE_ICON, baseName } from '../ui/bases';
 import { DesertWorldFx } from './desertWorld';
@@ -2028,7 +2028,8 @@ export class Board {
     const air = !!c.academy && !!c.air;
     const pose = c.academy ? academyPose(c.air) : 'ground';
     const low = this.quality === 'low';
-    const g = withGlow(c.post ? researchPostGeometry(fid, !!c.relay) : academyGeometry(fid, c.level, pose, low), 'built', 0.6);
+    // Ausbau-Module sichtbar am Modell (ACADEMY.modules) / upgrade modules visible on the model (ACADEMY.modules)
+    const g = withGlow(c.post ? researchPostGeometry(fid, !!c.relay) : academyGeometry(fid, c.level, pose, low, c.mods ?? {}), 'built', 0.6);
     const group = new THREE.Group();
     group.position.copy(this.tileCenter(s, c.x, c.y));
     const obj = outlined(g, OUTLINE.building, landMaterial());
@@ -2319,6 +2320,80 @@ export class Board {
     });
   }
 
+  /**
+   * Neutronenstrahl (ACADEMY.beam): Ladekugel an der Linse der Tesla-Spule, Strahl mit hellem Kern und weichem Mantel zum
+   * Ziel, Einschlag mit Blitzring; folgt dem Auf und Ab der schwebenden Akademie. onImpact beim Einschlag (Zahlen, Beben).
+   * Ohne Animation sofort onImpact. Farben aus den Tokens (Tech-Leuchten der Velkar, Lichtbogen).
+   * Neutron beam (ACADEMY.beam): charge sphere at the lens of the tesla spire, beam with a bright core and a soft sheath to
+   * the target, impact with a flash ring; follows the bob of the floating academy. onImpact at the impact (numbers, shake).
+   * Without animation onImpact at once. Colours from the tokens (Velkar tech glow, arc).
+   */
+  animateNeutron(s: GameState, c: City, target: { x: number; y: number }, animate: boolean, onImpact: () => void): Promise<void> {
+    const a = this.academyObjs.get(c.id);
+    if (!animate || !this.animations) { onImpact(); return Promise.resolve(); }
+    const pose = academyPose(c.air);
+    const origin = () => {
+      const base = a ? a.group.position.clone() : this.tileCenter(s, c.x, c.y);
+      const hover = a ? a.obj.position.y : poseY(pose);
+      const [ex, ey, ez] = academyEmitter(c.level, hover, pose);
+      return base.add(new THREE.Vector3(ex, ey, ez));
+    };
+    const b = this.tileCenter(s, target.x, target.y).add(new THREE.Vector3(0, 0.3, 0));
+    const glow = new THREE.Color(hex(semantic.velkarTechGlow)), arc = new THREE.Color(hex(semantic.velkarTechArc));
+    const coreMat = new THREE.MeshBasicMaterial({ color: arc, transparent: true, opacity: 0, depthWrite: false });
+    const sheathMat = new THREE.MeshBasicMaterial({ color: glow, transparent: true, opacity: 0, depthWrite: false });
+    const flashMat = new THREE.MeshBasicMaterial({ color: arc, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    const coreGeo = new THREE.CylinderGeometry(0.035, 0.035, 1, 8, 1, true);
+    const sheathGeo = new THREE.CylinderGeometry(0.095, 0.095, 1, 10, 1, true);
+    const ballGeo = new THREE.SphereGeometry(0.09, 12, 8);
+    const ringGeo = new THREE.RingGeometry(0.18, 0.3, 32).rotateX(-Math.PI / 2);
+    const core = new THREE.Mesh(coreGeo, coreMat), sheath = new THREE.Mesh(sheathGeo, sheathMat);
+    const ball = new THREE.Mesh(ballGeo, sheathMat), hitBall = new THREE.Mesh(ballGeo, flashMat), ring = new THREE.Mesh(ringGeo, flashMat);
+    ring.position.copy(this.tileCenter(s, target.x, target.y)).add(new THREE.Vector3(0, 0.05, 0));
+    hitBall.position.copy(b);
+    const parts = [core, sheath, ball, hitBall, ring];
+    for (const m of parts) { m.raycast = () => {}; m.visible = false; }
+    this.unitLayer.add(...parts);
+    let hit = false;
+    const up = new THREE.Vector3(0, 1, 0);
+    return this.addAnim(NEUTRON_FX.ms, (t) => {
+      const o = origin();
+      // Laden: Kugel waechst an der Linse / charge: the sphere grows at the lens
+      const charge = Math.min(1, t / NEUTRON_FX.charge);
+      ball.visible = t < NEUTRON_FX.fade;
+      ball.position.copy(o);
+      ball.scale.setScalar(0.3 + 0.9 * charge * (t > NEUTRON_FX.charge ? 0.7 + 0.3 * Math.sin(t * 60) : 1));
+      sheathMat.opacity = 0.45 + 0.4 * charge;
+      // Strahl: schiesst zum Ziel, flackert, verblasst / beam: shoots to the target, flickers, fades
+      const k = t < NEUTRON_FX.charge ? 0 : Math.min(1, (t - NEUTRON_FX.charge) / (NEUTRON_FX.impact - NEUTRON_FX.charge));
+      const tip = o.clone().lerp(b, k);
+      const len = Math.max(1e-3, o.distanceTo(tip));
+      for (const m of [core, sheath]) {
+        m.visible = k > 0 && t < 1;
+        m.position.copy(o).add(tip).multiplyScalar(0.5);
+        m.quaternion.setFromUnitVectors(up, tip.clone().sub(o).normalize());
+        m.scale.set(1, len, 1);
+      }
+      const fade = t < NEUTRON_FX.fade ? 1 : Math.max(0, 1 - (t - NEUTRON_FX.fade) / (1 - NEUTRON_FX.fade));
+      coreMat.opacity = 0.95 * fade * (0.8 + 0.2 * Math.sin(t * 90));
+      sheath.scale.x = sheath.scale.z = 1 + 0.25 * Math.sin(t * 50);
+      if (k >= 1 && !hit) { hit = true; onImpact(); }
+      // Einschlag: Blitzkugel und Ring breiten sich aus / impact: flash ball and ring spread out
+      const h = t < NEUTRON_FX.impact ? 0 : (t - NEUTRON_FX.impact) / (1 - NEUTRON_FX.impact);
+      hitBall.visible = ring.visible = h > 0 && t < 1;
+      hitBall.scale.setScalar(0.6 + 1.6 * h);
+      ring.scale.setScalar(0.6 + 1.8 * h);
+      flashMat.opacity = 0.9 * (1 - h);
+      if (t >= 1) {
+        if (!hit) onImpact();
+        this.unitLayer.remove(...parts);
+        for (const m of [coreMat, sheathMat, flashMat]) m.dispose();
+        for (const g of [coreGeo, sheathGeo, ballGeo, ringGeo]) g.dispose();
+      }
+      this.dirty = true;
+    });
+  }
+
   finishAnimations() {
     this.combat.clear();
     this.orbital.end();
@@ -2330,6 +2405,9 @@ export class Board {
 }
 
 export type { Unit };
+
+/** Ablauf des Neutronenstrahls (Anteile der Dauer ms) / timing of the neutron beam (shares of the duration ms) */
+export const NEUTRON_FX = { ms: 820, charge: 0.3, impact: 0.45, fade: 0.7 };
 
 /** Materialien der Akademie (Schatten, Schild je LP-Stufe), einmal je Art / academy materials (shadow, shield per HP step), once per kind */
 const ACADEMY_MATS = new Map<string, THREE.Material>();

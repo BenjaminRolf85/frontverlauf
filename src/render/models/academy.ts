@@ -17,7 +17,7 @@
  * Ursprung unten mittig, Massstab wie die Stadt (ein Feld = 1) / origin bottom centre, scale like the city (one tile = 1).
  */
 import * as THREE from 'three';
-import type { FactionId } from '../../data/balance';
+import type { AcademyModule, FactionId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { addEmblem } from './emblems';
 import { Builder, col, geo, memo, shade, type V3 } from './kit';
@@ -79,10 +79,71 @@ const SPIRE_H = 0.3;
  * Academy geometry. pose (or true = floating, false = on the ground); origin = platform underside in the air, otherwise the
  * ground. low = low quality (no railings, ribs and small parts). Faction for accents.
  */
-export function academyGeometry(f: FactionId | null, level: number, pose: boolean | AcademyPose, low = false): THREE.BufferGeometry {
+export function academyGeometry(f: FactionId | null, level: number, pose: boolean | AcademyPose, low = false, mods: AcademyMods = {}): THREE.BufferGeometry {
   const lv = Math.max(1, Math.min(8, Math.floor(level)));
   const p = asPose(pose);
-  return memo(`academy|${f ?? 'neutral'}|${lv}|${p}|${low ? 'low' : 'high'}`, () => academy(f, lv, p, low).build());
+  const m = modsKey(mods);
+  return memo(`academy|${f ?? 'neutral'}|${lv}|${p}|${low ? 'low' : 'high'}|${m}`, () => academy(f, lv, p, low, mods).build());
+}
+
+/** Gekaufte Modulstufen (ACADEMY.modules) fuer das Modell / bought module levels (ACADEMY.modules) for the model */
+export type AcademyMods = Partial<Record<AcademyModule, number>>;
+const MOD_ORDER: AcademyModule[] = ['shield', 'missiles', 'armour', 'beam'];
+const modsKey = (m: AcademyMods) => MOD_ORDER.map((k) => Math.max(0, Math.min(3, Math.floor(m[k] ?? 0)))).join('');
+
+/**
+ * Austrittspunkt des Neutronenstrahls (Linse an der Spitze der Tesla-Spule) relativ zur Feldmitte, wie academyBeacon.
+ * Exit point of the neutron beam (lens at the tip of the tesla spire) relative to the tile centre, like academyBeacon.
+ */
+export function academyEmitter(level: number, hover: number, pose: boolean | AcademyPose): [number, number, number] {
+  const k = ACADEMY_MODEL.scale;
+  const top = baseOf(asPose(pose)) + ACADEMY_MODEL.deck;
+  void level;
+  return [SPIRE[0] * k, hover + (top + SPIRE_H + EMITTER_Y) * k, SPIRE[1] * k];
+}
+/** Hoehe der Strahllinse ueber der Spulenspitze / height of the beam lens above the spire tip */
+const EMITTER_Y = 0.075;
+/** Schlichter Quader (12 Dreiecke, fuer das Budget der Module) / plain box (12 triangles, for the modules' budget) */
+const pbox = (b: Builder, w: number, h: number, d: number, c: THREE.Color, p: V3, r?: V3) => b.add(geo.box(w, h, d), c, { p, ...(r ? { r } : {}) });
+
+/**
+ * Sichtbare Module (ACADEMY.modules), in schlichten Quadern, damit die volle Festung im Dreiecksbudget bleibt:
+ * Neutronenstrahl = Linse und Kragen an der Spulenspitze (immer, eingebaut), je Ausbaustufe ein Spulenband;
+ * Abwehrraketen = je Stufe ein Werferkasten am Deckrand mit leuchtenden Kappen; Panzerung = je Stufe zwei (niedrig: eine)
+ * Platten am Rumpfrand; Schildverstaerkung = je Stufe ein Generatormast auf dem inneren Deck.
+ * Visible modules (ACADEMY.modules), in plain boxes so the full fortress stays within the triangle budget: neutron beam =
+ * lens and collar at the spire tip (always, built in), one coil band per upgrade level; defence missiles = one launcher box
+ * on the deck rim per level with glowing caps; armour = two (low: one) plates on the hull rim per level; shield
+ * reinforcement = one generator mast on the inner deck per level.
+ */
+function academyModules(b: Builder, base: number, top: number, low: boolean, mods: AcademyMods, primary: THREE.Color) {
+  const lvl = (k: AcademyModule) => Math.max(0, Math.min(3, Math.floor(mods[k] ?? 0)));
+  const [sx0, sz0] = SPIRE;
+  // Neutronenstrahl: Kragen und Linse ueber der Kugel / neutron beam: collar and lens above the sphere
+  pbox(b, 0.05, 0.012, 0.05, TECH.gearDark, [sx0, top + SPIRE_H + 0.042, sz0], [0, 0.6, 0]);
+  b.add(geo.cone(0.02, 0.04, low ? 5 : 6), TECH.arc, { p: [sx0, top + SPIRE_H + EMITTER_Y - 0.012, sz0] });
+  if (!low) for (let i = 0; i < lvl('beam'); i++) b.cyl(0.03, 0.03, 0.012, 6, TECH.coil, [sx0, top + SPIRE_H * 0.35 + i * 0.045, sz0]);
+  // Abwehrraketen: Werferkasten nach aussen geneigt, Kappen leuchten / defence missiles: launcher box tilted outwards, caps glow
+  const pods = [1.75, 4.55, 5.1];
+  for (let i = 0; i < lvl('missiles'); i++) {
+    const a = pods[i];
+    const x = Math.cos(a) * 0.27, z = Math.sin(a) * 0.27;
+    pbox(b, 0.075, 0.04, 0.055, TECH.gearDark, [x, top + 0.04, z], [0, -a, 0.45]);
+    if (!low) pbox(b, 0.012, 0.03, 0.045, TECH.arc, [x + Math.cos(a) * 0.035, top + 0.058, z + Math.sin(a) * 0.035], [0, -a, 0.45]);
+  }
+  // Panzerung: Platten am Rumpfrand (unter dem Deck) / armour: plates on the hull rim (below the deck)
+  const plates = [[0.4, 3.54], [1.97, 5.1], [1.2, 4.3]];
+  for (let i = 0; i < lvl('armour'); i++) {
+    for (const a of plates[i].slice(0, low ? 1 : 2)) pbox(b, 0.17, 0.05, 0.022, i % 2 ? TECH.shellShade : primary, [Math.cos(a) * 0.4, base - 0.022, Math.sin(a) * 0.4], [0, -a + HALF_PI, 0.35]);
+  }
+  // Schildverstaerkung: Generatormast mit Leuchtkopf / shield reinforcement: generator mast with a glowing head
+  const masts = [3.6, 0.15];
+  for (let i = 0; i < lvl('shield'); i++) {
+    const a = masts[i];
+    const x = Math.cos(a) * 0.24, z = Math.sin(a) * 0.24;
+    pbox(b, 0.022, 0.12, 0.022, TECH.gear, [x, top + 0.07, z]);
+    pbox(b, 0.036, 0.022, 0.036, TECH.glow, [x, top + 0.14, z], [0, 0.785, 0]);
+  }
 }
 
 /**
@@ -123,7 +184,7 @@ export function academyRadarGeometry(): THREE.BufferGeometry {
   });
 }
 
-export function academy(f: FactionId | null, lv: number, pose: AcademyPose, low = false): Builder {
+export function academy(f: FactionId | null, lv: number, pose: AcademyPose, low = false, mods: AcademyMods = {}): Builder {
   const b = new Builder();
   const L = look(f);
   const M = ACADEMY_MODEL;
@@ -282,6 +343,8 @@ export function academy(f: FactionId | null, lv: number, pose: AcademyPose, low 
   // Fahne der Hauptstadt / flag of the capital
   b.tube([0.33, top, 0.17], [0.33, top + 0.3, 0.17], 0.006, 4, mat.dark);
   b.box(0.11, 0.065, 0.006, L.primary, [0.385, top + 0.265, 0.17]);
+  // Ausbau-Module und Strahllinse / upgrade modules and beam lens
+  academyModules(b, base, top, low, mods, L.primary);
   return b;
 }
 

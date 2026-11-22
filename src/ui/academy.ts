@@ -13,13 +13,17 @@
 import {
   academyAttackCheck, academyAttackPreview, academyBusy, academyMoves, academyOf, area, beamCheck, beamerCheck, cancelTerraformCheck, cityById, cityIncome, landCheck, landTarget, liftCheck,
   postsOf, shieldCheck, shieldHp, terraformPlan, tileAt, trainSlots, trainedNow, unitLimit, supportedUnits, type City, type GameEvent, type GameState, type Pos, type Unit,
+  beamFired, beamLevel, beamShots, hullHp, interceptsLeft, moduleCheck, moduleCost, moduleLevel, moduleMax, rayPreview, rayReadyCheck, rayTargets, shieldMaxHp, shieldRegen,
 } from '../core';
-import { ACADEMY } from '../data/balance';
+import { ACADEMY, ACADEMY_MODULES, type AcademyModule } from '../data/balance';
 import type { Controller } from '../game/controller';
 import { t } from '../i18n/i18n';
 import { cityNameOf } from '../i18n/cityNames';
-import { esc, factionBadge, progress, type ActionItem } from './components';
+import { actionButton, esc, factionBadge, iconButton, progress, type ActionItem } from './components';
 import { icon } from './icons';
+
+/** Symbole der Module / icons of the modules */
+const MODULE_ICON: Record<AcademyModule, string> = { shield: 'shield', missiles: 'missile', armour: 'barrier', beam: 'tesla' };
 
 const cname = (s: GameState, id: number) => (cityById(s, id) ? cityNameOf(s, id) : '');
 
@@ -42,6 +46,44 @@ export function shieldLine(s: GameState, c: City): string {
   const wait = c.shieldReady !== undefined ? c.shieldReady - s.round : 0;
   return `<div class="row academy-shield muted">${icon('shield', 'icon-sm')}<span>${esc(wait > 0 ? t('academy.shieldWait', { n: wait }) : t('academy.noShield'))}</span></div>`;
 }
+
+/** Rumpfzeile (Panzerung) mit Balken, nur mit Modul / hull line (armour) with a bar, only with the module */
+export function hullLine(c: City): string {
+  if (!c.hull) return '';
+  const hp = hullHp(c);
+  const txt = t('academy.hullHp', { hp, max: c.hull.max });
+  return `<div class="row academy-shield ${hp > 0 ? '' : 'muted'}">${icon('barrier', 'icon-sm')}<span>${esc(txt)}</span><div class="grow">${progress(hp, c.hull.max, 'hp', txt)}</div></div>`;
+}
+
+/**
+ * Werte des Ausbaus: Neutronenstrahl (Schuesse), Abfaenge und Modulstufen, sichtbar ohne Tooltip (auch am Telefon).
+ * Upgrade values: neutron beam (shots), interceptions and module levels, visible without a tooltip (phones too).
+ */
+export function moduleStats(s: GameState, c: City): string {
+  const shots = beamShots(c), used = beamFired(s, c);
+  const pd = moduleLevel(c, 'missiles');
+  const tags = ACADEMY_MODULES.map((m) => {
+    const n = m === 'beam' ? beamLevel(c) : moduleLevel(c, m), max = m === 'beam' ? moduleMax(m) + 1 : moduleMax(m);
+    // Strahl: Stufe des Neutronenstrahls (1 eingebaut) / beam: level of the neutron beam (1 built in)
+    return `<span class="tag ${n > 0 ? '' : 'muted'}">${icon(MODULE_ICON[m], 'icon-sm')}${esc(t('academy.modLevel', { name: m === 'beam' ? t('academy.beam') : t(`academy.mod.${m}.name`), n, max }))}</span>`;
+  }).join('');
+  const wait = beamWait(s, c);
+  return `<div class="stats academy-modules"><span class="stat">${icon('tesla', 'icon-sm')}${esc(wait > 0 ? t('academy.beamWait', { n: wait }) : t('academy.beamShots', { n: Math.max(0, shots - used), max: shots }))}</span>
+    ${pd ? `<span class="stat">${icon('missile', 'icon-sm')}${esc(t('academy.intercepts', { n: interceptsLeft(c), max: pd }))}</span>` : ''}</div>
+    <div class="row wrap academy-modules sheet-more" aria-label="${esc(t('academy.upgrades'))}">${tags}</div>`;
+}
+
+/** Wirkung eines Moduls (mit den jetzigen Werten) / effect of a module (with the current values) */
+export function moduleDesc(c: City, m: AcademyModule): string {
+  const next = moduleLevel(c, m) + 1;
+  if (m === 'shield') return t('academy.mod.shield.desc', { hp: shieldMaxHp(c), regen: shieldRegen(c) });
+  if (m === 'armour') return t('academy.mod.armour.desc', { hp: ACADEMY.modules.armour.hp * Math.min(next, moduleMax(m)) });
+  if (m === 'missiles') return t('academy.mod.missiles.desc', { n: Math.min(next, moduleMax(m)) });
+  return t('academy.mod.beam.desc');
+}
+
+/** Runden, bis der Strahl nach seiner Ruhe wieder bereit ist (0 = bereit) / rounds until the beam is ready again after its rest (0 = ready) */
+export const beamWait = (s: GameState, c: City): number => (c.rayReady !== undefined && c.rayReady > s.round ? c.rayReady - s.round : 0);
 
 /**
  * Kopf und Werte fuer Akademie und Posten (fuer alle Betrachter; Gegner sehen Zustand und Schild).
@@ -70,6 +112,8 @@ export function academySheet(s: GameState, c: City): { head: string; body: strin
   const body = `<div class="row academy-state ${air ? 'airborne' : ''}">${icon(air ? 'liftOff' : 'academy', 'icon-sm')}<strong>${esc(state)}</strong></div>
     ${tf}
     ${shieldLine(s, c)}
+    ${hullLine(c)}
+    ${moduleStats(s, c)}
     <div class="stats sheet-more"><span class="stat">${icon('helmet', 'icon-sm')}${esc(t('hud.units', { n: supportedUnits(s, c), max: unitLimit(s, c) }))}</span>
       <span class="stat">${icon('train', 'icon-sm')}${esc(t('academy.slots', { n: trainedNow(s, c), max: trainSlots(s, c) }))}</span>
       <span class="stat">${icon('researchPost', 'icon-sm')}${esc(t('academy.posts', { n: posts }))}</span>
@@ -145,13 +189,61 @@ export function academyActions(s: GameState, g: Controller, c: City, err: (code:
       }
     }
   }
+  // Neutronenstrahl: Zielauswahl mit Reichweite (ACADEMY.beam) / neutron beam: targeting with range (ACADEMY.beam)
+  const ray = rayReadyCheck(s, f, c);
+  const targets = ray === 'ok' ? rayTargets(s, c).length : 0;
+  const shots = beamShots(c), used = beamFired(s, c);
+  const wait = beamWait(s, c);
+  const rayReason = ray === 'rayCooldown' ? t('academy.beamWait', { n: wait }) : ray !== 'ok' ? err(ray) : targets ? t('academy.beamPick') : t('academy.beamNone');
+  out.push({ id: 'academy-beam', icon: 'tesla', label: t('academy.beam'), sub: wait > 0 ? t('academy.beamWait', { n: wait }) : t('academy.beamSub', { n: Math.max(0, shots - used), max: shots }), variant: 'danger',
+    enabled: ray === 'ok' && targets > 0, desc: t('academy.beamDesc'), reason: rayReason, run: () => g.startBeam(c.id) });
   const sh = shieldCheck(s, f, c);
   if (sh !== 'alreadyBuilt') {
     const wait = c.shieldReady !== undefined && c.shieldReady > s.round && !academyBusy(s, c);
     out.push({ id: 'academy-shield', icon: 'shield', label: t('academy.shield'), cost: ACADEMY.shield.cost, variant: 'primary', enabled: sh === 'ok', desc: t('academy.shieldDesc'),
       reason: sh === 'ok' ? t('academy.shieldDesc') : wait ? t('academy.shieldWait', { n: c.shieldReady! - s.round }) : err(sh), run: () => void g.exec({ type: 'academyShield', city: c.id }) });
   }
+  // Akademie-Ausbau: vier Module mit Stufe, Preis, Wirkung und Sperrgrund / academy upgrades: four modules with level, price, effect and blocking reason
+  for (const m of ACADEMY_MODULES) {
+    const chk = moduleCheck(s, f, c, m);
+    if (chk === 'moduleMax') continue;
+    const n = m === 'beam' ? beamLevel(c) : moduleLevel(c, m);
+    const desc = moduleDesc(c, m);
+    out.push({ id: `academy-mod-${m}`, icon: MODULE_ICON[m], label: t(`academy.mod.${m}.name`), sub: t('academy.modSub', { n: n + 1 }), cost: moduleCost(c, m), variant: 'primary',
+      enabled: chk === 'ok', desc, reason: chk === 'ok' ? desc : err(chk), run: () => void g.exec({ type: 'academyModule', city: c.id, module: m }) });
+  }
   return out;
+}
+
+/**
+ * Zielauswahl "Neutronenstrahl": Kopf mit Reichweite, Statuszeile (Hinweis, angepeiltes Ziel mit Schaden, Sperrgrund),
+ * Feuern und Abbrechen.
+ * "Neutron beam" targeting: head with the range, status line (hint, aimed target with damage, blocking reason), fire and
+ * cancel.
+ */
+export function beamSheet(s: GameState, g: Controller, err: (code: string) => string): { html: string; actions: ActionItem[] } {
+  const c = cityById(s, g.beamCity!)!;
+  const f = s.current;
+  const n = rayTargets(s, c).length;
+  let status = n ? t('academy.beamPick') : t('academy.beamNone'), cls = n ? '' : 'warn';
+  let ok = false;
+  if (g.beamAim) {
+    const pre = rayPreview(s, f, c, g.beamAim.x, g.beamAim.y);
+    ok = pre.check === 'ok';
+    const name = pre.unit ? t(`units.${pre.unit.type}`) : t('academy.beamStructure');
+    status = ok ? `${t('academy.beamTarget', { target: name, hp: pre.hp, dmg: pre.dmg })}${pre.kill ? ` ${t('academy.beamKill')}` : ''}. ${t('academy.beamConfirm')}` : err(pre.check);
+    cls = ok ? '' : 'warn';
+  }
+  const shots = beamShots(c), used = beamFired(s, c);
+  const actions: ActionItem[] = [
+    { id: 'beamGo', icon: 'tesla', variant: 'danger', label: t('academy.beamFire'), enabled: ok, desc: t('academy.beamDesc'), reason: status, run: () => void g.fireBeam() },
+    { id: 'beamCancel', icon: 'close', label: t('actions.cancel'), enabled: true, run: () => g.cancelBeam() },
+  ];
+  const head = `<div class="sheet-head"><span class="unit-badge orbital-head">${icon('tesla')}</span><div class="grow"><h3 class="display">${esc(t('academy.beam'))}</h3>
+    <div class="muted unit-sub">${esc(t('stats.range'))} ${ACADEMY.beam.range} · ${esc(t('academy.beamSub', { n: Math.max(0, shots - used), max: shots }))} · ${esc(cname(s, c.id))}</div></div>${iconButton('close', t('actions.cancel'), 'beamCancel')}</div>`;
+  const body = `<p class="orbital-status ${cls}" role="status" aria-live="polite">${cls ? icon('warning', 'icon-sm') : icon('info', 'icon-sm')}<span>${esc(status)}</span></p>`;
+  const bar = `<div class="action-wrap"><div class="action-bar" role="toolbar">${actions.map(actionButton).join('')}</div></div>`;
+  return { html: `${head}${body}${bar}`, actions };
 }
 
 /** Aktion des eigenen Postens: Beamer bauen / action of the own post: build the beamer */
@@ -185,7 +277,7 @@ export function unitAcademyActions(s: GameState, g: Controller, u: Unit, err: (c
     const chk = academyAttackCheck(s, u, target);
     if (chk === 'ok' || chk === 'airTarget') {
       const pre = academyAttackPreview(s, u, target);
-      const sub = pre.forced ? t('academy.attackForce') : t('academy.attackShield', { dmg: pre.toShield });
+      const sub = pre.intercept ? t('academy.attackIntercept') : pre.forced ? t('academy.attackForce') : pre.layer === 'hull' ? t('academy.attackHull', { dmg: pre.toShield }) : t('academy.attackShield', { dmg: pre.toShield });
       out.push({ id: 'attackAcademy', icon: 'attack', variant: 'danger', label: t('academy.attack'), sub, enabled: chk === 'ok', desc: `${sub}. ${t('academy.attackDesc')}`,
         reason: chk === 'ok' ? `${sub}. ${t('academy.attackDesc')}` : err(chk), run: () => void g.exec({ type: 'attackAcademy', unit: u.id, city: target.id }) });
     }
@@ -212,6 +304,19 @@ export function academyToast(e: GameEvent, s: GameState, viewer: number): { text
     const c = cityById(s, e.city);
     if (!c || (e.faction !== viewer && !seen(c.x, c.y))) return null;
     return { text: t(e.what === 'built' ? 'academy.toastShield' : 'academy.toastShieldDown', { city: cname(s, e.city) }), icon: e.what === 'built' ? 'shield' : 'warning' };
+  }
+  if (e.t === 'module') {
+    if (e.faction !== viewer) return null;
+    return { text: t('academy.toastModule', { city: cname(s, e.city), name: t(`academy.mod.${e.module}.name`), n: e.module === 'beam' ? e.level + 1 : e.level }), icon: MODULE_ICON[e.module] };
+  }
+  if (e.t === 'intercept') {
+    if (e.faction !== viewer) return null;
+    return { text: t('academy.toastIntercept', { city: cname(s, e.city), n: e.left }), icon: 'missile' };
+  }
+  if (e.t === 'hull' && e.what === 'down') {
+    const c = cityById(s, e.city);
+    if (!c || (e.faction !== viewer && !seen(c.x, c.y))) return null;
+    return { text: t('academy.toastHullDown', { city: cname(s, e.city) }), icon: 'warning' };
   }
   if (e.t === 'post') {
     if (e.faction !== viewer) return null;

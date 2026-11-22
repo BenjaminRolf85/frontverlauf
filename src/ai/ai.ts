@@ -13,7 +13,7 @@ import {
 } from './economy';
 import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
-import { planAcademyFlight, planAcademyLift, planAcademyStrike, planBeam } from './academy';
+import { planAcademyBeam, planAcademyFlight, planAcademyLift, planAcademyStrike, planBeam } from './academy';
 import { planRadar, planSabotage, planSilo } from './shadowFleet';
 import { planHijack } from './hacking';
 import { applyOps } from './operations';
@@ -50,7 +50,8 @@ function fingerprint(s: GameState, f: number): string {
     if (u.owner !== f) continue;
     parts.push(u.id, u.x, u.y, u.hp, u.type, (u.moved ? 1 : 0) | (u.attacked ? 2 : 0) | (u.exhausted ? 4 : 0) | (u.moveDone ? 8 : 0));
   }
-  for (const c of s.cities) if (c.owner === f) parts.push(c.id);
+  // Akademie: Schuesse des Neutronenstrahls zaehlen als Wirkung (auch ein Fehlschuss) / academy: neutron beam shots count as an effect (a miss too)
+  for (const c of s.cities) if (c.owner === f) parts.push(c.id, c.ray?.round === s.round ? c.ray.n : 0);
   return parts.join(',');
 }
 
@@ -78,6 +79,8 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planMothership(ctx, failed)
     ?? planConvert(ctx, failed)
     ?? planOrbital(ctx, failed)
+    // Neutronenstrahl der Akademie: jeden Zug vor den Angriffen der Einheiten / the academy's neutron beam: every turn before the units' attacks
+    ?? planAcademyBeam(ctx, failed)
     // Schattenflotte (Meridon): Radar vor den Angriffen, Silo-Start, Sabotage nach den Angriffen / shadow fleet (Meridon): radar before the attacks, silo launch, sabotage after the attacks
     ?? planRadar(ctx, failed)
     ?? planSilo(ctx, failed)

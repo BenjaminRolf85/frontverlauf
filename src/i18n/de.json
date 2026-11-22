@@ -186,13 +186,13 @@
       "quote": "Wer rechnet, gewinnt. Wer rät, verliert.",
       "lore": "Im eisigen Norden regiert in Velkar die Akademie, und sie schwebt: Direktor Kesh ließ das Polarlabor auf Triebwerke setzen, bevor er die Technokratie ausrief. Seitdem entscheidet die Formel, nicht das Volk, und wo Velkar einen Ort nimmt, entsteht kein neues Reich, sondern ein Forschungsposten, der der Akademie zuarbeitet. Velkars Ingenieure sind allen voraus, und ihre Pioniere bauen Festungen dort, wo andere erfrieren.",
       "style": "Produktion, Labore, Prototypen, Kälte",
-      "aiStyle": "Nimmt Orte als Forschungsposten, versetzt die schwebende Akademie an die Front, schützt sie mit dem Schild und beamt Verstärkung über Relays.",
+      "aiStyle": "Nimmt Orte als Forschungsposten, versetzt die schwebende Akademie an die Front, schützt sie mit dem Schild und beamt Verstärkung über Relays. Spielt entweder Armee oder fliegende Festung: baut die Akademie aus, hält durch und belagert dann feindliche Städte mit dem Neutronenstrahl.",
       "perk2": "Ingenieurkorps",
       "perk2Desc": "Panzersperren kosten {engineerBarrierCost} statt {barrierCost} Sterne.",
       "feature": "Labor im Feld",
       "featureDesc": "Eigene Bauarten statt der Standardtruppen: Tesla-Panzer statt Panzer (Angriff {tesla} statt {tank}, {miss} % Fehlschuss), Railgun-Schütze statt Scharfschütze (Reichweite {rail} statt {sniper}, nur aus dem Stand) und Oktokopter statt Kampfhubschrauber (gleiche Werte).",
       "feature2": "Schwebende Akademie",
-      "feature2Desc": "Velkar wächst durch die Hauptstadt: eingenommene Orte werden einfeldrige Forschungsposten mit Sternen und Sicht, ihr Gebiet und Wachstum gehen an die Akademie. Sie bildet {academyBaseSlots} Einheiten je Zug plus eine je Posten aus (höchstens {academyMaxSlots}), hebt in {academyLift} Runde ab, zieht {academyMove} Felder je Zug und baut einen Schutzschild ({academyShieldHp} LP). Beamer-Relays ({beamerCost} Sterne) auf Posten holen Verstärkung in einer Runde an die Front."
+      "feature2Desc": "Velkar wächst durch die Hauptstadt: eingenommene Orte werden einfeldrige Forschungsposten mit Sternen und Sicht, ihr Gebiet und Wachstum gehen an die Akademie. Sie bildet {academyBaseSlots} Einheiten je Zug plus eine je Posten aus (höchstens {academyMaxSlots}), hebt in {academyLift} Runde ab, zieht {academyMove} Felder je Zug und baut einen Schutzschild ({academyShieldHp} LP). Beamer-Relays ({beamerCost} Sterne) auf Posten holen Verstärkung in einer Runde an die Front. Die Akademie feuert selbst: Neutronenstrahl bis {academyBeamRange} Felder, bis zu {academyBeamDamage} Schaden. Zwei Wege: eine typische Armee oder die Akademie mit Schildverstärkung, Abwehrraketen, Panzerung und Strahlverstärker zur fliegenden Festung ausbauen, durchhalten und dann mit ihr angreifen."
     },
     "zyrr": {
       "name": "Zyrr-Schwarm",
@@ -875,7 +875,11 @@
     "cityHackCooldown": "Der nächste Stadt-Hack ist noch nicht bereit.",
     "noDataCenter": "Erst ein Rechenzentrum bauen.",
     "terraforming": "Die Akademie terraformt: sie landet zu Beginn des nächsten Zuges (abbrechen ist möglich).",
-    "notTerraforming": "Die Akademie terraformt gerade nicht."
+    "notTerraforming": "Die Akademie terraformt gerade nicht.",
+    "rayUsed": "Der Neutronenstrahl hat in diesem Zug schon alle Schüsse abgegeben.",
+    "rayCooldown": "Der Neutronenstrahl kühlt noch ab.",
+    "rayNoTarget": "Dort ist kein sichtbares feindliches Ziel für den Neutronenstrahl.",
+    "moduleMax": "Dieses Modul ist voll ausgebaut."
   },
   "events": {
     "contact": "Erstkontakt mit {name}: +{stars} Sterne",
@@ -3723,7 +3727,7 @@
     },
     "academy": {
       "title": "Schwebende Akademie (Velkar)",
-      "text": "Die Hauptstadt der Velkar ist eine schwebende Akademie (in freien Partien; die Kampagne behält die alten Regeln). Eingenommene Orte werden Forschungsposten: ein Feld, Sterne und Sicht, keine Ausbildung, keine Ausbauten. Ihr Gebiet geht an die Akademie, dazu {pop} Bevölkerung (+{perLevel} je Stufe des Orts über 1), und jeder Posten trägt {units} Einheiten mehr. Gebiet bleibt, wo es ist, auch wenn die Akademie umzieht. Die Akademie bildet {base} Einheiten je Zug plus eine je Posten aus (höchstens {max}), auf der Akademie oder freien Feldern daneben. Abheben: Nach {lift} Runde schwebt sie und zieht {move} Felder je Zug über jedes Gelände; Landen heißt Terraformen: Die Akademie formt das Feld {tf} Runde lang um und landet zu Beginn ihres nächsten Zuges; so lange schwebt sie weiter (gleiche Angriffsregeln), zieht nicht und kann abbrechen (die Felder des Zuges sind dann verbraucht). Berg, Wald und Flachwasser werden zu Ebene, Wüste, Steppe, Tundra, Hügel und Sumpf zu Wiese, und das bleibt auch nach dem Abheben; tiefes Meer, Vulkane und Brände nicht. Ein Rohstoff wird aufgenommen (+{tfPop} Bevölkerung), neutrale Gebäude, Ruinen und Merkmale werden eingeebnet, ebenso ein benachbarter neutraler Ort (er verschwindet, sein Gebiet geht an die Akademie, keine Belohnung). Nie eingeebnet wird Besitz einer Fraktion, Wunder, Geschütze und Wahrzeichen. Nicht in fremdem Gebiet, keine fremde Einheit, kein eigenes Gebäude, mindestens {gap} Felder von jedem Ort mit Besitzer; freies Umland im Umkreis {claim} wird Gebiet. Geht die Landung zu Zugbeginn nicht mehr, schwebt sie weiter. Vom Abheben bis zur Landung ruht die Produktion; im Landezug bildet sie wieder aus. Schwebend greifen nur Flieger, Flak und Panzer an; ohne Schild erzwingt jeder Treffer die Notlandung. Schutzschild ({cost} Sterne): {hp} LP, fängt Angriffe auf die Akademie und Einheiten auf ihrem Feld zuerst ab, lädt {regen} LP je Zug auf, nach der Zerstörung erst nach {rebuild} Runden neu baubar; solange er steht, ist die Akademie nicht einzunehmen. Beamer-Relay ({beamer} Sterne) auf einem Posten: je Runde eine Einheit von der Akademie dorthin, eine Runde unterwegs, Ankunft einsatzbereit; fällt das Relay, kehrt sie zur Akademie zurück. Geht die Akademie verloren, wird der nächste Posten zur neuen Akademie mit halber Stufe."
+      "text": "Die Hauptstadt der Velkar ist eine schwebende Akademie (in freien Partien; die Kampagne behält die alten Regeln). Eingenommene Orte werden Forschungsposten: ein Feld, Sterne und Sicht, keine Ausbildung, keine Ausbauten. Ihr Gebiet geht an die Akademie, dazu {pop} Bevölkerung (+{perLevel} je Stufe des Orts über 1), und jeder Posten trägt {units} Einheiten mehr. Gebiet bleibt, wo es ist, auch wenn die Akademie umzieht. Die Akademie bildet {base} Einheiten je Zug plus eine je Posten aus (höchstens {max}), auf der Akademie oder freien Feldern daneben. Abheben: Nach {lift} Runde schwebt sie und zieht {move} Felder je Zug über jedes Gelände; Landen heißt Terraformen: Die Akademie formt das Feld {tf} Runde lang um und landet zu Beginn ihres nächsten Zuges; so lange schwebt sie weiter (gleiche Angriffsregeln), zieht nicht und kann abbrechen (die Felder des Zuges sind dann verbraucht). Berg, Wald und Flachwasser werden zu Ebene, Wüste, Steppe, Tundra, Hügel und Sumpf zu Wiese, und das bleibt auch nach dem Abheben; tiefes Meer, Vulkane und Brände nicht. Ein Rohstoff wird aufgenommen (+{tfPop} Bevölkerung), neutrale Gebäude, Ruinen und Merkmale werden eingeebnet, ebenso ein benachbarter neutraler Ort (er verschwindet, sein Gebiet geht an die Akademie, keine Belohnung). Nie eingeebnet wird Besitz einer Fraktion, Wunder, Geschütze und Wahrzeichen. Nicht in fremdem Gebiet, keine fremde Einheit, kein eigenes Gebäude, mindestens {gap} Felder von jedem Ort mit Besitzer; freies Umland im Umkreis {claim} wird Gebiet. Geht die Landung zu Zugbeginn nicht mehr, schwebt sie weiter. Vom Abheben bis zur Landung ruht die Produktion; im Landezug bildet sie wieder aus. Schwebend greifen nur Flieger, Flak und Panzer an; ohne Schild erzwingt jeder Treffer die Notlandung. Schutzschild ({cost} Sterne): {hp} LP, fängt Angriffe auf die Akademie und Einheiten auf ihrem Feld zuerst ab, lädt {regen} LP je Zug auf, nach der Zerstörung erst nach {rebuild} Runden neu baubar; solange er steht, ist die Akademie nicht einzunehmen. Beamer-Relay ({beamer} Sterne) auf einem Posten: je Runde eine Einheit von der Akademie dorthin, eine Runde unterwegs, Ankunft einsatzbereit; fällt das Relay, kehrt sie zur Akademie zurück. Geht die Akademie verloren, wird der nächste Posten zur neuen Akademie mit halber Stufe. Neutronenstrahl (eingebaut): ein Schuss jeden {every}. Zug auf eine sichtbare feindliche Einheit oder ein feindliches Bauwerk bis {brange} Felder; ein voller Treffer macht {bdmg} Schaden, schwächere weniger, ein Fehlschuss nichts (ohne Trefferglück immer {bdmg}); kein Gegenschlag, keine Städte; am Boden, schwebend und beim Terraformen, nicht in der Runde des Abhebens. Akademie-Ausbau (zwei Wege: typische Armee oder fliegende Festung, die durchhält und dann selbst angreift), je Stufe ein Preis, eine Stufe je Zug und Modul, auch in der Luft: Schildverstärkung ({sCosts} Sterne, je Stufe +{sHp} LP und +{sRegen} Aufladung), Abwehrraketen ({mCosts} Sterne, je Stufe ein Abfang zwischen zwei eigenen Zügen gegen Flieger, Mech-Raketen und Silo-Raketen auf die Akademie und ihre Nachbarfelder, nicht gegen Bodenbeschuss), Panzerung ({aCosts} Sterne, Rumpf mit {aHp} LP je Stufe, lädt {aRegen} je Zug auf; ohne Rumpf erst Notlandung, am Boden erst ohne Schild und Rumpf einzunehmen), Strahlverstärker ({bCosts} Sterne, feuert jeden Zug). Ausbau und Strahl gehen mit der Akademie verloren."
     },
     "hacking": {
       "title": "Hacken (NEXUS)",
@@ -4345,7 +4349,7 @@
     "posts": "Forschungsposten: {n}",
     "transit": "Unterwegs (Beamer): {n}",
     "desc": "Einzige Ausbildungsstätte der Velkar: {academyBaseSlots} Einheiten je Zug und eine mehr je Forschungsposten (höchstens {academyMaxSlots}), auf freien Feldern rund um die Akademie. Abheben dauert {academyLift} Runde, danach zieht sie {academyMove} Felder je Zug über jedes Gelände. Vor der Landung terraformt sie {academyTerraform} Runde lang. Vom Abheben bis zur Landung ruht die Produktion; im Landezug bildet sie wieder aus.",
-    "airRule": "Schwebend greifen nur Flieger, Flak und Panzer an; jeder Treffer ohne Schild erzwingt die Notlandung.",
+    "airRule": "Schwebend greifen nur Flieger, Flak und Panzer an; jeder Treffer ohne Schild und Rumpf erzwingt die Notlandung.",
     "lift": "Abheben",
     "liftDesc": "Die Akademie hebt ab und schwebt nach {academyLift} Runde; dann zieht sie {academyMove} Felder je Zug. Bis zur Landung keine Produktion. Schwebend greifen sie nur Flieger, Flak und Panzer an.",
     "move": "Ziehen",
@@ -4361,7 +4365,7 @@
     "attack": "Akademie angreifen",
     "attackShield": "Schild -{dmg}",
     "attackForce": "Notlandung erzwingen",
-    "attackDesc": "Kein Gegenschlag: die Akademie ist unbewaffnet. Am Boden wird sie ohne Schild eingenommen wie jede Stadt.",
+    "attackDesc": "Kein Gegenschlag: die Akademie feuert nur im eigenen Zug mit dem Neutronenstrahl. Am Boden wird sie ohne Schild und Rumpf eingenommen wie jede Stadt.",
     "postDesc": "Eingenommener Ort: ein Feld, bringt Sterne und Sicht, bildet nichts aus. Gebiet und Wachstum gehen an die Akademie.",
     "postOf": "Posten der Akademie {city}.",
     "defense": "Akademie +{academyDefense} Verteidigung",
@@ -4405,7 +4409,51 @@
     "terraformNext": "Landet zu Beginn des nächsten Zuges, Produktion ab dem Zug danach.",
     "landHint": "Landen kostet eine Terraform-Runde.",
     "razeWarn": "Neutraler Ort wird eingeebnet.",
-    "terraformFlat": "Das Feld ist schon ebene Wiese."
+    "terraformFlat": "Das Feld ist schon ebene Wiese.",
+    "beam": "Neutronenstrahl",
+    "beamSub": "{n}/{max} Schuss",
+    "beamShots": "Neutronenstrahl: {n}/{max} Schuss in diesem Zug",
+    "beamDesc": "Feuert auf eine sichtbare feindliche Einheit oder ein feindliches Bauwerk (Geschütz, Silo, Hackturm) bis {academyBeamRange} Felder: ein voller Treffer macht {academyBeamDamage} Schaden, schwächere Treffer weniger, ein Fehlschuss nichts. Eingebaut feuert er jeden {academyBeamEvery}. Zug, mit dem Strahlverstärker jeden Zug. Kein Gegenschlag, keine Städte. Am Boden, schwebend und beim Terraformen, nicht in der Runde des Abhebens; unabhängig von der Ausbildung.",
+    "beamPick": "Ziel in Reichweite antippen (rot markiert), erneut antippen feuert.",
+    "beamNone": "Kein sichtbares feindliches Ziel in {academyBeamRange} Feldern.",
+    "beamTarget": "{target}: {hp} LP, voller Treffer -{dmg}",
+    "beamKill": "(vernichtet)",
+    "beamConfirm": "Erneut antippen oder Feuern.",
+    "beamFire": "Feuern",
+    "beamFx": "Strahl",
+    "beamStructure": "Feindliches Bauwerk",
+    "upgrades": "Akademie-Ausbau",
+    "modLevel": "{name} {n}/{max}",
+    "modSub": "Stufe {n}",
+    "hullHp": "Rumpf {hp}/{max} LP",
+    "intercepts": "Abfänge {n}/{max} bis zum nächsten Zug",
+    "attackHull": "Rumpf -{dmg}",
+    "attackIntercept": "Wird abgefangen (Abwehrraketen)",
+    "toastModule": "{city}: {name} Stufe {n}",
+    "toastIntercept": "{city}: Abwehrraketen haben abgefangen (noch {n})",
+    "toastHullDown": "{city}: Panzerung durchbrochen",
+    "strategies": "Zwei Wege: eine typische Armee aufbauen oder die Akademie zur fliegenden Festung ausbauen (Schild, Abwehrraketen, Panzerung, Strahl), bis dahin durchhalten und dann mit ihr angreifen.",
+    "mod": {
+      "shield": {
+        "name": "Schildverstärkung",
+        "desc": "Je Stufe +{academyModShieldHp} Schild-LP und +{academyModShieldRegen} Aufladung je Zug (jetzt {hp} LP, {regen} je Zug); ein stehender Schild wächst sofort mit. Den Grundschild baust du wie bisher."
+      },
+      "missiles": {
+        "name": "Abwehrraketen",
+        "desc": "Stufe {n}: {n} Abfänge zwischen zwei eigenen Zügen. Abgefangen werden Angriffe von Fliegern (auch Drohnen und Lenkflugkörper) und Mech-Raketen auf die Akademie und eigene Einheiten auf oder neben ihr (kein Schaden, kein Gegenschlag) und Raketensilo-Einschläge, die sie oder ein Nachbarfeld treffen. Bodenbeschuss, Rundenfeuer von Geschützen und Flak nicht.",
+        "fx": "Abgefangen"
+      },
+      "armour": {
+        "name": "Panzerung",
+        "short": "Rumpf",
+        "desc": "Rumpf mit {hp} LP ({academyModArmourHp} je Stufe), lädt {academyModArmourRegen} LP je Zug auf. Was durch den Schild kommt, trifft den Rumpf; erst ohne Rumpf erzwingt ein Treffer in der Luft die Notlandung, und am Boden ist die Akademie erst ohne Schild und Rumpf einzunehmen."
+      },
+      "beam": {
+        "name": "Strahlverstärker",
+        "desc": "Der Neutronenstrahl feuert jeden Zug statt jeden {academyBeamEvery}. Zug. Schaden ({academyBeamDamage}) und Reichweite ({academyBeamRange} Felder) bleiben."
+      }
+    },
+    "beamWait": "Strahl bereit in {n} Runden"
   },
   "beam": {
     "name": "Beamer-Relay",

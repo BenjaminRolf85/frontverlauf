@@ -57,7 +57,11 @@ function sections(): Section[] {
     // Schwebende Akademie der Velkar: Posten, Abheben, Terraformen, Schild, Beamer / Velkar floating academy: posts, lift-off, terraforming, shield, beamer
     { id: 'academy', icon: 'academy', params: { pop: ACADEMY.postPop, perLevel: ACADEMY.postPopPerLevel, units: ACADEMY.postUnits, base: ACADEMY.baseSlots, max: ACADEMY.maxSlots,
       lift: ACADEMY.liftRounds, move: ACADEMY.move, gap: ACADEMY.landGap, claim: ACADEMY.landClaim, cost: ACADEMY.shield.cost, hp: ACADEMY.shield.hp, regen: ACADEMY.shield.regen,
-      rebuild: ACADEMY.shield.rebuildRounds, beamer: ACADEMY.beamer.cost, tf: ACADEMY.terraform.rounds, tfPop: ACADEMY.terraform.resourcePop } },
+      rebuild: ACADEMY.shield.rebuildRounds, beamer: ACADEMY.beamer.cost, tf: ACADEMY.terraform.rounds, tfPop: ACADEMY.terraform.resourcePop,
+      // Neutronenstrahl und Ausbau / neutron beam and upgrades
+      every: ACADEMY.beam.cooldown[0] + 1, brange: ACADEMY.beam.range, bdmg: ACADEMY.beam.damage,
+      sCosts: ACADEMY.modules.shield.costs.join('/'), sHp: ACADEMY.modules.shield.hp, sRegen: ACADEMY.modules.shield.regen, mCosts: ACADEMY.modules.missiles.costs.join('/'),
+      aCosts: ACADEMY.modules.armour.costs.join('/'), aHp: ACADEMY.modules.armour.hp, aRegen: ACADEMY.modules.armour.regen, bCosts: ACADEMY.modules.beam.costs.join('/') } },
     // Hacken der NEXUS: Fernuebernahme, Stadt-Hack, Hackturm / NEXUS hacking: remote takeover, city hack, hack tower
     { id: 'hacking', icon: 'hackTower', params: { recharge: HACK.place.recharge, cost: HACK.place.cost, perLevel: HACK.place.perLevel, perHacked: HACK.place.perHacked, first: HACK.place.firstRound,
       tcost: HACK.tower.cost, tmax: HACK.tower.max, spacing: HACK.tower.minSpacing, reach: HACK.tower.reach, rounds: HACK.tower.rounds, cd: HACK.tower.cooldown,

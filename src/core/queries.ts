@@ -5,7 +5,7 @@
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, HACK, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, type AcademyModule, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -42,6 +42,31 @@ export const airborne = (c: City | null | undefined): boolean => !!c?.academy &&
 export const academyBusy = (s: GameState, c: City): boolean => !!c.academy && (!!c.air || (c.calm !== undefined && s.round < c.calm));
 /** Schild-LP der Akademie (0 = keiner) / shield HP of the academy (0 = none) */
 export const shieldHp = (c: City | null | undefined): number => (c?.academy && c.shield ? c.shield.hp : 0);
+/** Rumpf-LP der gepanzerten Akademie (0 = keiner) / hull HP of the armoured academy (0 = none) */
+export const hullHp = (c: City | null | undefined): number => (c?.academy && c.hull ? c.hull.hp : 0);
+/** Gekaufte Stufe eines Akademie-Moduls (ACADEMY.modules) / bought level of an academy module (ACADEMY.modules) */
+export const moduleLevel = (c: City | null | undefined, m: AcademyModule): number => (c?.academy ? c.mods?.[m] ?? 0 : 0);
+/** Hoechste Stufe eines Moduls / top level of a module */
+export const moduleMax = (m: AcademyModule): number => ACADEMY.modules[m].costs.length;
+/** Stufe des Neutronenstrahls (1 eingebaut, dazu das Modul) / level of the neutron beam (1 built in, plus the module) */
+export const beamLevel = (c: City | null | undefined): number => (c?.academy ? 1 + moduleLevel(c, 'beam') : 0);
+/** Schuesse des Neutronenstrahls je Zug / shots of the neutron beam per turn */
+export const beamShots = (c: City | null | undefined): number => {
+  const lv = beamLevel(c);
+  return lv ? ACADEMY.beam.shots[Math.min(lv, ACADEMY.beam.shots.length) - 1] : 0;
+};
+/** Ruherunden des Strahls nach dem letzten Schuss eines Zuges (ACADEMY.beam.cooldown je Stufe) / rest rounds of the beam after the last shot of a turn */
+export const beamRest = (c: City | null | undefined): number => {
+  const lv = beamLevel(c);
+  return lv ? ACADEMY.beam.cooldown[Math.min(lv, ACADEMY.beam.cooldown.length) - 1] : 0;
+};
+/** Schuesse des Neutronenstrahls in dieser Runde / shots of the neutron beam this round */
+export const beamFired = (s: GameState, c: City): number => (c.ray?.round === s.round ? c.ray.n : 0);
+/** LP und Aufladung des Schutzschilds mit Verstaerkung (Modul shield) / shield HP and recharge with reinforcement (module shield) */
+export const shieldMaxHp = (c: City): number => ACADEMY.shield.hp + ACADEMY.modules.shield.hp * moduleLevel(c, 'shield');
+export const shieldRegen = (c: City): number => ACADEMY.shield.regen + ACADEMY.modules.shield.regen * moduleLevel(c, 'shield');
+/** Abfaenge der Abwehrraketen, die bis zum naechsten eigenen Zug noch bleiben / interceptions left until the next own turn */
+export const interceptsLeft = (c: City | null | undefined): number => (c?.academy ? Math.max(0, moduleLevel(c, 'missiles') - (c.pdUsed ?? 0)) : 0);
 /**
  * Ausbildungen je Zug der Akademie: baseSlots + Posten / postsPerSlot, hoechstens maxSlots; andere Staedte 1.
  * Trainings per turn of the academy: baseSlots + posts / postsPerSlot, at most maxSlots; other cities 1.
@@ -1374,7 +1399,8 @@ export function captureKind(s: GameState, u: Unit): CaptureKind | null {
   if (t.cityId !== null) {
     const c = cityById(s, t.cityId)!;
     // Akademie: nicht in der Luft und nicht, solange der Schild steht / academy: not in the air and not while the shield stands
-    if (airborne(c) || shieldHp(c) > 0) return null;
+    // Panzerung: auch nicht, solange der Rumpf LP hat (ACADEMY.modules.armour) / armour: nor while the hull has HP
+    if (airborne(c) || shieldHp(c) > 0 || hullHp(c) > 0) return null;
     if (c.owner === null) return 'village';
     if (c.owner !== u.owner && isHostile(s, u.owner, c.owner)) return 'city';
     return null;

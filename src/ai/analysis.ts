@@ -5,8 +5,8 @@
 import {
   counterFactor, unitRange, entrenchFactor, area, canSeeUnit, cityById, canEmbark, citySites, usesSites, dist, has, hasTech, idx, isExplored, isHostile, isRefuelSpot, isShip, isWater,
   neighbors, freeUnitSlots, noTraining, territoryOwner, unitAt, unitLimit, type City, type Faction, type GameState, type Unit, isJungle, netIncome,
-  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, rearAttackBonus, type Pos } from '../core';
-import { AI, CAMPAIGN_AI, DEFENSE_BONUS, HACK, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
+  isWonder, waalArmed, victoryStatus, hqOf, isBoss, missionById, moveFireMult, homeDefenseAt, isCultFaction, hordeCount, plunderValue, judges, isSinner, hullCover, rearAttackBonus, beamShots, type Pos } from '../core';
+import { ACADEMY, AI, CAMPAIGN_AI, DEFENSE_BONUS, HACK, HIT, M2, INFANTRY_TYPES, REMAINS, SIN, SWARM_MOTHER, TERRAIN_DEFENSE_TECH, UNITS, WONDERS, XENO, type UnitTypeId } from '../data/balance';
 import { hashNoise, profileFor, type Profile } from './profile';
 import { emplacementGoal } from './emplacements';
 import { baseAttackWorth, baseCaptureWorth, baseDefendWorth } from './bases';
@@ -416,7 +416,19 @@ export function expectedDamage(ctx: Ctx, u: Unit, x: number, y: number, asShip =
   // entrenched (Korvat) and staying put: less expected damage as in combatPreview (human shooters as the yardstick)
   if (x === u.x && y === u.y) total *= entrenchFactor(ctx.s, HIT.odds.human, u, true);
   // nicht alle Gegner greifen dieselbe Einheit an / not every enemy hits the same unit
-  return list.length > 1 ? total * 0.75 : total;
+  return (list.length > 1 ? total * 0.75 : total) + beamDanger(ctx, x, y);
+}
+
+/**
+ * Neutronenstrahl feindlicher Akademien (ACADEMY.beam): leichter Zuschlag auf den erwarteten Schaden in Reichweite
+ * (Schaden x Schuesse x ACADEMY.ai.beamFear), damit Gegner die Reichweite beim Anmarsch beachten.
+ * Neutron beam of hostile academies (ACADEMY.beam): a light surcharge on the expected damage within range (damage x shots x
+ * ACADEMY.ai.beamFear), so enemies respect the range when approaching.
+ */
+function beamDanger(ctx: Ctx, x: number, y: number): number {
+  let d = 0;
+  for (const c of ctx.hostileCities) if (c.academy && dist(c, { x, y }) <= ACADEMY.beam.range) d += ACADEMY.beam.damage * beamShots(c) * ACADEMY.ai.beamFear;
+  return d;
 }
 
 // ---------- Ziele / goals ----------

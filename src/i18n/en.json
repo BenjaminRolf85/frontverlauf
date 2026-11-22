@@ -186,13 +186,13 @@
       "quote": "Who calculates, wins. Who guesses, loses.",
       "lore": "In Velkar, in the icy north, the Academy rules, and it floats: Director Kesh had the polar laboratory set on thrusters before he proclaimed the Technocracy. Since then the formula decides, not the people, and where Velkar takes a place, no new realm arises but a research post that works for the Academy. Velkar's engineers are ahead of everyone, and its pioneers build fortresses where others freeze.",
       "style": "production, labs, prototypes, cold",
-      "aiStyle": "Takes places as research posts, moves the floating academy to the front, guards it with the shield and beams reinforcements through relays.",
+      "aiStyle": "Takes places as research posts, moves the floating academy to the front, guards it with the shield and beams reinforcements through relays. Plays either the army or the flying fortress: upgrades the academy, holds out and then besieges hostile cities with the neutron beam.",
       "perk2": "Engineer corps",
       "perk2Desc": "Tank barriers cost {engineerBarrierCost} instead of {barrierCost} stars.",
       "feature": "Lab in the field",
       "featureDesc": "Own designs instead of the standard troops: Tesla tank instead of tank (attack {tesla} instead of {tank}, {miss} % misses), railgun marksman instead of sniper (range {rail} instead of {sniper}, stationary only) and octocopter instead of attack helicopter (same values).",
       "feature2": "Floating Academy",
-      "feature2Desc": "Velkar grows through its capital: captured places become one-tile research posts with stars and vision, their territory and growth pass to the academy. It trains {academyBaseSlots} units per turn plus one per post (at most {academyMaxSlots}), lifts off in {academyLift} round, moves {academyMove} tiles per turn and builds a shield ({academyShieldHp} HP). Beam relays ({beamerCost} stars) on posts bring reinforcements to the front in one round."
+      "feature2Desc": "Velkar grows through its capital: captured places become one-tile research posts with stars and vision, their territory and growth pass to the academy. It trains {academyBaseSlots} units per turn plus one per post (at most {academyMaxSlots}), lifts off in {academyLift} round, moves {academyMove} tiles per turn and builds a shield ({academyShieldHp} HP). Beam relays ({beamerCost} stars) on posts bring reinforcements to the front in one round. The academy fires itself: neutron beam up to {academyBeamRange} tiles, up to {academyBeamDamage} damage. Two ways: a typical army, or expand the academy with shield boost, defence missiles, armour and beam amplifier into a flying fortress, hold out and then attack with it."
     },
     "zyrr": {
       "name": "Zyrr Swarm",
@@ -875,7 +875,11 @@
     "cityHackCooldown": "The next city hack is not ready yet.",
     "noDataCenter": "Build a data centre first.",
     "terraforming": "The academy is terraforming: it lands at the start of the next turn (you can cancel).",
-    "notTerraforming": "The academy is not terraforming."
+    "notTerraforming": "The academy is not terraforming.",
+    "rayUsed": "The neutron beam has already fired all its shots this turn.",
+    "rayCooldown": "The neutron beam is still cooling down.",
+    "rayNoTarget": "There is no visible hostile target for the neutron beam there.",
+    "moduleMax": "This module is fully upgraded."
   },
   "events": {
     "contact": "First contact with {name}: +{stars} stars",
@@ -3723,7 +3727,7 @@
     },
     "academy": {
       "title": "Floating academy (Velkar)",
-      "text": "Velkar's capital is a floating academy (in free games; the campaign keeps the old rules). Captured places become research posts: one tile, stars and vision, no training, no upgrades. Their territory passes to the academy, plus {pop} population (+{perLevel} per level of the place above 1), and each post supports {units} more units. Territory stays where it is, even when the academy moves. The academy trains {base} units per turn plus one per post (at most {max}), on the academy or free tiles next to it. Lift-off: after {lift} round it floats and moves {move} tiles per turn over any terrain; landing means terraforming: the academy reshapes the tile for {tf} round and lands at the start of its next turn; meanwhile it keeps floating (same attack rules), does not move and can cancel (the turn's tiles are then used up). Mountain, forest and shallow water become plain, desert, steppe, tundra, hills and swamp become grassland, and this stays after lift-off; deep ocean, volcanoes and fires do not. A resource is absorbed (+{tfPop} population), neutral buildings, ruins and features are levelled, and so is an adjacent neutral place (it vanishes, its territory passes to the academy, no reward). Nothing owned by a faction, no wonder, gun or landmark is ever levelled. Not in foreign territory, no foreign unit, no own building, at least {gap} tiles from every place with an owner; free surroundings within radius {claim} become territory. If the landing is no longer possible at the start of the turn, it keeps floating. From lift-off until landing, production rests; it trains again in the landing turn. While floating, only flyers, flak and tanks attack; without a shield every hit forces an emergency landing. Shield ({cost} stars): {hp} HP, absorbs attacks on the academy and units on its tile first, recharges {regen} HP per turn, once destroyed it can be rebuilt only after {rebuild} rounds; while it stands the academy cannot be captured. Beam relay ({beamer} stars) on a post: one unit per round from the academy to it, one round in transit, arrives ready; if the relay falls, the unit returns to the academy. If the academy is lost, the nearest post becomes the new academy at half the level."
+      "text": "Velkar's capital is a floating academy (in free games; the campaign keeps the old rules). Captured places become research posts: one tile, stars and vision, no training, no upgrades. Their territory passes to the academy, plus {pop} population (+{perLevel} per level of the place above 1), and each post supports {units} more units. Territory stays where it is, even when the academy moves. The academy trains {base} units per turn plus one per post (at most {max}), on the academy or free tiles next to it. Lift-off: after {lift} round it floats and moves {move} tiles per turn over any terrain; landing means terraforming: the academy reshapes the tile for {tf} round and lands at the start of its next turn; meanwhile it keeps floating (same attack rules), does not move and can cancel (the turn's tiles are then used up). Mountain, forest and shallow water become plain, desert, steppe, tundra, hills and swamp become grassland, and this stays after lift-off; deep ocean, volcanoes and fires do not. A resource is absorbed (+{tfPop} population), neutral buildings, ruins and features are levelled, and so is an adjacent neutral place (it vanishes, its territory passes to the academy, no reward). Nothing owned by a faction, no wonder, gun or landmark is ever levelled. Not in foreign territory, no foreign unit, no own building, at least {gap} tiles from every place with an owner; free surroundings within radius {claim} become territory. If the landing is no longer possible at the start of the turn, it keeps floating. From lift-off until landing, production rests; it trains again in the landing turn. While floating, only flyers, flak and tanks attack; without a shield every hit forces an emergency landing. Shield ({cost} stars): {hp} HP, absorbs attacks on the academy and units on its tile first, recharges {regen} HP per turn, once destroyed it can be rebuilt only after {rebuild} rounds; while it stands the academy cannot be captured. Beam relay ({beamer} stars) on a post: one unit per round from the academy to it, one round in transit, arrives ready; if the relay falls, the unit returns to the academy. If the academy is lost, the nearest post becomes the new academy at half the level. Neutron beam (built in): one shot every {every} turns at a visible hostile unit or hostile structure within {brange} tiles; a full hit deals {bdmg} damage, weaker ones less, a miss nothing (without hit luck always {bdmg}); no return fire, no cities; on the ground, floating and while terraforming, not in the lift-off round. Academy upgrades (two ways: typical army or a flying fortress that holds out and then attacks itself), one price per level, one level per turn and module, in the air too: shield boost ({sCosts} stars, per level +{sHp} HP and +{sRegen} recharge), defence missiles ({mCosts} stars, one interception per level between two own turns against flyers, mech rockets and silo rockets on the academy and its adjacent tiles, not against ground fire), armour ({aCosts} stars, hull with {aHp} HP per level, recharges {aRegen} per turn; only without a hull the emergency landing, on the ground only capturable without shield and hull), beam amplifier ({bCosts} stars, fires every turn). Upgrades and beam are lost with the academy."
     },
     "hacking": {
       "title": "Hacking (NEXUS)",
@@ -4345,7 +4349,7 @@
     "posts": "Research posts: {n}",
     "transit": "In transit (beamer): {n}",
     "desc": "Velkar's only training site: {academyBaseSlots} units per turn and one more per research post (at most {academyMaxSlots}), on free tiles around the academy. Lifting off takes {academyLift} round, then it moves {academyMove} tiles per turn over any terrain. Before landing it terraforms for {academyTerraform} round. From lift-off until landing, production rests; it trains again in the landing turn.",
-    "airRule": "While floating, only flyers, flak and tanks attack; every hit without a shield forces an emergency landing.",
+    "airRule": "While floating only flyers, flak and tanks attack; every hit without shield and hull forces an emergency landing.",
     "lift": "Lift off",
     "liftDesc": "The academy lifts off and floats after {academyLift} round; then it moves {academyMove} tiles per turn. No production until landing. While floating, only flyers, flak and tanks can attack it.",
     "move": "Move",
@@ -4361,7 +4365,7 @@
     "attack": "Attack academy",
     "attackShield": "Shield -{dmg}",
     "attackForce": "Force a landing",
-    "attackDesc": "No return fire: the academy is unarmed. On the ground without a shield it is captured like any city.",
+    "attackDesc": "No return fire: the academy only fires its neutron beam in its own turn. On the ground without shield and hull it is captured like any city.",
     "postDesc": "Captured place: one tile, gives stars and vision, trains nothing. Territory and growth pass to the academy.",
     "postOf": "Post of the academy {city}.",
     "defense": "Academy +{academyDefense} defence",
@@ -4405,7 +4409,51 @@
     "terraformNext": "Lands at the start of the next turn, production from the turn after.",
     "landHint": "Landing takes a terraforming round.",
     "razeWarn": "Neutral place will be levelled.",
-    "terraformFlat": "The tile is already plain grassland."
+    "terraformFlat": "The tile is already plain grassland.",
+    "beam": "Neutron beam",
+    "beamSub": "{n}/{max} shots",
+    "beamShots": "Neutron beam: {n}/{max} shots this turn",
+    "beamDesc": "Fires at a visible hostile unit or hostile structure (gun, silo, hack tower) within {academyBeamRange} tiles: a full hit deals {academyBeamDamage} damage, weaker hits less, a miss nothing. Built in it fires every {academyBeamEvery} turns, with the beam amplifier every turn. No return fire, no cities. On the ground, floating and while terraforming, not in the lift-off round; independent of training.",
+    "beamPick": "Tap a target in range (marked red), tap it again to fire.",
+    "beamNone": "No visible hostile target within {academyBeamRange} tiles.",
+    "beamTarget": "{target}: {hp} HP, full hit -{dmg}",
+    "beamKill": "(destroyed)",
+    "beamConfirm": "Tap again or fire.",
+    "beamFire": "Fire",
+    "beamFx": "Beam",
+    "beamStructure": "Hostile structure",
+    "upgrades": "Academy upgrades",
+    "modLevel": "{name} {n}/{max}",
+    "modSub": "Level {n}",
+    "hullHp": "Hull {hp}/{max} HP",
+    "intercepts": "Interceptions {n}/{max} until the next turn",
+    "attackHull": "Hull -{dmg}",
+    "attackIntercept": "Will be intercepted (defence missiles)",
+    "toastModule": "{city}: {name} level {n}",
+    "toastIntercept": "{city}: defence missiles intercepted (left: {n})",
+    "toastHullDown": "{city}: armour breached",
+    "strategies": "Two ways: build a typical army, or expand the academy into a flying fortress (shield, defence missiles, armour, beam), hold out until then and attack with it.",
+    "mod": {
+      "shield": {
+        "name": "Shield boost",
+        "desc": "Per level +{academyModShieldHp} shield HP and +{academyModShieldRegen} recharge per turn (now {hp} HP, {regen} per turn); a standing shield grows at once. The base shield is built as before."
+      },
+      "missiles": {
+        "name": "Defence missiles",
+        "desc": "Level {n}: {n} interceptions between two own turns. Intercepted are attacks by flyers (drones and guided missiles too) and mech rockets on the academy and own units on or next to it (no damage, no return fire) and rocket silo strikes hitting it or an adjacent tile. Ground fire, round fire of guns and flak is not.",
+        "fx": "Intercepted"
+      },
+      "armour": {
+        "name": "Armour",
+        "short": "Hull",
+        "desc": "Hull with {hp} HP ({academyModArmourHp} per level), recharges {academyModArmourRegen} HP per turn. What gets through the shield hits the hull; only without a hull does a hit in the air force the emergency landing, and on the ground the academy can only be captured without shield and hull."
+      },
+      "beam": {
+        "name": "Beam amplifier",
+        "desc": "The neutron beam fires every turn instead of every {academyBeamEvery} turns. Damage ({academyBeamDamage}) and range ({academyBeamRange} tiles) stay."
+      }
+    },
+    "beamWait": "Beam ready in {n} rounds"
   },
   "beam": {
     "name": "Beam relay",

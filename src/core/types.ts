@@ -1,6 +1,6 @@
 import type {
   BaseKind, BiomeId, BuildingId, CityUpgradeId, Difficulty, ProductionSiteId, FactionId, GameMode, GrandProjectId, MapSize, MapType, ResourceId, TechId, TerrainId,
-  UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId, SinDeed,
+  UnitTypeId, BunkerReward, HitKind, WonderKind, WonderUnitId, SinDeed, AcademyModule,
 } from '../data/balance';
 
 export interface Pos { x: number; y: number }
@@ -185,6 +185,22 @@ export interface City {
   relay?: boolean;
   /** Runde des letzten Beamvorgangs zu diesem Relay (einer je Runde) / round of the last beam to this relay (one per round) */
   beamed?: number;
+  /**
+   * Ausbau der Akademie (ACADEMY.modules): gekaufte Stufe je Modul (fehlt = 0; Neutronenstrahl Stufe 1 ist eingebaut);
+   * moduleRound = Runde des letzten Kaufs je Modul (eine Stufe je Zug).
+   * Academy upgrades (ACADEMY.modules): bought level per module (missing = 0; neutron beam level 1 is built in);
+   * moduleRound = round of the last purchase per module (one level per turn).
+   */
+  mods?: Partial<Record<AcademyModule, number>>;
+  moduleRound?: Partial<Record<AcademyModule, number>>;
+  /** Rumpf der gepanzerten Akademie (ACADEMY.modules.armour) / hull of the armoured academy */
+  hull?: { hp: number; max: number };
+  /** Abfaenge der Abwehrraketen seit dem letzten eigenen Zugbeginn / interceptions of the defence missiles since the last own turn start */
+  pdUsed?: number;
+  /** Neutronenstrahl: Schuesse in dieser Runde (ACADEMY.beam) / neutron beam: shots this round (ACADEMY.beam) */
+  ray?: { round: number; n: number };
+  /** Neutronenstrahl wieder bereit ab dieser Runde (ACADEMY.beam.cooldown) / neutron beam ready again from this round */
+  rayReady?: number;
 }
 
 export interface Unit {
@@ -555,7 +571,7 @@ export type WonderEventKind = 'started' | 'phase' | 'interrupted' | 'destroyed';
 
 export type GameEvent =
   | { t: 'move'; unit: number; path: Pos[] }
-  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean;
+  | { t: 'attack'; unit: number; target: number; dmg: number; ret: number; splash?: { unit: number; dmg: number }[]; hit?: HitKind; retHit?: HitKind; retreat?: boolean; rocket?: boolean; intercepted?: boolean;
     /** Kamikaze-Drohne: der Angriff war die Explosion, die Drohne ist danach zerstoert / kamikaze drone: the attack was the explosion, the drone is destroyed afterwards */
     kamikaze?: boolean }
   | { t: 'killed'; unit: number; by: number | null; remains?: 'wreck' | 'skeleton' | null; x?: number; y?: number }
@@ -689,7 +705,7 @@ export type GameEvent =
    */
   | { t: 'sabotage'; unit: number; x: number; y: number; what: 'outpost' | 'building' | 'road'; building?: BuildingId; faction: number; victim: number }
   | { t: 'radarSweep'; unit: number; x: number; y: number; radius: number; until: number; faction: number }
-  | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[] }
+  | { t: 'siloLaunch'; faction: number; from: Pos; x: number; y: number; tiles: Pos[]; hits: OrbitalHit[]; intercepted?: boolean }
   | { t: 'fireHit'; hits: { unit: number; dmg: number; x: number; y: number }[] }
   /**
    * Schwebende Akademie: abgehoben, schwebt, gezogen (from -> x, y), gelandet, notgelandet (by = Angreifer), verlegt (neue
@@ -716,6 +732,17 @@ export type GameEvent =
    * lost or no room), relay built (built).
    */
   | { t: 'beam'; what: 'built' | 'depart' | 'arrive' | 'return'; city: number; faction: number; x: number; y: number; unit?: number; unitType?: UnitTypeId }
+  /**
+   * Neutronenstrahl der Akademie city auf (x, y): Einheit (unit) oder Bauwerk (turret); dmg, Trefferart, killed = vernichtet.
+   * Neutron beam of academy city at (x, y): unit (unit) or structure (turret); dmg, hit kind, killed = destroyed.
+   */
+  | { t: 'neutron'; city: number; faction: number; from: Pos; x: number; y: number; dmg: number; killed: boolean; unit?: number; turret?: boolean; hit?: HitKind; victim?: number }
+  /** Rumpf der gepanzerten Akademie: getroffen, zerstoert (0 LP), aufgeladen / hull of the armoured academy: hit, down (0 HP), recharged */
+  | { t: 'hull'; what: 'hit' | 'down' | 'regen'; city: number; faction: number; hp: number; dmg?: number; unit?: number; hit?: HitKind }
+  /** Abwehrraketen der Akademie fangen einen Angriff ab (unit = Angreifer, silo = Rakete) / defence missiles intercept an attack */
+  | { t: 'intercept'; city: number; faction: number; x: number; y: number; from: Pos; unit?: number; silo?: boolean; left: number }
+  /** Modul der Akademie gekauft (Stufe level) / academy module bought (level) */
+  | { t: 'module'; city: number; faction: number; module: AcademyModule; level: number }
   /** Ort als Forschungsposten eingenommen: pop = Bevoelkerung fuer die Akademie, tiles = uebergebene Felder / place taken as a research post */
   | { t: 'post'; city: number; academy: number; faction: number; pop: number; tiles: number }
   | { t: 'gameOver'; winner: number | null; victory?: Victory };
@@ -780,6 +807,10 @@ export type Command =
   /** Terraformen abbrechen: schwebt weiter, die Felder dieses Zuges sind verbraucht / cancel terraforming: keeps floating, this turn's tiles are used up */
   | { type: 'cancelTerraform'; city: number }
   | { type: 'academyShield'; city: number }
+  /** Neutronenstrahl der Akademie auf das Ziel auf (x, y) / neutron beam of the academy at the target on (x, y) */
+  | { type: 'academyBeam'; city: number; x: number; y: number }
+  /** Modul der Akademie um eine Stufe ausbauen / upgrade an academy module by one level */
+  | { type: 'academyModule'; city: number; module: AcademyModule }
   /** Beamer-Relay auf einem Posten bauen; Einheit zum Relay beamen / build a beam relay on a post; beam a unit to the relay */
   | { type: 'buildBeamer'; city: number }
   | { type: 'beam'; unit: number; city: number }
@@ -827,6 +858,9 @@ export type ErrorCode =
   | 'terraforming' | 'notTerraforming'
   // Beamer: kein Relay, schon gebeamt, Einheit nicht an der Akademie / beamer: no relay, already beamed, unit not at the academy
   | 'noBeamer' | 'beamUsed' | 'notAtAcademy'
+  // Neutronenstrahl: Schuesse des Zuges verbraucht, Ruhezeit; Modul: hoechste Stufe, schon in diesem Zug ausgebaut
+  // neutron beam: the turn's shots used, rest time; module: top level, already upgraded this turn
+  | 'rayUsed' | 'rayCooldown' | 'rayNoTarget' | 'moduleMax'
   // Hacken (NEXUS): keine Ladung, zu frueh, schon gehackt in diesem Zug, uebernommene Einheit, Turm belegt, nicht mechanisiert
   // hacking (NEXUS): no charge, too early, already hacked this turn, taken-over unit, tower busy, not mechanised
   | 'hackCharges' | 'hackEarly' | 'hackTurn' | 'hijacked' | 'towerBusy' | 'towerCooldown' | 'notMechanised' | 'cityHackCooldown' | 'noDataCenter';

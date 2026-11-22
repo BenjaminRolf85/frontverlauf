@@ -3,7 +3,7 @@
  * Game core: create state and apply commands. Pure TypeScript, deterministic.
  */
 import {
-  BASES, COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
+  BASES, SILO, COUNTER, ENTRENCH, CRASH, CULT, VOLCANO, WEATHER, ROSTERS, BARRIER, CITY_UPGRADES, TRACKS, WAR_MARKS, XENO, BUILDINGS, BUNKER, BUNKER_REWARDS, CITY, REMAINS, COMBAT, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS,
   MODES, MARTYR, ORBITAL, TOWER, PERKS2, RETREAT, SIN, ROCKETS, START, SWARM_MOTHER, VERDAN, TECHS, TECH_IDS, UNIQUE, UNITS, VETERAN, VISION, WONDERS, VICTORY_TECH, type BunkerReward, type HitKind, type SinDeed, type TechId, type UnitTypeId,
   type WonderUnitId, SHIPYARD, SIGHTING, REWARD_HEAVY, ACADEMY,
 } from '../data/balance';
@@ -16,9 +16,9 @@ import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMi
 import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
-import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloBuyCheck, siloCheck, type ShadowKit } from './shadowFleet';
+import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloArea, siloBuyCheck, siloCheck, siloOf, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
-import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, cancelTerraformCheck, forcedSpot, landCheck, landingOk, landTarget, liftCheck, nearestStand, razedKind, shieldCheck, shieldOver } from './academy';
+import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, cancelTerraformCheck, forcedSpot, interceptor, landCheck, landingOk, landTarget, liftCheck, moduleCheck, moduleCost, nearestStand, rayCheck, rayDamage, rayOdds, rayTargetAt, razedKind, shieldCheck, shieldOver, siloInterceptor } from './academy';
 import { applyCityHack, applyHack, applyHijack, buildHackTower, cityHackCheck, endHijacks, hackCheck, hackTowerCheck, hijackCheck, releaseHijacks, sweepHijacks, type HackKit } from './hacking';
 import { addBattleScar, healScars } from './scars';
 import { seizeCheck, seizePlans } from './temple';
@@ -32,7 +32,7 @@ import {
   barrierCost, cityTiles, outpostClaim, outpostCost, perk2Of, factionVariant, hitChanceOn, hitDamage, hitOdds, rollHit, retreatCheck, retreatDamage, retreatTile, repairCheck, repairWreck, repairAmount, alienHealBlocked, rocketTargets, rocketsLeft,
   isWonder, factionVictoryOn, wonderCheck, wonderFootprint, wonderPhases, researchAllowed, korvatNeed, judgementNeed, judges, judgeAlive, isSinner, meridonNeed,
   cityAt, isBoss, isWonderStructure, gunHostile, gunStats, medicCanHeal, paidUnits, returnFire, buildingWorksFor, wonderGroundOk, baseBuilding, pilgrimVeteranAt, persuadeCheck, persuadeCost,
-  basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome, academyOf, postsOf, trainSpot, trainedNow,
+  basesOn, factoryXenoTiles, freeUnitSlots, recruitFootHp, trainFootHp, trainHome, academyOf, postsOf, trainSpot, trainedNow, beamFired, beamRest, beamShots, hullHp, interceptsLeft, moduleLevel, shieldMaxHp, shieldRegen, shieldHp,
   medicHealAmount, flakDamage, mineDamage, fuelBurnAt, shipUpgradeCost, diplomacyLocked, emptyShipAt, shipSpawnTile, canWithdrawAfterAttack,
 } from './queries';
 import { nextRandom, randInt } from './rng';
@@ -695,9 +695,39 @@ function academyTurn(s: GameState, c: City, ev: GameEvent[]) {
     c.air = { phase: 'flying', steps: ACADEMY.move };
   }
   if (c.shield && c.shield.hp < c.shield.max) {
-    c.shield.hp = Math.min(c.shield.max, c.shield.hp + ACADEMY.shield.regen);
+    // Verstaerkung (Modul shield) laedt schneller auf / reinforcement (module shield) recharges faster
+    c.shield.hp = Math.min(c.shield.max, c.shield.hp + shieldRegen(c));
     ev.push({ t: 'shield', what: 'regen', city: c.id, faction: c.owner!, hp: c.shield.hp });
   }
+  // Panzerung: der Rumpf laedt auf (auch von 0 LP) / armour: the hull recharges (from 0 HP too)
+  if (c.hull && c.hull.hp < c.hull.max) {
+    c.hull.hp = Math.min(c.hull.max, c.hull.hp + ACADEMY.modules.armour.regen);
+    ev.push({ t: 'hull', what: 'regen', city: c.id, faction: c.owner!, hp: c.hull.hp });
+  }
+  // Abwehrraketen: Abfaenge bis zum naechsten eigenen Zug wieder voll / defence missiles: interceptions full again until the next own turn
+  if (c.pdUsed) delete c.pdUsed;
+}
+
+/**
+ * Rumpf der Akademie nimmt dmg (nach dem Schild); bei 0 LP Ereignis down. Liefert den Schaden, der nicht mehr aufgefangen
+ * wurde (Rumpf schon leer).
+ * The academy's hull takes dmg (after the shield); at 0 HP a down event. Returns the damage no longer absorbed (hull
+ * already empty).
+ */
+function hullTake(c: City, dmg: number, by: number | null, ev: GameEvent[], hit?: HitKind): number {
+  const h = c.hull;
+  if (!h || h.hp <= 0 || dmg <= 0) return dmg;
+  const took = Math.min(h.hp, dmg);
+  h.hp -= took;
+  ev.push({ t: 'hull', what: 'hit', city: c.id, faction: c.owner!, hp: h.hp, dmg: took, ...(by !== null ? { unit: by } : {}), ...(hit ? { hit } : {}) });
+  if (h.hp <= 0) ev.push({ t: 'hull', what: 'down', city: c.id, faction: c.owner!, hp: 0 });
+  return dmg - took;
+}
+
+/** Abwehrraketen verbrauchen einen Abfang / defence missiles use one interception */
+function useIntercept(c: City, at: Pos, from: Pos, ev: GameEvent[], unit?: number, silo = false) {
+  c.pdUsed = (c.pdUsed ?? 0) + 1;
+  ev.push({ t: 'intercept', city: c.id, faction: c.owner!, x: at.x, y: at.y, from: { x: from.x, y: from.y }, ...(unit !== undefined ? { unit } : {}), ...(silo ? { silo: true } : {}), left: interceptsLeft(c) });
 }
 
 /**
@@ -1295,6 +1325,8 @@ function captureCity(s: GameState, u: Pick<Unit, 'owner'>, c: City, ev: GameEven
 /** Zustand der Akademie und des Postens entfernen / remove the academy and post state */
 function dropAcademyState(c: City) {
   delete c.academy; delete c.post; delete c.air; delete c.calm; delete c.shield; delete c.shieldReady; delete c.trained;
+  // Ausbau und Strahl gehen mit der Akademie verloren (ACADEMY.modules) / upgrades and beam are lost with the academy
+  delete c.mods; delete c.moduleRound; delete c.hull; delete c.pdUsed; delete c.ray; delete c.rayReady;
   delete c.relay; delete c.beamed;
 }
 
@@ -1529,15 +1561,20 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
     return fail('outOfRange');
   }
   const pre = combatPreview(s, u, target, rocket);
+  // Abwehrraketen der Akademie (ACADEMY.modules.missiles): Flieger und Mech-Raketen auf Einheiten auf oder neben ihr werden
+  // abgefangen, ohne Wurf, Schaden und Gegenschlag / the academy's defence missiles: flyers and mech rockets on units on
+  // or next to it are intercepted, without a roll, damage or return fire
+  const pd = interceptor(s, u, target, target.owner, rocket);
+  if (pd) useIntercept(pd, target, u, ev, u.id);
   // Trefferglueck des Angreifers / attacker's hit luck
-  const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
+  const hit: HitKind = pd ? 'miss' : hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
   // Schutzschild der Akademie faengt zuerst ab (ACADEMY.shield) / the academy's shield absorbs first (ACADEMY.shield)
-  const guard = shieldOver(s, target);
-  const dealt = guard ? shieldTake(s, guard, hitDamage(pre.toDefender, hit), u.id, ev) : hitDamage(pre.toDefender, hit);
+  const guard = pd ? null : shieldOver(s, target);
+  const dealt = pd ? 0 : guard ? shieldTake(s, guard, hitDamage(pre.toDefender, hit), u.id, ev) : hitDamage(pre.toDefender, hit);
   const kills = dealt >= target.hp;
   // Gegenschlag nur, wenn das Ziel ueberlebt, mit den LP nach dem Treffer; eigenes Trefferglueck des Verteidigers
   // return fire only if the target survives, with the HP left after the hit; defender's own hit luck
-  const retBase = kills ? 0 : returnFire(s, u, target, target.hp - dealt);
+  const retBase = kills || pd ? 0 : returnFire(s, u, target, target.hp - dealt);
   // Gegenschlag auf einen verschanzten Angreifer (Korvat): mehr Fehlschuesse / return fire on an entrenched attacker (Korvat): more misses
   const retHit: HitKind = retBase > 0 && hitChanceOn(s) ? rollHit(hitOdds(s, { ...target, hp: target.hp - dealt }, false, u), nextRandom(s)) : 'full';
   const ret = retBase > 0 ? hitDamage(retBase, retHit) : 0;
@@ -1548,7 +1585,7 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   faceTowards(u, target);
   if (retBase > 0) faceTowards(target, u);
   const splash: { unit: number; dmg: number }[] = [];
-  if (has(u, 'splash')) {
+  if (has(u, 'splash') && !pd) {
     const dmg = Math.round(dealt * COMBAT.splashFactor);
     for (const o of s.units.slice()) {
       if (o.id === target.id || o.owner === u.owner || !isHostile(s, u.owner, o.owner) || dist(o, target) !== 1) continue;
@@ -1572,7 +1609,7 @@ function doAttack(s: GameState, u: Unit, target: Unit, ev: GameEvent[], rocket =
   addMark(s, target.x, target.y, markKind, has(u, 'kamikaze') ? WAR_MARKS.scar.blast : scarWeight(u, rocket));
   for (const sp of splash) { const o = unitById(s, sp.unit); if (o) addMark(s, o.x, o.y, 'scorch', WAR_MARKS.scar.splash); }
   if (ret > 0) addMark(s, u.x, u.y, 'scorch', WAR_MARKS.scar.returnFire);
-  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(rocket ? { rocket: true } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
+  ev.push({ t: 'attack', unit: u.id, target: target.id, dmg: dealt, ret, splash, ...(pd ? { intercepted: true } : {}), ...(rocket ? { rocket: true } : {}), ...(has(u, 'kamikaze') ? { kamikaze: true } : {}), ...(hitChanceOn(s) ? { hit, ...(retBase > 0 ? { retHit } : {}) } : {}) });
   s.factions[u.owner].lastAttackRound = s.round;
   // Suende: Brandschatzen (Brand-Angriff) oder Frevel (Angriff auf die richtende Fraktion), erst nach dem Treffer
   // sin: burning (burn attack) or sacrilege (attack on the judging faction), only after the hit
@@ -2168,6 +2205,19 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
     case 'siloLaunch': {
       const check = siloCheck(s, f, cmd.x, cmd.y, cmd.tx, cmd.ty);
       if (check !== 'ok') return fail(check);
+      // Abwehrraketen einer feindlichen Akademie fangen die ganze Rakete ab (ACADEMY.modules.missiles); das Silo laedt trotzdem nach
+      // defence missiles of a hostile academy intercept the whole rocket; the silo recharges all the same
+      const tiles = siloArea(s, cmd.tx, cmd.ty);
+      const pd = siloInterceptor(s, f, tiles);
+      if (pd) {
+        const silo = siloOf(s, f, cmd.x, cmd.y);
+        if (silo) silo.ready = s.round + SILO.cooldown;
+        fa.lastAttackRound = s.round;
+        ev.push({ t: 'siloLaunch', faction: f, from: { x: cmd.x, y: cmd.y }, x: tiles[0].x, y: tiles[0].y, tiles, hits: [], intercepted: true });
+        useIntercept(pd, { x: pd.x, y: pd.y }, { x: cmd.x, y: cmd.y }, ev, undefined, true);
+        res = { ok: true, events: ev };
+        break;
+      }
       fireSilo(s, f, cmd.x, cmd.y, cmd.tx, cmd.ty, ev, shadowKit(s));
       checkElimination(s, ev);
       res = { ok: true, events: ev };
@@ -2233,9 +2283,70 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const chk = shieldCheck(s, f, c);
       if (chk !== 'ok') return fail(chk);
       fa.stars -= ACADEMY.shield.cost;
-      c!.shield = { hp: ACADEMY.shield.hp, max: ACADEMY.shield.hp };
+      // Verstaerkung (Modul shield): mehr LP / reinforcement (module shield): more HP
+      c!.shield = { hp: shieldMaxHp(c!), max: shieldMaxHp(c!) };
       delete c!.shieldReady;
       ev.push({ t: 'shield', what: 'built', city: c!.id, faction: f, hp: c!.shield.hp });
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'academyBeam': {
+      // Neutronenstrahl (ACADEMY.beam): fester Schaden, Trefferglueck ohne kritische Treffer, kein Gegenschlag
+      // neutron beam (ACADEMY.beam): flat damage, hit luck without critical hits, no return fire
+      const c = cityById(s, cmd.city);
+      const chk = rayCheck(s, f, c, cmd.x, cmd.y);
+      if (chk !== 'ok') return fail(chk);
+      const tg = rayTargetAt(s, f, cmd.x, cmd.y) as { unit?: Unit; gun?: { x: number; y: number } };
+      const tu = tg.unit;
+      const hit: HitKind = hitChanceOn(s) ? rollHit(rayOdds(s, tu), nextRandom(s)) : 'full';
+      const dmg = rayDamage(s, hit, tu);
+      const from = { x: c!.x, y: c!.y };
+      const n = beamFired(s, c!) + 1;
+      c!.ray = { round: s.round, n };
+      const rest = beamRest(c!);
+      if (n >= beamShots(c!) && rest > 0) c!.rayReady = s.round + 1 + rest;
+      fa.lastAttackRound = s.round;
+      if (tu) {
+        // Schild einer Akademie ueber dem Ziel faengt zuerst ab / an academy shield over the target absorbs first
+        const guard = shieldOver(s, tu);
+        const dealt = guard ? shieldTake(s, guard, dmg, null, ev) : dmg;
+        tu.hp -= dealt;
+        spare(s, tu);
+        if (dealt > 0) addMark(s, tu.x, tu.y, 'scorch', WAR_MARKS.scar.turret);
+        ev.push({ t: 'neutron', city: c!.id, faction: f, from, x: tu.x, y: tu.y, dmg: dealt, killed: tu.hp <= 0, unit: tu.id, victim: tu.owner, ...(hitChanceOn(s) ? { hit } : {}) });
+        if (judges(s, tu.owner)) markSin(s, f, 'sacrilege', ev);
+        // Abschuss fuer die Fraktion, keine Befoerderung (kein Schuetze) / kill for the faction, no promotion (no shooter)
+        if (tu.hp <= 0) { killUnit(s, tu, null, ev); fa.kills++; }
+        else if (dealt > 0) interruptWonder(s, tu, ev);
+      } else {
+        const p = tg.gun!;
+        const t = tileAt(s, p.x, p.y)!;
+        const gun = t.turret!;
+        const owner = gun.owner;
+        gun.hp = Math.max(0, gun.hp - dmg);
+        const destroyed = gun.hp <= 0;
+        if (destroyed) { t.turret = null; t.turretRuin = true; if (owner !== undefined) t.turretRuinOwner = owner; }
+        if (dmg > 0) addMark(s, p.x, p.y, 'scorch', WAR_MARKS.scar.turret);
+        ev.push({ t: 'neutron', city: c!.id, faction: f, from, x: p.x, y: p.y, dmg, killed: destroyed, turret: true, ...(owner !== undefined ? { victim: owner } : {}), ...(hitChanceOn(s) ? { hit } : {}) });
+      }
+      checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    case 'academyModule': {
+      // Ausbau der Akademie (ACADEMY.modules) / academy upgrade (ACADEMY.modules)
+      const c = cityById(s, cmd.city);
+      const chk = moduleCheck(s, f, c, cmd.module);
+      if (chk !== 'ok') return fail(chk);
+      fa.stars -= moduleCost(c!, cmd.module);
+      const level = moduleLevel(c, cmd.module) + 1;
+      c!.mods = { ...(c!.mods ?? {}), [cmd.module]: level };
+      c!.moduleRound = { ...(c!.moduleRound ?? {}), [cmd.module]: s.round };
+      // Schild: ein stehender Schild waechst sofort mit / shield: a standing shield grows at once
+      if (cmd.module === 'shield' && c!.shield) { c!.shield.max = shieldMaxHp(c!); c!.shield.hp += ACADEMY.modules.shield.hp; }
+      // Panzerung: Rumpf neu und voll / armour: hull new and full
+      if (cmd.module === 'armour') { const hp = ACADEMY.modules.armour.hp * level; c!.hull = { hp, max: hp }; }
+      ev.push({ t: 'module', city: c!.id, faction: f, module: cmd.module, level });
       res = { ok: true, events: ev };
       break;
     }
@@ -2273,16 +2384,30 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
       const chk = academyAttackCheck(s, u, c);
       if (chk !== 'ok') return fail(chk);
       const pre = academyAttackPreview(s, u, c!);
-      const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
       faceTowards(u, c!);
-      if (pre.forced) {
-        // schwebend ohne Schild: jeder Treffer erzwingt die Notlandung / floating without a shield: every hit forces an emergency landing
-        if (!academyMissed(hit)) forceLanding(s, c!, u.id, ev);
-        else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: 0, dmg: 0, unit: u.id, hit });
+      if (pre.intercept) {
+        // Abwehrraketen: der Angriff wird abgefangen, ohne Wurf und Schaden / defence missiles: the attack is intercepted, without a roll or damage
+        useIntercept(c!, c!, u, ev, u.id);
       } else {
-        const dmg = hitDamage(pre.toShield, hit);
-        if (dmg > 0) shieldTake(s, c!, dmg, u.id, ev);
-        else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: c!.shield!.hp, dmg: 0, unit: u.id, hit });
+        const hit: HitKind = hitChanceOn(s) ? rollHit(pre.odds, nextRandom(s)) : 'full';
+        if (pre.forced) {
+          // schwebend ohne Schild und Rumpf: jeder Treffer erzwingt die Notlandung / floating without shield and hull: every hit forces an emergency landing
+          if (!academyMissed(hit)) forceLanding(s, c!, u.id, ev);
+          else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: 0, dmg: 0, unit: u.id, hit });
+        } else {
+          const dmg = hitDamage(pre.toShield, hit);
+          if (dmg <= 0) {
+            if (pre.layer === 'hull') ev.push({ t: 'hull', what: 'hit', city: c!.id, faction: c!.owner!, hp: hullHp(c), dmg: 0, unit: u.id, hit });
+            else ev.push({ t: 'shield', what: 'hit', city: c!.id, faction: c!.owner!, hp: shieldHp(c), dmg: 0, unit: u.id, hit });
+          } else {
+            // was durch den Schild kommt, trifft den Rumpf (ACADEMY.modules.armour); faellt er in der Luft, Notlandung
+            // what gets through the shield hits the hull; if it falls in the air, emergency landing
+            const rest = pre.layer === 'shield' ? shieldTake(s, c!, dmg, u.id, ev) : dmg;
+            const hadHull = hullHp(c) > 0;
+            if (rest > 0 && hadHull) hullTake(c!, rest, u.id, ev, pre.layer === 'hull' ? hit : undefined);
+            if (hadHull && hullHp(c) <= 0 && c!.air) forceLanding(s, c!, u.id, ev);
+          }
+        }
       }
       addMark(s, c!.x, c!.y, 'scorch', scarWeight(u));
       fa.lastAttackRound = s.round;

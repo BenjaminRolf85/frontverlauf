@@ -4,12 +4,13 @@
  * Floating academy (Velkar, ACADEMY): read-only checks for lift-off, moving, landing, shield and attack.
  * The rules themselves (state changes) live in rules.ts.
  */
-import { ACADEMY, COMBAT, HIT, UNITS, type HitKind } from '../data/balance';
+import { ACADEMY, COMBAT, HIT, UNITS, type AcademyModule, type HitKind } from '../data/balance';
 import { area, dist, inBounds, isLand, tileAt } from './grid';
 import { burning } from './hazards';
 import {
   academyBusy, academyOf, airborne, canAttackNow, hasTech, canHitAirborne, cityById, effectiveAttack, effectiveRange, firepowerFactor, hitOdds, isExplored,
   isHostile, memorialMult, moveFireFactor, shieldHp, submerged, territoryOwner, unitAt, unitLuckFactor, movedThisTurn, has,
+  beamFired, beamShots, canSeeUnit, entrenchFactor, entrenchMiss, hitChanceOn, hitDamage, hullHp, interceptsLeft, moduleLevel, moduleMax, raceOdds, unitById, withEntrench,
 } from './queries';
 import type { City, ErrorCode, GameState, Pos, Unit } from './types';
 import type { ResourceId, TerrainId } from '../data/balance';
@@ -196,18 +197,18 @@ export function shieldCheck(s: GameState, f: number, c: City | undefined): 'ok' 
 
 /**
  * Angriff der Einheit u auf die Akademie c: feindlich, in Reichweite, sichtbar; schwebend nur Flieger, Flak und Panzer;
- * am Boden nur auf den Schild (ohne Schild wird sie eingenommen, nicht beschossen).
+ * am Boden nur auf Schild oder Rumpf (ohne beides wird sie eingenommen, nicht beschossen).
  * Attack of unit u on academy c: hostile, in range, visible; while floating only flyers, flak and tanks; on the ground only
- * on the shield (without a shield it is captured, not shot).
+ * on the shield or the hull (without both it is captured, not shot).
  */
 export function academyAttackCheck(s: GameState, u: Unit, c: City | undefined): 'ok' | ErrorCode {
   if (!c || !c.academy || c.owner === null || c.owner === u.owner) return 'invalidTarget';
   if (!isHostile(s, u.owner, c.owner)) return 'peace';
   if (!isExplored(s, u.owner, c.x, c.y)) return 'notVisible';
-  if (!canAttackNow(u) || submerged(s, u) || has(u, 'kamikaze') && !airborne(c) && shieldHp(c) <= 0) return 'cannotAttack';
+  if (!canAttackNow(u) || submerged(s, u) || has(u, 'kamikaze') && !airborne(c) && shieldHp(c) <= 0 && hullHp(c) <= 0) return 'cannotAttack';
   if (dist(u, c) > effectiveRange(s, u)) return 'outOfRange';
   if (airborne(c)) return canHitAirborne(u) ? 'ok' : 'airTarget';
-  return shieldHp(c) > 0 ? 'ok' : 'invalidTarget';
+  return shieldHp(c) > 0 || hullHp(c) > 0 ? 'ok' : 'invalidTarget';
 }
 
 /** Akademien, die u jetzt angreifen kann / academies u can attack now */
@@ -216,19 +217,26 @@ export function academyTargets(s: GameState, u: Unit): City[] {
 }
 
 /**
- * Schaden eines Angriffs auf den Schild (wie auf ein Geschuetz: Angriff gegen ACADEMY.shield.defense); ohne Schild in der
- * Luft zaehlt nur der Treffer (Notlandung). Kein Gegenschlag: die Akademie ist unbewaffnet.
- * Damage of an attack on the shield (like on a gun: attack against ACADEMY.shield.defense); without a shield in the air
- * only the hit counts (emergency landing). No return fire: the academy is unarmed.
+ * Schaden eines Angriffs auf die Akademie: zuerst auf den Schild (Angriff gegen ACADEMY.shield.defense), ohne Schild auf
+ * den Rumpf (ACADEMY.modules.armour.defense); ohne beides in der Luft zaehlt nur der Treffer (Notlandung). intercept =
+ * die Abwehrraketen fangen den Angriff ab (Flieger). Kein Gegenschlag: die Akademie schiesst nur mit
+ * dem Neutronenstrahl im eigenen Zug.
+ * Damage of an attack on the academy: first on the shield (attack against ACADEMY.shield.defense), without a shield on the
+ * hull (ACADEMY.modules.armour.defense); without both in the air only the hit counts (emergency landing). intercept = the
+ * defence missiles intercept the attack (flyer). No return fire: the academy only fires its neutron beam in
+ * its own turn.
  */
-export function academyAttackPreview(s: GameState, u: Unit, c: City): { toShield: number; odds: Record<HitKind, number>; forced: boolean; moveFire: boolean } {
+export function academyAttackPreview(s: GameState, u: Unit, c: City): { toShield: number; odds: Record<HitKind, number>; forced: boolean; moveFire: boolean; layer: 'shield' | 'hull' | 'none'; intercept: boolean } {
   const atk = effectiveAttack(s, u);
   const attackForce = atk * (u.hp / Math.max(1, u.maxHp));
-  const sh = c.shield;
-  const def = ACADEMY.shield.defense * (sh ? sh.hp / Math.max(1, sh.max) : 1);
+  const layer = shieldHp(c) > 0 ? 'shield' : hullHp(c) > 0 ? 'hull' : 'none';
+  const sh = layer === 'hull' ? c.hull : c.shield;
+  const base = layer === 'hull' ? ACADEMY.modules.armour.defense : ACADEMY.shield.defense;
+  const def = base * (sh ? sh.hp / Math.max(1, sh.max) : 1);
   const total = attackForce + def;
   const toShield = total > 0 ? Math.max(1, Math.round((attackForce / total) * atk * COMBAT.damageFactor * moveFireFactor(s, u) * unitLuckFactor(s, u) * memorialMult(s, u) * firepowerFactor(s, u))) : 0;
-  return { toShield, odds: hitOdds(s, u, dist(u, c) >= 2), forced: airborne(c) && shieldHp(c) <= 0, moveFire: movedThisTurn(u) && !has(u, 'kamikaze') };
+  return { toShield, odds: hitOdds(s, u, dist(u, c) >= 2), forced: airborne(c) && layer === 'none', moveFire: movedThisTurn(u) && !has(u, 'kamikaze'), layer,
+    intercept: c.owner !== null && !!interceptor(s, u, c, c.owner) };
 }
 
 /** Treffer bleibt ohne Wirkung? (Fehlschuss) / does the hit have no effect? (miss) */
@@ -321,4 +329,132 @@ export function nearestStand(s: GameState, u: Unit, x: number, y: number): Pos |
     if (ring.length) return ring.sort((a, b) => (a.y * s.size + a.x) - (b.y * s.size + b.x))[0];
   }
   return null;
+}
+
+// ---------- Ausbau und Neutronenstrahl (ACADEMY.modules, ACADEMY.beam) / upgrades and neutron beam ----------
+
+/** Preis der naechsten Stufe eines Moduls (Infinity = hoechste Stufe) / price of the next level of a module (Infinity = top level) */
+export const moduleCost = (c: City, m: AcademyModule): number => ACADEMY.modules[m].costs[moduleLevel(c, m)] ?? Infinity;
+
+/** Modul m der Akademie c um eine Stufe ausbauen / upgrade module m of academy c by one level */
+export function moduleCheck(s: GameState, f: number, c: City | undefined, m: AcademyModule): 'ok' | ErrorCode {
+  const e = ownAcademy(s, f, c);
+  if (e) return e;
+  if (!(m in ACADEMY.modules)) return 'invalid';
+  if (moduleLevel(c, m) >= moduleMax(m)) return 'moduleMax';
+  if (c!.moduleRound?.[m] === s.round) return 'alreadyBought';
+  if (s.factions[f].stars < moduleCost(c!, m)) return 'notEnoughStars';
+  return 'ok';
+}
+
+/**
+ * Abwehrraketen: Akademie der Fraktion owner, die den Angriff von att auf das Feld p abfaengt (Flieger, auch Drohnen und
+ * Lenkflugkoerper, oder Raketen der Mechs; p ist die Akademie oder ein Nachbarfeld; noch ein Abfang uebrig), sonst null.
+ * Bodenbeschuss (Panzer, Artillerie) nicht (gemessen: mit Fernangriffen aus 2 Feldern war die Festung zu stark).
+ * Defence missiles: the academy of faction owner that intercepts att's attack on tile p (flyers, drones and guided
+ * missiles too, or mech rockets; p is the academy or an adjacent tile; an interception left), otherwise null. Ground fire
+ * (tanks, artillery) not (measured: with ranged attacks from 2 tiles the fortress was too strong).
+ */
+export function interceptor(s: GameState, att: Unit, p: Pos, owner: number, rocket = false): City | null {
+  if (!has(att, 'fly') && !rocket) return null;
+  const ac = academyOf(s, owner);
+  if (!ac || interceptsLeft(ac) <= 0 || dist(ac, p) > 1 || !isHostile(s, att.owner, owner)) return null;
+  return ac;
+}
+
+/** Abwehrraketen gegen eine Silo-Rakete der Fraktion f auf tiles (erste Akademie nach ID) / defence missiles against a silo rocket of f on tiles (first academy by id) */
+export function siloInterceptor(s: GameState, f: number, tiles: Pos[]): City | null {
+  for (const c of [...s.cities].sort((a, b) => a.id - b.id)) {
+    if (!c.academy || c.owner === null || c.owner === f || !isHostile(s, f, c.owner) || interceptsLeft(c) <= 0) continue;
+    if (tiles.some((p) => dist(p, c) <= 1)) return c;
+  }
+  return null;
+}
+
+/**
+ * Ziel des Neutronenstrahls der Fraktion f auf (x, y): sichtbare feindliche Einheit (Wunder ueber ihre Grundflaeche, kein
+ * getauchter Mech) oder sichtbares feindliches Bauwerk (Geschuetz, Silo, Hackturm). Verdeckte Einheiten zaehlen nicht
+ * (kein Hinweis auf sie). Keine Staedte.
+ * Target of faction f's neutron beam on (x, y): visible hostile unit (wonders via their footprint, no submerged mech) or
+ * visible hostile structure (gun, silo, hack tower). Hidden units do not count (no hint at them). No cities.
+ */
+export function rayTargetAt(s: GameState, f: number, x: number, y: number): { unit?: Unit; gun?: Pos } | ErrorCode {
+  const t = tileAt(s, x, y);
+  if (!t) return 'invalidTile';
+  const u = unitAt(s, x, y) ?? (t.wonderOf ? unitById(s, t.wonderOf) : undefined);
+  if (u && canSeeUnit(s, f, u)) {
+    if (u.owner === f) return 'invalidTarget';
+    if (!isHostile(s, f, u.owner)) return 'peace';
+    if (submerged(s, u)) return 'invalidTarget';
+    return { unit: u };
+  }
+  const g = t.turret;
+  if (g && g.hp > 0 && g.owner !== undefined && g.owner !== f && isExplored(s, f, x, y)) {
+    if (!isHostile(s, f, g.owner)) return 'peace';
+    return { gun: { x, y } };
+  }
+  return isExplored(s, f, x, y) ? 'rayNoTarget' : 'notVisible';
+}
+
+/** Strahl bereit (ohne Ziel)? / beam ready (without a target)? */
+export function rayReadyCheck(s: GameState, f: number, c: City | undefined): 'ok' | ErrorCode {
+  const e = ownAcademy(s, f, c);
+  if (e) return e;
+  if (c!.air?.phase === 'lifting') return 'lifting';
+  // im Zug des Schusses: verbraucht; danach: Ruhe / in the turn of the shot: used; afterwards: rest
+  if (beamFired(s, c!) >= beamShots(c!)) return 'rayUsed';
+  if (c!.rayReady !== undefined && s.round < c!.rayReady) return 'rayCooldown';
+  return 'ok';
+}
+
+/** Neutronenstrahl der Akademie c auf (x, y) / neutron beam of academy c at (x, y) */
+export function rayCheck(s: GameState, f: number, c: City | undefined, x: number, y: number): 'ok' | ErrorCode {
+  const r = rayReadyCheck(s, f, c);
+  if (r !== 'ok') return r;
+  if (!inBounds(s.size, x, y)) return 'invalidTile';
+  if (dist(c!, { x, y }) > ACADEMY.beam.range) return 'outOfRange';
+  const tg = rayTargetAt(s, f, x, y);
+  return typeof tg === 'string' ? tg : 'ok';
+}
+
+/** Felder mit Zielen des Strahls in Reichweite (nur wenn er bereit ist) / tiles with beam targets in range (only when ready) */
+export function rayTargets(s: GameState, c: City): Pos[] {
+  if (c.owner === null || rayReadyCheck(s, c.owner, c) !== 'ok') return [];
+  return area(s.size, c.x, c.y, ACADEMY.beam.range).filter((p) => typeof rayTargetAt(s, c.owner!, p.x, p.y) !== 'string');
+}
+
+/** Felder in Reichweite des Strahls (Anzeige) / tiles within the beam's range (display) */
+export const rayReach = (s: GameState, c: City): Pos[] => area(s.size, c.x, c.y, ACADEMY.beam.range).filter((p) => p.x !== c.x || p.y !== c.y);
+
+/**
+ * Trefferchancen des Strahls: Rasse ACADEMY.beam.race mit Wetter (ohne Wind), kritische Treffer werden zu vollen, ein
+ * verschanztes Ziel verschiebt wie sonst zu Fehlschuessen. Ohne Trefferglueck immer voll.
+ * Hit odds of the beam: race ACADEMY.beam.race with weather (without wind), critical hits become full, an entrenched target
+ * shifts to misses as usual. Without hit luck always full.
+ */
+export function rayOdds(s: GameState, target?: Unit): Record<HitKind, number> {
+  if (!hitChanceOn(s)) return { miss: 0, graze: 0, partial: 0, full: 1, crit: 0 };
+  const o = raceOdds(s, ACADEMY.beam.race, 1, false);
+  const folded = { ...o, full: o.full + o.crit, crit: 0 };
+  return target ? withEntrench(folded, entrenchMiss(s, target)) : folded;
+}
+
+/** Schaden des Strahls je Trefferart, hoechstens ACADEMY.beam.damage / beam damage per hit kind, at most ACADEMY.beam.damage */
+export function rayDamage(s: GameState, hit: HitKind, target?: Unit): number {
+  const D = ACADEMY.beam.damage;
+  if (hitChanceOn(s)) return Math.min(D, hitDamage(D, hit));
+  // ohne Trefferglueck: verschanztes Ziel ueber den Erwartungswert (wie der Rueckzug) / without hit luck: entrenched target via the expected value (like the retreat)
+  const trench = target ? entrenchFactor(s, HIT.odds[ACADEMY.beam.race], target, true) : 1;
+  return Math.min(D, Math.round(D * trench));
+}
+
+/** Vorschau: voller Schaden, Trefferchancen, ob ein voller Treffer vernichtet / preview: full damage, odds, whether a full hit destroys */
+export function rayPreview(s: GameState, f: number, c: City, x: number, y: number): { dmg: number; odds: Record<HitKind, number>; kill: boolean; hp: number; check: 'ok' | ErrorCode; unit?: Unit; gun?: Pos } {
+  const check = rayCheck(s, f, c, x, y);
+  const tg = rayTargetAt(s, f, x, y);
+  const unit = typeof tg === 'string' ? undefined : tg.unit;
+  const gun = typeof tg === 'string' ? undefined : tg.gun;
+  const dmg = rayDamage(s, 'full', unit);
+  const hp = unit ? unit.hp : gun ? tileAt(s, gun.x, gun.y)!.turret!.hp : 0;
+  return { dmg, odds: rayOdds(s, unit), kill: hp > 0 && dmg >= hp, hp, check, ...(unit ? { unit } : {}), ...(gun ? { gun } : {}) };
 }
