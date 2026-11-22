@@ -1393,8 +1393,12 @@ export const ACADEMY = {
    * becomes plain grassland (mountain, forest, shallow water, desert, tundra, swamp), deep ocean not. A resource is absorbed:
    * resourcePop population for the academy. Neutral places and structures are levelled (player request: "for science
    * everything is rationally fine"), never anything owned by a faction, wonders or landmarks.
+   * calmAfter: Runden ohne Produktion nach der Landung. 0 = die Akademie bildet schon im Landezug aus; die Terraform-Runde
+   * ersetzt so die fruehere Ruhe-Runde nach der Landung (gemessen: mit 1 fiel Velkar von 16,8 auf 12,5 % Siege).
+   * calmAfter: rounds without production after landing. 0 = the academy trains in the landing turn already; the
+   * terraforming round thus replaces the former rest round after landing (measured: with 1 Velkar fell from 16.8 to 12.5 % wins).
    */
-  terraform: { rounds: 1, resourcePop: 1 },
+  terraform: { rounds: 1, resourcePop: 1, calmAfter: 0 },
   /**
    * Ausbildung (Spielerwunsch: mit jedem Posten mehr Einheiten auf einmal): Einheiten je Zug = baseSlots + floor(Posten /
    * postsPerSlot), hoechstens maxSlots; sie erscheinen auf der Akademie oder auf freien Nachbarfeldern (die Hauptstadt ist

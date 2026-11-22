@@ -144,7 +144,7 @@ describe('Abheben, Fliegen, Landen / lift-off, flight, landing', () => {
     fails(s, { type: 'landAcademy', city: ac.id }, 'landingSite');
   });
 
-  it('keine Produktion vom Abheben bis zum Zug nach der Landung, Landen dauert eine Runde mehr / no production from lift-off until the turn after landing, landing takes one extra round', () => {
+  it('keine Produktion vom Abheben bis zur Landung, Landen dauert eine Runde mehr, Ausbildung schon im Landezug / no production from lift-off until landing, landing takes one extra round, training already in the landing turn', () => {
     const { s, ac } = setup();
     ac.works = ['trainingCamp'];
     expect(trainCheck(s, ac, 'infantry')).toBe('ok');
@@ -163,15 +163,16 @@ describe('Abheben, Fliegen, Landen / lift-off, flight, landing', () => {
     expect(ACADEMY.terraform.rounds).toBe(1);
     expect(trainCheck(s, ac, 'infantry')).toBe('academyBusy');
     fails(s, { type: 'liftAcademy', city: ac.id }, 'airborne');
-    // Landung zu Beginn des naechsten eigenen Zuges, Produktion erst im Zug danach / landing at the start of the next own turn, production only in the turn after
+    // Landung zu Beginn des naechsten eigenen Zuges; die Terraform-Runde ersetzt die Ruhe-Runde (ACADEMY.terraform.calmAfter = 0),
+    // die Akademie bildet schon im Landezug aus
+    // landing at the start of the next own turn; the terraforming round replaces the rest round (ACADEMY.terraform.calmAfter = 0),
+    // the academy trains in the landing turn already
+    expect(ACADEMY.terraform.calmAfter).toBe(0);
     const landRound = s.round + 1;
     const ev = untilTurnOfEvents(s, 0);
     expect(s.round).toBe(landRound);
     expect(ev.some((e) => e.t === 'academy' && e.what === 'land' && e.city === ac.id)).toBe(true);
     expect(ac.air).toBeUndefined();
-    expect(trainCheck(s, ac, 'infantry')).toBe('academyBusy');
-    fails(s, { type: 'liftAcademy', city: ac.id }, 'academyBusy');
-    untilTurnOf(s, 0);
     expect(trainCheck(s, ac, 'infantry')).toBe('ok');
     ok(s, { type: 'train', city: ac.id, unitType: 'infantry' });
   });

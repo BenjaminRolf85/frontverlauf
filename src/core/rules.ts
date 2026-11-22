@@ -761,8 +761,9 @@ function touchDown(s: GameState, c: City, p: Pos, ev: GameEvent[]) {
     if (o.territory === null && o.cityId === null) o.territory = c.id;
   }
   t.territory = c.id;
-  // Landung zu Beginn des eigenen Zuges: Produktion ab dem naechsten eigenen Zug / landing at the start of the own turn: production from the next own turn
-  c.calm = s.round + 1;
+  // Landung zu Beginn des eigenen Zuges: Produktion nach ACADEMY.terraform.calmAfter Runden (0 = sofort)
+  // landing at the start of the own turn: production after ACADEMY.terraform.calmAfter rounds (0 = at once)
+  c.calm = s.round + ACADEMY.terraform.calmAfter;
   reveal(s, f, c.x, c.y, c.radius + VISION.cityExtra, ev);
   ev.push({ t: 'academy', what: 'land', city: c.id, faction: f, x: c.x, y: c.y, ...(from.x !== c.x || from.y !== c.y ? { from } : {}),
     ...(terrain !== 'plain' ? { terrain } : {}), ...(biome ? { biome } : {}), ...(razed ? { razed } : {}), ...(resource ? { resource } : {}), ...(cleared ? { cleared } : {}) });
