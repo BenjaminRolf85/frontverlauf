@@ -808,7 +808,8 @@ export const BERSERKER = {
 };
 
 /**
- * Goettlicher Funke (Alvenia, Spielerwunsch: "gigantische Artillerie, Schadenswirkung 4 Felder, Reichweite 5 Felder").
+ * Goettlicher Funke (Alvenia, Spielerwunsch: "gigantische Artillerie, Schadenswirkung 4 Felder, Reichweite 5 Felder"; aufgewertet: jede
+ * Runde, Reichweite 7, vehicleDamage gegen Fahrzeuge und Roboter).
  * Ein Riesengeschuetz aus der Geschuetzgiesserei (PRODUCTION.units.foundry), nur fuer Alvenia (faction), hoechstens max
  * zugleich je Fraktion. Es schiesst nicht wie andere Einheiten (attack 0), sondern ueber den Befehl 'divineSpark' auf eine
  * Flaeche von area (2x2) Feldern; der Befehl nennt die linke obere Ecke. Die ganze Flaeche muss im Abstand minRange bis
@@ -819,7 +820,8 @@ export const BERSERKER = {
  * (eigene Einheiten eingeschlossen, wie beim Orbitallaser) wuerfelt sein eigenes Trefferglueck (Rasse Mensch, Wind wirkt
  * wie bei Fernkampf) auf damage Schaden; ohne Trefferglueck immer damage. Sichtbare Einheiten von Fraktionen ohne Krieg
  * sperren den Schuss, verdeckte bleiben verschont. Deckung, Verteidigung, Regen und Ballistik aendern nichts.
- * Divine Spark (Alvenia, player request: "giant artillery, damage effect on 4 tiles, range 5 tiles").
+ * Divine Spark (Alvenia, player request: "giant artillery, damage effect on 4 tiles, range 5 tiles"; upgraded: every round,
+ * range 7, vehicleDamage against vehicles and robots).
  * A giant gun from the foundry (PRODUCTION.units.foundry), Alvenia only (faction), at most max at a time per faction. It
  * does not fire like other units (attack 0) but via the command 'divineSpark' onto an area of area (2x2) tiles; the
  * command names the top-left corner. The whole area must lie at a distance of minRange to range (Chebyshev distance like
@@ -834,14 +836,21 @@ export const SPARK = {
   faction: 'alvenia' as FactionId,
   unit: 'divineSpark' as UnitTypeId,
   /** Reichweite und Mindestabstand (alle Felder der Flaeche) / range and minimum distance (all tiles of the area) */
-  range: 5,
+  range: 7,
   minRange: 2,
   /** Flaeche in Feldern (Breite x Hoehe) / area in tiles (width x height) */
   area: { w: 2, h: 2 },
   /** Schaden je Ziel bei vollem Treffer / damage per target on a full hit */
   damage: 7,
-  /** Runden zwischen zwei Schuessen / rounds between two shots */
-  cooldown: 2,
+  /**
+   * Schaden je Ziel bei vollem Treffer gegen Panzerung (Spielerwunsch "deutlich mehr Schaden bei Fahrzeugen"): Fahrzeuge,
+   * Laeufer, Mechs und Roboter am Boden (strikeKind 'armour', wie beim Berserker).
+   * Damage per target on a full hit against armour (player request "much more damage against vehicles"): vehicles,
+   * walkers, mechs and robots on the ground (strikeKind 'armour', as for the berserker).
+   */
+  vehicleDamage: 14,
+  /** Runden zwischen zwei Schuessen; 0 = jede Runde (Spielerwunsch) / rounds between two shots; 0 = every round (player request) */
+  cooldown: 0,
   /** hoechstens so viele Geschuetze je Fraktion zugleich / at most this many guns per faction at a time */
   max: 2,
   /** Beobachter: eigene Einheit oder Stadt hoechstens so weit von einem Feld der Flaeche / spotter: own unit or city at most this far from a tile of the area */

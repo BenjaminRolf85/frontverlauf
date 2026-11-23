@@ -10,7 +10,7 @@ import { SPARK } from '../data/balance';
 import { faceTowards } from './facing';
 import { dist, inBounds, tileAt } from './grid';
 import { areaStruck, gunOwner, type OrbitalKit } from './orbital';
-import { canSeeUnit, has, hitChanceOn, hitDamage, hitOdds, isExplored, movedThisTurn, rollHit, sightedBy, trueOwner } from './queries';
+import { canSeeUnit, has, hitChanceOn, hitDamage, hitOdds, isExplored, movedThisTurn, rollHit, sightedBy, strikeKind, trueOwner } from './queries';
 import { nextRandom } from './rng';
 import type { HitKind } from '../data/balance';
 import type { ErrorCode, GameEvent, GameState, OrbitalHit, Pos, Unit } from './types';
@@ -25,6 +25,12 @@ export const sparkFaction = (s: GameState, f: number): boolean => s.factions[f]?
 export const sparksOf = (s: GameState, f: number): Unit[] => s.units.filter((u) => u.type === SPARK.unit && trueOwner(u) === f);
 
 /** Runden bis zum naechsten Schuss (0 = bereit) / rounds until the next shot (0 = ready) */
+/**
+ * Schaden bei vollem Treffer gegen eine Einheit: Panzerung (Fahrzeuge, Roboter) SPARK.vehicleDamage, sonst SPARK.damage.
+ * Damage on a full hit against a unit: armour (vehicles, robots) SPARK.vehicleDamage, else SPARK.damage.
+ */
+export const sparkDamage = (target: Unit): number => (strikeKind(target.type) === 'armour' ? SPARK.vehicleDamage : SPARK.damage);
+
 export const sparkWait = (s: GameState, u: Unit): number => Math.max(0, (u.sparkReady ?? s.round) - s.round);
 
 /** Felder der Flaeche ab der linken oberen Ecke (x, y), zeilenweise / tiles of the area from the top-left corner (x, y), row by row */
@@ -145,7 +151,8 @@ export function sparkPreview(s: GameState, u: Unit, x: number, y: number): Spark
   const hits: SparkPreview['hits'] = [];
   for (const o of st.units) {
     if (!canSeeUnit(s, f, o)) continue;
-    hits.push({ unit: o.id, x: o.x, y: o.y, dmg, killed: o.hp <= dmg, own: o.owner === f });
+    const d = sparkDamage(o);
+    hits.push({ unit: o.id, x: o.x, y: o.y, dmg: d, killed: o.hp <= d, own: o.owner === f });
   }
   for (const p of st.guns) {
     if (!isExplored(s, f, p.x, p.y)) continue;
@@ -172,7 +179,7 @@ export function fireSpark(s: GameState, u: Unit, x: number, y: number, ev: GameE
   const hits: (OrbitalHit & { hit?: HitKind })[] = [];
   for (const o of st.units) {
     const hit = roll(o);
-    const dmg = hitDamage(SPARK.damage, hit);
+    const dmg = hitDamage(sparkDamage(o), hit);
     o.hp -= dmg;
     kit.spare(o);
     hits.push({ unit: o.id, x: o.x, y: o.y, dmg, killed: o.hp <= 0, hit });

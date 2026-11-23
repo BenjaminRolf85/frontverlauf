@@ -45,8 +45,9 @@ export function sparkShotValue(ctx: Ctx, u: Unit, x: number, y: number): { value
     // Trefferglueck: Abschusschance und erwarteter Schaden ueber die Trefferarten / hit luck: kill chance and expected damage over the hit kinds
     let kill = 0, dmg = 0;
     if (hitChanceOn(s)) {
-      for (const k of HIT_KINDS) { const d = hitDamage(SPARK.damage, k); if (d >= hp) kill += odds[k]; else dmg += odds[k] * d; }
-    } else if (SPARK.damage >= hp) kill = 1; else dmg = SPARK.damage;
+      // Grundschaden je Ziel aus der Vorschau (Panzerung: SPARK.vehicleDamage) / base damage per target from the preview (armour: SPARK.vehicleDamage)
+      for (const k of HIT_KINDS) { const d = hitDamage(h.dmg, k); if (d >= hp) kill += odds[k]; else dmg += odds[k] * d; }
+    } else if (h.dmg >= hp) kill = 1; else dmg = h.dmg;
     const v = kill * w * (1 + A.killBonus) + (dmg / maxHp) * w * A.damageWeight;
     if (h.own) value -= v * A.ownWeight;
     else { value += v; enemyHits++; }
