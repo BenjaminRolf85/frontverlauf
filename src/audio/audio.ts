@@ -27,6 +27,8 @@ export type Weapon =
   | 'tesla' | 'coil' | 'droneRockets'
   // Heiliges Alvenia: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Holy Alvenia: light rifle, light gun, sun beam
   | 'radiant' | 'radiantGun' | 'sunBeam'
+  // Goettlicher Funke: anschwellender Chor, Glockenschlag, Donner des Einschlags / Divine Spark: swelling choir, bell stroke, thunder of the impact
+  | 'holySpark'
   // NEXUS: Sprengladung der Kamikaze-Drohne / NEXUS: blast charge of the kamikaze drone
   | 'blast'
   // Kult: Axthiebe des Berserkers (Nahkampf) / cult: the berserker's axe blows (melee)
@@ -51,7 +53,7 @@ export const WEAPON: Record<UnitTypeId, Weapon> = {
   // Velkar-Bauarten / Velkar designs
   teslaTank: 'tesla', octocopter: 'droneRockets', railSniper: 'coil',
   // Alvenia-Bauarten: Lichtgewehr, Lichtgeschuetz, Sonnenstrahl / Alvenia designs: light rifle, light gun, sun beam
-  lightWarden: 'radiant', reliquary: 'radiantGun', sunLance: 'sunBeam',
+  lightWarden: 'radiant', reliquary: 'radiantGun', sunLance: 'sunBeam', divineSpark: 'holySpark',
   // Korvat: Steppenkoloss / Korvat: Steppe Colossus
   steppeColossus: 'cannon',
   // NEXUS: Cyborg, Flammenwerferpanzer, Kamikaze-Drohne (Sprengladung) / NEXUS: cyborg, flamethrower tank, kamikaze drone (blast charge)
@@ -428,6 +430,16 @@ export class AudioEngine {
         for (const fr of [523, 659, 784, 1047]) this.tone(fr, t, 0.9, 'sine', 0.1, out, 0.6, 0.25);
         this.noise(t + 0.25, 0.6, 0.3, 4000, out, { type: 'bandpass', q: 0.8, freqEnd: 9000, attack: 0.2 });
         this.boom(t + 0.85, 0.5, 70, out);
+        break;
+      case 'holySpark':
+        // Goettlicher Funke: Chor schwillt an (Dur-Akkord ueber zwei Oktaven), heller Glockenschlag beim Abschuss, Donner beim Einschlag
+        // Divine Spark: the choir swells (major chord over two octaves), a bright bell stroke at launch, thunder at the impact
+        for (const [i, fr] of [262, 330, 392, 523, 659, 784].entries()) this.tone(fr, t + i * 0.04, 1.3, 'sine', 0.08, out, 1.02, 0.5);
+        this.tone(1568, t + 0.55, 0.9, 'triangle', 0.16, out, 0.5, 0.002);
+        this.tone(2093, t + 0.56, 0.7, 'sine', 0.1, out, 0.5, 0.002);
+        this.noise(t + 0.55, 0.8, 0.35, 5000, out, { type: 'bandpass', q: 0.7, freqEnd: 9000, attack: 0.05 });
+        this.boom(t + 1.15, 0.9, 60, out);
+        this.explosion(t + 1.18, 0.7);
         break;
       case 'droneRockets':
         this.droneHum(t, 0.8, out);

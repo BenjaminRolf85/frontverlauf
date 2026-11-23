@@ -16,6 +16,7 @@ import { evaluateCampaign, landingPartyHolds, missionStarts, riftSpares, setupMi
 import { processCorruption, processRandomEvents } from './events';
 import { buildEmplacement, clearEmplacements, emplacementTarget, sweepEmplacements } from './emplacements';
 import { fireOrbital, orbitalCheck, relayBuilt, wakeGunsAt } from './orbital';
+import { fireSpark, sparkCheck } from './divineSpark';
 import { addSighting, applyRadar, applySabotage, buySilo, dropSightings, fireSilo, followSightings, processFires, pruneSightings, radarCheck, sabotageCheck, siloArea, siloBuyCheck, siloCheck, siloOf, type ShadowKit } from './shadowFleet';
 import { doWork, workCheck } from './mothership';
 import { academyAttackCheck, academyAttackPreview, academyMissed, academyMoveCheck, arrivalSpot, beamCheck, beamerCheck, cancelTerraformCheck, forcedSpot, interceptor, landCheck, landingOk, landTarget, liftCheck, moduleCheck, moduleCost, nearestStand, rayCheck, rayDamage, rayOdds, rayTargetAt, razedKind, shieldCheck, shieldOver, siloInterceptor } from './academy';
@@ -2218,6 +2219,23 @@ export function applyCommand(s: GameState, cmd: Command): CommandResult {
         spare: (u) => spare(s, u),
         interrupt: (u, e) => interruptWonder(s, u, e),
         mark: (x, y) => addMark(s, x, y, 'scorch', WAR_MARKS.scar.orbital),
+        wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
+      });
+      checkElimination(s, ev);
+      res = { ok: true, events: ev };
+      break;
+    }
+    // Goettlicher Funke (Alvenia): eigene Datei divineSpark.ts / Divine Spark (Alvenia): own file divineSpark.ts
+    case 'divineSpark': {
+      const u = ownUnit(cmd.unit);
+      if (typeof u === 'string') return fail(u);
+      const check = sparkCheck(s, u, cmd.x, cmd.y);
+      if (check !== 'ok') return fail(check);
+      fireSpark(s, u, cmd.x, cmd.y, ev, {
+        kill: (o, e) => killUnit(s, o, null, e),
+        spare: (o) => spare(s, o),
+        interrupt: (o, e) => interruptWonder(s, o, e),
+        mark: (x, y) => addMark(s, x, y, 'crater', WAR_MARKS.scar.orbital),
         wake: (p, e) => { if (wakeGunsAt(s, p)) e.push({ t: 'verdanActive', faction: f }); },
       });
       checkElimination(s, ev);

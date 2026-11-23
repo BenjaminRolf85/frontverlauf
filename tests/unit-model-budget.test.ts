@@ -34,7 +34,7 @@ const LOW_SLACK = 1.03;
  * to them, only their own limit in BUDGET. None of them is in the late-game scene of the base factions. Likewise new models
  * without a before state (Meridon's marines).
  */
-const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker']);
+const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker', 'divineSpark']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [5750, 4550, 4891], // 5453 / 4300
@@ -88,6 +88,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   lightWarden: [8600, 6850, 7252], // 8178 / 6477
   reliquary: [6250, 6050, 6278], // 5910 / 5750
   sunLance: [5100, 4550, 5013], // 4843 / 4295
+  // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
+  divineSpark: [7450, 6650, 6338], // 7390 / 6296 (Landkreuzer, vorher 7081 / 6338 / land cruiser, before 7081 / 6338)
   steppeColossus: [9350, 8800, 8643], // 8868 / 8369
   shadowCommando: [5150, 3800, 3531], // 4883 / 3613 (Lesbarkeit: Sprengrucksack / readability: demolition pack)
   fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)
@@ -122,7 +124,8 @@ function cases(): [UnitTypeId, FactionId][] {
 /** Summe ueber alle geprueften Modelle: [hoch, niedrig]; vor dem Feinschliff waren es 603819 / sum over all checked models: [high, low]; before the polish it was 603819 */
 // hoch um das Budget des neuen Berserker-Modells angehoben (651000 + 4050), niedrig unveraendert (passt weiter)
 // high raised by the budget of the new berserker model (651000 + 4050), low unchanged (still fits)
-const SUMME: [number, number] = [655050, 568000];
+// hoch um das Budget des Goettlichen Funkens angehoben (655050 + 7450) / high raised by the budget of the Divine Spark (655050 + 7450)
+const SUMME: [number, number] = [662500, 568000];
 /** Stand vor dem Feinschliff (gleiche Modelle, eine Detailstufe) / state before the polish (same models, one detail level) */
 const BEFORE_SUM = 603819;
 

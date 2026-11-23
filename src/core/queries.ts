@@ -5,7 +5,7 @@
 import {
   BASES, type BaseKind, COUNTER, type UnitClass, JUNGLE, UPKEEP, ROSTERS, CULT, NEXUS, LAND_UNITS, BARRIER, CITY_UPGRADES, WEATHER, XENO, type CityUpgradeId, type WeatherId, BUILDINGS, CITY, COMBAT, DEFENSE_BONUS, REMAINS, ECON, FACTIONS, FUEL, GRAND_PROJECTS, GRAND_PROJECT_IDS, HEALING, INCOME,
   INFANTRY_TYPES, LOGISTICS_SOURCES, PERKS, PERKS2, ROSTER_EXTRA, CAMO, WITHDRAW, FIREPOWER, SEA_POWER, SILO, HACK, RESEARCH_CENTER_TECH, SCORE, TECHS, TECH_IDS, TERRAIN_DEFENSE_TECH, UNITS,
-  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, BERSERKER, TWIN_STRIKE, ROBOT_UNITS, type AcademyModule, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
+  UNIQUE, VARIANTS, RESOURCE, PRODUCTION, DOCTRINE, VEHICLE_UNITS, type ProductionSiteId, RESOURCE_BUILDINGS, SWARM_MOTHER, DESERT_OUTPOST, TOWER, VETERAN, VISION, PERSUADE, HIT, HIT_KINDS, RETREAT, MOVE_FIRE, HOME_DEFENSE, SIN, MARTYR, REPAIR, ROCKETS, RANGED_COVER, RANGE_BONUS, ENTRENCH, WONDERS, CORRUPTION, type CorruptionRule, VICTORY_TECH, SUPPLY_LINE, VERDAN, EMPLACEMENT, ACADEMY, BERSERKER, TWIN_STRIKE, ROBOT_UNITS, SPARK, type AcademyModule, type WonderKind, type WonderUnitId, type SinDeed, type HitKind, type HitRace, type BuildingId, type FactionId, type GrandProjectId, type Perk2Id, type TechId, type UnitStats, type UnitTypeId, M2, SHIPYARD, SHIP_UPGRADES,
 } from '../data/balance';
 import { area, dist, idx, inBounds, isLand, isWater, neighbors, tileAt } from './grid';
 import { burning, isJungle } from './hazards';
@@ -2056,7 +2056,7 @@ function shipTrainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   return 'ok';
 }
 
-export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining' | 'siloOnly' | 'academyBusy';
+export type TrainCheck = 'ok' | 'techMissing' | 'notEnoughStars' | 'occupied' | 'unitLimit' | 'invalid' | 'cultRecruit' | 'computeMissing' | 'alreadyBuilt' | 'buildingMissing' | 'noCoast' | 'noWaterTile' | 'noTraining' | 'siloOnly' | 'academyBusy' | 'sparkLimit';
 
 export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck {
   if (c.owner === null) return 'invalid';
@@ -2090,6 +2090,9 @@ export function trainCheck(s: GameState, c: City, type: UnitTypeId): TrainCheck 
   // Meridon: Lenkflugkoerper baut nur das Raketensilo, keine Stadt (auch kein Stuetzpunkt) / Meridon: only the rocket silo builds Guided Missiles, no city (no base either)
   if (siloUnit(type)) return 'siloOnly';
   if (st.tech && !hasTech(s, c.owner, st.tech)) return 'techMissing';
+  // Goettlicher Funke: hoechstens SPARK.max zugleich je Fraktion (uebernommene zaehlen beim eigentlichen Besitzer)
+  // Divine Spark: at most SPARK.max at a time per faction (taken-over ones count for the actual owner)
+  if (type === SPARK.unit && s.units.filter((u) => u.type === SPARK.unit && trueOwner(u) === c.owner).length >= SPARK.max) return 'sparkLimit';
   // Menschen: nur mit der passenden Produktionsstaette dieser Stadt / humans: only with this city's matching production site
   if (usesSites(s, c.owner)) {
     const site = siteOf(type);

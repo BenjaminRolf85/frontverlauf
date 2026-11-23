@@ -3,12 +3,12 @@
  * Weisse Panzerplatten mit Goldborten, koenigsblaue Wappenroecke und Umhaenge, duenner goldener Sonnenkranz ueber dem Helm,
  * tuerkise Leuchten an Helm und Schulterstuecken, Weihrauchfaesser, Buntglas an Fahrzeugen. Leuchtfarben (Sonnenkranz,
  * Tuerkis, Buntglas, Strahl) leuchten ueber KEYS in atmosphere.ts. Emblem: vierzackiger Stern im Sonnenkranz (emblems.ts).
- * Dazu die eigenen Bauarten (Lichtschuetzen, Reliquiar, Sonnenlanze), die Ordenswacht und die Gebaeude (Lichtdom, Klosterweingut).
+ * Dazu die eigenen Bauarten (Lichtschuetzen, Reliquiar, Sonnenlanze, Goettlicher Funke), die Ordenswacht und die Gebaeude (Lichtdom, Klosterweingut).
  * Holy Alvenia "Order in the field": shared design language of the Alvenia units (high-tech paladins, not medieval).
  * White armour plates with gold trim, royal blue tabards and capes, a thin golden sun halo above the helmet, teal lights on
  * helmets and pauldrons, incense censers, stained glass on vehicles. Glow colours (halo, teal, stained glass, beam) glow via
  * KEYS in atmosphere.ts. Emblem: four-pointed star in the sun halo (emblems.ts).
- * Plus the own designs (Light Wardens, Reliquary, Sun Lance), the Order Guard and the buildings (Cathedral of Light,
+ * Plus the own designs (Light Wardens, Reliquary, Sun Lance, Divine Spark), the Order Guard and the buildings (Cathedral of Light,
  * monastery vineyard).
  * Blick nach +z, Ursprung unten mittig / facing +z, origin bottom centre.
  */
@@ -16,7 +16,7 @@ import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { addEmblem } from './emblems';
-import { Builder, col, geo, mix, shade, type V3 } from './kit';
+import { Builder, col, geo, mix, shade, unitLow, type V3 } from './kit';
 import { mat } from './look';
 import { kneelPose, soldier, standPose, type Detail } from './soldiers';
 import { tracks } from './tanks';
@@ -298,6 +298,201 @@ export function sunLance(f: FactionId, lite = false): Builder {
   }
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [0.101, 0.07, 0.06], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [-0.101, 0.07, 0.06], r: [0, -HALF_PI, 0] });
+  return b;
+}
+
+// ---------- Goettlicher Funke / Divine Spark ----------
+
+/**
+ * Masse des Hauptgeschuetzes: Schildzapfen (Modellkoordinaten), Rohrerhoehung (rad) und Rohrlaenge bis zur Muendung.
+ * Dimensions of the main gun: trunnion (model coordinates), barrel elevation (rad) and barrel length up to the muzzle.
+ */
+const SPARK_GUN = { trunnion: [0, 0.335, -0.06] as V3, elevation: 0.4, len: 0.62 };
+
+/**
+ * Muendung des Hauptrohrs in Ruhestellung (Modellkoordinaten vor der Groessenklasse): hier verlaesst der Funke das Geschuetz
+ * (board.animateSpark ueber geometry.userData.muzzle).
+ * Muzzle of the main barrel at rest (model coordinates before the size class): this is where the spark leaves the gun
+ * (board.animateSpark via geometry.userData.muzzle).
+ */
+export const SPARK_MUZZLE: V3 = (() => {
+  const [x, y, z] = SPARK_GUN.trunnion, e = SPARK_GUN.elevation, l = SPARK_GUN.len + 0.01;
+  return [x, y + Math.sin(e) * l, z + Math.cos(e) * l];
+})();
+
+/**
+ * Goettlicher Funke: Landkreuzer, ein riesiges Selbstfahrgeschuetz. Lange, massige weisse Panzerwanne auf drei breiten
+ * Kettenlaufwerken je Seite (die Kettenenden ragen vorn unter der Bugplatte hervor), Kotfluegel mit Goldkante, blaues
+ * Panzerband, Sonnenemblem auf der Bugplatte, Nieten und Plattenfugen. Drehbare Kasematte mit hohen Lafettenwangen und
+ * Verschlusshaus, darin ein sehr langes, dickes, koenigsblaues Eisenbahngeschuetz in Artilleriestellung: weisse Rohrwiege,
+ * zwei Rohrbremszylinder, Goldbaender, zwei leuchtende Sonnenkraenze um das Rohr, grosse Muendungsbremse mit leuchtendem
+ * Kern. Dazu zwei kleine Nebentuerme vorn, Kommandoturm mit Bruecke und Sonnenkranz, Munitionskran mit Granate,
+ * Luftgitter und Abgasrohre am Heck, heilige Banner an den hinteren Ecken und zwei kleine Besatzungsfiguren fuer den
+ * Massstab. Das groesste Modell des Spiels (siehe tests/unit-proportions.test.ts), das Rohr ragt wie bei anderer
+ * Artillerie ueber die Kachel.
+ * Divine Spark: a land cruiser, a giant self-propelled gun. Long, massive white armoured hull on three wide track units
+ * per side (the track ends stick out under the glacis), fenders with a gold edge, a blue armour band, a sun emblem on the
+ * glacis, rivets and plate seams. A rotating casemate with tall cradle cheeks and a breech house, carrying a very long,
+ * thick, royal blue railway gun at an artillery angle: white barrel cradle, two recoil cylinders, gold bands, two glowing
+ * sun halos around the barrel, a big muzzle brake with a glowing core. Plus two small secondary turrets at the front, a
+ * command tower with a bridge and a sun halo, an ammunition crane with a shell, vents and exhausts at the rear, holy
+ * banners on the rear corners and two small crew figures for scale. The biggest model in the game (see
+ * tests/unit-proportions.test.ts); the barrel overhangs the tile like other artillery.
+ */
+export function divineSpark(f: FactionId, lite = false): Builder {
+  const b = new Builder();
+  const seg = lite ? 8 : 12;
+  // niedrige Qualitaet: ohne Nieten und Plattenfugen / low quality: without rivets and plate seams
+  const plain = lite || unitLow();
+  // --- Laufwerk: drei Kettenlaufwerke je Seite / running gear: three track units per side ---
+  const th = 0.105, tl = 0.84, hl = tl / 2;
+  const prof: [number, number][] = [];
+  for (const sign of [1, -1]) for (let k = 0; k <= 3; k++) {
+    const a = sign * (-HALF_PI + (k / 3) * Math.PI);
+    prof.push([sign * (hl - 0.05 + Math.cos(a) * th * 0.48), th * 0.5 + Math.sin(a) * th * 0.5]);
+  }
+  const TX = [0.145, 0.26, 0.375], TW = 0.1;
+  for (const s of [-1, 1]) for (const [i, tx] of TX.entries()) {
+    b.add(geo.profileZY(prof, TW), mat.dark, { p: [s * tx, 0, 0] });
+    // Kettenglieder an der Stirn (dort sieht man die Kettenreihe) / track plates at the front (where the row of tracks shows)
+    if (!lite) for (let k = 1; k < 4; k++) {
+      const a = -HALF_PI + (k / 4) * Math.PI;
+      b.box(TW + 0.006, 0.014, 0.008, mat.ink, [s * tx, th * 0.5 + Math.sin(a) * th * 0.5, hl - 0.05 + Math.cos(a) * th * 0.46], [-a, 0, 0]);
+    }
+    // Laufrollen, Naben und Treibrad nur aussen sichtbar / road wheels, hubs and sprocket only visible on the outside
+    if (i !== TX.length - 1) continue;
+    const ox = s * (tx + TW / 2 + 0.004);
+    const n = lite ? 5 : 6, span = tl - 0.18;
+    for (let w = 0; w < n; w++) b.cyl(0.04, 0.04, 0.012, 8, mat.metal, [ox, 0.043, -span / 2 + (w / (n - 1)) * span], [0, 0, HALF_PI]);
+    b.cyl(0.03, 0.03, 0.016, 8, FAITH.goldDark, [ox, 0.066, hl - 0.05], [0, 0, HALF_PI]);
+  }
+  // --- Wanne / hull ---
+  const hy = 0.235;
+  // Kotfluegel ueber allen Ketten mit Goldkante, kurze blaue Schuerze aussen / fenders over all tracks with a gold edge, short blue skirt outside
+  b.add(geo.cbox(0.87, 0.016, 0.78, 0.005), FAITH.plateShade, { p: [0, th + 0.012, -0.02] });
+  for (const s of [-1, 1]) {
+    b.box(0.01, 0.01, 0.78, FAITH.gold, [s * 0.436, th + 0.012, -0.02]);
+    b.add(geo.cbox(0.012, 0.032, 0.7, 0.004), FAITH.cloth, { p: [s * 0.437, th - 0.012, -0.03] });
+    if (!lite) for (const z of [-0.22, 0.14]) faithStar(b, [s * 0.444, th - 0.012, z], 0.014, [0, s * HALF_PI, 0], FAITH.goldLight);
+  }
+  // Hauptwanne mit schraeger Bugplatte und Heckschraege / main hull with a sloped glacis and a sloped rear
+  b.add(geo.profileZY([[-0.4, 0.1], [0.3, 0.1], [0.37, 0.14], [0.27, hy], [-0.37, hy], [-0.42, 0.19], [-0.42, 0.12]], 0.62), FAITH.plate, { p: [0, 0, 0] });
+  // Goldkanten an Deck und Bug, blaues Panzerband an den Seiten / gold edges on the deck and the bow, blue armour band on the sides
+  b.box(0.63, 0.01, 0.01, FAITH.gold, [0, hy - 0.004, 0.272]);
+  for (const s of [-1, 1]) {
+    b.box(0.01, 0.01, 0.64, FAITH.gold, [s * 0.307, hy - 0.004, -0.05]);
+    b.box(0.006, 0.03, 0.62, FAITH.cloth, [s * 0.311, 0.15, -0.04]);
+    // Plattenfugen und Nieten an der Seitenwand / plate seams and rivets on the side wall
+    if (!plain) {
+      for (const z of [-0.2, 0.0, 0.2]) b.box(0.006, 0.1, 0.008, FAITH.plateShade, [s * 0.311, 0.172, z]);
+      for (let k = 0; k < 9; k++) b.box(0.007, 0.007, 0.007, FAITH.goldDark, [s * 0.312, 0.214, -0.34 + k * 0.075]);
+    }
+    addEmblem(b, f, 0.05, 0.006, FAITH.gold, { p: [s * 0.313, 0.17, -0.1], r: [0, s * HALF_PI, 0] });
+  }
+  // Sonnenemblem auf der Bugplatte: Goldscheibe, Strahlen, Stern / sun emblem on the glacis: gold disc, rays, star
+  b.group({ p: [0, 0.192, 0.324], r: [-0.81, 0, 0] }, () => {
+    b.add(geo.cyl(0.036, 0.036, 0.01, seg), FAITH.gold, { r: [HALF_PI, 0, 0] });
+    const rays = lite ? 6 : 8;
+    for (let i = 0; i < rays; i++) {
+      const a = (i / rays) * Math.PI * 2, len = i % 2 ? 0.02 : 0.03;
+      b.add(geo.cone(0.01, len, 3), i % 2 ? FAITH.goldLight : FAITH.gold, { p: [Math.sin(a) * (0.036 + len / 2), Math.cos(a) * (0.036 + len / 2), 0], r: [0, 0, -a] });
+    }
+    faithStar(b, [0, 0, 0.006], 0.024, [0, 0, 0], FAITH.cloth);
+  });
+  // Nebentuerme vorn links und rechts (fest, Kuppel mit Goldring, zwei kurze Rohre schraeg nach aussen)
+  // secondary turrets front left and right (fixed, dome with a gold ring, two short barrels angled outwards)
+  for (const s of [-1, 1]) {
+    b.cyl(0.046, 0.05, 0.022, seg, FAITH.gold, [s * 0.2, hy + 0.011, 0.17]);
+    b.add(geo.hemi(0.044, seg, 3), FAITH.plate, { p: [s * 0.2, hy + 0.02, 0.17] });
+    for (const dy of lite ? [0.036] : [0.03, 0.046]) b.tube([s * 0.21, hy + dy, 0.2], [s * 0.25, hy + dy + 0.006, 0.29], 0.007, 6, FAITH.clothDeep);
+  }
+  // Kommandoturm mit Bruecke links hinten / command tower with a bridge at the rear left
+  const cx = -0.18, cz = -0.3;
+  b.add(geo.cbox(0.15, 0.1, 0.13, 0.012), FAITH.plate, { p: [cx, hy + 0.05, cz] });
+  b.add(geo.cbox(0.19, 0.046, 0.1, 0.01), FAITH.plateShade, { p: [cx, hy + 0.123, cz + 0.005] });
+  b.box(0.18, 0.016, 0.006, FAITH.glassBlue, [cx, hy + 0.126, cz + 0.056]);
+  b.box(0.006, 0.016, 0.08, FAITH.glassBlue, [cx + 0.096, hy + 0.126, cz + 0.005]);
+  b.box(0.196, 0.01, 0.106, FAITH.gold, [cx, hy + 0.151, cz + 0.005]);
+  haloRing(b, [cx, hy + 0.19, cz + 0.005], 0.05, 0.0045, lite ? 10 : 14);
+  if (!lite) {
+    b.tube([cx - 0.05, hy + 0.15, cz - 0.02], [cx - 0.05, hy + 0.22, cz - 0.02], 0.003, 3, FAITH.goldDark);
+    b.cyl(0.02, 0.02, 0.006, 8, FAITH.goldDark, [cx + 0.03, hy + 0.158, cz], [0.3, 0, 0]);
+  }
+  // Munitionskran rechts hinten mit haengender Granate und Granatstapel / ammunition crane at the rear right with a hanging shell and a shell stack
+  const kx = 0.2, kz = -0.3;
+  b.cyl(0.016, 0.02, 0.15, 6, FAITH.goldDark, [kx, hy + 0.075, kz]);
+  b.box(0.018, 0.018, 0.16, FAITH.gold, [kx, hy + 0.15, kz + 0.06], [-0.18, 0, 0]);
+  b.tube([kx, hy + 0.165, kz + 0.135], [kx, hy + 0.08, kz + 0.135], 0.0025, 3, mat.ink);
+  b.cyl(0.016, 0.016, 0.05, 8, FAITH.goldLight, [kx, hy + 0.06, kz + 0.135]);
+  b.add(geo.cone(0.016, 0.022, 8), FAITH.gold, { p: [kx, hy + 0.035, kz + 0.135], r: [Math.PI, 0, 0] });
+  for (const [dx, dy] of (lite ? [[0, 0]] : [[-0.018, 0], [0.018, 0], [0, 0.03]]) as [number, number][]) {
+    b.cyl(0.015, 0.015, 0.08, 8, FAITH.goldLight, [kx + 0.06 + dx, hy + 0.016 + dy, kz - 0.05], [HALF_PI, 0, 0]);
+  }
+  // Luftgitter und Abgasrohre am Heck / vents and exhausts at the rear
+  for (let k = 0; k < (lite ? 2 : 5); k++) b.box(0.13, 0.006, 0.012, mat.ink, [0.0, hy + 0.004, -0.27 - k * 0.025]);
+  for (const x of [-0.06, 0.06]) b.cyl(0.014, 0.016, 0.06, 6, mat.darkMid, [x, hy + 0.03, -0.39]);
+  // heilige Banner an den hinteren Ecken / holy banners on the rear corners
+  for (const s of [-1, 1]) {
+    const px = s * 0.28, pz = -0.37;
+    b.tube([px, hy, pz], [px, hy + 0.21, pz], 0.004, 4, FAITH.goldDark);
+    b.add(geo.cone(0.008, 0.018, 4), FAITH.gold, { p: [px, hy + 0.22, pz] });
+    b.add(geo.box(0.006, 0.1, 0.07), FAITH.cloth, { p: [px, hy + 0.15, pz + 0.04] });
+    if (!lite) {
+      b.box(0.008, 0.01, 0.072, FAITH.gold, [px, hy + 0.1, pz + 0.04]);
+      faithStar(b, [px + s * 0.005, hy + 0.16, pz + 0.04], 0.022, [0, s * HALF_PI, 0], FAITH.goldLight);
+    }
+  }
+  // --- drehbare Kasematte mit dem Eisenbahngeschuetz / rotating casemate with the railway gun ---
+  const tz = -0.04;
+  b.turret([0, hy, tz], () => {
+    b.cyl(0.16, 0.17, 0.02, lite ? 10 : 16, FAITH.goldDark, [0, hy + 0.01, tz]);
+    // Unterbau mit Schraege vorn / base with a slope at the front
+    b.add(geo.profileZY([[-0.21, 0], [0.12, 0], [0.18, 0.03], [0.14, 0.055], [-0.2, 0.055]], 0.34), FAITH.plate, { p: [0, hy + 0.02, tz] });
+    for (const s of [-1, 1]) b.box(0.01, 0.01, 0.34, FAITH.gold, [s * 0.171, hy + 0.07, tz - 0.035]);
+    // Verschlusshaus hinten / breech house at the rear
+    b.add(geo.cbox(0.24, 0.08, 0.13, 0.012), FAITH.plate, { p: [0, hy + 0.115, tz - 0.13] });
+    b.box(0.25, 0.01, 0.14, FAITH.cloth, [0, hy + 0.157, tz - 0.13]);
+    b.box(0.252, 0.01, 0.01, FAITH.gold, [0, hy + 0.157, tz - 0.06]);
+    for (const s of [-1, 1]) {
+      // hohe Lafettenwangen mit Schildzapfen / tall cradle cheeks with trunnions
+      b.add(geo.profileZY([[-0.15, 0], [0.08, 0], [0.03, 0.1], [-0.1, 0.11]], 0.03), FAITH.plateShade, { p: [s * 0.088, hy + 0.07, tz] });
+      b.cyl(0.03, 0.03, 0.04, seg, FAITH.gold, [s * 0.088, SPARK_GUN.trunnion[1], SPARK_GUN.trunnion[2]], [0, 0, HALF_PI]);
+      if (!lite) {
+        faithStar(b, [s * 0.172, hy + 0.055, tz - 0.04], 0.028, [0, s * HALF_PI, 0], FAITH.gold);
+        if (!plain) for (let k = 0; k < 5; k++) b.box(0.007, 0.007, 0.007, FAITH.goldDark, [s * 0.172, hy + 0.08, tz - 0.17 + k * 0.065]);
+      }
+    }
+    // Rohr in Artilleriestellung / barrel at an artillery angle
+    const L = SPARK_GUN.len;
+    b.group({ p: SPARK_GUN.trunnion, r: [-SPARK_GUN.elevation, 0, 0] }, () => {
+      b.add(geo.lathe([[0, -0.11], [0.05, -0.11, true], [0.05, 0.17], [0.043, 0.2], [0.035, L - 0.07], [0, L - 0.07]], seg), FAITH.cloth, { r: [HALF_PI, 0, 0] });
+      // weisse Rohrwiege und Rohrbremszylinder / white barrel cradle and recoil cylinders
+      b.add(geo.cyl(0.058, 0.058, 0.2, seg), FAITH.plate, { p: [0, 0, 0.05], r: [HALF_PI, 0, 0] });
+      for (const x of [-0.032, 0.032]) b.add(geo.cyl(0.016, 0.016, 0.26, lite ? 6 : 8), FAITH.plateShade, { p: [x, 0.058, 0.06], r: [HALF_PI, 0, 0] });
+      // Goldbaender / gold bands
+      for (const [z, r] of [[0.16, 0.061], [0.42, 0.04]] as [number, number][]) {
+        b.add(geo.cyl(r, r, 0.014, lite ? 6 : 8), FAITH.gold, { p: [0, 0, z], r: [HALF_PI, 0, 0] });
+      }
+      // leuchtende Sonnenkraenze um das Rohr / glowing sun halos around the barrel
+      for (const [z, r] of (lite ? [[0.3, 0.07]] : [[0.24, 0.074], [0.36, 0.066]]) as [number, number][]) {
+        b.add(geo.torus(r, 0.0055, 3, lite ? 10 : 12), FAITH.halo, { p: [0, 0, z] });
+      }
+      // grosse Muendungsbremse mit Schlitzen und leuchtendem Kern / big muzzle brake with slots and a glowing core
+      b.add(geo.cbox(0.112, 0.086, 0.08, 0.012), FAITH.goldDark, { p: [0, 0, L - 0.04] });
+      if (!lite) for (const s of [-1, 1]) for (const dz of [-0.056, -0.028]) b.box(0.004, 0.064, 0.012, mat.ink, [s * 0.057, 0, L + dz]);
+      b.add(geo.cyl(0.03, 0.03, 0.006, seg), mat.ink, { p: [0, 0, L], r: [HALF_PI, 0, 0] });
+      b.add(geo.cyl(0.02, 0.02, 0.008, seg), FAITH.halo, { p: [0, 0, L + 0.002], r: [HALF_PI, 0, 0] });
+    });
+  });
+  // Besatzung fuer den Massstab: Kommandant auf der Bruecke, Ladeschuetze am Kran / crew for scale: commander on the bridge, loader at the crane
+  if (!lite) {
+    b.group({ p: [cx + 0.03, hy + 0.156, cz - 0.01], r: [0, 0.3, 0], s: 0.42 }, () => {
+      soldier(b, f, standPose([[-0.1, 0.2, 0.06], [0.11, 0.16, 0.03]]), { detail: 0, seed: 23 });
+    });
+    b.group({ p: [kx + 0.07, hy, kz + 0.07], r: [0, -0.6, 0], s: 0.42 }, () => {
+      soldier(b, f, standPose([[-0.06, 0.26, 0.08], [0.06, 0.26, 0.08]]), { detail: 0, seed: 17 });
+    });
+  }
   return b;
 }
 

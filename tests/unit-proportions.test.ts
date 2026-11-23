@@ -36,6 +36,9 @@ function dims(t: UnitTypeId, f: FactionId) {
 const OVER: Partial<Record<UnitTypeId, { ext?: number; h?: number }>> = {
   reliquary: { ext: 0.51 }, sunLance: { ext: 0.5 }, steppeRider: { h: 0.77 }, sniper: { ext: 0.47 }, prophet: { h: 0.64 },
   swarmMother: { ext: 0.51, h: 1.76 },
+  // Goettlicher Funke (Alvenia): bewusst riesig, ragt ueber die Kachel, bleibt unter der Plakette (Groessenklasse riesig)
+  // Divine Spark (Alvenia): deliberately giant, reaches beyond the tile, stays below the badge (giant size class)
+  divineSpark: { ext: 0.54 },
 };
 
 describe('Einheiten: Proportionen / units: proportions', () => {
@@ -80,6 +83,29 @@ describe('Einheiten: Proportionen / units: proportions', () => {
       expect(mar.wid).toBeGreaterThan(inf.wid * 1.2);
       expect(mar.h).toBeGreaterThanOrEqual(inf.h);
       expect(mar.h).toBeGreaterThan(dims('shadowCommando', 'meridon').h * 1.4);
+      // Goettlicher Funke (Alvenia): riesig, klar groesser als Artillerie und Sonnenlanze, hoeher als der Reliquiar-Panzer
+      // Divine Spark (Alvenia): giant, clearly larger than artillery and Sun Lance, taller than the Reliquary tank
+      const spark = dims('divineSpark', 'alvenia');
+      expect(spark.area).toBeGreaterThan(dims('artillery', 'alvenia').area * 1.2);
+      expect(spark.area).toBeGreaterThan(dims('sunLance', 'alvenia').area * 1.8);
+      expect(spark.h).toBeGreaterThan(dims('artillery', 'alvenia').h * 1.1);
+      expect(spark.h).toBeGreaterThan(dims('reliquary', 'alvenia').h * 1.2);
+    });
+
+    it(`Goettlicher Funke: Muendung vorn oben am Rohrende (${q}) / Divine Spark: muzzle at the front top end of the barrel (${q})`, () => {
+      setUnitQuality(q);
+      for (const f of FACTION_IDS) {
+        const g = unitGeometry('divineSpark', f, null);
+        g.computeBoundingBox();
+        const b = g.boundingBox!;
+        const m = g.userData.muzzle as [number, number, number] | undefined;
+        expect(m, f).toBeDefined();
+        // Landkreuzer: das Rohr ist das vorderste Teil, die Muendung liegt hoch ueber der Wanne / land cruiser: the barrel is the foremost part, the muzzle sits high above the hull
+        expect(Math.abs(m![0]), f).toBeLessThan(0.01);
+        expect(m![2], f).toBeGreaterThan(b.max.z - 0.03);
+        expect(m![1], f).toBeGreaterThan(b.max.y * 0.85);
+        expect(m![1], f).toBeLessThanOrEqual(b.max.y);
+      }
     });
 
     it(`alle Einheiten bleiben auf dem Feld und unter der Plakette (${q}) / all units stay on the tile and below the badge (${q})`, () => {

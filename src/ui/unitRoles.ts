@@ -49,6 +49,8 @@ export const UNIT_ROLE: Record<UnitTypeId, UnitRole> = {
   scientist: 'scientist',
   // Fernkampf ohne Gegenschlag ab Reichweite 3 / ranged fire without retaliation from range 3
   artillery: 'artillery', rocketCart: 'artillery', railgun: 'artillery', sunLance: 'artillery',
+  // Goettlicher Funke (Alvenia): Riesengeschuetz mit Flaechenschuss, dieselbe Aufgabe wie die Artillerie / Divine Spark (Alvenia): giant gun with an area shot, the same job as the artillery
+  divineSpark: 'artillery',
   tank: 'tank', teslaTank: 'tank', reliquary: 'tank', steppeColossus: 'tank', doomCrawler: 'tank',
   // schwere Laeufer / heavy walkers
   mech: 'walker', tripod: 'walker', titan: 'walker', spider: 'walker', protoWalker: 'walker',

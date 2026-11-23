@@ -13,6 +13,7 @@ import {
 } from './economy';
 import { planMothership } from './mothership';
 import { planOrbital } from './orbital';
+import { planSparkMove, planSparkShot } from './divineSpark';
 import { planAcademyBeam, planAcademyFlight, planAcademyLift, planAcademyStrike, planBeam } from './academy';
 import { planRadar, planSabotage, planSilo } from './shadowFleet';
 import { planHijack } from './hacking';
@@ -79,6 +80,8 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planMothership(ctx, failed)
     ?? planConvert(ctx, failed)
     ?? planOrbital(ctx, failed)
+    // Goettlicher Funke (Alvenia): Flaechenschuss vor den Angriffen der Einheiten / Divine Spark (Alvenia): area shot before the units' attacks
+    ?? planSparkShot(ctx, failed)
     // Neutronenstrahl der Akademie: jeden Zug vor den Angriffen der Einheiten / the academy's neutron beam: every turn before the units' attacks
     ?? planAcademyBeam(ctx, failed)
     // Schattenflotte (Meridon): Radar vor den Angriffen, Silo-Start, Sabotage nach den Angriffen / shadow fleet (Meridon): radar before the attacks, silo launch, sabotage after the attacks
@@ -94,6 +97,8 @@ function plan(s: GameState, f: number, failed: Set<string>): Command {
     ?? planWonderUnits(ctx, failed)
     // Beamer: Verstaerkung vor den Zuegen (Bewegung sperrt das Beamen) / beamer: reinforcements before the moves (moving blocks beaming)
     ?? planBeam(ctx, failed)
+    // Goettlicher Funke: eigene Stellungswahl hinter der Linie (planUnitMoves laesst ihn aus) / Divine Spark: own position choice behind the line (planUnitMoves skips it)
+    ?? planSparkMove(ctx, failed)
     ?? planUnitMoves(ctx, failed)
     ?? planPurchase(ctx, failed)
     // Abheben erst nach der Ausbildung des Zuges / lift off only after the turn's training

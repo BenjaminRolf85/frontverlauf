@@ -33,6 +33,7 @@ import { orbitalButton, orbitalSheet, orbitalVars } from './orbital';
 import { academyActions, academySheet, beamSheet, postActions, unitAcademyActions } from './academy';
 import { shadowTags, shadowUnitActions, siloSheet, siloTile } from './shadowFleet';
 import { berserkerActions, berserkerStats, strikeTags, strikeVars } from './berserker';
+import { sparkActions, sparkSheet, sparkStats, sparkTags, sparkType, sparkVars } from './divineSpark';
 import { cityHackHtml, hackCityAction, hackPlaceAction, hackTowerBuildAction, hackTowerTile, hijackSheet, hijackTag } from './hacking';
 import { shipSheet, workAction } from './mothership';
 import { droppedPlansTag, plansAction, plansUnitTag, templeSheet } from './temple';
@@ -189,6 +190,8 @@ function hitProfileHint(s: GameState, u: Unit): string {
 /** Feuert nur aus dem Stand (kein Sturm): nach einer Bewegung kein Angriff / fires only from a standstill (no dash): no attack after moving */
 export function stationaryOnly(type: UnitTypeId): boolean {
   const st = UNITS[type];
+  // Goettlicher Funke: schiesst ueber den eigenen Befehl, ebenfalls nur aus dem Stand (SPARK) / Divine Spark: fires via its own command, likewise only from a standstill (SPARK)
+  if (st.abilities.includes('divineSpark')) return true;
   return !st.ship && st.move > 0 && st.attack > 0 && st.range > 0 && !st.abilities.includes('dash') && !st.abilities.includes('wonder');
 }
 
@@ -290,7 +293,10 @@ function unitStatsLine(type: UnitTypeId, faction?: FactionId): string {
   const range = unitRange(type, faction);
   // Berserker: feste Schlagkraft statt Angriff / berserker: fixed striking power instead of attack
   const sv = strikeVars(type);
-  return [sv ? t('berserker.strikeStat', sv) : `${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`, `${t('stats.range')} ${range ? num(range) : t('stats.noRange')}`, ...abil].join(' · ');
+  // Goettlicher Funke: Flaechenschuss und Reichweite mit Mindestabstand / Divine Spark: area shot and range with minimum distance
+  const spark = sparkType(type);
+  return [sv ? t('berserker.strikeStat', sv) : spark ? t('spark.stat', sparkVars()) : `${t('stats.attack')} ${num(st.attack)}`, `${t('stats.defense')} ${num(st.defense)}`, `${t('stats.move')} ${num(st.move)}`,
+    `${t('stats.range')} ${spark ? t('spark.range', sparkVars()) : range ? num(range) : t('stats.noRange')}`, ...abil].join(' · ');
 }
 
 /**
@@ -484,6 +490,8 @@ export class Hud {
       case 'orbitalCancel': this.game.cancelOrbital(); break;
       // Raketensilo (Meridon) / rocket silo (Meridon)
       case 'siloCancel': this.game.cancelSilo(); break;
+      // Goettlicher Funke (Alvenia) / Divine Spark (Alvenia)
+      case 'sparkCancel': this.game.cancelSpark(); break;
       case 'details': this.cb.openDetails(); break;
       case 'sheet-more': this.expanded = !this.expanded; this.render(); break;
       case 'hint': this.hintOpen = !this.hintOpen; btn.classList.toggle('open', this.hintOpen); btn.setAttribute('aria-expanded', String(this.hintOpen)); break;
@@ -578,6 +586,8 @@ export class Hud {
     let sheet = '';
     if (g.orbitalMode && g.isHumanTurn) { const o = orbitalSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     else if (g.siloFrom && g.isHumanTurn) { const o = siloSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
+    // Goettlicher Funke: Zielauswahl mit 2x2-Vorschau (Alvenia) / Divine Spark: targeting with the 2x2 preview (Alvenia)
+    else if (g.sparkUnit !== null && g.isHumanTurn) { const o = sparkSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     // Hackturm: Zielauswahl "Einheit uebernehmen" (NEXUS) / hack tower: "take over unit" targeting (NEXUS)
     else if (g.hackFrom && g.isHumanTurn) { const o = hijackSheet(s, g, (c) => this.err(c)); sheet = o.html; this.actions = o.actions; }
     // Neutronenstrahl der Akademie: Zielauswahl (Velkar) / academy neutron beam: targeting (Velkar)
@@ -700,12 +710,12 @@ export class Hud {
       this.portraitFor = { type: vUnit.type, faction: fid, carried: vUnit.carried };
       head = `<span class="unit-badge unit-portrait" data-portrait style="--portrait-rim:var(--faction-${fid}-primary)">${icon(UNIT_ICON[vUnit.type] ?? 'helmet')}</span><div class="grow"><h3 class="display" title="${esc(unitName(vUnit))}">${esc(unitDisplayName(s, vUnit))}</h3>
         <div class="muted unit-sub">${roleChip(vUnit.type)}<span class="unit-type">${esc(unitName(vUnit))}</span> · ${esc(t(`factions.${fid}.short`))}${vUnit.veteran ? ` · ${esc(t('stats.veteran'))}` : ''}</div></div>`;
-      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${hijackTag(s, vUnit)}${combatTags(s, vUnit)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
+      body += `<div class="row">${icon('hp', 'icon-sm')}<span>${vUnit.hp} / ${vUnit.maxHp}</span><div class="grow">${progress(vUnit.hp, vUnit.maxHp, `hp ${vUnit.hp / vUnit.maxHp < 0.35 ? 'low' : ''}`, t('stats.hp'))}</div></div>${hijackTag(s, vUnit)}${combatTags(s, vUnit)}${sparkTags(s, vUnit, viewer)}${shadowTags(s, vUnit, viewer)}${plansUnitTag(s, vUnit)}
         <div class="sheet-more"><div class="stats">
-          ${st.strike ? berserkerStats(s, vUnit) : `<span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>`}
+          ${st.strike ? berserkerStats(s, vUnit) : sparkType(vUnit.type) ? sparkStats().attack : `<span class="stat">${icon('sword', 'icon-sm')}${esc(t('stats.attack'))} ${num(st.attack)}</span>`}
           <span class="stat">${icon('shield', 'icon-sm')}${esc(t('stats.defense'))} ${num(st.defense)}</span>
           <span class="stat">${icon('boot', 'icon-sm')}${esc(t('stats.move'))} ${num(st.move)}</span>
-          ${(() => { const r = unitRange(vUnit.type, fid); return `<span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${r ? num(r) : esc(t('stats.noRange'))}</span>`; })()}
+          ${sparkType(vUnit.type) ? sparkStats().range : (() => { const r = unitRange(vUnit.type, fid); return `<span class="stat">${icon('range', 'icon-sm')}${esc(t('stats.range'))} ${r ? num(r) : esc(t('stats.noRange'))}</span>`; })()}
           ${vUnit.fuel !== null ? `<span class="stat ${vUnit.fuel <= 1 ? 'tag warn' : ''}">${icon('fuel', 'icon-sm')}${esc(t('hud.fuelLeft', { n: vUnit.fuel }))} / ${MAX_FUEL}</span>` : ''}
           ${vUnit.slowed || vUnit.slowedNext ? `<span class="stat tag warn">${icon('warning', 'icon-sm')}${esc(t('hud.slowed'))}</span>` : ''}
           ${(() => {
@@ -1126,6 +1136,8 @@ export class Hud {
     for (const a of shadowUnitActions(s, u, g, (c) => this.err(c), () => this.render())) this.actions.push(a);
     // Berserker (Kult): Sprengen / berserker (cult): detonate
     for (const a of berserkerActions(s, u, g, (c) => this.err(c), () => this.render())) this.actions.push(a);
+    // Goettlicher Funke (Alvenia): Flaechenschuss / Divine Spark (Alvenia): area shot
+    for (const a of sparkActions(s, u, g, (c) => this.err(c))) this.actions.push(a);
     if (INFANTRY_TYPES.includes(u.type) && s.factions[u.owner].techs.includes('fortification')) {
       const chk = outpostCheck(s, u);
       this.actions.push({ id: 'outpost', icon: 'outpost', label: t('actions.outpost'), cost: outpostCost(s, u.owner), enabled: chk === 'ok', reason: chk === 'ok' ? undefined : this.err(chk === 'cannotCapture' ? 'unitExhausted' : chk), run: () => void g.exec({ type: 'outpost', unit: u.id }) });

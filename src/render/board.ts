@@ -17,6 +17,7 @@ import { WeatherFx } from './weather';
 import { PERK_SCALE, RELAY_LAMP, SLOT_SPOT, perkGeometry } from './cityPerks';
 import { ORBITAL_FX, OrbitalFx, type OrbitalTag } from './fx/orbital';
 import { ROCKET_FX, RocketFx } from './fx/rocket';
+import { SPARK_FX, SparkFx } from './fx/spark';
 import { AmbientFx, swayMaterial, swayOutline } from './ambient';
 import { UnitLife } from './life';
 import { BIOME_LIFT, PEAK_LIFT, PEAK_SCALE, biomeDecoration, biomeTop, meadowVariant, riverSegment, roadJunction, roadSegment, trackGeometry } from './biomes';
@@ -331,6 +332,8 @@ export class Board {
   readonly orbital = new OrbitalFx();
   /** Raketenstart der Raketensilos / launch of the rocket silos */
   readonly rocket = new RocketFx();
+  /** Goettlicher Funke (Alvenia): Lichtbogen und 2x2-Einschlag / Divine Spark (Alvenia): arc of light and 2x2 impact */
+  readonly spark = new SparkFx();
   private prevFog: { set: Set<number>; viewer: number; size: number; seed: unknown } | null = null;
   private units = new Map<number, UnitView>();
   private pickMeshes: { mesh: THREE.InstancedMesh; tiles: number[] }[] = [];
@@ -361,7 +364,7 @@ export class Board {
   dirty = true;
 
   constructor() {
-    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group, this.rocket.group);
+    this.group.add(this.staticLayer, this.highlightLayer, this.unitLayer, this.labelLayer, this.weatherFx.group, this.ambient.group, this.combat.group, this.town.group, this.fogFx.group, this.alienFx.group, this.desertFx.group, this.rift.group, this.orbital.group, this.rocket.group, this.spark.group);
     // Tiefenpuffer vor den Einheiten leeren: Gebaeude, Baeume und Berge verdecken keine Einheiten mehr
     // clear the depth buffer before units: buildings, trees and mountains no longer hide units
     const clearer = new THREE.Mesh(new THREE.PlaneGeometry(0.001, 0.001), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
@@ -2253,6 +2256,55 @@ export class Board {
   }
 
   /**
+   * Muendung einer Einheit im Brettrahmen (geometry.userData.muzzle, Turm in seiner jetzigen Stellung); null = kein Modell
+   * oder keine gemerkte Muendung.
+   * Muzzle of a unit in the board frame (geometry.userData.muzzle, turret in its current position); null = no model or no
+   * remembered muzzle.
+   */
+  private muzzleOf(s: GameState, unitId: number): THREE.Vector3 | null {
+    const u = s.units.find((x) => x.id === unitId);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (!u || !model) return null;
+    const g = unitGeometry(u.type, s.factions[u.owner].id, u.carried);
+    const m = g.userData.muzzle as [number, number, number] | undefined;
+    if (!m) return null;
+    const p = new THREE.Vector3(m[0], m[1], m[2]);
+    // im Turm: relativ zum Drehpunkt und zur Ruhestellung, dann mit dem Turm gedreht / in the turret: relative to the pivot and the rest heading, then turned with the turret
+    const range = models.turretsOf(g)[0], tur = turretsIn(model)[0];
+    const host = range && tur ? tur : model;
+    if (range && tur) p.sub(new THREE.Vector3(range.pivot[0], range.pivot[1], range.pivot[2])).applyAxisAngle(new THREE.Vector3(0, 1, 0), -range.yaw);
+    host.updateWorldMatrix(true, false);
+    return this.group.worldToLocal(host.localToWorld(p));
+  }
+
+  /**
+   * Goettlicher Funke: Lichtbogen von der Muendung des Geschuetzes (unit, sonst ueber der Feldmitte) zur 2x2-Flaeche,
+   * onImpact beim Einschlag. Ohne Animationen: stiller Einschlag.
+   * Divine Spark: arc of light from the gun's muzzle (unit, else above the tile centre) to the 2x2 area, onImpact at the
+   * moment of impact. Without animations: still impact.
+   */
+  animateSpark(s: GameState, from: { x: number; y: number }, tiles: { x: number; y: number }[], faction: FactionId | null, animate: boolean, onImpact: () => void, unit?: number): Promise<void> {
+    this.orbital.clearPreview();
+    const c = tiles.reduce((a: THREE.Vector3, p) => a.add(this.tileCenter(s, p.x, p.y)), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, tiles.length));
+    const size = Math.sqrt(Math.max(1, tiles.length));
+    if (!animate || !this.animations) {
+      this.spark.still(c, size, faction);
+      onImpact();
+      this.spark.endLater(1100, () => { this.dirty = true; });
+      this.dirty = true;
+      return Promise.resolve();
+    }
+    const start = (unit !== undefined ? this.muzzleOf(s, unit) : null) ?? this.tileCenter(s, from.x, from.y).add(new THREE.Vector3(0, 0.55, 0));
+    this.spark.begin(start, c, size, faction);
+    let hit = false;
+    return this.addAnim(SPARK_FX.ms, (t) => {
+      this.spark.frame(t);
+      if (!hit && t >= SPARK_FX.impact) { hit = true; onImpact(); }
+      if (t >= 1) this.spark.end();
+    });
+  }
+
+  /**
    * Fernuebernahme (NEXUS): Datensaeule und drei aufsteigende Signalringe in der Markierungsfarbe ueber dem Ort.
    * Remote takeover (NEXUS): a data column and three rising signal rings in the marker colour above the place.
    */
@@ -2398,6 +2450,7 @@ export class Board {
     this.combat.clear();
     this.orbital.end();
     this.rocket.end();
+    this.spark.end();
     for (const a of [...this.anims]) { try { a.update(1); } catch { /* weiter / continue */ } a.resolve(); }
     this.anims = [];
     this.dirty = true;

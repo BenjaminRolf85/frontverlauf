@@ -148,7 +148,7 @@ const hpShare = (u: Unit) => u.hp / Math.max(1, u.maxHp);
 const strength = (u: Unit) => worth(u) * hpShare(u);
 const isFighter = (u: Unit) => UNITS[u.type].attack > 0 && UNITS[u.type].range > 0 && !isWonder(u) && !isBoss(u);
 /** kann Staedte einnehmen / can capture cities */
-const capturer = (u: Unit) => !has(u, 'fly') && !isShip(u) && !['spy', 'artillery', 'sunLance', 'medic', 'rocketCart', 'railgun'].includes(u.type) && !has(u, 'kamikaze');
+const capturer = (u: Unit) => !has(u, 'fly') && !isShip(u) && !['spy', 'artillery', 'sunLance', 'divineSpark', 'medic', 'rocketCart', 'railgun'].includes(u.type) && !has(u, 'kamikaze');
 /** volle Wirkung nach Bewegung (Dravon, Steppenreiter) oder Kamikaze / full effect after moving (Dravon, Steppe Riders) or kamikaze */
 const fullMover = (s: GameState, u: Unit) => has(u, 'dash') && (has(u, 'kamikaze') || moveFireMult(s, u) >= 0.99);
 /** Fernkaempfer / ranged unit */

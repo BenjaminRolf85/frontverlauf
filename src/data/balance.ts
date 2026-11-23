@@ -40,10 +40,12 @@ export type CampaignUnitId = 'scientist';
  */
 export type VelkarUnitId = 'teslaTank' | 'octocopter' | 'railSniper';
 /**
- * Fraktionsvarianten des Heiligen Alvenia (ersetzen Infanterie, Panzer und Artillerie in seiner Liste, siehe VARIANTS).
- * Holy Alvenia faction variants (replace infantry, tank and artillery in its roster, see VARIANTS).
+ * Fraktionsvarianten des Heiligen Alvenia (ersetzen Infanterie, Panzer und Artillerie in seiner Liste, siehe VARIANTS),
+ * dazu das Riesengeschuetz Goettlicher Funke (eigene Einheit, ROSTER_EXTRA, SPARK).
+ * Holy Alvenia faction variants (replace infantry, tank and artillery in its roster, see VARIANTS), plus the giant gun
+ * Divine Spark (an own unit, ROSTER_EXTRA, SPARK).
  */
-export type AlveniaUnitId = 'lightWarden' | 'reliquary' | 'sunLance';
+export type AlveniaUnitId = 'lightWarden' | 'reliquary' | 'sunLance' | 'divineSpark';
 /**
  * Fraktionsvariante der Korvat: Steppenkoloss statt Panzer (siehe VARIANTS).
  * Korvat faction variant: Steppe Colossus instead of the tank (see VARIANTS).
@@ -72,6 +74,9 @@ export type Ability =
   // Berserker (Kult): zwei Angriffe je Zug (twinStrike) und Selbstsprengung als eigener Befehl (detonate), siehe BERSERKER
   // berserker (cult): two attacks per turn (twinStrike) and self-detonation as an own command (detonate), see BERSERKER
   | 'twinStrike' | 'detonate'
+  // Goettlicher Funke (Alvenia): Flaechenschuss auf 2x2 Felder statt des gewoehnlichen Angriffs, eigener Befehl (SPARK)
+  // Divine Spark (Alvenia): area shot on 2x2 tiles instead of the ordinary attack, an own command (SPARK)
+  | 'divineSpark'
   // Meridon: Tarnung (unsichtbar ohne Nachbarn, siehe CAMO), Sabotage (SABOTAGE), Radarimpuls (RADAR)
   // Meridon: camouflage (invisible without neighbours, see CAMO), sabotage (SABOTAGE), radar sweep (RADAR)
   | 'camo' | 'sabotage' | 'radar'
@@ -356,6 +361,11 @@ export const UNITS: Record<UnitTypeId, UnitStats> = {
   reliquary: { cost: 60, hp: 40, attack: 4.5, defense: 5.5, move: 3, range: 2, vision: 1, abilities: [], tech: null, ship: false, faction: 'alvenia' },
   // Sonnenlanze: Artillerie mit Reichweite 4 / Sun Lance: artillery with range 4
   sunLance: { cost: 45, hp: 10, attack: 4, defense: 0.5, move: 1, range: 4, vision: 1, abilities: ['noRetaliate', 'ignoreOutpost'], tech: null, ship: false, faction: 'alvenia' },
+  // Goettlicher Funke (Spielerwunsch): Riesengeschuetz aus der Giesserei, schiesst nur ueber den eigenen Befehl (SPARK: 2x2 Felder,
+  // Reichweite 5). attack und range bleiben 0: kein gewoehnlicher Angriff, kein Gegenschlag, im Nahkampf wehrlos (Verteidigung 0,5)
+  // Divine Spark (player request): giant gun from the foundry, fires only via its own command (SPARK: 2x2 tiles, range 5).
+  // attack and range stay 0: no ordinary attack, no return fire, defenceless in close combat (defence 0.5)
+  divineSpark: { cost: 70, hp: 18, attack: 0, defense: 0.5, move: 1, range: 0, vision: 1, abilities: ['divineSpark'], tech: null, ship: false, faction: 'alvenia' },
   // Korvat: Steppenkoloss statt Panzer: die meisten LP und der staerkste Angriff aller Panzer; Preis, Sold, Bewegung 3 und
   // Reichweite 2 wie der Panzer (gemessen, siehe BALANCING.md)
   // Korvat: Steppe Colossus instead of the tank: the most HP and the strongest attack of all tanks; price, upkeep, move 3 and
@@ -435,7 +445,7 @@ export const ROBOT_UNITS: RobotUnitId[] = ['android', 'cyborg', 'kamikazeDrone',
 export const UNIQUE_UNITS: UniqueUnitId[] = ['steppeRider', 'stormbreaker', 'peacekeeper', 'privateer', 'protoWalker'];
 export const UNIQUE_BUILDINGS: BuildingId[] = ['kolkhoz', 'mercenaryBarracks', 'embassyPalace', 'tradingPost', 'testLab'];
 export const VELKAR_UNITS: VelkarUnitId[] = ['teslaTank', 'octocopter', 'railSniper'];
-export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance'];
+export const ALVENIA_UNITS: AlveniaUnitId[] = ['lightWarden', 'reliquary', 'sunLance', 'divineSpark'];
 export const KORVAT_UNITS: KorvatUnitId[] = ['steppeColossus'];
 export const MERIDON_UNITS: MeridonUnitId[] = ['marine', 'shadowCommando', 'fogCutter', 'guidedMissile', 'radarTruck'];
 
@@ -470,6 +480,8 @@ export const VARIANTS: Partial<Record<FactionId, Partial<Record<UnitTypeId, Unit
  */
 export const ROSTER_EXTRA: Partial<Record<FactionId, UnitTypeId[]>> = {
   meridon: ['radarTruck'],
+  // Alvenia: Goettlicher Funke (SPARK), ein Riesengeschuetz neben der Sonnenlanze / Alvenia: Divine Spark (SPARK), a giant gun beside the Sun Lance
+  alvenia: ['divineSpark'],
 };
 
 /**
@@ -481,7 +493,7 @@ export const ROSTER_EXTRA: Partial<Record<FactionId, UnitTypeId[]>> = {
 export const VEHICLE_UNITS: UnitTypeId[] = [
   'jeep', 'tank', 'artillery', 'antiAir', 'mineLayer', 'doomBuggy', 'rocketCart', 'doomCrawler',
   'spider', 'railgun', 'titan', 'flakDrone', 'mech', 'tripod', 'protoWalker', 'coreDrill', 'teslaTank', 'reliquary', 'sunLance',
-  'steppeColossus', 'flameTank', 'radarTruck',
+  'steppeColossus', 'flameTank', 'radarTruck', 'divineSpark',
 ];
 /** Flieger (Faehigkeit 'fly') / flyers (ability 'fly') */
 export const AIR_UNITS = (Object.keys(UNITS) as UnitTypeId[]).filter((k) => UNITS[k].abilities.includes('fly'));
@@ -536,7 +548,7 @@ export const ROSTERS: Partial<Record<FactionId, RosterStats>> = {
  * a share of its price (rounded up); tanks cost a flat amount.
  */
 export const UPKEEP = {
-  freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12, steppeColossus: 12, marine: 5 } as Partial<Record<UnitTypeId, number>>,
+  freeUnits: 4, share: 0.3, flat: { tank: 12, teslaTank: 12, reliquary: 12, steppeColossus: 12, marine: 5, divineSpark: 16 } as Partial<Record<UnitTypeId, number>>,
   /**
    * Faktor auf den Gesamtsold einer Fraktion (Besitzer zaehlt). Korvat "Volksarmee": 33 % weniger Sold. Gerundet wird die
    * Summe (aufgerundet), nicht jede Einheit: sonst bliebe Infanterie bei 3 Sternen (3 x 0,67 = 2,01, aufgerundet 3).
@@ -793,6 +805,61 @@ export const BERSERKER = {
     /** Bewegung: Wert eines zweiten Hiebs relativ zum ersten / moves: worth of a second blow relative to the first */
     secondStrike: 0.6,
   },
+};
+
+/**
+ * Goettlicher Funke (Alvenia, Spielerwunsch: "gigantische Artillerie, Schadenswirkung 4 Felder, Reichweite 5 Felder").
+ * Ein Riesengeschuetz aus der Geschuetzgiesserei (PRODUCTION.units.foundry), nur fuer Alvenia (faction), hoechstens max
+ * zugleich je Fraktion. Es schiesst nicht wie andere Einheiten (attack 0), sondern ueber den Befehl 'divineSpark' auf eine
+ * Flaeche von area (2x2) Feldern; der Befehl nennt die linke obere Ecke. Die ganze Flaeche muss im Abstand minRange bis
+ * range (Schachbrett-Distanz wie alle Fernangriffe) zum Geschuetz liegen: es trifft nie sich selbst oder seine Nachbarfelder.
+ * Sicht: ein anderes eigenes Feldteil (Einheit oder Stadt) hoechstens spot Felder von einem Feld der Flaeche entfernt, oder
+ * ein Radarimpuls bzw. eine Drohnensichtung ueber einem Feld (Beobachter). Kein Schuss in einem Zug, in dem das Geschuetz
+ * gezogen ist; nach dem Schuss zieht es nicht mehr (erschoepft) und laedt cooldown Runden nach. Jedes Ziel in der Flaeche
+ * (eigene Einheiten eingeschlossen, wie beim Orbitallaser) wuerfelt sein eigenes Trefferglueck (Rasse Mensch, Wind wirkt
+ * wie bei Fernkampf) auf damage Schaden; ohne Trefferglueck immer damage. Sichtbare Einheiten von Fraktionen ohne Krieg
+ * sperren den Schuss, verdeckte bleiben verschont. Deckung, Verteidigung, Regen und Ballistik aendern nichts.
+ * Divine Spark (Alvenia, player request: "giant artillery, damage effect on 4 tiles, range 5 tiles").
+ * A giant gun from the foundry (PRODUCTION.units.foundry), Alvenia only (faction), at most max at a time per faction. It
+ * does not fire like other units (attack 0) but via the command 'divineSpark' onto an area of area (2x2) tiles; the
+ * command names the top-left corner. The whole area must lie at a distance of minRange to range (Chebyshev distance like
+ * all ranged attacks) from the gun: it never hits itself or its adjacent tiles. Vision: another own presence (unit or
+ * city) at most spot tiles from a tile of the area, or a radar sweep or drone sighting over a tile (spotter). No shot in a
+ * turn in which the gun has moved; after the shot it no longer moves (exhausted) and recharges for cooldown rounds. Every
+ * target in the area (own units included, as with the orbital laser) rolls its own hit luck (human race, wind applies as
+ * for ranged fire) on damage; without hit luck always damage. Visible units of factions not at war block the shot,
+ * hidden ones are spared. Cover, defence, rain and ballistics change nothing.
+ */
+export const SPARK = {
+  faction: 'alvenia' as FactionId,
+  unit: 'divineSpark' as UnitTypeId,
+  /** Reichweite und Mindestabstand (alle Felder der Flaeche) / range and minimum distance (all tiles of the area) */
+  range: 5,
+  minRange: 2,
+  /** Flaeche in Feldern (Breite x Hoehe) / area in tiles (width x height) */
+  area: { w: 2, h: 2 },
+  /** Schaden je Ziel bei vollem Treffer / damage per target on a full hit */
+  damage: 7,
+  /** Runden zwischen zwei Schuessen / rounds between two shots */
+  cooldown: 2,
+  /** hoechstens so viele Geschuetze je Fraktion zugleich / at most this many guns per faction at a time */
+  max: 2,
+  /** Beobachter: eigene Einheit oder Stadt hoechstens so weit von einem Feld der Flaeche / spotter: own unit or city at most this far from a tile of the area */
+  spot: 2,
+  /**
+   * KI: Schuss ab Nettowert minValue (Sterne-Gegenwert wie ORBITAL.ai, Erwartungswert des Treffergluecks), eigene Einheiten
+   * ownWeight-fach negativ. Kauf: nur mit Front (bekannter Gegner oder feindliche Stadt nah an eigenen Staedten, frontRange),
+   * ab Runde minRound mit mindestens minArmy Einheiten, Wert Preis x buyValue, als Sparziel bis saveRounds Runden Einkommen. Stellung: Abstand zu Gegnern mindestens keepAway
+   * (Nahkampf meiden), Gefahr dangerWeight-fach, Ziele im Band targetWeight-fach ihres Werts.
+   * AI: fire from net value minValue (star equivalent as ORBITAL.ai, expected value of hit luck), own units count ownWeight
+   * times negative. Purchase: only with a front (known enemy or hostile city near own cities, frontRange), worth price x
+   * buyValue, from round minRound with at least minArmy units, as a savings goal up to saveRounds rounds of income. Position: distance to enemies at least keepAway (avoid
+   * close combat), danger dangerWeight times, targets in the band targetWeight times their worth.
+   */
+  ai: { minValue: 5, ownWeight: 2, killBonus: 1, damageWeight: 1.5, gunWorth: 40, wonderInterrupt: 25,
+    buyValue: 1.6, saveRounds: 3, minRound: 8, minArmy: 5, frontRange: 6, keepAway: 2, dangerWeight: 2.2, targetWeight: 0.6,
+    /** Zuschlag auf die erste Geschuetzgiesserei (dort entsteht der Funke) / bonus on the first foundry (where the spark is made) */
+    foundryBonus: 20 },
 };
 
 /**
@@ -1331,7 +1398,7 @@ export const COUNTER = {
 
 /** Kettenspuren (optisch) / track marks (visual) */
 export const TRACKS = {
-  units: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'flameTank'] as UnitTypeId[],
+  units: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'flameTank', 'divineSpark'] as UnitTypeId[],
   keepRounds: 8,
   maxPerTile: 3,
 };
@@ -1638,7 +1705,7 @@ export const CITY_UPGRADES = {
 
 /** Kriegsspuren (optisch): Krater von schweren Waffen, Brandflecken von allen anderen / war marks (visual) */
 export const WAR_MARKS = {
-  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone', 'guidedMissile'] as UnitTypeId[],
+  craterUnits: ['artillery', 'battleship', 'tank', 'reliquary', 'sunLance', 'steppeColossus', 'kamikazeDrone', 'guidedMissile', 'divineSpark'] as UnitTypeId[],
   maxPerTile: 4,
   /**
    * Schlachtfeld (optisch, Tile.scar): Kampfintensitaet je Feld in Punkten. Jeder Treffer, jeder Tod und jede Explosion
@@ -1971,7 +2038,8 @@ export const PRODUCTION = {
     motorPool: ['jeep', 'radarTruck'],
     tankWorks: ['tank', 'teslaTank', 'reliquary', 'steppeColossus', 'protoWalker'],
     // der Lenkflugkoerper kommt aus dem Raketensilo (SILO.units), nicht aus der Giesserei / the Guided Missile comes from the rocket silo (SILO.units), not the foundry
-    foundry: ['artillery', 'sunLance'],
+    // Goettlicher Funke (Alvenia, SPARK): das Riesengeschuetz kommt ebenfalls aus der Geschuetzgiesserei / Divine Spark (Alvenia, SPARK): the giant gun also comes from the foundry
+    foundry: ['artillery', 'sunLance', 'divineSpark'],
     airfield: ['heli', 'octocopter'],
     // Transportboote brauchen keine Staette (SHIPYARD); der Stuetzpunkt bleibt Einschiffungsort / transport boats need no site (SHIPYARD); the base stays the embarking point
     navalBase: ['destroyer', 'privateer'],

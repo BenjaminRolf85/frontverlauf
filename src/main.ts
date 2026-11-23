@@ -31,6 +31,7 @@ import { plansToast } from './ui/temple';
 import { showCorruption, showRandomEvent } from './ui/events';
 import { opNotice } from './ui/aiOps';
 import { shadowToast } from './ui/shadowFleet';
+import { sparkToast } from './ui/divineSpark';
 import { academyToast } from './ui/academy';
 import { hackToast } from './ui/hacking';
 
@@ -273,6 +274,8 @@ function boot() {
         case 'hijack': case 'hijackEnd': case 'cityHack': { const ht = hackToast(e, s, viewer); if (ht) toast(root, ht.text, ht.icon); break; }
         // Schattenflotte (Meridon): Raketenstart, Brand, Sabotage, Radar / shadow fleet (Meridon): rocket launch, fire, sabotage, radar
         case 'siloLaunch': case 'fireHit': case 'sabotage': case 'radarSweep': { const st = shadowToast(e, s, viewer); if (st) toast(root, st.text, st.icon); break; }
+        // Goettlicher Funke (Alvenia): fuer alle, die Geschuetz oder Flaeche sehen / Divine Spark (Alvenia): for everyone who sees the gun or the area
+        case 'divineSpark': { const st = sparkToast(e, s, viewer); if (st) toast(root, st.text, st.icon); break; }
         case 'boss': bossToast(root, s, e, (f, text) => dispatches.say(f, 'angry', text)); break;
         // Schwebende Akademie, Schild, Posten, Beamer (Velkar) / floating academy, shield, post, beamer (Velkar)
         case 'academy': case 'shield': case 'post': case 'beam': case 'module': case 'intercept': case 'hull': { const a = academyToast(e, s, viewer); if (a) toast(root, a.text, a.icon); break; }
@@ -321,9 +324,11 @@ function boot() {
   // Orbitallaser: die Vorschau folgt dem Mauszeiger / orbital laser: the preview follows the mouse pointer
   canvas.addEventListener('pointermove', (e) => {
     // Raketensilo ebenso / rocket silo likewise
-    if (!(game.orbitalMode || game.siloFrom) || e.pointerType !== 'mouse' || e.buttons) return;
+    // Goettlicher Funke ebenso / Divine Spark likewise
+    if (!(game.orbitalMode || game.siloFrom || game.sparkUnit !== null) || e.pointerType !== 'mouse' || e.buttons) return;
     const p = view.board.pick(view.raycaster(e.clientX, e.clientY));
-    if (p && game.siloFrom) game.aimSilo(p.x, p.y);
+    if (p && game.sparkUnit !== null) game.aimSpark(p.x, p.y);
+    else if (p && game.siloFrom) game.aimSilo(p.x, p.y);
     else if (p) game.aimOrbital(p.x, p.y);
   });
   window.addEventListener('resize', () => { view.resize(); hud.render(); });

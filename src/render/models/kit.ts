@@ -591,6 +591,9 @@ export function scaleWithTurrets(g: THREE.BufferGeometry, sx: number, sy: number
   g.scale(sx, sy, sz);
   const t = g.userData.turrets as TurretRange[] | undefined;
   if (t) g.userData.turrets = t.map((r) => ({ ...r, pivot: [r.pivot[0] * sx, r.pivot[1] * sy, r.pivot[2] * sz] }));
+  // Muendung (falls gemerkt, z. B. Goettlicher Funke) mitnehmen / carry the muzzle along (if remembered, e.g. Divine Spark)
+  const m = g.userData.muzzle as [number, number, number] | undefined;
+  if (m) g.userData.muzzle = [m[0] * sx, m[1] * sy, m[2] * sz];
   return g;
 }
 
