@@ -16,7 +16,7 @@ import { actionButton, esc, iconButton, type ActionItem } from './components';
 import { icon } from './icons';
 
 /** Platzhalter der Funken-Texte / placeholders of the spark texts */
-export const sparkVars = () => ({ range: SPARK.range, min: SPARK.minRange, w: SPARK.area.w, h: SPARK.area.h, dmg: SPARK.damage, cd: SPARK.cooldown, spot: SPARK.spot, max: SPARK.max });
+export const sparkVars = () => ({ range: SPARK.range, min: SPARK.minRange, w: SPARK.area.w, h: SPARK.area.h, dmg: SPARK.damage, vdmg: SPARK.vehicleDamage, cd: SPARK.cooldown, spot: SPARK.spot, max: SPARK.max });
 
 /** "schussbereit" oder "bereit in n Runden" / "ready to fire" or "ready in n rounds" */
 export const sparkWaitText = (n: number) => (n <= 0 ? t('spark.ready') : n === 1 ? t('spark.wait1') : t('spark.wait', { n }));
@@ -99,7 +99,7 @@ export function sparkSheet(s: GameState, g: Controller, err: (code: string) => s
     { id: 'sparkCancel', icon: 'close', label: t('actions.cancel'), enabled: true, run: () => g.cancelSpark() },
   ];
   const head = `<div class="sheet-head"><span class="unit-badge orbital-head">${icon('divineSpark')}</span><div class="grow"><h3 class="display">${esc(t('spark.title'))}</h3>
-    <div class="muted unit-sub">${esc(t('stats.range'))} ${esc(t('spark.range', v))} · ${SPARK.area.w}×${SPARK.area.h} · -${SPARK.damage}</div></div>${iconButton('close', t('actions.cancel'), 'sparkCancel')}</div>`;
+    <div class="muted unit-sub">${esc(t('stats.range'))} ${esc(t('spark.range', v))} · ${SPARK.area.w}×${SPARK.area.h} · -${SPARK.damage}/${SPARK.vehicleDamage}</div></div>${iconButton('close', t('actions.cancel'), 'sparkCancel')}</div>`;
   const body = `<p class="orbital-status ${cls}" role="status" aria-live="polite">${cls ? icon('warning', 'icon-sm') : icon('info', 'icon-sm')}<span>${esc(status)}</span></p>`;
   const bar = `<div class="action-wrap"><div class="action-bar" role="toolbar">${actions.map(actionButton).join('')}</div></div>`;
   return { html: `${head}${body}${bar}`, actions };

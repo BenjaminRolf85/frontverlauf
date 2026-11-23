@@ -59,6 +59,7 @@ export const BALANCE_VARS: Readonly<Record<string, number>> = {
   sparkW: SPARK.area.w,
   sparkH: SPARK.area.h,
   sparkDmg: SPARK.damage,
+  sparkVehicle: SPARK.vehicleDamage,
   sparkCd: SPARK.cooldown,
   sparkMax: SPARK.max,
   sparkSpot: SPARK.spot,

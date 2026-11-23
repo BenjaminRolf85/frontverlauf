@@ -150,7 +150,7 @@
       "feature": "Arms of the Order",
       "featureDesc": "Own designs instead of the standard troops: Light Wardens instead of infantry (range {warden} instead of {inf}, defence {wardenDef}, stationary only), Reliquary instead of the tank (range {reliq} instead of {tank}, defence {reliqDef} instead of {tankDef}, stationary only) and Sun Lance instead of artillery (range {lance} instead of {art}).",
       "feature2": "Divine Spark",
-      "feature2Desc": "The Order's giant gun from the foundry (Alvenia only, at most {sparkMax} at a time, {sparkCost} stars): a divine spark hits an area of {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away with {sparkDmg} damage per target, own units included. Fires only from a standstill, needs a spotter and recharges for {sparkCd} rounds; defenceless in close combat."
+      "feature2Desc": "The Order's giant gun from the foundry (Alvenia only, at most {sparkMax} at a time, {sparkCost} stars): a divine spark hits an area of {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away with {sparkDmg} damage per target ({sparkVehicle} to vehicles and robots), own units included. Fires every round, only from a standstill and with a spotter; defenceless in close combat."
     },
     "meridon": {
       "name": "Meridon Trade League",
@@ -375,7 +375,7 @@
     "lightWarden": "Order marksmen with radiant scopes and long rifles: range {wardenRange} and good defence, but a weak attack. They fire only from a standstill: a unit that moved this turn cannot fire.",
     "reliquary": "A heavily armoured shrine on tracks with stained-glass windows and a long light gun: drives {reliquaryMove} tiles, range {reliquaryRange}, very high defence, fires only from a standstill. From the tank works, and as a city reward.",
     "sunLance": "Sun Lance battery: focuses the light into a golden beam and strikes further than any artillery. No return fire, ignores outposts, hardly any defence.",
-    "divineSpark": "Giant light cannon of the Order: hurls a divine spark onto an area of {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away, {sparkDmg} damage to every target in it, own troops included. Fires only from a standstill and needs a spotter near the area, then {sparkCd} rounds of reloading. At most {sparkMax} at a time, defenceless in close combat.",
+    "divineSpark": "Giant light cannon of the Order: hurls a divine spark onto an area of {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away, {sparkDmg} damage to every target in it ({sparkVehicle} to vehicles and robots), own troops included. Fires every round, only from a standstill and with a spotter near the area. At most {sparkMax} at a time, defenceless in close combat.",
     "steppeColossus": "The heaviest tank of the People's League: double track runs, a huge cast turret with a long gun and two MG turrets. The most HP and the strongest attack of all tanks, at the standard tank's price. From the tank works, and as a city reward.",
     "cyborg": "Machine soldier with armour plates and servo limbs: sturdier and harder-hitting than the combat android, but pricier. Available from the first turn.",
     "flameTank": "Tracked vehicle with fuel tanks and a flamethrower: range 1, the flames ignore all cover (forest, city, outposts), especially strong against foot troops.",
@@ -458,7 +458,7 @@
     "amphibious": "Amphibious",
     "amphibiousDesc": "Landing from a ship does not exhaust: the unit may still attack in the same turn, but not move on.",
     "divineSpark": "Divine Spark",
-    "divineSparkDesc": "Area shot instead of an attack: {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away, {sparkDmg} damage per target with its own hit luck, own units too. Only from a standstill and with a spotter (an own unit or city at most {sparkSpot} tiles from the area), then {sparkCd} rounds of reloading."
+    "divineSparkDesc": "Area shot instead of an attack: {sparkW}×{sparkH} tiles at {sparkMin} to {sparkRange} tiles away, {sparkDmg} damage per target ({sparkVehicle} to vehicles and robots) with its own hit luck, own units too. Only from a standstill and with a spotter (an own unit or city at most {sparkSpot} tiles from the area), every round."
   },
   "stats": {
     "cost": "Cost",
@@ -4606,7 +4606,7 @@
   "spark": {
     "name": "Divine Spark",
     "action": "Hurl spark",
-    "actionSub": "{w}×{h} · -{dmg}",
+    "actionSub": "{w}×{h} · -{dmg}/{vdmg}",
     "ready": "ready to fire",
     "wait": "ready in {n} rounds",
     "wait1": "ready in 1 round",
@@ -4624,17 +4624,17 @@
     "tag": "-{dmg}",
     "tagKill": "-{dmg} KO",
     "toast": "Divine Spark from {name}",
-    "stat": "Spark {dmg} · {w}×{h}",
-    "statDesc": "Area shot: {dmg} damage per target on a full hit (hit luck as with every shot), on {w}×{h} tiles, own units included.",
+    "stat": "Spark {dmg}/{vdmg} · {w}×{h}",
+    "statDesc": "Area shot: {dmg} damage per target on a full hit, {vdmg} to vehicles, tanks and robots (hit luck as with every shot), on {w}×{h} tiles, own units included.",
     "range": "{min} to {range}",
     "rangeDesc": "The whole area lies {min} to {range} tiles from the gun: it never hits itself or its adjacent tiles.",
     "cooldownTag": "Recharging: {n} rd.",
     "readyTag": "Ready to fire",
-    "cooldownDesc": "{cd} rounds of reloading after every shot.",
+    "cooldownDesc": "Fires every round, once per turn.",
     "defenceless": "Defenceless in close combat",
     "defencelessDesc": "Does not strike back and has hardly any defence: keep it behind your own line.",
     "limitTag": "{n} of {max} in the field",
     "fx": "Spark",
-    "rule": "Divine Spark (Alvenia): giant gun from the foundry, at most {sparkMax} at a time, {sparkCost} stars, upkeep {sparkUpkeep} per round. It does not attack like other units but hurls a spark onto an area of {sparkW}×{sparkH} tiles via the action \"Hurl spark\". The whole area must lie {sparkMin} to {sparkRange} tiles from the gun (it never hits itself or its adjacent tiles), and another own unit or an own city must stand at most {sparkSpot} tiles from the area (or a radar sweep or sighting reveals it). Every target in the area rolls its own hit luck on {sparkDmg} damage, own units included; cover and defence do not count. Units of a faction you are not at war with block the shot. The spark fires only from a standstill: not in a turn in which it has moved, and it does not move afterwards. Then it recharges for {sparkCd} rounds. In close combat it is defenceless (defence {sparkDef}, no return fire)."
+    "rule": "Divine Spark (Alvenia): giant gun from the foundry, at most {sparkMax} at a time, {sparkCost} stars, upkeep {sparkUpkeep} per round. It does not attack like other units but hurls a spark onto an area of {sparkW}×{sparkH} tiles via the action \"Hurl spark\". The whole area must lie {sparkMin} to {sparkRange} tiles from the gun (it never hits itself or its adjacent tiles), and another own unit or an own city must stand at most {sparkSpot} tiles from the area (or a radar sweep or sighting reveals it). Every target in the area rolls its own hit luck on {sparkDmg} damage ({sparkVehicle} to vehicles, tanks and robots), own units included; cover and defence do not count. Units of a faction you are not at war with block the shot. The spark fires only from a standstill: not in a turn in which it has moved, and it does not move afterwards. It fires every round, once per turn. In close combat it is defenceless (defence {sparkDef}, no return fire)."
   }
 }

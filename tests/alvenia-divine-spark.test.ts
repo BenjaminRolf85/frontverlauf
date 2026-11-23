@@ -34,7 +34,7 @@ const sparkEv = (ev: GameEvent[]) => ev.find((e) => e.t === 'divineSpark') as Sp
 const fire = (u: { id: number }, x: number, y: number): Command => ({ type: 'divineSpark', unit: u.id, x, y });
 
 describe('Goettlicher Funke: Werte / Divine Spark: stats', () => {
-  it('Alvenia-Einheit aus der Giesserei, Reichweite 5, Flaeche 2x2 (4 Felder), Schaden unter dem Silo / Alvenia unit from the foundry, range 5, area 2x2 (4 tiles), damage below the silo', () => {
+  it('Alvenia-Einheit aus der Giesserei, Reichweite 7, Flaeche 2x2 (4 Felder), Schaden unter dem Silo, gegen Fahrzeuge deutlich mehr / Alvenia unit from the foundry, range 7, area 2x2 (4 tiles), damage below the silo, much more against vehicles', () => {
     const st = UNITS.divineSpark;
     expect(st.faction).toBe('alvenia');
     expect(ALVENIA_UNITS).toContain('divineSpark');
@@ -42,14 +42,16 @@ describe('Goettlicher Funke: Werte / Divine Spark: stats', () => {
     expect(PRODUCTION.units.foundry).toContain('divineSpark');
     expect(siteOf('divineSpark')).toBe('foundry');
     expect(VEHICLE_UNITS).toContain('divineSpark');
-    // Spielerwunsch: Reichweite 5 Felder, Schadenswirkung 4 Felder / player request: range 5 tiles, damage effect 4 tiles
-    expect(SPARK.range).toBe(5);
+    // Spielerwunsch: Reichweite 5 Felder, Schadenswirkung 4 Felder; aufgewertet: Reichweite +2 / player request: range 5 tiles, damage effect 4 tiles; upgraded: range +2
+    expect(SPARK.range).toBe(7);
     expect(SPARK.area.w * SPARK.area.h).toBe(4);
     expect(SPARK.area).toEqual({ w: 2, h: 2 });
     expect(SPARK.minRange).toBeGreaterThanOrEqual(2);
     // nie staerker als die schwerste vorhandene Flaechenwaffe (Raketensilo) / never stronger than the heaviest existing area weapon (rocket silo)
     expect(SPARK.damage).toBeLessThanOrEqual(SILO.damage);
     expect(SPARK.damage).toBeGreaterThan(ORBITAL.damage);
+    // Aufwertung: deutlich mehr Schaden gegen Fahrzeuge (mindestens doppelt) / upgrade: much more damage against vehicles (at least double)
+    expect(SPARK.vehicleDamage).toBeGreaterThanOrEqual(2 * SPARK.damage);
     // Nachteile: langsam, kein gewoehnlicher Angriff, kaum Verteidigung, teuer, Limit / drawbacks: slow, no ordinary attack, hardly any defence, expensive, limit
     expect(st.move).toBe(1);
     expect(st.attack).toBe(0);
@@ -59,7 +61,8 @@ describe('Goettlicher Funke: Werte / Divine Spark: stats', () => {
     expect(st.abilities).not.toContain('dash');
     expect(st.cost!).toBeGreaterThan(UNITS.sunLance.cost!);
     expect(UPKEEP.flat.divineSpark!).toBeGreaterThan(UPKEEP.flat.tank!);
-    expect(SPARK.cooldown).toBeGreaterThanOrEqual(1);
+    // Aufwertung: feuert jede Runde / upgrade: fires every round
+    expect(SPARK.cooldown).toBe(0);
     expect(SPARK.max).toBeGreaterThanOrEqual(1);
   });
 
@@ -88,32 +91,33 @@ describe('Goettlicher Funke: Werte / Divine Spark: stats', () => {
 });
 
 describe('Goettlicher Funke: Reichweite und Flaeche / Divine Spark: range and area', () => {
-  it('ganze Flaeche in 2 bis 5 Feldern: Reichweite 5 drin, 6 draussen, Nachbarfelder gesperrt / whole area within 2 to 5 tiles: range 5 in, 6 out, adjacent tiles locked', () => {
+  it('ganze Flaeche in 2 bis 7 Feldern: Reichweite 7 drin, 8 draussen, Nachbarfelder gesperrt / whole area within 2 to 7 tiles: range 7 in, 8 out, adjacent tiles locked', () => {
     const s = alvVs();
     const g = { x: 1, y: 5 };
-    // Ecke (5, 4): Felder in Abstand 4 und 5 / corner (5, 4): tiles at distance 4 and 5
-    expect(sparkGeometry(s, g, 5, 4)).toBe('ok');
-    expect(Math.max(...sparkArea(5, 4).map((p) => Math.max(Math.abs(p.x - g.x), Math.abs(p.y - g.y))))).toBe(5);
-    // Ecke (6, 4): ein Feld in Abstand 6 / corner (6, 4): one tile at distance 6
-    expect(sparkGeometry(s, g, 6, 4)).toBe('outOfRange');
+    // Ecke (7, 4): Felder in Abstand 6 und 7 / corner (7, 4): tiles at distance 6 and 7
+    expect(sparkGeometry(s, g, 7, 4)).toBe('ok');
+    expect(Math.max(...sparkArea(7, 4).map((p) => Math.max(Math.abs(p.x - g.x), Math.abs(p.y - g.y))))).toBe(7);
+    // Ecke (8, 4): ein Feld in Abstand 8 / corner (8, 4): one tile at distance 8
+    expect(sparkGeometry(s, g, 8, 4)).toBe('outOfRange');
     // Mindestabstand: Ecke (3, 5) liegt in Abstand 2 und 3 (ok), Ecke (2, 5) beruehrt ein Nachbarfeld / minimum distance: corner (3, 5) at 2 and 3 (ok), corner (2, 5) touches an adjacent tile
     expect(sparkGeometry(s, g, 3, 5)).toBe('ok');
     expect(sparkGeometry(s, g, 2, 5)).toBe('sparkTooClose');
     expect(sparkGeometry(s, g, 0, 4)).toBe('sparkTooClose');
     // ausserhalb der Karte / off the map
     expect(sparkGeometry(s, g, s.size - 1, 4)).toBe('invalidTile');
-    // Wirkungsbereich: alle Felder in Abstand 2 bis 5 / reach: all tiles at distance 2 to 5
+    // Wirkungsbereich: alle Felder in Abstand 2 bis 7 / reach: all tiles at distance 2 to 7
     const reach = sparkReach(s, g);
-    expect(reach.every((p) => { const d = Math.max(Math.abs(p.x - g.x), Math.abs(p.y - g.y)); return d >= 2 && d <= 5; })).toBe(true);
-    expect(reach.some((p) => p.x === 6 && p.y === 5)).toBe(true);
+    expect(reach.every((p) => { const d = Math.max(Math.abs(p.x - g.x), Math.abs(p.y - g.y)); return d >= 2 && d <= 7; })).toBe(true);
+    expect(reach.some((p) => p.x === 8 && p.y === 5)).toBe(true);
+    expect(reach.some((p) => p.x === 9 && p.y === 5)).toBe(false);
     expect(reach.some((p) => p.x === 2 && p.y === 5)).toBe(false);
   });
 
   it('angetipptes Feld liegt in der Flaeche: am Rand der Reichweite dreht die Flaeche nach innen / the tapped tile lies in the area: at the edge of the range the area turns inwards', () => {
     const s = alvVs();
     const g = { x: 1, y: 5 };
-    // (6, 5) ist 5 entfernt: Ecke (6, 5) waere zu weit, also (5, 5) / (6, 5) is 5 away: corner (6, 5) would be too far, so (5, 5)
-    expect(sparkAnchorFor(s, g, 6, 5)).toEqual({ x: 5, y: 5 });
+    // (8, 5) ist 7 entfernt: Ecke (8, 5) waere zu weit, also (7, 5) / (8, 5) is 7 away: corner (8, 5) would be too far, so (7, 5)
+    expect(sparkAnchorFor(s, g, 8, 5)).toEqual({ x: 7, y: 5 });
     expect(sparkAnchorFor(s, g, 4, 6)).toEqual({ x: 4, y: 6 });
     for (const p of sparkReach(s, g)) {
       const a = sparkAnchorFor(s, g, p.x, p.y);
@@ -136,7 +140,8 @@ describe('Goettlicher Funke: Reichweite und Flaeche / Divine Spark: range and ar
     const e = sparkEv(r.events);
     expect(e.tiles).toEqual([{ x: 4, y: 4 }, { x: 5, y: 4 }, { x: 4, y: 5 }, { x: 5, y: 5 }]);
     expect(e.hits.map((h) => h.unit).sort()).toEqual(inside.map((u) => u.id).sort());
-    for (const h of e.hits) expect(h.dmg).toBe(SPARK.damage);
+    // Panzer bekommen den Fahrzeugschaden, Fusstruppen den Grundschaden / tanks take the vehicle damage, foot troops the base damage
+    for (const h of e.hits) expect(h.dmg).toBe(h.unit === inside[0].id ? SPARK.vehicleDamage : SPARK.damage);
     expect(unit(s, inside[2].id)!.hp).toBe(UNITS.mg.hp - SPARK.damage);
     // angeschlagene Ziele fallen: der Gegner zaehlt als Abschuss, die eigene Einheit nicht / battered targets fall: the enemy counts as a kill, the own unit does not
     expect(unit(s, inside[1].id)).toBeUndefined();
@@ -145,7 +150,7 @@ describe('Goettlicher Funke: Reichweite und Flaeche / Divine Spark: range and ar
     expect(s.factions[0].kills).toBe(1);
     expect(gun.kills).toBe(1);
     // keine Deckung: Stadt oder Wald aendern nichts, Verteidigung zaehlt nicht / no cover: city or forest change nothing, defence does not count
-    expect(unit(s, inside[0].id)!.hp).toBe(UNITS.tank.hp - SPARK.damage);
+    expect(unit(s, inside[0].id)!.hp).toBe(UNITS.tank.hp - SPARK.vehicleDamage);
   });
 
   it('Trefferglueck: jedes Ziel wuerfelt einzeln, Schaden folgt der Trefferart / hit luck: every target rolls on its own, damage follows the hit kind', () => {
@@ -161,7 +166,7 @@ describe('Goettlicher Funke: Reichweite und Flaeche / Divine Spark: range and ar
       expect(e.hits).toHaveLength(4);
       for (const h of e.hits) {
         expect(HIT_KINDS).toContain(h.hit);
-        expect(h.dmg).toBe(hitDamage(SPARK.damage, h.hit!));
+        expect(h.dmg).toBe(hitDamage(SPARK.vehicleDamage, h.hit!));
         const tu = targets.find((u) => u.id === h.unit)!;
         expect(unit(s, tu.id)!.hp).toBe(UNITS.tank.hp - h.dmg);
         kinds.add(h.hit!);
@@ -222,23 +227,38 @@ describe('Goettlicher Funke: Bedingungen / Divine Spark: conditions', () => {
     expect(sparkCheck(s3, g3, 4, 4)).toBe('fresh');
   });
 
-  it('Nachladen: SPARK.cooldown Runden bis zum naechsten Schuss / reload: SPARK.cooldown rounds until the next shot', () => {
+  it('feuert jede Runde, aber nur einmal je Zug / fires every round, but only once per turn', () => {
     const s = alvVs();
     const gun = addUnit(s, 'divineSpark', 0, 1, 5);
     addUnit(s, 'lightWarden', 0, 4, 2);
-    addUnit(s, 'tank', 1, 5, 4);
+    addUnit(s, 'tank', 1, 5, 4, { hp: 99 });
     const start = s.round;
     ok(s, fire(gun, 4, 4));
     expect(gun.sparkReady).toBe(start + SPARK.cooldown);
-    let shots = 0;
-    while (s.round < start + SPARK.cooldown) {
-      ok(s, { type: 'endTurn' });
-      while (s.current !== 0) ok(s, { type: 'endTurn' });
-      if (s.round < start + SPARK.cooldown) expect(sparkCheck(s, unit(s, gun.id)!, 4, 4)).toBe('sparkCooldown');
-      shots++;
-      if (shots > 10) throw new Error('loop');
-    }
+    // im selben Zug kein zweiter Schuss / no second shot in the same turn
+    expect(sparkCheck(s, gun, 4, 4)).toBe('unitExhausted');
+    ok(s, { type: 'endTurn' });
+    while (s.current !== 0) ok(s, { type: 'endTurn' });
+    expect(s.round).toBe(start + 1);
+    // naechste Runde wieder bereit und schiesst / ready again next round and fires
     expect(sparkCheck(s, unit(s, gun.id)!, 4, 4)).toBe('ok');
+    ok(s, fire(unit(s, gun.id)!, 4, 4));
+  });
+
+  it('Fahrzeuge und Roboter nehmen den Fahrzeugschaden, Fusstruppen den Grundschaden / vehicles and robots take the vehicle damage, foot troops the base damage', () => {
+    const s = alvVs('nexus');
+    const gun = addUnit(s, 'divineSpark', 0, 1, 5);
+    addUnit(s, 'lightWarden', 0, 4, 2);
+    const titan = addUnit(s, 'titan', 1, 4, 4);
+    const android = addUnit(s, 'android', 1, 5, 4);
+    const pre = sparkPreview(s, gun, 4, 4);
+    expect(pre.hits.find((h) => h.unit === titan.id)!.dmg).toBe(SPARK.vehicleDamage);
+    expect(pre.hits.find((h) => h.unit === android.id)!.dmg).toBe(SPARK.vehicleDamage);
+    const s2 = alvVs();
+    const gun2 = addUnit(s2, 'divineSpark', 0, 1, 5);
+    addUnit(s2, 'lightWarden', 0, 4, 2);
+    const inf = addUnit(s2, 'infantry', 1, 4, 4);
+    expect(sparkPreview(s2, gun2, 4, 4).hits.find((h) => h.unit === inf.id)!.dmg).toBe(SPARK.damage);
   });
 
   it('Frieden sperrt den Schuss, nur Alvenia feuert / peace blocks the shot, only Alvenia fires', () => {

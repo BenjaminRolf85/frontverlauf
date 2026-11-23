@@ -129,7 +129,7 @@ function statsHtml(type: UnitTypeId, fid: FactionId): string {
   if (type === SPARK.unit) {
     return [
       stat('hp', t('stats.hp'), num(cardHp(type))),
-      stat('divineSpark', t('spark.statDesc', sparkVars()), `${SPARK.damage} · ${SPARK.area.w}×${SPARK.area.h}`),
+      stat('divineSpark', t('spark.statDesc', sparkVars()), `${SPARK.damage}/${SPARK.vehicleDamage} · ${SPARK.area.w}×${SPARK.area.h}`),
       stat('shield', t('stats.defense'), num(st.defense)),
       stat('boot', t('stats.move'), num(st.move)),
       stat('range', t('stats.range'), `${SPARK.minRange}-${SPARK.range}`),
