@@ -1,10 +1,10 @@
 /**
  * Goettlicher Funke (nur Darstellung): ein leuchtender Funke (goldener Kern, vierzackiger Lichtstern, Funkenspur) steigt von
- * der Linse des Geschuetzes auf einem hohen Bogen auf und faellt auf die 2x2-Flaeche; dort steht kurz eine Lichtsaeule,
+ * der Muendung des Geschuetzes auf einem hohen Bogen auf und faellt auf die 2x2-Flaeche; dort steht kurz eine Lichtsaeule,
  * die Flaeche blitzt als Quadrat auf, ein Lichtring laeuft aus und ein Sternkranz strahlt nach aussen. Farben aus den
  * Alvenia-Tokens (Sonnenkranz, Strahl, Gold). Ohne Animationen: nur ein kurzer stiller Einschlag.
  * Divine Spark (render only): a glowing spark (golden core, four-pointed star of light, trail of sparks) rises from the
- * gun's lens on a high arc and falls onto the 2x2 area; there a column of light stands briefly, the area flashes as a
+ * gun's muzzle on a high arc and falls onto the 2x2 area; there a column of light stands briefly, the area flashes as a
  * square, a ring of light runs out and a star burst radiates outwards. Colours from the Alvenia tokens (halo, beam,
  * gold). Without animations: only a brief still impact.
  */
@@ -49,8 +49,8 @@ export class SparkFx {
   private timer = 0;
 
   /**
-   * Flug vorbereiten: from = Linse des Geschuetzes, to = Mitte der Flaeche (Brett-Koordinaten), size = Kantenlaenge der Flaeche.
-   * Prepare the flight: from = the gun's lens, to = centre of the area (board coordinates), size = edge length of the area.
+   * Flug vorbereiten: from = Muendung des Geschuetzes, to = Mitte der Flaeche (Brett-Koordinaten), size = Kantenlaenge der Flaeche.
+   * Prepare the flight: from = the gun's muzzle, to = centre of the area (board coordinates), size = edge length of the area.
    */
   begin(from: THREE.Vector3, to: THREE.Vector3, size: number, faction: FactionId | null) {
     void faction;
@@ -95,7 +95,7 @@ export class SparkFx {
     const { impact } = SPARK_FX;
     const show = (m: THREE.Mesh, on: boolean, opacity: number) => { m.visible = on && opacity > 0.01; (m.material as THREE.MeshBasicMaterial).opacity = opacity; };
     if (t < impact) {
-      // Aufladen an der Linse (erstes Fuenftel), dann Flug / charging at the lens (first fifth), then the flight
+      // Aufladen an der Muendung (erstes Fuenftel), dann Flug / charging at the muzzle (first fifth), then the flight
       const charge = Math.min(1, t / (impact * 0.2));
       const k = Math.max(0, (t - impact * 0.2) / (impact * 0.8));
       const p = this.at(k);

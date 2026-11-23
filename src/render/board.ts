@@ -2256,12 +2256,34 @@ export class Board {
   }
 
   /**
-   * Goettlicher Funke: Lichtbogen von der Linse des Geschuetzes zur 2x2-Flaeche, onImpact beim Einschlag. Ohne Animationen:
-   * stiller Einschlag.
-   * Divine Spark: arc of light from the gun's lens to the 2x2 area, onImpact at the moment of impact. Without animations:
-   * still impact.
+   * Muendung einer Einheit im Brettrahmen (geometry.userData.muzzle, Turm in seiner jetzigen Stellung); null = kein Modell
+   * oder keine gemerkte Muendung.
+   * Muzzle of a unit in the board frame (geometry.userData.muzzle, turret in its current position); null = no model or no
+   * remembered muzzle.
    */
-  animateSpark(s: GameState, from: { x: number; y: number }, tiles: { x: number; y: number }[], faction: FactionId | null, animate: boolean, onImpact: () => void): Promise<void> {
+  private muzzleOf(s: GameState, unitId: number): THREE.Vector3 | null {
+    const u = s.units.find((x) => x.id === unitId);
+    const model = this.units.get(unitId)?.group.getObjectByName('model');
+    if (!u || !model) return null;
+    const g = unitGeometry(u.type, s.factions[u.owner].id, u.carried);
+    const m = g.userData.muzzle as [number, number, number] | undefined;
+    if (!m) return null;
+    const p = new THREE.Vector3(m[0], m[1], m[2]);
+    // im Turm: relativ zum Drehpunkt und zur Ruhestellung, dann mit dem Turm gedreht / in the turret: relative to the pivot and the rest heading, then turned with the turret
+    const range = models.turretsOf(g)[0], tur = turretsIn(model)[0];
+    const host = range && tur ? tur : model;
+    if (range && tur) p.sub(new THREE.Vector3(range.pivot[0], range.pivot[1], range.pivot[2])).applyAxisAngle(new THREE.Vector3(0, 1, 0), -range.yaw);
+    host.updateWorldMatrix(true, false);
+    return this.group.worldToLocal(host.localToWorld(p));
+  }
+
+  /**
+   * Goettlicher Funke: Lichtbogen von der Muendung des Geschuetzes (unit, sonst ueber der Feldmitte) zur 2x2-Flaeche,
+   * onImpact beim Einschlag. Ohne Animationen: stiller Einschlag.
+   * Divine Spark: arc of light from the gun's muzzle (unit, else above the tile centre) to the 2x2 area, onImpact at the
+   * moment of impact. Without animations: still impact.
+   */
+  animateSpark(s: GameState, from: { x: number; y: number }, tiles: { x: number; y: number }[], faction: FactionId | null, animate: boolean, onImpact: () => void, unit?: number): Promise<void> {
     this.orbital.clearPreview();
     const c = tiles.reduce((a: THREE.Vector3, p) => a.add(this.tileCenter(s, p.x, p.y)), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, tiles.length));
     const size = Math.sqrt(Math.max(1, tiles.length));
@@ -2272,8 +2294,7 @@ export class Board {
       this.dirty = true;
       return Promise.resolve();
     }
-    const start = this.tileCenter(s, from.x, from.y);
-    start.y += 0.55;
+    const start = (unit !== undefined ? this.muzzleOf(s, unit) : null) ?? this.tileCenter(s, from.x, from.y).add(new THREE.Vector3(0, 0.55, 0));
     this.spark.begin(start, c, size, faction);
     let hit = false;
     return this.addAnim(SPARK_FX.ms, (t) => {

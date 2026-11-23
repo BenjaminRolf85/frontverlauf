@@ -92,6 +92,22 @@ describe('Einheiten: Proportionen / units: proportions', () => {
       expect(spark.h).toBeGreaterThan(dims('reliquary', 'alvenia').h * 1.2);
     });
 
+    it(`Goettlicher Funke: Muendung vorn oben am Rohrende (${q}) / Divine Spark: muzzle at the front top end of the barrel (${q})`, () => {
+      setUnitQuality(q);
+      for (const f of FACTION_IDS) {
+        const g = unitGeometry('divineSpark', f, null);
+        g.computeBoundingBox();
+        const b = g.boundingBox!;
+        const m = g.userData.muzzle as [number, number, number] | undefined;
+        expect(m, f).toBeDefined();
+        // Landkreuzer: das Rohr ist das vorderste Teil, die Muendung liegt hoch ueber der Wanne / land cruiser: the barrel is the foremost part, the muzzle sits high above the hull
+        expect(Math.abs(m![0]), f).toBeLessThan(0.01);
+        expect(m![2], f).toBeGreaterThan(b.max.z - 0.03);
+        expect(m![1], f).toBeGreaterThan(b.max.y * 0.85);
+        expect(m![1], f).toBeLessThanOrEqual(b.max.y);
+      }
+    });
+
     it(`alle Einheiten bleiben auf dem Feld und unter der Plakette (${q}) / all units stay on the tile and below the badge (${q})`, () => {
       setUnitQuality(q);
       const types = (Object.keys(UNITS) as UnitTypeId[]).filter((t) => !(WONDER_UNITS as UnitTypeId[]).includes(t));

@@ -89,7 +89,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   reliquary: [6250, 6050, 6278], // 5910 / 5750
   sunLance: [5100, 4550, 5013], // 4843 / 4295
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
-  divineSpark: [7450, 6650, 6338], // 7081 / 6338
+  divineSpark: [7450, 6650, 6338], // 7390 / 6296 (Landkreuzer, vorher 7081 / 6338 / land cruiser, before 7081 / 6338)
   steppeColossus: [9350, 8800, 8643], // 8868 / 8369
   shadowCommando: [5150, 3800, 3531], // 4883 / 3613 (Lesbarkeit: Sprengrucksack / readability: demolition pack)
   fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)

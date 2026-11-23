@@ -1229,7 +1229,7 @@ export class Controller {
             };
             audio.weapon('divineSpark');
             board.faceTarget(s, e.unit, e.tiles[0]);
-            await board.animateSpark(s, e.from, e.tiles, fid(e.faction) ?? null, animate, impact);
+            await board.animateSpark(s, e.from, e.tiles, fid(e.faction) ?? null, animate, impact, e.unit);
             this.refresh();
             break;
           }

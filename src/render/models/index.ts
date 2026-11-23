@@ -56,7 +56,7 @@ import { swarmMother } from './boss';
 import { mothership, mothershipSmoke } from './mothership';
 import { scientist } from './scientist';
 import { coilLauncher, octocopter, railSniper, sensorCarrier, teslaTank } from './velkarTech';
-import { divineSpark, lightWarden, reliquary, sunLance } from './alveniaFaith';
+import { SPARK_MUZZLE, divineSpark, lightWarden, reliquary, sunLance } from './alveniaFaith';
 import { steppeColossus } from './korvatHeavy';
 import { cyborg, flameTank, kamikazeDrone } from './nexusSeries';
 import { fogCutter, guidedMissile, marine, radarTruck, shadowCommando } from './shadowFleet';
@@ -124,8 +124,9 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       case 'lightWarden': return lightWarden(faction).build();
       case 'reliquary': return reliquary(faction).build();
       case 'sunLance': return sunLance(faction).build();
-      // Goettlicher Funke: Riesengeschuetz (Groessenklasse gross, wie gebaut) / Divine Spark: giant gun (large size class, as built)
-      case 'divineSpark': return divineSpark(faction).build();
+      // Goettlicher Funke: Landkreuzer-Geschuetz (Groessenklasse riesig, wie gebaut); Muendung fuer den Funken merken
+      // Divine Spark: land cruiser gun (giant size class, as built); remember the muzzle for the spark
+      case 'divineSpark': { const g = divineSpark(faction).build(); g.userData.muzzle = SPARK_MUZZLE; return g; }
       // Korvat: Steppenkoloss / Korvat: Steppe Colossus
       case 'steppeColossus': return steppeColossus(faction).build();
       case 'landingBoat': return landingBoat(faction, c ? carriedGeometry(c, faction) : null).build();
