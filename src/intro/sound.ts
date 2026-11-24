@@ -8,7 +8,7 @@ import { AudioEngine } from '../audio/audio';
 import { buildScore, type ScoreEvent } from './score';
 import { DURATION, rng } from './timeline';
 
-const SEED = 1847;
+export const SEED = 1847;
 /** Vorlauf beim Planen in Sekunden / scheduling look-ahead in seconds */
 const LOOKAHEAD = 0.8;
 
@@ -16,7 +16,7 @@ const LOOKAHEAD = 0.8;
  * Ausgang der Klangspur: Vorverstaerkung und Begrenzer gegen Uebersteuern, dann Ausblendung.
  * Soundtrack output: pre-gain and limiter against clipping, then the fade.
  */
-function output(ctx: BaseAudioContext): GainNode & { fade: GainNode } {
+export function output(ctx: BaseAudioContext): GainNode & { fade: GainNode } {
   const pre = ctx.createGain(); pre.gain.value = 2.2;
   const lim = ctx.createDynamicsCompressor();
   lim.threshold.value = -9; lim.knee.value = 4; lim.ratio.value = 16; lim.attack.value = 0.002; lim.release.value = 0.2;

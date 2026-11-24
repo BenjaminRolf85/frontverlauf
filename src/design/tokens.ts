@@ -872,6 +872,14 @@ export const components = {
     subtitleBg: c.ink900, subtitleInk: c.paper50,
     /** Bedienelemente / controls */
     progressHeight: '6px', holdMs: '650ms', hintMs: '2500ms', controlGap: primitives.space[3],
+    /**
+     * Introfilm (src/intro/filmPlayer.ts): Untertitel wie im 2D-Intro, Lautmalerei und Slogan als Einblendung, Wartezeit bis
+     * zum Ersatz-Intro. Intro film (src/intro/filmPlayer.ts): captions like in the 2D intro, onomatopoeia and tagline as
+     * overlays, wait time before the fallback intro.
+     */
+    filmCaptionSize: 'clamp(15px, 1.6vmin + 9px, 30px)', filmCaptionMaxWidth: '78%', filmCaptionBottom: '4%', filmCaptionAlpha: '86%',
+    filmCaptionRadius: '14px', filmCaptionBorder: '3px', filmBoomSize: 'clamp(36px, 22cqh, 170px)', filmBoomTilt: '-8deg',
+    filmTaglineSize: 'clamp(14px, 7.6cqh, 80px)', filmTaglineTop: '76.5%', filmStallMs: '12000ms',
   },
 } as const;
 

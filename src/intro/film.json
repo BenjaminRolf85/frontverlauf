@@ -1,0 +1,46 @@
+{
+  "fps": 24,
+  "renderFps": 12,
+  "duration": 124,
+  "shots": [
+    { "id": "verdan", "start": 0, "end": 16 },
+    { "id": "wrecks", "start": 16, "end": 24 },
+    { "id": "chalk", "start": 24, "end": 32 },
+    { "id": "skyburns", "start": 32, "end": 38 },
+    { "id": "crash", "start": 38, "end": 46 },
+    { "id": "bell", "start": 46, "end": 52 },
+    { "id": "awaken", "start": 52, "end": 62 },
+    { "id": "gate", "start": 62, "end": 70 },
+    { "id": "fracture", "start": 70, "end": 76 },
+    { "id": "korvat", "start": 76, "end": 83 },
+    { "id": "alvenia", "start": 83, "end": 90 },
+    { "id": "dravon", "start": 90, "end": 97 },
+    { "id": "velkar", "start": 97, "end": 104 },
+    { "id": "meridon", "start": 104, "end": 111 },
+    { "id": "banners", "start": 111, "end": 117 },
+    { "id": "title", "start": 117, "end": 124 }
+  ],
+  "captions": [
+    { "key": "empire", "start": 0.6, "end": 7.6 },
+    { "key": "standstill", "start": 8.2, "end": 15.6 },
+    { "key": "wrecks", "start": 16.4, "end": 23.6 },
+    { "key": "chalk", "start": 24.4, "end": 31.6 },
+    { "key": "skyBurned", "start": 32.4, "end": 37.6 },
+    { "key": "crash", "start": 38.6, "end": 45.6 },
+    { "key": "bell", "start": 46.4, "end": 51.6 },
+    { "key": "awaken", "start": 52.4, "end": 61.6 },
+    { "key": "gate", "start": 62.4, "end": 69.6 },
+    { "key": "fracture", "start": 70.4, "end": 75.6 },
+    { "key": "korvat", "start": 76.4, "end": 82.6 },
+    { "key": "alvenia", "start": 83.4, "end": 89.6 },
+    { "key": "dravon", "start": 90.4, "end": 96.6 },
+    { "key": "velkar", "start": 97.4, "end": 103.6 },
+    { "key": "meridon", "start": 104.4, "end": 110.6 },
+    { "key": "banners", "start": 111.4, "end": 116.6 }
+  ],
+  "panels": [0, 3.3, 6.6],
+  "overlays": [
+    { "key": "boom", "start": 39.0, "end": 40.4 },
+    { "key": "tagline", "start": 119.4, "end": 124 }
+  ]
+}

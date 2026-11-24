@@ -3,3 +3,5 @@ dist
 .netlify
 *.log
 .claude/worktrees/
+tools/intro-film/.cache/
+__pycache__/

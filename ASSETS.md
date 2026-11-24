@@ -83,6 +83,14 @@ Vorschau aller Modelle / preview of all models: `npx vite`, dann / then
 | Klangspur (prozedurale Fraktionsmusik, Effekte) / soundtrack (procedural faction music, effects) | `src/intro/score.ts`, `src/audio/audio.ts` | prozedural per WebAudio, eigene Schöpfung, CC0 / procedural via WebAudio, own creation, CC0 |
 | Videos (MP4, nicht im Repository) / videos (MP4, not in the repository) | `scripts/intro-export.mjs` | aus den obigen Teilen gerechnet, gleiche Lizenzen / rendered from the parts above, same licences |
 
+## Introfilm "Die Vorgeschichte" / intro film "The backstory"
+
+| Bestandteil / part | Datei / file | Quelle, Lizenz / source, licence |
+|---|---|---|
+| 3D-Comicfilm (124 s, 1280x720, WebM VP9 + Opus, MP4 H.264 + AAC, Standbild WebP) / 3D comic film (124 s, 1280x720, WebM VP9 + Opus, MP4 H.264 + AAC, poster WebP) | `public/intro/frontverlauf-intro.webm`, `.mp4`, `-poster.webp` | in Blender (Eevee) aus Code gerendert: `tools/intro-film/` (Drehbuch `docs/intro-film.md`); Modelle sind die eigenen prozeduralen Spielmodelle (`src/render/models`), Farben nur aus den Design-Tokens; eigene Schoepfung, CC0 / rendered in Blender (Eevee) from code; the models are the game's own procedural models, colours only from the design tokens; own creation, CC0 |
+| Klangspur des Films / film soundtrack | `src/intro/filmScore.ts`, `src/audio/audio.ts` | prozedural per WebAudio, offline gerechnet und ins Video gemischt, eigene Schoepfung, CC0 / procedural via WebAudio, rendered offline and mixed into the video, own creation, CC0 |
+| Schrift im Titel / font in the title | Bangers (`@fontsource/bangers`) | SIL Open Font License 1.1, in Blender als Geometrie gesetzt / set as geometry in Blender |
+
 ## Schriften / fonts
 
 | Name | Quelle / source | Urheber / author | Lizenz / licence | Änderungen / changes |

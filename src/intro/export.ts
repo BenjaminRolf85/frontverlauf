@@ -10,6 +10,7 @@ import { components } from '../design/tokens';
 import { setLanguage } from '../i18n/i18n';
 import { loadIntroAssets } from './assets';
 import { renderAt } from './render';
+import { renderFilmSoundtrack } from './filmScore';
 import { renderSoundtrack, wavBytes } from './sound';
 import { introTexts } from './texts';
 import { DURATION, SCENES, SUBTITLES } from './timeline';
@@ -42,5 +43,7 @@ export async function bootExport(params: URLSearchParams) {
     draw,
     frame(t: number, quality = 0.93) { draw(t); return canvas.toDataURL('image/jpeg', quality); },
     async wav() { return base64(wavBytes(await renderSoundtrack(48000))); },
+    /** Klangspur des Introfilms (tools/intro-film/soundtrack.mjs) / soundtrack of the intro film (tools/intro-film/soundtrack.mjs) */
+    async filmWav() { return base64(wavBytes(await renderFilmSoundtrack(48000))); },
   };
 }

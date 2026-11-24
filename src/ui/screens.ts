@@ -66,11 +66,13 @@ function bind(node: HTMLElement, handlers: Record<string, (el: HTMLElement) => v
 }
 
 /**
- * Intro "Die Menschheit im Sternfall" (src/intro, per dynamischem Import, damit es den Hauptteil nicht vergroessert).
- * Intro "Humanity in the Starfall" (src/intro, via dynamic import so it does not grow the main chunk).
+ * Intro: der Introfilm "Die Vorgeschichte" (src/intro/filmPlayer.ts), sonst das 2D-Intro "Die Menschheit im Sternfall"
+ * oder dessen Diashow (src/intro/player.ts); per dynamischem Import, damit es den Hauptteil nicht vergroessert.
+ * Intro: the intro film "The backstory" (src/intro/filmPlayer.ts), otherwise the 2D intro "Humanity in the Starfall"
+ * or its slideshow (src/intro/player.ts); via dynamic import so it does not grow the main chunk.
  */
 export function openIntro(host: ScreenHost, onClose?: () => void) {
-  void import('../intro/player').then((m) => m.playIntro(host.root, {
+  void import('../intro/filmPlayer').then((m) => m.playIntroFilm(host.root, {
     music: host.settings.music, effects: host.settings.effects, animations: host.settings.animations, pause: host.pauseScene, onClose,
   })).catch(() => onClose?.());
 }

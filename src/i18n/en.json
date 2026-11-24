@@ -4014,6 +4014,27 @@
       "dravon": "Guns and mines",
       "velkar": "Orbital laser",
       "meridon": "Letters of marque"
+    },
+    "film": {
+      "title": "Intro film: the backstory",
+      "sub": {
+        "empire": "Once the empire of Verdan ruled the whole continent with machines.",
+        "standstill": "Then the Great Standstill: overnight all the lights went out.",
+        "wrecks": "Rusting wrecks recall the war that followed.",
+        "chalk": "For two generations, borders drawn in chalk on old maps held.",
+        "skyBurned": "Until the sky burned.",
+        "crash": "The Zyrr mothership crashes into the desert, and debris rains down.",
+        "bell": "The bell tolls by itself.",
+        "awaken": "NEXUS awakens, the Cult of the Final Hour rises, and the Zyrr build a gate to their homeworld.",
+        "gate": "Beyond it waits a third world that everyone has forgotten.",
+        "fracture": "The human front breaks into five pieces.",
+        "korvat": "Korvat storms: the League’s steppe riders charge ahead in the Steppe Storm, and nobody is left behind.",
+        "alvenia": "Alvenia judges: sinners meet the Judgement, and the Divine Spark calls down the sunlight.",
+        "dravon": "Dravon fortifies: concrete bunkers, guns, minefields and iron drill.",
+        "velkar": "Velkar researches ahead: the Academy floats, the orbital laser takes aim, the neutron beam strikes.",
+        "meridon": "Meridon trades in secret: privateers, rocket silos and marines collect every price.",
+        "banners": "Five banners, one continent. And the front is moving again."
+      }
     }
   },
   "emplacement": {
