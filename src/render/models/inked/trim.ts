@@ -312,7 +312,7 @@ function paintDrum(p: Pen): void {
   p.line(spline([[112, 50], [121, 46], [129, 52]], 4), 1.2, { taper: 0.4 });
   p.chips(0, 6, W, H - 12, 7, mat.rustDark, 311, 2.6);
   p.scratches(0, 8, W, H - 16, 10, 313, 18);
-  streaks(p, 0, 8, W, H - 16, 12, 317);
+  streaks(p, 0, 8, W, H - 16, 6, 317);
 }
 
 /** Fassdeckel (64 x 64) / drum end (64 x 64) */
@@ -351,7 +351,6 @@ function paintBin(p: Pen): void {
 /** Plane (144 x 56): Falten laengs, zwei Riemen / tarp (144 x 56): folds along it, two straps */
 function paintTarp(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3.6, 0.82, 0.4);
   const R = rng(353);
   for (let x = 8; x < W; x += 17) p.line(spline([[x + R() * 5, 3], [x + 4, H / 2], [x + R() * 5, H - 3]], 4), 1.3, { taper: 0.4, wobble: 0.8 });
   for (const y of [14, H - 14]) p.band([[-2, y], [W + 2, y]], 6, WOOD, 1.2);
@@ -364,7 +363,7 @@ function paintPlate(p: Pen): void {
   p.rivets([16, 16], [W - 16, 16], 10, 2.4);
   p.rivets([16, H - 16], [W - 16, H - 16], 10, 2.4);
   p.panel([[W / 2, 8], [W / 2, H - 8]], 1.5);
-  streaks(p, 0, 8, W, H * 0.7, 22, 401);
+  streaks(p, 0, 8, W, H * 0.7, 9, 401);
   p.scratches(8, 8, W - 16, H - 16, 18, 403, 26);
   p.chips(0, 0, W, 10, 14, BARE, 407, 3);
   p.chips(0, H - 10, W, 10, 14, BARE, 409, 3);

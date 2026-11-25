@@ -31,7 +31,7 @@ function paintTurret(p: Pen, L: Look): void {
   p.weld([0, Y(0.05)], [W * 0.38, Y(0.05) + 1], 4.4);
   p.weld([W * 0.62, Y(0.05) + 1], [W, Y(0.05)], 4.4);
   p.panel([[0, 3], [W, 3]], 1.4, 7);
-  streaks(p, 0, 4, W, lower - 10, 46, 103);
+  streaks(p, 0, 4, W, lower - 10, 18, 103);
   // Nieten ueber der Unterkante und am Turmkranz / rivets above the lower edge and on the ring
   p.rivets([10, lower - 7], [W - 10, lower - 7], 34, 2.8);
   p.line([[-3, lower + 0.5], [W + 3, lower + 0.5]], 1.4, { taper: 0, wobble: 0.2 });
@@ -111,7 +111,7 @@ function paintHullSide(p: Pen): void {
   for (const x of [W * 0.34, W * 0.67]) { p.panel([[x, 2], [x, K - 1]], 1.8); p.rivets([x + 7, 9], [x + 7, K - 8], 6, 2.4); }
   p.rivets([10, 8], [W - 10, 8], 30, 2.4);
   p.weld([4, K - 1], [W - 4, K - 1], 4.4);
-  streaks(p, 0, 3, W, K - 6, 40, 151);
+  streaks(p, 0, 3, W, K - 6, 16, 151);
   // Schaufel und Brechstange in Halterungen / shovel and crowbar in brackets
   const sy = 34;
   p.band([[26, sy], [112, sy]], 5, WOOD, 1.2);
@@ -203,7 +203,7 @@ function paintGlacis(p: Pen): void {
   for (const bx of [vx - 31, vx + 31]) p.rivet(bx, 38, 2.2);
   // Schweissring um die Kugelblende / weld ring around the ball mount
   p.line(arc(X(0.1), 30, 19, 21, 0, Math.PI * 2, 18), 1.9, { closed: true, wobble: 0.25 });
-  streaks(p, 0, 4, W, H * 0.6, 24, 211);
+  streaks(p, 0, 4, W, H * 0.6, 10, 211);
   p.scratches(0, 8, W, H - 30, 16, 223, 26);
   p.chips(0, 0, W, 8, 22, BARE, 227, 3);
   p.chips(0, H - 10, W, 8, 22, BARE, 229, 3);

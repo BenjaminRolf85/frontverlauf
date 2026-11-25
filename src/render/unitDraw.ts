@@ -54,8 +54,7 @@ export function unitOutlined(g: THREE.BufferGeometry, width = 0.018, opts: UnitM
   const grp = new THREE.Group();
   const mesh = new THREE.Mesh(g, material);
   const line = new THREE.Mesh(inkFor(g), inkMaterial(width));
-  // Bildgroesse fuer Schraffur und Linienbreite, je Renderer / viewport size for hatching and line width, per renderer
-  mesh.onBeforeRender = syncView;
+  // Bildgroesse fuer die Linienbreite, je Renderer / viewport size for the line width, per renderer
   line.onBeforeRender = syncView;
   line.raycast = () => {};
   grp.add(mesh, line);

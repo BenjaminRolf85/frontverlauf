@@ -57,15 +57,10 @@ export function paintHead(p: Pen): void {
   p.dab(cx, ny + 9, 15, 0.82, 0.55);
   p.dab(cx, my + 17, 13, 0.84, 0.6);
   p.gradient(0, Y(0.014), W, H - Y(0.014) + 3, [0, Y(0.014)], [0, H], 1, 0.66);
-  // Bartschatten: Toenung und Stoppeln / five o'clock shadow: tint and stubble
+  // Bartschatten: flache Toenung, keine Stoppelpunkte / five o'clock shadow: a flat tint, no stubble dots
   const jaw: Pt[] = spline([[cx - 118, ey + 26], [cx - 104, my - 6], [cx - 74, my + 36], [cx - 30, H - 8], [cx, H - 4], [cx + 30, H - 8], [cx + 74, my + 36], [cx + 104, my - 6], [cx + 118, ey + 26],
     [cx + 84, my - 14], [cx + 44, my - 20], [cx + 26, ny + 14], [cx, ny + 16], [cx - 26, ny + 14], [cx - 44, my - 20], [cx - 84, my - 14]], 6, true);
   p.shade(jaw, [0.78, 0.8, 0.86], 0.5);
-  p.mul.save();
-  p.mul.beginPath(); jaw.forEach((q, i) => (i ? p.mul.lineTo(q[0], q[1]) : p.mul.moveTo(q[0], q[1]))); p.mul.closePath(); p.mul.clip();
-  const R = rng(41);
-  for (let i = 0; i < 520; i++) p.dab(cx - 124 + R() * 248, ny + 6 + R() * (H - ny), 0.7 + R() * 0.7, 0.42, 0.75);
-  p.mul.restore();
   // Haar: Koteletten und Nacken / hair: sideburns and nape
   for (const s of [-1, 1]) {
     const x0 = cx + s * 146;
@@ -171,8 +166,6 @@ export function paintTorso(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2;
   const Y = (y: number) => ((0.176 - y) / 0.232) * H;
   const beltTop = Y(0.0285), beltBot = Y(0.005), hem = Y(-0.024);
-  p.weave(0, 0, W, beltTop, 4.5, 0.88, 0.2);
-  p.weave(0, beltBot, W, H - beltBot, 4.5, 0.88, 0.2);
   // Knopfleiste und Knoepfe / button placket and buttons
   p.crease([[cx - 5, 12], [cx - 5, beltTop]], 2, 0.8, 0.8, { taper: 0.05 });
   p.line([[cx + 6, 10], [cx + 5, beltTop - 1]], 1.8, { taper: 0.08, wobble: 0.5 });
@@ -241,7 +234,6 @@ export function paintTorso(p: Pen): void {
 /** Oberarm (Entwurf 176 x 104): s = 0.5 aussen, t Schulter -> Ellbogen / upper arm: s = 0.5 outside, t shoulder -> elbow */
 export function paintUpperArm(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2;
-  p.weave(0, 0, W, H, 4.5, 0.88, 0.2);
   // Aermelnaht an der Schulter / sleeve seam at the shoulder
   p.line(spline([[0, 20], [cx - 40, 15], [cx, 13], [cx + 40, 15], [W, 20]], 6), 1.5, { taper: 0.05, wobble: 0.3 });
   p.stitch([[6, 24], [cx, 18.5], [W - 6, 24]], 3.2, 2.6, 0.9, 0.62);
@@ -261,7 +253,6 @@ export function paintUpperArm(p: Pen): void {
 /** Unterarm (Entwurf 160 x 100): t Ellbogen -> Aermelbund / forearm: t elbow -> cuff */
 export function paintForeArm(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2;
-  p.weave(0, 0, W, H, 4.5, 0.88, 0.2);
   p.dab(cx, 16, 20, 0.84, 0.6);
   p.line(spline([[cx - 40, 14], [cx - 14, 20], [cx + 14, 16]], 5), 1.7, { taper: 0.4 });
   p.line(spline([[cx - 8, 28], [cx + 20, 33], [cx + 44, 28]], 5), 1.4, { taper: 0.4 });
@@ -293,7 +284,6 @@ export function paintHand(p: Pen): void {
 /** Oberschenkel (Entwurf 240 x 150): s = 0.5 vorn, 0.75 aussen / thigh: s = 0.5 front, 0.75 outside */
 export function paintThigh(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2, ox = W * 0.75;
-  p.weave(0, 0, W, H, 4.5, 0.88, 0.2);
   // Buegelfalte, Aussennaht / front crease, outer seam
   p.crease([[cx, 22], [cx + 1, H]], 2.4, 0.82, 0.7, { taper: 0.1, wobble: 0.4 });
   p.line([[ox + 30, 16], [ox + 31, H]], 1.3, { taper: 0.1, wobble: 0.4 });
@@ -323,7 +313,6 @@ export function paintThigh(p: Pen): void {
 export function paintShin(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2;
   const bootTop = 82;
-  p.weave(0, 0, W, bootTop, 4.5, 0.88, 0.2);
   // Knieflicken: Rand, Steppnaht / knee patch: edge, quilting
   const patch = rrect(cx - 27, 10, 54, 36, 9);
   p.shade(patch, 0.86, 0.9);
@@ -379,7 +368,6 @@ export function paintBoot(p: Pen): void {
 /** Tornister hinten (Entwurf 160 x 136) / pack back face (design 160 x 136) */
 export function paintPackBack(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3.4, 0.82, 0.4);
   p.line(rrect(5, 5, W - 10, H - 10, 9), 1.4, { closed: true, wobble: 0.3 });
   // Deckel mit geschwungener Kante und Schatten darunter / flap with a curved edge and shade below
   const edge = spline([[4, 55], [40, 65], [80, 68], [120, 65], [W - 4, 55]], 6);
@@ -408,7 +396,6 @@ export function paintPackBack(p: Pen): void {
 /** Tornister Seite (Entwurf 72 x 136) / pack side (design 72 x 136) */
 export function paintPackSide(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3.4, 0.82, 0.4);
   p.band([[0, 30], [W, 30]], 8, LEATHER);
   const flap: Pt[] = [[9, 48], [W - 9, 48], [W - 9, 62], [W / 2, 67], [9, 62]];
   p.shade([[11, 62], [W - 11, 62], [W - 11, 118], [11, 118]], 0.9, 0.8);
@@ -422,7 +409,6 @@ export function paintPackSide(p: Pen): void {
 /** Tornister oben (Entwurf 160 x 72) / pack top (design 160 x 72) */
 export function paintPackTop(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3.4, 0.82, 0.4);
   p.line([[4, H / 2], [W - 4, H / 2]], 1.2, { taper: 0.1, wobble: 0.4 });
   for (const x of [46, 114]) p.band([[x, -2], [x, H + 2]], 12, LEATHER);
 }
@@ -430,7 +416,6 @@ export function paintPackTop(p: Pen): void {
 /** Deckenrolle (Entwurf 160 x 96): s rundum, t entlang der Rolle / bedroll: s around, t along the roll */
 export function paintBedroll(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 4, 0.84, 0.35);
   for (const y of [9, H - 9]) p.shade([[0, y - 3.5], [W, y - 3.5], [W, y + 3.5], [0, y + 3.5]], 0.7, 0.8);
   const R = rng(61);
   for (let x = 10; x < W; x += 21) p.line(spline([[x + R() * 4, 16], [x + 3, H / 2], [x + R() * 4, H - 16]], 4), 1.2, { taper: 0.4, wobble: 0.8 });
@@ -454,7 +439,6 @@ export function paintCanteen(p: Pen): void {
   const W = p.w, H = p.h;
   p.fill([[0, 0], [W, 0], [W, 13], [0, 13]], STEEL);
   p.line([[-2, 14], [W + 2, 14]], 1.4, { taper: 0, wobble: 0.1 });
-  p.weave(0, 15, W, H - 15, 3.4, 0.8, 0.4);
   p.line([[W / 2, 18], [W / 2 + 1, H - 6]], 1.3, { taper: 0.15, wobble: 0.3 });
   p.stitch([[W / 2 + 3.5, 20], [W / 2 + 4, H - 8]], 3, 2.6, 0.9, 0.6);
   p.band([[-2, 42], [W + 2, 42]], 7.5, LEATHER);
@@ -475,7 +459,6 @@ export function paintPouch(p: Pen): void {
 /** Schaerpe / Riemen (Entwurf 256 x 24): s entlang, t quer / sash / strap: s along, t across */
 export function paintStrap(p: Pen): void {
   const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3, 0.8, 0.4);
   p.stitch([[0, 4], [W, 4]], 3.4, 2.8, 1, 0.62);
   p.stitch([[0, H - 4], [W, H - 4]], 3.4, 2.8, 1, 0.62);
   p.fill(rrect(96, 2, 20, H - 4, 2), BRASS);
@@ -530,7 +513,6 @@ export function paintCoat(p: Pen): void {
   const W = p.w, H = p.h, cx = W / 2;
   const Y = (y: number) => ((COAT.top - y) / (COAT.top - COAT.hem)) * H;
   const beltTop = Y(0.049), beltBot = Y(0.03);
-  p.weave(0, 0, W, H, 5, 0.9, 0.18);
   for (const s of [-1, 1]) {
     // Revers / lapel
     const lapel: Pt[] = [[cx + s * 22, 6], [cx + s * 46, 30], [cx + s * 26, 46], [cx + s * 4, beltTop - 30]];

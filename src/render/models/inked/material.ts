@@ -5,18 +5,16 @@
  * onBeforeCompile erweitert, so wie atmosphere.ts es fuer Dunst und Leuchten tut:
  * - Zeichnung: RGBA-Textur (mul / abs, siehe atlas.ts) auf die Vertexfarbe.
  * - Tusche: Abstandsfeld-Textur, scharfe Linie in jeder Vergroesserung, Strichstaerke schwankt leicht.
- * - Schatten (nur hohe Qualitaet): statt des flachen Mitteltons eine Schraffur. Sie haengt am Bildpunkt des
- *   Einheitenursprungs, wandert also mit der Einheit und schwimmt nicht, wenn die Kamera schwenkt; im Brettmassstab
- *   blendet sie in den flachen Mittelton aus (kein Rauschen auf kleinen Modellen).
+ * - Schatten: drei flache Toene (Licht, Mittelton, Schatten) wie die Stufentextur, dazu die Verdeckung aus den
+ *   Vertexfarben. KEINE Schraffur, keine Strich- oder Punktmuster.
  * - Kantenlicht und harter Glanzfleck auf Metall und Glas (nur hohe Qualitaet).
  * Varianten wie bei unitMaterial: abgedunkelt (gezogen), durchsichtig (getarnt, Radarkontakt), leuchtend (Velkar, Alvenia).
  * The base stays MeshToonMaterial with vertex colours and the scene lights (like unitMaterial in toon.ts), extended via
  * onBeforeCompile the way atmosphere.ts does for haze and glow:
  * - drawing: RGBA texture (mul / abs, see atlas.ts) on the vertex colour.
  * - ink: distance field texture, a sharp line at any magnification, the line weight wavers slightly.
- * - shadow (high quality only): hatching instead of the flat mid tone. It is anchored at the screen position of the
- *   unit's origin, so it travels with the unit and does not swim when the camera pans; at board scale it fades into
- *   the flat mid tone (no noise on small models).
+ * - shadow: three flat tones (light, mid tone, shadow) like the gradient map, plus the occlusion from the vertex
+ *   colours. NO hatching, no stroke or dot patterns.
  * - rim light and a hard glint on metal and glass (high quality only).
  * Variants as for unitMaterial: dimmed (has moved), transparent (camouflaged, radar contact), glowing (Velkar, Alvenia).
  */
@@ -24,32 +22,26 @@ import * as THREE from 'three';
 import { hex, semantic } from '../../../design/tokens';
 import { gradientMap, TOON_RAMP, UNIT_BRIGHTNESS, UNIT_DIM } from '../../toon';
 import { ATLAS_SIZE, atlasTextures } from './atlas';
-import { VIEW } from './ink';
 
 export type InkedQuality = keyof typeof ATLAS_SIZE;
 export interface InkedMatOpts { transparent?: boolean; opacity?: number; dim?: boolean; glow?: boolean }
 
 /** Schalter der Ebenen (1 = an) fuer die Vorschau / layer switches (1 = on) for the preview */
 export const LAYERS = {
-  /** x Zeichnung, y Tusche, z Schraffur, w Verdeckung / x drawing, y ink, z hatching, w occlusion */
-  uLayers: { value: new THREE.Vector4(1, 1, 1, 1) },
+  /** x Zeichnung, y Tusche, z Verdeckung / x drawing, y ink, z occlusion */
+  uLayers: { value: new THREE.Vector3(1, 1, 1) },
   /** x Glanz, y Kantenlicht / x glint, y rim light */
   uLayers2: { value: new THREE.Vector2(1, 1) },
 };
 /** Leuchten: Grundwert bei Tag, Zuschlag bei Nacht (wie UNIT_GLOW in atmosphere.ts) / glow: base by day, extra at night (as UNIT_GLOW in atmosphere.ts) */
 const GLOW = { base: 0.55, night: 0.6 };
-/** Massstab (CSS-Pixel je Modelleinheit), ueber den die Schraffur einblendet / scale (CSS pixels per model unit) across which the hatching fades in */
-export const HATCH_FADE = { from: 230, to: 380 };
+/** Niedrige Qualitaet: Verschiebung der Tuscheschwelle im Abstandsfeld (0..1 = 2 x SDF_RANGE Texel) / low quality: shift of the ink threshold in the distance field (0..1 = 2 x SDF_RANGE texels) */
+export const LOW_INK_BIAS = 0.06;
 
 const VERT_HEAD = /* glsl */ `
-  attribute vec3 fx;
+  attribute vec2 fx;
   varying vec2 vBUv;
-  varying vec3 vBFx;
-  #ifdef INKED_HIGH
-    uniform vec2 uView;
-    uniform float uDpr;
-    varying vec3 vBAnchor;
-  #endif
+  varying vec2 vBFx;
   #ifdef INKED_GLOW
     attribute vec2 glow;
     varying float vUnitGlow;
@@ -58,14 +50,6 @@ const VERT_HEAD = /* glsl */ `
 const VERT_BODY = /* glsl */ `
   vBUv = uv;
   vBFx = fx;
-  #ifdef INKED_HIGH
-  {
-    // Bildpunkt des Ursprungs und Massstab: daran haengt die Schraffur / screen position of the origin and scale: the hatching hangs on them
-    vec4 bO = projectionMatrix * modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
-    vBAnchor.xy = (bO.xy / bO.w * 0.5 + 0.5) * uView / uDpr;
-    vBAnchor.z = projectionMatrix[1][1] * uView.y * 0.5 / bO.w * length(modelViewMatrix[0].xyz) / uDpr;
-  }
-  #endif
   #ifdef INKED_GLOW
     vUnitGlow = glow.x;
   #endif
@@ -75,14 +59,13 @@ const FRAG_HEAD = /* glsl */ `
   uniform sampler2D uInkMap;
   uniform vec3 uInkColor;
   uniform vec3 uAbsTint;
-  uniform vec4 uLayers;
+  uniform vec3 uLayers;
   uniform vec2 uLayers2;
   uniform float uShadowTone;
   varying vec2 vBUv;
-  varying vec3 vBFx;
+  varying vec2 vBFx;
   #ifdef INKED_HIGH
-    uniform float uDpr;
-    varying vec3 vBAnchor;
+    // Rauschen fuer die schwankende Strichstaerke der Tusche / noise for the wavering weight of the ink line
     float bHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float bNoise(vec2 p) {
       vec2 i = floor(p), f = fract(p);
@@ -112,29 +95,14 @@ const FRAG_GLOW = /* glsl */ `
   }
   #endif
 `;
-/** Sonnenlicht neu: Verdeckung, Schraffur statt Mittelton / sun light redone: occlusion, hatching instead of the mid tone */
+/** Sonnenlicht neu: drei flache Toene, die Verdeckung schiebt die Stufen / sun light redone: three flat tones, the occlusion shifts the steps */
 const FRAG_LIGHT = /* glsl */ `
   #if NUM_DIR_LIGHTS > 0
   {
-    float bAo = mix(1.0, vBFx.y, uLayers.w);
+    float bAo = mix(1.0, vBFx.y, uLayers.z);
     float bNdl = dot(normal, directionalLights[0].direction) - (1.0 - bAo) * 0.85;
     // Stufen wie die Stufentextur / steps like the gradient map
     float bK = bNdl > 0.3333 ? 1.0 : bNdl > -0.3333 ? ${(TOON_RAMP.hard[1] / 255).toFixed(4)} : uShadowTone;
-    #ifdef INKED_HIGH
-    {
-      // Schraffur: Anteil Schatten waechst vom Licht zum Schatten / hatching: the share of shadow grows from light to shadow
-      float bDark = clamp((0.3 - bNdl) / 0.68, 0.0, 1.0);
-      vec2 bFc = gl_FragCoord.xy / uDpr - vBAnchor.xy;
-      float bAlong = bFc.x - bFc.y, bAcross = (bFc.x + bFc.y) / 6.2 + 0.35 * sin(bAlong * 0.031);
-      // jeder Strich hat eine eigene, schwankende Staerke / every stroke has its own wavering weight
-      float bWeight = 0.72 + 0.56 * bNoise(vec2(bAlong * 0.045, floor(bAcross) * 7.3));
-      float bCut = pow(bDark, 1.1) * bWeight * 1.1;
-      float bLit = bDark <= 0.0 ? 1.0 : smoothstep(bCut - 0.12, bCut + 0.12, abs(fract(bAcross) - 0.5) * 2.0);
-      // im Brettmassstab zurueck zum flachen Ton / back to the flat tone at board scale
-      float bFade = smoothstep(${HATCH_FADE.from.toFixed(1)}, ${HATCH_FADE.to.toFixed(1)}, vBAnchor.z) * uLayers.z * vBFx.z;
-      bK = mix(bK, mix(uShadowTone, 1.0, bLit), bFade);
-    }
-    #endif
     reflectedLight.directDiffuse = bK * directionalLights[0].color * BRDF_Lambert(material.diffuseColor);
     reflectedLight.indirectDiffuse *= mix(1.0, bAo, 0.5);
   }
@@ -163,6 +131,10 @@ const FRAG_INK = /* glsl */ `
     float bW = clamp(fwidth(bD), 0.002, 0.5);
     #ifdef INKED_HIGH
       bD += (bNoise(vBUv * 150.0) - 0.5) * 0.085 + (bNoise(vBUv * 37.0) - 0.5) * 0.06;
+    #else
+      // niedrig: halbe Textur und halbe Bildaufloesung, die Striche etwas kraeftiger, damit sie nicht wegbrechen
+      // low: half the texture and half the screen resolution, strokes a little heavier so they do not break away
+      bD += ${LOW_INK_BIAS.toFixed(3)};
     #endif
     float bInk = smoothstep(0.5 - bW, 0.5 + bW, bD) * uLayers.y;
     outgoingLight = mix(outgoingLight, uInkColor, bInk);
@@ -194,7 +166,7 @@ export function comicMaterial(atlas: string, quality: InkedQuality, o: InkedMatO
   };
   const defines = `${quality === 'high' ? '#define INKED_HIGH\n' : ''}${o.glow ? '#define INKED_GLOW\n' : ''}`;
   m.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms, LAYERS, { uDpr: VIEW.uDpr, uView: VIEW.uView, uGlow: GLOW_UNIFORM.ref });
+    Object.assign(shader.uniforms, uniforms, LAYERS, { uGlow: GLOW_UNIFORM.ref });
     shader.vertexShader = defines + VERT_HEAD + shader.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERT_BODY}`);
     shader.fragmentShader = defines + FRAG_HEAD + shader.fragmentShader
       .replace('#include <color_fragment>', `#include <color_fragment>\n${FRAG_PAINT}`)

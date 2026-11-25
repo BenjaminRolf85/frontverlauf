@@ -287,15 +287,13 @@ export interface PartOpts {
   gloss?: number;
   /** Gewicht der Knicklinien dieses Teils (0 = keine) / weight of this part's crease lines (0 = none) */
   crease?: number;
-  /** Anteil der Schraffur im Schatten (Haut: 0 = flacher Ton) / share of hatching in the shadow (skin: 0 = flat tone) */
-  hatch?: number;
   /** nur legacy(): Ecken vor dem Einfuegen verformen (z. B. alte Kopfbedeckung auf den neuen Kopf) / legacy() only: warp vertices before adding (e.g. old headgear onto the new head) */
   map?: (v: THREE.Vector3) => void;
 }
 
 /**
- * Wie Builder (kit.ts), aber mit uv, Glanz und Tuschegewicht. Attribute: position, normal, uv, color, fx (Glanz, Knick, Schraffur).
- * Like Builder (kit.ts), but with uv, gloss and ink weight. Attributes: position, normal, uv, color, fx (gloss, crease, hatching).
+ * Wie Builder (kit.ts), aber mit uv, Glanz und Tuschegewicht. Attribute: position, normal, uv, color, fx (Glanz, Knick).
+ * Like Builder (kit.ts), but with uv, gloss and ink weight. Attributes: position, normal, uv, color, fx (gloss, crease).
  */
 export class UvBuilder {
   private parts: THREE.BufferGeometry[] = [];
@@ -366,9 +364,9 @@ export class UvBuilder {
       for (let i = 0; i < n; i++) { arr[i * 3] = cc.r; arr[i * 3 + 1] = cc.g; arr[i * 3 + 2] = cc.b; }
       g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
     }
-    const fx = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) { fx[i * 3] = o.gloss ?? 0; fx[i * 3 + 1] = o.crease ?? 1; fx[i * 3 + 2] = o.hatch ?? 1; }
-    g.setAttribute('fx', new THREE.BufferAttribute(fx, 3));
+    const fx = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { fx[i * 2] = o.gloss ?? 0; fx[i * 2 + 1] = o.crease ?? 1; }
+    g.setAttribute('fx', new THREE.BufferAttribute(fx, 2));
     const m = this.top.clone().multiply(xfMatrix(o.xf));
     g.applyMatrix4(m);
     if (m.determinant() < 0) flipWinding(g);
@@ -384,10 +382,10 @@ export class UvBuilder {
 
   /**
    * Bruecke zum alten Baukasten: fn baut mit einem Builder (kit.ts) wie bisher; das Ergebnis kommt ohne Zeichnung
-   * (neutrale Zelle) in dieses Modell, mit Vertexfarben, Tuschekanten, Verdeckung und Schraffur. So laufen Zubehoer und
+   * (neutrale Zelle) in dieses Modell, mit Vertexfarben, Tuschekanten und Verdeckung. So laufen Zubehoer und
    * noch nicht umgebaute Teile durch denselben Weg; grosse Flaechen sollten trotzdem echte Zellen bekommen.
    * Bridge to the old toolkit: fn builds with a Builder (kit.ts) as before; the result joins this model without drawing
-   * (neutral cell), with vertex colours, ink edges, occlusion and hatching. Accessories and parts not converted yet thus
+   * (neutral cell), with vertex colours, ink edges and occlusion. Accessories and parts not converted yet thus
    * take the same path; large surfaces should still get real cells.
    */
   legacy(fn: (k: Builder) => void, o: PartOpts = {}): this {

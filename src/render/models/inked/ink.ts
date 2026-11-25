@@ -153,9 +153,9 @@ export function inkFor(g: THREE.BufferGeometry): THREE.BufferGeometry {
 
 /**
  * Bildgroesse und Pixeldichte des gerade zeichnenden Renderers; syncView setzt sie vor jedem Zeichnen (Brett, Portrait
- * und Vorschau haben eigene Renderer). Tusche und Schraffur teilen sich die Werte.
+ * und Vorschau haben eigene Renderer).
  * Viewport size and pixel ratio of the renderer drawing right now; syncView sets them before every draw (board,
- * portrait and preview have their own renderers). Ink and hatching share the values.
+ * portrait and preview have their own renderers).
  */
 export const VIEW = { uView: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 } };
 const vp = new THREE.Vector4();
@@ -202,9 +202,12 @@ export function inkMaterial(width = 0.018): THREE.ShaderMaterial {
           float n = bNoise(position * 34.0) * 0.65 + bNoise(position * 11.0) * 0.35;
           float w = uWidth * (1.0 + uIrregular * (n - 0.5) * 1.5);
           vec4 cp = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          // nie duenner als gut ein halbes Pixel, nie breiter als uMaxPx / never thinner than a good half pixel, never wider than uMaxPx
+          // nie duenner als gut ein halbes CSS-Pixel und nie duenner als EIN Geraetepixel (sonst reisst die Linie bei
+          // Pixeldichte 1 ab, also bei niedriger Qualitaet), nie breiter als uMaxPx
+          // never thinner than a good half CSS pixel and never thinner than ONE device pixel (otherwise the line
+          // breaks up at pixel ratio 1, i.e. on low quality), never wider than uMaxPx
           float ppu = projectionMatrix[1][1] * uView.y * 0.5 / cp.w * scale;
-          w = clamp(w, 0.55 * uDpr / ppu, uMaxPx * uDpr / ppu);
+          w = clamp(w, max(0.55 * uDpr, 1.0) / ppu, uMaxPx * uDpr / ppu);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * w, 1.0);
         } else {
           vec4 c0 = projectionMatrix * modelViewMatrix * vec4(position, 1.0);

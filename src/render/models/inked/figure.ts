@@ -149,9 +149,9 @@ export function coatRings(c: ColorLike, dark: ColorLike, hem: number): Ring[] {
     { y: 0.049, rx: 0.0735, rz: 0.053, rzB: 0.047, e: 2.4, hard: true, c: dark },
     { y: 0.03, rx: 0.0735, rz: 0.053, rzB: 0.047, e: 2.4, hard: true },
     { y: 0.029, rx: 0.071, rz: 0.05, rzB: 0.046, e: 2.4, hard: true, c },
-    { y: hem * 0.5, rx: 0.084, rz: 0.062, rzB: 0.062, e: 2.5 },
-    { y: hem, rx: 0.094, rz: 0.07, rzB: 0.072, e: 2.5, hard: true },
-    { y: hem - 0.001, rx: 0.08, rz: 0.058, rzB: 0.06, e: 2.4, hard: true, c: shade(c, 0.45) },
+    { y: hem * 0.5, rx: 0.088, rz: 0.068, rzB: 0.064, e: 2.5 },
+    { y: hem, rx: 0.098, rz: 0.078, rzB: 0.074, e: 2.5, hard: true },
+    { y: hem - 0.001, rx: 0.084, rz: 0.066, rzB: 0.062, e: 2.4, hard: true, c: shade(c, 0.45) },
     { y: hem + 0.012, rx: TIP },
   ];
 }
@@ -261,7 +261,7 @@ function placed(g: THREE.BufferGeometry, xf: Xf): THREE.BufferGeometry {
 
 /** Menschlicher Kopf mit gezeichnetem Gesicht, Nase, Ohren; Ursprung am Kinn / human head with drawn face, nose, ears; origin at the chin */
 export function bareHead(b: UvBuilder, A: AtlasLayout, seg: number, cell = 'head', skinC: ColorLike = mat.skin): void {
-  const skin = { crease: 0, hatch: 0 };
+  const skin = { crease: 0 };
   b.add(loft(HEAD, { seg, region: A.get(cell), color: skinC }), null, skin);
   b.bone(new THREE.Vector3(0, FACE.eye + 0.006, 0.0405), new THREE.Vector3(0, FACE.nose + 0.001, 0.0525), new THREE.Vector3(0, -0.4, 1), () => {
     b.add(loft([
@@ -318,7 +318,7 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
   const sleeve = jacket;
   const boot = mat.dark;
   const T = long ? coatRings(o.coat ? coatC : L.jacket, o.coat ? L.primaryDark : shade(L.jacket, 0.7), o.robe ? -0.215 : COAT.hem) : torsoRings(L, jacket, !!o.bare);
-  const skinFx = { crease: 0, hatch: 0 };
+  const skinFx = { crease: 0 };
 
   b.group({ p: pose.pelvis, r: pose.body }, () => {
     // Alvenia: Wappenrock am Becken / Alvenia: tabard at the pelvis
@@ -407,8 +407,8 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
       b.add(loft([
         { y: -0.008, rx: 0.0145, rz: 0.013 }, { y: 0.006, rx: 0.021, rz: 0.017, e: 2.6 }, { y: 0.026, rx: 0.0238, rz: 0.0195, e: 2.9 },
         { y: 0.04, rx: 0.0215, rz: 0.0185, e: 2.8 }, { y: 0.048, rx: 0.014, rz: 0.012, e: 2.4 }, { y: 0.0505, rx: TIP },
-      ], { seg: Math.max(6, Math.round(seg * 0.7)), region: A.get('hand'), color: hand, ...(sx < 0 ? { s0: 1, s1: 0 } : {}) }), null, { crease: 0, hatch: glove ? 1 : 0 });
-      if (d >= 1) b.add(loft([{ y: -0.002, rx: TIP }, { y: 0.004, rx: 0.0075 }, { y: 0.02, rx: 0.0072 }, { y: 0.03, rx: 0.006 }, { y: 0.034, rx: TIP }], { seg: fine() ? 8 : 5, region: A.get('blank'), color: hand }), null, { crease: 0, hatch: glove ? 1 : 0, xf: { p: [sx * 0.0215, 0.006, 0.003], r: [0, 0, -sx * 0.42] } });
+      ], { seg: Math.max(6, Math.round(seg * 0.7)), region: A.get('hand'), color: hand, ...(sx < 0 ? { s0: 1, s1: 0 } : {}) }), null, { crease: 0 });
+      if (d >= 1) b.add(loft([{ y: -0.002, rx: TIP }, { y: 0.004, rx: 0.0075 }, { y: 0.02, rx: 0.0072 }, { y: 0.03, rx: 0.006 }, { y: 0.034, rx: TIP }], { seg: fine() ? 8 : 5, region: A.get('blank'), color: hand }), null, { crease: 0, xf: { p: [sx * 0.0215, 0.006, 0.003], r: [0, 0, -sx * 0.42] } });
     });
   }
 

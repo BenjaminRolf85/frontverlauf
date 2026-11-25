@@ -124,7 +124,7 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
         expect(isInked(g), name).toBe(true);
         expect(g.index).toBeNull();
         const n = g.getAttribute('position').count;
-        for (const [a, size] of [['normal', 3], ['uv', 2], ['color', 3], ['fx', 3]] as const) {
+        for (const [a, size] of [['normal', 3], ['uv', 2], ['color', 3], ['fx', 2]] as const) {
           expect(g.getAttribute(a), `${name} ${a}`).toBeTruthy();
           expect(g.getAttribute(a).itemSize).toBe(size);
           expect(g.getAttribute(a).count).toBe(n);
@@ -133,7 +133,7 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
         for (const v of uv) if (!(v >= 0 && v <= 1)) throw new Error(`${name}: uv ${v}`);
         for (let i = 0; i < n; i++) {
           // fx.y = Verdeckung 0..1 / fx.y = occlusion 0..1
-          if (!(fx[i * 3 + 1] >= 0 && fx[i * 3 + 1] <= 1)) throw new Error(`${name}: ao ${fx[i * 3 + 1]}`);
+          if (!(fx[i * 2 + 1] >= 0 && fx[i * 2 + 1] <= 1)) throw new Error(`${name}: ao ${fx[i * 2 + 1]}`);
           const l = Math.hypot(nor.getX(i), nor.getY(i), nor.getZ(i));
           if (!(l > 0.97 && l < 1.03)) throw new Error(`${name}: normal ${i} has length ${l}`);
         }

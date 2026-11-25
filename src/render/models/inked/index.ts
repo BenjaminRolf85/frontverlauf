@@ -5,13 +5,13 @@
  * INKED verzeichnet die umgebauten Einheitentypen. unitGeometry() (models/index.ts) fragt hier nach: ist ein Typ fuer
  * die Fraktion verzeichnet, liefert buildInked() seine Geometrie, sonst bleibt es beim bisherigen Modell. Beide Arten
  * stehen nebeneinander auf dem Brett, bis alle Typen umgebaut sind.
- * Eine gezeichnete Geometrie traegt position, normal, uv, color, fx (Glanz, Verdeckung, Schraffur) und in userData:
+ * Eine gezeichnete Geometrie traegt position, normal, uv, color, fx (Glanz, Verdeckung) und in userData:
  * inked = { atlas }, inkSrc = Rohgeometrie fuer die Tusche, turrets, finishScale. Material und Tuschelinie waehlt
  * render/unitDraw.ts daraus.
  * INKED lists the converted unit types. unitGeometry() (models/index.ts) asks here: if a type is listed for the
  * faction, buildInked() returns its geometry, otherwise the previous model stays. Both kinds stand side by side on
  * the board until every type is converted.
- * An inked geometry carries position, normal, uv, color, fx (gloss, occlusion, hatching) and in userData:
+ * An inked geometry carries position, normal, uv, color, fx (gloss, occlusion) and in userData:
  * inked = { atlas }, inkSrc = raw geometry for the ink, turrets, finishScale. render/unitDraw.ts picks material and
  * ink line from that.
  */
@@ -19,7 +19,7 @@ import * as THREE from 'three';
 import type { FactionId, UnitTypeId } from '../../../data/balance';
 import { scaleWithTurrets, splitTurrets as kitSplit, type TurretSplit } from '../kit';
 import { bakeAO } from './ao';
-import { ATLAS_SIZE, atlasDef, atlasIds, atlasTextures, defineAtlas } from './atlas';
+import { ATLAS_SIZE, atlasDef, atlasIds, atlasTextures, defineAtlas, releaseAtlases } from './atlas';
 import { figures } from './groups/figures';
 import { naval } from './groups/naval';
 import { vehicles } from './groups/vehicles';
@@ -83,12 +83,12 @@ export function buildInked(type: UnitTypeId, faction: FactionId, hi: boolean): T
   t0 = performance.now();
   const fill = hi ? subdivide(raw, t.maxEdge ?? 0.05) : shareAttributes(raw);
   bakeAO(fill, { voxel: (t.voxel ?? 0.005) * (hi ? 1 : 1.5), rays: hi ? 24 : 10, reach: 0.085 });
-  // fx der Flaeche: (Glanz, Verdeckung, Schraffur); die Rohgeometrie behaelt (Glanz, Knick, Schraffur) fuer die Tusche
-  // fx of the fill: (gloss, occlusion, hatching); the raw geometry keeps (gloss, crease, hatching) for the ink
+  // fx der Flaeche: (Glanz, Verdeckung); die Rohgeometrie behaelt (Glanz, Knick) fuer die Tusche
+  // fx of the fill: (gloss, occlusion); the raw geometry keeps (gloss, crease) for the ink
   const src = fill.getAttribute('fx') as THREE.BufferAttribute, ao = fill.getAttribute('ao') as THREE.BufferAttribute;
-  const fx = new Float32Array(src.count * 3);
-  for (let i = 0; i < src.count; i++) { fx[i * 3] = src.getX(i); fx[i * 3 + 1] = ao.getX(i); fx[i * 3 + 2] = src.getZ(i); }
-  fill.setAttribute('fx', new THREE.BufferAttribute(fx, 3));
+  const fx = new Float32Array(src.count * 2);
+  for (let i = 0; i < src.count; i++) { fx[i * 2] = src.getX(i); fx[i * 2 + 1] = ao.getX(i); }
+  fill.setAttribute('fx', new THREE.BufferAttribute(fx, 2));
   fill.deleteAttribute('ao');
   lastBuild.ms.ao = performance.now() - t0;
   fill.userData = { ...fill.userData, turrets: raw.userData.turrets ? fill.userData.turrets : undefined, inked: { atlas: t.atlas, creases: hi }, inkSrc: raw, finishScale: s };
@@ -133,4 +133,6 @@ export function splitTurrets(g: THREE.BufferGeometry): TurretSplit | null {
 export function warmInked(quality: keyof typeof ATLAS_SIZE): void {
   defineAtlases();
   for (const id of atlasIds()) atlasTextures(id, ATLAS_SIZE[quality]);
+  // die andere Groesse belegt keinen Grafikspeicher mehr / the other size no longer occupies GPU memory
+  releaseAtlases(ATLAS_SIZE[quality]);
 }

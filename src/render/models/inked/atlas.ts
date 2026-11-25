@@ -9,10 +9,17 @@
  * coordinates by hand), atlasTextures() returns both textures at once and then paints the cells spread over several
  * frames (or at once with flushAtlases()). Without a DOM (tests in Node) the textures stay neutral.
  *
+ * Stilregel: KEINE Schraffur. Schatten sind flache Flaechen mit harter oder weicher Kante (shade, gradient, dab), nie
+ * Strichlagen, Kreuzschraffur, Gewebemuster oder Punktraster. Linien beschreiben Form und Material (Naht, Falte, Fuge,
+ * Niete, Kratzer, Schablone), nicht Helligkeit.
+ * Style rule: NO hatching. Shadows are flat areas with a hard or soft edge (shade, gradient, dab), never stroke layers,
+ * cross hatching, weave patterns or dot screens. Lines describe form and material (seam, fold, joint, rivet, scratch,
+ * stencil), not brightness.
+ *
  * Drei Ebenen je Atlas / three layers per atlas:
- * - mul: Multiplikation auf die Vertexfarbe (128 = neutral, dunkler = Schatten, Gewebe, Schmutz; heller = Abrieb).
+ * - mul: Multiplikation auf die Vertexfarbe (128 = neutral, dunkler = Schatten, Schmutz; heller = Abrieb).
  *        Fraktionsneutral: dieselbe Zeichnung faerbt sich ueber die Vertexfarbe fuer jede Fraktion.
- *        / multiplies the vertex colour (128 = neutral, darker = shade, weave, grime; lighter = wear). Faction neutral:
+ *        / multiplies the vertex colour (128 = neutral, darker = shade, grime; lighter = wear). Faction neutral:
  *        the same drawing takes any faction's colour from the vertex colour.
  * - abs: deckende Farbe mit Alpha (Augen, Metall, Leder, Schlamm, Abzeichen) / opaque colour with alpha (eyes, metal,
  *        leather, mud, insignia).
@@ -358,30 +365,6 @@ export class Pen {
     }
     return this;
   }
-  /** Schraffur in einem Feld (Tusche) / hatching inside an area (ink) */
-  hatch(x: number, y: number, w: number, h: number, step: number, width = 1.2, slope = 1, seed = 3): this {
-    const R = rng(seed);
-    this.ink.save();
-    this.ink.beginPath(); this.ink.rect(x, y, w, h); this.ink.clip();
-    for (let d = -h; d < w + h; d += step) {
-      const j = (R() - 0.5) * step * 0.4;
-      this.line([[x + d + j, y + h], [x + d + j + h * slope, y]], width * (0.7 + R() * 0.6), { taper: 0.3, wobble: 0.5 });
-    }
-    this.ink.restore();
-    return this;
-  }
-  /** Gewebe: feine Kreuzschraffur auf mul / weave: fine cross hatch on mul */
-  weave(x: number, y: number, w: number, h: number, step = 5, f = 0.9, alpha = 0.5): this {
-    const m = this.mul;
-    m.save();
-    m.beginPath(); m.rect(x, y, w, h); m.clip();
-    m.globalAlpha = alpha; m.strokeStyle = tone(f); m.lineWidth = 1;
-    m.beginPath();
-    for (let d = -h; d < w + h; d += step) { m.moveTo(x + d, y + h); m.lineTo(x + d + h, y); m.moveTo(x + d, y); m.lineTo(x + d + h, y + h); }
-    m.stroke();
-    m.restore();
-    return this;
-  }
   /** Flecken und Spritzer (abs), unten dichter / stains and splatter (abs), denser at the bottom */
   splatter(x: number, y: number, w: number, h: number, n: number, c: ColorLike, seed: number, o: { rise?: number; size?: number; alpha?: number } = {}): this {
     const R = rng(seed);
@@ -604,6 +587,15 @@ export function onAtlasReady(fn: () => void): () => void {
 /** Alles Ausstehende sofort fertig zeichnen (Vorschau, Bildschirmfotos) / finish all pending painting at once (preview, screenshots) */
 export function flushAtlases(): void {
   while (jobs.length) step(jobs[0]);
+}
+/**
+ * Grafikspeicher der Texturen anderer Kantenlaengen freigeben (Qualitaet umgeschaltet). Die Daten bleiben erhalten:
+ * wird eine solche Textur doch noch gezeichnet, laedt three.js sie wieder hoch.
+ * Free the GPU memory of textures of other edge lengths (quality switched). The data stays: if such a texture is
+ * drawn after all, three.js uploads it again.
+ */
+export function releaseAtlases(keepSize: number): void {
+  for (const t of textures.values()) if (t.size !== keepSize) { t.paint.dispose(); t.ink.dispose(); }
 }
 /** Steht noch Zeichnen aus? / is painting still pending? */
 export function atlasesPending(): boolean { return jobs.length > 0; }
