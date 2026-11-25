@@ -29,6 +29,7 @@ import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artif
 import { Builder } from './kit';
 import { academyGeometry, academyRadarAt, academyRadarGeometry, poseY, researchPostGeometry, type AcademyPose } from './academy';
 import { look } from './look';
+import { wreckGeometry } from '../remains';
 import { isInked, unitOutlined } from '../unitDraw';
 import { atlasStats, flushAtlases } from './inked/atlas';
 import { inkFor } from './inked/ink';
@@ -370,6 +371,15 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'wrecks': {
+      // Wracks aus dem Einheitenmodell (remains.ts), daneben das Modell: gezeichnete und bisherige Typen
+      // wrecks from the unit model (remains.ts), next to the model: inked and previous types
+      const list: [UnitTypeId, FactionId][] = [['tank', 'korvat'], ['tank', 'dravon'], ['jeep', 'korvat']];
+      return {
+        cols: ['wreck 0', 'wreck 1', 'unit'],
+        rows: list.map(([t, f]) => ({ label: `${t} ${f}`, cells: [wreckGeometry(t, f, 0), wreckGeometry(t, f, 1), unitGeometry(t, f, null)].map((geo) => ({ geo, ground: plainGround })) })),
+      };
+    }
     case 'special': {
       // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction
       const list: [UnitTypeId, FactionId][] = [
@@ -495,7 +505,13 @@ async function buildScene() {
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
   const k = iso ? pitch / Math.SQRT2 : pitch;
-  const at = (ci: number, ri: number): [number, number] => (iso ? [(ci + ri) * k, (ri - ci) * k] : [ci * k, ri * k]);
+  // ?lay=row legt die Zeilen nebeneinander statt untereinander (Reihenbild der Typen einer Fraktion)
+  // ?lay=row puts the rows side by side instead of below each other (line-up of one faction's types)
+  const flip = params.get('lay') === 'row';
+  const at = (c0: number, r0: number): [number, number] => {
+    const ci = flip ? r0 : c0, ri = flip ? c0 : r0;
+    return iso ? [(ci + ri) * k, (ri - ci) * k] : [ci * k, ri * k];
+  };
   sh.rows.forEach((row, ri) => {
     const lab = label(row.label);
     const [lx, lz] = at(-0.85, ri);
@@ -528,6 +544,7 @@ async function buildScene() {
         content.add(m);
       }
       tris[`${row.label}|${sh.cols[ci]}`] = cell.geo.attributes.position.count / 3;
+      if (!cell.geo.boundingBox) cell.geo.computeBoundingBox();
       const bb = cell.geo.boundingBox!;
       boxes[`${row.label}|${sh.cols[ci]}`] = [bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z].map((v) => Math.round(v * 100) / 100);
     });
@@ -660,7 +677,16 @@ buildScene().then(() => {
   // finish the textures of the inked units at once (the preview only redraws on demand)
   flushAtlases();
   render();
-  const w = window as unknown as { __tris: Record<string, number>; __inkTris: Record<string, number>; __atlas: unknown; __boxes: Record<string, number[]>; __ready: boolean };
+  const w = window as unknown as { __tris: Record<string, number>; __inkTris: Record<string, number>; __atlas: unknown; __boxes: Record<string, number[]>; __bench: (n?: number) => number; __ready: boolean };
+  // Messhilfe: mittlere Zeit je Bild in ms ueber n Bilder (mit gl.finish), zum Vergleich von Shadern und Geometrien
+  // bench helper: mean time per frame in ms over n frames (with gl.finish), to compare shaders and geometries
+  w.__bench = (n = 20) => {
+    const gl = renderer.getContext();
+    render(); gl.finish();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) { render(); gl.finish(); }
+    return Math.round(((performance.now() - t0) / n) * 100) / 100;
+  };
   w.__inkTris = inkTris;
   w.__atlas = atlasStats();
   w.__tris = tris;
