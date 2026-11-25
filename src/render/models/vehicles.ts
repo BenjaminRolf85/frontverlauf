@@ -418,8 +418,8 @@ export function artillery(f: FactionId, lite = false): Builder {
         b.cyl(0.0055, 0.0055, 0.002, 8, mat.ink, [x + Math.cos(a) * 0.021, 0.009, z - Math.sin(a) * 0.021], [0, a, HALF_PI]);
       }
       // Ansetzer am Boden / rammer staff on the ground
-      b.cyl(0.004, 0.004, 0.2, 6, mat.wood, [0.2, 0.005, 0.12], [HALF_PI, 0.4, 0]);
-      b.cyl(0.011, 0.011, 0.02, 10, mat.dark, [0.24, 0.011, 0.21], [HALF_PI, 0.4, 0]);
+      b.tube([0.15, 0.006, 0.0], [0.205, 0.006, 0.15], 0.004, 6, mat.wood);
+      b.tube([0.203, 0.011, 0.145], [0.211, 0.011, 0.167], 0.011, 10, mat.dark);
     } else {
       b.add(geo.cbox(0.09, 0.04, 0.06, 0.01), mat.wood, { p: [-0.26, 0.02, 0.06] });
       for (const x of [-0.285, -0.26, -0.235]) b.cyl(0.01, 0.01, 0.05, 6, mat.gold, [x, 0.06, 0.06]);
