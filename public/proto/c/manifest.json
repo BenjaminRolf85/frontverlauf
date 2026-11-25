@@ -1,0 +1,179 @@
+{
+ "paletteSize": 32,
+ "slots": [
+  "skin",
+  "skinDark",
+  "hair",
+  "eyeWhite",
+  "ink",
+  "jacket",
+  "pants",
+  "helmet",
+  "gear",
+  "boots",
+  "primary",
+  "emblem",
+  "canvas",
+  "wood",
+  "metal",
+  "metalLight",
+  "hull",
+  "hullDark",
+  "trim",
+  "rubber",
+  "track",
+  "lamp",
+  "glass",
+  "jacketDark",
+  "woodDark",
+  "primaryDark",
+  "brass",
+  "badge",
+  "hullLight",
+  "trimDark"
+ ],
+ "units": {
+  "soldier": {
+   "high": {
+    "bones": [
+     "hips",
+     "spine",
+     "chest",
+     "neck",
+     "head",
+     "rifle",
+     "upper_arm.L",
+     "forearm.L",
+     "hand.L",
+     "upper_arm.R",
+     "forearm.R",
+     "hand.R",
+     "thigh.L",
+     "shin.L",
+     "foot.L",
+     "thigh.R",
+     "shin.R",
+     "foot.R"
+    ],
+    "bytes": 191952,
+    "clips": {
+     "aimFire": 2.333,
+     "idle": 3,
+     "walk": 1
+    },
+    "file": "soldier.glb",
+    "fitHeight": 1.8062,
+    "headCenter": 1.4522,
+    "morphTargets": [],
+    "rawBytes": 731496,
+    "triangles": 14735,
+    "vertices": 9053
+   },
+   "low": {
+    "bones": [
+     "hips",
+     "spine",
+     "chest",
+     "neck",
+     "head",
+     "rifle",
+     "upper_arm.L",
+     "forearm.L",
+     "hand.L",
+     "upper_arm.R",
+     "forearm.R",
+     "hand.R",
+     "thigh.L",
+     "shin.L",
+     "foot.L",
+     "thigh.R",
+     "shin.R",
+     "foot.R"
+    ],
+    "bytes": 143100,
+    "clips": {
+     "aimFire": 2.333,
+     "idle": 3,
+     "walk": 1
+    },
+    "file": "soldier.low.glb",
+    "fitHeight": 1.8062,
+    "headCenter": 1.4522,
+    "morphTargets": [],
+    "rawBytes": 481348,
+    "triangles": 7561,
+    "vertices": 5601
+   }
+  },
+  "tank": {
+   "high": {
+    "bones": [
+     "root",
+     "body",
+     "turret",
+     "gun",
+     "idler.L",
+     "idler.R",
+     "sprocket.L",
+     "sprocket.R",
+     "wheel0.L",
+     "wheel0.R",
+     "wheel1.L",
+     "wheel1.R",
+     "wheel2.L",
+     "wheel2.R",
+     "wheel3.L",
+     "wheel3.R"
+    ],
+    "bytes": 240592,
+    "clips": {
+     "drive": 0.333,
+     "fire": 0.917,
+     "idle": 1
+    },
+    "file": "tank.glb",
+    "fitWidth": 3.0,
+    "morphTargets": [
+     "roll"
+    ],
+    "rawBytes": 1419192,
+    "triangles": 18057,
+    "vertices": 20027
+   },
+   "low": {
+    "bones": [
+     "root",
+     "body",
+     "turret",
+     "gun",
+     "idler.L",
+     "idler.R",
+     "sprocket.L",
+     "sprocket.R",
+     "wheel0.L",
+     "wheel0.R",
+     "wheel1.L",
+     "wheel1.R",
+     "wheel2.L",
+     "wheel2.R",
+     "wheel3.L",
+     "wheel3.R"
+    ],
+    "bytes": 206340,
+    "clips": {
+     "drive": 0.333,
+     "fire": 0.917,
+     "idle": 1
+    },
+    "file": "tank.low.glb",
+    "fitWidth": 3.0,
+    "morphTargets": [
+     "roll"
+    ],
+    "rawBytes": 1142480,
+    "triangles": 12859,
+    "vertices": 15935
+   }
+  }
+ }
+}

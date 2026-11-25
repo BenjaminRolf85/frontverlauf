@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Frontverlauf - Vorschlag C: modellierte Einheiten / proposal C: modelled units</title>
+  <link rel="stylesheet" href="/src/design/tokens.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--s-world-background); color: var(--s-text); font: var(--p-font-size-sm) var(--p-font-body); }
+    body { display: flex; flex-direction: column; }
+    header, footer { background: var(--s-surface); border-color: var(--s-outline); border-style: solid; border-width: 0; padding: var(--p-space-2); display: flex; flex-wrap: wrap; gap: var(--p-space-2); align-items: center; }
+    header { border-bottom-width: var(--p-space-half); }
+    footer { border-top-width: var(--p-space-half); font-size: var(--p-font-size-xs); gap: var(--p-space-1) var(--p-space-4); max-height: 34vh; overflow: auto; }
+    h1 { font: var(--p-font-size-md) var(--p-font-display); margin: 0 var(--p-space-2) 0 0; }
+    .group { display: flex; gap: var(--p-space-half); align-items: center; }
+    .group > span { color: var(--s-text-muted); margin-right: var(--p-space-1); }
+    details { display: contents; }
+    details > summary { display: none; }
+    details > .group { display: flex; }
+    button, select { font: inherit; color: var(--s-text); background: var(--s-surface-raised); border: var(--p-space-half) solid var(--s-outline); border-radius: var(--p-radius-sm); padding: var(--p-space-1) var(--p-space-2); cursor: pointer; min-height: var(--p-space-6); }
+    button[aria-pressed="true"] { background: var(--s-accent); }
+    button:focus-visible, select:focus-visible, input:focus-visible { outline: var(--p-space-half) solid var(--s-focus); }
+    input[type="range"] { width: calc(var(--p-space-7) * 2); accent-color: var(--s-accent-strong); }
+    #stage { position: relative; flex: 1; min-height: 0; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    .tag { position: absolute; top: var(--p-space-2); left: var(--p-space-2); background: var(--s-surface-raised); border: var(--p-space-half) solid var(--s-outline); border-radius: var(--p-radius-sm); padding: var(--p-space-half) var(--p-space-2); font: var(--p-font-size-sm) var(--p-font-body); font-weight: 700; pointer-events: none; }
+    .tag small { font-weight: 400; color: var(--s-text-muted); }
+    #tagB { left: calc(50% + var(--p-space-2)); }
+    #split { position: absolute; top: 0; bottom: 0; left: 50%; width: var(--p-space-half); background: var(--s-outline); pointer-events: none; }
+    footer div b { font-weight: 700; }
+    footer .wide { flex-basis: 100%; color: var(--s-text-muted); }
+    body.bare header, body.bare footer { display: none; }
+    @media (max-width: 720px) {
+      h1 { flex-basis: 100%; font-size: var(--p-font-size-sm); }
+      #tagB { left: var(--p-space-2); top: calc(50% + var(--p-space-2)); }
+      #split { top: 50%; bottom: auto; left: 0; right: 0; width: auto; height: var(--p-space-half); }
+      header { gap: var(--p-space-1); padding: var(--p-space-1); }
+      button, select { padding: var(--p-space-half) var(--p-space-1); }
+      details { display: block; flex-basis: 100%; }
+      details > summary { display: block; cursor: pointer; padding: var(--p-space-1) 0; font-weight: 700; }
+      details:not([open]) > .group { display: none; }
+      details[open] { display: flex; flex-wrap: wrap; gap: var(--p-space-1); }
+      details[open] > summary { flex-basis: 100%; }
+      footer { max-height: 17vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Vorschlag C: modelliert / proposal C: modelled</h1>
+    <div class="group" id="gUnit" role="group" aria-label="Einheit / unit"></div>
+    <div class="group" id="gView" role="group" aria-label="Ansicht / view"></div>
+    <div class="group" id="gClip" role="group" aria-label="Bewegung / clip"><span>Clip</span></div>
+    <details id="more">
+      <summary>Mehr / more</summary>
+      <div class="group" id="gTurret"><label for="turret">Turm / turret</label><input id="turret" type="range" min="-180" max="180" value="0" /></div>
+      <div class="group"><label for="faction">Fraktion / faction</label><select id="faction"></select></div>
+      <div class="group" id="gQuality" role="group" aria-label="Detailstufe / detail level"></div>
+      <div class="group" id="gLine" role="group" aria-label="Tuschelinie / ink line"></div>
+      <div class="group" id="gStress" role="group" aria-label="Lasttest / load test"></div>
+    </details>
+  </header>
+  <div id="stage">
+    <canvas id="view"></canvas>
+    <div id="split"></div>
+    <div class="tag" id="tagA">Bisher / current <small>prozedural / procedural</small></div>
+    <div class="tag" id="tagB">Vorschlag C / proposal C <small>Blender, glTF</small></div>
+  </div>
+  <footer id="readout"></footer>
+  <script type="module" src="/src/render/models/proto/c/page.ts"></script>
+</body>
+</html>
