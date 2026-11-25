@@ -10,15 +10,27 @@ import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { robotHead } from './headgear';
-import { Builder, geo, shade, type ColorLike, type V3 } from './kit';
-import { look, mat } from './look';
+import {
+  ammoBox, boltRing, cable, finRings, grille, piston, rivets, seam, sensorCluster, squareHatch, towHook, vents,
+} from './detailVehicles';
+import { Builder, ball, fine, geo, shade, softBox, type ColorLike, type V3 } from './kit';
+import { look, mat, type Look } from './look';
 import { antenna, tracks } from './tanks';
 
 const HALF_PI = Math.PI / 2;
 const V = (a: V3) => new THREE.Vector3(a[0], a[1], a[2]);
 
-/** Gliedsegment als gefaster Quader / limb segment as chamfered box */
+/**
+ * Gliedsegment als gefaster Quader; hohe Qualitaet: staerker gerundet (zwei Rundungsschritte) mit Leuchtfuge
+ * Limb segment as a chamfered box; high quality: rounder (two rounding steps) with a glowing seam
+ */
 export function limb(b: Builder, a: V3, c: V3, w: number, d: number, col: ColorLike, lite: boolean) {
+  if (!lite && fine()) {
+    b.segment(V(a), V(c), (l) => softBox(w, l + 0.01, d, Math.min(w, d) * 0.3, 2), col, (l) => {
+      b.box(w * 0.5, 0.003, 0.003, shade(col, 0.6), [0, l * 0.5, d / 2 + 0.0005]);
+    });
+    return;
+  }
   b.segment(V(a), V(c), (l) => (lite ? geo.box(w, l + 0.01, d) : geo.rbox(w, l + 0.01, d, Math.min(w, d) * 0.25)), col);
 }
 
@@ -45,6 +57,7 @@ export function android(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const plate = L.jacket, metal = mat.gunmetal, glow = mat.cyanGlow;
+  if (!lite && fine()) androidDetail(b, L, plate);
   // Beine / legs
   for (const s of [-1, 1]) {
     const hip: V3 = [s * 0.04, 0.165, 0], knee: V3 = [s * 0.045, 0.092, 0.022], ankle: V3 = [s * 0.046, 0.028, 0];
@@ -95,6 +108,48 @@ export function android(f: FactionId, lite = false): Builder {
   return b;
 }
 
+/**
+ * Androide, hohe Qualitaet: Hydraulik an den Waden, Kniekappen, geteilte Zehenplatten, Hueftgelenke, Bauchringe,
+ * Brustschlitze, Halsring, Schulterplatten, Energiekabel vom Rucksack zur Armkanone, Kuehlschlitze und Energiezelle an der
+ * Kanone, Finger der Stuetzhand.
+ * Android, high quality: calf hydraulics, knee caps, split toe plates, hip joints, abdominal rings, chest slots, neck ring,
+ * shoulder plates, power cable from the pack to the arm cannon, cooling slots and power cell on the cannon, fingers of the
+ * supporting hand.
+ */
+function androidDetail(b: Builder, L: Look, plate: ColorLike) {
+  const metal = mat.gunmetal, glow = mat.cyanGlow;
+  // Hueftplatten, Brustbolzen, Ellbogenkappen, Kanonenbaender / hip plates, chest bolts, elbow caps, cannon bands
+  for (const s of [-1, 1]) {
+    b.add(geo.rtaper(0.04, 0.012, 0.034, 0.01, 0.045, 0.004), plate, { p: [s * 0.04, 0.152, 0.036], r: [-0.15, 0, s * 0.1] });
+    b.box(0.03, 0.003, 0.003, glow, [s * 0.04, 0.142, 0.043]);
+    b.add(geo.rtaper(0.014, 0.05, 0.012, 0.04, 0.05, 0.004), plate, { p: [s * 0.062, 0.15, 0.0], r: [0, 0, s * 0.18] });
+    for (const y of [0.25, 0.3]) b.box(0.005, 0.005, 0.005, shade(plate, 0.6), [s * 0.065, y, 0.04]);
+    b.add(geo.hemi(0.014, 10, 3), L.primary, { p: [s * 0.105, 0.232, 0.025], r: [-1.2, 0, 0] });
+  }
+  for (const z of [0.18, 0.205, 0.23]) b.add(geo.torus(0.021, 0.0035, 3, 12), mat.dark, { p: [0.1, 0.228, z] });
+  b.add(geo.rbox(0.04, 0.03, 0.06, 0.008), plate, { p: [-0.02, 0.22, 0.09], r: [0, 1.2, 0] });
+  for (const s of [-1, 1]) {
+    piston(b, [s * 0.046, 0.088, -0.016], [s * 0.046, 0.034, -0.02], 0.0055, metal);
+    b.add(geo.hemi(0.02, 10, 3), L.primary, { p: [s * 0.045, 0.094, 0.044], r: [HALF_PI - 0.2, 0, 0], s: [1, 0.5, 1] });
+    for (const dx of [-0.012, 0.012]) b.add(geo.cbox(0.02, 0.012, 0.022, 0.004), shade(metal, 1.15), { p: [s * 0.046 + dx, 0.01, 0.06] });
+    b.add(ball(0.019, 10, 6), metal, { p: [s * 0.042, 0.168, 0] });
+    seam(b, [s * 0.064, 0.15, 0.012], [s * 0.066, 0.11, 0.03], shade(plate, 0.7));
+    // Schulterplatte mit Leuchtkante / shoulder plate with a light edge
+    b.add(geo.rtaper(0.05, 0.06, 0.04, 0.05, 0.016, 0.006), plate, { p: [s * 0.088, 0.33, 0], r: [0, 0, s * -0.35] });
+    b.box(0.04, 0.003, 0.004, glow, [s * 0.09, 0.331, 0.031], [0, 0, s * -0.35]);
+    vents(b, [s * 0.042, 0.296, 0.043], [HALF_PI, 0, 0], 3, 0.022, 0.008);
+  }
+  for (const y of [0.19, 0.205]) b.add(geo.torus(0.04, 0.005, 4, 16), mat.dark, { p: [0, y, 0], r: [HALF_PI, 0, 0] });
+  b.add(geo.torus(0.028, 0.005, 4, 14), metal, { p: [0, 0.322, 0], r: [HALF_PI, 0, 0] });
+  // Energiekabel und Energiezelle der Kanone / power cable and power cell of the cannon
+  cable(b, [0.035, 0.245, -0.08], [0.1, 0.205, 0.06], 0.02, 0.0045, mat.dark);
+  b.add(geo.cyl(0.014, 0.014, 0.03, 10), glow, { p: [0.1, 0.258, 0.06], r: [HALF_PI, 0, 0] });
+  for (const s of [-1, 1]) vents(b, [0.1 + s * 0.029, 0.225, 0.11], [0, 0, s * HALF_PI], 4, 0.03, 0.02);
+  for (const s of [-1, 1]) b.box(0.006, 0.01, 0.12, mat.dark, [0.1 + s * 0.02, 0.247, 0.24]);
+  // Finger der Stuetzhand / fingers of the supporting hand
+  for (let i = 0; i < 3; i++) b.box(0.008, 0.008, 0.022, mat.gunmetal, [0.05 + i * 0.01, 0.204, 0.13], [0.5, 0, 0]);
+}
+
 // ---------- Spinnenroboter / spider bot ----------
 
 export function spider(f: FactionId, lite = false): Builder {
@@ -122,6 +177,7 @@ export function spider(f: FactionId, lite = false): Builder {
     b.tube(knee, foot, 0.01, lite ? 5 : 8, metal, 0.006);
     b.add(geo.cone(0.01, 0.025, 6), metal, { p: [foot[0], 0.012, foot[2]], r: [Math.PI, 0, 0] });
   }
+  if (!lite && fine()) spiderDetail(b, L, y);
   // Turm mit Doppelkanone / turret with twin guns
   b.cyl(0.045, 0.05, 0.02, lite ? 8 : 12, metal, [0, y + 0.035, 0]);
   b.add(geo.rbox(0.09, 0.045, 0.1, 0.014), plate, { p: [0, y + 0.068, 0.0] });
@@ -136,6 +192,46 @@ export function spider(f: FactionId, lite = false): Builder {
     antenna(b, -0.03, y + 0.09, -0.04, 0.1, glow);
   }
   return b;
+}
+
+/**
+ * Spinnenroboter, hohe Qualitaet: Hydraulik und Panzerplatten an den Oberbeinen, Krallen, Bolzen am Rumpf, Gitter und
+ * Ringe am Hinterleib, Mundwerkzeuge, Sensorgruppe, Munitionskasten und Kuehlringe am Turm.
+ * Spider bot, high quality: hydraulics and armour plates on the upper legs, claws, bolts on the body, grille and rings on
+ * the abdomen, mandibles, sensor cluster, ammo box and cooling rings on the turret.
+ */
+function spiderDetail(b: Builder, L: Look, y: number) {
+  const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
+  // Gelenkscheiben am Knie, Leuchtschlitze am Hinterleib, Sensorstaebe / joint discs at the knee, glowing slits on the abdomen, sensor rods
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const z = -0.06 + i * 0.06;
+    const knee: V3 = [s * 0.21, y + 0.12, z * 1.8];
+    b.add(geo.cyl(0.022, 0.022, 0.006, 12), metal, { p: [knee[0] + s * 0.012, knee[1], knee[2]], r: [0, 0, HALF_PI] });
+    b.add(geo.cyl(0.012, 0.012, 0.008, 10), L.primary, { p: [knee[0] + s * 0.017, knee[1], knee[2]], r: [0, 0, HALF_PI] });
+  }
+  for (let i = 0; i < 3; i++) for (const s of [-1, 1]) b.box(0.003, 0.012, 0.03, glow, [s * 0.068, y + 0.01, -0.12 - i * 0.03]);
+  // Spinndruesen-Behaelter am Hinterleib / spinneret canister at the abdomen
+  b.add(geo.cyl(0.022, 0.026, 0.03, 12), metal, { p: [0, y - 0.01, -0.21], r: [HALF_PI, 0, 0] });
+  b.add(geo.cyl(0.016, 0.016, 0.004, 12), glow, { p: [0, y - 0.01, -0.226], r: [HALF_PI, 0, 0] });
+  for (const s of [-1, 1]) b.tube([s * 0.03, y + 0.03, 0.12], [s * 0.05, y + 0.07, 0.1], 0.0022, 4, mat.dark);
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const z = -0.06 + i * 0.06;
+    const base: V3 = [s * 0.095, y, z];
+    const knee: V3 = [s * 0.21, y + 0.12, z * 1.8];
+    const foot: V3 = [s * 0.32, 0.01, Math.max(-0.38, Math.min(0.38, z * 2.6))];
+    piston(b, [base[0] + s * 0.01, base[1] - 0.012, base[2]], [knee[0] - s * 0.03, knee[1] - 0.03, knee[2] * 0.95], 0.005, metal);
+    b.segment(V(base), V(knee), (len) => geo.rbox(0.028, len * 0.55, 0.012, 0.004), shade(plate, 0.92), (len) => {
+      b.box(0.004, len * 0.4, 0.004, glow, [0, len * 0.5, 0.007]);
+    });
+    for (const k of [-1, 1]) b.add(geo.cone(0.005, 0.02, 5), metal, { p: [foot[0] + s * 0.01, 0.01, foot[2] + k * 0.01], r: [k * 0.5, 0, s * 1.9] });
+  }
+  boltRing(b, [0, y + 0.026, 0], 0.1, 12, shade(plate, 0.7), 0.005, Math.PI / 12);
+  grille(b, [0, y + 0.065, -0.14], 0.07, 0.06, 4, metal);
+  for (const z of [-0.09, -0.17]) b.add(geo.torus(0.07, 0.004, 3, 16), mat.dark, { p: [0, y + 0.01, z], s: [1, 0.75, 1] });
+  for (const s of [-1, 1]) b.add(geo.cone(0.008, 0.035, 6), metal, { p: [s * 0.02, y - 0.015, 0.145], r: [HALF_PI + 0.5, 0, 0] });
+  sensorCluster(b, [0, y + 0.03, 0.128], 3, 0.005, glow);
+  ammoBox(b, [-0.055, y + 0.048, -0.01], HALF_PI, metal, 0.9);
+  for (const x of [-0.022, 0.022]) finRings(b, x, y + 0.068, 0.06, 0.075, 2, 0.013, mat.dark);
 }
 
 // ---------- Quad-Drohne / quad drone ----------
@@ -158,6 +254,7 @@ export function quadDrone(f: FactionId, lite = false): Builder {
     for (const a of [0.4, 0.4 + HALF_PI]) b.box(0.14, 0.003, 0.016, mat.dark, [c[0], c[1] + 0.022, c[2]], [0, a, 0]);
     if (!lite) b.tube([sx * 0.05, y - 0.02, sz * 0.05], [sx * 0.07, y - 0.07, sz * 0.07], 0.004, 4, metal);
   }
+  if (!lite && fine()) quadDetail(b, L, y);
   // Unterflur-Waffe / underslung gun
   b.add(geo.rbox(0.04, 0.03, 0.06, 0.008), metal, { p: [0, y - 0.04, 0.03] });
   b.cyl(0.008, 0.009, 0.12, lite ? 6 : 10, metal, [0, y - 0.04, 0.11], [HALF_PI, 0, 0]);
@@ -171,13 +268,53 @@ export function quadDrone(f: FactionId, lite = false): Builder {
   return b;
 }
 
+/**
+ * Quad-Drohne, hohe Qualitaet: Plattenfugen und Schlitze auf dem Rumpf, Sensorgruppe vorn, Kuehlrippen und Nabenkappen an
+ * den Motoren, farbige Blattspitzen, Fusspolster, Munitionstrommel, Antenne.
+ * Quad drone, high quality: panel joints and slots on the body, front sensor cluster, cooling fins and hub caps on the
+ * motors, coloured blade tips, foot pads, ammo drum, antenna.
+ */
+function quadDetail(b: Builder, L: Look, y: number) {
+  const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
+  // Speichen der Schutzringe, Akkupack, Kamera-Gimbal, Armverkleidung / guard ring spokes, battery pack, camera gimbal, arm covers
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const c: V3 = [sx * 0.16, y + 0.024, sz * 0.16];
+    b.segment(V([sx * 0.06, y + 0.018, sz * 0.06]), V([sx * 0.13, y + 0.02, sz * 0.13]), (len) => geo.rbox(0.026, len, 0.014, 0.005), plate, (len) => {
+      b.box(0.004, len * 0.7, 0.003, glow, [0, len * 0.5, 0.0075]);
+    });
+    for (const a of [0.0, HALF_PI, Math.PI, -HALF_PI]) b.box(0.004, 0.004, 0.064, plate, [c[0] + Math.sin(a) * 0.046, c[1], c[2] + Math.cos(a) * 0.046], [0, a, 0]);
+    cable(b, [sx * 0.05, y - 0.008, sz * 0.05], [c[0] * 0.92, y - 0.002, c[2] * 0.92], 0.006, 0.0025, mat.dark);
+  }
+  b.add(geo.cbox(0.08, 0.02, 0.08, 0.006), metal, { p: [0, y - 0.034, -0.035] });
+  for (let i = 0; i < 4; i++) b.box(0.07, 0.003, 0.004, glow, [0, y - 0.045, -0.06 + i * 0.016]);
+  b.add(geo.sphere(0.016, 10, 6), mat.dark, { p: [0, y - 0.03, 0.06] });
+  b.add(geo.cyl(0.008, 0.008, 0.006, 8), mat.glassDark, { p: [0, y - 0.032, 0.076], r: [HALF_PI, 0, 0] });
+  seam(b, [-0.058, y + 0.026, 0.04], [0.058, y + 0.026, 0.04], shade(plate, 0.7));
+  seam(b, [-0.058, y + 0.026, -0.05], [0.058, y + 0.026, -0.05], shade(plate, 0.7));
+  vents(b, [0, y + 0.026, 0.058], [0, 0, 0], 3, 0.05, 0.007);
+  sensorCluster(b, [0, y - 0.014, 0.076], 3, 0.005, glow);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const c: V3 = [sx * 0.16, y + 0.012, sz * 0.16];
+    for (const dy of [-0.006, 0.0, 0.006]) b.add(geo.cyl(0.021, 0.021, 0.003, 10), mat.dark, { p: [c[0], c[1] + 0.005 + dy, c[2]] });
+    b.add(geo.hemi(0.012, 10, 3), L.primary, { p: [c[0], c[1] + 0.026, c[2]] });
+    for (const a of [0.4, 0.4 + HALF_PI]) for (const e of [-1, 1]) b.box(0.016, 0.0035, 0.017, L.primary, [c[0] + Math.cos(a) * e * 0.062, c[1] + 0.022, c[2] - Math.sin(a) * e * 0.062], [0, a, 0]);
+    b.add(geo.cyl(0.01, 0.012, 0.005, 8), mat.dark, { p: [sx * 0.07, y - 0.072, sz * 0.07] });
+    b.box(0.004, 0.003, 0.05, glow, [sx * 0.1, y + 0.002, sz * 0.1], [0, Math.atan2(sx, sz), 0]);
+  }
+  b.add(geo.cyl(0.02, 0.02, 0.03, 12), metal, { p: [0.03, y - 0.04, 0.02], r: [0, 0, HALF_PI] });
+  b.add(geo.cyl(0.021, 0.021, 0.004, 12), glow, { p: [0.046, y - 0.04, 0.02], r: [0, 0, HALF_PI] });
+  // flache Klingenantenne / flat blade antenna
+  b.add(geo.cbox(0.004, 0.018, 0.03, 0.002), mat.dark, { p: [-0.03, y + 0.034, -0.055], r: [-0.3, 0, 0] });
+}
+
 // ---------- Railgun-Plattform / railgun platform ----------
 
 export function railgun(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
-  tracks(b, { x: 0.13, w: 0.08, len: 0.38, h: 0.08, wheels: 5, wr: 0.026, sprocket: L.primary, hub: glow, lite, links: 9 });
+  tracks(b, { x: 0.13, w: 0.08, len: 0.38, h: 0.08, wheels: 5, wr: 0.026, sprocket: L.primary, hub: glow, lite, links: 9, rich: true });
+  if (!lite && fine()) railgunDetail(b, L);
   // Wanne mit Sechseckpaneelen / hull with hexagon panels
   b.add(geo.rtaper(0.34, 0.38, 0.28, 0.32, 0.06, 0.014), plate, { p: [0, 0.11, -0.01] });
   if (!lite) {
@@ -211,12 +348,37 @@ export function railgun(f: FactionId, lite = false): Builder {
   return b;
 }
 
+/**
+ * Railgun-Plattform, hohe Qualitaet: Wartungsklappen, Plattenfugen, Lueftungsgitter, Abschleppoesen, Sensorkuppeln,
+ * Schienenhalter, Kabel von den Kondensatoren zu den Schienen, Kuehlrippen am Turm.
+ * Railgun platform, high quality: service hatches, panel joints, ventilation grilles, tow eyes, sensor domes, rail
+ * brackets, cables from the capacitors to the rails, cooling fins on the turret.
+ */
+function railgunDetail(b: Builder, L: Look) {
+  const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow, gy = 0.21;
+  for (const s of [-1, 1]) {
+    squareHatch(b, s * 0.1, 0.14, 0.06, 0.05, 0.04, shade(plate, 0.95));
+    seam(b, [s * 0.13, 0.141, -0.17], [s * 0.13, 0.141, 0.15], shade(plate, 0.72));
+    grille(b, [s * 0.1, 0.14, -0.15], 0.06, 0.04, 4, metal);
+    towHook(b, s * 0.08, 0.08, 0.19, 1, metal);
+    towHook(b, s * 0.09, 0.08, -0.2, -1, metal);
+    b.add(geo.hemi(0.01, 10, 3), mat.glassDark, { p: [s * 0.15, 0.14, 0.15] });
+    cable(b, [s * 0.1, 0.225, -0.02], [s * 0.022, gy - 0.012, 0.04], 0.01, 0.004, mat.dark);
+    b.box(0.004, 0.004, 0.12, glow, [s * 0.13, 0.1425, 0.06]);
+  }
+  for (const z of [0.12, 0.24, 0.36]) b.box(0.07, 0.008, 0.012, mat.dark, [0, gy - 0.022, z]);
+  for (let i = 0; i < 5; i++) b.box(0.004, 0.03, 0.12, metal, [-0.06 + i * 0.03, 0.235, -0.07]);
+  boltRing(b, [0, 0.166, -0.04], 0.066, 10, mat.dark, 0.0045);
+}
+
 // ---------- Titan ----------
 
 export function titan(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
+  const hi = !lite && fine();
+  if (hi) titanLegs(b, L);
   // schwere Beine / heavy legs
   for (const s of [-1, 1]) {
     const hip: V3 = [s * 0.085, 0.25, 0], knee: V3 = [s * 0.095, 0.15, 0.045], ankle: V3 = [s * 0.095, 0.045, 0];
@@ -281,7 +443,69 @@ export function titan(f: FactionId, lite = false): Builder {
       b.add(geo.cyl(0.031, 0.031, 0.014, lite ? 6 : 12, true), glow, { p: [s * 0.06, 0.45, -0.1] });
       if (!lite) antenna(b, s * 0.1, 0.46, -0.07, 0.12, glow);
     }
+    if (hi) titanUpper(b, L);
   });
   return b;
+}
+
+/** Titan-Beine und Becken, hohe Qualitaet: Hydraulik, Zehenplatten, Kniebolzen, Hueftplatten / Titan legs and pelvis, high quality */
+function titanLegs(b: Builder, L: Look) {
+  const plate = L.hull, metal = mat.gunmetal;
+  // Oberschenkel- und Schienbeinpanzer, Krallen, Hueftgelenke / thigh and shin armour, claws, hip joints
+  for (const s of [-1, 1]) {
+    b.add(geo.rtaper(0.02, 0.07, 0.016, 0.055, 0.08, 0.006), L.primary, { p: [s * 0.128, 0.205, 0.02], r: [0.3, 0, s * 0.08] });
+    for (const y of [0.19, 0.22]) b.box(0.004, 0.004, 0.004, mat.dark, [s * 0.139, y, 0.03]);
+    b.add(geo.rtaper(0.06, 0.018, 0.05, 0.014, 0.07, 0.006), plate, { p: [s * 0.095, 0.095, 0.045], r: [-0.12, 0, 0] });
+    b.box(0.04, 0.003, 0.004, mat.cyanGlow, [s * 0.095, 0.11, 0.054]);
+    for (const dx of [-0.03, 0, 0.03]) b.add(geo.cone(0.007, 0.022, 6), metal, { p: [s * 0.095 + dx, 0.008, 0.115], r: [HALF_PI + 0.3, 0, 0] });
+    b.add(ball(0.03, 12, 8), metal, { p: [s * 0.1, 0.255, 0] });
+    b.add(geo.cyl(0.024, 0.024, 0.012, 12), L.primary, { p: [s * 0.13, 0.255, 0], r: [0, 0, HALF_PI] });
+  }
+  for (const s of [-1, 1]) {
+    piston(b, [s * 0.125, 0.24, 0.02], [s * 0.13, 0.165, 0.06], 0.008, metal);
+    piston(b, [s * 0.095, 0.13, -0.03], [s * 0.095, 0.05, -0.035], 0.008, metal);
+    for (const dx of [-0.025, 0.025]) b.box(0.004, 0.004, 0.004, mat.dark, [s * 0.095 + dx, 0.175, 0.092]);
+    b.add(geo.rtaper(0.06, 0.02, 0.05, 0.016, 0.06, 0.006), L.primary, { p: [s * 0.105, 0.235, 0.05], r: [-0.2, 0, s * 0.15] });
+    seam(b, [s * 0.13, 0.24, -0.02], [s * 0.135, 0.17, 0.03], shade(plate, 0.7));
+    b.add(geo.cbox(0.06, 0.012, 0.024, 0.004), shade(metal, 1.1), { p: [s * 0.095, 0.006, -0.05] });
+  }
+  vents(b, [0, 0.27, 0.056], [HALF_PI, 0, 0], 3, 0.1, 0.012);
+}
+
+/**
+ * Titan-Oberkoerper, hohe Qualitaet: Bauchschlitze, Brustfugen, Kuehlrippen an den Reaktoren, Kabel zur Armkanone,
+ * Schienen und Schlitze an der Kanone, Klingenkante und Bolzen, Sensorhuelsen am Kopf, Nieten an den Schulterpanzern.
+ * Titan upper body, high quality: abdominal slots, chest joints, cooling fins on the reactors, cables to the arm cannon,
+ * rails and slots on the cannon, blade edge and bolts, sensor pods on the head, rivets on the pauldrons.
+ */
+function titanUpper(b: Builder, L: Look) {
+  const plate = L.hull, metal = mat.gunmetal, glow = mat.cyanGlow;
+  // Brustplatten mit Bolzen, Unterarmpanzer, Armhydraulik, Rueckenplatten / chest plates with bolts, forearm armour, arm hydraulics, back plates
+  for (const s of [-1, 1]) {
+    b.add(geo.rtaper(0.08, 0.02, 0.07, 0.016, 0.05, 0.006), L.primary, { p: [s * 0.065, 0.435, 0.07], r: [-0.25, 0, 0] });
+    rivets(b, [s * 0.035, 0.452, 0.081], [s * 0.095, 0.452, 0.081], 4, mat.dark, 0.0045);
+    piston(b, [s * 0.165, 0.405, -0.03], [s * 0.19, 0.335, 0.0], 0.008, metal);
+    b.add(geo.rtaper(0.1, 0.02, 0.09, 0.016, 0.1, 0.008), shade(plate, 0.92), { p: [s * 0.07, 0.4, -0.074], r: [0.15, 0, 0] });
+  }
+  b.add(geo.rtaper(0.02, 0.09, 0.016, 0.075, 0.06, 0.006), L.primary, { p: [0.228, 0.31, 0.09] });
+  // Reaktorkabel und Klingenbolzen / reactor cables and blade bolts
+  for (const s of [-1, 1]) cable(b, [s * 0.06, 0.36, -0.13], [s * 0.1, 0.3, -0.06], 0.02, 0.005, mat.dark);
+  rivets(b, [-0.196, 0.322, 0.14], [-0.196, 0.322, 0.3], 5, mat.dark, 0.005);
+  b.add(geo.rtaper(0.02, 0.09, 0.016, 0.075, 0.06, 0.006), L.primary, { p: [-0.222, 0.31, 0.09] });
+  vents(b, [0, 0.335, 0.07], [HALF_PI - 0.35, 0, 0], 4, 0.07, 0.01);
+  seam(b, [-0.12, 0.43, 0.06], [0.12, 0.43, 0.06], shade(plate, 0.7));
+  for (const s of [-1, 1]) {
+    for (const y of [0.37, 0.39, 0.41, 0.43]) b.add(geo.cyl(0.038, 0.038, 0.004, 12), mat.dark, { p: [s * 0.06, y, -0.1] });
+    rivets(b, [s * 0.14, 0.497, -0.045], [s * 0.2, 0.48, -0.045], 4, shade(L.primary, 0.65), 0.005);
+    rivets(b, [s * 0.14, 0.497, 0.045], [s * 0.2, 0.48, 0.045], 4, shade(L.primary, 0.65), 0.005);
+    b.add(geo.cyl(0.01, 0.01, 0.024, 10), metal, { p: [s * 0.045, 0.51, 0.0], r: [0, 0, HALF_PI] });
+    b.add(geo.cyl(0.007, 0.007, 0.004, 8), glow, { p: [s * 0.058, 0.51, 0.0], r: [0, 0, HALF_PI] });
+  }
+  cable(b, [0.075, 0.38, -0.11], [0.19, 0.3, 0.05], 0.03, 0.006, mat.dark);
+  for (const s of [-1, 1]) vents(b, [0.19 + s * 0.036, 0.31, 0.08], [0, 0, s * HALF_PI], 4, 0.04, 0.018);
+  for (const s of [-1, 1]) b.box(0.006, 0.012, 0.16, mat.dark, [0.19 + s * 0.03, 0.335, 0.2]);
+  b.box(0.004, 0.004, 0.2, mat.metalLight, [-0.19, 0.34, 0.24], [-0.06, 0, 0]);
+  for (const z of [0.05, 0.1]) b.box(0.016, 0.008, 0.008, mat.dark, [-0.19, 0.31, z]);
+  vents(b, [0, 0.49, 0.051], [HALF_PI, 0, 0], 2, 0.04, 0.008);
 }
 

@@ -39,17 +39,17 @@ const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [5750, 4550, 4891], // 5453 / 4300
   sniper: [7250, 6050, 6285], // 6865 / 5720
-  jeep: [6350, 5300, 5140], // 6018 / 5028
+  jeep: [11100, 5300, 5140], // 10546 / 5028 (Detailrunde 4 / detail round 4)
   pioneer: [6500, 5250, 5321], // 6189 / 4972
   mg: [5600, 4750, 5075], // 5286 / 4515
   medic: [6600, 5350, 5703], // 6273 / 5064
-  artillery: [6400, 5700, 5839], // 6095 / 5419
+  artillery: [11100, 5700, 5839], // 10541 / 5016 (Detailrunde 4 / detail round 4)
   spy: [4300, 3100, 3237], // 4089 / 2908
-  heli: [3900, 3900, 4007], // 3695 / 3695
-  tank: [8400, 7850, 7866], // 7983 / 7472
-  antiTank: [4750, 3950, 3945], // 4520 / 3749
-  antiAir: [5700, 5500, 6024], // 5412 / 5220
-  mineLayer: [6400, 6050, 6430], // 6085 / 5718
+  heli: [7100, 3900, 4007], // 6723 / 3695 (Detailrunde 4 / detail round 4)
+  tank: [19100, 7850, 7866], // 18165 / 6824 (Detailrunde 4 / detail round 4)
+  antiTank: [5700, 3950, 3945], // 5396 / 3634 (Detailrunde 4 / detail round 4)
+  antiAir: [13250, 5500, 6024], // 12584 / 4716 (Detailrunde 4 / detail round 4)
+  mineLayer: [14100, 6050, 6430], // 13389 / 5194 (Detailrunde 4 / detail round 4)
   landingBoat: [2400, 2150, 2276], // 2259 / 2020
   submarine: [4050, 3900, 3792], // 3849 / 3674
   destroyer: [5700, 5550, 5748], // 5422 / 5280
@@ -65,32 +65,32 @@ const BUDGET: Record<string, [number, number, number]> = {
   doomBuggy: [5550, 4800, 5576], // 5240 / 4556
   rocketCart: [6150, 5500, 5392], // 5834 / 5218 (Lesbarkeit: grosses Raketengestell / readability: big rocket rack)
   doomCrawler: [7650, 7350, 8023], // 7247 / 6983
-  faustZealot: [6200, 5250, 4967], // 5883 / 4963
+  faustZealot: [6900, 5250, 4967], // 6527 / 4963 (Detailrunde 4 / detail round 4)
   // neu (Berserker des Kults), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (the cult's berserker), no before state: before holds its own low value
   berserker: [4050, 2950, 2808], // 3824 / 2808
-  android: [4700, 4300, 4376], // 4472 / 4088
-  cyborg: [4500, 3850, 3692], // 4276 / 3636
-  kamikazeDrone: [4600, 3800, 3864], // 4364 / 3616 (Feinschliff Runde 3 / polish round 3)
-  spider: [4750, 4600, 4456], // 4492 / 4364
-  quadDrone: [4450, 4400, 4742], // 4230 / 4166
-  flakDrone: [3800, 2400, 2074], // 3602 / 2242 (Feinschliff Runde 3 / polish round 3)
-  railgun: [5950, 5650, 5580], // 5636 / 5380
-  flameTank: [7450, 7200, 7006], // 7070 / 6814
-  titan: [7000, 6100, 5772], // 6620 / 5788
+  android: [9700, 4300, 4376], // 9226 / 4088 (Detailrunde 4 / detail round 4)
+  cyborg: [9050, 3850, 3692], // 8580 / 3632 (Detailrunde 4 / detail round 4)
+  kamikazeDrone: [7650, 3800, 3864], // 7280 / 3616 (Feinschliff Runde 3 / polish round 3; Detailrunde 4 / detail round 4)
+  spider: [8100, 4600, 4456], // 7704 / 4364 (Detailrunde 4 / detail round 4)
+  quadDrone: [7600, 4400, 4742], // 7198 / 4166 (Detailrunde 4 / detail round 4)
+  flakDrone: [6300, 2400, 2074], // 5974 / 2242 (Feinschliff Runde 3 / polish round 3; Detailrunde 4 / detail round 4)
+  railgun: [10400, 5650, 5580], // 9874 / 4876 (Detailrunde 4 / detail round 4)
+  flameTank: [12750, 7200, 7006], // 12132 / 5486 (Detailrunde 4 / detail round 4)
+  titan: [12100, 6100, 5772], // 11480 / 5788 (Detailrunde 4 / detail round 4)
   steppeRider: [4150, 3500, 3367], // 3941 / 3329
   stormbreaker: [5550, 4450, 4681], // 5275 / 4216
   peacekeeper: [8900, 7100, 7414], // 8450 / 6737
   privateer: [3200, 3200, 3388], // 3008 / 3008
   protoWalker: [4550, 4300, 4260], // 4324 / 4068
-  teslaTank: [7550, 7400, 7212], // 7188 / 7008
-  octocopter: [4500, 4500, 4876], // 4252 / 4252
-  railSniper: [5950, 4750, 4951], // 5635 / 4482
+  teslaTank: [13350, 7400, 7212], // 12673 / 6504 (Detailrunde 4 / detail round 4)
+  octocopter: [8300, 4500, 4876], // 7896 / 4252 (Detailrunde 4 / detail round 4)
+  railSniper: [6500, 4750, 4951], // 6175 / 4301 (Detailrunde 4 / detail round 4)
   lightWarden: [8600, 6850, 7252], // 8178 / 6477
   reliquary: [6250, 6050, 6278], // 5910 / 5750
   sunLance: [5100, 4550, 5013], // 4843 / 4295
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
   divineSpark: [7450, 6650, 6338], // 7390 / 6296 (Landkreuzer, vorher 7081 / 6338 / land cruiser, before 7081 / 6338)
-  steppeColossus: [9350, 8800, 8643], // 8868 / 8369
+  steppeColossus: [20300, 8800, 8643], // 19316 / 7649 (Detailrunde 4 / detail round 4)
   shadowCommando: [5150, 3800, 3531], // 4883 / 3613 (Lesbarkeit: Sprengrucksack / readability: demolition pack)
   fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)
   guidedMissile: [4200, 1400, 668], // 3976 / 1324 (Feinschliff Runde 3 / polish round 3)

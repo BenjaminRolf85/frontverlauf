@@ -13,7 +13,7 @@ import { nextRandom } from '../src/core/rng';
 import { AI, FACTION_IDS, HIT, HIT_KINDS, LAND_UNITS, ROSTERS, UNITS, VARIANTS, type FactionId } from '../src/data/balance';
 import { planNextCommand } from '../src/ai/ai';
 import { isValidState, migrateState } from '../src/save/save';
-import { unitGeometry, techParts } from '../src/render/models';
+import { getUnitQuality, unitGeometry, unitTriLimit, techParts } from '../src/render/models';
 import { addCity, addUnit, blankGame, fails, giveSites, ok, revealAll, unit } from './helpers';
 
 function game(factions: FactionId[] = ['velkar', 'korvat'], hitChance = true): GameState {
@@ -240,8 +240,9 @@ describe('Modelle / models', () => {
       let lit = 0;
       for (let i = 0; i < glow.count; i++) if (glow.getX(i) > 0) lit++;
       expect(lit, t).toBeGreaterThan(0);
-      // Dreiecksbudget wie die anderen Fraktionen / triangle budget like the other factions
-      expect(g.getAttribute('position').count / 3, t).toBeLessThan(8000);
+      // Dreiecksbudget wie die anderen Fraktionen (Obergrenze der aktuellen Detailstufe, Detailrunde 4)
+      // triangle budget like the other factions (ceiling of the current detail level, detail round 4)
+      expect(g.getAttribute('position').count / 3, t).toBeLessThan(unitTriLimit(getUnitQuality()));
     }
     expect(unitGeometry('infantry', 'korvat', null).userData.unitGlow).toBeUndefined();
     expect(techParts('octocopter', 'velkar').filter((p) => p.kind === 'rotor')).toHaveLength(8);
