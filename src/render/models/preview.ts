@@ -19,7 +19,7 @@ import {
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, setUnitQuality, unitGeometry, xenoDecoration, UNIT_TRI_LIMIT, UNIT_TRI_LIMIT_BOSS,
+  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, setUnitQuality, unitGeometry, unitTriLimit, xenoDecoration,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -608,7 +608,7 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     // Einheiten: Obergrenze je Modell (genau je Typ in tests/unit-model-budget.test.ts) / units: ceiling per model (exact per type in tests/unit-model-budget.test.ts)
-    const limit = name.startsWith('unit swarmMother') ? UNIT_TRI_LIMIT_BOSS : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : name.startsWith('unit') ? UNIT_TRI_LIMIT : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('unit swarmMother') ? unitTriLimit(getUnitQuality(), true) : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : name.startsWith('unit') ? unitTriLimit(getUnitQuality()) : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name === 'artifact all') {
       // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2

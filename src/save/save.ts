@@ -28,8 +28,22 @@ export interface Settings {
   lastFaction?: FactionId;
 }
 
+/**
+ * Grundeinstellung der Qualitaet: Geraete mit Touch als Hauptzeiger (Handy, Tablet) starten mit der leichten Stufe,
+ * seit die hohe Stufe deutlich detailreichere Einheiten zeichnet. In der Einstellung jederzeit umschaltbar.
+ * Default quality: devices with touch as the primary pointer (phone, tablet) start on the light level, since the high
+ * level draws clearly more detailed units. Can be switched any time in the settings.
+ */
+export function defaultQuality(): Settings['quality'] {
+  try {
+    return typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 'low' : 'high';
+  } catch {
+    return 'high';
+  }
+}
+
 export const DEFAULT_SETTINGS: Settings = {
-  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: 'high', tutorialDone: false, barks: true, dispatches: true, ambience: true,
+  lang: null, music: true, effects: true, animations: true, aiSpeed: 'normal', quality: defaultQuality(), tutorialDone: false, barks: true, dispatches: true, ambience: true,
 };
 
 export function loadSettings(): Settings {
