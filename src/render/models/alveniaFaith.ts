@@ -16,7 +16,8 @@ import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { addEmblem } from './emblems';
-import { Builder, col, geo, mix, shade, unitLow, type V3 } from './kit';
+import { Builder, col, fine, geo, mix, shade, unitLow, type V3 } from './kit';
+import { bar, boltRing, grille, ladder, rivetRow, roundHatch, searchlight, whip } from './detailFleet';
 import { mat } from './look';
 import { kneelPose, soldier, standPose, type Detail } from './soldiers';
 import { tracks } from './tanks';
@@ -106,10 +107,16 @@ export function faithPauldron(b: Builder, side: number, d: Detail) {
 /**
  * Weihrauchfass an Kette mit Rauchwoelkchen; p = Aufhaengepunkt / incense censer on a chain with smoke puffs; p = hanging point.
  */
-export function censer(b: Builder, p: V3, lite = false, len = 0.07) {
+export function censer(b: Builder, p: V3, lite = false, len = 0.07, rich = false) {
   const [x, y, z] = p;
-  b.tube([x, y, z], [x, y - len, z], 0.0025, 3, FAITH.goldDark);
   const cy = y - len - 0.016;
+  if (rich) {
+    // Kette aus Gliedern, Lochkranz, Deckelknauf / chain of links, ring of vent holes, lid knob
+    const n = Math.max(3, Math.round(len / 0.009));
+    for (let i = 0; i < n; i++) b.box(i % 2 ? 0.0025 : 0.005, 0.008, i % 2 ? 0.005 : 0.0025, FAITH.goldDark, [x, y - (i + 0.5) * (len / n), z]);
+    boltRing(b, [x, cy + 0.006, z], 0.0165, 8, 0.004, FAITH.goldDark);
+    b.add(geo.sphere(0.005, 6, 4), FAITH.goldLight, { p: [x, cy + 0.032, z] });
+  } else b.tube([x, y, z], [x, y - len, z], 0.0025, 3, FAITH.goldDark);
   b.add(geo.sphere(0.018, lite ? 6 : 8, lite ? 4 : 6), FAITH.gold, { p: [x, cy, z] });
   b.add(geo.cone(0.012, 0.016, 6), FAITH.goldLight, { p: [x, cy + 0.02, z] });
   if (!lite) {
@@ -124,7 +131,7 @@ export function censer(b: Builder, p: V3, lite = false, len = 0.07) {
  * Langes Ordensgewehr: weisser Schaft mit Goldbeschlag, langer Lauf, Lichtvisier mit leuchtender Goldlinse, Muendungsring.
  * Long Order rifle: white stock with gold fittings, long barrel, radiant scope with a glowing gold lens, muzzle ring.
  */
-export function holyRifle(b: Builder, grip: V3, dir: V3, len = 0.4, lite = false) {
+export function holyRifle(b: Builder, grip: V3, dir: V3, len = 0.4, lite = false, rich = false) {
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), V(dir).normalize());
   const e = new THREE.Euler().setFromQuaternion(q, 'XYZ');
   b.group({ p: grip, r: [e.x, e.y, e.z] }, () => {
@@ -145,6 +152,20 @@ export function holyRifle(b: Builder, grip: V3, dir: V3, len = 0.4, lite = false
     b.cyl(0.015, 0.015, 0.005, 8, FAITH.halo, [0, 0.036, 0.143], [HALF_PI, 0, 0]);
     b.box(0.008, 0.02, 0.01, mat.dark, [0, 0.02, 0.04]);
     b.box(0.008, 0.02, 0.01, mat.dark, [0, 0.02, 0.1]);
+    if (rich) {
+      // Zweibein, Muendungsbremse, Magazin, Abzugsbuegel, Wangenauflage, Riemen, Visierkappen, Goldranken
+      // bipod, muzzle brake, magazine, trigger guard, cheek rest, sling, scope caps, gold tendrils
+      for (const sx of [-1, 1]) b.tube([sx * 0.006, -0.008, len - 0.09], [sx * 0.008, -0.014, len - 0.19], 0.003, 4, mat.dark);
+      b.cyl(0.007, 0.007, 0.012, 8, FAITH.goldDark, [0, -0.004, len - 0.09], [0, 0, HALF_PI]);
+      b.add(geo.cbox(0.024, 0.016, 0.03, 0.004), FAITH.goldDark, { p: [0, 0.004, len - 0.03] });
+      for (const sx of [-1, 1]) b.box(0.004, 0.01, 0.01, mat.ink, [sx * 0.0125, 0.004, len - 0.03]);
+      b.add(geo.cbox(0.02, 0.05, 0.026, 0.004), mat.dark, { p: [0, -0.04, 0.07], r: [0.15, 0, 0] });
+      b.box(0.004, 0.004, 0.034, FAITH.gold, [0, -0.026, 0.024]);
+      b.add(geo.rbox(0.026, 0.012, 0.05, 0.004), FAITH.cloth, { p: [0, 0.018, -0.055] });
+      b.box(0.004, 0.006, 0.2, FAITH.clothDeep, [0.015, -0.02, 0.02]);
+      for (const z of [0.012, 0.155]) b.cyl(0.016, 0.016, 0.006, 10, FAITH.goldDark, [0, 0.036, z], [HALF_PI, 0, 0]);
+      for (const sx of [-1, 1]) b.box(0.002, 0.004, 0.06, FAITH.goldLight, [sx * 0.0165, 0.004, 0.09], [0.4, 0, 0]);
+    }
   });
 }
 
@@ -157,16 +178,23 @@ export function holyRifle(b: Builder, grip: V3, dir: V3, len = 0.4, lite = false
 export function lightWarden(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const d: Detail = lite ? 1 : 2;
+  // hohe Qualitaet: eigene Zusatzausruestung (Gewehr, Weihrauchfass, Standarte, Fernglas, Munitionskiste) / high quality: own extra gear
+  const hi = !lite && fine();
   const grip: V3 = [0.035, 0.2, 0.04];
   b.group({ p: [0.02, 0, -0.06] }, () => {
     soldier(b, f, { ...kneelPose([[-0.03, 0.215, 0.17], grip]), head: [0.1, 0, 0], twist: [0, 0.05, 0] }, { detail: d, seed: 31 });
-    holyRifle(b, grip, [0, 0.03, 1], 0.42, lite);
+    holyRifle(b, grip, [0, 0.03, 1], 0.42, lite, hi);
   });
   if (!lite) {
     // Spaeher mit Fernglas-Geste und Weihrauchfass / spotter with a field-glass gesture and an incense censer
     b.group({ p: [-0.17, 0, -0.17], r: [0, 0.35, 0], s: 0.86 }, () => {
       soldier(b, f, { ...standPose([[-0.04, 0.3, 0.07], [0.11, 0.16, 0.05]]), head: [0.08, 0, 0] }, { detail: 1, seed: 37 });
-      censer(b, [0.11, 0.16, 0.05], false, 0.06);
+      censer(b, [0.11, 0.16, 0.05], false, 0.06, hi);
+      if (hi) {
+        // Fernglas in der erhobenen Hand / field glasses in the raised hand
+        for (const sx of [-1, 1]) b.cyl(0.009, 0.01, 0.03, 8, mat.dark, [-0.04 + sx * 0.011, 0.31, 0.09], [HALF_PI, 0, 0]);
+        b.box(0.012, 0.008, 0.012, FAITH.gold, [-0.04, 0.31, 0.088]);
+      }
     });
     // Sonnenkranz-Standarte / sun-halo standard
     b.cyl(0.005, 0.005, 0.5, 5, FAITH.goldDark, [-0.24, 0.25, -0.26]);
@@ -175,7 +203,36 @@ export function lightWarden(f: FactionId, lite = false): Builder {
     addEmblem(b, f, 0.03, 0.006, FAITH.plate, { p: [-0.19, 0.43, -0.255] });
     haloRing(b, [-0.24, 0.52, -0.26], 0.04, 0.004, 14, -0.4);
   }
+  if (hi) wardenRich(b);
   return b;
+}
+
+/**
+ * Lichtschuetzen bei hoher Qualitaet: Standarte mit Querstange, Fransen und Quasten, Stern als Spitze, goldene Baender am
+ * Schaft; Munitionskiste mit Goldbeschlag, Gebetbuch auf der Kiste, Patronenhuelsen vor der Muendung.
+ * Light Wardens on high quality: standard with a crossbar, fringe and tassels, a star finial, gold bands on the pole;
+ * an ammo case with gold fittings, a prayer book on the case, spent cases in front of the muzzle.
+ */
+function wardenRich(b: Builder) {
+  b.box(0.1, 0.006, 0.006, FAITH.goldDark, [-0.19, 0.482, -0.26]);
+  for (const sx of [-1, 1]) b.add(geo.sphere(0.005, 6, 4), FAITH.gold, { p: [-0.19 + sx * 0.05, 0.482, -0.26] });
+  for (let i = 0; i < 9; i++) b.box(0.004, 0.012, 0.004, FAITH.gold, [-0.23 + i * 0.01, 0.354, -0.26]);
+  for (const sx of [-1, 1]) {
+    b.tube([-0.19 + sx * 0.045, 0.36, -0.256], [-0.19 + sx * 0.048, 0.33, -0.256], 0.0015, 3, FAITH.gold);
+    b.add(geo.cone(0.006, 0.014, 6), FAITH.gold, { p: [-0.19 + sx * 0.048, 0.322, -0.256], r: [Math.PI, 0, 0] });
+  }
+  for (const y of [0.1, 0.2, 0.3]) b.cyl(0.0065, 0.0065, 0.008, 6, FAITH.gold, [-0.24, y, -0.26]);
+  faithStar(b, [-0.24, 0.505, -0.26], 0.014, [0, 0, 0], FAITH.goldLight);
+  // Munitionskiste mit Goldbeschlag und Gebetbuch / ammo case with gold fittings and a prayer book
+  b.group({ p: [0.16, 0, -0.06], r: [0, 0.3, 0] }, () => {
+    b.add(geo.cbox(0.07, 0.04, 0.045, 0.006), FAITH.plate, { p: [0, 0.02, 0] });
+    b.box(0.072, 0.006, 0.047, FAITH.gold, [0, 0.036, 0]);
+    for (const sx of [-1, 1]) b.box(0.006, 0.04, 0.047, FAITH.goldDark, [sx * 0.026, 0.02, 0]);
+    b.add(geo.cbox(0.036, 0.008, 0.026, 0.002), FAITH.clothDeep, { p: [0, 0.044, 0], r: [0, 0.2, 0] });
+    b.box(0.03, 0.009, 0.02, mat.paper, [0.002, 0.044, 0], [0, 0.2, 0]);
+  });
+  // Patronenhuelsen / spent cases
+  for (const [x, z, a] of [[0.06, 0.12, 0.3], [0.08, 0.1, 1.4], [0.05, 0.15, 2.2]] as [number, number, number][]) b.cyl(0.004, 0.004, 0.014, 6, FAITH.gold, [x, 0.004, z], [0, a, HALF_PI]);
 }
 
 // ---------- Reliquiar / Reliquary ----------
@@ -190,7 +247,8 @@ export function lightWarden(f: FactionId, lite = false): Builder {
  */
 export function reliquary(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  tracks(b, { x: 0.13, w: 0.07, len: 0.4, h: 0.075, wheels: 5, wr: 0.026, sprocket: FAITH.goldDark, hub: FAITH.gold, lite, links: 8 });
+  const hi = !lite && fine();
+  tracks(b, { x: 0.13, w: 0.07, len: 0.4, h: 0.075, wheels: 5, wr: 0.026, sprocket: FAITH.goldDark, hub: FAITH.gold, lite, links: hi ? 12 : 8, ...(hi ? { rollers: 2 } : {}) });
   const by = 0.08;
   // Wanne / hull
   b.add(geo.cbox(0.26, 0.06, 0.42, 0.02), FAITH.plate, { p: [0, by + 0.015, 0] });
@@ -231,13 +289,24 @@ export function reliquary(f: FactionId, lite = false): Builder {
       b.add(geo.cbox(0.09, 0.07, 0.08, 0.014), FAITH.plate, { p: [0, 0, 0.02] });
       b.box(0.095, 0.01, 0.085, FAITH.gold, [0, 0.03, 0.02]);
       const len = 0.36;
-      b.cyl(0.018, 0.022, len, lite ? 8 : 12, FAITH.plateShade, [0, 0, 0.06 + len / 2], [HALF_PI, 0, 0]);
-      for (const t of lite ? [0.5, 1] : [0.25, 0.5, 0.75, 1]) b.cyl(0.026, 0.026, 0.016, lite ? 8 : 12, FAITH.gold, [0, 0, 0.06 + len * t - 0.008], [HALF_PI, 0, 0]);
+      b.cyl(0.018, 0.022, len, lite ? 8 : hi ? 18 : 12, FAITH.plateShade, [0, 0, 0.06 + len / 2], [HALF_PI, 0, 0]);
+      for (const t of lite ? [0.5, 1] : [0.25, 0.5, 0.75, 1]) b.cyl(0.026, 0.026, 0.016, lite ? 8 : hi ? 18 : 12, FAITH.gold, [0, 0, 0.06 + len * t - 0.008], [HALF_PI, 0, 0]);
       b.add(geo.ico(0.018, lite ? 0 : 1), FAITH.halo, { p: [0, 0, 0.07 + len] });
     });
     // schwebender Sonnenkranz ueber dem Dach / floating sun halo above the roof
     haloRing(b, [0, sy + 0.27, sz], 0.075, 0.006, lite ? 12 : 20);
+    if (hi) shrineRich(b, sy, sz);
+    if (hi) {
+      // Dachziegel-Reihen auf beiden Dachflaechen, Goldketten zwischen den Fialen / tile rows on both roof slopes, gold chains between the pinnacles
+      const slope = Math.atan2(0.1, 0.115);
+      for (const sx of [-1, 1]) for (let k = 1; k <= 4; k++) {
+        const t = k / 5;
+        b.box(0.004, 0.004, 0.236, shade(FAITH.cloth, 0.72), [sx * 0.115 * (1 - t) + sx * 0.002, sy + 0.12 + 0.1 * t + 0.002, sz], [0, 0, -sx * slope]);
+      }
+      for (const sx of [-1, 1]) b.tube([sx * 0.092, sy + 0.15, sz - 0.1], [sx * 0.092, sy + 0.15, sz + 0.1], 0.0018, 3, FAITH.gold);
+    }
   });
+  if (hi) reliquaryHullRich(b, by);
   // Weihrauchfass am Heck / incense censer at the rear
   if (!lite) {
     b.tube([-0.08, by + 0.05, -0.2], [-0.08, by + 0.2, -0.24], 0.004, 4, FAITH.goldDark);
@@ -245,6 +314,55 @@ export function reliquary(f: FactionId, lite = false): Builder {
     addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [0, by + 0.04, 0.218] });
   }
   return b;
+}
+
+/**
+ * Schrein des Reliquiars bei hoher Qualitaet (im Turm): Fialen an den Dachecken, Kreuzblumen auf dem First, Sprossen in
+ * den Buntglasfenstern, Reliquienkasten hinten, Kuehlrippen und Blende am Lichtgeschuetz, Nietreihen an der Sockelkante.
+ * Reliquary shrine on high quality (inside the turret): pinnacles on the roof corners, finials along the ridge, bars in the
+ * stained-glass windows, a relic box at the back, cooling fins and a mantlet on the light gun, rivet rows at the base edge.
+ */
+function shrineRich(b: Builder, sy: number, sz: number) {
+  for (const sx of [-1, 1]) for (const dz of [-0.1, 0.1]) {
+    b.cyl(0.008, 0.01, 0.03, 6, FAITH.plate, [sx * 0.092, sy + 0.135, sz + dz]);
+    b.add(geo.cone(0.009, 0.035, 6), FAITH.gold, { p: [sx * 0.092, sy + 0.167, sz + dz] });
+  }
+  for (const dz of [-0.08, -0.03, 0.03, 0.08]) b.add(geo.sphere(0.007, 6, 4), FAITH.goldLight, { p: [0, sy + 0.232, sz + dz] });
+  for (const sx of [-1, 1]) {
+    b.box(0.006, 0.004, 0.2, FAITH.goldDark, [sx * 0.104, sy + 0.055, sz]);
+    rivetRow(b, [sx * 0.101, sy + 0.006, sz - 0.1], [sx * 0.101, sy + 0.006, sz + 0.1], 9, 0.005, FAITH.goldDark);
+  }
+  // Reliquienkasten hinten / relic box at the back
+  b.add(geo.cbox(0.08, 0.05, 0.03, 0.006), FAITH.gold, { p: [0, sy + 0.06, sz - 0.125] });
+  b.box(0.05, 0.03, 0.004, FAITH.glassBlue, [0, sy + 0.062, sz - 0.141]);
+  faithStar(b, [0, sy + 0.062, sz - 0.144], 0.012, [0, Math.PI, 0], FAITH.goldLight);
+  // Lichtgeschuetz: Blende und Kuehlrippen / light gun: mantlet and cooling fins
+  b.add(geo.cbox(0.1, 0.05, 0.016, 0.005), FAITH.goldDark, { p: [0, sy + 0.05, sz + 0.18] });
+  for (let i = 0; i < 5; i++) b.cyl(0.03, 0.03, 0.004, 12, FAITH.goldDark, [0, sy + 0.05, sz + 0.23 + i * 0.012], [HALF_PI, 0, 0]);
+}
+
+/**
+ * Wanne des Reliquiars bei hoher Qualitaet: heilige Lampen mit Goldgittern vorn, Abschlepphaken, Plattenfugen und Nieten,
+ * Seitenluken, Abgasrohre mit Goldkappen, Kerzenhalter am Heck.
+ * Reliquary hull on high quality: holy lamps with gold guards at the front, tow hooks, plate seams and rivets, side
+ * hatches, exhausts with gold caps, a candle holder at the rear.
+ */
+function reliquaryHullRich(b: Builder, by: number) {
+  for (const sx of [-1, 1]) {
+    searchlight(b, [sx * 0.09, by + 0.07, 0.19], 0, 0.011, FAITH.gold, FAITH.halo, 0);
+    for (const dy of [-0.004, 0.004]) b.box(0.022, 0.002, 0.002, FAITH.goldDark, [sx * 0.09, by + 0.07 + dy, 0.21]);
+    b.add(geo.torus(0.008, 0.003, 3, 8), mat.dark, { p: [sx * 0.07, by - 0.01, 0.215] });
+    rivetRow(b, [sx * 0.131, by + 0.04, -0.19], [sx * 0.131, by + 0.04, 0.19], 12, 0.005, FAITH.goldDark);
+    for (const z of [-0.1, 0.1]) b.box(0.004, 0.04, 0.004, FAITH.plateShade, [sx * 0.131, by + 0.02, z]);
+    b.add(geo.cbox(0.004, 0.03, 0.05, 0.003), FAITH.plateShade, { p: [sx * 0.132, by + 0.02, 0.0] });
+    b.box(0.005, 0.004, 0.012, FAITH.gold, [sx * 0.134, by + 0.024, 0.0]);
+    b.cyl(0.009, 0.011, 0.04, 8, mat.darkMid, [sx * 0.08, by + 0.07, -0.2]);
+    b.cyl(0.012, 0.012, 0.006, 8, FAITH.gold, [sx * 0.08, by + 0.092, -0.2]);
+  }
+  for (const x of [-0.03, 0, 0.03]) {
+    b.cyl(0.004, 0.004, 0.02, 6, FAITH.plate, [x + 0.04, by + 0.06, -0.2]);
+    b.add(geo.cone(0.003, 0.008, 5), FAITH.halo, { p: [x + 0.04, by + 0.074, -0.2] });
+  }
 }
 
 // ---------- Sonnenlanze / Sun Lance ----------
@@ -257,12 +375,13 @@ export function reliquary(f: FactionId, lite = false): Builder {
  */
 export function sunLance(f: FactionId, lite = false): Builder {
   const b = new Builder();
+  const hi = !lite && fine();
   // Lafette und Raeder / carriage and wheels
   b.add(geo.cbox(0.2, 0.05, 0.28, 0.014), FAITH.plate, { p: [0, 0.07, -0.02] });
   b.box(0.21, 0.01, 0.29, FAITH.gold, [0, 0.1, -0.02]);
   for (const s of [-1, 1]) {
-    b.cyl(0.07, 0.07, 0.024, lite ? 10 : 16, mat.dark, [s * 0.125, 0.07, -0.03], [0, 0, HALF_PI]);
-    b.cyl(0.05, 0.05, 0.028, lite ? 8 : 14, FAITH.plate, [s * 0.125, 0.07, -0.03], [0, 0, HALF_PI]);
+    b.cyl(0.07, 0.07, 0.024, lite ? 10 : hi ? 26 : 16, mat.dark, [s * 0.125, 0.07, -0.03], [0, 0, HALF_PI]);
+    b.cyl(0.05, 0.05, 0.028, lite ? 8 : hi ? 22 : 14, FAITH.plate, [s * 0.125, 0.07, -0.03], [0, 0, HALF_PI]);
     b.cyl(0.02, 0.02, 0.034, 8, FAITH.gold, [s * 0.125, 0.07, -0.03], [0, 0, HALF_PI]);
     if (!lite) for (let i = 0; i < 4; i++) b.box(0.03, 0.09, 0.008, FAITH.goldDark, [s * 0.125, 0.07, -0.03], [(i * Math.PI) / 4, 0, 0]);
   }
@@ -272,13 +391,13 @@ export function sunLance(f: FactionId, lite = false): Builder {
   b.cyl(0.06, 0.07, 0.03, 12, FAITH.goldDark, [0, 0.11, 0.0]);
   b.group({ p: [0, 0.15, 0.0], r: [-0.42, 0, 0] }, () => {
     // Spiegelschale hinten / mirror dish at the back
-    b.add(geo.cyl(0.11, 0.05, 0.04, lite ? 10 : 16, true), FAITH.gold, { p: [0, 0, -0.04], r: [HALF_PI, 0, 0] });
+    b.add(geo.cyl(0.11, 0.05, 0.04, lite ? 10 : hi ? 26 : 16, true), FAITH.gold, { p: [0, 0, -0.04], r: [HALF_PI, 0, 0] });
     if (!lite) for (let i = 0; i < 8; i++) b.box(0.006, 0.11, 0.004, FAITH.goldDark, [0, 0, -0.042], [0, 0, (i * Math.PI) / 8]);
     b.add(geo.cyl(0.05, 0.05, 0.01, 12), FAITH.glassGold, { p: [0, 0, -0.03], r: [HALF_PI, 0, 0] });
     b.add(geo.cyl(0.024, 0.024, 0.014, 10), FAITH.halo, { p: [0, 0, -0.022], r: [HALF_PI, 0, 0] });
     // lange Lanze / long lance
     const len = 0.5;
-    b.add(geo.cyl(0.012, 0.026, len, lite ? 8 : 12), FAITH.plate, { p: [0, 0, len / 2], r: [HALF_PI, 0, 0] });
+    b.add(geo.cyl(0.012, 0.026, len, lite ? 8 : hi ? 18 : 12), FAITH.plate, { p: [0, 0, len / 2], r: [HALF_PI, 0, 0] });
     for (let i = 0; i < 3; i++) {
       const z = 0.12 + i * 0.13;
       b.add(geo.torus(0.032 - i * 0.004, 0.006, 3, lite ? 10 : 14), FAITH.gold, { p: [0, 0, z] });
@@ -286,7 +405,22 @@ export function sunLance(f: FactionId, lite = false): Builder {
     }
     // Lichtkristall an der Spitze / light crystal at the tip
     b.add(geo.cone(0.016, 0.05, 6), FAITH.halo, { p: [0, 0, len + 0.02], r: [HALF_PI, 0, 0] });
+    if (hi) {
+      // Schalenrand, Streben von der Schale zum ersten Ring, Energiespirale, Kuehlrippen / dish rim, struts from the dish to the first ring, energy spiral, cooling fins
+      b.add(geo.torus(0.11, 0.005, 4, 24), FAITH.goldDark, { p: [0, 0, -0.06] });
+      for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        b.tube([Math.cos(a) * 0.1, Math.sin(a) * 0.1, -0.05], [Math.cos(a) * 0.03, Math.sin(a) * 0.03, 0.12], 0.003, 4, FAITH.gold);
+      }
+      for (let i = 0; i < 22; i++) {
+        const t = i / 22, a = t * Math.PI * 9;
+        const r = 0.026 - t * 0.012 + 0.004;
+        b.add(geo.sphere(0.004, 5, 3), i % 2 ? FAITH.halo : FAITH.tech, { p: [Math.cos(a) * r, Math.sin(a) * r, 0.06 + t * 0.4] });
+      }
+      for (let i = 0; i < 6; i++) b.cyl(0.03, 0.03, 0.003, 12, FAITH.plateShade, [0, 0, 0.01 + i * 0.012], [HALF_PI, 0, 0]);
+    }
   });
+  if (hi) lanceRich(b);
   // Bedienung: Klerikerin im Wappenrock mit Sonnenkranz / crew: cleric in a tabard with a sun halo
   if (!lite) {
     b.group({ p: [0.21, 0, -0.16], r: [0, -0.55, 0] }, () => {
@@ -294,11 +428,43 @@ export function sunLance(f: FactionId, lite = false): Builder {
       b.add(geo.cbox(0.07, 0.008, 0.05, 0.003), FAITH.goldDark, { p: [0, 0.17, 0.12], r: [0.6, 0, 0] });
       b.box(0.05, 0.004, 0.03, FAITH.tech, [0, 0.176, 0.12], [0.6, 0, 0]);
     });
-    censer(b, [-0.1, 0.1, -0.14], false, 0.05);
+    censer(b, [-0.1, 0.1, -0.14], false, 0.05, hi);
   }
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [0.101, 0.07, 0.06], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.03, 0.005, FAITH.gold, { p: [-0.101, 0.07, 0.06], r: [0, -HALF_PI, 0] });
   return b;
+}
+
+/**
+ * Sonnenlanze bei hoher Qualitaet: Reifenprofil, Felgenring und Nabenbolzen, Sporn am Holmende mit Griffen,
+ * Kristallkiste auf der Lafette, Nieten an der Goldborte, Richtrad am Drehkranz.
+ * Sun Lance on high quality: tyre tread, a rim ring and hub bolts, a spade at the trail end with handles, a crystal case
+ * on the carriage, rivets on the gold trim, a traverse handwheel on the turntable.
+ */
+function lanceRich(b: Builder) {
+  for (const s of [-1, 1]) {
+    const x = s * 0.125;
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      b.box(0.026, 0.006, 0.012, mat.ink, [x, 0.07 + Math.cos(a) * 0.071, -0.03 + Math.sin(a) * 0.071], [a, 0, 0]);
+    }
+    b.add(geo.torus(0.05, 0.004, 3, 16), FAITH.gold, { p: [x + s * 0.015, 0.07, -0.03], r: [0, HALF_PI, 0] });
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      b.box(0.004, 0.005, 0.005, FAITH.goldDark, [x + s * 0.018, 0.07 + Math.cos(a) * 0.012, -0.03 + Math.sin(a) * 0.012]);
+    }
+    b.tube([s * 0.02, 0.05, -0.27], [s * 0.05, 0.07, -0.29], 0.0035, 4, mat.dark);
+    rivetRow(b, [s * 0.106, 0.1, -0.15], [s * 0.106, 0.1, 0.12], 8, 0.004, FAITH.goldDark);
+  }
+  // Sporn am Holmende / spade at the trail end
+  b.add(geo.cbox(0.07, 0.04, 0.008, 0.003), FAITH.goldDark, { p: [0, 0.02, -0.29], r: [-0.4, 0, 0] });
+  // Kristallkiste / crystal case
+  b.add(geo.cbox(0.05, 0.03, 0.04, 0.005), FAITH.plate, { p: [-0.06, 0.11, -0.1] });
+  b.box(0.052, 0.005, 0.042, FAITH.gold, [-0.06, 0.124, -0.1]);
+  for (const dx of [-0.012, 0.012]) b.add(geo.cone(0.007, 0.025, 5), FAITH.halo, { p: [-0.06 + dx, 0.138, -0.1] });
+  // Richtrad / traverse handwheel
+  b.add(geo.torus(0.014, 0.003, 3, 10), FAITH.goldDark, { p: [0.07, 0.12, 0.02], r: [0, HALF_PI, 0] });
+  b.box(0.004, 0.026, 0.004, FAITH.goldDark, [0.07, 0.12, 0.02]);
 }
 
 // ---------- Goettlicher Funke / Divine Spark ----------
@@ -341,9 +507,11 @@ export const SPARK_MUZZLE: V3 = (() => {
  */
 export function divineSpark(f: FactionId, lite = false): Builder {
   const b = new Builder();
-  const seg = lite ? 8 : 12;
+  const seg = lite ? 8 : fine() ? 18 : 12;
   // niedrige Qualitaet: ohne Nieten und Plattenfugen / low quality: without rivets and plate seams
   const plain = lite || unitLow();
+  // hohe Qualitaet: Zusatzteile (sparkRich, sparkTurretRich) / high quality: extra parts
+  const hi = !lite && fine();
   // --- Laufwerk: drei Kettenlaufwerke je Seite / running gear: three track units per side ---
   const th = 0.105, tl = 0.84, hl = tl / 2;
   const prof: [number, number][] = [];
@@ -363,7 +531,19 @@ export function divineSpark(f: FactionId, lite = false): Builder {
     if (i !== TX.length - 1) continue;
     const ox = s * (tx + TW / 2 + 0.004);
     const n = lite ? 5 : 6, span = tl - 0.18;
-    for (let w = 0; w < n; w++) b.cyl(0.04, 0.04, 0.012, 8, mat.metal, [ox, 0.043, -span / 2 + (w / (n - 1)) * span], [0, 0, HALF_PI]);
+    for (let w = 0; w < n; w++) {
+      const wz = -span / 2 + (w / (n - 1)) * span;
+      b.cyl(0.04, 0.04, 0.012, hi ? 16 : 8, mat.metal, [ox, 0.043, wz], [0, 0, HALF_PI]);
+      if (hi) {
+        // Radkappe mit Goldnabe und Bolzenkranz / wheel cap with a gold hub and bolt circle
+        b.cyl(0.026, 0.026, 0.004, 12, mat.darkMid, [ox + s * 0.007, 0.043, wz], [0, 0, HALF_PI]);
+        b.cyl(0.011, 0.011, 0.006, 10, FAITH.gold, [ox + s * 0.009, 0.043, wz], [0, 0, HALF_PI]);
+        for (let k = 0; k < 6; k++) {
+          const a = (k / 6) * Math.PI * 2;
+          b.box(0.004, 0.005, 0.005, FAITH.goldDark, [ox + s * 0.01, 0.043 + Math.cos(a) * 0.019, wz + Math.sin(a) * 0.019]);
+        }
+      }
+    }
     b.cyl(0.03, 0.03, 0.016, 8, FAITH.goldDark, [ox, 0.066, hl - 0.05], [0, 0, HALF_PI]);
   }
   // --- Wanne / hull ---
@@ -482,8 +662,19 @@ export function divineSpark(f: FactionId, lite = false): Builder {
       if (!lite) for (const s of [-1, 1]) for (const dz of [-0.056, -0.028]) b.box(0.004, 0.064, 0.012, mat.ink, [s * 0.057, 0, L + dz]);
       b.add(geo.cyl(0.03, 0.03, 0.006, seg), mat.ink, { p: [0, 0, L], r: [HALF_PI, 0, 0] });
       b.add(geo.cyl(0.02, 0.02, 0.008, seg), FAITH.halo, { p: [0, 0, L + 0.002], r: [HALF_PI, 0, 0] });
+      if (hi) {
+        // Rohr: weitere Baender, Endkappen der Bremszylinder, Nieten an der Wiege / barrel: more bands, recoil cylinder end caps, cradle rivets
+        for (const z of [0.3, 0.48]) b.add(geo.cyl(0.039 + (0.48 - z) * 0.03, 0.039 + (0.48 - z) * 0.03, 0.008, seg), FAITH.goldDark, { p: [0, 0, z], r: [HALF_PI, 0, 0] });
+        for (const x of [-0.032, 0.032]) b.add(geo.cyl(0.019, 0.019, 0.01, 8), FAITH.gold, { p: [x, 0.058, 0.19], r: [HALF_PI, 0, 0] });
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          b.box(0.006, 0.006, 0.006, FAITH.goldDark, [Math.cos(a) * 0.059, Math.sin(a) * 0.059, -0.045]);
+        }
+      }
     });
+    if (hi) sparkTurretRich(b, hy, tz);
   });
+  if (hi) sparkRich(b, th, hy, TX, TW, tl);
   // Besatzung fuer den Massstab: Kommandant auf der Bruecke, Ladeschuetze am Kran / crew for scale: commander on the bridge, loader at the crane
   if (!lite) {
     b.group({ p: [cx + 0.03, hy + 0.156, cz - 0.01], r: [0, 0.3, 0], s: 0.42 }, () => {
@@ -494,6 +685,80 @@ export function divineSpark(f: FactionId, lite = false): Builder {
     });
   }
   return b;
+}
+
+/**
+ * Kasematte des Goettlichen Funkens bei hoher Qualitaet: Kommandantenkuppel mit Winkelspiegeln auf dem Verschlusshaus,
+ * Sehschlitze, Granatenaufzug, Leiter, Nietreihen an den Lafettenwangen, Antenne.
+ * Divine Spark casemate on high quality: commander cupola with periscopes on the breech house, vision slits, a shell hoist,
+ * a ladder, rivet rows on the cradle cheeks, an antenna.
+ */
+function sparkTurretRich(b: Builder, hy: number, tz: number) {
+  const cx = 0.07, cz = tz - 0.15;
+  b.cyl(0.03, 0.033, 0.02, 12, FAITH.plate, [cx, hy + 0.172, cz]);
+  b.add(geo.hemi(0.028, 12, 3), FAITH.plateShade, { p: [cx, hy + 0.182, cz] });
+  b.add(geo.torus(0.031, 0.003, 3, 14), FAITH.gold, { p: [cx, hy + 0.182, cz], r: [HALF_PI, 0, 0] });
+  for (let i = 0; i < 5; i++) {
+    const a = -1 + (i / 4) * 2;
+    b.box(0.01, 0.008, 0.006, FAITH.glassBlue, [cx + Math.sin(a) * 0.031, hy + 0.176, cz + Math.cos(a) * 0.031], [0, a, 0]);
+  }
+  for (const sx of [-1, 1]) b.box(0.03, 0.006, 0.003, mat.ink, [sx * 0.07, hy + 0.13, tz - 0.064]);
+  // Granatenaufzug hinten am Verschlusshaus / shell hoist at the rear of the breech house
+  b.add(geo.cbox(0.05, 0.07, 0.03, 0.005), FAITH.plateShade, { p: [-0.07, hy + 0.11, tz - 0.205] });
+  b.box(0.052, 0.006, 0.032, FAITH.gold, [-0.07, hy + 0.146, tz - 0.205]);
+  ladder(b, [0.06, hy + 0.075, tz - 0.198], 0.08, 0.026, Math.PI, FAITH.goldDark);
+  for (const sx of [-1, 1]) rivetRow(b, [sx * 0.104, hy + 0.08, tz - 0.13], [sx * 0.104, hy + 0.08, tz + 0.06], 7, 0.006, FAITH.goldDark);
+  whip(b, [-0.1, hy + 0.162, tz - 0.17], [-0.11, hy + 0.3, tz - 0.2], FAITH.goldDark, FAITH.halo);
+}
+
+/**
+ * Goettlicher Funke bei hoher Qualitaet: Stuetzrollen und Treibradzaehne an den Kettenlaufwerken, Kettenglieder auf dem
+ * Obertrum, Rundluken mit Goldrand, Luftgitter, Scheinwerfer mit Goldbuegeln an den Bugecken, goldene Reling um das Deck,
+ * Rauchtopf-Werfer, Fransen an den Bannern, Seitenleiter.
+ * Divine Spark on high quality: return rollers and sprocket teeth on the track units, track plates on the top run, round
+ * hatches with a gold rim, vent grilles, searchlights with gold hoops at the bow corners, a gold rail around the deck,
+ * smoke pot launchers, fringes on the banners, a side ladder.
+ */
+function sparkRich(b: Builder, th: number, hy: number, TX: number[], TW: number, tl: number) {
+  const hl = tl / 2;
+  for (const s of [-1, 1]) {
+    const tx = TX[TX.length - 1], ox = s * (tx + TW / 2 + 0.004);
+    // Stuetzrollen und Treibradzaehne / return rollers and sprocket teeth
+    for (const z of [-0.2, 0.05]) b.cyl(0.016, 0.016, 0.014, 8, mat.metal, [ox, th - 0.016, z], [0, 0, HALF_PI]);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      b.box(0.018, 0.008, 0.008, FAITH.goldDark, [ox, 0.066 + Math.cos(a) * 0.034, hl - 0.05 + Math.sin(a) * 0.034], [a, 0, 0]);
+    }
+    // Kettenglieder an der Seite unten (Bodenlinie der Kette) / track plates along the bottom run
+    for (let i = 0; i < 12; i++) b.box(TW * 0.9, 0.006, 0.012, mat.ink, [s * tx, 0.004, -hl + 0.08 + i * ((tl - 0.16) / 11)]);
+    // Seitenleiter am Rumpf / side ladder on the hull
+    ladder(b, [s * 0.314, 0.12, 0.2], 0.11, 0.024, s * HALF_PI, FAITH.goldDark);
+    // Scheinwerfer mit Goldbuegel an der Bugecke / searchlight with a gold hoop at the bow corner
+    searchlight(b, [s * 0.26, hy + 0.02, 0.24], 0, 0.014, FAITH.plate, FAITH.halo, 0.1);
+    // Rauchtopf-Werfer / smoke pot launcher
+    for (let i = 0; i < 3; i++) b.cyl(0.008, 0.008, 0.03, 8, FAITH.goldDark, [s * 0.27, hy + 0.014, -0.05 + i * 0.022], [0, 0, s * 0.7]);
+  }
+  // Rundluken mit Goldrand und Luftgitter auf dem Deck / round hatches with a gold rim and vent grilles on the deck
+  for (const [x, z] of [[-0.1, 0.18], [0.1, 0.2]] as [number, number][]) roundHatch(b, [x, hy, z], 0.024, FAITH.plateShade, FAITH.gold);
+  for (const sx of [-1, 1]) grille(b, [sx * 0.24, hy + 0.002, -0.2], 0.06, 0.05, 5, FAITH.goldDark, mat.ink, [-HALF_PI, 0, 0]);
+  // goldene Reling am Bugdeck / gold rail on the foredeck
+  for (const sx of [-1, 1]) {
+    bar(b, [sx * 0.29, hy + 0.03, 0.04], [sx * 0.29, hy + 0.03, 0.25], 0.004, FAITH.gold);
+    for (const z of [0.04, 0.11, 0.18, 0.25]) b.box(0.004, 0.03, 0.004, FAITH.goldDark, [sx * 0.29, hy + 0.015, z]);
+  }
+  // Fransen an den Bannern / fringes on the banners
+  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) b.box(0.004, 0.012, 0.004, FAITH.gold, [s * 0.28, hy + 0.094, -0.37 + 0.01 + i * 0.012]);
+  // Weihrauchfaesser an Auslegern der Bannerstangen / incense censers on arms of the banner poles
+  for (const s of [-1, 1]) {
+    b.box(0.05, 0.005, 0.005, FAITH.goldDark, [s * 0.255, hy + 0.19, -0.37]);
+    censer(b, [s * 0.235, hy + 0.19, -0.37], false, 0.04, true);
+  }
+  // Reliquienkisten und Granatgestell auf dem Heckdeck / relic chests and a shell rack on the rear deck
+  for (const [x, z, ry] of [[-0.05, -0.36, 0.2], [0.04, -0.37, -0.15]] as [number, number, number][]) b.group({ p: [x, hy, z], r: [0, ry, 0] }, () => {
+    b.add(geo.cbox(0.05, 0.03, 0.035, 0.005), FAITH.cloth, { p: [0, 0.015, 0] });
+    b.box(0.052, 0.005, 0.037, FAITH.gold, [0, 0.028, 0]);
+    for (const sx of [-1, 1]) b.box(0.005, 0.03, 0.037, FAITH.goldDark, [sx * 0.018, 0.015, 0]);
+  });
 }
 
 // ---------- Ordenswacht / Order Guard ----------
