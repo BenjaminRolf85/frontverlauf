@@ -67,7 +67,7 @@ def build():
             flame.scale = (0.001,) * 3
             trail.update(-20)
         p = L.ease_io(L.seg(t, 0, s.dur))
-        cam = L.vlerp((-4, -34, 6), (-14, -26, 9), p)
+        cam = L.vlerp((-2, -20, 4.5), (-10, -12, 6.5), p)
         tgt = L.vlerp((0, 40, 6), (40, 150, 30 + 20 * L.seg(t, LAUNCH, s.dur)), L.ease_io(L.seg(t, 0.8, s.dur)))
         s.look(cam + L.shake(t, LAUNCH, 0.5, 3), tgt)
 

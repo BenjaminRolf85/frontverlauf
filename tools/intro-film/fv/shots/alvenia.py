@@ -49,7 +49,7 @@ def build():
     ray_src = [Vector((R.uniform(-120, 120), R.uniform(-40, 160), 220)) for _ in rays]
     column = L.beam(s, L.flat('shieldCore'), camp + Vector((0, 0, 400)), camp, radius=1, segments=16, ink=True, px=3)
     column_out = L.beam(s, L.flat('shield'), camp + Vector((0, 0, 400)), camp, radius=1, segments=16, ink=True, px=3)
-    dome = L.prim(s, 'uv', L.flat('shieldCore'), loc=camp, size=1, segments=24, px=0.12)
+    dome = L.prim(s, 'uv', L.flat('shieldCore'), loc=camp, size=1, segments=24, px=0.05)
     dome_ring = L.ring(s, L.flat('shield'), camp + Vector((0, 0, 1)), radius=1, tube=0.05)
 
     @s.on
@@ -65,15 +65,15 @@ def build():
         cw = 18 * L.ease_out(L.seg(d, 0, 0.25)) * (1 - L.seg(d, 1.6, 2.4))
         L.set_beam(column, camp + Vector((0, 0, 420)), camp, max(cw * 0.6, 0.001))
         L.set_beam(column_out, camp + Vector((0, 0, 420)), camp, max(cw, 0.001))
-        dm = 40 * L.ease_out(L.seg(d, 0.05, 1.2)) * (1 - L.ease_in(L.seg(d, 2.2, 3.4)))
+        dm = 75 * L.ease_out(L.seg(d, 0.05, 1.0)) * (1 - L.ease_in(L.seg(d, 2.4, 3.6)))
         dome.scale = (max(dm, 0.01),) * 3
         dome_ring.scale = (max(0.01, 90 * L.ease_out(L.seg(d, 0, 1.6))),) * 2 + (1,)
         L.hide(dome_ring, not (0 < d < 1.6))
         p = L.ease_io(L.seg(t, 0, FIRE + 0.4))
         q = L.ease_io(L.seg(t, FIRE + 0.2, STRIKE + 0.6))
-        cam = L.vlerp((30, -58, 8), (22, -46, 12), p)
+        cam = L.vlerp((22, -36, 6.5), (16, -30, 8.5), p)
         tgt = L.vlerp(muzzle, camp + Vector((0, 0, 20)), q)
-        cam = cam.lerp(Vector((10, -40, 22)), q)
+        cam = cam.lerp(Vector((6, -30, 34)), q)
         cam.z += h(cam.x, cam.y)
         s.look(cam + L.shake(t, STRIKE, 1.0, 3), tgt)
 

@@ -27,11 +27,12 @@ def build():
         x, y = R.uniform(-60, 70), R.uniform(-5, 80)
         c = L.prim(s, 'cyl', L.toon(s, 'mud700'), loc=(x, y, h(x, y) + 0.05), size=(R.uniform(4, 9), R.uniform(4, 9), 0.2), segments=10, ink=False)
         c.rotation_euler = Euler((0, 0, R.uniform(0, 3)))
-    rust = L.toon_attr(s, tint='rust600', amount=0.62)
-    burnt = L.toon_attr(s, tint='scorch900', amount=0.55)
+    rust = L.toon_attr(s, tint='rust600', amount=0.82)
+    burnt = L.toon_attr(s, tint='scorch900', amount=0.7)
     wrecks = []
-    spots = [(-34, 8, 'tank_dravon'), (-14, 18, 'artillery_korvat'), (-2, 6, 'tank_korvat'), (14, 20, 'heli_korvat'), (28, 9, 'tank_meridon'),
-             (44, 24, 'heli_velkar'), (58, 10, 'tank_velkar'), (-24, 34, 'tank_alvenia'), (6, 40, 'artillery_dravon'), (36, 44, 'tank_korvat')]
+    # Wracks ohne Besatzung / wrecks without crew
+    spots = [(-34, 8, 'wreck_tank_dravon'), (-14, 18, 'wreck_artillery_korvat'), (-2, 6, 'wreck_tank_korvat'), (14, 20, 'wreck_heli_korvat'), (28, 9, 'wreck_tank_meridon'),
+             (44, 24, 'wreck_heli_velkar'), (58, 10, 'wreck_tank_velkar'), (-24, 34, 'wreck_tank_alvenia'), (6, 40, 'wreck_artillery_dravon'), (36, 44, 'wreck_jeep_dravon')]
     for i, (x, y, n) in enumerate(spots):
         ob = L.model(s, n, loc=(x, y, h(x, y) - 0.4), rot=R.uniform(0, 360), scale=2.2, mat=rust if i % 3 else burnt)
         ob.rotation_euler = Euler((R.uniform(-0.25, 0.25), R.uniform(-0.3, 0.3), ob.rotation_euler.z))

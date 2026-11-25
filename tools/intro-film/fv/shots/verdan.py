@@ -104,14 +104,14 @@ def build():
         s.toon.win.outputs[0].default_value = 1.0
         # nach dem Stillstand dunkler und kaelter / colder and darker after the standstill
         # nach dem Stillstand fast schwarz: nur Umrisse gegen den Mondhimmel / after the standstill almost black: only outlines against the moonlit sky
-        s.toon.set_light(L.mix((0.16, 0.17, 0.30, 1), (0.03, 0.03, 0.06, 1), dark), L.mix((0.30, 0.32, 0.50, 1), (0.06, 0.06, 0.12, 1), dark),
-                         L.mix((0.55, 0.58, 0.80, 1), (0.17, 0.18, 0.3, 1), dark))
+        s.toon.set_light(L.mix((0.16, 0.17, 0.30, 1), (0.02, 0.02, 0.04, 1), dark), L.mix((0.30, 0.32, 0.50, 1), (0.04, 0.04, 0.08, 1), dark),
+                         L.mix((0.55, 0.58, 0.80, 1), (0.1, 0.1, 0.18, 1), dark))
         for ob in tanks:
             ob['glowoff'] = dark
             ob.update_tag()
         cr = L.sky_ramp(s)
         for i, c in enumerate(night_sky):
-            cr.elements[i].color = L.mix(c, tuple(x * 0.35 for x in c[:3]) + (1,), dark)
+            cr.elements[i].color = L.mix(c, tuple(x * 0.18 for x in c[:3]) + (1,), dark)
 
     update(0)
     return s

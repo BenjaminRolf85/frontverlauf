@@ -23,7 +23,7 @@ def build():
     def h(x, y):
         return 6 * math.exp(-(x * x + y * y) / 3000.0)
     L.ground(s, 'grass500', size=900, sub=60, height=h)
-    s.cam.data.lens = 30
+    s.cam.data.lens = 24
     flags = []
     leaders = []
     tok = L.tokens()['faction']
@@ -46,7 +46,7 @@ def build():
             o.location = p
             o.location.z = h(p.x, p.y) + 0.4
         a = -0.55 + 0.5 * L.ease_io(L.seg(t, 0, s.dur))
-        r = 44
+        r = 33
         cam = Vector((math.sin(a) * r, -math.cos(a) * r, 8 + 3 * L.seg(t, 0, s.dur)))
         s.look(cam, (0, 4, 9))
 

@@ -21,7 +21,7 @@ def build():
     L.sky(s, [(-1, 'steppe500'), (0.0, 'smoke400'), (0.2, 'smoke700'), (1, 'ink800')])
     h = K.hills(2.5, 0.018, 3)
     L.ground(s, 'steppe300', size=1000, sub=60, height=h)
-    s.cam.data.lens = 26
+    s.cam.data.lens = 30
     riders = []
     for i in range(9):
         x, y = (i % 5 - 2) * 9 + R.uniform(-2, 2), 30 + (i // 5) * 14 + R.uniform(-3, 3)
@@ -57,9 +57,9 @@ def build():
         bolt(t, on=2.9 < t < 3.2 or 5.0 < t < 5.15)
         L.hide(speed, t < 4.6)
         p = L.ease_io(L.seg(t, 0, s.dur))
-        cam = Vector((4 - 6 * p, -26 - run * 0.92, 5.5 + 1.5 * p))
+        cam = Vector((4 - 6 * p, -4 - run * 0.92, 7.5 + 1.0 * p))
         cam.z += h(cam.x, cam.y)
-        s.look(cam + L.shake(t, 3.0, 0.4, 5), Vector((0, cam.y + 60, 4 + h(0, cam.y + 60))))
+        s.look(cam + L.shake(t, 3.0, 0.4, 5), Vector((0, cam.y + 40, 6 + h(0, cam.y + 40))))
 
     update(0)
     return s

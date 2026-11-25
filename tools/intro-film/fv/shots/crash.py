@@ -28,14 +28,14 @@ def build():
     ship = L.model(s, 'mothership', loc=site + Vector((-120, 60, 120)), rot=40, scale=9)
     crash = L.model(s, 'crash_site_0', loc=site + Vector((0, 0, -1)), rot=200, scale=13)
     crash2 = L.model(s, 'crash_site_1', loc=site + Vector((22, -10, -1)), rot=80, scale=8)
-    boom = K.Boom(s, HIT, site + Vector((0, 0, 10)), size=70, seed=3, n=10)
-    boom2 = K.Boom(s, HIT + 0.35, site + Vector((-40, 18, 6)), size=40, seed=4, n=7)
+    boom = K.Boom(s, HIT, site + Vector((0, 0, 10)), size=95, seed=3, n=12)
+    boom2 = K.Boom(s, HIT + 0.35, site + Vector((-40, 18, 6)), size=55, seed=4, n=8)
     ring_m = L.toon(s, 'dust300')
     wave = L.ring(s, ring_m, site + Vector((0, 0, 2)), radius=1, tube=0.12)
     debris = K.Debris(s, HIT, site + Vector((0, 0, 10)), n=22, speed=70, size=(3, 7), color='alienDark', seed=5, gravity=30)
     glowbits = K.Debris(s, HIT + 0.1, site + Vector((0, 0, 10)), n=10, speed=48, size=(1.2, 2.6), color='alienGlow', seed=6, gravity=30, glow=1.0)
-    smoke = [L.Puffs(s, 7, 'smoke400', site + Vector((x, y, 10)), spread=10, rise=110, size=(20, 34), life=5.0, seed=k, wind=(30, 10, 0), start=HIT + 0.6)
-             for k, (x, y) in enumerate(((0, 0), (-25, 12), (20, -6)))]
+    smoke = [L.Puffs(s, 11, 'smoke400' if k % 2 else 'smoke700', site + Vector((x, y, 12)), spread=14, rise=150, size=(30, 52), life=5.0, seed=k, wind=(34, 12, 0), start=HIT + 0.5)
+             for k, (x, y) in enumerate(((0, 0), (-30, 14), (24, -8), (-8, 26)))]
     flash = L.cam_plane(s, L.flat('flash', alpha=0.0, name='flash'), dist=1.0, scale=1.2)
 
     @s.on

@@ -12,9 +12,10 @@ import { components, factionTokens, primitives, semantic } from '../../../src/de
 import { withGlow, type GlowKind } from '../../../src/render/atmosphere';
 import {
   baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, crashSiteGeometry, decorationGeometry, emplacementGeometry,
-  emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
+  emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, setUnitQuality, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
 } from '../../../src/render/models/index';
 import { academyGeometry } from '../../../src/render/models/academy';
+import { artillery, heli, jeep, tank } from '../../../src/render/models/vehicles';
 import { verdanDesertRuin, verdanOutpostGeometry } from '../../../src/render/models/desert';
 import { verdanRemains } from '../../../src/render/models/cavern';
 import { siloGeometry } from '../../../src/render/models/shadowFleet';
@@ -22,6 +23,9 @@ import { templeGeometry } from '../../../src/render/models/temple';
 import { wonderGeometry } from '../../../src/render/models/wonders';
 import { hackTowerGeometry } from '../../../src/render/models/hacking';
 import { bellTower, conifer, leafy, house, smokestack, sandbags } from '../../../src/render/overworld/props';
+
+// Film: immer die hohe Detailstufe der Einheiten / film: always the high unit detail level
+setUnitQuality('high');
 
 type Maker = () => THREE.BufferGeometry;
 const HUMANS: FactionId[] = ['korvat', 'alvenia', 'dravon', 'velkar', 'meridon'];
@@ -55,6 +59,14 @@ for (const v of [0, 1]) add(`leafy_${v}`, () => leafy(v));
 for (const v of [0, 1, 2]) add(`cloud_${v}`, () => cloudGeometry(v));
 add('forest_0', () => decorationGeometry('forest', null, 0)!);
 add('forest_1', () => decorationGeometry('forest', null, 1)!);
+
+// Wracks ohne Besatzung (leichte Fassung der Fahrzeuge) / wrecks without crew (light version of the vehicles)
+for (const f of HUMANS) {
+  add(`wreck_tank_${f}`, () => tank(f, true).build());
+  add(`wreck_artillery_${f}`, () => artillery(f, true).build());
+  add(`wreck_heli_${f}`, () => heli(f, true).build());
+  add(`wreck_jeep_${f}`, () => jeep(f, true).build());
+}
 
 // Zyrr / Zyrr
 add('mothership', () => mothershipGeometry(false), 'bright');

@@ -80,7 +80,7 @@ def build():
         L.hide(buggy, t > MINE_HIT + 2.2)
         mine_boom.update(t)
         p = L.ease_io(L.seg(t, 0, s.dur))
-        cam = L.vlerp((62, -26, 9), (54, -40, 12), p)
+        cam = L.vlerp((40, -12, 6), (32, -24, 8), p)
         s.look(cam + L.shake(t, SHOTS[0], 0.5, 6) + L.shake(t, SHOTS[1], 0.5, 6) + L.shake(t, SHOTS[2], 0.5, 6) + L.shake(t, MINE_HIT, 1.2, 4),
                L.vlerp((-6, 24, 6), (-22, 0, 6), p))
 

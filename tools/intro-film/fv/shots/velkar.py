@@ -71,9 +71,9 @@ def build():
         boom2.update(t)
         L.hide(titan, t > RAY + 0.6)
         p = L.ease_io(L.seg(t, 0, s.dur))
-        cam = L.vlerp((-34, -46, 7), (-10, -58, 14), p)
+        cam = L.vlerp((-24, -30, 4.5), (-6, -36, 8), p)
         cam.z += h(cam.x, cam.y)
-        s.look(cam + L.shake(t, LASER + 0.1, 1.4, 3) + L.shake(t, RAY + 0.15, 0.9, 4), L.vlerp((-10, 60, 18), (10, 80, 22), p))
+        s.look(cam + L.shake(t, LASER + 0.1, 1.4, 3) + L.shake(t, RAY + 0.15, 0.9, 4), L.vlerp((-8, 40, 13), (6, 50, 16), p))
 
     update(0)
     return s

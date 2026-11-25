@@ -66,14 +66,17 @@ Gemessen auf 4 CPU-Kernen ohne GPU (Mesa llvmpipe), 1280x720 / measured on 4 CPU
 
 Gewaehlt: Eevee mit einem Sample, alle Materialien unbeleuchtet (Emission) mit eigener Stufen-Schattierung aus
 Shader-to-RGB, Schattenaufloesung 0,25 und Sonnen-Schattenkarten 0,2 (halbiert die Zeit), 12 Bilder je Sekunde, im Video
-auf 24 fps gehalten. Gesamt 1488 Bilder plus 3 x 120 Comicfelder (416x664), gemessen rund 65 Minuten (1,6-4,6 s je Bild,
+auf 24 fps gehalten. Gesamt 1488 Bilder plus 3 x 120 Comicfelder (416x664), gemessen rund 60-65 Minuten mit den detailreichen Einheiten der hohen Stufe (1,6-5 s je Bild,
 die Stadt Verdan ist am teuersten); Zusammensetzen und Kodieren (zwei Durchgaenge VP9 und H.264) rund 12 Minuten.
 Chosen: Eevee with one sample, all materials unlit (emission) with their own banded shading from Shader-to-RGB, shadow
 resolution 0.25 and sun shadow maps 0.2 (halves the time), 12 frames per second, held to 24 fps in the video.
-1488 frames plus 3 x 120 comic panels (416x664) in total, measured at about 65 minutes (1.6-4.6 s per frame, the Verdan city
+1488 frames plus 3 x 120 comic panels (416x664) in total, measured at about 60-65 minutes with the detailed high-level units (1.6-5 s per frame, the Verdan city
 is the most expensive); assembly and encoding (two passes VP9 and H.264) about 12 minutes.
 
 Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (11,9 MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s (12,6 MB).
+Einheiten immer in der hohen Detailstufe (export-models.ts setzt setUnitQuality('high')); Wracks nutzen die leichte Fassung
+der Fahrzeuge ohne Besatzung. / Units always at the high detail level (export-models.ts sets setUnitQuality('high'));
+wrecks use the light vehicle version without crew.
 Die Rasterpunkte kosten Bitrate; mit konstanter Qualitaet (CRF) wurden die Dateien 33 und 23 MB gross.
 The halftone dots cost bitrate; with constant quality (CRF) the files came out at 33 and 23 MB.
 
