@@ -20,57 +20,30 @@ import type { FactionId, UnitTypeId } from '../../../data/balance';
 import { scaleWithTurrets, splitTurrets as kitSplit, type TurretSplit } from '../kit';
 import { bakeAO } from './ao';
 import { ATLAS_SIZE, atlasDef, atlasIds, atlasTextures, defineAtlas } from './atlas';
-import { emblemCells } from './emblem';
-import { crewCells, figureCells } from './figurePaint';
-import { korvatTank } from './tank';
-import { tankCells } from './tankPaint';
-import { trimCells } from './trim';
-import { infantry, medic, mgTeam, pioneer, sniper, spy } from './units';
-import { subdivide, type AtlasLayout, type UvBuilder } from './uvkit';
+import { figures } from './groups/figures';
+import { naval } from './groups/naval';
+import { vehicles } from './groups/vehicles';
+import type { InkedGroup, InkedType } from './types';
+import { subdivide } from './uvkit';
+export type { InkedGroup, InkedType } from './types';
 
 /** Hoechste Modellhoehe unter dem Lebensbalken und groesste Ausdehnung auf der Kachel (wie finishUnit) / highest model point below the HP badge and largest extent on the tile (as finishUnit) */
 export const INKED_MAX_H = 0.62;
 export const INKED_MAX_EXT = 0.45;
 
-export interface InkedType {
-  /** Atlas der Einheit (ein Atlas je Einheit = ein Material) / the unit's atlas (one atlas per unit = one material) */
-  atlas: string;
-  build: (f: FactionId, A: AtlasLayout) => UvBuilder;
-  /** nur fuer diese Fraktionen (fehlt = alle) / only for these factions (absent = all) */
-  factions?: FactionId[];
-  /** groesste Kante vor der Unterteilung fuer die Verdeckung, hohe Qualitaet / longest edge before the subdivision for the occlusion, high quality */
-  maxEdge?: number;
-  /** Voxelgroesse der Verdeckung / voxel size of the occlusion */
-  voxel?: number;
-}
+/** Gruppen der Einfuehrung, je eine Datei unter groups/ / rollout groups, one file each under groups/ */
+const GROUPS: InkedGroup[] = [figures, vehicles, naval];
 
-/**
- * Atlanten des Spiels. Jede Gruppe der Einfuehrung haengt ihre Zellen in ihre eigenen Atlanten (eigene Zeilen hier).
- * The game's atlases. Every rollout group hangs its cells into its own atlases (own lines here).
- */
 let defined = false;
+/** Atlanten aller Gruppen anlegen (einmal) / define the atlases of all groups (once) */
 export function defineAtlases(): void {
   if (defined) return;
   defined = true;
-  // Figuren: alle Fusstruppen / figures: all foot troops
-  defineAtlas('figure', figureCells());
-  // Fahrzeuge: Baukasten, Besatzung (halbe Groesse), Embleme, dazu die eigenen Flaechen des Korvat-Panzers
-  // vehicles: kit, crew (half size), emblems, plus the Korvat tank's own surfaces
-  defineAtlas('vehicle', [...trimCells(), ...crewCells(0.5), ...emblemCells(48), ...tankCells()]);
+  for (const g of GROUPS) for (const [id, cells] of g.atlases()) defineAtlas(id, cells);
 }
 
-/** groesste Kante der Figuren vor der Unterteilung (hohe Qualitaet) / longest edge of the figures before the subdivision (high quality) */
-const FIGURE_EDGE = 0.09;
-/** Umgebaute Typen / converted types */
-export const INKED: Partial<Record<UnitTypeId, InkedType>> = {
-  infantry: { atlas: 'figure', build: infantry, maxEdge: FIGURE_EDGE },
-  sniper: { atlas: 'figure', build: sniper, maxEdge: FIGURE_EDGE },
-  pioneer: { atlas: 'figure', build: pioneer, maxEdge: FIGURE_EDGE },
-  mg: { atlas: 'figure', build: mgTeam, maxEdge: 0.14 },
-  medic: { atlas: 'figure', build: medic, maxEdge: FIGURE_EDGE },
-  spy: { atlas: 'figure', build: spy, maxEdge: FIGURE_EDGE },
-  tank: { atlas: 'vehicle', build: korvatTank, factions: ['korvat', 'vesper'], maxEdge: 0.085, voxel: 0.0065 },
-};
+/** Umgebaute Typen aller Gruppen / converted types of all groups */
+export const INKED: Partial<Record<UnitTypeId, InkedType>> = Object.assign({}, ...GROUPS.map((g) => g.types));
 
 let enabled = true;
 /** Gezeichnete Einheiten abschalten: dann liefert unitGeometry() ueberall die bisherigen Modelle (Vergleich, Introfilm) / switch inked units off: unitGeometry() then returns the previous models everywhere (comparison, intro film) */

@@ -237,7 +237,7 @@ export function standPose(hands?: [V3, V3]): FigurePose {
 export function kneelPose(hands: [V3, V3]): FigurePose {
   return {
     pelvis: [0, 0.2, 0], handL: hands[0], handR: hands[1],
-    footL: [-0.052, ANKLE_Y, 0.15], footR: [0.052, 0.04, -0.175],
+    footL: [-0.052, ANKLE_Y, 0.15], footR: [0.052, 0.082, -0.175],
     kneePoleL: [0, 0.4, 1], kneePoleR: [0, -1, 0.5], bootR: [0.95, 0, 0],
   };
 }

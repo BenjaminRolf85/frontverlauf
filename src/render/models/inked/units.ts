@@ -49,14 +49,14 @@ export function sniper(f: FactionId, A: AtlasLayout): UvBuilder {
   const hi = fine();
   const pelvis: V3 = [0, 0.062, -0.17], body: V3 = [HALF_PI, 0, 0];
   const G: V3 = [0.034, 0.098, 0.115];
-  b.group({ p: [0.0, 0, -0.02], r: [0, 0.3, 0], s: FIG }, () => {
+  b.group({ p: [0.0, 0.034, -0.02], r: [0, 0.3, 0], s: FIG }, () => {
     figure(b, A, f, {
       pelvis, body, head: [-1.15, 0, 0],
       handL: [0.02, 0.1, G[2] + 0.115], handR: [G[0] + 0.004, G[1] - 0.012, G[2] - 0.01],
       footL: [-0.075, 0.034, -0.415], footR: [0.07, 0.034, -0.42], bootL: [HALF_PI, 0.25, 0], bootR: [HALF_PI, -0.25, 0],
       kneePoleL: [0, -1, 0], kneePoleR: [0, -1, 0], elbowPoleL: [-0.7, -1, 0], elbowPoleR: [0.7, -1, 0],
     }, { armband: true, seed: 23 });
-    rifle(b, A, G, [0, -0.01, 1], { scale: 1.28, scope: true, bipod: 0.07, bayonet: false });
+    rifle(b, A, G, [0, -0.01, 1], { scale: 1.28, scope: true, bipod: 0.098, bayonet: false });
     // Tarnueberwurf: Buckel aus Laubbuescheln auf Ruecken und Beinen / ghillie: a hump of leaf tufts on back and legs
     b.group({ p: pelvis, r: body }, () => b.legacy((k) => {
       const R = rng(77);
@@ -174,11 +174,11 @@ export function mgTeam(f: FactionId, A: AtlasLayout): UvBuilder {
   // Schuetze kniend an den Griffen (Figurmass: Einheitenkoordinaten / FIG) / gunner kneeling at the grips (figure size: unit coordinates / FIG)
   const gripY = ((gy - 0.005) * K) / FIG, gripZ = 0.115;
   b.group({ p: [0, 0, GZ - 0.075 * K - gripZ * FIG], s: FIG }, () =>
-    figure(b, A, f, { ...kneelPose([[-0.03 * K / FIG, gripY, gripZ], [0.03 * K / FIG, gripY, gripZ]]), head: [0.2, 0, 0] }, { detail: hi ? 2 : 0, seed: 41 }),
+    figure(b, A, f, { ...kneelPose([[-0.03 * K / FIG, gripY, gripZ], [0.03 * K / FIG, gripY, gripZ]]), head: [0.2, 0, 0] }, { detail: hi ? 1 : 0, seed: 41 }),
   );
   // Ladeschuetze seitlich mit Gurtkasten / loader at the side with a belt box
   b.group({ p: [-0.26, 0, -0.13], r: [0, 1.1, 0], s: FIG }, () => {
-    figure(b, A, f, kneelPose([[-0.035, 0.22, 0.15], [0.045, 0.21, 0.15]]), { detail: hi ? 1 : 0, pack: hi ? 'pack' : 'none', seed: 43 });
+    figure(b, A, f, kneelPose([[-0.035, 0.22, 0.15], [0.045, 0.21, 0.15]]), { detail: 0, pack: hi ? 'pack' : 'none', seed: 43 });
     b.legacy((k) => k.add(geo.cbox(0.08, 0.06, 0.05, 0.01), L.gear, { p: [0, 0.03, 0.2] }));
   });
   return b;

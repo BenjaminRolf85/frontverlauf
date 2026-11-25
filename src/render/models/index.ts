@@ -26,7 +26,7 @@ import { tank } from './vehicles';
 import { city } from './city';
 import { memo, scaleWithTurrets, withDetail } from './kit';
 export { turretsOf, type TurretRange, type TurretSplit } from './kit';
-import { buildInked, inkedType, inkedUnitsEnabled, setInkedUnits } from './inked';
+import { buildInked, INKED, inkedType, inkedUnitsEnabled, setInkedUnits } from './inked';
 export { INKED, inkedType, inkedUnitsEnabled, setInkedUnits, splitTurrets, warmInked } from './inked';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
@@ -198,6 +198,28 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
   }, { smooth: true, fine: hi }))));
+}
+
+let warmQueue: (() => void)[] = [];
+let warmBusy = false;
+/**
+ * Gezeichnete Einheiten der Fraktionen einer Partie vorab bauen, eine je freier Zeitscheibe: der Aufbau (Verdeckung)
+ * kostet bei hoher Qualitaet um 100 ms je Typ und soll nicht mitten im Zug auffallen. Ohne Browser tut das nichts.
+ * Build the inked units of a match's factions ahead of time, one per idle slice: building (occlusion) costs around
+ * 100 ms per type on high quality and should not show in the middle of a turn. Does nothing without a browser.
+ */
+export function prewarmInked(factions: FactionId[]): void {
+  if (typeof window === 'undefined' || typeof requestAnimationFrame !== 'function') return;
+  const idle: (fn: () => void) => void = typeof requestIdleCallback === 'function' ? (fn) => requestIdleCallback(fn, { timeout: 800 }) : (fn) => { setTimeout(fn, 60); };
+  warmQueue = [];
+  for (const f of factions) for (const t of Object.keys(INKED) as UnitTypeId[]) if (inkedType(t, f)) warmQueue.push(() => { unitGeometry(t, f, null); });
+  const step = () => {
+    const job = warmQueue.shift();
+    if (!job) { warmBusy = false; return; }
+    try { job(); } catch { /* ein Modell darf das Vorwaermen nicht anhalten / one model must not stop the prewarm */ }
+    idle(step);
+  };
+  if (!warmBusy) { warmBusy = true; idle(step); }
 }
 
 /**

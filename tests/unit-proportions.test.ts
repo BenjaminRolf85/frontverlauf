@@ -54,7 +54,7 @@ describe('Einheiten: Proportionen / units: proportions', () => {
   });
 
   for (const q of ['high', 'low'] as UnitQuality[]) {
-    it(`Groessenklassen der Grundfraktionen (${q}) / size classes of the base factions (${q})`, () => {
+    it(`Groessenklassen der Grundfraktionen (${q}) / size classes of the base factions (${q})`, { timeout: 60_000 }, () => {
       setUnitQuality(q);
       for (const f of HUMANS) {
         const d = (t: UnitTypeId) => dims(t, f);

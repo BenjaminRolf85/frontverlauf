@@ -9,6 +9,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { getUnitQuality, setUnitQuality, unitGeometry, unitTriLimit, type UnitQuality } from '../src/render/models';
+import { inkFor } from '../src/render/models/inked/ink';
 import { Builder, capsule, lathe, softBox, softPrism, splitTurrets, taperSoft, turretsOf, withDetail } from '../src/render/models/kit';
 import {
   ALIEN_UNITS, ALVENIA_UNITS, CULT_UNITS, KORVAT_UNITS, MERIDON_UNITS, ROBOT_UNITS, UNIQUE, VELKAR_UNITS, type FactionId, type UnitTypeId,
@@ -37,14 +38,14 @@ const LOW_SLACK = 1.03;
 const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker', 'divineSpark']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
-  infantry: [11650, 4550, 4891], // 11078 / 4119 (Detailrunde 4 / detail round 4)
-  sniper: [13300, 6050, 6285], // 12620 / 5539 (Detailrunde 4 / detail round 4)
+  infantry: [8500, 4100, 4891], // 8086 / 3900 (gezeichnet / inked; vorher 11078 / 4119)
+  sniper: [9750, 4560, 6285], // 9258 / 4340 (gezeichnet / inked; vorher 12620 / 5539)
   jeep: [12150, 5300, 5140], // 11526 / 5028 (Detailrunde 4 / detail round 4)
-  pioneer: [12700, 5250, 5321], // 12090 / 4791 (Detailrunde 4 / detail round 4)
-  mg: [14500, 4750, 5075], // 13803 / 4444 (Detailrunde 4 / detail round 4)
-  medic: [11850, 5350, 5703], // 11254 / 4817 (Detailrunde 4 / detail round 4)
+  pioneer: [9600, 4270, 5321], // 9142 / 4066 (gezeichnet / inked; vorher 12090 / 4791)
+  mg: [10400, 4750, 5075], // 9870 / 4592 (gezeichnet / inked; vorher 13803 / 4444)
+  medic: [10900, 4370, 5703], // 10352 / 4162 (gezeichnet / inked; vorher 11254 / 4817)
   artillery: [12350, 5700, 5839], // 11748 / 5016 (Detailrunde 4 / detail round 4)
-  spy: [8100, 3100, 3237], // 7702 / 2823 (Detailrunde 4 / detail round 4)
+  spy: [6900, 3100, 3237], // 6572 / 2962 (gezeichnet / inked; vorher 7702 / 2823)
   heli: [7100, 3900, 4007], // 6723 / 3695 (Detailrunde 4 / detail round 4)
   tank: [19600, 7850, 7866], // 18655 / 6824 (Detailrunde 4 / detail round 4)
   antiTank: [7700, 3950, 3945], // 7310 / 3634 (Detailrunde 4 / detail round 4)
@@ -101,6 +102,47 @@ const BUDGET: Record<string, [number, number, number]> = {
   scientist: [8300, 3150, 3038], // 7886 / 2998 (Detailrunde 4 / detail round 4)
 };
 
+/**
+ * Gezeichnete Typen (models/inked): Obergrenzen der Tuschegeometrie [hoch, niedrig], gemessen + 5 %. Die Tusche besteht
+ * aus dem Umriss (verschweisste Rohgeometrie, ohne die Unterteilung fuer die Verdeckung) und bei hoher Qualitaet zwei
+ * Dreiecken je Knickkante. Bisher war die Tusche so gross wie das Modell selbst; die Summe aus Flaeche und Tusche
+ * liegt fuer alle gezeichneten Typen unter dem bisherigen Stand (2 x BEFORE_INKED).
+ * Inked types (models/inked): ceilings of the ink geometry [high, low], measured + 5 %. The ink is the silhouette
+ * (welded raw geometry, without the subdivision for the occlusion) plus two triangles per crease edge on high
+ * quality. Before, the ink was as large as the model itself; the sum of fill and ink stays below the previous state
+ * for every inked type (2 x BEFORE_INKED).
+ */
+// Jede Gruppe der Einfuehrung traegt ihre Typen in ihren eigenen Block ein (keine Kollisionen beim Zusammenfuehren).
+// every rollout group enters its types into its own block (no collisions when merging).
+/** Gruppe Figuren (Fusstruppen, Kult, Einzigartige zu Fuss): Tusche [hoch, niedrig] / group figures: ink [high, low] */
+const INK_FIGURES: Record<string, [number, number]> = {
+  infantry: [11700, 3900], // 11112 / 3680
+  sniper: [14750, 4350], // 14040 / 4112
+  pioneer: [12900, 4050], // 12286 / 3846
+  mg: [15500, 4550], // 14720 / 4308
+  medic: [12850, 4150], // 12212 / 3942
+  spy: [8900, 2900], // 8438 / 2742
+};
+/** Gruppe Fahrzeuge (Landfahrzeuge, Roboter) / group vehicles (land vehicles, robots) */
+const INK_VEHICLES: Record<string, [number, number]> = {
+  tank: [14200, 4100], // 13494 / 3886 (Korvat; die anderen Fraktionen folgen / Korvat; the other factions follow)
+};
+/** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
+const INK_NAVAL: Record<string, [number, number]> = {
+};
+const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_NAVAL };
+
+/** Bisherige Modelle derselben Typen: Dreiecke [hoch, niedrig] (Flaeche = Tusche), je Gruppe ein Block / previous models of the same types: triangles [high, low] (fill = ink), one block per group */
+const BEFORE_FIGURES: Record<string, [number, number]> = {
+  infantry: [11078, 4119], sniper: [12620, 5539], pioneer: [12090, 4791], mg: [13803, 4444], medic: [11254, 4817], spy: [7702, 2823],
+};
+const BEFORE_VEHICLES: Record<string, [number, number]> = {
+  tank: [18655, 6824],
+};
+const BEFORE_NAVAL: Record<string, [number, number]> = {
+};
+const BEFORE_INKED: Record<string, [number, number]> = { ...BEFORE_FIGURES, ...BEFORE_VEHICLES, ...BEFORE_NAVAL };
+
 /** Typen und die Fraktionen, mit denen sie gebaut werden / types and the factions they are built with */
 function cases(): [UnitTypeId, FactionId][] {
   const out: [UnitTypeId, FactionId][] = [];
@@ -156,6 +198,24 @@ describe('Einheitenmodelle: Budget / unit models: budget', () => {
       expect(sum).toBeLessThanOrEqual(SUMME[qi]);
       // niedrige Qualitaet bleibt unter dem Stand vor dem Feinschliff / low quality stays below the pre-polish state
       if (q === 'low') expect(sum).toBeLessThan(BEFORE_SUM);
+    }, 180_000);
+  }
+
+  for (const [qi, q] of (['high', 'low'] as UnitQuality[]).entries()) {
+    it(`gezeichnete Typen: Tusche unter der Obergrenze, Flaeche + Tusche unter dem bisherigen Stand (${q}) / inked types: ink below the ceiling, fill + ink below the previous state (${q})`, () => {
+      setUnitQuality(q);
+      const over: string[] = [];
+      for (const [t, f] of cases()) {
+        const g = unitGeometry(t, f, null);
+        if (!g.userData.inked) continue;
+        const fill = tris(g), ink = inkFor(g).index!.count / 3;
+        expect(INK_BUDGET[t], `ink budget for ${t}`).toBeTruthy();
+        if (ink > INK_BUDGET[t][qi]) over.push(`${t} ${f}: ink ${ink} > ${INK_BUDGET[t][qi]}`);
+        // Velkar und Alvenia tragen noch altes Zubehoer ueber die Bruecke: 12 % Luft / Velkar and Alvenia still carry old accessories through the bridge: 12 % headroom
+        if (fill + ink > 2 * BEFORE_INKED[t][qi] * 1.12) over.push(`${t} ${f}: fill + ink ${fill + ink} > ${2 * BEFORE_INKED[t][qi]}`);
+        if (!turretsOf(g).length) expect(g.userData.inkSrc, `${t} ${f}`).toBeTruthy();
+      }
+      expect(over).toEqual([]);
     }, 180_000);
   }
 
