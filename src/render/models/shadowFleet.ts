@@ -9,13 +9,14 @@
  * faction colours (navy, gold), plus a dark camo grey for everything covert.
  * Ursprung unten mittig, Kachel 1x1, Blick +z / origin bottom centre, tile 1x1, facing +z.
  */
-import type * as THREE from 'three';
+import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, memo, mix, shade, type ColorLike, type LathePoint, type V3 } from './kit';
+import { Builder, fine, geo, memo, mix, rng, shade, type ColorLike, type LathePoint, type V3 } from './kit';
 import { look, mat, type Look } from './look';
+import { boltRing, cable, dischargers, grille, ladder, rivetRow, ropeCoil, searchlight, whip } from './detailFleet';
 import { face } from './headgear';
-import { rifle, soldier, standPose } from './soldiers';
+import { kneelPose, rifle, soldier, standPose } from './soldiers';
 import { wheel } from './vehicles';
 
 const HALF_PI = Math.PI / 2;
@@ -69,7 +70,50 @@ export function shadowCommando(f: FactionId, lite = false): Builder {
     b.add(geo.cbox(0.012, 0.05, 0.012, 0.003), mat.metal, { p: [0.07, 0.13 + dy, -0.05], r: [0.3, 0, 0.2] });
     addEmblem(b, f, 0.018, 0.003, L.emblem, { p: [-0.075, 0.22 + dy, 0.03], r: [0, -0.5, 0] });
   }
+  if (!lite && fine()) commandoGear(b, f, L, G, D, dy, grey);
   return b;
+}
+
+/**
+ * Schattenkommando bei hoher Qualitaet: Schalldaempfer und Nachtsichtvisier am Karabiner, Halbmaske, Brillenglaeser,
+ * Rauchgranaten am Koppel, Kletterseil mit Wurfanker, Sprengschnur und Zuendkasten mit Antenne am Rucksack.
+ * Shadow Commando on high quality: suppressor and night sight on the carbine, half mask, goggle lenses, smoke grenades on
+ * the belt, climbing rope with a grappling hook, det cord and a detonator box with an antenna on the pack.
+ */
+function commandoGear(b: Builder, f: FactionId, L: Look, G: V3, D: V3, dy: number, grey: ColorLike) {
+  const v = new THREE.Vector3(D[0], D[1], D[2]).normalize();
+  const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), v), 'XYZ');
+  b.group({ p: G, r: [e.x, e.y, e.z] }, () => {
+    // Schalldaempfer, Nachtsichtvisier / suppressor, night sight
+    b.cyl(0.011, 0.011, 0.07, 10, mat.darkMid, [0, 0.004, 0.25], [HALF_PI, 0, 0]);
+    for (const z of [0.222, 0.278]) b.cyl(0.0118, 0.0118, 0.004, 10, mat.ink, [0, 0.004, z], [HALF_PI, 0, 0]);
+    b.cyl(0.011, 0.012, 0.06, 10, mat.dark, [0, 0.044, 0.06], [HALF_PI, 0, 0]);
+    b.cyl(0.009, 0.009, 0.003, 10, mix(mat.green, mat.glassDark, 0.4), [0, 0.044, 0.091], [HALF_PI, 0, 0]);
+    b.box(0.008, 0.016, 0.01, mat.dark, [0, 0.028, 0.06]);
+  });
+  // Halbmaske und Brillenglaeser / half mask and goggle lenses
+  b.add(geo.rbox(0.062, 0.03, 0.022, 0.008), shade(grey, 0.85), { p: [0.022, 0.246 + dy, 0.045], r: [0.25, 0.3, 0] });
+  for (const k of [-1, 1]) b.box(0.016, 0.008, 0.004, mat.glassDark, [0.018 + k * 0.014 * Math.cos(0.3), 0.282 + dy, 0.056 - k * 0.014 * Math.sin(0.3)], [0, 0.3, 0]);
+  // Rauchgranaten am Koppel / smoke grenades on the belt
+  for (const [x, z] of [[-0.03, 0.075], [-0.005, 0.08]] as [number, number][]) {
+    b.cyl(0.009, 0.009, 0.03, 8, mat.darkMid, [x, 0.125 + dy, z]);
+    b.cyl(0.0092, 0.0092, 0.006, 8, L.secondary, [x, 0.136 + dy, z]);
+  }
+  // Rucksack: Kletterseil, Wurfanker, Sprengschnur, Zuendkasten mit Antenne / pack: climbing rope, grappling hook, det cord, detonator box with an antenna
+  b.group({ p: [-0.01, 0.2 + dy, -0.1], r: [0.45, 0.3, 0] }, () => {
+    b.add(geo.torus(0.035, 0.008, 4, 12), mat.sand, { p: [0.1, -0.01, 0], r: [0, HALF_PI, 0] });
+    b.add(geo.torus(0.025, 0.007, 4, 10), mat.sand, { p: [0.104, -0.01, 0.002], r: [0, HALF_PI, 0] });
+    b.box(0.004, 0.04, 0.004, mat.metal, [-0.1, 0.05, -0.02]);
+    for (const a of [-0.9, 0, 0.9]) b.box(0.003, 0.018, 0.003, mat.metal, [-0.1 + Math.sin(a) * 0.008, 0.072, -0.02], [0, 0, a]);
+    cable(b, [[-0.08, -0.06, 0.04], [-0.04, -0.075, 0.05], [0.02, -0.07, 0.052], [0.07, -0.05, 0.05]], 0.003, mat.red);
+    b.add(geo.rbox(0.04, 0.03, 0.026, 0.005), mat.darkMid, { p: [-0.07, 0.03, -0.06] });
+    b.box(0.02, 0.006, 0.004, mat.windowLit, [-0.07, 0.035, -0.074]);
+    whip(b, [-0.08, 0.045, -0.06], [-0.095, 0.12, -0.09], mat.dark);
+  });
+  // Messer am Unterschenkel / knife on the shin
+  b.add(geo.rbox(0.012, 0.045, 0.008, 0.003), mat.dark, { p: [-0.088, 0.075, 0.1], r: [0.2, 0, 0.1] });
+  b.cyl(0.004, 0.004, 0.018, 6, mat.wood, [-0.088, 0.106, 0.107], [0.2, 0, 0.1]);
+  addEmblem(b, f, 0.012, 0.003, L.emblem, { p: [0.08, 0.21 + dy, 0.0], r: [0, HALF_PI, 0] });
 }
 
 /**
@@ -90,6 +134,8 @@ export function marine(f: FactionId, lite = false): Builder {
   const d = lite ? 1 : 2;
   // Marine-Blau aus der Fraktionsfarbe (Meridon: tiefes Petrol), Weste in der Signalfarbe der Fraktion (Meridon: Orange)
   // naval blue from the faction colour (Meridon: deep petrol), vest in the faction's signal colour (Meridon: orange)
+  // hohe Qualitaet: eigene Zusatzausruestung (Weste, Holster, Karabiner, Helm) / high quality: own extra gear (vest, holster, carbine, helmet)
+  const hi = !lite && fine();
   const navy = mix(mix(L.primaryDark, mat.blue, 0.4), mat.ink, 0.48);
   const navyDark = shade(navy, 0.72);
   const vest = L.secondary;
@@ -134,9 +180,70 @@ export function marine(f: FactionId, lite = false): Builder {
       b.add(d === 2 ? geo.rbox(0.13, 0.11, 0.05, 0.016) : geo.box(0.13, 0.11, 0.05), navyDark, { p: [0, 0.06, -0.09] });
       if (d === 2) b.add(geo.torus(0.028, 0.009, 4, 10), mat.sand, { p: [0, 0.045, -0.118], r: [0, 0, 0] });
       if (d === 2) addEmblem(b, f, 0.016, 0.003, L.emblem, { p: [0.05, 0.095, 0.067] });
+      if (hi) marineVest(b, L, vest, web, navyDark);
     });
+    if (hi) {
+      // Beinholster am Koppel mit Pistole und Beinriemen / drop-leg holster on the belt with a pistol and a leg strap
+      b.group({ p: [pelvis[0] + 0.084, pelvis[1] - 0.04, pelvis[2] + 0.004], r: [0, 0, 0.08] }, () => {
+        b.box(0.008, 0.03, 0.01, web, [0, 0.03, 0]);
+        b.add(geo.rbox(0.014, 0.05, 0.03, 0.005), web, {});
+        b.add(geo.rbox(0.012, 0.022, 0.014, 0.003), mat.dark, { p: [0, 0.03, -0.004], r: [-0.25, 0, 0] });
+        b.box(0.016, 0.006, 0.034, navyDark, [-0.004, -0.012, 0]);
+      });
+      marineRifle(b, L, G, D);
+    }
   });
   return b;
+}
+
+/**
+ * Marine-Weste bei hoher Qualitaet (lokal im Oberkoerper): MOLLE-Leiste, Namensband, Funkgeraet mit Antenne, Messer,
+ * Handgranaten, Trinkschlauch, Seitentaschen und Kompressionsriemen am Rucksack.
+ * Marine vest on high quality (torso local): MOLLE strip, name tape, radio with an antenna, knife, grenades, hydration
+ * tube, side pockets and compression straps on the pack.
+ */
+function marineVest(b: Builder, L: Look, vest: ColorLike, web: ColorLike, navyDark: ColorLike) {
+  // MOLLE-Leiste quer ueber die Weste / MOLLE strip across the vest
+  for (const y of [0.056, 0.07]) b.box(0.15, 0.004, 0.004, shade(vest, 0.72), [0, y, 0.067]);
+  // Namensband und Flaggenabzeichen / name tape and flag patch
+  b.box(0.034, 0.01, 0.003, mat.paper, [0.045, 0.088, 0.066]);
+  b.box(0.022, 0.014, 0.003, L.primary, [-0.045, 0.088, 0.066]);
+  // Funkgeraet links mit Peitschenantenne / radio on the left with a whip antenna
+  b.add(geo.rbox(0.026, 0.044, 0.026, 0.005), web, { p: [-0.092, 0.07, 0.024] });
+  b.box(0.012, 0.008, 0.008, mat.dark, [-0.094, 0.096, 0.03]);
+  whip(b, [-0.094, 0.098, 0.03], [-0.104, 0.19, -0.035], mat.dark);
+  // Messer kopfueber am Brustgurt / knife upside down on the chest strap
+  b.box(0.01, 0.04, 0.006, mat.dark, [0.045, 0.045, 0.071]);
+  b.cyl(0.004, 0.004, 0.018, 6, mat.wood, [0.045, 0.074, 0.071]);
+  // Handgranaten an den Seiten des Koppels / grenades on the sides of the belt
+  for (const sx of [-1, 1]) {
+    b.add(geo.sphere(0.01, 8, 5), mix(web, mat.leafDark, 0.4), { p: [sx * 0.09, 0.03, 0.045] });
+    b.box(0.006, 0.006, 0.004, mat.metal, [sx * 0.09, 0.042, 0.045]);
+  }
+  // Trinkschlauch vom Rucksack ueber die Schulter / hydration tube from the pack over the shoulder
+  cable(b, [[0.035, 0.1, -0.11], [0.065, 0.13, -0.04], [0.065, 0.12, 0.03], [0.055, 0.095, 0.068]], 0.003, mat.dark);
+  // Rucksack: Seitentaschen und Kompressionsriemen / pack: side pockets and compression straps
+  for (const sx of [-1, 1]) {
+    b.add(geo.rbox(0.022, 0.06, 0.036, 0.006), navyDark, { p: [sx * 0.074, 0.05, -0.09] });
+    b.box(0.012, 0.11, 0.004, web, [sx * 0.035, 0.06, -0.116]);
+    b.box(0.014, 0.008, 0.006, mat.metal, [sx * 0.035, 0.04, -0.117]);
+  }
+}
+
+/** Zubehoer am Karabiner: Rotpunktvisier, Lampe, Frontgriff, zweites Magazin / carbine accessories: red-dot sight, light, foregrip, second magazine */
+function marineRifle(b: Builder, L: Look, grip: V3, dir: V3) {
+  const v = new THREE.Vector3(dir[0], dir[1], dir[2]).normalize();
+  const e = new THREE.Euler().setFromQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), v), 'XYZ');
+  b.group({ p: grip, r: [e.x, e.y, e.z] }, () => {
+    b.add(geo.rbox(0.016, 0.02, 0.032, 0.004), mat.dark, { p: [0, 0.042, 0.06] });
+    b.box(0.012, 0.012, 0.003, mat.glassDark, [0, 0.044, 0.077]);
+    b.box(0.01, 0.008, 0.02, mat.darkMid, [0, 0.028, 0.06]);
+    b.cyl(0.006, 0.006, 0.032, 8, mat.dark, [0.014, -0.004, 0.17], [HALF_PI, 0, 0]);
+    b.cyl(0.005, 0.005, 0.003, 8, mat.lamp, [0.014, -0.004, 0.187], [HALF_PI, 0, 0]);
+    b.add(geo.rbox(0.012, 0.03, 0.014, 0.004), mat.dark, { p: [0, -0.034, 0.16] });
+    b.add(geo.taper(0.018, 0.022, 0.018, 0.02, 0.045), mat.darkMid, { p: [0.021, -0.042, 0.072], r: [0.3, 0, 0] });
+    b.box(0.04, 0.006, 0.026, L.secondary, [0.01, -0.035, 0.07], [0.3, 0, 0]);
+  });
 }
 
 /**
@@ -159,6 +266,17 @@ function marineHelmet(b: Builder, L: Look, d: 0 | 1 | 2, navy: ColorLike) {
   }
   // Kinnriemen / chin strap
   if (d === 2) for (const sx of [-1, 1]) b.box(0.006, 0.05, 0.012, mat.dark, [sx * 0.052, 0.045, 0.012]);
+  if (d === 2 && fine()) {
+    // Nachtsichthalterung vorn, Klettfeld hinten, Gehoerschutz mit Mikrofon; alles buendig, keine Ringe am Kopf
+    // night-vision mount at the front, velcro patch at the back, ear protection with a mic; all flush, no rings on the head
+    b.add(geo.rbox(0.026, 0.018, 0.012, 0.004), mat.dark, { p: [0, 0.112, 0.05], r: [-0.75, 0, 0] });
+    b.box(0.012, 0.006, 0.006, mat.metal, [0, 0.106, 0.06], [-0.75, 0, 0]);
+    b.box(0.034, 0.02, 0.006, L.primary, [0, 0.094, -0.07], [0.4, 0, 0]);
+    b.box(0.014, 0.008, 0.008, mat.yellow, [0, 0.126, -0.034], [0.6, 0, 0]);
+    for (const sx of [-1, 1]) b.add(geo.rbox(0.016, 0.032, 0.028, 0.006), mat.darkMid, { p: [sx * 0.056, 0.048, -0.008] });
+    b.tube([0.058, 0.036, 0.004], [0.032, 0.024, 0.056], 0.0022, 4, mat.dark);
+    b.box(0.008, 0.006, 0.006, mat.ink, [0.03, 0.023, 0.058]);
+  }
 }
 
 /**
@@ -231,7 +349,62 @@ export function fogCutter(f: FactionId, carried: THREE.BufferGeometry | null): B
   // Ladung / cargo
   if (carried) b.addColored(carried, { p: [0, top, 0.08], s: 0.5 });
   else b.add(geo.cbox(0.07, 0.04, 0.07, 0.01), L.gear, { p: [0, top + 0.02, 0.08] });
+  if (!lo) fogCutterRich(b, f, L, grey, len, w, top);
   return b;
+}
+
+/**
+ * Nebelkutter bei hoher Qualitaet: Gummiwulst um das Deck, Klampen, Plattenfugen, Fensterrahmen und Radarkuppel auf
+ * der Bruecke, Scheinwerfer, Schutzschild und Munitionskasten am MG mit Schuetze in Tarnkutte, Steuerpinnen und
+ * Kraftstoffleitungen an den Aussenbordern, Nebeltopf-Werfer am Bug, Stangen und Laubbuesche im Tarnnetz, Leine, Kanister.
+ * Fog Cutter on high quality: rubber collar around the deck, cleats, plate seams, window frames and a radar dome on the
+ * bridge, searchlight, shield and ammo box on the MG with a gunner in a camo smock, tillers and fuel lines on the
+ * outboards, smoke pot launchers at the bow, poles and leaf tufts in the camo net, a rope, jerrycans.
+ */
+function fogCutterRich(b: Builder, f: FactionId, L: Look, grey: ColorLike, len: number, w: number, top: number) {
+  const rub = mix(mat.dark, grey, 0.3);
+  // Gummiwulst entlang der Deckkante (Seiten und Bug) / rubber collar along the deck edge (sides and bow)
+  const edge: V3[] = [[w * 0.47, top - 0.006, -len * 0.46], [w * 0.47, top - 0.006, len * 0.24], [w * 0.34, top - 0.006, len * 0.38], [0, top - 0.006, len * 0.475],
+    [-w * 0.34, top - 0.006, len * 0.38], [-w * 0.47, top - 0.006, len * 0.24], [-w * 0.47, top - 0.006, -len * 0.46]];
+  cable(b, edge, 0.006, rub, 6);
+  for (const s of [-1, 1]) {
+    // Klampen und Plattenfugen / cleats and plate seams
+    for (const z of [-0.26, 0.05, 0.17]) {
+      b.box(0.004, 0.005, 0.016, mat.metal, [s * w * 0.4, top + 0.004, z]);
+      for (const dz of [-0.006, 0.006]) b.box(0.004, 0.006, 0.004, mat.metal, [s * w * 0.4, top + 0.001, z + dz]);
+    }
+    for (const z of [-0.22, -0.1, 0.02, 0.12]) b.box(0.003, 0.026, 0.003, shade(grey, 0.7), [s * (w * 0.465 + 0.001), 0.022, z]);
+    // Steuerpinne und Kraftstoffleitung am Aussenborder / tiller and fuel line on the outboard
+    b.tube([s * 0.06, top + 0.02, -len / 2 + 0.016], [s * 0.06 - s * 0.01, top + 0.036, -len / 2 + 0.06], 0.003, 4, mat.dark);
+    cable(b, [[s * 0.06, top + 0.03, -len / 2 + 0.015], [s * 0.04, top + 0.008, -len / 2 + 0.04], [s * 0.035, top + 0.002, -len / 2 + 0.07]], 0.0022, mat.red);
+    grille(b, [s * 0.06 + s * 0.0235, top + 0.022, -len / 2 - 0.01], 0.03, 0.02, 3, mat.darkMid, mat.ink, [0, s * HALF_PI, 0]);
+    // Nebeltopf-Werfer am Bug / smoke pot launchers at the bow
+    dischargers(b, [s * w * 0.3, top + 0.012, len * 0.3], s * 0.7, 3, 0.0065, mat.darkMid, mat.ink);
+  }
+  // Bruecke: Fensterrahmen, Radarkuppel, Scheinwerfer, Horn / bridge: window frames, radar dome, searchlight, horn
+  for (const x of [-0.045, -0.015, 0.015, 0.045]) b.box(0.004, 0.026, 0.004, mat.ink, [x, top + 0.035, -0.054], [-0.45, 0, 0]);
+  b.cyl(0.018, 0.018, 0.01, 12, mat.white, [-0.035, top + 0.06, -0.15]);
+  b.add(geo.hemi(0.018, 12, 3), mat.white, { p: [-0.035, top + 0.065, -0.15] });
+  searchlight(b, [0.055, top + 0.068, -0.08], 0, 0.008, mat.dark, mat.lamp);
+  b.cyl(0.004, 0.006, 0.014, 6, mat.metalLight, [0.05, top + 0.062, -0.165], [HALF_PI, 0, 0]);
+  whip(b, [0.05, top + 0.055, -0.17], [0.06, top + 0.15, -0.19], mat.dark);
+  // MG: Schutzschild, Munitionskasten, Gurt / MG: shield, ammo box, belt
+  b.add(geo.cbox(0.05, 0.03, 0.004, 0.002), grey, { p: [-0.035, top + 0.092, -0.07] });
+  b.box(0.02, 0.016, 0.014, L.gear, [-0.055, top + 0.078, -0.09]);
+  b.box(0.012, 0.004, 0.02, mat.gold, [-0.045, top + 0.084, -0.08], [0, 0.4, 0.3]);
+  // Schuetze am MG in Tarnkutte (Besatzung, ohne Beine) / gunner at the MG in a camo smock (crew, no legs)
+  b.group({ p: [-0.035, top - 0.025, -0.135], s: 0.5 }, () =>
+    soldier(b, f, { ...standPose([[0.0, 0.23, 0.11], [0.03, 0.2, 0.08]]) }, { detail: 0, seed: 84, noLegs: true, coat: true, coatColor: grey }));
+  // Tarnnetz: Stangen und Laubbuesche / camo net: poles and leaf tufts
+  const R = rng(311);
+  for (let i = 0; i < 9; i++) {
+    const x = (R() - 0.5) * 0.15, z = -0.3 + R() * 0.12;
+    b.add(geo.ico(0.012 + R() * 0.008, 0), i % 2 ? mat.leafDark : mix(grey, mat.leaf, 0.5), { p: [x, top + 0.018, z] });
+  }
+  for (const s of [-1, 1]) b.tube([s * 0.075, top, -0.28], [s * 0.065, top + 0.04, -0.25], 0.0025, 4, mat.wood);
+  // Leine und Kanister vorn / rope and jerrycans at the front
+  ropeCoil(b, [0.06, top + 0.003, 0.17], 0.014, 0.003, mat.sand);
+  for (const dx of [0, 0.022]) b.add(geo.cbox(0.018, 0.026, 0.01, 0.002), L.primaryDark, { p: [-0.07 + dx, top + 0.013, 0.16] });
 }
 
 /**
@@ -248,7 +421,7 @@ export function guidedMissile(f: FactionId, lite = false): Builder {
   const grey = shadowGrey(f);
   // niedrige Qualitaet: weniger Segmente und ohne Kleinteile / low quality: fewer segments and without small parts
   const lo = lite || !fine();
-  const seg = lo ? 8 : 16;
+  const seg = lo ? 8 : 22;
   // Startwagen: Rahmen, zwei Achsen, Stuetzen mit Tellern / launch trailer: frame, two axles, outriggers with pads
   const wr = 0.036;
   for (const x of [-0.085, 0.085]) for (const z of [-0.1, 0.07]) wheel(b, x, wr, z, wr, 0.03, { rim: L.trim, lite: lo });
@@ -310,8 +483,68 @@ export function guidedMissile(f: FactionId, lite = false): Builder {
     b.cyl(0.024, 0.024, 0.03, 12, mat.dark, [-0.05, wr + 0.07, 0.11], [0, 0, HALF_PI]);
     b.cyl(0.018, 0.018, 0.032, 12, mat.yellow, [-0.05, wr + 0.07, 0.11], [0, 0, HALF_PI]);
     b.tube([-0.05, wr + 0.07, 0.09], [0, wr + 0.09, -0.02], 0.003, 4, mat.ink);
+    missileRich(b, f, L, grey, wr, rp, ang);
   }
   return b;
+}
+
+/**
+ * Lenkflugkoerper bei hoher Qualitaet: Rahmenlaengstraeger und Quertraeger, Kotfluegel, Deichsel mit Zugoese, Spindeln
+ * an den Stuetzen, Rueckleuchten, Startschuhe und Strahlablenker an der Schiene, Wartungsklappen, Flossenwurzeln,
+ * Nabelkabel zur Rakete, Bedienpult mit Griffen und Antenne.
+ * Guided Missile on high quality: frame rails and cross members, mudguards, a drawbar with a towing eye, screw jacks on
+ * the outriggers, tail lights, launch shoes and a blast deflector on the rail, access panels, fin root fairings, an
+ * umbilical cable to the missile, a console with handles and an antenna.
+ */
+function missileRich(b: Builder, f: FactionId, L: Look, grey: ColorLike, wr: number, rp: V3, ang: number) {
+  // Rahmen: Laengs- und Quertraeger unter der Plattform / frame: rails and cross members under the deck
+  for (const sx of [-1, 1]) b.box(0.012, 0.016, 0.36, mat.dark, [sx * 0.05, wr + 0.002, -0.02]);
+  for (const z of [-0.16, -0.02, 0.12]) b.box(0.1, 0.01, 0.012, mat.dark, [0, wr + 0.002, z]);
+  // Kotfluegel ueber den Raedern / mudguards over the wheels
+  for (const sx of [-1, 1]) for (const z of [-0.1, 0.07]) {
+    b.add(geo.cyl(0.045, 0.045, 0.036, 10, true), shade(grey, 0.9), { p: [sx * 0.085, wr, z], r: [0, 0, HALF_PI] });
+    b.box(0.038, 0.004, 0.03, shade(grey, 0.9), [sx * 0.085, wr + 0.045, z]);
+  }
+  // Deichsel mit Zugoese / drawbar with a towing eye
+  b.tube([-0.04, wr + 0.01, 0.15], [0, wr - 0.005, 0.2], 0.005, 5, mat.darkMid);
+  b.tube([0.04, wr + 0.01, 0.15], [0, wr - 0.005, 0.2], 0.005, 5, mat.darkMid);
+  b.add(geo.torus(0.01, 0.003, 4, 8), mat.dark, { p: [0, wr - 0.005, 0.21], r: [HALF_PI, 0, 0] });
+  // Spindeln mit Kurbeln an den Stuetzen / screw jacks with cranks on the outriggers
+  for (const sx of [-1, 1]) for (const z of [-0.17, 0.13]) {
+    b.cyl(0.005, 0.005, 0.04, 6, mat.metalLight, [sx * 0.11, 0.026, z]);
+    b.box(0.018, 0.003, 0.003, mat.dark, [sx * 0.11, 0.046, z], [0, 0.6, 0]);
+  }
+  // Rueckleuchten / tail lights
+  for (const sx of [-1, 1]) b.box(0.014, 0.008, 0.004, mat.red, [sx * 0.055, wr + 0.022, -0.194]);
+  // Schiene: Startschuhe, Nieten, Strahlablenker hinten / rail: launch shoes, rivets, blast deflector at the rear
+  b.group({ p: rp, r: [-ang, 0, 0] }, () => {
+    for (const z of [0.05, 0.22]) b.add(geo.cbox(0.022, 0.03, 0.02, 0.004), mat.darkMid, { p: [0, 0.042, z] });
+    for (const sx of [-1, 1]) for (let i = 0; i < 8; i++) b.box(0.003, 0.003, 0.003, mat.metal, [sx * 0.027, 0.006, 0.02 + i * 0.044]);
+    b.add(geo.cbox(0.09, 0.07, 0.006, 0.003), mat.dark, { p: [0, 0.04, -0.022], r: [0.4, 0, 0] });
+    for (let i = 0; i < 4; i++) b.box(0.08, 0.004, 0.003, mat.darkMid, [0, 0.016 + i * 0.016, -0.019], [0.4, 0, 0]);
+    // Wartungsklappen und Flossenwurzeln am Rumpf / access panels and fin root fairings on the body
+    const my = 0.072;
+    for (const [a, z] of [[0.4, 0.2], [-0.5, 0.24], [2.6, 0.18]] as [number, number][]) {
+      b.box(0.016, 0.003, 0.026, shade(L.primary, 0.75), [Math.sin(a) * 0.0425, my + Math.cos(a) * 0.0425, 0.02 + z], [0, 0, -a]);
+    }
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+      b.box(0.008, 0.006, 0.08, mat.dark, [Math.sin(a) * 0.044, my + Math.cos(a) * 0.044, 0.12], [0, 0, -a]);
+    }
+    // Nabelkabel zur Rakete / umbilical cable to the missile
+    cable(b, [[0.03, 0.02, 0.12], [0.04, 0.05, 0.14], [0.03, 0.08, 0.15]], 0.003, mat.yellow);
+  });
+  // Bedienpult: Griffe, Antenne, Schalter / console: handles, antenna, switches
+  for (const sx of [-1, 1]) b.tube([0.05 + sx * 0.022, wr + 0.08, 0.137], [0.05 + sx * 0.022, wr + 0.06, 0.145], 0.0025, 4, mat.dark);
+  for (let i = 0; i < 3; i++) b.box(0.005, 0.005, 0.004, i === 1 ? mat.red : mat.yellow, [0.04 + i * 0.01, wr + 0.06, 0.137]);
+  whip(b, [0.065, wr + 0.09, 0.095], [0.075, wr + 0.2, 0.08], mat.dark);
+  // Bediener kniet hinter dem Wagen mit Steuergeraet / operator kneels behind the trailer with a control unit
+  b.group({ p: [-0.15, 0, -0.14], r: [0, 1.1, 0], s: 0.62 }, () => {
+    const hand: [V3, V3] = [[-0.03, 0.2, 0.12], [0.03, 0.2, 0.12]];
+    soldier(b, f, { ...kneelPose(hand), head: [-0.2, 0, 0] }, { detail: 1, seed: 61 });
+    b.add(geo.cbox(0.06, 0.016, 0.04, 0.004), mat.darkMid, { p: [0, 0.205, 0.13], r: [0.5, 0, 0] });
+    b.box(0.034, 0.004, 0.022, mat.windowLit, [0, 0.214, 0.132], [0.5, 0, 0]);
+  });
 }
 
 /** Schmales Band um einen Rumpf (offener Zylinder, keine Deckel) / narrow band around a body (open cylinder, no caps) */
@@ -346,7 +579,18 @@ export function radarTruck(f: FactionId, lite = false): Builder {
     b.add(geo.cyl(0.03, 0.03, 0.02, lite ? 6 : 10), L.primary, { p: [0, ty + 0.235, rz + 0.015], r: [0.5 + HALF_PI, 0, 0] });
     b.tube([0, ty + 0.235, rz + 0.03], [0, ty + 0.275, rz + 0.15], 0.005, 4, mat.dark);
     b.add(geo.sphere(0.016, 8, 4), L.primary, { p: [0, ty + 0.278, rz + 0.155] });
+    if (!lite && fine()) {
+      // Schuesselrand, drei Streben zum Speisehorn, Bolzenring am Drehkranz, Kabel / dish rim, three struts to the feed horn, bolt ring on the turntable, cable
+      b.group({ p: [0, ty + 0.235, rz + 0.025], r: [-HALF_PI + 0.5, 0, 0] }, () => b.add(geo.torus(0.165, 0.005, 4, 28), mat.metalLight, { r: [HALF_PI, 0, 0] }));
+      for (const t of [HALF_PI, HALF_PI + (Math.PI * 2) / 3, HALF_PI + (Math.PI * 4) / 3]) {
+        const r = 0.155;
+        b.tube([r * Math.cos(t), ty + 0.235 + 0.878 * r * Math.sin(t), rz + 0.025 + 0.479 * r * Math.sin(t)], [0, ty + 0.276, rz + 0.148], 0.0025, 4, mat.dark);
+      }
+      boltRing(b, [0, ty + 0.031, rz], 0.04, 10, 0.005, mat.dark);
+      cable(b, [[0.03, ty + 0.02, rz], [0.016, ty + 0.12, rz - 0.01], [0.01, ty + 0.2, rz - 0.01]], 0.003, mat.ink);
+    }
   });
+  if (!lite && fine()) radarTruckRich(b, f, L, wr, by);
   // Antennen und Generator / antennas and generator
   if (!lite) {
     b.tube([-0.09, by + 0.1, -0.16], [-0.09, by + 0.26, -0.17], 0.003, 4, mat.dark);
@@ -354,6 +598,61 @@ export function radarTruck(f: FactionId, lite = false): Builder {
     b.add(geo.cbox(0.05, 0.04, 0.05, 0.008), mat.darkMid, { p: [0.06, by + 0.12, 0.08] });
   }
   return b;
+}
+
+/**
+ * Radarwagen bei hoher Qualitaet: Scheinwerfer mit Schutzgittern, Kuehlergrill, Stossstange, Spiegel, Scheibenwischer,
+ * Tueren mit Griffen und Trittbrettern, Rundumleuchte, Staukaesten, Schmutzfaenger, Nietreihen und Hecktueren am
+ * Kofferaufbau, Leiter, Klimageraet, Luftgitter, Kabeltrommel und vier Abstuetzungen.
+ * Radar Truck on high quality: headlights with guards, radiator grille, bumper, mirrors, wipers, doors with handles and
+ * steps, a beacon, stowage boxes, mud flaps, rivet rows and rear doors on the box body, a ladder, an air conditioner,
+ * vents, a cable drum and four levelling jacks.
+ */
+function radarTruckRich(b: Builder, f: FactionId, L: Look, wr: number, by: number) {
+  const grey = shadowGrey(f);
+  // Front: Scheinwerfer mit Gitter, Wischer / front: headlights with guards, wipers
+  for (const sx of [-1, 1]) {
+    b.cyl(0.013, 0.013, 0.008, 10, mat.dark, [sx * 0.07, by + 0.022, 0.198], [HALF_PI, 0, 0]);
+    b.cyl(0.01, 0.01, 0.003, 10, mat.lamp, [sx * 0.07, by + 0.022, 0.203], [HALF_PI, 0, 0]);
+    for (const dy of [-0.006, 0.006]) b.box(0.026, 0.0025, 0.0025, mat.dark, [sx * 0.07, by + 0.022 + dy, 0.207]);
+    b.box(0.003, 0.03, 0.002, mat.ink, [sx * 0.04, by + 0.05, 0.2], [0, 0, sx * 0.6]);
+    // Spiegel am Arm, Tuerfuge, Griff, Trittbrett / mirror on an arm, door seam, handle, step
+    b.tube([sx * 0.1, by + 0.06, 0.18], [sx * 0.125, by + 0.075, 0.185], 0.002, 3, mat.dark);
+    b.add(geo.cbox(0.006, 0.026, 0.014, 0.002), mat.dark, { p: [sx * 0.128, by + 0.075, 0.185] });
+    b.box(0.003, 0.07, 0.003, shade(L.hull, 0.7), [sx * 0.1005, by + 0.045, 0.1]);
+    b.box(0.004, 0.003, 0.012, mat.metalLight, [sx * 0.101, by + 0.05, 0.12]);
+    b.box(0.02, 0.004, 0.05, mat.dark, [sx * 0.105, by - 0.008, 0.14]);
+    // Staukasten zwischen den Achsen, Schmutzfaenger / stowage box between the axles, mud flap
+    b.add(geo.cbox(0.026, 0.03, 0.04, 0.004), L.hullDark, { p: [sx * 0.098, wr + 0.0, -0.06] });
+    b.box(0.03, 0.035, 0.003, mat.ink, [sx * 0.115, wr - 0.02, -0.2]);
+  }
+  // Kuehlergrill und Stossstange / radiator grille and bumper
+  grille(b, [0, by + 0.025, 0.1975], 0.08, 0.03, 5, mat.dark, mat.ink);
+  b.add(geo.cbox(0.21, 0.014, 0.012, 0.003), mat.dark, { p: [0, by - 0.006, 0.202] });
+  // Dachgepaecktraeger mit Kiste / roof rack with a box
+  for (const sx of [-1, 1]) b.box(0.004, 0.006, 0.08, mat.dark, [sx * 0.07, by + 0.094, 0.12]);
+  b.add(geo.cbox(0.05, 0.02, 0.04, 0.004), L.hullDark, { p: [0.02, by + 0.107, 0.13] });
+  // Rundumleuchte auf dem Fahrerhaus / beacon on the cab roof
+  b.cyl(0.008, 0.009, 0.01, 8, mat.orange, [-0.06, by + 0.095, 0.16]);
+  // Kofferaufbau: Nietreihen, Hecktueren, Leiter, Klimageraet, Gitter, Kabeltrommel / box body: rivet rows, rear doors, ladder, air conditioner, vents, cable drum
+  for (const sx of [-1, 1]) for (const y of [by + 0.008, by + 0.092]) rivetRow(b, [sx * 0.106, y, -0.17], [sx * 0.106, y, 0.05], 12, 0.004, mat.dark);
+  for (const sx of [-1, 1]) {
+    b.box(0.098, 0.085, 0.003, shade(grey, 0.9), [sx * 0.05, by + 0.05, -0.181]);
+    b.box(0.004, 0.02, 0.004, mat.metalLight, [sx * 0.008, by + 0.05, -0.184]);
+    for (const y of [by + 0.02, by + 0.08]) b.box(0.006, 0.008, 0.004, mat.dark, [sx * 0.098, y, -0.183]);
+  }
+  ladder(b, [-0.07, by - 0.03, -0.186], 0.13, 0.03, 0, mat.metal);
+  b.add(geo.cbox(0.02, 0.05, 0.06, 0.004), mat.white, { p: [-0.115, by + 0.055, -0.1] });
+  grille(b, [-0.1255, by + 0.055, -0.1], 0.05, 0.04, 4, mat.white, mat.dark, [0, -HALF_PI, 0]);
+  grille(b, [0.1065, by + 0.07, 0.03], 0.03, 0.02, 3, shade(grey, 0.8), mat.ink, [0, HALF_PI, 0]);
+  b.cyl(0.022, 0.022, 0.04, 12, mat.dark, [0.06, by + 0.13, -0.15], [0, 0, HALF_PI]);
+  b.cyl(0.016, 0.016, 0.042, 12, mat.yellow, [0.06, by + 0.13, -0.15], [0, 0, HALF_PI]);
+  for (const sx of [-1, 1]) b.box(0.004, 0.03, 0.03, mat.dark, [0.06 + sx * 0.021, by + 0.115, -0.15]);
+  // vier Abstuetzungen an den Ecken des Koffers / four levelling jacks at the corners of the box body
+  for (const sx of [-1, 1]) for (const z of [-0.17, 0.05]) {
+    b.cyl(0.006, 0.006, by - 0.006, 6, mat.metal, [sx * 0.112, (by - 0.006) / 2 + 0.006, z]);
+    b.cyl(0.014, 0.016, 0.006, 8, mat.dark, [sx * 0.112, 0.003, z]);
+  }
 }
 
 /** Raketensilo: Betonring, Silodeckel halb offen, Rakete mit Goldspitze, Kontrollkasten, Antenne, Fahne / rocket silo: concrete ring, hatch half open, rocket with a gold tip, control box, antenna, flag */

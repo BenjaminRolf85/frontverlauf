@@ -50,15 +50,15 @@ const BUDGET: Record<string, [number, number, number]> = {
   antiTank: [4750, 3950, 3945], // 4520 / 3749
   antiAir: [5700, 5500, 6024], // 5412 / 5220
   mineLayer: [6400, 6050, 6430], // 6085 / 5718
-  landingBoat: [2400, 2150, 2276], // 2259 / 2020
-  submarine: [4050, 3900, 3792], // 3849 / 3674
-  destroyer: [5700, 5550, 5748], // 5422 / 5280
-  battleship: [6800, 6650, 7131], // 6449 / 6307
-  grey: [4350, 4300, 4264], // 4136 / 4072
-  terraformer: [4500, 4500, 4312], // 4240 / 4240
-  skimmer: [4450, 4450, 4756], // 4228 / 4228
-  mech: [6700, 6300, 6364], // 6348 / 5964
-  tripod: [7500, 7500, 7937], // 7099 / 7099
+  landingBoat: [4700, 2150, 2276], // 4472 / 2020 (Detailrunde 4 / detail round 4)
+  submarine: [8150, 3900, 3792], // 7749 / 3674 (Detailrunde 4 / detail round 4)
+  destroyer: [13700, 5550, 5748], // 13016 / 5420 (Detailrunde 4 / detail round 4)
+  battleship: [17050, 6650, 7131], // 16232 / 6569 (Detailrunde 4 / detail round 4)
+  grey: [6950, 4300, 4264], // 6612 / 4072 (Detailrunde 4 / detail round 4)
+  terraformer: [9400, 4500, 4312], // 8952 / 4240 (Detailrunde 4 / detail round 4)
+  skimmer: [8550, 4450, 4756], // 8114 / 4228 (Detailrunde 4 / detail round 4)
+  mech: [10900, 6300, 6364], // 10356 / 5964 (Detailrunde 4 / detail round 4)
+  tripod: [13300, 7500, 7937], // 12627 / 7099 (Detailrunde 4 / detail round 4)
   zealot: [10150, 4900, 4716], // 9646 / 4656 (Detailrunde 4, vorher 5576 / detail round 4, before 5576)
   torchbearer: [10450, 5100, 4984], // 9918 / 4848 (Detailrunde 4, vorher 5768 / detail round 4, before 5768)
   prophet: [10200, 4800, 5026], // 9680 / 4534 (Detailrunde 4, vorher 5454 / detail round 4, before 5454)
@@ -85,19 +85,19 @@ const BUDGET: Record<string, [number, number, number]> = {
   teslaTank: [7550, 7400, 7212], // 7188 / 7008
   octocopter: [4500, 4500, 4876], // 4252 / 4252
   railSniper: [5950, 4750, 4951], // 5635 / 4482
-  lightWarden: [8600, 6850, 7252], // 8178 / 6477
-  reliquary: [6250, 6050, 6278], // 5910 / 5750
-  sunLance: [5100, 4550, 5013], // 4843 / 4295
+  lightWarden: [9850, 6850, 7252], // 9354 / 6181 (Detailrunde 4 / detail round 4)
+  reliquary: [9400, 6050, 6278], // 8944 / 5318 (Detailrunde 4 / detail round 4)
+  sunLance: [8450, 4550, 5013], // 8043 / 4180 (Detailrunde 4 / detail round 4)
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
-  divineSpark: [7450, 6650, 6338], // 7390 / 6296 (Landkreuzer, vorher 7081 / 6338 / land cruiser, before 7081 / 6338)
+  divineSpark: [16550, 6650, 6338], // 15729 / 6296 (Landkreuzer, vorher 7081 / 6338 / land cruiser, before 7081 / 6338) (Detailrunde 4 / detail round 4)
   steppeColossus: [9350, 8800, 8643], // 8868 / 8369
-  shadowCommando: [5150, 3800, 3531], // 4883 / 3613 (Lesbarkeit: Sprengrucksack / readability: demolition pack)
-  fogCutter: [2250, 1800, 704], // 2096 / 1680 (Feinschliff Runde 3 / polish round 3)
-  guidedMissile: [4200, 1400, 668], // 3976 / 1324 (Feinschliff Runde 3 / polish round 3)
-  radarTruck: [4200, 3600, 3470], // 3962 / 3386
+  shadowCommando: [6450, 3800, 3531], // 6119 / 3213 (Lesbarkeit: Sprengrucksack / readability: demolition pack) (Detailrunde 4 / detail round 4)
+  fogCutter: [5250, 1800, 704], // 4983 / 1680 (Feinschliff Runde 3 / polish round 3) (Detailrunde 4 / detail round 4)
+  guidedMissile: [7750, 1400, 668], // 7380 / 1324 (Feinschliff Runde 3 / polish round 3) (Detailrunde 4 / detail round 4)
+  radarTruck: [7300, 3600, 3470], // 6927 / 3382 (Detailrunde 4 / detail round 4)
   // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
-  marine: [5150, 3900, 3698], // 4874 / 3698
-  swarmMother: [16350, 16250, 15432], // 15560 / 15432
+  marine: [6300, 3900, 3698], // 5966 / 3698 (Detailrunde 4 / detail round 4)
+  swarmMother: [28050, 16250, 15432], // 26670 / 15432 (Detailrunde 4 / detail round 4)
   scientist: [8300, 3150, 3038], // 7886 / 2998 (Detailrunde 4, vorher 4102 / detail round 4, before 4102)
 };
 
