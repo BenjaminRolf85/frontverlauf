@@ -10,6 +10,17 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 1200,
+    // Nur auf dem Prototyp-Zweig: die Vergleichsseiten der drei Modellvorschlaege mitbauen, damit die Vorschau sie zeigt
+    // prototype branch only: also build the comparison pages of the three model proposals so the preview serves them
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        proto: 'preview/proto.html',
+        protoA: 'preview/proto-a.html',
+        protoB: 'preview/proto-b.html',
+        protoC: 'preview/proto-c.html',
+      },
+    },
   },
   test: {
     include: ['tests/**/*.test.ts'],
