@@ -8,6 +8,8 @@ import { Board } from './board';
 import { SWAY } from './ambient';
 import { ANIM, CAMERA, SUN } from './config';
 import { ATMO } from './atmosphere';
+import { warmInked } from './models';
+import { onAtlasReady } from './models/inked/atlas';
 import { Sky, phaseOf } from './sky';
 import { Bloom } from './post';
 import { caveBackground } from './cave';
@@ -63,6 +65,8 @@ export class View {
     this.renderer.shadowMap.autoUpdate = false;
     this.scene.add(hemi, this.sun, this.sun.target);
     this.sky = new Sky(hemi, this.sun);
+    // fertig gezeichneter Atlas: Brett neu zeichnen / atlas finished painting: redraw the board
+    onAtlasReady(() => this.invalidate());
     this.resize();
     // Eine Ausnahme darf die Render-Schleife nie beenden / an exception must never end the render loop
     this.renderer.setAnimationLoop((now, frame) => {
@@ -75,6 +79,9 @@ export class View {
     this.quality = q;
     // Hoehlen-Deko richtet sich nach der Qualitaet (wirkt beim naechsten Neuaufbau) / cavern decoration follows the quality (applies on the next rebuild)
     this.board.quality = q;
+    // Texturen der gezeichneten Einheiten jetzt anlegen: gezeichnet wird verteilt ueber die naechsten Bilder
+    // create the textures of the inked units now: painting is spread over the next frames
+    warmInked(q);
     if (q === 'low' && this.bloom) { this.bloom.dispose(); this.bloom = null; }
     this.resize();
     this.applyShadows();

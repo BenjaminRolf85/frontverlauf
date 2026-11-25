@@ -19,7 +19,7 @@ import {
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, setUnitQuality, unitGeometry, unitTriLimit, xenoDecoration,
+  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry, unitTriLimit, xenoDecoration,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -29,6 +29,9 @@ import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artif
 import { Builder } from './kit';
 import { academyGeometry, academyRadarAt, academyRadarGeometry, poseY, researchPostGeometry, type AcademyPose } from './academy';
 import { look } from './look';
+import { isInked, unitOutlined } from '../unitDraw';
+import { atlasStats, flushAtlases } from './inked/atlas';
+import { inkFor } from './inked/ink';
 
 /** tiles: Bodenflaeche in Brettfeldern (Wunder) / ground size in board tiles (wonders) */
 type Cell = { geo: THREE.BufferGeometry | null; ground: string | null; label?: string; tiles?: number };
@@ -41,6 +44,8 @@ if (params.get('labels') === '0') document.querySelector('nav')?.remove();
 const cat = params.get('cat') ?? 'units';
 // ?q=low zeigt die leichte Detailstufe der Einheiten / shows the light unit detail level
 if (params.get('q') === 'low') setUnitQuality('low');
+// ?style=legacy zeigt die bisherigen Modelle auch fuer schon gezeichnete Typen / shows the previous models for inked types too
+if (params.get('style') === 'legacy') setInkedUnits(false);
 const view = params.get('view') ?? 'iso';
 const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
@@ -464,6 +469,10 @@ function label(text: string, size = 0.11): THREE.Sprite {
 }
 
 const tris: Record<string, number> = {};
+/** Dreiecke der Tuschegeometrie gezeichneter Einheiten / triangles of the ink geometry of inked units */
+const inkTris: Record<string, number> = {};
+/** Konturbreite der Vorschau (wie outlineMat unten) / outline width of the preview (as outlineMat below) */
+const OUTLINE_PREVIEW = 0.0075;
 const boxes: Record<string, number[]> = {};
 const content = new THREE.Group();
 scene.add(content);
@@ -480,7 +489,8 @@ async function buildScene() {
     sh.cols = keep.map((i) => sh.cols[i]);
     for (const r of sh.rows) r.cells = keep.map((i) => r.cells[i]).filter(Boolean);
   }
-  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' || cat === 'academy' ? 1.5 : 1.2;
+  // ?gap= Abstand der Zellen, ?ground=0 ohne Bodenplatten (Reihenbilder der Einheiten) / ?gap= cell spacing, ?ground=0 without ground tiles (line-up shots of units)
+  const pitch = Number(params.get('gap')) || (cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' || cat === 'academy' ? 1.5 : 1.2);
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
@@ -494,7 +504,7 @@ async function buildScene() {
     if (params.get('labels') !== '0') content.add(lab);
     row.cells.forEach((cell, ci) => {
       const [x, z] = at(ci, ri);
-      if (cell.ground) {
+      if (cell.ground && params.get('ground') !== '0') {
         // Wunder: echte Brettfelder (1 Feld = 1/1.25 Modelleinheiten) / wonders: real board tiles (1 tile = 1/1.25 model units)
         const tw = cell.tiles ? 0.8 : 1, n = cell.tiles ?? 1;
         const g = new THREE.Mesh(new THREE.BoxGeometry(tw * n - 0.02, 0.08, tw * n - 0.02), new THREE.MeshToonMaterial({ color: cell.ground, gradientMap: gradient }));
@@ -502,11 +512,21 @@ async function buildScene() {
         content.add(g);
       }
       if (!cell.geo) return;
-      const m = new THREE.Mesh(cell.geo, toon);
-      m.position.set(x, 0, z);
-      const o = new THREE.Mesh(outlineGeometry(cell.geo), outlineMat);
-      m.add(o);
-      content.add(m);
+      if (isInked(cell.geo)) {
+        // gezeichnete Einheit: Material und Tusche wie im Spiel, Tuerme zusammengesetzt / inked unit: material and ink as in the game, turrets assembled
+        const split = splitTurrets(cell.geo);
+        const m = unitOutlined(split ? split.hull : cell.geo, OUTLINE_PREVIEW);
+        for (const t of split?.turrets ?? []) { const tur = unitOutlined(t.geometry, OUTLINE_PREVIEW); tur.position.copy(t.pivot); tur.rotation.y = t.yaw; m.add(tur); }
+        m.position.set(x, 0, z);
+        content.add(m);
+        inkTris[`${row.label}|${sh.cols[ci]}`] = inkFor(cell.geo).index!.count / 3;
+      } else {
+        const m = new THREE.Mesh(cell.geo, toon);
+        m.position.set(x, 0, z);
+        const o = new THREE.Mesh(outlineGeometry(cell.geo), outlineMat);
+        m.add(o);
+        content.add(m);
+      }
       tris[`${row.label}|${sh.cols[ci]}`] = cell.geo.attributes.position.count / 3;
       const bb = cell.geo.boundingBox!;
       boxes[`${row.label}|${sh.cols[ci]}`] = [bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z].map((v) => Math.round(v * 100) / 100);
@@ -636,7 +656,13 @@ buildScene().then(() => {
   if (params.get('check')) (window as unknown as { __check: string[] }).__check = checkAll();
   fit();
   render();
-  const w = window as unknown as { __tris: Record<string, number>; __boxes: Record<string, number[]>; __ready: boolean };
+  // Texturen der gezeichneten Einheiten sofort fertig zeichnen (die Vorschau zeichnet nur bei Bedarf neu)
+  // finish the textures of the inked units at once (the preview only redraws on demand)
+  flushAtlases();
+  render();
+  const w = window as unknown as { __tris: Record<string, number>; __inkTris: Record<string, number>; __atlas: unknown; __boxes: Record<string, number[]>; __ready: boolean };
+  w.__inkTris = inkTris;
+  w.__atlas = atlasStats();
   w.__tris = tris;
   w.__boxes = boxes;
   w.__ready = true;

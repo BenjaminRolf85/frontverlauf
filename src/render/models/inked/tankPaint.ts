@@ -1,5 +1,5 @@
 /**
- * Vorschlag B: Zeichnung des Panzers / proposal B: drawing of the tank.
+ * Gezeichnete Einheiten: Zeichnung des Panzers / inked units: drawing of the tank.
  *
  * Plattenfugen, Nietenreihen, Schweissnaehte, Kratzer, abgeplatzter Lack, Schlamm an der Unterwanne, Kennnummer und
  * Emblem, Gitter, Russ am Auspuff: alles gezeichnet, nichts modelliert. Die Wannenfarbe kommt aus der Vertexfarbe;
@@ -7,72 +7,13 @@
  * Fraktion im gemeinsamen Atlas).
  * Panel lines, rivet rows, weld seams, scratches, chipped paint, mud on the lower hull, number and emblem, grilles,
  * soot at the exhaust: all drawn, nothing modelled. The hull colour comes from the vertex colour; number and emblem
- * carry the faction's emblem colour (in a rollout they would sit as small cells per faction in the shared atlas).
+ * emblem lie on top as decals (cells 'emblem:<faction>' and 'digits' in trim.ts); the number here is neutral paper colour.
  */
-import type { FactionId } from '../../../../data/balance';
-import { primitives } from '../../../../design/tokens';
-import { mix, rng, shade } from '../../kit';
-import { look, mat, type Look } from '../../look';
-import { MUD } from '../../detailVehicles';
-import { arc, css, rrect, spline, type Painter, type Pen, type Pt } from './atlas';
-import { FIGURE_DESIGN, paintEar, paintForeArm, paintHand, paintHead, paintHelmet, paintNose, paintPouch, paintStrap, paintTorso, paintUpperArm } from './figurePaint';
-import { HULL, TRACK, TURRET, turretRings } from './tank';
-
-const STEEL = mat.metalLight;
-const BARE = mix(mat.metal, mat.dark, 0.25);
-const SOOT = mat.ink;
-/** nasser Schlamm (dunkel) und angetrockneter Rand / wet mud (dark) and its dried edge */
-const MUD_WET = mix(shade(MUD, 0.4), mat.wood, 0.4);
-const MUD_DRY = mix(shade(MUD, 0.75), mat.wood, 0.3);
-const WOOD = mat.wood;
-
-/** Fuenfzackiger Stern / five-pointed star */
-function star(cx: number, cy: number, r: number, rot = -Math.PI / 2): Pt[] {
-  const out: Pt[] = [];
-  for (let i = 0; i < 10; i++) { const a = rot + (i / 10) * Math.PI * 2, k = i % 2 ? 0.42 : 1; out.push([cx + Math.cos(a) * r * k, cy + Math.sin(a) * r * k]); }
-  return out;
-}
-/** Emblem der Korvat: Stern mit Tuscherand / Korvat emblem: star with an ink rim */
-function emblem(p: Pen, L: Look, cx: number, cy: number, r: number): void {
-  p.fill(star(cx, cy, r), L.emblem);
-  p.line(star(cx, cy, r), Math.max(1.5, r * 0.11), { closed: true, wobble: 0.2, press: 0.2 });
-}
-/** Schablonenschrift in der Emblemfarbe, leicht abgewetzt / stencil lettering in the emblem colour, slightly worn */
-function stencil(p: Pen, L: Look, text: string, x: number, y: number, size: number, seed: number): void {
-  const c = p.abs;
-  c.save();
-  c.font = `${size}px ${primitives.font.display}`;
-  c.textBaseline = 'middle';
-  c.textAlign = 'center';
-  c.fillStyle = css(L.emblem);
-  c.globalAlpha = 0.95;
-  c.fillText(text, x, y);
-  // Abrieb: Stellen wieder freilegen / wear: uncover spots again
-  c.globalCompositeOperation = 'destination-out';
-  const R = rng(seed);
-  const w = c.measureText(text).width;
-  for (let i = 0; i < 14; i++) { c.beginPath(); c.ellipse(x - w / 2 + R() * w, y - size / 2 + R() * size, 1 + R() * 3.2, 0.6 + R() * 1.4, R() * 3, 0, Math.PI * 2); c.fill(); }
-  c.restore();
-}
-/** Regenstreifen und Rost von oben nach unten / rain streaks and rust running down */
-function streaks(p: Pen, x: number, y: number, w: number, h: number, n: number, seed: number): void {
-  const R = rng(seed);
-  for (let i = 0; i < n; i++) {
-    const px = x + R() * w, len = h * (0.35 + R() * 0.65);
-    p.crease([[px, y], [px + (R() - 0.5) * 3, y + len]], 1.6 + R() * 2.4, 0.74, 0.55, { taper: 0.5, wobble: 0.5 });
-  }
-}
-/** Luke: runde Ecken, Scharniere, Griff / hatch: rounded corners, hinges, handle */
-function hatch(p: Pen, x: number, y: number, w: number, h: number, r: number): void {
-  p.shade(rrect(x, y, w, h, r), 0.9, 0.8);
-  p.panel(rrect(x, y, w, h, r).concat([[x + w - r, y]]), 1.9);
-  for (const hx of [x + w * 0.25, x + w * 0.75]) {
-    p.fill(rrect(hx - 5, y - 4, 10, 8, 2), BARE);
-    p.line(rrect(hx - 5, y - 4, 10, 8, 2), 1.2, { closed: true, wobble: 0.1 });
-  }
-  p.line(spline([[x + w * 0.35, y + h * 0.62], [x + w * 0.5, y + h * 0.5], [x + w * 0.65, y + h * 0.62]], 5), 2.4, { taper: 0.15 });
-  p.crease(spline([[x + w * 0.35, y + h * 0.62 + 2.5], [x + w * 0.5, y + h * 0.5 + 2.5], [x + w * 0.65, y + h * 0.62 + 2.5]], 5), 1.6, 1.5, 0.8, { taper: 0.15 });
-}
+import { rng } from '../kit';
+import { look, mat, type Look } from '../look';
+import { arc, rrect, spline, type Cell, type Pen, type Pt } from './atlas';
+import { HULL, TURRET, turretRings } from './tank';
+import { BARE, hatch, MUD_DRY, MUD_WET, SOOT, stencil, STEEL, streaks, WOOD } from './trim';
 
 // ---------- Turm / turret ----------
 
@@ -98,8 +39,6 @@ function paintTurret(p: Pen, L: Look): void {
   for (const s of [-1, 1]) {
     const side = W / 2 + s * W * 0.25;
     // Kennnummer und Stern an der Flanke / number and star on the flank
-    stencil(p, L, '217', side - s * 34, Y(0.05) + 22, 30, 107 + s);
-    emblem(p, L, side + s * 50, Y(0.05) + 20, 19);
     // Pistolenluke, Sehschlitz, Haltegriff, Hebeoese / pistol port, vision slit, grab rail, lifting eye
     const px = side - s * 86;
     p.dab(px, Y(0.044), 9, 0.8, 0.9);
@@ -161,34 +100,12 @@ function paintMantlet(p: Pen): void {
   p.scratches(6, 6, W - 12, H - 12, 6, 139, 14);
 }
 
-/** Kanonenrohr (96 x 216): s rundum (Naht unten), t Verschluss -> Muendung / gun barrel: s around (seam below), t breech -> muzzle */
-function paintGun(p: Pen, L: Look): void {
-  const W = p.w, H = p.h;
-  // Abschussringe in der Emblemfarbe, Russ zur Muendung / kill rings in the emblem colour, soot towards the muzzle
-  for (const y of [H * 0.66, H * 0.7, H * 0.74]) {
-    p.fill([[0, y], [W, y], [W, y + 4], [0, y + 4]], L.emblem, 0.95);
-    for (const d of [0, 4]) p.line([[-2, y + d], [W + 2, y + d]], 1, { taper: 0, wobble: 0.15 });
-  }
-  p.gradient(0, H * 0.8, W, H * 0.2 + 3, [0, H * 0.8], [0, H], 1, 0.45);
-  p.splatter(0, H * 0.84, W, H * 0.16, 18, SOOT, 141, { size: 4, alpha: 0.6, rise: 1 });
-  p.scratches(0, 8, W, H * 0.6, 10, 143, 16);
-  streaks(p, 0, 4, W, H * 0.2, 6, 149);
-}
 
-/** Lukendeckel (72 x 72) / hatch lid (72 x 72) */
-function paintHatchLid(p: Pen): void {
-  const c = p.w / 2;
-  p.line(arc(c, c, 29, 29, 0, Math.PI * 2, 24), 1.8, { closed: true, wobble: 0.2 });
-  p.dab(c, c, 22, 0.86, 0.8);
-  p.line(arc(c, c, 22, 22, 0, Math.PI * 2, 20), 1.4, { closed: true, wobble: 0.2 });
-  p.line(spline([[c - 9, c + 3], [c, c - 4], [c + 9, c + 3]], 5), 2.6, { taper: 0.15 });
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; p.rivet(c + Math.cos(a) * 25.5, c + Math.sin(a) * 25.5, 1.8); }
-}
 
 // ---------- Wanne / hull ----------
 
 /** Flanke (448 x 96): oben 78 % schraege Platte, darunter Schuerze / flank: top 78 % sloped plate, skirt below */
-function paintHullSide(p: Pen, L: Look): void {
+function paintHullSide(p: Pen): void {
   const W = p.w, H = p.h, K = H * 0.78;
   // drei Platten mit Fugen und Nietenreihen / three plates with joints and rivet rows
   for (const x of [W * 0.34, W * 0.67]) { p.panel([[x, 2], [x, K - 1]], 1.8); p.rivets([x + 7, 9], [x + 7, K - 8], 6, 2.4); }
@@ -214,8 +131,7 @@ function paintHullSide(p: Pen, L: Look): void {
   for (let i = 2; i < cable.length - 1; i += 2) p.line([[cable[i][0] - 1.5, cable[i][1] - 2], [cable[i][0] + 1.5, cable[i][1] + 2]], 0.9, { taper: 0, wobble: 0 });
   p.line(arc(172, 50, 6, 5, 0, Math.PI * 2, 10), 2, { closed: true, wobble: 0.1 });
   // Kennung / marking
-  stencil(p, L, 'K-217', 364, 30, 22, 157);
-  emblem(p, L, 420, 50, 13);
+  stencil(p, mat.paper, 'K-217', 364, 30, 22, 157);
   p.scratches(0, 12, W, K - 22, 22, 163, 30);
   p.chips(0, 1, W, 8, 26, BARE, 167, 3);
   p.chips(0, K - 12, W, 9, 20, BARE, 173, 3);
@@ -326,168 +242,25 @@ function paintNoseStrip(p: Pen): void {
 
 // ---------- Laufwerk / running gear ----------
 
-/** Rueckwand (448 x 104): Schwingarme und Federn hell auf dunklem Grund / back wall: swing arms and springs light on dark ground */
-function paintBay(p: Pen): void {
-  const W = p.w, H = p.h;
-  const half = TRACK.len / 2, span = TRACK.len - 0.118;
-  const X = (z: number) => ((half - z) / (2 * half)) * W;
-  const cy = (1 - 0.0475 / TRACK.h) * H;
-  for (let i = 0; i < 5; i++) {
-    const x = X(-span / 2 + (i / 4) * span);
-    p.crease([[x, cy], [x + 30, cy - 26]], 9, 2.4, 0.9, { taper: 0, wobble: 0 });
-    p.crease([[x, cy], [x + 30, cy - 26]], 4, 3.4, 0.7, { taper: 0, wobble: 0 });
-    const zig: Pt[] = [];
-    for (let k = 0; k <= 8; k++) zig.push([x + 34 + (k % 2 ? 5 : -5), cy - 30 + k * 4.2]);
-    p.crease(zig, 2.2, 3, 0.9, { taper: 0, wobble: 0 });
-    p.dab(x + 30, cy - 26, 5.5, 3, 0.9);
-  }
-  p.crease([[0, 14], [W, 14]], 5, 2, 0.6, { taper: 0, wobble: 0 });
-  for (let x = 12; x < W; x += 28) p.dab(x, 14, 2.4, 3.2, 0.9);
-  p.mud(0, H * 0.45, W, H * 0.55, MUD_WET, MUD_DRY, 277, 0.5);
-}
 
-/** Radscheibe (96 x 96) / wheel disc (96 x 96) */
-function paintWheel(p: Pen, teeth: boolean): void {
-  const c = p.w / 2;
-  // Felgenrand, Nabe, Bolzen, Erleichterungsloecher / rim, hub, bolts, lightening holes
-  p.line(arc(c, c, 43, 43, 0, Math.PI * 2, 32), 2.4, { closed: true, wobble: 0.2 });
-  p.dab(c, c, 38, 0.9, 0.5);
-  if (teeth) {
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2, b = a + 0.14;
-      p.blot([[c + Math.cos(a - 0.14) * 43, c + Math.sin(a - 0.14) * 43], [c + Math.cos(a) * 33, c + Math.sin(a) * 33], [c + Math.cos(b) * 43, c + Math.sin(b) * 43]]);
-    }
-  } else {
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2 + 0.3;
-      p.fill(arc(c + Math.cos(a) * 28, c + Math.sin(a) * 28, 7, 7, 0, Math.PI * 2, 12), SOOT, 0.95);
-      p.line(arc(c + Math.cos(a) * 28, c + Math.sin(a) * 28, 7, 7, 0, Math.PI * 2, 12), 1.6, { closed: true, wobble: 0.1 });
-      p.crease(arc(c + Math.cos(a) * 28 + 1, c + Math.sin(a) * 28 + 1, 7, 7, 0.2, 1.6, 5), 1.3, 1.7, 0.8, { taper: 0.2 });
-    }
-  }
-  p.dab(c, c, 15, 0.78, 0.9);
-  p.line(arc(c, c, 15, 15, 0, Math.PI * 2, 18), 2, { closed: true, wobble: 0.15 });
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; p.rivet(c + Math.cos(a) * 10, c + Math.sin(a) * 10, 2.1); }
-  p.fill(arc(c, c, 4.5, 4.5, 0, Math.PI * 2, 10), BARE);
-  p.line(arc(c, c, 4.5, 4.5, 0, Math.PI * 2, 10), 1.3, { closed: true, wobble: 0 });
-  p.crease(arc(c, c, 38, 38, Math.PI * 1.05, Math.PI * 1.55, 8), 3, 1.6, 0.7, { taper: 0.3 });
-  p.splatter(0, 0, p.w, p.h, 22, MUD_DRY, teeth ? 281 : 283, { size: 4.4, rise: 0.8, alpha: 0.85 });
-}
 
-/** Kettenglied (96 x 24): s quer zur Kette, t in Laufrichtung / track link: s across the track, t along the run */
-function paintLink(p: Pen): void {
-  const W = p.w, H = p.h;
-  for (const x of [5, 52]) {
-    p.shade(rrect(x, 3, 39, H - 9, 2.5), 2, 0.9);
-    p.shade(rrect(x + 3, 6, 33, H - 15, 1.5), 1.35, 0.9);
-  }
-  p.fill([[0, H - 4], [W, H - 4], [W, H], [0, H]], SOOT, 0.95);
-  p.crease([[0, 1.2], [W, 1.2]], 1.6, 2.4, 0.9, { taper: 0, wobble: 0 });
-  for (const x of [2.5, W - 2.5]) p.spot(x, H / 2 - 2, 2, STEEL);
-  p.splatter(0, 0, W, H, 9, MUD, 293, { size: 3.4, rise: 1, alpha: 0.9 });
-}
 
-/** Fass (176 x 112): s rundum, t entlang der Achse / drum: s around, t along the axis */
-function paintDrum(p: Pen, L: Look): void {
-  const W = p.w, H = p.h;
-  for (const y of [5, H - 5]) p.line([[-2, y], [W + 2, y]], 1.5, { taper: 0, wobble: 0.2 });
-  // Sicken, Spanngurte / pressed ribs, tie-down straps
-  for (const y of [38, 74]) {
-    p.crease([[0, y - 2.5], [W, y - 2.5]], 2.2, 1.5, 0.8, { taper: 0, wobble: 0.2 });
-    p.line([[-2, y], [W + 2, y]], 1.6, { taper: 0, wobble: 0.25 });
-    p.crease([[0, y + 3], [W, y + 3]], 3, 0.76, 0.7, { taper: 0, wobble: 0.2 });
-  }
-  for (const y of [20, 92]) p.band([[-2, y], [W + 2, y]], 7, BARE, 1.2);
-  // Schablone: Inhalt / stencil: contents
-  p.abs.save();
-  p.abs.translate(70, 56);
-  p.abs.rotate(Math.PI / 2);
-  p.abs.translate(-70, -56);
-  stencil(p, L, '200 L', 70, 56, 15, 307);
-  p.abs.restore();
-  p.dab(120, 54, 9, 0.8, 0.7);
-  p.line(spline([[112, 50], [121, 46], [129, 52]], 4), 1.2, { taper: 0.4 });
-  p.chips(0, 6, W, H - 12, 7, mat.rustDark, 311, 2.6);
-  p.scratches(0, 8, W, H - 16, 10, 313, 18);
-  streaks(p, 0, 8, W, H - 16, 12, 317);
-}
 
-/** Fassdeckel (64 x 64) / drum end (64 x 64) */
-function paintDrumEnd(p: Pen): void {
-  const c = p.w / 2;
-  p.line(arc(c, c, 27, 27, 0, Math.PI * 2, 22), 1.8, { closed: true, wobble: 0.2 });
-  p.dab(c, c, 23, 0.9, 0.6);
-  p.line(arc(c, c, 16, 16, 0, Math.PI * 2, 16), 1.2, { closed: true, wobble: 0.2 });
-  p.fill(arc(c + 9, c - 8, 4.6, 4.6, 0, Math.PI * 2, 10), BARE);
-  p.line(arc(c + 9, c - 8, 4.6, 4.6, 0, Math.PI * 2, 10), 1.4, { closed: true, wobble: 0 });
-  p.chips(4, 4, p.w - 8, p.h - 8, 4, mat.rustDark, 331, 2.4);
-}
 
-/** Auspuff (48 x 72): Rost und Russ / exhaust (48 x 72): rust and soot */
-function paintExhaust(p: Pen): void {
-  const W = p.w, H = p.h;
-  p.splatter(0, 0, W, H, 22, mat.rustDark, 337, { size: 5, rise: 1, alpha: 0.7 });
-  p.gradient(0, 0, W, H * 0.45, [0, 0], [0, H * 0.45], 0.3, 1);
-  for (const y of [H * 0.5, H * 0.72]) p.crease([[0, y], [W, y]], 1.6, 2, 0.7, { taper: 0, wobble: 0.3 });
-}
 
-/** Staukasten (176 x 40) / stowage bin (176 x 40) */
-function paintBin(p: Pen): void {
-  const W = p.w, H = p.h;
-  p.panel([[3, 9], [W - 3, 9]], 1.7);
-  for (const x of [W * 0.33, W * 0.67]) p.panel([[x, 10], [x, H - 3]], 1.5);
-  for (const x of [W * 0.17, W * 0.5, W * 0.83]) {
-    p.fill(rrect(x - 5, 5, 10, 13, 2), BARE);
-    p.line(rrect(x - 5, 5, 10, 13, 2), 1.3, { closed: true, wobble: 0.1 });
-    p.line([[x - 2, 13], [x + 2, 13]], 1.2, { taper: 0, wobble: 0 });
-  }
-  p.scratches(4, 12, W - 8, H - 16, 8, 347, 16);
-  p.splatter(0, H * 0.4, W, H * 0.6, 8, MUD_WET, 349, { size: 2.6, alpha: 0.5 });
-}
 
-/** Plane (144 x 56): Falten laengs, zwei Riemen / tarp (144 x 56): folds along it, two straps */
-function paintTarp(p: Pen): void {
-  const W = p.w, H = p.h;
-  p.weave(0, 0, W, H, 3.6, 0.82, 0.4);
-  const R = rng(353);
-  for (let x = 8; x < W; x += 17) p.line(spline([[x + R() * 5, 3], [x + 4, H / 2], [x + R() * 5, H - 3]], 4), 1.3, { taper: 0.4, wobble: 0.8 });
-  for (const y of [14, H - 14]) p.band([[-2, y], [W + 2, y]], 6, WOOD, 1.2);
-}
 
-/** Alle Bereiche des Panzeratlas / all regions of the tank atlas */
-export function paintTank(P: Painter, f: FactionId): void {
-  const L = look(f);
-  P.region('turret', (p) => paintTurret(p, L));
-  P.region('turretTop', paintTurretTop);
-  P.region('mantlet', paintMantlet);
-  P.region('gun', (p) => paintGun(p, L));
-  P.region('hatch', paintHatchLid);
-  P.region('hullSide', (p) => paintHullSide(p, L));
-  P.region('deck', paintDeck);
-  P.region('glacis', paintGlacis);
-  P.region('rear', paintRear);
-  P.region('nose', paintNoseStrip);
-  P.region('bay', paintBay);
-  P.region('wheel', (p) => paintWheel(p, false));
-  P.region('sprocket', (p) => paintWheel(p, true));
-  P.region('link', paintLink);
-  P.region('linkSide', (p) => { p.crease([[0, 2], [p.w, 2]], 2, 2.2, 0.9, { taper: 0, wobble: 0 }); p.spot(p.w / 2, p.h / 2 + 1, 2.6, shade(STEEL, 0.8)); });
-  P.region('tyre', (p) => { for (let y = 3; y < p.h; y += 5) p.crease([[0, y], [p.w, y]], 1.4, 0.6, 0.8, { taper: 0, wobble: 0 }); });
-  P.region('drum', (p) => paintDrum(p, L));
-  P.region('drumEnd', paintDrumEnd);
-  P.region('exhaust', paintExhaust);
-  P.region('bin', paintBin);
-  P.region('tarp', paintTarp);
-  // Kommandant: dieselben Maler wie beim Schuetzen, in kleineren Bereichen / commander: the same painters as the rifleman, in smaller regions
-  const D = FIGURE_DESIGN;
-  P.region('head', paintHead, D.head);
-  P.region('fNose', paintNose, D.nose);
-  P.region('ear', paintEar, D.ear);
-  P.region('helmet', (p) => paintHelmet(p, L), D.helmet);
-  P.region('torso', paintTorso, D.torso);
-  P.region('upperArm', paintUpperArm, D.upperArm);
-  P.region('foreArm', paintForeArm, D.foreArm);
-  P.region('hand', paintHand, D.hand);
-  P.region('strap', paintStrap, D.strap);
-  P.region('pouch', paintPouch, D.pouch);
+/** Eigene Zellen des Korvat-Panzers; alles andere kommt aus dem Fahrzeug-Baukasten (trim.ts) / the Korvat tank's own cells; everything else comes from the vehicle kit (trim.ts) */
+export function tankCells(): Cell[] {
+  const L = look('korvat');
+  return [
+    { name: 'turret', w: 720, h: 104, paint: (p) => paintTurret(p, L) },
+    { name: 'turretTop', w: 176, h: 176, paint: paintTurretTop },
+    { name: 'mantlet', w: 128, h: 64, paint: paintMantlet },
+    { name: 'hullSide', w: 448, h: 96, paint: paintHullSide },
+    { name: 'deck', w: 312, h: 336, paint: paintDeck },
+    { name: 'glacis', w: 400, h: 88, paint: paintGlacis },
+    { name: 'rear', w: 400, h: 88, paint: paintRear },
+    { name: 'hullNose', w: 192, h: 32, paint: paintNoseStrip },
+  ];
 }

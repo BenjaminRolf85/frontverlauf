@@ -1,5 +1,5 @@
 /**
- * Vorschlag B: Umgebungsverdeckung je Ecke, beim Laden berechnet / proposal B: ambient occlusion per vertex, computed at load time.
+ * Gezeichnete Einheiten: Umgebungsverdeckung je Ecke, beim Laden berechnet / inked units: ambient occlusion per vertex, computed at load time.
  *
  * Das Modell wird in ein Voxelgitter eingetragen (dazu der Boden); von jeder Ecke laufen einige Strahlen in die
  * Halbkugel ueber der Flaeche durch das Gitter. Treffer in der Naehe verdunkeln: Fugen, die Unterseite der Helmkrempe,

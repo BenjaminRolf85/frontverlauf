@@ -1,6 +1,6 @@
 /**
- * Vorschlag B "Gezeichnet": Baukasten fuer Modelle MIT Texturkoordinaten.
- * Proposal B "Inked": toolkit for models WITH texture coordinates.
+ * Gezeichnete Einheiten: Baukasten fuer Modelle MIT Texturkoordinaten.
+ * Inked units: toolkit for models WITH texture coordinates.
  *
  * Wie kit.ts entsteht jedes Modell aus wenigen Teilen und wird zu einer nicht-indizierten Geometrie verschmolzen.
  * Neu: jedes Teil bekommt UVs in einen Bereich eines Atlas (AtlasLayout), dazu je Ecke einen Glanzwert und ein
@@ -13,8 +13,8 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { col, xfMatrix, type ColorLike, type TurretRange, type V3, type Xf } from '../../kit';
-import { semantic } from '../../../../design/tokens';
+import { Builder, col, fine, withDetail, xfMatrix, type ColorLike, type TurretRange, type V3, type Xf } from '../kit';
+import { semantic } from '../../../design/tokens';
 
 // ---------- Atlas ----------
 
@@ -185,7 +185,10 @@ export function loft(rings: Ring[], o: LoftOpts): THREE.BufferGeometry {
   // Deckel / caps
   const cap = (i: number, spec: boolean | Region | undefined) => {
     if (!spec || tiny(i)) return;
-    const up = new THREE.Vector3(0, i === 0 ? rings[0].y - rings[1].y : rings[m - 1].y - rings[m - 2].y, 0).normalize();
+    // Richtung des Deckels: weg vom naechsten Ring anderer Hoehe / direction of the cap: away from the next ring at another height
+    let dy = 0;
+    for (let k = 1; k < m && Math.abs(dy) < 1e-9; k++) dy = i === 0 ? rings[0].y - rings[k].y : rings[m - 1].y - rings[m - 1 - k].y;
+    const up = new THREE.Vector3(0, dy >= 0 ? 1 : -1, 0);
     const R = Math.max(rings[i].rx, rings[i].rz ?? rings[i].rx, rings[i].rzB ?? 0) || 1;
     const c0 = centre(i);
     const mk = (p: THREE.Vector3, jj: number): Vtx => (spec === true
@@ -286,6 +289,8 @@ export interface PartOpts {
   crease?: number;
   /** Anteil der Schraffur im Schatten (Haut: 0 = flacher Ton) / share of hatching in the shadow (skin: 0 = flat tone) */
   hatch?: number;
+  /** nur legacy(): Ecken vor dem Einfuegen verformen (z. B. alte Kopfbedeckung auf den neuen Kopf) / legacy() only: warp vertices before adding (e.g. old headgear onto the new head) */
+  map?: (v: THREE.Vector3) => void;
 }
 
 /**
@@ -375,6 +380,28 @@ export class UvBuilder {
     }
     this.sink.push(g);
     return this;
+  }
+
+  /**
+   * Bruecke zum alten Baukasten: fn baut mit einem Builder (kit.ts) wie bisher; das Ergebnis kommt ohne Zeichnung
+   * (neutrale Zelle) in dieses Modell, mit Vertexfarben, Tuschekanten, Verdeckung und Schraffur. So laufen Zubehoer und
+   * noch nicht umgebaute Teile durch denselben Weg; grosse Flaechen sollten trotzdem echte Zellen bekommen.
+   * Bridge to the old toolkit: fn builds with a Builder (kit.ts) as before; the result joins this model without drawing
+   * (neutral cell), with vertex colours, ink edges, occlusion and hatching. Accessories and parts not converted yet thus
+   * take the same path; large surfaces should still get real cells.
+   */
+  legacy(fn: (k: Builder) => void, o: PartOpts = {}): this {
+    const k = new Builder();
+    // niedrige Qualitaet: Rundungen der alten Teile ohne Zusatzsegmente / low quality: curves of the old parts without extra segments
+    if (fine()) fn(k); else withDetail(1, true, () => fn(k), { smooth: true });
+    if (!k.triangles()) return this;
+    const g = k.build();
+    g.userData = { smooth: true };
+    if (o.map) {
+      const pos = g.getAttribute('position') as THREE.BufferAttribute, v = new THREE.Vector3();
+      for (let i = 0; i < pos.count; i++) { o.map(v.fromBufferAttribute(pos, i)); pos.setXYZ(i, v.x, v.y, v.z); }
+    }
+    return this.add(g, null, o);
   }
 
   triangles(): number {

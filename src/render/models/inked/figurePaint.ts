@@ -1,5 +1,5 @@
 /**
- * Vorschlag B: Zeichnung der Figur / proposal B: drawing of the figure.
+ * Gezeichnete Einheiten: Zeichnung der Figur / inked units: drawing of the figure.
  *
  * Jede Funktion bemalt einen Atlasbereich in dessen Entwurfsgroesse (Pixel des 1024er Figurenatlas). Alle Farben
  * kommen aus look.ts / den Tokens. Fraktionsfarben stehen NICHT in der Zeichnung (die Vertexfarbe liefert sie), mit
@@ -8,12 +8,12 @@
  * look.ts / the tokens. Faction colours are NOT in the drawing (the vertex colour supplies them), with one exception:
  * the helmet is one faction's headgear anyway, so its badge may carry that faction's colour.
  */
-import type { FactionId } from '../../../../data/balance';
-import { mix, rng, shade } from '../../kit';
-import { look, mat, type Look } from '../../look';
-import { MUD as MUD_BASE } from '../../detailVehicles';
-import { arc, rrect, spline, type Painter, type Pen, type Pt } from './atlas';
-import { FACE, helmetRings, HEAD, RIFLE } from './figure';
+import { mix, rng, shade } from '../kit';
+import { look, mat, type Look } from '../look';
+import { MUD as MUD_BASE } from '../detailVehicles';
+import { arc, rrect, spline, type Cell, type Pen, type Pt } from './atlas';
+import { emblemCells, paintEmblem } from './emblem';
+import { COAT, FACE, helmetRings, HEAD, RIFLE } from './figure';
 import { ringT } from './uvkit';
 
 // neutrale Stoffe / neutral materials
@@ -154,13 +154,10 @@ export function paintHelmet(p: Pen, L: Look): void {
   p.line([[-3, bandTop + 0.5], [W + 3, bandTop + 0.5]], 1.8, { taper: 0, wobble: 0.25 });
   p.line([[-3, bandBot - 0.5], [W + 3, bandBot - 0.5]], 1.8, { taper: 0, wobble: 0.25 });
   p.stitch([[0, bandTop + 5], [W, bandTop + 5]], 4, 3, 1, 1.35);
-  // Stern vorn: Abzeichen in der Emblemfarbe der Fraktion / star at the front: badge in the faction's emblem colour
-  const cx = W / 2, cy = (bandTop + bandBot) / 2 - 5, ry = 15.5, rx = 17.5;
-  const star: Pt[] = [];
-  for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i / 10) * Math.PI * 2, k = i % 2 ? 0.42 : 1; star.push([cx + Math.cos(a) * rx * k, cy + Math.sin(a) * ry * k]); }
-  p.fill(star, L.emblem);
-  p.line(star, 2, { closed: true, wobble: 0.15, press: 0.2 });
-  p.line([[cx, cy - ry * 0.5], [cx, cy]], 1, { taper: 0.4, wobble: 0 });
+  // Zahnrad der Korvat vorn auf dem Band, in der Emblemfarbe der Fraktion / the Korvat cog at the front on the band, in the faction's emblem colour
+  const cx = W / 2, cy = (bandTop + bandBot) / 2 - 4;
+  p.dab(cx, cy, 21, 0.72, 0.7);
+  paintEmblem(p, 'korvat', cx, cy, 17, L.emblem, 1.9);
   // Krempe: Rand abgestossen / rim: worn edge
   p.shade([[0, edge - 4], [W, edge - 4], [W, edge], [0, edge]], 1.3, 0.7);
   p.chips(0, edge - 5, W, 4, 22, mat.metal, 17, 2.6);
@@ -528,32 +525,108 @@ export function paintRifle(p: Pen): void {
   p.scratches(X(0.11), Y(0.018), X(0.0) - X(0.11), Y(-0.012) - Y(0.018), 6, 73, 12);
 }
 
-/** Alle Bereiche des Figurenatlas / all regions of the figure atlas */
-export function paintFigure(P: Painter, f: FactionId): void {
-  const L = look(f);
-  P.region('head', paintHead);
-  P.region('nose', paintNose);
-  P.region('ear', paintEar);
-  P.region('helmet', (p) => paintHelmet(p, L));
-  P.region('torso', paintTorso);
-  P.region('upperArm', paintUpperArm);
-  P.region('foreArm', paintForeArm);
-  P.region('hand', paintHand);
-  P.region('thigh', paintThigh);
-  P.region('shin', paintShin);
-  P.region('boot', paintBoot);
-  P.region('packBack', paintPackBack);
-  P.region('packSide', paintPackSide);
-  P.region('packTop', paintPackTop);
-  P.region('bedroll', paintBedroll);
-  P.region('rollEnd', paintRollEnd);
-  P.region('canteen', paintCanteen);
-  P.region('pouch', paintPouch);
-  P.region('strap', paintStrap);
-  P.region('rifle', paintRifle);
+/** Mantel (Entwurf 448 x 260): Revers, zwei Knopfreihen, Guertel, Taschen, Saum / coat (design 448 x 260): lapels, two button rows, belt, pockets, hem */
+export function paintCoat(p: Pen): void {
+  const W = p.w, H = p.h, cx = W / 2;
+  const Y = (y: number) => ((COAT.top - y) / (COAT.top - COAT.hem)) * H;
+  const beltTop = Y(0.049), beltBot = Y(0.03);
+  p.weave(0, 0, W, H, 5, 0.9, 0.18);
+  for (const s of [-1, 1]) {
+    // Revers / lapel
+    const lapel: Pt[] = [[cx + s * 22, 6], [cx + s * 46, 30], [cx + s * 26, 46], [cx + s * 4, beltTop - 30]];
+    p.shade(lapel, 0.82, 0.9);
+    p.line(lapel, 2, { closed: true, wobble: 0.3 });
+    for (const y of [beltTop - 18, beltBot + 22, beltBot + 52]) { p.dot(cx + s * 17, y, 3.6); p.spot(cx + s * 17 - 1, y - 1.2, 1.2, mat.white, 0.7); }
+    // Taschenklappe, Schulterklappe, Falten / pocket flap, shoulder strap, folds
+    const fx0 = cx + s * 56;
+    const flap: Pt[] = [[fx0 - 22, beltBot + 26], [fx0 + 22, beltBot + 24], [fx0 + 22, beltBot + 38], [fx0 - 22, beltBot + 40]];
+    p.shade(flap, 0.84, 0.9);
+    p.line(flap, 1.8, { closed: true, wobble: 0.3 });
+    const ep: Pt[] = [[cx + s * 24, 9], [cx + s * 72, 19], [cx + s * 72, 29], [cx + s * 24, 20]];
+    p.shade(ep, 0.84, 0.9);
+    p.line(ep, 1.6, { closed: true, wobble: 0.3 });
+    p.line(spline([[cx + s * 96, 56], [cx + s * 84, 68], [cx + s * 70, 72]], 5), 1.6, { taper: 0.45 });
+    p.line(spline([[cx + s * 40, beltBot + 70], [cx + s * 44, beltBot + 100], [cx + s * 40, H - 14]], 5), 1.5, { taper: 0.4 });
+    p.crease(spline([[cx + s * 78, beltBot + 50], [cx + s * 84, beltBot + 90], [cx + s * 80, H - 10]], 5), 5, 0.8, 0.6, { taper: 0.3 });
+    p.line([[cx + s * 112, 62], [cx + s * 113, H - 8]], 1.1, { taper: 0.2, wobble: 0.4 });
+    p.line(rrect(cx + s * 86 - 3.5, beltTop + 1.5, 7, beltBot - beltTop - 3, 1.5), 1.2, { closed: true, wobble: 0.1 });
+  }
+  // Uebertritt, Guertel mit Schnalle, Saum, Rueckenschlitz / overlap, belt with buckle, hem, back vent
+  p.line(spline([[cx + 4, beltTop - 30], [cx + 10, beltBot + 60], [cx + 8, H - 6]], 6), 1.9, { taper: 0.08, wobble: 0.4 });
+  p.stitch([[0, beltTop + 3.4], [W, beltTop + 3.4]], 3.4, 2.8, 1, 1.5);
+  p.stitch([[0, beltBot - 3.4], [W, beltBot - 3.4]], 3.4, 2.8, 1, 1.5);
+  buckle(p, cx, (beltTop + beltBot) / 2, 24, beltBot - beltTop - 2);
+  p.crease([[0, H - 9], [W, H - 9]], 2.2, 0.78, 0.9, { taper: 0, wobble: 0.3 });
+  p.stitch([[0, H - 13], [W, H - 13]], 3.2, 2.8, 0.9, 0.62);
+  for (const x of [1.5, W - 1.5]) p.line([[x, 16], [x, H - 4]], 1.3, { taper: 0.1, wobble: 0.3 });
+  p.splatter(0, H - 60, W, 60, 14, MUD_LIGHT, 83, { size: 3.6, alpha: 0.6 });
 }
 
-/** Entwurfsgroessen fuer die Wiederverwendung im Panzeratlas / design sizes for the reuse in the tank atlas */
-export const FIGURE_DESIGN: Record<string, [number, number]> = {
-  head: [640, 288], nose: [56, 44], ear: [48, 44], helmet: [448, 128], torso: [448, 208], upperArm: [176, 104], foreArm: [160, 100], hand: [112, 70], strap: [256, 24], pouch: [64, 64],
-};
+/** Sturmhaube der Dravon (Entwurf 448 x 200): Strick, Augenausschnitt mit Augen, Abzeichen an der Seite / Dravon balaclava (design 448 x 200): knit, eye opening with eyes, badge on the side */
+export function paintHeadDravon(p: Pen, L: Look): void {
+  const W = p.w, H = p.h, cx = W / 2;
+  const top = HEAD[0].y, bot = HEAD[HEAD.length - 1].y;
+  const Y = (y: number) => ((top - y) / (top - bot)) * H;
+  const ey = Y(FACE.eye), ex = 30;
+  for (let y = 3; y < H; y += 4.5) p.crease([[0, y], [W, y]], 1.2, 1.7, 0.5, { taper: 0, wobble: 0.3 });
+  // Augenausschnitt in Hautfarbe / eye opening in skin colour
+  const hole = spline([[cx - 62, ey - 2], [cx - 40, ey - 15], [cx, ey - 11], [cx + 40, ey - 15], [cx + 62, ey - 2], [cx + 42, ey + 12], [cx, ey + 9], [cx - 42, ey + 12]], 6, true);
+  p.fill(hole, mat.skin);
+  p.line(hole, 2.2, { closed: true, wobble: 0.3 });
+  for (const s of [-1, 1]) {
+    const X = (u: number) => cx + s * (ex + u);
+    p.fill(spline([[X(-13), ey + 1], [X(-6), ey - 6], [X(2), ey - 7.5], [X(10), ey - 5], [X(14), ey], [X(8), ey + 6], [X(0), ey + 7], [X(-8), ey + 6]], 5, true), mat.paper);
+    p.dot(X(0) + 2.5, ey, 5.8);
+    p.erase(X(0) + 4.5, ey - 2.4, 1.9);
+    p.spot(X(0) + 4.5, ey - 2.4, 2.3, mat.white);
+    p.line(spline([[X(-14), ey + 2], [X(-6), ey - 6.5], [X(2), ey - 8.5], [X(10), ey - 6], [X(17), ey - 1]], 5), 3.4, { taper: 0.2, wobble: 0.2 });
+    p.line(spline([[X(-17), ey - 8], [X(-4), ey - 13.5], [X(16), ey - 11]], 5), 4.6, { taper: 0.28, wobble: 0.2 });
+  }
+  // Mundoeffnung, Naht, Faustabzeichen in der Zweitfarbe / mouth opening, seam, fist badge in the secondary colour
+  p.blot(spline([[cx - 15, Y(FACE.mouth)], [cx, Y(FACE.mouth) - 3], [cx + 15, Y(FACE.mouth)], [cx, Y(FACE.mouth) + 4]], 5, true));
+  for (const x of [1.5, W - 1.5]) p.line([[x, 10], [x, H - 6]], 1.2, { taper: 0.1, wobble: 0.3 });
+  const bx = W * 0.25, by = ey - 2;
+  p.fill(arc(bx, by, 15, 15, 0, Math.PI * 2, 20), L.secondary);
+  p.line(arc(bx, by, 15, 15, 0, Math.PI * 2, 20), 1.8, { closed: true, wobble: 0.15 });
+  paintEmblem(p, 'dravon', bx, by, 10, L.helmet, 0);
+}
+
+/** Zellen des Figurenatlas / cells of the figure atlas */
+export function figureCells(): Cell[] {
+  return [
+    { name: 'head', w: 640, h: 288, paint: paintHead },
+    { name: 'head:dravon', w: 320, h: 144, design: [448, 200], paint: (p) => paintHeadDravon(p, look('dravon')) },
+    { name: 'nose', w: 56, h: 44, paint: paintNose },
+    { name: 'ear', w: 48, h: 44, paint: paintEar },
+    { name: 'helmet:korvat', w: 448, h: 128, paint: (p) => paintHelmet(p, look('korvat')) },
+    { name: 'torso', w: 448, h: 208, paint: paintTorso },
+    { name: 'coat', w: 384, h: 224, design: [448, 260], paint: paintCoat },
+    { name: 'upperArm', w: 176, h: 104, paint: paintUpperArm },
+    { name: 'foreArm', w: 160, h: 100, paint: paintForeArm },
+    { name: 'hand', w: 112, h: 70, paint: paintHand },
+    { name: 'thigh', w: 240, h: 150, paint: paintThigh },
+    { name: 'shin', w: 208, h: 130, paint: paintShin },
+    { name: 'boot', w: 144, h: 130, paint: paintBoot },
+    { name: 'packBack', w: 160, h: 136, paint: paintPackBack },
+    { name: 'packSide', w: 72, h: 136, paint: paintPackSide },
+    { name: 'packTop', w: 160, h: 72, paint: paintPackTop },
+    { name: 'bedroll', w: 160, h: 96, paint: paintBedroll },
+    { name: 'rollEnd', w: 48, h: 48, paint: paintRollEnd },
+    { name: 'canteen', w: 64, h: 80, paint: paintCanteen },
+    { name: 'pouch', w: 64, h: 64, paint: paintPouch },
+    { name: 'strap', w: 256, h: 24, paint: paintStrap },
+    { name: 'rifle', w: 512, h: 96, paint: paintRifle },
+    ...emblemCells(48),
+  ];
+}
+
+/**
+ * Zellen der Figur fuer Besatzungen in einem anderen Atlas, um k verkleinert (Standard 0.5). Die Namen bleiben gleich,
+ * figure() findet sie also auch im Fahrzeugatlas.
+ * The figure's cells for crews inside another atlas, shrunk by k (default 0.5). The names stay the same, so figure()
+ * finds them in the vehicle atlas too.
+ */
+export function crewCells(k = 0.5): Cell[] {
+  const keep = new Set(['head', 'head:dravon', 'nose', 'ear', 'helmet:korvat', 'torso', 'upperArm', 'foreArm', 'hand', 'strap', 'pouch']);
+  return figureCells().filter((c) => keep.has(c.name)).map((c): Cell => ({ ...c, design: c.design ?? [c.w, c.h], w: Math.max(16, Math.round(c.w * k)), h: Math.max(12, Math.round(c.h * k)) }));
+}

@@ -1,6 +1,13 @@
 /**
- * Vorschlag B: Texturen werden beim Laden im Code gezeichnet (Canvas 2D), nichts wird heruntergeladen.
- * Proposal B: textures are drawn in code at load time (canvas 2D), nothing is downloaded.
+ * Gezeichnete Einheiten: Texturen werden beim Laden im Code gezeichnet (Canvas 2D), nichts wird heruntergeladen.
+ * Inked units: textures are drawn in code at load time (canvas 2D), nothing is downloaded.
+ *
+ * Ein Atlas besteht aus Zellen (Cell): Name, Entwurfsgroesse und Maler. defineAtlas() packt die Zellen selbst (niemand
+ * vergibt Koordinaten von Hand), atlasTextures() liefert die beiden Texturen sofort und zeichnet die Zellen danach
+ * ueber mehrere Bilder verteilt (oder sofort mit flushAtlases()). Ohne DOM (Tests in Node) bleiben die Texturen neutral.
+ * An atlas is made of cells (Cell): name, design size and painter. defineAtlas() packs the cells itself (nobody assigns
+ * coordinates by hand), atlasTextures() returns both textures at once and then paints the cells spread over several
+ * frames (or at once with flushAtlases()). Without a DOM (tests in Node) the textures stay neutral.
  *
  * Drei Ebenen je Atlas / three layers per atlas:
  * - mul: Multiplikation auf die Vertexfarbe (128 = neutral, dunkler = Schatten, Gewebe, Schmutz; heller = Abrieb).
@@ -17,9 +24,9 @@
  * mul and abs are combined into ONE RGBA texture (rgb = blend, a = opacity of the colour).
  */
 import * as THREE from 'three';
-import { rng, type ColorLike } from '../../kit';
-import { semantic } from '../../../../design/tokens';
-import { REF, type AtlasLayout, type Region } from './uvkit';
+import { rng, type ColorLike } from '../kit';
+import { semantic } from '../../../design/tokens';
+import { AtlasLayout, REF, type Region } from './uvkit';
 
 export type Pt = [number, number];
 
@@ -32,8 +39,12 @@ export interface AtlasTextures {
   size: number;
   /** GPU-Speicher beider Texturen samt Mip-Stufen / GPU memory of both textures including mip levels */
   bytes: number;
-  /** Zeit fuer Zeichnen und Abstandsfeld / time for drawing and the distance field */
+  /** Zeit fuer Zeichnen und Abstandsfeld, Summe ueber alle Zellen / time for drawing and the distance field, sum over all cells */
   ms: number;
+  /** laengster einzelner Schritt / longest single step */
+  maxStepMs: number;
+  /** fertig gezeichnet? / painting finished? */
+  ready: boolean;
 }
 
 /** Farbe als CSS (sRGB) / colour as CSS (sRGB) */
@@ -412,89 +423,193 @@ export class Pen {
   }
 }
 
-// ---------- Maler / painter ----------
+// ---------- Zellen und Atlanten / cells and atlases ----------
 
-export class Painter {
-  /** echte Pixel je Bezugspixel / real pixels per reference pixel */
-  readonly k: number;
-  private canvases: HTMLCanvasElement[] = [];
-  private ctx: CanvasRenderingContext2D[] = [];
-  private t0 = performance.now();
+/**
+ * Zelle eines Atlas. w / h = Groesse im Atlas (Bezugspixel), design = Groesse, fuer die der Maler geschrieben ist
+ * (fehlt = w / h): derselbe Maler fuellt so auch eine kleinere Zelle (Besatzung im Fahrzeugatlas).
+ * Cell of an atlas. w / h = size inside the atlas (reference pixels), design = the size the painter was written for
+ * (absent = w / h): the same painter thus fills a smaller cell too (crew in the vehicle atlas).
+ */
+export interface Cell { name: string; w: number; h: number; paint: (p: Pen) => void; design?: [number, number] }
 
-  constructor(readonly layout: AtlasLayout, readonly size: number) {
-    this.k = size / REF;
+export interface AtlasDef { id: string; cells: Cell[]; layout: AtlasLayout }
+
+/** Hoechstzahl an Atlanten: begrenzt den Texturspeicher (siehe atlasBudget) / maximum number of atlases: bounds the texture memory (see atlasBudget) */
+export const MAX_ATLASES = 12;
+/** Kantenlaenge der Texturen je Qualitaet / texture edge length per quality */
+export const ATLAS_SIZE = { high: 1024, low: 512 } as const;
+
+const defs = new Map<string, AtlasDef>();
+/**
+ * Atlas anlegen: Zellen werden nach Hoehe sortiert in Regale gepackt (deterministisch). Wirft, wenn der Atlas voll ist:
+ * dann Zellen verkleinern oder einen weiteren Atlas anlegen. Die Zelle 'blank' (neutral) kommt immer dazu.
+ * Define an atlas: cells are sorted by height and packed into shelves (deterministic). Throws when the atlas is full:
+ * shrink cells or define another atlas then. The cell 'blank' (neutral) is always added.
+ */
+export function defineAtlas(id: string, cells: Cell[]): AtlasDef {
+  if (defs.has(id)) throw new Error(`atlas ${id} defined twice`);
+  if (defs.size >= MAX_ATLASES) throw new Error(`more than ${MAX_ATLASES} atlases`);
+  const all: Cell[] = [{ name: 'blank', w: 16, h: 16, paint: () => {} }, ...cells];
+  const layout = new AtlasLayout();
+  const pad = layout.pad;
+  const order = all.map((c, i) => ({ c, i })).sort((a, b) => b.c.h - a.c.h || b.c.w - a.c.w || a.i - b.i);
+  // Regale: jede Zelle kommt ins erste Regal, in dem noch Platz ist / shelves: every cell goes into the first shelf with room left
+  const shelves: { y: number; h: number; x: number }[] = [];
+  for (const { c } of order) {
+    let shelf = shelves.find((s) => s.x + c.w + pad <= REF && c.h <= s.h);
+    if (!shelf) {
+      const last = shelves[shelves.length - 1];
+      shelf = { y: last ? last.y + last.h + pad : pad, h: c.h, x: pad };
+      if (shelf.y + c.h + pad > REF) throw new Error(`atlas ${id}: full at ${c.name}`);
+      shelves.push(shelf);
+    }
+    layout.place(c.name, shelf.x, shelf.y, c.w, c.h);
+    shelf.x += c.w + pad;
+  }
+  const def: AtlasDef = { id, cells: all, layout };
+  defs.set(id, def);
+  return def;
+}
+export function atlasDef(id: string): AtlasDef {
+  const d = defs.get(id);
+  if (!d) throw new Error(`no atlas ${id}`);
+  return d;
+}
+export function atlasIds(): string[] { return [...defs.keys()]; }
+/** Obergrenze des Texturspeichers aller Atlanten in Bytes / ceiling of the texture memory of all atlases in bytes */
+export function atlasBudget(quality: keyof typeof ATLAS_SIZE): number {
+  const n = ATLAS_SIZE[quality];
+  return Math.round((MAX_ATLASES * n * n * 5 * 4) / 3);
+}
+
+// ---------- Zeichnen, verteilt ueber mehrere Bilder / painting, spread over several frames ----------
+
+interface Job {
+  def: AtlasDef; size: number; tex: AtlasTextures; next: number;
+  paint: Uint8Array; sdf: Uint8Array;
+  canvases: HTMLCanvasElement[]; ctx: CanvasRenderingContext2D[];
+}
+const textures = new Map<string, AtlasTextures>();
+const jobs: Job[] = [];
+let scheduled = false;
+const hasDom = () => typeof document !== 'undefined' && typeof document.createElement === 'function';
+
+/**
+ * Texturen eines Atlas in der Kantenlaenge size. Kommt sofort zurueck; gezeichnet wird danach in kleinen Schritten.
+ * Textures of an atlas at edge length size. Returns at once; painting follows in small steps.
+ */
+export function atlasTextures(id: string, size: number): AtlasTextures {
+  const key = `${id}|${size}`;
+  let t = textures.get(key);
+  if (t) return t;
+  const def = atlasDef(id), N = size * size;
+  const paint = new Uint8Array(N * 4), sdf = new Uint8Array(N);
+  // neutral: mul = 1, keine Farbe, keine Tusche / neutral: mul = 1, no colour, no ink
+  for (let i = 0; i < N; i++) { paint[i * 4] = 128; paint[i * 4 + 1] = 128; paint[i * 4 + 2] = 128; }
+  const mk = (data: Uint8Array, format: THREE.PixelFormat) => {
+    const x = new THREE.DataTexture(data, size, size, format, THREE.UnsignedByteType);
+    x.colorSpace = THREE.NoColorSpace;
+    x.minFilter = THREE.LinearMipmapLinearFilter;
+    x.magFilter = THREE.LinearFilter;
+    x.generateMipmaps = true;
+    x.anisotropy = 4;
+    x.needsUpdate = true;
+    return x;
+  };
+  t = { paint: mk(paint, THREE.RGBAFormat), ink: mk(sdf, THREE.RedFormat), size, bytes: Math.round((N * 5 * 4) / 3), ms: 0, maxStepMs: 0, ready: false };
+  textures.set(key, t);
+  if (hasDom()) {
+    const canvases: HTMLCanvasElement[] = [], ctx: CanvasRenderingContext2D[] = [];
     for (let i = 0; i < 3; i++) {
       const c = document.createElement('canvas');
       c.width = size; c.height = size;
-      const x = c.getContext('2d', { willReadFrequently: true })!;
-      this.canvases.push(c);
-      this.ctx.push(x);
+      canvases.push(c);
+      ctx.push(c.getContext('2d', { willReadFrequently: true })!);
     }
-    // mul: neutral; ink: weiss auf durchsichtig / mul: neutral; ink: white on transparent
-    this.ctx[0].fillStyle = tone(1);
-    this.ctx[0].fillRect(0, 0, size, size);
-    this.ctx[2].fillStyle = semantic.white;
+    ctx[0].fillStyle = tone(1);
+    ctx[0].fillRect(0, 0, size, size);
+    jobs.push({ def, size, tex: t, next: 0, paint, sdf, canvases, ctx });
+    schedule();
   }
+  return t;
+}
 
-  /**
-   * Bereich bemalen; die Ebenen sind auf den Bereich beschnitten. design = Groesse, fuer die der Maler geschrieben ist:
-   * derselbe Maler fuellt so auch einen kleineren Bereich (Kommandant im Panzeratlas).
-   * Paint a region; the layers are clipped to the region. design = the size the painter was written for: the same
-   * painter thus fills a smaller region too (commander in the tank atlas).
-   */
-  region(name: string, fn: (p: Pen) => void, design?: [number, number], bleed = 3): void {
-    const r = this.layout.get(name);
-    const dw = design ? design[0] : r.w, dh = design ? design[1] : r.h;
-    const kx = (this.k * r.w) / dw, ky = (this.k * r.h) / dh;
-    for (const x of this.ctx) {
-      x.save();
-      x.setTransform(kx, 0, 0, ky, r.x * this.k, r.y * this.k);
-      x.beginPath();
-      x.rect(-bleed, -bleed, dw + 2 * bleed, dh + 2 * bleed);
-      x.clip();
-    }
-    this.ctx[2].fillStyle = semantic.white;
-    try {
-      fn(new Pen({ ...r, w: dw, h: dh }, this.ctx[0], this.ctx[1], this.ctx[2]));
-    } finally {
-      for (const x of this.ctx) x.restore();
-    }
+/** Eine Zelle zeichnen und in die Texturdaten uebernehmen / paint one cell and copy it into the texture data */
+function step(job: Job): void {
+  const t0 = performance.now();
+  const cell = job.def.cells[job.next++];
+  const r = job.def.layout.get(cell.name);
+  const k = job.size / REF;
+  const dw = cell.design ? cell.design[0] : r.w, dh = cell.design ? cell.design[1] : r.h;
+  const bleed = 3;
+  for (const x of job.ctx) {
+    x.save();
+    x.setTransform((k * r.w) / dw, 0, 0, (k * r.h) / dh, r.x * k, r.y * k);
+    x.beginPath();
+    x.rect(-bleed, -bleed, dw + 2 * bleed, dh + 2 * bleed);
+    x.clip();
   }
-
-  /** Ebene als Bild (fuer die Vorschau des Atlas) / layer as an image (for the atlas preview) */
-  canvas(layer: 0 | 1 | 2): HTMLCanvasElement { return this.canvases[layer]; }
-
-  /** Ebenen verrechnen, Abstandsfeld bilden, Texturen anlegen / combine layers, build the distance field, create textures */
-  finish(): AtlasTextures {
-    const n = this.size, N = n * n;
-    const mul = this.ctx[0].getImageData(0, 0, n, n).data;
-    const abs = this.ctx[1].getImageData(0, 0, n, n).data;
-    const inkA = this.ctx[2].getImageData(0, 0, n, n).data;
-    const paint = new Uint8Array(N * 4);
-    for (let i = 0; i < N; i++) {
-      const a = abs[i * 4 + 3] / 255;
-      for (let c = 0; c < 3; c++) paint[i * 4 + c] = Math.round(mul[i * 4 + c] * (1 - a) + abs[i * 4 + c] * a);
-      paint[i * 4 + 3] = abs[i * 4 + 3];
-    }
-    const sdf = distanceField(inkA, n, SDF_RANGE * this.k);
-    const mk = (data: Uint8Array, format: THREE.PixelFormat) => {
-      const t = new THREE.DataTexture(data, n, n, format, THREE.UnsignedByteType);
-      t.colorSpace = THREE.NoColorSpace;
-      t.minFilter = THREE.LinearMipmapLinearFilter;
-      t.magFilter = THREE.LinearFilter;
-      t.generateMipmaps = true;
-      t.anisotropy = 4;
-      t.needsUpdate = true;
-      return t;
-    };
-    const out: AtlasTextures = {
-      paint: mk(paint, THREE.RGBAFormat), ink: mk(sdf, THREE.RedFormat), size: n,
-      bytes: Math.round((N * 4 + N) * 4 / 3), ms: performance.now() - this.t0,
-    };
-    // Canvas freigeben / release the canvases
-    for (const c of this.canvases) { c.width = 1; c.height = 1; }
-    return out;
+  job.ctx[2].fillStyle = semantic.white;
+  try {
+    cell.paint(new Pen({ ...r, w: dw, h: dh }, job.ctx[0], job.ctx[1], job.ctx[2]));
+  } finally {
+    for (const x of job.ctx) x.restore();
   }
+  // Ausschnitt samt Rand lesen / read the rectangle including its margin
+  const m = Math.ceil(SDF_RANGE * k) + 2;
+  const x0 = Math.max(0, Math.floor(r.x * k) - m), y0 = Math.max(0, Math.floor(r.y * k) - m);
+  const x1 = Math.min(job.size, Math.ceil((r.x + r.w) * k) + m), y1 = Math.min(job.size, Math.ceil((r.y + r.h) * k) + m);
+  const w = x1 - x0, h = y1 - y0;
+  const mul = job.ctx[0].getImageData(x0, y0, w, h).data, abs = job.ctx[1].getImageData(x0, y0, w, h).data, ink = job.ctx[2].getImageData(x0, y0, w, h).data;
+  const field = distanceField(ink, w, h, SDF_RANGE * k);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x, o = (y0 + y) * job.size + x0 + x;
+    const a = abs[i * 4 + 3] / 255;
+    for (let c = 0; c < 3; c++) job.paint[o * 4 + c] = Math.round(mul[i * 4 + c] * (1 - a) + abs[i * 4 + c] * a);
+    job.paint[o * 4 + 3] = abs[i * 4 + 3];
+    job.sdf[o] = field[i];
+  }
+  const ms = performance.now() - t0;
+  job.tex.ms += ms;
+  job.tex.maxStepMs = Math.max(job.tex.maxStepMs, ms);
+  if (job.next >= job.def.cells.length) {
+    job.tex.paint.needsUpdate = true;
+    job.tex.ink.needsUpdate = true;
+    job.tex.ready = true;
+    for (const c of job.canvases) { c.width = 1; c.height = 1; }
+    jobs.splice(jobs.indexOf(job), 1);
+    for (const fn of listeners) fn();
+  }
+}
+
+/** Zeit je Bild fuer das Zeichnen / time per frame spent painting */
+const FRAME_BUDGET_MS = 5;
+function schedule(): void {
+  if (scheduled || !jobs.length || typeof requestAnimationFrame !== 'function') return;
+  scheduled = true;
+  requestAnimationFrame(() => {
+    scheduled = false;
+    const t0 = performance.now();
+    while (jobs.length && performance.now() - t0 < FRAME_BUDGET_MS) step(jobs[0]);
+    schedule();
+  });
+}
+const listeners = new Set<() => void>();
+/** Rueckruf, sobald ein Atlas fertig gezeichnet ist (das Brett zeichnet dann neu) / callback once an atlas has finished painting (the board redraws then) */
+export function onAtlasReady(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+/** Alles Ausstehende sofort fertig zeichnen (Vorschau, Bildschirmfotos) / finish all pending painting at once (preview, screenshots) */
+export function flushAtlases(): void {
+  while (jobs.length) step(jobs[0]);
+}
+/** Steht noch Zeichnen aus? / is painting still pending? */
+export function atlasesPending(): boolean { return jobs.length > 0; }
+/** Angelegte Texturen (fuer Messwerte) / created textures (for measurements) */
+export function atlasStats(): { key: string; bytes: number; ms: number; maxStepMs: number; ready: boolean }[] {
+  return [...textures.entries()].map(([key, t]) => ({ key, bytes: t.bytes, ms: Math.round(t.ms), maxStepMs: Math.round(t.maxStepMs), ready: t.ready }));
 }
 
 // ---------- Abstandsfeld / distance field ----------
@@ -519,29 +634,28 @@ function edt1d(grid: Float64Array, offset: number, stride: number, length: numbe
     grid[offset + q * stride] = f[r] + qr * qr;
   }
 }
-function edt(grid: Float64Array, n: number, f: Float64Array, v: Uint16Array, z: Float64Array): void {
-  for (let x = 0; x < n; x++) edt1d(grid, x, n, n, f, v, z);
-  for (let y = 0; y < n; y++) edt1d(grid, y * n, 1, n, f, v, z);
-}
 /**
- * Abstandsfeld aus der Deckung der Tuscheebene: 0.5 = Kante, darueber innen. range = Reichweite in Pixeln.
- * Distance field from the coverage of the ink layer: 0.5 = edge, above it inside. range = reach in pixels.
+ * Abstandsfeld aus der Deckung der Tuscheebene (RGBA, w x h): 0.5 = Kante, darueber innen. range = Reichweite in Pixeln.
+ * Distance field from the coverage of the ink layer (RGBA, w x h): 0.5 = edge, above it inside. range = reach in pixels.
  */
-export function distanceField(rgba: Uint8ClampedArray, n: number, range: number): Uint8Array {
-  const N = n * n;
-  const outer = new Float64Array(N), inner = new Float64Array(N);
+export function distanceField(rgba: Uint8ClampedArray | Uint8Array, w: number, h: number, range: number): Uint8Array {
+  const N = w * h;
+  const out = new Uint8Array(N);
   let any = false;
+  for (let i = 0; i < N && !any; i++) any = rgba[i * 4 + 3] > 0;
+  if (!any) return out;
+  const outer = new Float64Array(N), inner = new Float64Array(N);
   for (let i = 0; i < N; i++) {
     const a = rgba[i * 4 + 3] / 255;
-    if (a > 0) any = true;
     outer[i] = a >= 1 ? 0 : a <= 0 ? INF : Math.max(0, 0.5 - a) ** 2;
     inner[i] = a >= 1 ? INF : a <= 0 ? 0 : Math.max(0, a - 0.5) ** 2;
   }
-  const out = new Uint8Array(N);
-  if (!any) return out;
+  const n = Math.max(w, h);
   const f = new Float64Array(n), z = new Float64Array(n + 1), v = new Uint16Array(n);
-  edt(outer, n, f, v, z);
-  edt(inner, n, f, v, z);
+  for (const grid of [outer, inner]) {
+    for (let x = 0; x < w; x++) edt1d(grid, x, w, h, f, v, z);
+    for (let y = 0; y < h; y++) edt1d(grid, y * w, 1, w, f, v, z);
+  }
   for (let i = 0; i < N; i++) {
     const d = Math.sqrt(outer[i]) - Math.sqrt(inner[i]);
     out[i] = Math.max(0, Math.min(255, Math.round(255 * (0.5 - d / (2 * range)))));

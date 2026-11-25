@@ -9,15 +9,15 @@
  * not grow further.
  */
 import { afterAll, describe, expect, it } from 'vitest';
-import { getUnitQuality, setUnitQuality, unitGeometry, type UnitQuality } from '../src/render/models';
+import { getUnitQuality, INKED, legacyUnitGeometry, setUnitQuality, unitGeometry, type UnitQuality } from '../src/render/models';
 import { HEAD_CREW, HEAD_FOOT } from '../src/render/models/soldiers';
 import { FACTION_IDS, UNITS, WONDER_UNITS, type FactionId, type UnitTypeId } from '../src/data/balance';
 
 const HUMANS: FactionId[] = ['korvat', 'dravon', 'alvenia', 'meridon', 'velkar'];
 
 /** Masse eines Einheitenmodells / dimensions of a unit model */
-function dims(t: UnitTypeId, f: FactionId) {
-  const g = unitGeometry(t, f, null);
+function dims(t: UnitTypeId, f: FactionId, legacy = false) {
+  const g = legacy ? legacyUnitGeometry(t, f, null) : unitGeometry(t, f, null);
   g.computeBoundingBox();
   const b = g.boundingBox!;
   return {
@@ -79,7 +79,9 @@ describe('Einheiten: Proportionen / units: proportions', () => {
       expect(dims('shadowCommando', 'meridon').h).toBeLessThan(dims('infantry', 'meridon').h * 0.75);
       // Marines (Meridon): breiter gebaut als der Schuetze, nicht niedriger, klar groesser als das geduckte Kommando
       // marines (Meridon): built broader than the rifleman, not lower, clearly larger than the crouched commando
-      const mar = dims('marine', 'meridon'), inf = dims('infantry', 'meridon');
+      // solange die Marines noch nicht gezeichnet sind, messen sie sich am bisherigen Schuetzen (gleiche Bauart)
+      // while the marines are not inked yet they are measured against the previous rifleman (same generation)
+      const mar = dims('marine', 'meridon'), inf = INKED.marine ? dims('infantry', 'meridon') : dims('infantry', 'meridon', true);
       expect(mar.wid).toBeGreaterThan(inf.wid * 1.2);
       expect(mar.h).toBeGreaterThanOrEqual(inf.h);
       expect(mar.h).toBeGreaterThan(dims('shadowCommando', 'meridon').h * 1.4);

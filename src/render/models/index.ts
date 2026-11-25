@@ -25,7 +25,9 @@ import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
 import { memo, scaleWithTurrets, withDetail } from './kit';
-export { splitTurrets, turretsOf, type TurretRange, type TurretSplit } from './kit';
+export { turretsOf, type TurretRange, type TurretSplit } from './kit';
+import { buildInked, inkedType, inkedUnitsEnabled, setInkedUnits } from './inked';
+export { INKED, inkedType, inkedUnitsEnabled, setInkedUnits, splitTurrets, warmInked } from './inked';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
@@ -114,6 +116,11 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
   // victory wonders: own models at structure size, without the unit size and value adjustments
   if (wonder) return wonderGeometry(type as WonderType, faction, stage);
   const hi = unitQuality === 'high';
+  // Gezeichnete Einheiten (models/inked): eigener Weg mit uv, Tusche und Verdeckung; alle anderen wie bisher
+  // inked units (models/inked): their own path with uv, ink and occlusion; all others as before
+  if (!c && inkedType(type, faction)) {
+    return memo(`unit|${type}|${faction}|inked${hi ? '' : '|low'}`, () => techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => buildInked(type, faction, hi), { smooth: true, fine: hi })));
+  }
   return memo(`unit|${type}|${faction}|${c ?? ''}${hi ? '' : '|low'}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
@@ -191,6 +198,20 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
   }, { smooth: true, fine: hi }))));
+}
+
+/**
+ * Bisheriges Modell eines Typs, auch wenn er schon gezeichnet ist (Vergleich in der Vorschau, Introfilm).
+ * The previous model of a type even if it is inked already (comparison in the preview, intro film).
+ */
+export function legacyUnitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null, stage = 0): THREE.BufferGeometry {
+  const was = inkedUnitsEnabled();
+  setInkedUnits(false);
+  try {
+    return unitGeometry(type, faction, carried, stage);
+  } finally {
+    setInkedUnits(was);
+  }
 }
 
 /**

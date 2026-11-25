@@ -1,5 +1,5 @@
 /**
- * Vorschlag B: Tusche als Geometrie / proposal B: ink as geometry.
+ * Gezeichnete Einheiten: Tusche als Geometrie / inked units: ink as geometry.
  *
  * Eine Geometrie, ein Material, EIN Zeichenaufruf (wie bisher die Kontur), aber zwei Arten Linien:
  * - Umriss: umgestuelpte Huelle wie in toon.ts, die Breite schwankt entlang der Flaeche wie ein Federstrich.
@@ -13,11 +13,13 @@
  *   thinnest ribbons drop out (they would be below one pixel).
  */
 import * as THREE from 'three';
-import { hex, semantic } from '../../../../design/tokens';
+import { hex, semantic } from '../../../design/tokens';
 
 export interface InkOpts {
   /** Flaechenwinkel in Grad, ab dem eine Kante gezeichnet wird / dihedral angle in degrees from which an edge is drawn */
   angle?: number;
+  /** false: nur der Umriss, keine Innenlinien (niedrige Qualitaet) / false: silhouette only, no inner lines (low quality) */
+  creases?: boolean;
 }
 
 /** Fester Streuwert aus einer Zahl / fixed hash from a number */
@@ -83,7 +85,7 @@ export function inkGeometry(src: THREE.BufferGeometry, o: InkOpts = {}): THREE.B
   const creases: { a: number; b: number; w: number }[] = [];
   const degree = new Uint16Array(nv);
   for (const e of edges.values()) {
-    if (e.w <= 0) continue;
+    if (e.w <= 0 || o.creases === false) continue;
     const k = e.n.length / 3;
     let w = 0;
     if (k === 1) w = 1;
@@ -133,30 +135,55 @@ export function inkGeometry(src: THREE.BufferGeometry, o: InkOpts = {}): THREE.B
   return g;
 }
 
-/** Gemeinsame Uniforms der Tusche (die Seite setzt Ansicht und Schalter) / shared ink uniforms (the page sets view and switches) */
-export const INK = {
-  /** Breite des Umrisses in Modelleinheiten / silhouette width in model units */
-  uWidth: { value: 0.0075 },
-  /** halbe Breite der Innenlinien in Modelleinheiten / half width of the inner lines in model units */
-  uCrease: { value: 0.0021 },
-  /** Bildgroesse in Geraetepixeln / viewport size in device pixels */
-  uView: { value: new THREE.Vector2(1, 1) },
-  uDpr: { value: 1 },
-  uColor: { value: new THREE.Color(hex(semantic.ink)) },
-  /** Schwankung der Strichstaerke 0..1 / variation of the line weight 0..1 */
-  uIrregular: { value: 1 },
-  /** groesste Umrissbreite in CSS-Pixeln: in der Nahansicht quillt die Linie nicht auf / largest silhouette width in CSS pixels: the line does not swell in the close view */
-  uMaxPx: { value: 2.9 },
-  /** Innenlinien an/aus / inner lines on/off */
-  uCreaseOn: { value: 1 },
-};
+const inkCache = new WeakMap<THREE.BufferGeometry, THREE.BufferGeometry>();
+/**
+ * Tuschegeometrie zu einer Einheitengeometrie (zwischengespeichert). Gezeichnete Einheiten merken in userData.inkSrc
+ * ihre ungeteilte Rohgeometrie: aus ihr entsteht die Tusche, damit die Unterteilung fuer die Verdeckung sie nicht aufblaeht.
+ * Ink geometry for a unit geometry (cached). Inked units remember their unsubdivided raw geometry in userData.inkSrc:
+ * the ink is made from it so the subdivision for the occlusion does not inflate it.
+ */
+export function inkFor(g: THREE.BufferGeometry): THREE.BufferGeometry {
+  let ink = inkCache.get(g);
+  if (!ink) {
+    ink = inkGeometry((g.userData.inkSrc as THREE.BufferGeometry | undefined) ?? g, { creases: (g.userData.inked as { creases?: boolean } | undefined)?.creases !== false });
+    inkCache.set(g, ink);
+  }
+  return ink;
+}
 
-let inkMat: THREE.ShaderMaterial | null = null;
-/** Tuschematerial: Umriss und Innenlinien in einem Durchgang / ink material: silhouette and inner lines in one pass */
-export function inkMaterial(): THREE.ShaderMaterial {
-  if (inkMat) return inkMat;
-  inkMat = new THREE.ShaderMaterial({
-    uniforms: INK,
+/**
+ * Bildgroesse und Pixeldichte des gerade zeichnenden Renderers; syncView setzt sie vor jedem Zeichnen (Brett, Portrait
+ * und Vorschau haben eigene Renderer). Tusche und Schraffur teilen sich die Werte.
+ * Viewport size and pixel ratio of the renderer drawing right now; syncView sets them before every draw (board,
+ * portrait and preview have their own renderers). Ink and hatching share the values.
+ */
+export const VIEW = { uView: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 } };
+const vp = new THREE.Vector4();
+/** Als mesh.onBeforeRender einhaengen / hook up as mesh.onBeforeRender */
+export function syncView(renderer: THREE.WebGLRenderer): void {
+  renderer.getCurrentViewport(vp);
+  VIEW.uView.value.set(vp.z, vp.w);
+  VIEW.uDpr.value = renderer.getPixelRatio();
+}
+
+/** Schalter fuer die Vorschau: Schwankung der Strichstaerke, Innenlinien / switches for the preview: line weight variation, inner lines */
+export const INK = { uIrregular: { value: 1 }, uCreaseOn: { value: 1 } };
+/** halbe Breite der Innenlinien in Modelleinheiten / half width of the inner lines in model units */
+export const CREASE_HALF_WIDTH = 0.0021;
+/** groesste Umrissbreite in CSS-Pixeln: in der Nahansicht quillt die Linie nicht auf / largest silhouette width in CSS pixels: the line does not swell in a close view */
+export const OUTLINE_MAX_PX = 2.9;
+
+const inkMats = new Map<number, THREE.ShaderMaterial>();
+/** Tuschematerial: Umriss (Breite in Modelleinheiten wie outlineMaterial) und Innenlinien in einem Durchgang / ink material: silhouette (width in model units like outlineMaterial) and inner lines in one pass */
+export function inkMaterial(width = 0.018): THREE.ShaderMaterial {
+  let m = inkMats.get(width);
+  if (m) return m;
+  m = new THREE.ShaderMaterial({
+    uniforms: {
+      uWidth: { value: width }, uCrease: { value: CREASE_HALF_WIDTH }, uMaxPx: { value: OUTLINE_MAX_PX },
+      uColor: { value: new THREE.Color(hex(semantic.ink)) },
+      uView: VIEW.uView, uDpr: VIEW.uDpr, uIrregular: INK.uIrregular, uCreaseOn: INK.uCreaseOn,
+    },
     vertexShader: /* glsl */ `
       uniform float uWidth, uCrease, uDpr, uIrregular, uCreaseOn, uMaxPx;
       uniform vec2 uView;
@@ -174,9 +201,8 @@ export function inkMaterial(): THREE.ShaderMaterial {
           // Umriss: Breite schwankt entlang der Flaeche / silhouette: the width wavers along the surface
           float n = bNoise(position * 34.0) * 0.65 + bNoise(position * 11.0) * 0.35;
           float w = uWidth * (1.0 + uIrregular * (n - 0.5) * 1.5);
-          vec4 mv = modelViewMatrix * vec4(position, 1.0);
-          vec4 cp = projectionMatrix * mv;
-          // nie duenner als gut ein halbes Pixel / never thinner than a good half pixel
+          vec4 cp = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          // nie duenner als gut ein halbes Pixel, nie breiter als uMaxPx / never thinner than a good half pixel, never wider than uMaxPx
           float ppu = projectionMatrix[1][1] * uView.y * 0.5 / cp.w * scale;
           w = clamp(w, 0.55 * uDpr / ppu, uMaxPx * uDpr / ppu);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position + normal * w, 1.0);
@@ -189,10 +215,10 @@ export function inkMaterial(): THREE.ShaderMaterial {
           d = (len > 1e-4 ? d / len : vec2(1.0, 0.0)) * ink.y;
           vec2 nrm = vec2(-d.y, d.x);
           float ppu = projectionMatrix[1][1] * uView.y * 0.5 / c0.w * scale;
-          float wpx = uCrease * mix(1.0, ink.z, uIrregular) * ppu;
-          // im Brettmassstab fallen die duennsten Linien weg / at board scale the thinnest lines drop out
-          float keep = step(0.42 * uDpr, wpx) * uCreaseOn;
-          wpx = max(wpx, 0.5 * uDpr) * keep;
+          float wpx = uCrease * mix(1.0, ink.z, uIrregular) * ppu / uDpr;
+          // Beim Herauszoomen wird die Linie stufenlos schmaler und verschwindet, statt zu springen
+          // when zooming out the line narrows steplessly and vanishes instead of popping
+          wpx = max(wpx, 0.5) * smoothstep(0.16, 0.62, wpx) * uCreaseOn * uDpr;
           vec2 off = nrm * ink.x * wpx - d * ink.y * wpx * 0.7;
           gl_Position = c0;
           gl_Position.xy += off / (uView * 0.5) * c0.w;
@@ -208,5 +234,6 @@ export function inkMaterial(): THREE.ShaderMaterial {
       }`,
     side: THREE.BackSide,
   });
-  return inkMat;
+  inkMats.set(width, m);
+  return m;
 }
