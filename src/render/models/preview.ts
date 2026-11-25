@@ -681,10 +681,13 @@ buildScene().then(() => {
   // Messhilfe: mittlere Zeit je Bild in ms ueber n Bilder (mit gl.finish), zum Vergleich von Shadern und Geometrien
   // bench helper: mean time per frame in ms over n frames (with gl.finish), to compare shaders and geometries
   w.__bench = (n = 20) => {
-    const gl = renderer.getContext();
-    render(); gl.finish();
+    // readPixels zwingt den Browser, das Bild wirklich fertig zu zeichnen (gl.finish allein kehrt sofort zurueck)
+    // readPixels forces the browser to really finish the frame (gl.finish alone returns at once)
+    const gl = renderer.getContext(), px = new Uint8Array(4);
+    const frame = () => { render(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
+    frame();
     const t0 = performance.now();
-    for (let i = 0; i < n; i++) { render(); gl.finish(); }
+    for (let i = 0; i < n; i++) frame();
     return Math.round(((performance.now() - t0) / n) * 100) / 100;
   };
   w.__inkTris = inkTris;
