@@ -37,14 +37,14 @@ const LOW_SLACK = 1.03;
 const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker', 'divineSpark']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
-  infantry: [5750, 4550, 4891], // 5453 / 4300
-  sniper: [7250, 6050, 6285], // 6865 / 5720
+  infantry: [11650, 4550, 4891], // 11078 / 4300 (Detailrunde 4, vorher 5453 / detail round 4, before 5453)
+  sniper: [13300, 6050, 6285], // 12620 / 5720 (Detailrunde 4, vorher 6865 / detail round 4, before 6865)
   jeep: [6350, 5300, 5140], // 6018 / 5028
-  pioneer: [6500, 5250, 5321], // 6189 / 4972
-  mg: [5600, 4750, 5075], // 5286 / 4515
-  medic: [6600, 5350, 5703], // 6273 / 5064
+  pioneer: [12700, 5250, 5321], // 12090 / 4972 (Detailrunde 4, vorher 6189 / detail round 4, before 6189)
+  mg: [14500, 4750, 5075], // 13803 / 4515 (Detailrunde 4, vorher 5286 / detail round 4, before 5286)
+  medic: [11850, 5350, 5703], // 11254 / 5064 (Detailrunde 4, vorher 6273 / detail round 4, before 6273)
   artillery: [6400, 5700, 5839], // 6095 / 5419
-  spy: [4300, 3100, 3237], // 4089 / 2908
+  spy: [8100, 3100, 3237], // 7702 / 2908 (Detailrunde 4, vorher 4089 / detail round 4, before 4089)
   heli: [3900, 3900, 4007], // 3695 / 3695
   tank: [8400, 7850, 7866], // 7983 / 7472
   antiTank: [4750, 3950, 3945], // 4520 / 3749
@@ -59,15 +59,15 @@ const BUDGET: Record<string, [number, number, number]> = {
   skimmer: [4450, 4450, 4756], // 4228 / 4228
   mech: [6700, 6300, 6364], // 6348 / 5964
   tripod: [7500, 7500, 7937], // 7099 / 7099
-  zealot: [5900, 4900, 4716], // 5576 / 4656
-  torchbearer: [6100, 5100, 4984], // 5768 / 4848
-  prophet: [5750, 4800, 5026], // 5454 / 4534
-  doomBuggy: [5550, 4800, 5576], // 5240 / 4556
-  rocketCart: [6150, 5500, 5392], // 5834 / 5218 (Lesbarkeit: grosses Raketengestell / readability: big rocket rack)
-  doomCrawler: [7650, 7350, 8023], // 7247 / 6983
+  zealot: [10150, 4900, 4716], // 9646 / 4656 (Detailrunde 4, vorher 5576 / detail round 4, before 5576)
+  torchbearer: [10450, 5100, 4984], // 9918 / 4848 (Detailrunde 4, vorher 5768 / detail round 4, before 5768)
+  prophet: [10200, 4800, 5026], // 9680 / 4534 (Detailrunde 4, vorher 5454 / detail round 4, before 5454)
+  doomBuggy: [7700, 4800, 5576], // 7296 / 4556 (Detailrunde 4, vorher 5240 / detail round 4, before 5240)
+  rocketCart: [8100, 5500, 5392], // 7702 / 5218 (Detailrunde 4, vorher 5834 / detail round 4, before 5834)
+  doomCrawler: [9650, 7350, 8023], // 9159 / 6983 (Detailrunde 4, vorher 7247 / detail round 4, before 7247)
   faustZealot: [6200, 5250, 4967], // 5883 / 4963
   // neu (Berserker des Kults), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (the cult's berserker), no before state: before holds its own low value
-  berserker: [4050, 2950, 2808], // 3824 / 2808
+  berserker: [8450, 2950, 2808], // 8004 / 2808 (Detailrunde 4, vorher 3824 / detail round 4, before 3824)
   android: [4700, 4300, 4376], // 4472 / 4088
   cyborg: [4500, 3850, 3692], // 4276 / 3636
   kamikazeDrone: [4600, 3800, 3864], // 4364 / 3616 (Feinschliff Runde 3 / polish round 3)
@@ -77,11 +77,11 @@ const BUDGET: Record<string, [number, number, number]> = {
   railgun: [5950, 5650, 5580], // 5636 / 5380
   flameTank: [7450, 7200, 7006], // 7070 / 6814
   titan: [7000, 6100, 5772], // 6620 / 5788
-  steppeRider: [4150, 3500, 3367], // 3941 / 3329
-  stormbreaker: [5550, 4450, 4681], // 5275 / 4216
-  peacekeeper: [8900, 7100, 7414], // 8450 / 6737
-  privateer: [3200, 3200, 3388], // 3008 / 3008
-  protoWalker: [4550, 4300, 4260], // 4324 / 4068
+  steppeRider: [11000, 3500, 3367], // 10437 / 3329 (Detailrunde 4, vorher 3941 / detail round 4, before 3941)
+  stormbreaker: [12500, 4450, 4681], // 11886 / 4216 (Detailrunde 4, vorher 5275 / detail round 4, before 5275)
+  peacekeeper: [15850, 7100, 7414], // 15091 / 6737 (Detailrunde 4, vorher 8450 / detail round 4, before 8450)
+  privateer: [8000, 3200, 3388], // 7598 / 3008 (Detailrunde 4, vorher 3008 / detail round 4, before 3008)
+  protoWalker: [6700, 4300, 4260], // 6360 / 4068 (Detailrunde 4, vorher 4324 / detail round 4, before 4324)
   teslaTank: [7550, 7400, 7212], // 7188 / 7008
   octocopter: [4500, 4500, 4876], // 4252 / 4252
   railSniper: [5950, 4750, 4951], // 5635 / 4482
@@ -98,7 +98,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
   marine: [5150, 3900, 3698], // 4874 / 3698
   swarmMother: [16350, 16250, 15432], // 15560 / 15432
-  scientist: [4350, 3150, 3038], // 4102 / 2998
+  scientist: [8300, 3150, 3038], // 7886 / 2998 (Detailrunde 4, vorher 4102 / detail round 4, before 4102)
 };
 
 /** Typen und die Fraktionen, mit denen sie gebaut werden / types and the factions they are built with */

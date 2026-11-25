@@ -18,7 +18,8 @@ import type { FactionId } from '../../data/balance';
 import { HALF_PI, band, barrel, crate, flagPole, gableRoof, sandbag } from './architecture';
 import { hall, tractor } from './buildings';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { ball, Builder, capsule, fine, geo, mix, rng, shade, type ColorLike, type V3 } from './kit';
+import { headlight, lens, rivet, rivetRow, seam } from './detailFigures';
 import { look, mat } from './look';
 import { hull, lifeRings, mast, superBlock } from './ships';
 import { rifle, soldier, standPose } from './soldiers';
@@ -33,8 +34,91 @@ function stripes(b: Builder, x: number, y: number, z: number, w: number, h: numb
 
 // ---------- Korvat: Steppenreiter / steppe riders ----------
 
+/**
+ * Steppenpferd bei hoher Qualitaet: modellierter Rumpf mit Brust und Kruppe, runder Hals, Kopf mit Maul, Nuestern,
+ * Augen und Ohren, Zaumzeug, Beine mit Gelenken, Fesseln und beschlagenen Hufen, Maehne und Schweif aus Straehnen.
+ * Gleiche Haltung und Masse wie die einfache Form.
+ * Steppe horse on high quality: sculpted barrel with chest and croup, round neck, head with muzzle, nostrils, eyes and
+ * ears, bridle, legs with joints, fetlocks and shod hooves, mane and tail from strands. Same stance and size as the
+ * simple form.
+ */
+function fineHorse(b: Builder, coat: ColorLike, mane: ColorLike, tack: ColorLike) {
+  const dark = shade(coat, 0.78), light = mix(coat, mat.paper, 0.25);
+  // Rumpf, Brust, Kruppe, Bauch / barrel, chest, croup, belly
+  b.add(ball(1, 22, 14), coat, { p: [0, 0.2, 0], s: [0.05, 0.052, 0.135], r: [-0.08, 0, 0] });
+  b.add(ball(1, 16, 10), coat, { p: [0, 0.205, -0.1], s: [0.051, 0.054, 0.06] });
+  for (const s of [-1, 1]) b.add(ball(1, 12, 8), coat, { p: [s * 0.022, 0.218, -0.115], s: [0.034, 0.042, 0.048] });
+  b.add(ball(1, 14, 10), coat, { p: [0, 0.205, 0.095], s: [0.046, 0.052, 0.045] });
+  b.add(ball(1, 12, 6), light, { p: [0, 0.168, 0.0], s: [0.04, 0.02, 0.1] });
+  // Hals / neck
+  b.segment(V([0, 0.21, 0.1]), V([0, 0.34, 0.185]), (l) => capsule(0.034, 0.022, l + 0.04, 14, 2), coat);
+  // Kopf: Schaedel, Ganasche, Maul, Nuestern, Augen, Ohren, Stirnschopf / head: skull, cheek, muzzle, nostrils, eyes, ears, forelock
+  b.group({ p: [0, 0.34, 0.2], r: [0.75, 0, 0] }, () => {
+    b.add(capsule(0.021, 0.016, 0.11, 14, 2), coat, { p: [0, 0.04, -0.004], s: [1, 1, 1.25] });
+    b.add(ball(1, 12, 8), coat, { p: [0, 0.006, 0.008], s: [0.023, 0.027, 0.028] });
+    b.add(ball(1, 12, 8), dark, { p: [0, 0.092, 0.002], s: [0.018, 0.017, 0.022] });
+    for (const s of [-1, 1]) {
+      b.group({ p: [s * 0.009, 0.104, -0.008], r: [-HALF_PI + 0.3, 0, 0] }, () => b.add(lens(6, 3), mat.ink, { s: [0.0045, 0.0065, 0.002] }));
+      // Auge mit Lichtpunkt / eye with a glint
+      b.group({ p: [s * 0.02, 0.022, -0.012], r: [0, s * HALF_PI, 0] }, () => {
+        b.add(lens(8, 5), mat.ink, { s: [0.0062, 0.0055, 0.003] });
+        b.add(lens(4, 2), mat.white, { p: [0.0015 * s, 0.0018, 0.0026], s: 0.0016 });
+      });
+      // Ohren mit Innenseite / ears with inner side
+      b.group({ p: [s * 0.013, 0.008, -0.05], r: [-0.4, 0, s * 0.3] }, () => {
+        b.add(capsule(0.0075, 0.0015, 0.032, 8, 1), coat, { s: [1, 1, 0.6] });
+        b.add(lens(5, 3), dark, { p: [0, 0, 0.003], s: [0.004, 0.012, 0.0015] });
+      });
+    }
+    for (let i = 0; i < 4; i++) b.tube([(i - 1.5) * 0.004, 0.012, -0.04], [(i - 1.5) * 0.008, 0.04, -0.03], 0.0035, 4, mane);
+    // Zaumzeug: Nasenriemen, Backenstueck, Stirnriemen, Trensenring / bridle: noseband, cheek piece, brow band, bit ring
+    b.add(geo.torus(0.0205, 0.0028, 3, 16), tack, { p: [0, 0.075, 0.001], r: [HALF_PI, 0, 0], s: [1, 1.25, 1] });
+    b.add(geo.torus(0.0215, 0.0028, 3, 16), tack, { p: [0, 0.008, -0.01], r: [HALF_PI - 0.4, 0, 0], s: [1.05, 1.35, 1] });
+    for (const s of [-1, 1]) {
+      b.tube([s * 0.022, 0.008, -0.01], [s * 0.019, 0.075, 0.0], 0.0026, 3, tack);
+      b.add(geo.torus(0.0055, 0.0014, 3, 8), mat.metalLight, { p: [s * 0.019, 0.094, 0.014], r: [0, HALF_PI, 0] });
+    }
+  });
+  // Beine mit Gelenken und beschlagenen Hufen / legs with joints and shod hooves
+  const legs: [number, number, V3, V3][] = [
+    [-0.035, 0.1, [-0.035, 0.11, 0.12], [-0.034, 0.0, 0.12]],
+    [0.035, 0.1, [0.04, 0.14, 0.17], [0.04, 0.09, 0.2]],
+    [-0.035, -0.1, [-0.036, 0.1, -0.12], [-0.036, 0.0, -0.15]],
+    [0.035, -0.1, [0.036, 0.11, -0.09], [0.036, 0.0, -0.07]],
+  ];
+  for (const [x, z, knee, hoof] of legs) {
+    b.segment(V([x, 0.2, z]), V(knee), (l) => capsule(0.026, 0.013, l + 0.03, 12, 2), coat);
+    b.segment(V(knee), V(hoof), (l) => capsule(0.0105, 0.0095, l + 0.006, 10, 1), dark);
+    b.add(ball(1, 10, 6), coat, { p: knee, s: [0.014, 0.016, 0.015] });
+    b.add(ball(1, 8, 6), dark, { p: [hoof[0], hoof[1] + 0.028, hoof[2]], s: [0.012, 0.013, 0.013] });
+    b.cyl(0.015, 0.018, 0.022, 12, mat.ink, [hoof[0], hoof[1] + 0.011, hoof[2]]);
+    b.add(geo.torus(0.0165, 0.0022, 3, 12), mat.metalLight, { p: [hoof[0], hoof[1] + 0.002, hoof[2]], r: [HALF_PI, 0, 0] });
+    // Fesselbehang / feathering at the fetlock
+    b.add(geo.cyl(0.0145, 0.0175, 0.012, 10, true), light, { p: [hoof[0], hoof[1] + 0.026, hoof[2]] });
+  }
+  // Maehne aus Straehnen entlang des Halses / mane from strands along the neck
+  const R = rng(23);
+  for (let i = 0; i < 11; i++) {
+    const t = i / 10;
+    const root: V3 = [0, 0.235 + t * 0.12, 0.075 + t * 0.09];
+    const sx = (i % 2 ? 1 : -1) * (0.012 + R() * 0.01);
+    b.tube(root, [sx, root[1] - 0.04 - R() * 0.015, root[2] - 0.022], 0.0075, 5, mane, 0.002);
+  }
+  // Schweif aus Straehnen / tail from strands
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 5 - 0.5) * 0.8;
+    const mid: V3 = [Math.sin(a) * 0.015, 0.2, -0.205];
+    b.tube([0, 0.232, -0.165], mid, 0.011, 6, mane, 0.008);
+    b.tube(mid, [Math.sin(a) * 0.035, 0.1 + R() * 0.03, -0.235 - R() * 0.02], 0.008, 6, mane, 0.002);
+  }
+}
+
 /** Steppenpferd im Galopp-Stand / steppe horse in a mid-stride stance */
-function horse(b: Builder, coat: ColorLike, mane: ColorLike, lite: boolean) {
+function horse(b: Builder, coat: ColorLike, mane: ColorLike, lite: boolean, tack: ColorLike = mat.dark) {
+  if (fine() && !lite) {
+    fineHorse(b, coat, mane, tack);
+    return;
+  }
   const ws = lite ? 8 : 12;
   // Rumpf: Brust vorn hoeher / barrel body, chest higher at the front
   b.add(geo.sphere(0.1, ws, lite ? 5 : 8), coat, { p: [0, 0.2, 0], s: [0.5, 0.52, 1.35], r: [-0.08, 0, 0] });
@@ -88,6 +172,20 @@ export function steppeRider(f: FactionId, lite = false): Builder {
     // Satteltaschen und Bettrolle / saddlebags and bedroll
     for (const s of [-1, 1]) b.add(geo.rbox(0.02, 0.05, 0.05, 0.008), L.gear, { p: [s * 0.06, 0.225, -0.09] });
     b.cyl(0.018, 0.018, 0.11, lite ? 6 : 10, shade(L.gear, 1.25), [0, 0.275, -0.1], [0, 0, HALF_PI]);
+    if (fine() && !lite) {
+      // Sattelknauf und Hinterzwiesel, Sattelgurt mit Schnalle, Deckenkante, Riemen um die Bettrolle, Taschenklappen
+      // saddle horn and cantle, girth with buckle, blanket edge, straps around the bedroll, bag flaps
+      b.add(capsule(0.009, 0.007, 0.03, 10, 1), shade(mat.wood, 0.8), { p: [0, 0.288, 0.012], r: [0.3, 0, 0] });
+      b.add(geo.torus(0.03, 0.007, 4, 12, ), shade(mat.wood, 0.8), { p: [0, 0.283, -0.05], r: [0.2, 0, 0], s: [1.1, 1, 0.6] });
+      b.add(geo.torus(0.053, 0.0035, 3, 22), mat.dark, { p: [0, 0.2, -0.01], r: [0, HALF_PI, 0], s: [1, 1.02, 1.0] });
+      for (const s of [-1, 1]) {
+        b.box(0.006, 0.014, 0.012, mat.metalLight, [s * 0.052, 0.21, -0.01]);
+        b.box(0.022, 0.012, 0.052, shade(L.gear, 0.75), [s * 0.06, 0.247, -0.09]);
+        rivet(b, [s * 0.071, 0.24, -0.09], [s, 0, 0], 0.004, mat.metalLight);
+      }
+      b.box(0.114, 0.006, 0.112, L.secondary, [0, 0.249, -0.02]);
+      for (const x of [-0.035, 0.035]) b.add(geo.torus(0.0195, 0.0025, 3, 12), mat.dark, { p: [x, 0.275, -0.1], r: [0, HALF_PI, 0] });
+    }
   });
   {
     // Reiter rittlings / rider astride
@@ -152,7 +250,19 @@ export function stormbreaker(f: FactionId, lite = false): Builder {
       b.group({ p: [0.085, 0.21, -0.08], r: [0, 0, 0.62] }, () => {
         b.add(geo.cbox(0.09, 0.045, 0.045, 0.008), mat.dark, {});
         b.box(0.092, 0.012, 0.047, L.secondary, [0, 0, 0]);
+        // hohe Qualitaet: Schlagflaechen, Keil, Stielwicklung / high quality: striking faces, wedge, grip wrap
+        if (fine() && !lite) for (const sx of [-1, 1]) b.add(geo.cyl(0.02, 0.022, 0.006, 12), mat.metalLight, { p: [sx * 0.047, 0, 0], r: [0, 0, HALF_PI] });
       });
+      if (fine() && !lite) {
+        for (let i = 0; i < 4; i++) b.add(geo.torus(0.0095, 0.0025, 3, 10), mat.dark, { p: [-0.065 + i * 0.012, -0.004 + i * 0.0165, -0.071], r: [HALF_PI, 0, -0.95] });
+        // Nieten und Kanten am Brustpanzer und an den Schulterplatten / rivets and edges on the breastplate and pauldrons
+        rivetRow(b, [-0.072, 0.022, 0.061], [0.072, 0.022, 0.061], 7, [0, 0, 1], 0.0045, mat.metalLight);
+        for (const s of [-1, 1]) {
+          rivetRow(b, [s * 0.082, 0.04, 0.062], [s * 0.088, 0.095, 0.064], 3, [s * 0.4, 0, 1], 0.0045, mat.metalLight);
+          rivetRow(b, [s * 0.075, 0.128, 0.02], [s * 0.115, 0.115, 0.02], 3, [s * 0.3, 1, 0.3], 0.004, mat.metalLight);
+        }
+        seam(b, [[-0.06, 0.035, 0.062], [0, 0.03, 0.065], [0.06, 0.035, 0.062]], 0.0018, shade(armour, 0.7));
+      }
     });
     // Sturmschild mit Sehschlitz / assault shield with vision slit
     b.group({ p: [-0.075, 0.03, 0.15], r: [0.04, 0.35, 0] }, () => {
@@ -163,6 +273,14 @@ export function stormbreaker(f: FactionId, lite = false): Builder {
       b.box(0.08, 0.012, 0.006, mat.glassDark, [0, 0.215, 0.012]);
       addEmblem(b, f, 0.035, 0.008, L.secondary, { p: [0, 0.13, 0.012] });
       if (!lite) for (const x of [-0.05, 0.05]) for (const y of [0.04, 0.23]) b.add(geo.sphere(0.006, 5, 3), L.secondary, { p: [x, y, 0.012] });
+      if (fine() && !lite) {
+        // Nietrand, Sehschlitzrahmen, Kratzer, Griff hinten / rivet border, slit frame, scratches, grip at the back
+        for (const y of [0.018, 0.252]) rivetRow(b, [-0.055, y, 0.0105], [0.055, y, 0.0105], 6, [0, 0, 1], 0.0038, mat.metalLight);
+        for (const x of [-0.06, 0.06]) rivetRow(b, [x, 0.07, 0.0105], [x, 0.2, 0.0105], 4, [0, 0, 1], 0.0038, mat.metalLight);
+        for (const y of [0.205, 0.225]) b.box(0.092, 0.005, 0.006, shade(armour, 0.65), [0, y, 0.012]);
+        for (const [x, y, a] of [[-0.03, 0.08, 0.5], [0.035, 0.17, -0.4], [0.02, 0.06, 0.9]] as [number, number, number][]) b.box(0.03, 0.0025, 0.002, shade(armour, 1.35), [x, y, 0.0105], [0, 0, a]);
+        b.add(geo.torus(0.018, 0.004, 3, 10), mat.dark, { p: [0, 0.135, -0.018], r: [0, 0, 0], s: [1, 1.4, 1] });
+      }
     });
   });
   // schwere Schrotflinte mit Trommel / heavy drum-fed shotgun
@@ -194,6 +312,19 @@ export function peacekeeper(f: FactionId, lite = false): Builder {
     b.block(0, 0.075, 0, 0.134, 0.018, 0.124, L.primary);
     b.add(geo.cbox(0.16, 0.02, 0.15, 0.012), L.primary, { p: [0, 0.26, 0] });
     if (!lite) addEmblem(b, f, 0.022, 0.006, L.emblem, { p: [0, 0.2, 0.063] });
+    if (fine() && !lite) {
+      // Fensterrahmen und Sprossen, Tuer, Lampe, Telefonkasten / window frames and bars, door, lamp, phone box
+      for (const [w, h, x, y, z, ry] of [[0.084, 0.064, 0, 0.17, 0.063, 0], [0.074, 0.064, 0.068, 0.17, 0, HALF_PI]] as number[][]) {
+        b.group({ p: [x, y, z], r: [0, ry, 0] }, () => {
+          for (const sy of [-1, 1]) b.box(w, 0.005, 0.006, mat.white, [0, sy * h / 2, 0]);
+          for (const sx of [-1, 0, 1]) b.box(0.005, h, 0.006, mat.white, [sx * w / 2, 0, 0]);
+        });
+      }
+      b.box(0.05, 0.1, 0.004, shade(mat.white, 0.85), [0.04, 0.05, 0.062]);
+      b.add(ball(1, 6, 4), mat.dark, { p: [0.058, 0.05, 0.065], s: 0.004 });
+      headlight(b, [0, 0.235, 0.07], [0, -0.3, 1], 0.012, mat.dark, false);
+      b.add(geo.rbox(0.024, 0.034, 0.016, 0.004), mat.dark, { p: [-0.068, 0.12, 0.02] });
+    }
   });
   // Schlagbaum entlang der rechten Seite / boom barrier along the right side
   b.group({ p: [0.24, 0, -0.24] }, () => {
@@ -283,6 +414,32 @@ export function privateer(f: FactionId): Builder {
   }
   b.add(geo.prismXZ([[-0.08, -0.4], [0.08, -0.4], [0.12, -0.435], [-0.12, -0.435]], 0.006), mat.white, { p: [0, 0, 0] });
   lifeRings(b, 0.082, dk + 0.02, [0.0]);
+  if (fine()) {
+    // Takelage: Wanten zum Deck, Stagen zu Bug und Heck, Segelnaehte, Klampen, Taurolle, Laterne, Lafette mit Raedern
+    // rigging: shrouds to the deck, stays to bow and stern, sail seams, cleats, rope coil, lantern, gun carriage with wheels
+    const rope = shade(mat.wood, 0.7);
+    for (const s of [-1, 1]) for (const z of [0.0, 0.07]) b.tube([0, dk + 0.4, 0.04], [s * 0.075, dk + 0.006, z], 0.0018, 3, rope);
+    b.tube([0, dk + 0.41, 0.04], [0, dk + 0.03, 0.43], 0.002, 3, rope);
+    b.tube([0, dk + 0.41, 0.04], [0, dk + 0.08, -0.3], 0.002, 3, rope);
+    for (const y of [0.08, 0.15, 0.22, 0.29]) b.box(0.007, 0.003, 0.15 * (0.4 - y + 0.06) / 0.4 + 0.02, shade(L.secondary, 0.85), [0, dk + y, -0.05], [0, 0, 0]);
+    for (const x of [-0.08, 0.0, 0.08]) b.box(0.003, 0.2, 0.008, shade(mat.paper, 0.88), [x * 0.95, dk + 0.255, 0.05], [0, HALF_PI, 0]);
+    for (const s of [-1, 1]) for (const z of [-0.25, 0.25]) {
+      b.cyl(0.006, 0.008, 0.012, 8, mat.dark, [s * 0.07, dk + 0.006, z]);
+      b.box(0.004, 0.004, 0.02, mat.dark, [s * 0.07, dk + 0.013, z]);
+    }
+    b.add(geo.torus(0.016, 0.0045, 4, 14), rope, { p: [0.05, dk + 0.005, -0.2], r: [HALF_PI, 0, 0] });
+    b.add(geo.torus(0.009, 0.0045, 4, 10), rope, { p: [0.05, dk + 0.011, -0.2], r: [HALF_PI, 0, 0] });
+    b.cyl(0.004, 0.004, 0.06, 5, mat.dark, [0.05, dk + 0.09, -0.12]);
+    headlight(b, [0.05, dk + 0.125, -0.115], [0, 0, 1], 0.009, mat.dark, false);
+    for (const s of [-1, 1]) b.cyl(0.013, 0.013, 0.006, 10, mat.wood, [s * 0.024, dk + 0.012, 0.2], [0, 0, HALF_PI]);
+    rivetRow(b, [-0.02, dk + 0.045, 0.226], [0.02, dk + 0.045, 0.226], 3, [0, 0, 1], 0.003, mat.metalLight);
+    b.add(geo.torus(0.0095, 0.002, 3, 10), mat.metalLight, { p: [0, dk + 0.04 + 0.115 * Math.sin(0.08), 0.27 + 0.06], r: [-0.08, 0, 0] });
+    // Kaperfahrer an Deck (Truppfigur) mit Fernrohr / privateer on deck (team figure) with a spyglass
+    b.group({ p: [0.045, dk, -0.03], r: [0, -0.4, 0], s: 0.6 }, () => {
+      soldier(b, f, { ...standPose([[-0.06, 0.33, 0.1], [0.11, 0.15, 0.03]]), head: [-0.15, 0, 0] }, { detail: 1, pack: 'none', seed: 77 });
+      b.tube([-0.06, 0.33, 0.1], [-0.055, 0.36, 0.2], 0.009, 8, mat.gold, 0.007);
+    });
+  }
   return b;
 }
 
@@ -355,6 +512,34 @@ export function protoWalker(f: FactionId, lite = false): Builder {
       for (let i = 0; i < 4; i++) b.box(0.004, 0.06, 0.05, mat.metalLight, [s * (0.112 + i * 0.008), 0.34, -0.06]);
     }
     b.add(geo.ico(0.012, 0), mat.snow, { p: [0.06, 0.43, 0.04] });
+  }
+  if (fine() && !lite) {
+    // Nietreihen an der Kanzel, Kanzelrahmen, Scheinwerfer, Gelenkbolzen, Hydraulikschlaeuche, Leiter, Auspuff
+    // rivet rows on the cockpit, cockpit frame, headlights, joint bolts, hydraulic hoses, ladder, exhaust
+    for (const y of [0.31, 0.415]) rivetRow(b, [-0.085, y, 0.093 + (y - 0.31) * -0.18], [0.085, y, 0.093 + (y - 0.31) * -0.18], 8, [0, 0.2, 1], 0.004, mat.metalLight);
+    for (const s of [-1, 1]) {
+      rivetRow(b, [s * 0.107, 0.31, -0.07], [s * 0.107, 0.31, 0.07], 6, [s, 0, 0], 0.004, mat.metalLight);
+      b.box(0.008, 0.05, 0.008, mat.dark, [s * 0.075, 0.385, 0.1], [-0.4, 0, 0]);
+      headlight(b, [s * 0.075, 0.33, 0.105], [0, -0.1, 1], 0.014, metal, true);
+      for (const j of [[s * 0.085, 0.27, -0.02], [s * 0.1, 0.17, -0.1], [s * 0.095, 0.05, -0.0]] as V3[]) {
+        b.add(geo.cyl(0.012, 0.012, 0.008, 10), mat.metalLight, { p: [j[0] + s * 0.026, j[1], j[2]], r: [0, 0, HALF_PI] });
+        b.add(geo.cyl(0.005, 0.005, 0.012, 6), mat.dark, { p: [j[0] + s * 0.03, j[1], j[2]], r: [0, 0, HALF_PI] });
+      }
+      seam(b, [[s * 0.07, 0.3, -0.06], [s * 0.12, 0.22, -0.1], [s * 0.115, 0.13, -0.1], [s * 0.1, 0.07, -0.03]], 0.0035, mat.dark);
+      seam(b, [[s * 0.06, 0.3, -0.08], [s * 0.065, 0.2, -0.125], [s * 0.08, 0.1, -0.09]], 0.003, mat.red);
+    }
+    for (let i = 0; i < 4; i++) b.box(0.07, 0.006, 0.01, mat.metalLight, [0, 0.31 + i * 0.025, -0.084]);
+    for (const s of [-1, 1]) b.box(0.006, 0.11, 0.01, mat.metalLight, [s * 0.035, 0.345, -0.084]);
+    b.cyl(0.012, 0.014, 0.08, 10, metal, [0.07, 0.47, -0.07]);
+    b.add(geo.cyl(0.015, 0.015, 0.012, 10, true), mat.dark, { p: [0.07, 0.51, -0.07] });
+    // Luftschlitze, Plattennaehte, Kabel an den Unterschenkeln, Zehenkrallen / vents, plate seams, shin cables, toe claws
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < 5; i++) b.box(0.006, 0.006, 0.05, mat.dark, [s * 0.103, 0.34 + i * 0.012, 0.02]);
+      seam(b, [[s * 0.098, 0.3, -0.075], [s * 0.088, 0.425, -0.06]], 0.0018, shade(L.hull, 0.7));
+      seam(b, [[s * 0.07, 0.15, -0.09], [s * 0.075, 0.08, -0.02]], 0.004, mat.dark);
+      for (const a of [-0.45, 0, 0.45]) b.add(capsule(0.006, 0.002, 0.022, 6, 1), mat.metalLight, { p: [s * 0.095 + Math.sin(a) * 0.07, 0.008, 0.03 + Math.cos(a) * 0.066], r: [HALF_PI, a, 0] });
+    }
+    seam(b, [[-0.09, 0.36, 0.105], [0.09, 0.36, 0.105]], 0.0016, shade(L.hull, 0.7));
   }
   return b;
 }

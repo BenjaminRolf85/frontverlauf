@@ -14,6 +14,7 @@ import { headgear } from './headgear';
 import { look, mat, type Look } from './look';
 import { TECH, techArmour, techDot, techPack } from './velkarTech';
 import { faithArmour, faithCape, faithPauldron, faithTabard } from './alveniaFaith';
+import { blousing, chevrons, eulerYX, factionBeltKit, fineBelt, fineBoot, fineHand, fineHarness, finePack, fineRifle, gloveOf, lens, rivetRow, seam, snap } from './detailFigures';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -42,7 +43,7 @@ const SHIN = 0.058;
 const UPPER = 0.072;
 const FORE = 0.085;
 /** Rundungssegmente der Glieder je Feinstufe (0 Besatzung, 1 Trupp, 2 Einzelfigur, 3 Einzelfigur in hoher Qualitaet) / radial segments of the limbs per fine tier */
-const LIMB_SEG = [6, 8, 8, 10] as const;
+const LIMB_SEG = [6, 8, 8, 14] as const;
 /** dasselbe bei niedriger Qualitaet (Stufe 3 gibt es dort nicht) / the same on low quality (tier 3 does not occur there) */
 const LIMB_SEG_LOW = [6, 5, 8, 8] as const;
 /** Kugelsegmente der Haende je Feinstufe / sphere segments of the hands per fine tier */
@@ -173,7 +174,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
   // Glied als Kapsel: rund statt kantig (Segmente und Kappenringe je Feinstufe) / limb as a capsule: round instead of boxy (segments and cap rings per fine tier)
   const limb = (r0: number, r1: number, len: number) => (tier === 0 && !fine()
     ? geo.box(r0 * 1.8, len - r0 * 0.6, r0 * 1.9)
-    : capsule(r0, r1, Math.max(len, (r0 + r1) * 1.1), segs, tier >= 1 && fine() ? 2 : 1));
+    : capsule(r0, r1, Math.max(len, (r0 + r1) * 1.1), segs, tier === 3 ? 3 : tier >= 1 && fine() ? 2 : 1));
   // Band um ein Glied / band around a limb
   const band = (r: number, h: number) => drum(r, r, h, segs);
   const Mp = xfMatrix({ p: pose.pelvis, r: pose.body });
@@ -186,6 +187,8 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     b.add(part(0.148, 0.05, 0.094, 0.22, 1), L.pants, { p: [0, 0, 0] });
     b.add(part(0.156, 0.022, 0.1, 0.25, 1), L.gear, { p: [0, 0.02, 0] });
     if (d >= 1) b.box(0.026, 0.02, 0.01, L.secondary, [0, 0.02, 0.051]);
+    // Trupp (hohe Qualitaet): Koppelschloss und Schlaufen / team (high quality): buckle and keepers
+    if (d === 1 && fine() && !o.coat && !o.bare) fineBelt(b, L.gear, L.secondary, false);
     if (d === 2 && !o.coat && !o.bare) {
       // Taschen am Koppel / belt pouches
       for (const [x, z] of [[-0.05, 0.048], [0.05, 0.048]] as [number, number][]) {
@@ -200,6 +203,11 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       b.cyl(0.022, 0.022, 0.048, 10, shade(L.gear, 1.15), [-0.058, -0.004, -0.05]);
       b.cyl(0.008, 0.008, 0.01, 6, mat.dark, [-0.058, 0.025, -0.05]);
       b.box(0.036, 0.055, 0.014, shade(L.gear, 0.75), [0.05, -0.012, -0.054]);
+      // hohe Qualitaet: Koppelschloss, Druckknoepfe, Granatenbugel, Pistolengriff / high quality: buckle, snaps, grenade spoons, pistol grip
+      if (fine()) {
+        fineBelt(b, L.gear, L.secondary, true);
+        factionBeltKit(b, fx, L.gear, L.secondary, TECH.glow);
+      }
     }
     // Heiliges Alvenia: Wappenrock vorn und hinten / Holy Alvenia: tabard front and back
     if (fx === 'alvenia' && !o.coat && !o.robe && !o.noLegs) faithTabard(b, d);
@@ -221,7 +229,7 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       const jacket = o.bare ? mat.skin : o.coat ? coatC : L.jacket;
       // Rumpf mit runden Schultern / torso with round shoulders
       if (lowCrew) b.add(d >= 1 ? geo.ctaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.016) : geo.taper(0.146, 0.09, 0.17, 0.102, 0.11), jacket, { p: [0, 0.055, 0] });
-      else b.add(geo.softTaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.024, 0, tier === 3 ? 1 : 0), jacket, { p: [0, 0.055, 0] });
+      else b.add(geo.softTaper(0.146, 0.09, 0.17, 0.102, 0.11, 0.024, 0, tier === 3 ? 2 : 0), jacket, { p: [0, 0.055, 0] });
       if (o.coat) {
         // Kragen hochgeschlagen, Revers, Guertel / turned-up collar, lapels, belt
         for (const s of [-1, 1]) {
@@ -241,13 +249,36 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
           }
           // Brustplakette mit Emblem / chest badge with emblem
           b.box(0.02, 0.02, 0.004, L.secondary, [-0.045, 0.098, 0.051]);
+          // hohe Qualitaet: Traeger ueber die Schultern, D-Ringe, Schulterklappen, Knoepfe, Kragenspitzen
+          // high quality: straps over the shoulders, D-rings, shoulder straps, buttons, collar points
+          if (fine()) fineHarness(b, L.gear, jacket, !o.pack || o.pack === 'none');
         }
+      } else if (d === 0 && fine() && !o.bare && !o.coat) {
+        // Besatzung (hohe Qualitaet): Kragen und ein Schulterriemen / crew (high quality): collar and one shoulder strap
+        b.box(0.07, 0.016, 0.058, shade(jacket, 0.85), [0, 0.108, 0.0]);
+        b.box(0.016, 0.13, 0.008, L.gear, [0.0, 0.058, 0.05], [0, 0, 0.62]);
+        snap(b, [-0.022, 0.085, 0.055], 0.004, mat.metalLight);
       }
       if (o.robe) {
         // rote Schaerpe / red sash
         b.box(0.03, 0.16, 0.012, L.primary, [0, 0.055, 0.053], [0, 0, 0.7]);
         b.box(0.03, 0.16, 0.012, L.primary, [0, 0.055, -0.053], [0, 0, -0.7]);
         b.box(0.028, 0.08, 0.008, L.primary, [0.05, -0.03, 0.056], [0, 0, 0.1]);
+        if (d === 2 && fine()) {
+          // hohe Qualitaet: Strickguertel mit Knoten und Quasten, Flicken mit Stichen, Knochenamulett
+          // high quality: rope belt with knot and tassels, stitched patches, bone amulet
+          const rope = mix(mat.sand, mat.wood, 0.45);
+          b.add(geo.torus(0.081, 0.0055, 4, 22), rope, { p: [0, -0.002, 0.0], r: [HALF_PI, 0, 0], s: [1, 0.68, 1] });
+          b.add(ball(1, 8, 6), rope, { p: [-0.03, -0.004, 0.056], s: 0.009 });
+          for (const x of [-0.036, -0.024]) b.tube([x, -0.01, 0.057], [x - 0.004, -0.07, 0.06], 0.0035, 4, rope, 0.002);
+          for (const [x, y, z, ry] of [[-0.045, 0.03, 0.05, 0], [0.04, 0.08, -0.051, Math.PI]] as number[][]) b.group({ p: [x, y, z], r: [0, ry, 0.2] }, () => {
+            b.box(0.03, 0.026, 0.004, shade(L.jacket, 1.35), [0, 0, 0.002]);
+            for (let i = 0; i < 3; i++) b.box(0.002, 0.007, 0.005, mat.bone, [-0.01 + i * 0.01, 0.013, 0.002]);
+          });
+          b.tube([-0.02, 0.112, 0.045], [0.0, 0.07, 0.058], 0.0018, 3, mat.dark);
+          b.tube([0.02, 0.112, 0.045], [0.0, 0.07, 0.058], 0.0018, 3, mat.dark);
+          b.add(capsule(0.005, 0.005, 0.022, 6, 1), mat.bone, { p: [0, 0.064, 0.06], r: [0, 0, HALF_PI] });
+        }
       }
       // Fraktionszubehoer / faction extras
       if (fx === 'meridon' && !o.coat) {
@@ -285,6 +316,8 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
           if (o.pack === 'pack') b.cyl(0.022, 0.022, 0.13, d === 2 ? 10 : 8, L.secondary, [0, 0.118, -0.075], [0, 0, HALF_PI]);
         }
         if (d === 2 && o.pack === 'pack') b.cyl(0.018, 0.018, 0.045, 8, mat.metal, [0.075, 0.02, -0.06]);
+        // hohe Qualitaet: Deckelriemen, Seitentaschen, Kochgeschirr / high quality: lid straps, side pockets, mess tin
+        if (d === 2 && fine()) finePack(b, L.gear, 0.058 + (big - 1) * 0.04, -0.078 - (big - 1) * 0.03, 0.12 * big, 0.1 * big, 0.055 * big);
       }
       if (o.pack === 'pioneer') {
         // Spitzhacke auf dem Ruecken / pickaxe on the back
@@ -343,6 +376,8 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       if (d === 2 && !o.armband && !o.coat && !o.bare) {
         b.add(band(0.0295, 0.015), L.secondary, { p: [0, len * 0.25, 0] });
         if (side < 0) addEmblem(b, f, 0.012, 0.004, L.emblem, { p: [-0.029, len * 0.58, 0], r: [0, -HALF_PI, 0] });
+        // hohe Qualitaet: Rangwinkel am rechten Oberarm / high quality: rank chevrons on the right upper arm
+        else if (fine()) b.group({ p: [0.0292, len * 0.6, 0], r: [0, HALF_PI, 0] }, () => chevrons(b, 2, L.secondary));
       }
       if (fx === 'dravon' && !o.coat) b.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
       // Alvenia: weisses Schulterstueck mit Goldrand und tuerkiser Leuchte / Alvenia: white pauldron with gold rim and teal light
@@ -358,8 +393,15 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
       if (d === 2 && !o.bare) b.add(band(0.0265, 0.014), shade(sleeve, 0.82), { p: [0, len - 0.03, 0] });
       // Hand als runder Faeustling mit Daumen / hand as a round mitt with thumb
       const [hw, hh] = HAND_SEG[tier];
+      // hohe Qualitaet (Einzelfigur): Faust mit Fingern, Knoecheln und Daumen / high quality (hero figure): fist with fingers, knuckles and thumb
+      if (tier === 3) {
+        fineHand(b, side, len, mat.skin, o.bare ? undefined : gloveOf(fx) ?? undefined);
+        return;
+      }
       if (lowCrew) b.add(geo.box(0.04, 0.042, 0.044), mat.skin, { p: [0, len, 0] });
       else b.add(ball(1, hw, hh), mat.skin, { p: [0, len + 0.002, 0.001], s: [0.0215, 0.025, 0.0235] });
+      // Trupp (hohe Qualitaet): Daumen / team (high quality): thumb
+      if (d === 1 && fine()) b.add(capsule(0.0065, 0.0055, 0.024, 6, 1), mat.skin, { p: [-side * 0.019, len + 0.006, 0.012], r: [0.9, 0, side * 0.5] });
       if (d === 2) {
         b.add(ball(1, hw, 4), shade(mat.skin, 0.92), { p: [0, len + 0.022, 0.008], s: [0.0195, 0.013, 0.016] });
         b.add(ball(1, 6, 3), mat.skin, { p: [-side * 0.021, len + 0.008, 0.013], s: [0.008, 0.013, 0.008] });
@@ -374,20 +416,36 @@ export function soldier(b: Builder, f: FactionId, pose: Pose, o: SoldierOpts = {
     const pole = V((side < 0 ? pose.kneePoleL : pose.kneePoleR) ?? [0, 0, 1]);
     const { joint: K, end: A } = ik(S, T, THIGH, SHIN, pole);
     b.segment(S, K, (len) => limb(0.0345, 0.032, len + 0.04), L.pants);
+    if (tier === 3 && !o.robe && !o.coat) {
+      // hohe Qualitaet: Beintasche aussen am Oberschenkel mit Klappe und Knopf / high quality: cargo pocket on the outer thigh with flap and button
+      const out = new THREE.Vector3(side, 0, 0.25).transformDirection(Mp);
+      const P = S.clone().lerp(K, 0.58).addScaledVector(out, 0.03);
+      b.group({ p: [P.x, P.y, P.z], r: eulerYX(K.clone().sub(S), out) }, () => {
+        b.add(softBox(0.012, 0.038, 0.034, 0.004), shade(L.pants, 0.86), {});
+        b.box(0.014, 0.01, 0.036, shade(L.pants, 0.72), [0.001, -0.017, 0]);
+        snap(b, [0.008, -0.017, 0], 0.003, mat.dark);
+      });
+    }
     b.segment(K, A, (len) => limb(0.032, 0.03, len + 0.03), L.pants, (len) => {
       if (d === 2) {
         // Knieschoner und Stiefelschaft / knee pad and boot top
         b.add(tier === 3 ? softBox(0.046, 0.034, 0.022, 0.009, 1) : geo.rbox(0.046, 0.034, 0.022, 0.007), shade(L.gear, 0.9), { p: [0, 0.006, 0.027] });
         b.add(band(0.0325, 0.018), mat.dark, { p: [0, len - 0.006, 0] });
+        // hohe Qualitaet: Hosenbund ueber dem Stiefel, Knieschonerriemen / high quality: blousing over the boot, knee pad strap
+        if (tier === 3 && !o.robe) blousing(b, len, L.pants);
       }
     });
     b.group({ p: [A.x, A.y, A.z], r: (side < 0 ? pose.bootL : pose.bootR) ?? [0, 0, 0] }, () => {
       // Stiefel mit runder Kappe und Sohle / boot with a round toe cap and sole
       if (d === 2) b.add(softBox(0.064, 0.04, 0.094, 0.017, tier === 3 ? 1 : 0), mat.dark, { p: [0, -0.016, 0.014] });
       else b.add(part(0.064, 0.04, 0.094, 0.22, fine() ? 1 : 2), mat.dark, { p: [0, -0.016, 0.014] });
+      // Trupp (hohe Qualitaet): Absatz, Zehenkappe, Schnuerung / team (high quality): heel, toe cap, lacing
+      if (d === 1 && fine()) fineBoot(b, mat.dark);
       if (d === 2) {
         b.add(softBox(0.068, 0.01, 0.1, 0.004), mat.ink, { p: [0, -0.032, 0.014] });
-        for (const z of [0.02, 0.035]) b.box(0.03, 0.004, 0.004, mat.paper, [0, 0.003, z]);
+        // hohe Qualitaet: Absatz, Zehenkappe, Lasche, Kreuzschnuerung, Schaftriemen / high quality: heel, toe cap, tongue, lacing, shaft strap
+        if (fine()) fineBoot(b, mat.dark);
+        else for (const z of [0.02, 0.035]) b.box(0.03, 0.004, 0.004, mat.paper, [0, 0.003, z]);
       }
       if (fx === 'velkar' && d >= 1) b.box(0.068, 0.012, 0.03, mat.snow, [0, -0.004, -0.02]);
     });
@@ -441,6 +499,9 @@ export function rifle(b: Builder, grip: V3, dir: V3, o: RifleOpts = {}): void {
       b.box(0.004, 0.02, 0.004, mat.dark, [0, 0.018, len - 0.05]);
       b.box(0.004, 0.006, 0.17, mat.darkMid, [0.014, -0.022, 0.03]);
       b.box(0.01, 0.01, 0.02, mat.dark, [0, -0.012, 0.2]);
+      // hohe Qualitaet: Kimme und Korn, Kammerstaengel, Abzug, Laufringe, Riemen, Maserung
+      // high quality: sights, bolt handle, trigger, barrel bands, sling, wood grain
+      if (fine()) fineRifle(b, len, back, k, mat.wood);
     }
     if (o.scope) {
       b.cyl(0.014, 0.014, 0.1, 10, mat.ink, [0, 0.038, 0.06], [HALF_PI, 0, 0]);
@@ -449,6 +510,14 @@ export function rifle(b: Builder, grip: V3, dir: V3, o: RifleOpts = {}): void {
       b.cyl(0.015, 0.015, 0.004, 8, mat.glass, [0, 0.038, 0.134], [HALF_PI, 0, 0]);
       b.box(0.008, 0.02, 0.01, mat.dark, [0, 0.022, 0.035]);
       b.box(0.008, 0.02, 0.01, mat.dark, [0, 0.022, 0.085]);
+      if (d === 2 && fine()) {
+        // hohe Qualitaet: Verstelltuerme, Ringe, Linsenreflex, Augenmuschel / high quality: turrets, rings, lens glint, eye cup
+        b.cyl(0.007, 0.007, 0.012, 10, mat.darkMid, [0, 0.058, 0.06]);
+        b.cyl(0.007, 0.007, 0.012, 10, mat.darkMid, [0.02, 0.038, 0.06], [0, 0, HALF_PI]);
+        for (const z of [0.035, 0.085]) b.add(geo.torus(0.0145, 0.0025, 3, 12), mat.metal, { p: [0, 0.038, z] });
+        b.add(lens(6, 3), mat.white, { p: [0.004, 0.043, 0.1365], r: [0, 0, 0.5], s: [0.006, 0.0018, 0.001] });
+        b.add(geo.torus(0.016, 0.004, 4, 12), mat.dark, { p: [0, 0.038, -0.012] });
+      }
     }
     if (o.bayonet) {
       b.add(geo.taper(0.012, 0.004, 0.002, 0.002, 0.09), mat.metalLight, { p: [0, -0.004, len + 0.04], r: [HALF_PI, 0, 0] });
@@ -460,6 +529,7 @@ export function rifle(b: Builder, grip: V3, dir: V3, o: RifleOpts = {}): void {
     }
     if (o.bipod) {
       for (const s of [-1, 1]) b.tube([0, -0.006, len - 0.07], [s * 0.05, -o.bipod, len - 0.03], 0.0045, 5, mat.dark);
+      if (d === 2 && fine()) for (const s of [-1, 1]) b.add(ball(1, 6, 4), mat.dark, { p: [s * 0.05, -o.bipod, len - 0.03], s: [0.008, 0.004, 0.008] });
       b.cyl(0.008, 0.008, 0.02, 6, mat.dark, [0, -0.01, len - 0.07], [0, 0, HALF_PI]);
     }
   });
@@ -614,6 +684,12 @@ export function pioneer(f: FactionId, lite = false): Builder {
       b.add(d >= 1 ? geo.rtaper(0.1, 0.016, 0.115, 0.01, 0.13, 0.005) : geo.taper(0.1, 0.016, 0.115, 0.01, 0.13), mat.metalLight, { p: [0, 0.07, 0] });
       b.add(geo.cyl(0.016, 0.02, 0.04, 8), mat.metal, { p: [0, 0.0, 0] });
       if (d === 2) for (const sx of [-1, 1]) b.box(0.006, 0.12, 0.02, mat.metal, [sx * 0.052, 0.072, 0]);
+      if (d === 2 && fine()) {
+        // hohe Qualitaet: Nieten an der Tuelle, Mittelgrat, Trittkante / high quality: rivets on the socket, centre ridge, foot tread
+        for (const z of [-1, 1]) rivetRow(b, [-0.008, 0.005, z * 0.019], [0.008, 0.005, z * 0.019], 2, [0, 0, z], 0.0035, mat.metalLight);
+        for (const z of [-1, 1]) b.box(0.006, 0.09, 0.004, shade(mat.metalLight, 0.85), [0, 0.065, z * 0.006]);
+        b.box(0.11, 0.008, 0.02, mat.metal, [0, 0.008, 0]);
+      }
     });
     }
     // Spitzhacke in der linken Hand / pickaxe in the left hand
@@ -634,6 +710,15 @@ export function pioneer(f: FactionId, lite = false): Builder {
   if (!lite) sandbag(b, -0.01, 0.092, 0.23, 0.05, d, tk);
   if (!lite) sandbag(b, 0.23, 0, 0.1, -1.0, 1, tk);
   if (tk) b.box(0.07, 0.008, 0.006, TECH.glow, [-0.01, 0.07, 0.262], [0, 0.05, 0]);
+  if (!lite && !tk && fine()) {
+    // hohe Qualitaet: Bindeschnuere und Naehte an den Sandsaecken / high quality: ties and seams on the sandbags
+    for (const [x, y, z, ry] of [[-0.13, 0, 0.21, 0.35], [-0.01, 0, 0.24, 0.05], [0.11, 0, 0.22, -0.3], [-0.07, 0.046, 0.225, 0.2], [0.05, 0.046, 0.23, -0.12], [-0.01, 0.092, 0.23, 0.05]] as number[][]) {
+      b.group({ p: [x, y + 0.023, z], r: [0, ry, 0] }, () => {
+        for (const sx of [-1, 1]) b.add(geo.torus(0.011, 0.002, 3, 8), shade(mat.sandbag, 0.6), { p: [sx * 0.052, 0.002, 0], r: [0, HALF_PI, 0], s: [1, 1.3, 1] });
+        seam(b, [[-0.048, 0.024, 0], [0.048, 0.024, 0]], 0.0014, shade(mat.sandbag, 0.7));
+      });
+    }
+  }
   return b;
 }
 
@@ -695,12 +780,27 @@ export function mgTeam(f: FactionId, lite = false): Builder {
       b.box(0.03, 0.006, 0.006, mat.dark, [0.085, 0.066, 0.0]);
       // Ersatzlauf-Tasche / spare barrel bag
       b.add(geo.cyl(0.014, 0.014, 0.16, 8), L.gear, { p: [-0.09, 0.016, 0.1], r: [HALF_PI, 0.5, 0] });
+      if (fine()) {
+        // hohe Qualitaet: Tragegriff, Visierbuegel, Handrad, Fusspratzen, Schildbolzen, Sehschlitzrahmen
+        // high quality: carrying handle, sight leaf, handwheel, tripod feet, shield bolts, slit frame
+        b.tube([0, gy + 0.03, -0.02], [0, gy + 0.06, 0.02], 0.004, 5, mat.dark);
+        b.tube([0, gy + 0.06, 0.02], [0, gy + 0.03, 0.06], 0.004, 5, mat.dark);
+        b.box(0.012, 0.022, 0.003, mat.dark, [0, gy + 0.048, -0.03]);
+        b.add(geo.torus(0.018, 0.003, 3, 12), mat.dark, { p: [0.032, gy - 0.025, -0.02], r: [0, HALF_PI, 0] });
+        for (const [x, z] of [[0.09, 0.09], [-0.09, 0.09], [0, -0.12]] as [number, number][]) b.add(ball(1, 8, 4), mat.dark, { p: [x, 0.004, z], s: [0.012, 0.005, 0.012] });
+        b.group({ p: [0, gy + 0.05, 0.075], r: [-0.12, 0, 0] }, () => {
+          for (const y of [-0.07, 0.07]) rivetRow(b, [-0.085, y, 0.008], [0.085, y, 0.008], 6, [0, 0, 1], 0.004, mat.metalLight);
+          for (const x of [-0.088, 0.088]) rivetRow(b, [x, -0.02, 0.008], [x, 0.02, 0.008], 2, [0, 0, 1], 0.004, mat.metalLight);
+          b.box(0.048, 0.004, 0.006, mat.metalLight, [-0.04, 0.055 + 0.009, 0.006]);
+          b.box(0.048, 0.004, 0.006, mat.metalLight, [-0.04, 0.055 - 0.009, 0.006]);
+        });
+      }
     }
   });
   // Schuetze kniend an den Griffen / gunner kneeling at the grips
   const gripZ = GZ - 0.075 * K, gz0 = gripZ - 0.105;
   b.group({ p: [0, 0, gz0] }, () =>
-    soldier(b, f, { ...kneelPose([[-0.03 * K, (gy - 0.005) * K, 0.105], [0.03 * K, (gy - 0.005) * K, 0.105]]), pelvis: [0, 0.105 + (K - 1) * 0.06, 0], head: [0.25, 0, 0] }, { detail: lite ? 0 : 1, seed: 41 }),
+    soldier(b, f, { ...kneelPose([[-0.03 * K, (gy - 0.005) * K, 0.105], [0.03 * K, (gy - 0.005) * K, 0.105]]), pelvis: [0, 0.105 + (K - 1) * 0.06, 0], head: [0.25, 0, 0] }, { detail: lite ? 0 : fine() ? 2 : 1, seed: 41 }),
   );
   // Ladeschuetze mit Gurt / loader feeding the belt
   // Proportion: Ladeschuetze weiter seitlich, das MG-Nest ist breit und niedrig / proportion: loader further to the side, the MG nest is wide and low
@@ -757,6 +857,14 @@ export function medic(f: FactionId, lite = false): Builder {
   b.add(geo.rbox(0.034, 0.016, 0.087, 0.004), L.primary, { p: [0.128, 0.08, 0.03] });
   b.add(geo.rbox(0.012, 0.014, 0.04, 0.003), f === 'velkar' ? TECH.glow : L.secondary, { p: [0.128, 0.118, 0.03] });
   if (!lite) addEmblem(b, f, 0.018, 0.004, L.primary, { p: [0.145, 0.08, 0.03], r: [0, HALF_PI, 0] });
+  if (!lite && fine()) {
+    // hohe Qualitaet: Schloesser am Koffer, Schnalle am Taschenriemen, Klappe der Umhaengetasche
+    // high quality: latches on the case, buckle on the satchel strap, satchel flap
+    for (const z of [0.005, 0.055]) b.box(0.036, 0.01, 0.008, mat.metalLight, [0.128, 0.1, z]);
+    b.box(0.022, 0.016, 0.016, mat.metalLight, [0.042, 0.29, 0.058], [0, 0, 0.75]);
+    b.add(geo.rbox(0.044, 0.03, 0.089, 0.006), shade(mat.white, 0.9), { p: [-0.1, 0.19, 0.0] });
+    snap(b, [-0.123, 0.18, 0.0], 0.0045, L.primary);
+  }
   });
   return b;
 }
@@ -781,6 +889,20 @@ export function spy(f: FactionId, lite = false): Builder {
     // Zeitung unter dem Arm / newspaper under the arm
     b.add(geo.rbox(0.012, 0.05, 0.07, 0.004), mat.paper, { p: [-0.118, 0.2, 0.0], r: [0, 0, 0.15] });
     b.box(0.013, 0.008, 0.06, mat.ink, [-0.118, 0.21, 0.0], [0, 0, 0.15]);
+  }
+  if (!lite && fine()) {
+    // hohe Qualitaet: Guertelschnalle und Schlaufen am Mantel, Einstecktuch, Aermelknoepfe, Taschennaehte
+    // high quality: belt buckle and loops on the coat, pocket square, sleeve buttons, pocket seams
+    b.box(0.03, 0.024, 0.006, mat.gold, [0, 0.175, 0.06]);
+    b.box(0.018, 0.012, 0.007, L.primaryDark, [0, 0.175, 0.061]);
+    for (const s of [-1, 1]) b.box(0.008, 0.026, 0.006, L.primaryDark, [s * 0.06, 0.175, 0.052]);
+    b.box(0.016, 0.01, 0.004, L.secondary, [-0.042, 0.262, 0.057], [0, 0, 0.3]);
+    for (const s of [-1, 1]) seam(b, [[s * 0.05, 0.135, 0.05], [s * 0.095, 0.135, 0.03]], 0.0014, shade(L.primary, 0.6));
+    // Hemdkragen und Krawatte im Revers, Koffergriff, Schloss und Naehte am Koffer / shirt collar and tie in the lapels, case handle, lock and seams on the case
+    b.add(lens(6, 3), mat.white, { p: [0, 0.282, 0.055], s: [0.016, 0.01, 0.003] });
+    b.add(lens(6, 3), L.secondary, { p: [0, 0.262, 0.057], s: [0.006, 0.018, 0.0025] });
+    b.add(geo.torus(0.014, 0.003, 3, 10, ), mat.dark, { p: [0.128, 0.122, -0.01], r: [0, HALF_PI, 0], s: [1, 0.7, 1] });
+    for (const sx of [-1, 1]) seam(b, [[0.128 + sx * 0.0155, 0.05, -0.055], [0.128 + sx * 0.0155, 0.05, 0.035]], 0.0012, shade(mat.dark, 1.6));
   }
   // Schal in Zweitfarbe / scarf in secondary colour
   b.add(geo.rbox(0.11, 0.022, 0.09, 0.008), L.secondary, { p: [0, 0.29, 0.005] });
