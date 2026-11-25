@@ -127,10 +127,13 @@ const INK_FIGURES: Record<string, [number, number]> = {
 const INK_VEHICLES: Record<string, [number, number]> = {
   tank: [14200, 4100], // 13494 / 3886 (Korvat; die anderen Fraktionen folgen / Korvat; the other factions follow)
 };
+/** Gruppe Roboter und Kultfahrzeuge (Drohnen, Laeufer, Schrottfahrzeuge) / group robots and cult vehicles */
+const INK_ROBOTS: Record<string, [number, number]> = {
+};
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
 };
-const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_NAVAL };
+const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_ROBOTS, ...INK_NAVAL };
 
 /** Bisherige Modelle derselben Typen: Dreiecke [hoch, niedrig] (Flaeche = Tusche), je Gruppe ein Block / previous models of the same types: triangles [high, low] (fill = ink), one block per group */
 const BEFORE_FIGURES: Record<string, [number, number]> = {
@@ -139,9 +142,11 @@ const BEFORE_FIGURES: Record<string, [number, number]> = {
 const BEFORE_VEHICLES: Record<string, [number, number]> = {
   tank: [18655, 6824],
 };
+const BEFORE_ROBOTS: Record<string, [number, number]> = {
+};
 const BEFORE_NAVAL: Record<string, [number, number]> = {
 };
-const BEFORE_INKED: Record<string, [number, number]> = { ...BEFORE_FIGURES, ...BEFORE_VEHICLES, ...BEFORE_NAVAL };
+const BEFORE_INKED: Record<string, [number, number]> = { ...BEFORE_FIGURES, ...BEFORE_VEHICLES, ...BEFORE_ROBOTS, ...BEFORE_NAVAL };
 
 /** Typen und die Fraktionen, mit denen sie gebaut werden / types and the factions they are built with */
 function cases(): [UnitTypeId, FactionId][] {

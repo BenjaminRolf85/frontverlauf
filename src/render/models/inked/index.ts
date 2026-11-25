@@ -22,6 +22,7 @@ import { bakeAO } from './ao';
 import { ATLAS_SIZE, atlasDef, atlasIds, atlasTextures, defineAtlas, releaseAtlases } from './atlas';
 import { figures } from './groups/figures';
 import { naval } from './groups/naval';
+import { robots } from './groups/robots';
 import { vehicles } from './groups/vehicles';
 import type { InkedGroup, InkedType } from './types';
 import { subdivide } from './uvkit';
@@ -32,7 +33,7 @@ export const INKED_MAX_H = 0.62;
 export const INKED_MAX_EXT = 0.45;
 
 /** Gruppen der Einfuehrung, je eine Datei unter groups/ / rollout groups, one file each under groups/ */
-const GROUPS: InkedGroup[] = [figures, vehicles, naval];
+const GROUPS: InkedGroup[] = [figures, vehicles, robots, naval];
 
 let defined = false;
 /** Atlanten aller Gruppen anlegen (einmal) / define the atlases of all groups (once) */

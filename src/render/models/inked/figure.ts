@@ -37,6 +37,15 @@ const TIP = 1e-7;
 
 /** Massstab von der Baugroesse zur Einheit: stehend 0.58 hoch (Helmkuppe) / scale from build size to the unit: 0.58 tall standing (helmet top) */
 export const FIG = 0.87;
+/**
+ * Massstab der Besatzungen (Fahrzeuge, Geschuetze, Schiffe): EIN fester Wert fuer alle Einheiten. Besatzungen sind
+ * dieselbe Figur mit denselben Proportionen wie die Fusstruppen, nur kleiner; Kopf und Helm werden nie eigens
+ * vergroessert (kein headScale fuer Besatzungen). Vorgabe des Auftraggebers: "das muss einheitlich sein".
+ * Scale of crews (vehicles, guns, ships): ONE fixed value for all units. Crews are the same figure with the same
+ * proportions as the foot troops, only smaller; head and helmet are never enlarged separately (no headScale for
+ * crews). Owner's rule: it has to be uniform.
+ */
+export const CREW = 0.6;
 /** Kopfmassstab gegen den Koerper / head scale against the body */
 export const HEAD_SCALE = 1.3;
 export const PELVIS_Y = 0.302;

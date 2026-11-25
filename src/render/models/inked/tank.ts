@@ -14,7 +14,7 @@
 import type { FactionId } from '../../../data/balance';
 import { fine, geo, mix, shade, softBox, type ColorLike, type V3 } from '../kit';
 import { look, mat, type Look } from '../look';
-import { figure } from './figure';
+import { CREW, figure } from './figure';
 import { barrel, digitDecal, emblemDecal, fuelDrum, runningGear, type TrackSpec } from './trim';
 import { AtlasLayout, loft, projectBox, quad, UvBuilder, type Region, type Ring } from './uvkit';
 
@@ -139,7 +139,7 @@ export function korvatTank(f: FactionId, A: AtlasLayout): UvBuilder {
       const cx = -0.054, cz = -0.012, top = ty + 0.094;
       b.add(loft([{ y: 0.026, rx: 0.031, hard: true }, { y: 0.026, rx: 0.039, hard: true }, { y: 0.004, rx: 0.042, hard: true }, { y: 0, rx: 0.045 }], { seg: hi ? 18 : 10, region: A.get('blank'), color: L.hullDark }), null, { xf: { p: [cx, top - 0.002, cz] } });
       b.add(loft([{ y: 0.007, rx: 0.036, hard: true }, { y: 0, rx: 0.038, hard: true }], { seg: hi ? 18 : 10, region: A.get('blank'), capFirst: A.get('hatch'), capLast: A.get('hatch'), color: L.hull }), null, { xf: { p: [cx, top + 0.058, cz - 0.05], r: [-1.2, 0, 0] } });
-      b.group({ p: [cx, top + 0.045 - 0.443 * 0.6, cz], s: 0.6 }, () => {
+      b.group({ p: [cx, top + 0.045 - 0.443 * CREW, cz], s: CREW }, () => {
         figure(b, A, f, { pelvis: [0, 0.302, 0], head: [0.05, 0.25, 0], handL: [-0.092, 0.385, 0.062], handR: [0.094, 0.385, 0.058], footL: [0, 0, 0], footR: [0, 0, 0], elbowPoleL: [-1, -0.2, -0.3], elbowPoleR: [1, -0.2, -0.3] }, { detail: 0, noLegs: true, seed: 7 });
       });
       // Dach-MG mit Schild / roof MG with shield
