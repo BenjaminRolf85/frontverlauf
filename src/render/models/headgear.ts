@@ -21,6 +21,7 @@ import { ball, Builder, fine, geo, mix, rng, shade, softBox, type ColorLike, typ
 import { mat, type Look } from './look';
 import { TECH } from './velkarTech';
 import { FAITH, faithStar, haloRing } from './alveniaFaith';
+import { fineFace, fineSunglasses, flatEyes, lens } from './detailFigures';
 
 export type Detail = 0 | 1 | 2;
 const HALF_PI = Math.PI / 2;
@@ -39,9 +40,20 @@ function onDome(b: Builder, centre: V3, rad: number, scale: V3, theta: number, p
   b.add(make(), c, { p: [p.x, p.y, p.z], r: [e.x, e.y, e.z] });
 }
 
-/** Gesicht mit Augen, Brauen, Nase, Mund / face with eyes, brows, nose, mouth */
-export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy', seed: number) {
+/**
+ * Gesicht mit Augen, Brauen, Nase, Mund. Hohe Qualitaet: modelliertes Comic-Gesicht (detailFigures.ts); 'visor' = Augen
+ * unter dem Visier (nur hohe Qualitaet unterscheidet das, niedrig zeichnet die Augen wie bisher).
+ * Face with eyes, brows, nose, mouth. High quality: sculpted comic face (detailFigures.ts); 'visor' = eyes under the
+ * visor (only high quality tells that apart, low draws the eyes as before).
+ */
+export function face(b: Builder, d: Detail, glasses: 'none' | 'sun' | 'spy' | 'visor', seed: number, o: { hair?: boolean | ColorLike; shout?: boolean } = {}) {
+  if (fine()) {
+    fineFace(b, d, seed, { eyes: glasses === 'none', brows: glasses !== 'visor', hair: o.hair, shout: o.shout });
+    return;
+  }
   const R = rng(seed);
+  // niedrige Qualitaet: Augen unter dem Visier wie bisher gezeichnet / low quality: eyes under the visor drawn as before
+  if (glasses === 'visor') glasses = 'none';
   // runder Kopf: Rundungsschritte je Detailstufe / round head: rounding steps per detail level
   b.add(softBox(0.104, 0.098, 0.1, 0.027, headSteps(d)), mat.skin, { p: [0, 0.049, 0] });
   // Nase / nose
@@ -67,7 +79,12 @@ function headSteps(d: Detail): number {
   return d >= 1 && fine() ? 1 : 0;
 }
 
-function sunglasses(b: Builder, d: Detail, c: ColorLike = mat.ink) {
+function sunglasses(b: Builder, d: Detail, c: ColorLike = mat.ink, human = true) {
+  // hohe Qualitaet: gewoelbte Glaeser auf dem modellierten Gesicht / high quality: curved lenses on the sculpted face
+  if (fine() && d >= 1 && human) {
+    fineSunglasses(b, c);
+    return;
+  }
   for (const s of [-1, 1]) {
     b.add(d >= 1 ? geo.rbox(0.036, 0.02, 0.008, 0.004) : geo.box(0.036, 0.02, 0.008), c, { p: [s * 0.024, 0.06, 0.054] });
     if (d >= 1) b.box(0.004, 0.006, 0.07, c, [s * 0.053, 0.064, 0.02]);
@@ -116,6 +133,20 @@ export function cultHood(b: Builder, L: Look, d: Detail, spy: boolean) {
   // rotes Stirnband / red headband
   b.add(geo.cyl(0.0875, 0.0875, 0.016, seg, true), L.primary, { p: [0, 0.112, -0.012], s: [1.02, 1, 1.07] });
   if (d === 2) for (const sx of [-1, 1]) b.box(0.012, 0.04, 0.004, L.primary, [sx * 0.012, 0.09, -0.105], [0.2, 0, sx * 0.3]);
+  if (fine() && d >= 1) {
+    // hohe Qualitaet: Risse, Zahnreihe und Nasenloch in der Maske, Glutpunkte in den Augen, Flicken mit Stichen an der Kapuze
+    // high quality: cracks, row of teeth and nose hole in the mask, ember points in the eyes, stitched patch on the hood
+    b.group({ p: [0, 0.068, 0.0738], r: [-0.08, 0, 0] }, () => {
+      for (const [x, y, a, l] of [[0.016, 0.03, 0.9, 0.016], [0.02, 0.022, -0.3, 0.01], [-0.024, -0.012, -1.1, 0.018]] as number[][]) b.add(lens(4, 2), mat.ink, { p: [x, y, 0], r: [0, 0, a], s: [l / 2, 0.0012, 0.001] });
+      for (let i = 0; i < 6; i++) b.add(lens(4, 2), shade(mat.bone, 1.12), { p: [-0.0125 + i * 0.005, -0.024, 0.0005], s: [0.0021, 0.0042, 0.0012] });
+      b.add(lens(6, 3), mat.ink, { p: [0, 0.0, 0.0002], s: [0.005, 0.007, 0.001] });
+      for (const sx of [-1, 1]) b.add(lens(6, 3), mat.yellow, { p: [sx * 0.018, 0.012, 0.0015], s: [0.0035, 0.0025, 0.0012] });
+    });
+    b.group({ p: [0.058, 0.095, -0.03], r: [0, 1.1, 0.3] }, () => {
+      b.box(0.034, 0.03, 0.004, shade(robe, 1.3), [0, 0, 0]);
+      for (let i = 0; i < 4; i++) b.box(0.002, 0.008, 0.005, mat.bone, [-0.015 + i * 0.01, 0.015, 0]);
+    });
+  }
   if (spy) {
     b.cyl(0.125, 0.127, 0.01, seg, robe, [0, 0.16, -0.01]);
     b.add(geo.cyl(0.058, 0.066, 0.055, seg), robe, { p: [0, 0.19, -0.01], s: [1, 1, 0.92] });
@@ -157,7 +188,7 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
   if (f === 'zyrr') {
     // Fremdwesen mit Hut und Sonnenbrille / alien with hat and sunglasses
     alienHead(b, L, d, false);
-    sunglasses(b, d);
+    sunglasses(b, d, mat.ink, false);
     b.cyl(0.14, 0.142, 0.012, ws, L.primary, [0, 0.142, -0.006]);
     b.add(geo.cyl(0.056, 0.064, 0.055, ws), L.primary, { p: [0, 0.172, -0.006], s: [1, 1, 0.92] });
     ring(b, 0.065, 0.016, ws, L.secondary, [0, 0.155, -0.006], [1, 1, 0.93]);
@@ -208,8 +239,8 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   // hohe Qualitaet: volle Rundung der Helme; niedrige Qualitaet: der Helm der Fusstruppen ist kleiner (HEAD_FOOT), dort reichen
   // weniger Segmente / high quality: full roundness of the helmets; low quality: the foot troops' helmet is smaller (HEAD_FOOT),
   // fewer segments suffice there
-  const ws = d === 2 ? (fine() ? 18 : 12) : d === 1 ? (fine() ? 12 : 10) : fine() ? 12 : 10;
-  const hs = d === 2 ? (fine() ? 6 : 5) : d === 1 ? (fine() ? 5 : 4) : fine() ? 4 : 3;
+  const ws = d === 2 ? (fine() ? 24 : 12) : d === 1 ? (fine() ? 12 : 10) : fine() ? 12 : 10;
+  const hs = d === 2 ? (fine() ? 8 : 5) : d === 1 ? (fine() ? 5 : 4) : fine() ? 4 : 3;
   const hc = L.helmet;
   if (fedora) {
     spyHat(b, f, L, d, ws);
@@ -230,7 +261,10 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   switch (f) {
     case 'korvat': {
       face(b, d, 'none', seed);
-      const C: V3 = [0, 0.068, -0.004];
+      // hohe Qualitaet: Helm eine Spur hoeher, damit die Augen unter der Krempe sichtbar bleiben
+      // high quality: helmet a touch higher so the eyes stay visible below the brim
+      const up = fine() ? 0.012 : 0;
+      const C: V3 = [0, 0.068 + up, -0.004];
       const S: V3 = [1, 0.9, 1.06];
       // Kuppel, rotes Band, Krempe mit rotem Krempenband, Kante und Unterseite als EIN Drehkoerper in mehreren
       // Farben. Aufgesetzte Ringe und Scheiben bekamen von der Tuschelinie schwebende Striche neben dem Helm; so
@@ -257,12 +291,16 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
           onDome(b, C, 0.0872, S, a, 1.15, () => new THREE.CircleGeometry(0.0062, 6).rotateX(-HALF_PI), shade(hc, 0.6));
         }
         // Kinnriemen / chinstrap
-        for (const s of [-1, 1]) b.box(0.006, 0.07, 0.01, mat.dark, [s * 0.055, 0.03, 0.016], [0.12, 0, 0]);
+        for (const s of [-1, 1]) b.box(0.006, 0.07, 0.01, mat.dark, [s * 0.055, 0.03 + up / 2, 0.016], [0.12, 0, 0]);
         b.box(0.108, 0.008, 0.012, mat.dark, [0, -0.004, 0.024]);
+        if (fine()) {
+          // Schnallen am Kinnriemen / chinstrap buckles
+          for (const s of [-1, 1]) b.box(0.009, 0.012, 0.004, mat.metalLight, [s * 0.056, 0.012, 0.024], [0.12, 0, 0]);
+        }
       }
       if (d >= 1) {
         // Zahnrad-Plakette / cog badge plate
-        b.group({ p: [0, 0.107, 0.075], r: [-0.55, 0, 0] }, () => {
+        b.group({ p: [0, 0.107 + up, 0.075], r: [-0.55, 0, 0] }, () => {
           b.cyl(0.021, 0.021, 0.006, 12, L.primary, [0, 0, 0], [HALF_PI, 0, 0]);
           addEmblem(b, 'korvat', 0.016, 0.004, shade(L.secondary, 1.35), { p: [0, 0, 0.004] });
         });
@@ -278,7 +316,9 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       b.add(softBox(0.112, 0.106, 0.108, 0.032, headSteps(d)), hc, { p: [0, 0.052, 0] });
       // Augenausschnitt mit Haut und Augen / eye opening with skin and eyes
       b.add(d >= 1 ? geo.rbox(0.082, 0.026, 0.01, 0.006) : geo.box(0.082, 0.026, 0.01), mat.skin, { p: [0, 0.062, 0.051] });
-      for (const sx of [-1, 1]) {
+      // hohe Qualitaet: modellierte Comic-Augen im Ausschnitt / high quality: sculpted comic eyes in the opening
+      if (fine() && d >= 1) flatEyes(b, d, 0.062, 0.0555, 0.021, seed);
+      else for (const sx of [-1, 1]) {
         if (d >= 1) {
           b.box(0.02, 0.016, 0.006, mat.white, [sx * 0.021, 0.062, 0.0565]);
           b.box(0.01, 0.012, 0.006, mat.ink, [sx * 0.018, 0.061, 0.0585]);
@@ -356,7 +396,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       break;
     }
     case 'velkar': {
-      face(b, d, 'none', seed);
+      face(b, d, 'visor', seed);
       // Labor im Feld: frostweisser Visierhelm, Visier unten mit tuerkiser Leuchtlinse, Kamm, Antenne, Sensorleuchte
       // lab in the field: frost-white visor helmet, visor down with a glowing teal lens, crest, antenna, sensor lamp
       const C: V3 = [0, 0.068, -0.006];

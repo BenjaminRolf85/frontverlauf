@@ -8,7 +8,7 @@
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
 import { face, type Detail } from './headgear';
-import { Builder, geo, mix, rng, shade } from './kit';
+import { Builder, fine, geo, mix, rng, shade, type V3 } from './kit';
 import { look, mat, type Look } from './look';
 import { soldier, standPose } from './soldiers';
 
@@ -17,8 +17,8 @@ const HALF_PI = Math.PI / 2;
 /** Kopf: Gesicht, wirres Haar, Schutzbrille auf der Stirn / head: face, wild hair, goggles pushed up on the forehead */
 function scientistHead(b: Builder, L: Look, d: Detail) {
   const R = rng(91);
-  face(b, d, 'none', 91);
   const hair = mix(mat.paper, mat.dark, 0.25);
+  face(b, d, 'none', 91, { hair });
   const ws = d === 2 ? 14 : 10;
   // Haarkappe und abstehende Buesche / hair cap and sticking-out tufts
   b.add(geo.hemi(0.058, ws, d === 2 ? 5 : 3), hair, { p: [0, 0.085, -0.008], s: [1.02, 0.8, 1.05] });
@@ -26,6 +26,16 @@ function scientistHead(b: Builder, L: Look, d: Detail) {
   for (let i = 0; i < tufts; i++) {
     const a = (i / tufts) * Math.PI * 2 + 0.3;
     b.add(geo.cone(0.018, 0.045 + R() * 0.02, 5), hair, { p: [Math.cos(a) * 0.05, 0.075, Math.sin(a) * 0.05 - 0.01], r: [Math.sin(a) * 1.1, 0, -Math.cos(a) * 1.1] });
+  }
+  if (fine() && d === 2) {
+    // hohe Qualitaet: wirre Straehnen statt weniger Kegel, buschige Brauen / high quality: wild strands instead of a few cones, bushy brows
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2 + 0.2;
+      const root: V3 = [Math.cos(a) * 0.046, 0.08 + R() * 0.02, Math.sin(a) * 0.048 - 0.012];
+      const tip: V3 = [Math.cos(a) * (0.075 + R() * 0.02), 0.07 + R() * 0.05, Math.sin(a) * (0.072 + R() * 0.02) - 0.018];
+      if (Math.sin(a) > 0.75) continue;
+      b.tube(root, tip, 0.008, 5, i % 3 ? hair : shade(hair, 0.85), 0.002);
+    }
   }
   // Schutzbrille mit Band in Fraktionsfarbe / goggles with a strap in the faction colour
   b.add(geo.cyl(0.056, 0.056, 0.014, ws, true), L.primary, { p: [0, 0.09, -0.004], r: [-0.25, 0, 0] });

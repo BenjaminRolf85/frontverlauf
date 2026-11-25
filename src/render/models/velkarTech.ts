@@ -13,6 +13,9 @@ import * as THREE from 'three';
 import type { FactionId, UnitTypeId } from '../../data/balance';
 import { semantic } from '../../design/tokens';
 import { addEmblem } from './emblems';
+import {
+  antennaBase, boltRing, cable, finRings, grille, headlight, mudBand, piston, rivets, seam, sensorCluster, squareHatch, towHook, vents,
+} from './detailVehicles';
 import { Builder, col, fine, geo, rng, shade, type V3 } from './kit';
 import { look, mat } from './look';
 import { kneelPose, seatPose, soldier, standPose, type Detail } from './soldiers';
@@ -176,7 +179,8 @@ function teslaCoil(b: Builder, x: number, y: number, z: number, lite: boolean) {
 export function teslaTank(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  tracks(b, { x: 0.135, w: 0.085, len: 0.4, h: 0.085, wheels: 5, wr: 0.029, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 9 });
+  tracks(b, { x: 0.135, w: 0.085, len: 0.4, h: 0.085, wheels: 5, wr: 0.029, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 9, rich: true });
+  if (!lite && fine()) teslaDetail(b);
   // kantige Prototyp-Wanne: Frostschale ueber dunklem Unterbau / angular prototype hull: frost shell over a dark lower hull
   b.add(geo.profileZY([[-0.19, 0.035], [0.13, 0.035], [0.205, 0.075], [0.18, 0.12], [0.06, 0.155], [-0.16, 0.16], [-0.2, 0.115]], 0.2), TECH.gear);
   b.add(geo.profileZY([[-0.17, 0.1], [0.06, 0.1], [0.18, 0.118], [0.06, 0.163], [-0.15, 0.168], [-0.18, 0.13]], 0.26), TECH.shell);
@@ -207,6 +211,36 @@ export function teslaTank(f: FactionId, lite = false): Builder {
   addEmblem(b, f, 0.034, 0.006, L.secondary, { p: [0.2, 0.09, 0.12], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.034, 0.006, L.secondary, { p: [-0.2, 0.09, 0.12], r: [0, -HALF_PI, 0] });
   return b;
+}
+
+/**
+ * Tesla-Panzer, hohe Qualitaet: Rippen-Isolatoren an den Spulenfuessen, Klemmen und Leuchtringe, Plattenfugen der
+ * Frostschale, Wartungsklappen, Hochspannungs-Warnschild, Kabelkanaele, Sensorkuppel, Abschleppoesen, Schnee an den Schuerzen.
+ * Tesla tank, high quality: ribbed insulators at the coil feet, clamps and glow rings, panel joints of the frost shell,
+ * service hatches, high-voltage warning plate, cable ducts, sensor dome, tow eyes, snow on the skirts.
+ */
+function teslaDetail(b: Builder) {
+  for (const [x, , z] of TESLA_TOPS) {
+    for (let i = 0; i < 4; i++) b.add(geo.cyl(0.04, 0.04, 0.004, 14), TECH.shellShade, { p: [x, 0.168 + i * 0.012, z] });
+    boltRing(b, [x, 0.168, z], 0.044, 8, mat.dark, 0.0045);
+    b.add(geo.cyl(0.036, 0.036, 0.006, 14), TECH.gearDark, { p: [x, 0.225, z] });
+    b.add(geo.cyl(0.036, 0.036, 0.006, 14), TECH.gearDark, { p: [x, 0.39, z] });
+  }
+  for (const s of [-1, 1]) {
+    seam(b, [s * 0.09, 0.166, -0.15], [s * 0.09, 0.168, 0.06], TECH.shellShade);
+    squareHatch(b, s * 0.06, 0.163, 0.12, 0.045, 0.035, TECH.shell);
+    towHook(b, s * 0.08, 0.06, 0.2, 1, TECH.gearDark);
+    towHook(b, s * 0.1, 0.07, -0.2, -1, TECH.gearDark);
+    b.add(geo.cbox(0.008, 0.012, 0.3, 0.003), TECH.gearDark, { p: [s * 0.132, 0.13, -0.02] });
+    rivets(b, [s * 0.198, 0.095, -0.17], [s * 0.198, 0.095, 0.17], 9, TECH.gearDark, 0.0045);
+  }
+  // Warnschild Hochspannung / high-voltage warning plate
+  b.box(0.05, 0.03, 0.003, mat.yellow, [0, 0.185, 0.086]);
+  b.add(geo.profileXY([[-0.006, 0.01], [0.004, 0.002], [-0.001, 0.0], [0.006, -0.01], [-0.004, -0.002], [0.001, 0.0]], 0.003), mat.ink, { p: [0, 0.185, 0.088] });
+  b.add(geo.hemi(0.012, 10, 3), mat.glassDark, { p: [-0.09, 0.168, -0.1] });
+  antennaBase(b, 0.11, 0.17, -0.12, TECH.gearDark);
+  vents(b, [0, 0.2, -0.14], [0, 0, 0], 4, 0.14, 0.014, TECH.glow);
+  mudBand(b, 83, 0.198, 0.03, 0.07, -0.18, 0.18, 10, true, [mat.snow, shade(mat.snow, 0.9)]);
 }
 
 // ---------- Oktokopter / octocopter ----------
@@ -246,6 +280,7 @@ export function octocopter(f: FactionId, lite = false): Builder {
     // vordere Arme mit Leuchtband / front arms with a light band
     if (!lite && i % 4 === 0) b.box(0.04, 0.006, 0.006, TECH.glow, [x * 0.6, by + 0.05, z * 0.6], [0, Math.atan2(x, z) + HALF_PI, 0]);
   });
+  if (!lite && fine()) octoDetail(b, by);
   // Sensor- und Waffenkapsel unter dem Rumpf / sensor and weapon pod under the body
   b.cyl(0.012, 0.012, 0.03, 6, mat.dark, [0, by - 0.035, 0.03]);
   b.add(geo.sphere(0.04, 10, 6), TECH.gearDark, { p: [0, by - 0.06, 0.04] });
@@ -261,6 +296,31 @@ export function octocopter(f: FactionId, lite = false): Builder {
     addEmblem(b, f, 0.03, 0.006, L.secondary, { p: [0, by + 0.075, -0.06], r: [-HALF_PI + 0.3, 0, 0] });
   }
   return b;
+}
+
+/**
+ * Oktokopter, hohe Qualitaet: Kuehlrippen und Kappen an den Motoren, Kabel entlang der Arme, Streben der Schutzringe,
+ * Kanzelrahmen, Lueftungsschlitze, Sensorgruppe, Kufenfuesse, Muendungsringe der Waffenkapseln.
+ * Octocopter, high quality: cooling fins and caps on the motors, cables along the arms, guard ring struts, canopy frame,
+ * vent slots, sensor cluster, skid feet, muzzle rings of the weapon pods.
+ */
+function octoDetail(b: Builder, by: number) {
+  OCTO_ARMS.forEach(([x, , z]) => {
+    for (const dy of [0.034, 0.044, 0.054]) b.add(geo.cyl(0.028, 0.028, 0.003, 12), TECH.gearDark, { p: [x, by + dy, z] });
+    b.add(geo.hemi(0.012, 10, 3), TECH.shell, { p: [x, OCTO_ROTOR_Y + 0.003, z] });
+    b.tube([x * 0.3, by + 0.044, z * 0.3], [x * 0.92, by + 0.058, z * 0.92], 0.0025, 4, mat.dark);
+    const a = Math.atan2(x, z);
+    for (const r of [a, a + HALF_PI]) b.box(0.003, 0.003, OCTO_BLADE * 2 + 0.02, TECH.shellShade, [x, OCTO_ROTOR_Y - 0.014, z], [0, r, 0]);
+  });
+  b.add(geo.torus(0.05, 0.004, 3, 16), TECH.gearDark, { p: [0, by + 0.072, 0.02], r: [HALF_PI, 0, 0], s: [1, 1.3, 1] });
+  b.box(0.004, 0.026, 0.065, TECH.gearDark, [0, by + 0.088, 0.02]);
+  vents(b, [0, by + 0.072, -0.07], [0, 0, 0], 4, 0.06, 0.01);
+  sensorCluster(b, [0, by + 0.01, 0.124], 3, 0.006, TECH.glow);
+  for (const s of [-1, 1]) {
+    for (const z of [-0.1, 0.1]) b.add(geo.cbox(0.012, 0.006, 0.03, 0.003), mat.dark, { p: [s * 0.075, OCTO_LIFT - 0.026, z] });
+    b.add(geo.cyl(0.016, 0.016, 0.005, 10), TECH.gearDark, { p: [s * 0.075, by - 0.02, 0.092], r: [HALF_PI, 0, 0] });
+    seam(b, [s * 0.098, by + 0.03, -0.1], [s * 0.098, by + 0.03, 0.1], TECH.shellShade);
+  }
 }
 
 // ---------- Railgun-Schuetze / railgun marksman ----------
@@ -288,6 +348,15 @@ function railRifle(b: Builder, grip: V3, pitch: number, lite: boolean) {
     b.cyl(0.01, 0.01, 0.004, 8, TECH.glow, [0, 0.075, 0.122], [HALF_PI, 0, 0]);
     // Stuetze vorn / front support
     if (!lite) for (const s of [-1, 1]) b.tube([0, -0.002, 0.3], [s * 0.05, -0.12, 0.33], 0.004, 4, mat.dark);
+    if (!lite && fine()) {
+      // Schienenklammern, Kuehlrippen, Zweibeinfuesse, Sonnenblende, Ladeanzeige, Kabel / rail clamps, cooling fins, bipod feet, sun hood, charge display, cable
+      for (const z of [0.16, 0.3, 0.44]) b.box(0.024, 0.052, 0.008, TECH.gearDark, [0, 0.023, z]);
+      finRings(b, 0, 0.02, 0.025, 0.07, 4, 0.024, TECH.gearDark);
+      for (const s of [-1, 1]) b.add(geo.cbox(0.016, 0.006, 0.02, 0.003), mat.dark, { p: [s * 0.05, -0.122, 0.33] });
+      b.cyl(0.014, 0.014, 0.016, 10, mat.ink, [0, 0.075, 0.128], [HALF_PI, 0, 0]);
+      b.box(0.018, 0.008, 0.003, TECH.glow, [0.02, 0.03, 0.05], [0, HALF_PI, 0]);
+      cable(b, [0, -0.01, -0.09], [0, -0.03, 0.02], 0.02, 0.003, TECH.gearDark);
+    }
   });
 }
 
@@ -306,6 +375,15 @@ export function railSniper(f: FactionId, lite = false): Builder {
     b.box(0.03, 0.01, 0.006, TECH.glow, [-0.14, 0.04, -0.105], [0, 0.3, 0]);
     b.tube([-0.13, 0.04, -0.16], [-0.06, 0.1, -0.2], 0.005, 4, TECH.gearDark);
     addEmblem(b, f, 0.024, 0.005, L.secondary, { p: [-0.11, 0.03, -0.21], r: [0, Math.PI + 0.3, 0] });
+    if (fine()) {
+      // Koffer: Griff, Verschluesse, Anzeige, Rippen / case: handle, latches, display, ribs
+      b.group({ p: [-0.15, 0.025, -0.16], r: [0, 0.3, 0] }, () => {
+        b.box(0.03, 0.006, 0.006, mat.dark, [0, 0.03, 0]);
+        for (const s of [-1, 1]) b.box(0.008, 0.012, 0.004, mat.metal, [s * 0.025, 0.012, 0.051]);
+        for (let i = 0; i < 4; i++) b.box(0.074, 0.003, 0.004, TECH.shellShade, [0, -0.012 + i * 0.008, 0.051]);
+        for (let i = 0; i < 3; i++) b.box(0.004, 0.04, 0.09, TECH.gearDark, [-0.037, 0, -0.03 + i * 0.03]);
+      });
+    }
   }
   return b;
 }
@@ -315,8 +393,9 @@ export function railSniper(f: FactionId, lite = false): Builder {
 export function sensorCarrier(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  tracks(b, { x: 0.115, w: 0.07, len: 0.36, h: 0.07, wheels: 4, wr: 0.026, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 8 });
+  tracks(b, { x: 0.115, w: 0.07, len: 0.36, h: 0.07, wheels: 4, wr: 0.026, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 8, rich: true });
   const by = 0.075;
+  if (!lite && fine()) sensorCarrierDetail(b, by);
   // flache Wanne und Kabine vorn / flat hull and cab at the front
   b.add(geo.cbox(0.22, 0.05, 0.38, 0.02), TECH.gear, { p: [0, by + 0.01, 0] });
   b.add(geo.profileZY([[-0.03, 0], [0.17, 0], [0.19, 0.03], [0.13, 0.1], [-0.02, 0.105]], 0.2), TECH.shell, { p: [0, by + 0.035, 0] });
@@ -357,13 +436,45 @@ export function sensorCarrier(f: FactionId, lite = false): Builder {
   return b;
 }
 
+/**
+ * Sensortraeger, hohe Qualitaet: Scheinwerfer, Abschleppoesen, Dachklappe, Kameras an der Kabine, Gitter und Rippen am
+ * Generator, Kabel zum Mast, Klemmringe am Teleskopmast, Plattenfugen am Radardom, Schnee an den Flanken.
+ * Sensor carrier, high quality: headlights, tow eyes, roof flap, cameras on the cab, grille and fins on the generator,
+ * cable to the mast, clamp rings on the telescopic mast, panel joints on the radar dome, snow on the flanks.
+ */
+function sensorCarrierDetail(b: Builder, by: number) {
+  const mx = 0.04, mz = -0.11, my = by + 0.095;
+  for (const s of [-1, 1]) {
+    headlight(b, s * 0.05, by + 0.03, 0.196, 0.008, TECH.gearDark);
+    towHook(b, s * 0.07, by - 0.005, 0.195, 1, TECH.gearDark);
+    towHook(b, s * 0.07, by - 0.005, -0.195, -1, TECH.gearDark);
+    sensorCluster(b, [s * 0.085, by + 0.12, 0.08], 1, 0.007, TECH.glow);
+    seam(b, [s * 0.1, by + 0.04, -0.17], [s * 0.1, by + 0.04, 0.16], TECH.shellShade);
+    for (let i = 0; i < 3; i++) b.box(0.006, 0.04, 0.03, TECH.gearDark, [s * (0.092 + i * 0.002), by + 0.065, -0.1 + (i - 1) * 0.04]);
+  }
+  squareHatch(b, 0.045, by + 0.135, 0.05, 0.05, 0.04, TECH.shell);
+  grille(b, [-0.04, by + 0.095, -0.1], 0.07, 0.09, 5, TECH.gearDark);
+  cable(b, [-0.02, by + 0.1, -0.06], [mx - 0.02, my + 0.03, mz], 0.015, 0.0035, TECH.gearDark);
+  for (const y of [my + 0.002, my + 0.122, my + 0.242]) b.add(geo.cyl(0.026 - (y - my) * 0.05, 0.026 - (y - my) * 0.05, 0.008, 12), TECH.gearDark, { p: [mx, y, mz] });
+  b.group({ p: [mx, my + 0.31, mz] }, () => {
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      b.box(0.003, 0.004, 0.13, TECH.shellShade, [Math.sin(a) * 0.075, 0.026, Math.cos(a) * 0.075], [0, a, 0]);
+    }
+    b.add(geo.torus(0.1, 0.003, 3, 24), TECH.glow, { p: [0, 0.018, 0], r: [HALF_PI, 0, 0] });
+  });
+  mudBand(b, 89, 0.112, 0.06, 0.1, -0.17, 0.17, 8, true, [mat.snow, shade(mat.snow, 0.9)]);
+}
+
 // ---------- Spulenwerfer (Artillerie) / coil launcher (artillery) ----------
 
 export function coilLauncher(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
-  tracks(b, { x: 0.12, w: 0.07, len: 0.34, h: 0.07, wheels: 4, wr: 0.026, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 5, rollers: 2 });
+  tracks(b, { x: 0.12, w: 0.07, len: 0.34, h: 0.07, wheels: 4, wr: 0.026, sprocket: TECH.gearDark, hub: TECH.coil, lite, links: 5, rollers: 2, rich: true });
   const by = 0.075;
+  const hi = !lite && fine();
+  if (hi) coilLauncherDetail(b, by);
   b.add(geo.cbox(0.22, 0.05, 0.34, 0.02), TECH.gear, { p: [0, by + 0.01, -0.01] });
   // Kondensatorbank mit Kuehlrippen / capacitor bank with cooling fins
   b.add(geo.cbox(0.2, 0.06, 0.12, 0.012), TECH.shell, { p: [0, by + 0.06, -0.1] });
@@ -383,6 +494,14 @@ export function coilLauncher(f: FactionId, lite = false): Builder {
       b.add(geo.cbox(0.074, 0.074, 0.018, 0.012), i % 2 ? TECH.shell : TECH.glow, { p: [0, 0, z] });
     }
     b.add(geo.cbox(0.07, 0.07, 0.022, 0.01), TECH.gearDark, { p: [0, 0, 0.03 + len] });
+    if (hi) {
+      // Seitenschienen, Halteklammern, Verschlussblock mit Bolzen, Muendungsring / side rails, clamps, breech block with bolts, muzzle ring
+      for (const s of [-1, 1]) b.box(0.006, 0.012, len * 0.85, TECH.gearDark, [s * 0.028, 0.02, 0.03 + len / 2]);
+      for (const z of [0.12, 0.3]) b.box(0.07, 0.006, 0.01, mat.dark, [0, -0.03, z]);
+      rivets(b, [-0.03, 0.036, -0.06], [0.03, 0.036, -0.06], 4, mat.dark, 0.0045);
+      b.add(geo.cyl(0.03, 0.03, 0.004, 12), TECH.glow, { p: [0, 0, 0.042 + len], r: [HALF_PI, 0, 0] });
+      cable(b, [0.03, -0.02, -0.05], [0.03, -0.03, 0.08], 0.015, 0.004, mat.dark);
+    }
   });
   // Bedienung mit Steuertafel / crew with a control panel
   if (!lite) {
@@ -395,4 +514,35 @@ export function coilLauncher(f: FactionId, lite = false): Builder {
   addEmblem(b, f, 0.032, 0.005, L.secondary, { p: [0.111, by + 0.03, 0.06], r: [0, HALF_PI, 0] });
   addEmblem(b, f, 0.032, 0.005, L.secondary, { p: [-0.111, by + 0.03, 0.06], r: [0, -HALF_PI, 0] });
   return b;
+}
+
+/**
+ * Spulenwerfer, hohe Qualitaet: hydraulische Stuetzen mit Tellern hinten, Bolzenkranz der Drehlafette, Magazin mit
+ * Geschossen, Abschleppoesen, Wartungsklappe, Kabel, Schnee.
+ * Coil launcher, high quality: hydraulic stabilisers with pads at the rear, bolt ring of the turntable, magazine with
+ * slugs, tow eyes, service hatch, cables, snow.
+ */
+function coilLauncherDetail(b: Builder, by: number) {
+  for (const s of [-1, 1]) {
+    piston(b, [s * 0.1, by + 0.02, -0.16], [s * 0.15, 0.012, -0.2], 0.007, TECH.gearDark);
+    b.add(geo.cyl(0.018, 0.02, 0.006, 12), mat.dark, { p: [s * 0.15, 0.003, -0.2] });
+    towHook(b, s * 0.07, by - 0.005, 0.165, 1, TECH.gearDark);
+    seam(b, [s * 0.1, by + 0.036, -0.17], [s * 0.1, by + 0.036, 0.15], TECH.shellShade);
+  }
+  boltRing(b, [0, by + 0.066, 0.05], 0.072, 12, mat.dark, 0.0045);
+  // Magazin mit Geschossen / magazine with slugs
+  b.add(geo.cbox(0.07, 0.02, 0.06, 0.004), TECH.gearDark, { p: [-0.07, by + 0.045, 0.1] });
+  for (let i = 0; i < 3; i++) {
+    b.cyl(0.008, 0.008, 0.05, 10, TECH.coil, [-0.09 + i * 0.02, by + 0.064, 0.1], [HALF_PI, 0, 0]);
+    b.add(geo.cone(0.008, 0.014, 10), TECH.glow, { p: [-0.09 + i * 0.02, by + 0.064, 0.132], r: [HALF_PI, 0, 0] });
+  }
+  squareHatch(b, 0.06, by + 0.035, 0.11, 0.05, 0.05, TECH.shell);
+  // Kabelkanal, Rippen an der Kondensatorbank, Sensoren vorn / cable duct, fins on the capacitor bank, front sensors
+  for (const s of [-1, 1]) {
+    b.add(geo.cbox(0.008, 0.012, 0.26, 0.003), TECH.gearDark, { p: [s * 0.104, by + 0.042, -0.01] });
+    for (let i = 0; i < 4; i++) b.box(0.008, 0.05, 0.008, TECH.gearDark, [s * 0.103, by + 0.06, -0.142 + i * 0.028]);
+    headlight(b, s * 0.07, by + 0.02, 0.167, 0.008, TECH.gearDark);
+  }
+  sensorCluster(b, [0, by + 0.03, 0.168], 3, 0.006, TECH.glow);
+  mudBand(b, 97, 0.112, 0.06, 0.09, -0.16, 0.16, 8, true, [mat.snow, shade(mat.snow, 0.9)]);
 }

@@ -88,6 +88,17 @@ export type UnitQuality = 'low' | 'high';
  */
 export const UNIT_TRI_LIMIT = 9500;
 export const UNIT_TRI_LIMIT_BOSS = 16500;
+/**
+ * Hohe Qualitaet (Desktop): Detailrunde 4 hebt die Obergrenze deutlich an, damit Figuren und Fahrzeuge aus der Naehe
+ * und im Introfilm genug Einzelteile tragen. Die niedrige Qualitaet (Handy) bleibt bei UNIT_TRI_LIMIT.
+ * High quality (desktop): detail round 4 raises the ceiling clearly so figures and vehicles carry enough parts up close
+ * and in the intro film. Low quality (phone) stays at UNIT_TRI_LIMIT.
+ */
+export const UNIT_TRI_LIMIT_HIGH = 22000;
+export const UNIT_TRI_LIMIT_BOSS_HIGH = 34000;
+/** Obergrenze fuer eine Detailstufe / ceiling for a detail level */
+export const unitTriLimit = (q: UnitQuality, boss = false): number =>
+  q === 'high' ? (boss ? UNIT_TRI_LIMIT_BOSS_HIGH : UNIT_TRI_LIMIT_HIGH) : boss ? UNIT_TRI_LIMIT_BOSS : UNIT_TRI_LIMIT;
 let unitQuality: UnitQuality = 'high';
 export function setUnitQuality(q: UnitQuality): void {
   unitQuality = q;
