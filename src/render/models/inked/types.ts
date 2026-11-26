@@ -17,6 +17,19 @@ export interface InkedType {
   maxEdge?: number;
   /** Voxelgroesse der Verdeckung (Standard 0.005) / voxel size of the occlusion (default 0.005) */
   voxel?: number;
+  /**
+   * Massstab des fertig gebauten Modells (Standard 1): fuer Typen, deren Anbaupunkte in festen
+   * Koordinaten liegen (techParts: Rotoren, Lichtboegen) und die das Brett groesser zeigen soll als gebaut. buildInked
+   * vergroessert Modell, Tusche, Turmdrehpunkte und userData.muzzle gemeinsam (hoechstens bis Kachel und Lebensbalken)
+   * und meldet den Wert in userData.finishScale; damit sitzen auch die techParts richtig. Nicht fuer Typen mit
+   * Besatzung: sie wuechse mit, und Besatzungen sind einheitlich (CREW); dort das Fahrzeug im Bauer vergroessern.
+   * Scale of the built model (default 1): for types whose attach points sit at fixed coordinates
+   * (techParts: rotors, arcs) and which the board should show larger than built. buildInked enlarges model, ink, turret
+   * pivots and userData.muzzle together (at most up to tile and HP badge) and reports the value in
+   * userData.finishScale; the techParts then sit right as well. Not for types with a crew: it would grow along, and
+   * crews are uniform (CREW); enlarge the vehicle inside the builder there.
+   */
+  scale?: number;
 }
 
 /**

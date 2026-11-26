@@ -19,7 +19,7 @@ import { flak, mineCarrier, supportCells } from '../support';
 import { hullCells, tankCells, turretCells } from '../tankPaint';
 import { factionTank } from '../tanks';
 import { trimCells } from '../trim';
-import { coilLauncher, octocopter, sensorCarrier, teslaTank } from '../velkar';
+import { coilLauncher, OCTO_SCALE, octocopter, sensorCarrier, TESLA_SCALE, teslaTank } from '../velkar';
 import { velkarCells } from '../velkarPaint';
 import type { InkedGroup } from '../types';
 
@@ -54,8 +54,9 @@ export const vehicles: InkedGroup = {
     antiAir: { atlas: 'vehicle2', build: flak, maxEdge: 0.085, voxel: 0.0065 },
     mineLayer: { atlas: 'vehicle2', build: mineCarrier, maxEdge: 0.085, voxel: 0.0065 },
     // Velkar: Tesla-Panzer (Lichtboegen an TESLA_TOPS) und Oktokopter (Rotoren an den Armen) / Velkar: Tesla tank (arcs at TESLA_TOPS) and octocopter (rotors at the arms)
-    teslaTank: { atlas: 'vehicle2', build: teslaTank, maxEdge: 0.085, voxel: 0.0065 },
-    octocopter: { atlas: 'vehicle3', build: octocopter, maxEdge: 0.11, voxel: 0.0065 },
+    // beide mit Massstab wie bisher (1.25 / 1.1): Anbaupunkte und Modell wachsen gemeinsam / both with the previous scale (1.25 / 1.1): attach points and model grow together
+    teslaTank: { atlas: 'vehicle2', build: teslaTank, maxEdge: 0.085, voxel: 0.0065, scale: TESLA_SCALE },
+    octocopter: { atlas: 'vehicle3', build: octocopter, maxEdge: 0.11, voxel: 0.0065, scale: OCTO_SCALE },
     // Meridon: Radarwagen; Korvat: Steppenkoloss mit den Zellen des Korvat-Panzers / Meridon: radar truck; Korvat: Steppe Colossus with the Korvat tank's cells
     radarTruck: { atlas: 'vehicle3', build: radarTruck, maxEdge: 0.11, voxel: 0.0065 },
     steppeColossus: { atlas: 'vehicle', build: steppeColossus, maxEdge: 0.085, voxel: 0.0065 },
