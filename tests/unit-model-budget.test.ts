@@ -71,10 +71,10 @@ const BUDGET: Record<string, [number, number, number]> = {
   berserker: [8450, 2950, 2808], // 8004 / 2808 (Detailrunde 4 / detail round 4)
   android: [9700, 4300, 4376], // 9226 / 4088 (Detailrunde 4 / detail round 4)
   cyborg: [9050, 3850, 3692], // 8580 / 3632 (Detailrunde 4 / detail round 4)
-  kamikazeDrone: [7650, 3800, 3864], // 7280 / 3616 (Detailrunde 4 / detail round 4)
-  spider: [8100, 4600, 4456], // 7704 / 4364 (Detailrunde 4 / detail round 4)
-  quadDrone: [7600, 4400, 4742], // 7198 / 4166 (Detailrunde 4 / detail round 4)
-  flakDrone: [6300, 2400, 2074], // 5974 / 2242 (Detailrunde 4 / detail round 4)
+  kamikazeDrone: [2450, 1050, 3864], // 2314 / 973 (gezeichnet / inked; vorher 7280 / 3616)
+  spider: [4200, 1550, 4456], // 3976 / 1431 (gezeichnet / inked; vorher 7704 / 4364)
+  quadDrone: [5050, 2000, 4742], // 4798 / 1876 (gezeichnet / inked; vorher 7198 / 4166)
+  flakDrone: [3050, 1500, 2074], // 2866 / 1398 (gezeichnet / inked; vorher 5974 / 2242)
   railgun: [6900, 2350, 5580], // 6556 / 2191 (gezeichnet / inked; vorher 9874 / 4876)
   flameTank: [8100, 2500, 7006], // 7678 / 2369 (gezeichnet / inked; vorher 12132 / 5486)
   titan: [12100, 6100, 5772], // 11480 / 5788 (Detailrunde 4 / detail round 4)
@@ -131,6 +131,10 @@ const INK_VEHICLES: Record<string, [number, number]> = {
 const INK_ROBOTS: Record<string, [number, number]> = {
   railgun: [8250, 2290], // 7818 / 2173
   flameTank: [9050, 2450], // 8600 / 2329
+  spider: [3650, 1290], // 3464 / 1223
+  kamikazeDrone: [2500, 860], // 2358 / 819
+  flakDrone: [4250, 1410], // 4026 / 1338
+  quadDrone: [5700, 1930], // 5394 / 1832
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
@@ -145,7 +149,8 @@ const BEFORE_VEHICLES: Record<string, [number, number]> = {
   tank: [18655, 6824],
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {
-  railgun: [9874, 4876], flameTank: [12132, 5486],
+  railgun: [9874, 4876], flameTank: [12132, 5486], spider: [7704, 4364], kamikazeDrone: [7280, 3616],
+  flakDrone: [5974, 2242], quadDrone: [7198, 4166],
 };
 const BEFORE_NAVAL: Record<string, [number, number]> = {
 };

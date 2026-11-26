@@ -11,6 +11,7 @@
  */
 import { robotCells } from '../robotPaint';
 import { flameTank, railgun } from '../robotsTracked';
+import { flakDrone, kamikazeDrone, quadDrone, spider } from '../robotsWalkers';
 import type { InkedGroup } from '../types';
 
 export const robots: InkedGroup = {
@@ -18,5 +19,9 @@ export const robots: InkedGroup = {
   types: {
     railgun: { atlas: 'robot', build: railgun, maxEdge: 0.085, voxel: 0.0065 },
     flameTank: { atlas: 'robot', build: flameTank, maxEdge: 0.085, voxel: 0.0065 },
+    spider: { atlas: 'robot', build: spider, maxEdge: 0.085, voxel: 0.006 },
+    kamikazeDrone: { atlas: 'robot', build: kamikazeDrone, maxEdge: 0.085, voxel: 0.006 },
+    flakDrone: { atlas: 'robot', build: flakDrone, maxEdge: 0.085, voxel: 0.006 },
+    quadDrone: { atlas: 'robot', build: quadDrone, maxEdge: 0.085, voxel: 0.006 },
   },
 };
