@@ -6,7 +6,8 @@ import { afterAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { FACTION_IDS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { getUnitQuality, INKED, inkedType, legacyUnitGeometry, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry } from '../src/render/models';
-import { ATLAS_SIZE, atlasBudget, atlasDef, atlasIds, atlasTextures, distanceField, MAX_ATLASES } from '../src/render/models/inked/atlas';
+import { ATLAS_SIZE, atlasBudget, atlasDef, atlasIds, atlasTextures, distanceField, INK_WAVER, inkWaver, MAX_ATLASES } from '../src/render/models/inked/atlas';
+import { comicMaterial } from '../src/render/models/inked/material';
 import { defineAtlases, INKED_MAX_EXT, INKED_MAX_H, inkedLimits } from '../src/render/models/inked';
 import { inkFor, inkGeometry } from '../src/render/models/inked/ink';
 import { AtlasLayout, loft, REF, subdivide, UvBuilder } from '../src/render/models/inked/uvkit';
@@ -54,6 +55,45 @@ describe('Gezeichnete Einheiten: Atlanten / inked units: atlases', () => {
     expect((t.paint.image.data as Uint8Array)[0]).toBe(128);
     expect((t.ink.image.data as Uint8Array)[0]).toBe(0);
     expect(atlasTextures('figure', ATLAS_SIZE.low)).toBe(t);
+  });
+
+  it('Kosten je Bildpunkt: Filterung, eingerechnetes Rauschen, neutrale Zelle ohne Texturzugriff / cost per fragment: filtering, baked noise, neutral cell without a texture fetch', () => {
+    defineAtlases();
+    // niedrige Qualitaet: die Zeichnung ohne anisotrope Filterung, die Tusche behaelt sie / low quality: the drawing without anisotropic filtering, the ink keeps it
+    const lo = atlasTextures('vehicle', ATLAS_SIZE.low), hi = atlasTextures('vehicle', ATLAS_SIZE.high);
+    expect([lo.paint.anisotropy, lo.ink.anisotropy]).toEqual([1, 4]);
+    expect([hi.paint.anisotropy, hi.ink.anisotropy]).toEqual([4, 4]);
+    // Schwankung der Strichstaerke: fest, klein, um null / wavering of the line weight: fixed, small, around zero
+    const max = INK_WAVER.reduce((s, w) => s + w.amp / 2, 0);
+    let sum = 0, lowest = 1, highest = -1;
+    for (let i = 0; i < 4000; i++) {
+      const v = inkWaver(((i * 37) % 1024 + 0.5) / 1024, ((i * 101) % 1024 + 0.5) / 1024);
+      sum += v; lowest = Math.min(lowest, v); highest = Math.max(highest, v);
+      expect(Math.abs(v)).toBeLessThanOrEqual(max + 1e-9);
+    }
+    expect(inkWaver(0.3, 0.7)).toBe(inkWaver(0.3, 0.7));
+    expect(Math.abs(sum / 4000)).toBeLessThan(0.01);
+    expect(highest - lowest).toBeGreaterThan(max);
+    // Shader: uBlank beschreibt die neutrale Zelle des Atlas; kein Rauschen und nur eine Potenz je Bildpunkt
+    // shader: uBlank describes the atlas's neutral cell; no noise and only one power per fragment
+    for (const q of ['high', 'low'] as const) {
+      const m = comicMaterial('vehicle', q);
+      const shader = {
+        uniforms: {} as Record<string, { value: unknown }>, vertexShader: '#include <begin_vertex>',
+        fragmentShader: '#include <color_fragment>\n#include <emissivemap_fragment>\n#include <lights_fragment_end>\n#include <opaque_fragment>',
+      };
+      m.onBeforeCompile(shader as never, null as never);
+      const r = atlasDef('vehicle').layout.get('blank'), u = shader.uniforms.uBlank.value as THREE.Vector4;
+      expect(u.x).toBeCloseTo((r.x + r.w / 2) / REF, 6);
+      expect(u.y).toBeCloseTo((r.y + r.h / 2) / REF, 6);
+      expect(u.z).toBeGreaterThanOrEqual(r.w / 2 / REF);
+      expect(u.z).toBeLessThan((r.w / 2 + 1) / REF);
+      expect(shader.vertexShader).toContain('uBlank');
+      expect(shader.fragmentShader).toContain('if (vBFx.z > 0.5)');
+      expect(shader.fragmentShader).not.toContain('bNoise');
+      expect(shader.fragmentShader.match(/pow\(/g)).toHaveLength(1);
+      expect(shader.fragmentShader.match(/texture2D\(/g)).toHaveLength(2);
+    }
   });
 
   it('Abstandsfeld: innen ueber, aussen unter der Kante / distance field: above the edge inside, below it outside', () => {

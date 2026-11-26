@@ -17,11 +17,31 @@
  *   colours. NO hatching, no stroke or dot patterns.
  * - rim light and a hard glint on metal and glass (high quality only).
  * Variants as for unitMaterial: dimmed (has moved), transparent (camouflaged, radar contact), glowing (Velkar, Alvenia).
+ *
+ * Kosten je Bildpunkt (gemessen mit dem Software-Rasterer, dort zaehlt jede Rechnung je Bildpunkt voll):
+ * - Flaechen ohne Zeichnung (neutrale Zelle 'blank': ueberbrueckte Teile, kleine Teile) lesen keine der beiden Texturen.
+ *   Der Vertex-Shader erkennt die Zelle an den Texturkoordinaten (uBlank) und gibt das je Dreieck gleiche Kennzeichen
+ *   vBFx.z weiter; alle Bildpunkte eines Dreiecks nehmen also denselben Zweig.
+ * - Die schwankende Strichstaerke der Tusche steckt bei hoher Qualitaet schon im Abstandsfeld (atlas.ts inkWaver),
+ *   der Shader rechnet kein Rauschen mehr.
+ * - Der Glanzfleck vergleicht den Winkel mit Schwellen, die der Vertex-Shader je Glanzwert ausrechnet (keine Potenz
+ *   je Bildpunkt), und entfaellt ganz auf Flaechen ohne Glanz.
+ * - Die Zeichnung braucht eine Potenz statt zwei: (2 x)^2.2 = 2^2.2 * x^2.2.
+ * Cost per fragment (measured with the software rasteriser, where every per-fragment operation counts in full):
+ * - Surfaces without drawing (neutral cell 'blank': bridged parts, small parts) read neither texture. The vertex
+ *   shader recognises the cell by its texture coordinates (uBlank) and passes on the flag vBFx.z, which is the same
+ *   for a whole triangle; all fragments of a triangle therefore take the same branch.
+ * - On high quality the wavering line weight of the ink is already inside the distance field (atlas.ts inkWaver); the
+ *   shader computes no noise any more.
+ * - The glint compares the angle with thresholds the vertex shader computes per gloss value (no power per fragment)
+ *   and is skipped altogether on surfaces without gloss.
+ * - The drawing needs one power instead of two: (2 x)^2.2 = 2^2.2 * x^2.2.
  */
 import * as THREE from 'three';
 import { hex, semantic } from '../../../design/tokens';
 import { gradientMap, TOON_RAMP, UNIT_BRIGHTNESS, UNIT_DIM } from '../../toon';
-import { ATLAS_SIZE, atlasTextures } from './atlas';
+import { ATLAS_SIZE, atlasDef, atlasTextures } from './atlas';
+import { REF } from './uvkit';
 
 export type InkedQuality = keyof typeof ATLAS_SIZE;
 export interface InkedMatOpts { transparent?: boolean; opacity?: number; dim?: boolean; glow?: boolean }
@@ -38,10 +58,22 @@ const GLOW = { base: 0.55, night: 0.6 };
 /** Niedrige Qualitaet: Verschiebung der Tuscheschwelle im Abstandsfeld (0..1 = 2 x SDF_RANGE Texel) / low quality: shift of the ink threshold in the distance field (0..1 = 2 x SDF_RANGE texels) */
 export const LOW_INK_BIAS = 0.06;
 
+/** mul-Wert der neutralen Zelle: Texel 128 / mul value of the neutral cell: texel 128 */
+const NEUTRAL_MUL = Math.pow((2 * 128) / 255, 2.2);
+/** Glanzfleck: der Winkelcosinus hoch n wird bei 0.46 .. 0.54 zur harten Kante; dasselbe als Schwellen des Cosinus / glint: the cosine to the power n turns into a hard edge at 0.46 .. 0.54; the same as thresholds of the cosine */
+const GLINT = [0.46, 0.54] as const;
+/** Exponent des kleinen zweiten Glanzflecks auf blankem Metall / exponent of the small second glint on bright metal */
+const GLINT2_POWER = 900;
+
 const VERT_HEAD = /* glsl */ `
   attribute vec2 fx;
+  uniform vec4 uBlank;
   varying vec2 vBUv;
-  varying vec2 vBFx;
+  // Glanz, Verdeckung, 1 = Zelle mit Zeichnung (0 = neutrale Zelle) / gloss, occlusion, 1 = cell with drawing (0 = neutral cell)
+  varying vec3 vBFx;
+  #ifdef INKED_HIGH
+    varying vec2 vBGl;
+  #endif
   #ifdef INKED_GLOW
     attribute vec2 glow;
     varying float vUnitGlow;
@@ -49,7 +81,13 @@ const VERT_HEAD = /* glsl */ `
 `;
 const VERT_BODY = /* glsl */ `
   vBUv = uv;
-  vBFx = fx;
+  // uBlank: Mitte und halbe Groesse der neutralen Zelle / centre and half size of the neutral cell
+  vBFx = vec3(fx, (abs(uv.x - uBlank.x) > uBlank.z || abs(uv.y - uBlank.y) > uBlank.w) ? 1.0 : 0.0);
+  #ifdef INKED_HIGH
+    // Schwellen des Glanzflecks fuer den Exponenten dieses Glanzwerts / thresholds of the glint for this gloss value's exponent
+    float bPow = 1.0 / mix(60.0, 260.0, 1.0 - fx.x);
+    vBGl = vec2(pow(${GLINT[0].toFixed(2)}, bPow), pow(${GLINT[1].toFixed(2)}, bPow));
+  #endif
   #ifdef INKED_GLOW
     vUnitGlow = glow.x;
   #endif
@@ -63,28 +101,24 @@ const FRAG_HEAD = /* glsl */ `
   uniform vec2 uLayers2;
   uniform float uShadowTone;
   varying vec2 vBUv;
-  varying vec2 vBFx;
+  varying vec3 vBFx;
   #ifdef INKED_HIGH
-    // Rauschen fuer die schwankende Strichstaerke der Tusche / noise for the wavering weight of the ink line
-    float bHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-    float bNoise(vec2 p) {
-      vec2 i = floor(p), f = fract(p);
-      f = f * f * (3.0 - 2.0 * f);
-      return mix(mix(bHash(i), bHash(i + vec2(1.0, 0.0)), f.x), mix(bHash(i + vec2(0.0, 1.0)), bHash(i + vec2(1.0, 1.0)), f.x), f.y);
-    }
+    varying vec2 vBGl;
   #endif
   #ifdef INKED_GLOW
     uniform float uGlow;
     varying float vUnitGlow;
   #endif
 `;
-/** Zeichnung auf die Vertexfarbe / drawing onto the vertex colour */
+/** Zeichnung auf die Vertexfarbe; die neutrale Zelle ohne Texturzugriff / drawing onto the vertex colour; the neutral cell without a texture fetch */
 const FRAG_PAINT = /* glsl */ `
-  {
+  if (vBFx.z > 0.5) {
     vec4 bT = texture2D(uPaint, vBUv);
-    vec3 bMul = pow(2.0 * bT.rgb, vec3(2.2));
-    vec3 bAbs = pow(bT.rgb, vec3(2.2)) * uAbsTint;
-    diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb * bMul, bAbs, bT.a), uLayers.x);
+    // mul = (2 rgb)^2.2 = 2^2.2 * rgb^2.2, abs = rgb^2.2 / mul = (2 rgb)^2.2 = 2^2.2 * rgb^2.2, abs = rgb^2.2
+    vec3 bLin = pow(bT.rgb, vec3(2.2));
+    diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb * bLin * ${Math.pow(2, 2.2).toFixed(5)}, bLin * uAbsTint, bT.a), uLayers.x);
+  } else {
+    diffuseColor.rgb *= mix(1.0, ${NEUTRAL_MUL.toFixed(5)}, uLayers.x);
   }
 `;
 const FRAG_GLOW = /* glsl */ `
@@ -117,21 +151,20 @@ const FRAG_INK = /* glsl */ `
     vec3 bRimDir = normalize(vec3(-bL.x, 0.3, -0.35));
     float bRim = smoothstep(0.66, 0.7, bRimF) * smoothstep(0.05, 0.3, dot(normal, bRimDir)) * uLayers2.y;
     outgoingLight = mix(outgoingLight, diffuseColor.rgb * 1.5 + 0.12, bRim * 0.6);
-    // Glanzfleck mit harter Kante, auf blankem Metall ein kleiner zweiter / hard-edged glint, a small second one on bright metal
-    vec3 bH = normalize(bL + geometryViewDir);
-    float bSpec = pow(max(dot(normal, bH), 0.0), mix(60.0, 260.0, 1.0 - vBFx.x));
-    vec3 bH2 = normalize(bL + geometryViewDir + vec3(0.2, -0.26, 0.0));
-    float bSpec2 = pow(max(dot(normal, bH2), 0.0), 900.0);
-    float bGlint = max(smoothstep(0.46, 0.54, bSpec), smoothstep(0.46, 0.54, bSpec2) * step(0.7, vBFx.x)) * step(0.01, vBFx.x) * uLayers2.x;
-    outgoingLight = mix(outgoingLight, vec3(1.0), bGlint * 0.88);
+    // Glanzfleck mit harter Kante, auf blankem Metall ein kleiner zweiter; nur auf Flaechen mit Glanz
+    // hard-edged glint, a small second one on bright metal; on surfaces with gloss only
+    if (vBFx.x >= 0.01) {
+      float bGlint = smoothstep(vBGl.x, vBGl.y, dot(normal, normalize(bL + geometryViewDir)));
+      if (vBFx.x >= 0.7) bGlint = max(bGlint, smoothstep(${Math.pow(GLINT[0], 1 / GLINT2_POWER).toFixed(7)}, ${Math.pow(GLINT[1], 1 / GLINT2_POWER).toFixed(7)}, dot(normal, normalize(bL + geometryViewDir + vec3(0.2, -0.26, 0.0)))));
+      outgoingLight = mix(outgoingLight, vec3(1.0), bGlint * uLayers2.x * 0.88);
+    }
   }
   #endif
-  {
+  if (vBFx.z > 0.5) {
+    // hohe Qualitaet: die schwankende Strichstaerke steckt im Abstandsfeld (atlas.ts) / high quality: the wavering line weight is inside the distance field (atlas.ts)
     float bD = texture2D(uInkMap, vBUv).r;
     float bW = clamp(fwidth(bD), 0.002, 0.5);
-    #ifdef INKED_HIGH
-      bD += (bNoise(vBUv * 150.0) - 0.5) * 0.085 + (bNoise(vBUv * 37.0) - 0.5) * 0.06;
-    #else
+    #ifndef INKED_HIGH
       // niedrig: halbe Textur und halbe Bildaufloesung, die Striche etwas kraeftiger, damit sie nicht wegbrechen
       // low: half the texture and half the screen resolution, strokes a little heavier so they do not break away
       bD += ${LOW_INK_BIAS.toFixed(3)};
@@ -158,8 +191,10 @@ export function comicMaterial(atlas: string, quality: InkedQuality, o: InkedMatO
   // wie unitMaterial: gezogene Einheiten dunkler und leicht grau / like unitMaterial: units that have moved darker and slightly grey
   const tint = new THREE.Vector3(1, 1, 1);
   if (o.dim) { m.color.setRGB(UNIT_DIM, UNIT_DIM, UNIT_DIM * 1.15); tint.set(UNIT_DIM, UNIT_DIM, UNIT_DIM * 1.15); } else m.color.setScalar(UNIT_BRIGHTNESS);
+  const blank = atlasDef(atlas).layout.get('blank');
   const uniforms = {
     uPaint: { value: tex.paint }, uInkMap: { value: tex.ink },
+    uBlank: { value: new THREE.Vector4((blank.x + blank.w / 2) / REF, (blank.y + blank.h / 2) / REF, blank.w / 2 / REF + 1e-5, blank.h / 2 / REF + 1e-5) },
     uInkColor: { value: new THREE.Color(hex(semantic.ink)) },
     uAbsTint: { value: tint },
     uShadowTone: { value: TOON_RAMP.hard[0] / 255 },
