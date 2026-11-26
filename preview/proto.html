@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Frontverlauf - Modellvorschlaege / model proposals</title>
+  <link rel="stylesheet" href="/src/design/tokens.css" />
+  <style>
+    html, body { margin: 0; min-height: 100%; background: var(--s-surface); color: var(--s-text); font-family: var(--p-font-body); font-size: var(--p-font-size-sm); }
+    main { max-width: 60rem; margin: 0 auto; padding: var(--p-space-4); }
+    h1 { margin: 0 0 var(--p-space-2); font-family: var(--p-font-comic); font-weight: var(--p-font-weight-regular); font-size: var(--p-font-size-lg); letter-spacing: 0.03em; }
+    p { margin: 0 0 var(--p-space-4); color: var(--s-text-muted); line-height: 1.45; }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--p-space-3); grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+    a { display: block; min-height: var(--p-size-touch); padding: var(--p-space-3); background: var(--s-surface-raised); color: var(--s-text); text-decoration: none; border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md); box-shadow: var(--p-shadow-pop-sm) var(--s-outline); }
+    a:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); }
+    a b { display: block; font-family: var(--p-font-comic); font-weight: var(--p-font-weight-regular); font-size: var(--p-font-size-md); letter-spacing: 0.03em; margin-bottom: var(--p-space-1); }
+    a span { display: block; color: var(--s-text-muted); line-height: 1.45; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Modellvorschläge / Model proposals</h1>
+    <p>Drei Prototypen am Korvat-Schützen und am Korvat-Panzer, jeweils neben dem heutigen Modell. Ziehen dreht, Rad oder zwei Finger zoomen. / Three prototypes on the Korvat rifleman and the Korvat tank, each next to today's model. Drag to orbit, wheel or pinch to zoom.</p>
+    <ul>
+      <li><a href="./proto-a.html"><b>A: Geformt / Sculpted</b><span>Zusammenhängend geformte Körper, ohne Texturen. / Continuously shaped bodies, no textures.</span></a></li>
+      <li><a href="./proto-b.html"><b>B: Gezeichnet / Inked</b><span>Gezeichnete Oberflächen, Innenlinien, Schraffur. / Drawn surfaces, inner ink lines, hatching.</span></a></li>
+      <li><a href="./proto-c.html"><b>C: Modelliert / Modelled</b><span>Blender-Modelle mit Skelett und Animation. / Blender models with skeleton and animation.</span></a></li>
+    </ul>
+  </main>
+</body>
+</html>

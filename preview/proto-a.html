@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Frontverlauf - Vorschlag A: Geformt / proposal A: sculpted</title>
+  <link rel="stylesheet" href="/src/design/tokens.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--s-world-background); color: var(--s-text); font-family: var(--p-font-body); font-size: var(--p-font-size-sm); }
+    #stage { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+    .bar { position: fixed; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; gap: var(--p-space-2); align-items: center; padding: var(--p-space-2); pointer-events: none; }
+    .bar > * { pointer-events: auto; }
+    h1 { margin: 0 var(--p-space-2) 0 0; font-family: var(--p-font-comic); font-weight: var(--p-font-weight-regular); font-size: var(--p-font-size-lg); color: var(--s-text-inverse); letter-spacing: 0.03em; }
+    .group { display: flex; border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md); overflow: hidden; box-shadow: var(--p-shadow-pop-sm) var(--s-outline); }
+    button { font: inherit; font-weight: var(--p-font-weight-bold); min-height: var(--p-size-touch); padding: 0 var(--p-space-3); border: 0; border-right: var(--p-border-width-thin) solid var(--s-outline); background: var(--s-surface); color: var(--s-text); cursor: pointer; }
+    button:last-child { border-right: 0; }
+    button[aria-pressed='true'] { background: var(--s-accent); }
+    button:focus-visible { outline: var(--p-border-width-thick) solid var(--s-focus); outline-offset: calc(var(--p-border-width-thick) * -1); }
+    .tag { position: fixed; padding: var(--p-space-1) var(--p-space-2); background: var(--s-surface-raised); border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-sm); box-shadow: var(--p-shadow-pop-sm) var(--s-outline); line-height: 1.3; max-width: 46vw; }
+    .tag b { display: block; font-family: var(--p-font-comic); font-weight: var(--p-font-weight-regular); font-size: var(--p-font-size-md); letter-spacing: 0.03em; }
+    .tag.new b { color: var(--s-danger); }
+    .tag span { display: block; color: var(--s-text-muted); font-size: var(--p-font-size-xs); }
+    #split { position: fixed; background: var(--s-outline); }
+    #stats { position: fixed; left: var(--p-space-2); right: var(--p-space-2); bottom: var(--p-space-2); padding: var(--p-space-2) var(--p-space-3); background: var(--s-surface); border: var(--p-border-width-thin) solid var(--s-outline); border-radius: var(--p-radius-md); box-shadow: var(--p-shadow-pop-sm) var(--s-outline); font-size: var(--p-font-size-xs); line-height: 1.45; }
+    #stats table { border-collapse: collapse; width: 100%; }
+    #stats th, #stats td { text-align: right; padding: 0 var(--p-space-2); white-space: nowrap; }
+    #stats th:first-child, #stats td:first-child { text-align: left; white-space: normal; }
+    #stats th { font-weight: var(--p-font-weight-bold); }
+    #stats p { margin: var(--p-space-1) 0 0; color: var(--s-text-muted); }
+    #stats summary { font-weight: var(--p-font-weight-bold); cursor: pointer; min-height: var(--p-size-icon); }
+    #statsBody { overflow-x: auto; }
+    body.bare .bar, body.bare #stats { display: none; }
+    @media (max-width: 700px) {
+      h1 { display: none; }
+      .bar { flex-wrap: nowrap; overflow-x: auto; }
+      .group { flex: none; }
+      button { padding: 0 var(--p-space-2); white-space: nowrap; }
+      .tag { max-width: 40vw; }
+      .tag b { font-size: var(--p-font-size-sm); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="split"></div>
+  <div class="bar">
+    <h1>Vorschlag A: Geformt / Proposal A: Sculpted</h1>
+    <div class="group" role="group" aria-label="Einheit / unit">
+      <button data-unit="soldier">Soldat / Soldier</button>
+      <button data-unit="tank">Panzer / Tank</button>
+    </div>
+    <div class="group" role="group" aria-label="Ansicht / view">
+      <button data-view="close">Nah / Close</button>
+      <button data-view="face">Detail / Detail</button>
+      <button data-view="board">Brett / Board</button>
+    </div>
+    <div class="group" role="group" aria-label="Netzdichte / mesh density">
+      <button data-q="full">Voll / Full</button>
+      <button data-q="phone">Handy / Phone</button>
+    </div>
+  </div>
+  <div class="tag old" id="tagOld"><b>Heute / Today</b><span id="triOld"></span></div>
+  <div class="tag new" id="tagNew"><b>Vorschlag A: Geformt / Proposal A: Sculpted</b><span id="triNew"></span></div>
+  <details id="stats"><summary>Zahlen und Kosten / Numbers and cost</summary><div id="statsBody"></div></details>
+  <script type="module" src="/src/render/models/proto/a/page.ts"></script>
+</body>
+</html>
