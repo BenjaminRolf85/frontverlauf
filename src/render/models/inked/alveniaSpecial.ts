@@ -70,16 +70,17 @@ export function reliquary(f: FactionId, A: AtlasLayout): UvBuilder {
   const b = new UvBuilder(A.get('blank'));
   const hi = fine();
   const R = RELIQUARY;
-  b.mirrorX(() => {
-    runningGear(b, A, R.track, { wheels: 5, wheelR: 0.031, wheelColor: FAITH.plateShade, sprocketColor: FAITH.goldDark, idlerColor: FAITH.goldDark, bayColor: shade(FAITH.plateShade, 0.45), rollers: 2 });
-    // blaue Schuerze mit Goldsaum und Sternen ueber der Kette / blue skirt with a gold hem and stars over the track
-    crate(b, 0.012, 0.064, 0.37, 0.004, { px: A.get('skirt:alvenia'), all: A.get('blank') }, FAITH.cloth, { p: [R.track.x + R.track.w / 2 + 0.008, 0.066, 0] });
-  });
   // Wanne: weisse Platte, Goldborte, darunter Schatten / hull: white plate, gold trim, shade below
   b.add(loft([
     { y: R.y1, rx: R.hw * 0.94, rz: R.hl * 0.93, e: 5, hard: true, c: FAITH.plate }, { y: R.y1 - 0.012, rx: R.hw, rz: R.hl, e: 5, hard: true, c: FAITH.gold },
     { y: R.y1 - 0.024, rx: R.hw, rz: R.hl, e: 5, hard: true, c: FAITH.plateShade }, { y: R.y0, rx: R.hw * 0.97, rz: R.hl * 0.98, e: 5 },
   ], { seg: hi ? 24 : 12, region: A.get('faithHull:alvenia'), capFirst: A.get('faithDeck:alvenia') }), null, { gloss: 0.2 });
+  // Laufwerk nach der Wanne (Tiefentest, siehe Goettlicher Funke) / running gear after the hull (depth test, see Divine Spark)
+  b.mirrorX(() => {
+    runningGear(b, A, R.track, { wheels: 5, wheelR: 0.031, wheelColor: FAITH.plateShade, sprocketColor: FAITH.goldDark, idlerColor: FAITH.goldDark, bayColor: shade(FAITH.plateShade, 0.45), rollers: 2 });
+    // blaue Schuerze mit Goldsaum und Sternen ueber der Kette / blue skirt with a gold hem and stars over the track
+    crate(b, 0.012, 0.064, 0.37, 0.004, { px: A.get('skirt:alvenia'), all: A.get('blank') }, FAITH.cloth, { p: [R.track.x + R.track.w / 2 + 0.008, 0.066, 0] });
+  });
   // Schrein mit Lichtgeschuetz dreht sich zum Ziel / shrine with the light gun turns towards the target
   const sy = R.y1, sz = R.sz;
   b.turret([0, sy, sz], () => {
@@ -181,17 +182,6 @@ export function divineSpark(f: FactionId, A: AtlasLayout): UvBuilder {
   const hi = fine();
   const S = SPARK, hy = S.hy, xw = S.xw, th = S.th;
   const seg = hi ? 16 : 8;
-  // Laufwerk: drei breite Ketten je Seite; Laufrollen und Treibrad sind auf die Aussenseite gezeichnet
-  // running gear: three wide tracks per side; road wheels and sprocket are drawn onto the outer side
-  b.mirrorX(() => {
-    S.tx.forEach((tx, i) => trackLoop(b, tx, S.tw, S.tl, th, A.get('sparkTrack'), i === S.tx.length - 1 ? A.get('sparkBay:alvenia') : null, mat.dark));
-  });
-  // Kotfluegel ueber allen Ketten mit Goldkante / fenders over all tracks with a gold edge
-  b.add(loft([
-    { y: th + 0.022, rx: 0.442, rz: 0.432, e: 8, hard: true, c: FAITH.gold }, { y: th + 0.014, rx: 0.444, rz: 0.434, e: 8, hard: true, c: FAITH.cloth },
-    { y: th - 0.012, rx: 0.444, rz: 0.434, e: 8, hard: true },
-  ], { seg: hi ? 24 : 12, region: A.get('blank') }), null);
-  b.add(softBox(0.88, 0.004, 0.86, 0.001), FAITH.plateShade, { xf: { p: [0, th + 0.022, 0] }, crease: 0 });
   // Hauptwanne mit schraeger Bugplatte / main hull with a sloped glacis
   const Z = S.z, Y = S.y;
   const add = (pts: Q, cell: string, st: [number, number][], c = FAITH.plate) => b.add(quad(pts, A.get(cell), st), c, { gloss: 0.2 });
@@ -244,6 +234,22 @@ export function divineSpark(f: FactionId, A: AtlasLayout): UvBuilder {
     b.add(loft([{ y: 0.02, rx: TIP, c: FAITH.gold }, { y: 0, rx: 0.009 }], { seg: 5, region: A.get('blank') }), null, { xf: { p: [px, hy + 0.215, pz] }, gloss: 0.7 });
     sheet(b, [[px, hy + 0.205, pz + 0.006], [px, hy + 0.205, pz + 0.078], [px, hy + 0.095, pz + 0.078], [px, hy + 0.095, pz + 0.006]], 0.004 * s, A.get('banner:alvenia'), FAITH.cloth, { nu: 2, nv: 2 });
   }
+  // Reihenfolge: was verdeckt, zuerst (Wanne, Aufbauten), Laufwerk und Kotfluegel zuletzt: so verwirft der Tiefentest
+  // die verdeckten Bildpunkte, bevor der teurere Zeichen-Shader laeuft
+  // order: occluders first (hull, superstructure), running gear and fenders last: the depth test then rejects the
+  // hidden pixels before the more expensive drawing shader runs
+  // Laufwerk: drei breite Ketten je Seite; Laufrollen und Treibrad sind auf die Aussenseite gezeichnet
+  // running gear: three wide tracks per side; road wheels and sprocket are drawn onto the outer side
+  b.mirrorX(() => {
+    // aeussere Kette zuerst (sie verdeckt die inneren); nur sie traegt Seitenflaechen / outer track first (it hides the inner ones); only it carries side faces
+    [...S.tx].reverse().forEach((tx, i) => trackLoop(b, tx, S.tw, S.tl, th, A.get('sparkTrack'), i === 0 ? A.get('sparkBay:alvenia') : null, mat.dark));
+  });
+  // Kotfluegel ueber allen Ketten mit Goldkante / fenders over all tracks with a gold edge
+  b.add(loft([
+    { y: th + 0.022, rx: 0.442, rz: 0.432, e: 8, hard: true, c: FAITH.gold }, { y: th + 0.014, rx: 0.444, rz: 0.434, e: 8, hard: true, c: FAITH.cloth },
+    { y: th - 0.012, rx: 0.444, rz: 0.434, e: 8, hard: true },
+  ], { seg: hi ? 24 : 12, region: A.get('blank') }), null);
+  b.add(softBox(0.88, 0.004, 0.86, 0.001), FAITH.plateShade, { xf: { p: [0, th + 0.022, 0] }, crease: 0 });
   // drehbare Kasematte mit dem Eisenbahngeschuetz / rotating casemate with the railway gun
   const tz = S.tz;
   b.turret([0, hy, tz], () => {

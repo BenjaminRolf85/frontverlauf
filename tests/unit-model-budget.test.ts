@@ -56,7 +56,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   destroyer: [4250, 2100, 5748], // 4012 / 1963 (gezeichnet / inked; vorher 13016 / 5420)
   battleship: [6600, 2850, 7131], // 6266 / 2693 (gezeichnet / inked; vorher 16232 / 6569)
   grey: [6950, 4300, 4264], // 6612 / 4072 (Detailrunde 4 / detail round 4)
-  terraformer: [2950, 1150, 4312], // 2772 / 1050 (gezeichnet / inked; vorher 8952 / 4240)
+  terraformer: [3350, 1350, 4312], // 3180 / 1266 (gezeichnet / inked; vorher 8952 / 4240)
   skimmer: [2150, 850, 4756], // 2025 / 798 (gezeichnet / inked; vorher 8114 / 4228)
   mech: [5100, 2000, 6364], // 4846 / 1880 (gezeichnet / inked; vorher 10356 / 5964)
   tripod: [6450, 1750, 7937], // 6122 / 1650 (gezeichnet / inked; vorher 12627 / 7099)
@@ -81,7 +81,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   steppeRider: [11000, 3500, 3367], // 10437 / 3228 (Detailrunde 4 / detail round 4)
   stormbreaker: [12500, 4450, 4681], // 11886 / 4025 (Detailrunde 4 / detail round 4)
   peacekeeper: [15850, 7100, 7414], // 15091 / 6441 (Detailrunde 4 / detail round 4)
-  privateer: [4000, 950, 3388], // 3780 / 899 (gezeichnet / inked; vorher 7598 / 2896)
+  privateer: [4000, 950, 3388], // 3788 / 903 (gezeichnet / inked; vorher 7598 / 2896)
   protoWalker: [6700, 4300, 4260], // 6360 / 4068 (Detailrunde 4 / detail round 4)
   teslaTank: [13350, 7400, 7212], // 12673 / 6504 (Detailrunde 4 / detail round 4)
   octocopter: [8300, 4500, 4876], // 7896 / 4252 (Detailrunde 4 / detail round 4)
@@ -90,7 +90,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   reliquary: [6250, 2200, 6278], // 5916 / 2056 (gezeichnet / inked; vorher 8944 / 5318)
   sunLance: [6000, 2800, 5013], // 5699 / 2656 (gezeichnet / inked; vorher 9539 / 4180)
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
-  divineSpark: [11600, 2950, 6338], // 11031 / 2801 (gezeichnet / inked; vorher 16709 / 6296)
+  divineSpark: [9950, 2900, 6338], // 9463 / 2737 (gezeichnet / inked; vorher 16709 / 6296)
   steppeColossus: [20800, 8800, 8643], // 19806 / 7649 (Detailrunde 4 / detail round 4)
   shadowCommando: [10700, 3800, 3531], // 10173 / 3213 (Detailrunde 4 / detail round 4)
   fogCutter: [3950, 650, 704], // 3716 / 609 (gezeichnet / inked; vorher 5295 / 1680)
@@ -136,15 +136,15 @@ const INK_NAVAL: Record<string, [number, number]> = {
   submarine: [4700, 1900], // 4471 / 1768
   destroyer: [5000, 1950], // 4753 / 1857
   battleship: [7800, 2700], // 7415 / 2537
-  privateer: [2250, 950], // 2131 / 899
+  privateer: [2300, 950], // 2143 / 903
   fogCutter: [4700, 650], // 4473 / 577
-  terraformer: [2850, 1000], // 2684 / 952
+  terraformer: [3150, 1200], // 2996 / 1096
   skimmer: [2450, 800], // 2319 / 728
   mech: [5050, 1800], // 4786 / 1678
   tripod: [4750, 1500], // 4508 / 1426
   reliquary: [9600, 2150], // 9128 / 2026
   sunLance: [7300, 2600], // 6943 / 2472
-  divineSpark: [8300, 2850], // 7861 / 2681
+  divineSpark: [8200, 2750], // 7765 / 2617
   guidedMissile: [2950, 850], // 2775 / 807
 };
 const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_ROBOTS, ...INK_NAVAL };

@@ -124,6 +124,8 @@ export function privateer(f: FactionId, A: AtlasLayout): UvBuilder {
   const yz = mz + 0.012, y1 = dk + 0.4, y0 = dk + 0.17;
   rod(b, [-0.2, y1, yz], [0.2, y1, yz], 0.0045, mat.wood, { cap: true });
   sheet(b, [[-0.195, y1 - 0.004, yz], [0.195, y1 - 0.004, yz], [0.175, y0, yz + 0.012], [-0.175, y0, yz + 0.012]], -0.03, A.get('sail'), mat.paper);
+  // Farbfeld mit Emblem mitten auf dem Rahsegel (dort ist das Tuch am weitesten vorgewoelbt) / colour field with the emblem in the middle of the square sail (where the cloth bulges out furthest)
+  insignia(b, A, f, [0, (y0 + y1) / 2, yz + 0.006 + 0.03], [0, 0.05, 1], 0.07, L.secondary);
   if (hi) for (const s of [-1, 1]) rod(b, [s * 0.175, y0, yz + 0.012], [s * w * 0.9, dk + 0.012, mz - 0.07], 0.0013, shade(mat.wood, 0.7), { seg: 3, cap: false });
   rod(b, [0, dk + 0.03, P.z1 - 0.05], [0, dk + 0.062, P.z1 + 0.05], 0.0045, mat.wood, { r1: 0.003 });
   sheet(b, [[0, dk + 0.4, mz + 0.016], [0, dk + 0.4, mz + 0.016], [0, dk + 0.066, P.z1 + 0.04], [0, dk + 0.06, mz + 0.04]], 0.012, A.get('sail'), mat.paper, { nu: 3, nv: 3 });

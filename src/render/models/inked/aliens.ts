@@ -89,6 +89,13 @@ export function terraformer(f: FactionId, A: AtlasLayout): UvBuilder {
     { y: 0.004, rx: R * 0.96, rz: RZ * 0.96, hard: true, c: mat.alienSkin }, { y: -0.03, rx: R * 0.9, rz: RZ * 0.9 }, { y: -0.056, rx: R * 0.62, rz: RZ * 0.62 }, { y: -0.066, rx: TIP },
   ], { seg, region: A.get('belly') }), null, { xf: { p: C }, crease: 0 });
   emblemDecal(b, A, f, [0, C[1] + H * 0.93, C[2] - 0.045], [0, 1, -0.32], 0.034, L.primary, [0, 0.3, 1]);
+  // drei vorstehende Augen unter dem Panzerrand: das Gesicht des Terraformers, auch von oben zu sehen
+  // three protruding eyes below the carapace rim: the terraformer's face, visible from above too
+  for (const [x, y] of [[-0.042, 0], [0.042, 0], [0, 0.03]] as [number, number][]) {
+    const ez = C[2] + RZ * Math.sqrt(Math.max(0, 1 - (x / R) ** 2)) * (y ? 0.86 : 0.97);
+    ball(b, A, [x, C[1] - 0.004 + y, ez], 0.021, mat.ink, { rows: hi ? 5 : 3, seg: hi ? 10 : 6, gloss: 0.9 });
+    ball(b, A, [x, C[1] + y, ez + 0.017], 0.008, mat.acid, { rows: 3, seg: 6 });
+  }
   // Behaelter mit leuchtender Fluessigkeit am Ruecken / tank with glowing fluid on the back
   glowTank(b, A, [0, C[1] + 0.07, C[2] - 0.128], 0.034, 0.085, [Math.PI * 0.3, 0, 0]);
   if (hi) for (const s of [-1, 1]) tentacle(b, A, [s * 0.022, C[1] + 0.09, C[2] - 0.15], [s * 0.06, C[1] + 0.115, C[2] - 0.09], [s * 0.066, C[1] + 0.066, C[2] - 0.03], 0.005, 0.005, mat.alienMetalLight, [s, 0.5, 0], 4, 'blank');

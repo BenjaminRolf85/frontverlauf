@@ -555,6 +555,9 @@ export function trackLoop(b: UvBuilder, x: number, w: number, len: number, h: nu
   const acc = [0];
   for (let i = 1; i < loop.length; i++) acc.push(acc[i - 1] + Math.hypot(loop[i][0] - loop[i - 1][0], loop[i][1] - loop[i - 1][1]));
   b.add(gridSurface(P, { region: tread, color, st: (i, j) => [j, acc[i] / acc[acc.length - 1]], out: (q) => new THREE.Vector3(0, q.y - r, Math.abs(q.z) > half ? q.z - Math.sign(q.z) * half : 0) }), null, { crease: 0.5 });
+  // Seitenflaechen nur, wo man sie sieht: side = null laesst beide weg (Ketten zwischen anderen Ketten)
+  // side faces only where they show: side = null drops both (tracks between other tracks)
+  if (!side) return;
   for (const s of [1, -1]) {
     const face = s * outer > 0 ? side : null;
     const xs = x + (s * w) / 2;
