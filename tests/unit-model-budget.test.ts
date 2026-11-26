@@ -51,15 +51,15 @@ const BUDGET: Record<string, [number, number, number]> = {
   antiTank: [5500, 3200, 3945], // 5214 / 3020 (gezeichnet / inked; vorher 7310 / 3634)
   antiAir: [7650, 2200, 6024], // 7266 / 2055 (gezeichnet / inked; vorher 12584 / 4716)
   mineLayer: [11650, 3850, 6430], // 11073 / 3660 (gezeichnet / inked; vorher 13879 / 5194)
-  landingBoat: [5600, 2150, 2276], // 5300 / 2020 (Detailrunde 4 / detail round 4)
-  submarine: [8700, 3900, 3792], // 8239 / 3674 (Detailrunde 4 / detail round 4)
-  destroyer: [13700, 5550, 5748], // 13016 / 5420 (Detailrunde 4 / detail round 4)
-  battleship: [17050, 6650, 7131], // 16232 / 6569 (Detailrunde 4 / detail round 4)
+  landingBoat: [4600, 1800, 2276], // 4349 / 1712 (gezeichnet / inked; vorher 5300 / 2020)
+  submarine: [3650, 2000, 3792], // 3437 / 1862 (gezeichnet / inked; vorher 8239 / 3674)
+  destroyer: [4250, 2100, 5748], // 4012 / 1963 (gezeichnet / inked; vorher 13016 / 5420)
+  battleship: [6600, 2850, 7131], // 6266 / 2693 (gezeichnet / inked; vorher 16232 / 6569)
   grey: [2850, 1800, 4264], // 2698 / 1676 (gezeichnet / inked; vorher 6612 / 4072)
-  terraformer: [9400, 4500, 4312], // 8952 / 4240 (Detailrunde 4 / detail round 4)
-  skimmer: [8550, 4450, 4756], // 8114 / 4228 (Detailrunde 4 / detail round 4)
-  mech: [10900, 6300, 6364], // 10356 / 5964 (Detailrunde 4 / detail round 4)
-  tripod: [13300, 7500, 7937], // 12627 / 7099 (Detailrunde 4 / detail round 4)
+  terraformer: [3350, 1350, 4312], // 3180 / 1266 (gezeichnet / inked; vorher 8952 / 4240)
+  skimmer: [2150, 850, 4756], // 2025 / 798 (gezeichnet / inked; vorher 8114 / 4228)
+  mech: [5100, 2000, 6364], // 4846 / 1880 (gezeichnet / inked; vorher 10356 / 5964)
+  tripod: [6450, 1750, 7937], // 6122 / 1650 (gezeichnet / inked; vorher 12627 / 7099)
   zealot: [6200, 2750, 4716], // 5870 / 2602 (gezeichnet / inked; vorher 9646 / 4656)
   torchbearer: [6600, 3000, 4984], // 6284 / 2844 (gezeichnet / inked; vorher 9918 / 4848)
   prophet: [7250, 3100, 5026], // 6860 / 2908 (gezeichnet / inked; vorher 9680 / 4710)
@@ -81,20 +81,20 @@ const BUDGET: Record<string, [number, number, number]> = {
   steppeRider: [7500, 3100, 3367], // 7104 / 2914 (gezeichnet / inked; vorher 10437 / 3228)
   stormbreaker: [7350, 3350, 4681], // 6954 / 3178 (gezeichnet / inked; vorher 11886 / 4025)
   peacekeeper: [12050, 6100, 7414], // 11474 / 5764 (gezeichnet / inked; vorher 15091 / 6441)
-  privateer: [8000, 3200, 3388], // 7598 / 2896 (Detailrunde 4 / detail round 4)
+  privateer: [4000, 950, 3388], // 3788 / 903 (gezeichnet / inked; vorher 7598 / 2896)
   protoWalker: [3550, 1550, 4260], // 3342 / 1464 (gezeichnet / inked; vorher 6360 / 4068)
   teslaTank: [11150, 3200, 7212], // 10608 / 3036 (gezeichnet / inked; vorher 12673 / 6504)
   octocopter: [5400, 2300, 4876], // 5126 / 2170 (gezeichnet / inked; vorher 7896 / 4252)
   railSniper: [9300, 4450, 4951], // 8856 / 4194 (gezeichnet / inked; vorher 10536 / 4301)
   lightWarden: [13850, 5800, 7252], // 13156 / 5518 (gezeichnet / inked; vorher 15947 / 6181)
-  reliquary: [9400, 6050, 6278], // 8944 / 5318 (Detailrunde 4 / detail round 4)
-  sunLance: [10050, 4550, 5013], // 9539 / 4180 (Detailrunde 4 / detail round 4)
+  reliquary: [6250, 2200, 6278], // 5916 / 2056 (gezeichnet / inked; vorher 8944 / 5318)
+  sunLance: [6000, 2800, 5013], // 5699 / 2656 (gezeichnet / inked; vorher 9539 / 4180)
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
-  divineSpark: [17550, 6650, 6338], // 16709 / 6296 (Detailrunde 4 / detail round 4)
+  divineSpark: [9950, 2900, 6338], // 9463 / 2737 (gezeichnet / inked; vorher 16709 / 6296)
   steppeColossus: [13350, 4750, 8643], // 12678 / 4505 (gezeichnet / inked; vorher 19806 / 7649)
   shadowCommando: [6850, 3050, 3531], // 6486 / 2876 (gezeichnet / inked; vorher 10173 / 3213)
-  fogCutter: [5600, 1800, 704], // 5295 / 1680 (Detailrunde 4 / detail round 4)
-  guidedMissile: [9300, 1400, 668], // 8820 / 1324 (Detailrunde 4 / detail round 4)
+  fogCutter: [3950, 650, 704], // 3716 / 609 (gezeichnet / inked; vorher 5295 / 1680)
+  guidedMissile: [3500, 900, 668], // 3323 / 815 (gezeichnet / inked; vorher 8820 / 1324)
   radarTruck: [3500, 1250, 3470], // 3290 / 1150 (gezeichnet / inked; vorher 6927 / 3382)
   // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
   marine: [8050, 3800, 3698], // 7640 / 3588 (gezeichnet / inked; vorher 10946 / 3698)
@@ -169,6 +169,20 @@ const INK_ROBOTS: Record<string, [number, number]> = {
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
+  landingBoat: [4650, 1750], // 4389 / 1630
+  submarine: [4700, 1900], // 4471 / 1768
+  destroyer: [5000, 1950], // 4753 / 1857
+  battleship: [7800, 2700], // 7415 / 2537
+  privateer: [2300, 950], // 2143 / 903
+  fogCutter: [4700, 650], // 4473 / 577
+  terraformer: [3150, 1200], // 2996 / 1096
+  skimmer: [2450, 800], // 2319 / 728
+  mech: [5050, 1800], // 4786 / 1678
+  tripod: [4750, 1500], // 4508 / 1426
+  reliquary: [9600, 2150], // 9128 / 2026
+  sunLance: [7300, 2600], // 6943 / 2472
+  divineSpark: [8200, 2750], // 7765 / 2617
+  guidedMissile: [2950, 850], // 2775 / 807
 };
 const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_ROBOTS, ...INK_NAVAL };
 
@@ -197,6 +211,9 @@ const BEFORE_ROBOTS: Record<string, [number, number]> = {
   rocketCart: [7702, 4624], doomCrawler: [9159, 6407],
 };
 const BEFORE_NAVAL: Record<string, [number, number]> = {
+  landingBoat: [5300, 2020], submarine: [8239, 3674], destroyer: [13016, 5420], battleship: [16232, 6569], privateer: [7598, 2896],
+  fogCutter: [5295, 1680], terraformer: [8952, 4240], skimmer: [8114, 4228], mech: [10356, 5964], tripod: [12627, 7099],
+  reliquary: [8944, 5318], sunLance: [9539, 4180], divineSpark: [16709, 6296], guidedMissile: [8820, 1324],
 };
 const BEFORE_INKED: Record<string, [number, number]> = { ...BEFORE_FIGURES, ...BEFORE_VEHICLES, ...BEFORE_ROBOTS, ...BEFORE_NAVAL };
 

@@ -1,12 +1,50 @@
 /**
- * Gruppe See und Fremde: Schiffe, Fremdwesen, Endgegner, Sonderbauarten der Alvenia. Noch nichts umgebaut; eigene
- * Atlanten (z. B. 'ship', 'alien') hier anlegen.
- * Group sea and aliens: ships, aliens, boss, Alvenia's special designs. Nothing converted yet; define own atlases
- * (e.g. 'ship', 'alien') here.
+ * Gruppe See und Fremde: Schiffe, Fremdmaschinen, Sonderbauarten der Alvenia, Lenkflugkoerper.
+ * Atlanten: 'ship' (Zerstoerer, Schlachtschiff, U-Boot), 'boat' (Landungsboot, Kaperschiff, Nebelkutter,
+ * Lenkflugkoerper), 'alien' (Terraformer, Gleiter, Mech, Dreibeiner), 'faith' (Reliquiar, Sonnenlanze, Goettlicher
+ * Funke). Jeder Atlas traegt die Embleme und, wo eine Besatzung zu sehen ist, die Besatzung in halber Groesse mit,
+ * damit jede Einheit mit EINEM Atlas auskommt.
+ * Group sea and aliens: ships, alien machines, Alvenia's special designs, guided missile.
+ * Atlases: 'ship' (destroyer, battleship, submarine), 'boat' (landing boat, privateer, fog cutter, guided missile),
+ * 'alien' (terraformer, skimmer, mech, tripod), 'faith' (reliquary, sun lance, divine spark). Every atlas carries the
+ * emblems and, where a crew shows, the crew at half size, so every unit gets by with ONE atlas.
  */
+import { mech, skimmer, terraformer, tripod } from '../aliens';
+import { divineSpark, reliquary, sunLance } from '../alveniaSpecial';
+import { faithCells } from '../alveniaSpecialPaint';
+import { alienCells } from '../aliensPaint';
+import { crewCells } from '../figurePaint';
+import { fogCutter, guidedMissile, landingBoat, privateer } from '../boats';
+import { boatCells } from '../boatsPaint';
+import { crewCellsLegs, emblemCells, trimSome } from '../navalPaint';
+import { battleship, destroyer, submarine } from '../ships';
+import { shipCells } from '../shipsPaint';
 import type { InkedGroup } from '../types';
 
 export const naval: InkedGroup = {
-  atlases: () => [],
-  types: {},
+  atlases: () => [
+    ['ship', [...shipCells(), ...crewCells(0.5), ...emblemCells(48), ...trimSome(['digits', 'glowStrip'])]],
+    ['boat', [...boatCells(), ...crewCellsLegs(0.5), ...emblemCells(48), ...trimSome(['digits', 'glowStrip', 'grille', 'exhaust', 'wheel', 'tyre'])]],
+    ['alien', [...alienCells(), ...emblemCells(48)]],
+    ['faith', [...faithCells(), ...crewCellsLegs(0.5), ...emblemCells(48), ...trimSome(['link', 'linkSide', 'bay', 'wheel', 'sprocket', 'tyre', 'exhaust'])]],
+  ],
+  types: {
+    // Kriegsschiffe: alle Fraktionen (Bauform ueber styleOf) / warships: all factions (shape via styleOf)
+    destroyer: { atlas: 'ship', build: destroyer, maxEdge: 0.09, voxel: 0.007 },
+    battleship: { atlas: 'ship', build: battleship, maxEdge: 0.1, voxel: 0.0075 },
+    submarine: { atlas: 'ship', build: submarine, maxEdge: 0.09, voxel: 0.007 },
+    landingBoat: { atlas: 'boat', build: landingBoat, maxEdge: 0.09, voxel: 0.0065 },
+    privateer: { atlas: 'boat', build: privateer, maxEdge: 0.09, voxel: 0.007 },
+    fogCutter: { atlas: 'boat', build: fogCutter, maxEdge: 0.09, voxel: 0.0065 },
+    guidedMissile: { atlas: 'boat', build: guidedMissile, maxEdge: 0.09, voxel: 0.006 },
+    // Maschinen der Zyrr: die Farbe kommt vom Besitzer / the Zyrr's machines: the colour comes from the owner
+    terraformer: { atlas: 'alien', build: terraformer, maxEdge: 0.08, voxel: 0.006 },
+    skimmer: { atlas: 'alien', build: skimmer, maxEdge: 0.08, voxel: 0.006 },
+    mech: { atlas: 'alien', build: mech, maxEdge: 0.08, voxel: 0.006 },
+    tripod: { atlas: 'alien', build: tripod, maxEdge: 0.08, voxel: 0.006 },
+    // Sonderbauarten der Alvenia (Formensprache FAITH, fuer jeden Besitzer gleich) / Alvenia's special designs (design language FAITH, the same for any owner)
+    reliquary: { atlas: 'faith', build: reliquary, maxEdge: 0.085, voxel: 0.0065 },
+    sunLance: { atlas: 'faith', build: sunLance, maxEdge: 0.085, voxel: 0.006 },
+    divineSpark: { atlas: 'faith', build: divineSpark, maxEdge: 0.13, voxel: 0.0075 },
+  },
 };
