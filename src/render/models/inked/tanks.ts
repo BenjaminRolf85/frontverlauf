@@ -85,7 +85,7 @@ export function tankGear(b: UvBuilder, A: AtlasLayout, T: TrackSpec, wheels: num
 }
 
 /** Auspuffrohre am Heck, Scheinwerfer am Bug / exhaust pipes at the rear, headlights at the bow */
-function hullFittings(b: UvBuilder, A: AtlasLayout, L: Look, H: HullSpec, lamp: ColorLike = mat.lamp): void {
+export function hullFittings(b: UvBuilder, A: AtlasLayout, L: Look, H: HullSpec, lamp: ColorLike = mat.lamp): void {
   const hi = fine();
   for (const s of [-1, 1]) {
     b.add(loft([{ y: 0.05, rx: 0.011, hard: true }, { y: 0.05, rx: 0.0135, hard: true }, { y: 0, rx: 0.015 }], { seg: hi ? 10 : 6, region: A.get('exhaust'), capFirst: A.get('blank'), color: mat.darkMid }), null, { xf: { p: [s * (H.xd - 0.026), H.y2 - 0.004, H.zdr + 0.018], r: [-0.25, 0, 0] } });

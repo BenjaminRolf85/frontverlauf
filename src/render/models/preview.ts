@@ -375,7 +375,7 @@ function sheet(): Sheet {
     case 'wrecks': {
       // Wracks aus dem Einheitenmodell (remains.ts), daneben das Modell: gezeichnete und bisherige Typen
       // wrecks from the unit model (remains.ts), next to the model: inked and previous types
-      const list: [UnitTypeId, FactionId][] = [['tank', 'korvat'], ['tank', 'dravon'], ['jeep', 'korvat']];
+      const list: [UnitTypeId, FactionId][] = [['tank', 'korvat'], ['tank', 'dravon'], ['jeep', 'korvat'], ['artillery', 'korvat'], ['heli', 'alvenia'], ['mineLayer', 'meridon'], ['teslaTank', 'velkar']];
       return {
         cols: ['wreck 0', 'wreck 1', 'unit'],
         rows: list.map(([t, f]) => ({ label: `${t} ${f}`, cells: [wreckGeometry(t, f, 0), wreckGeometry(t, f, 1), unitGeometry(t, f, null)].map((geo) => ({ geo, ground: plainGround })) })),

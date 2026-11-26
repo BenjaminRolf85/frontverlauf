@@ -15,14 +15,17 @@
  */
 import type { FactionId } from '../../../data/balance';
 import { fine, softBox, type ColorLike, type V3 } from '../kit';
-import { mat } from '../look';
-import { TECH } from '../velkarTech';
-import { boxed, crew, cupola, hullZ, machineGun, TIP, tube } from './body';
+import { look, mat } from '../look';
+import { isTech, OCTO_BLADE, OCTO_ROTOR_Y, TECH, TESLA_TOPS } from '../velkarTech';
+import { block, boxed, crew, cupola, hullZ, machineGun, shaped, TIP, tub, tube } from './body';
+import { tankGear, tankHull, type HullSpec } from './tanks';
 import { standPose } from './figure';
 import { emblemDecal, runningGear, type TrackSpec } from './trim';
 import { AtlasLayout, loft, UvBuilder, type BoxFaces } from './uvkit';
 
 const HALF_PI = Math.PI / 2;
+/** Schwebehoehe des Oktokopters wie in velkarTech.ts / the octocopter's hover height as in velkarTech.ts */
+const OCTO_LIFT = 0.1;
 
 /** Leuchtring um eine senkrechte Achse / glow ring about a vertical axis */
 export function glowRing(b: UvBuilder, A: AtlasLayout, p: V3, r: number, h: number, c: ColorLike = TECH.glow): void {
@@ -147,5 +150,99 @@ export function coilLauncher(f: FactionId, A: AtlasLayout): UvBuilder {
   // Antenne mit Leuchtspitze / antenna with a glow tip
   tube(b, A, [-0.08, deck + 0.064, -0.19], [-0.09, deck + 0.25, -0.21], 0.003, 0.002, mat.dark, hi ? 5 : 3);
   glowDot(b, A, [-0.09, deck + 0.255, -0.21], 0.008);
+  return b;
+}
+
+// ---------- Tesla-Panzer / Tesla tank ----------
+
+/** Tesla-Spule: Isolatorfuss, Saeule mit Leuchtringen, Toroid, Kugel; top = Hoehe der Kugelkuppe / Tesla coil: insulator base, column with glow rings, toroid, sphere; top = height of the sphere's top */
+function teslaCoil(b: UvBuilder, A: AtlasLayout, x: number, y: number, z: number, top: number): void {
+  const hi = fine(), seg = hi ? 16 : 8;
+  b.add(loft([{ y: 0.05, rx: 0.03, hard: true }, { y: 0.05, rx: 0.036, hard: true }, { y: 0.034, rx: 0.038, hard: true }, { y: 0.034, rx: 0.043, hard: true }, { y: 0.017, rx: 0.045, hard: true }, { y: 0.017, rx: 0.05, hard: true }, { y: 0, rx: 0.052 }], { seg, region: A.get('blank'), color: TECH.gearDark }), null, { xf: { p: [x, y, z] } });
+  const c0 = y + 0.05, sy = top - 0.024, ty = sy - 0.024, ch = ty - c0;
+  b.add(loft([{ y: ch, rx: 0.032 }, { y: 0, rx: 0.036 }], { seg, region: A.get('coil'), color: TECH.coil }), null, { xf: { p: [x, c0, z] }, gloss: 0.3 });
+  const n = hi ? 4 : 3;
+  for (let i = 0; i < n; i++) {
+    const ry = c0 + 0.022 + (i / (n - 1)) * (ch - 0.05);
+    if (i % 2 === 0) glowRing(b, A, [x, ry, z], 0.045, 0.018);
+    else b.add(loft([{ y: 0.01, rx: 0.035 }, { y: 0.005, rx: 0.046 }, { y: -0.005, rx: 0.046 }, { y: -0.01, rx: 0.035 }], { seg, region: A.get('blank'), color: TECH.shell }), null, { xf: { p: [x, ry, z] } });
+  }
+  // Toroid und Kugel / toroid and sphere
+  b.add(loft([{ y: 0.024, rx: 0.028, hard: true }, { y: 0.021, rx: 0.05 }, { y: 0.011, rx: 0.068 }, { y: 0, rx: 0.074 }, { y: -0.011, rx: 0.068 }, { y: -0.021, rx: 0.05 }, { y: -0.024, rx: 0.028 }], { seg: hi ? 20 : 10, region: A.get('blank'), color: TECH.shell }), null, { xf: { p: [x, ty, z] }, crease: 0 });
+  b.add(loft([{ y: 0.024, rx: TIP }, { y: 0.019, rx: 0.015 }, { y: 0.008, rx: 0.023 }, { y: -0.008, rx: 0.023 }, { y: -0.02, rx: 0.014 }], { seg: hi ? 12 : 7, region: A.get('blank'), color: mat.glass }), null, { xf: { p: [x, sy, z] }, gloss: 1, crease: 0 });
+}
+
+/** Tesla-Panzer: breite helle Wanne, zwei Spulen (Spitzen = TESLA_TOPS, dort haengt das Brett die Lichtboegen an) / Tesla tank: wide light hull, two coils (tops = TESLA_TOPS, where the board attaches the arcs) */
+export function teslaTank(f: FactionId, A: AtlasLayout): UvBuilder {
+  const b = new UvBuilder(A.get('blank'));
+  const L = look(f), hi = fine();
+  // flache Wanne: die Spulen sollen sie ueberragen, ihre Kuppen liegen fest / flat hull: the coils are meant to tower over it, their tops are fixed
+  const H: HullSpec = { y0: 0.088, y1: 0.104, y2: 0.14, xb: 0.246, xd: 0.208, zf: 0.252, zr: -0.252, zdf: 0.192, zdr: -0.206 };
+  const T: TrackSpec = { x: 0.178, w: 0.108, len: 0.492, h: 0.088, links: 48, thick: 0.012 };
+  tankHull(b, A, L, f, H, T, { color: TECH.shell, emblem: 0.042, emblemZ: 0.14 });
+  tankGear(b, A, T, 6, TECH.coil, TECH.gearDark, mat.dark);
+  // Leuchtleisten an den Flanken, Leuchtband am Bug / light strips on the flanks, light band at the bow
+  glowBar(b, A, [H.xb + 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'px');
+  glowBar(b, A, [-H.xb - 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'nx');
+  glowBar(b, A, [0, (H.y1 + H.y2) / 2 + 0.003, (H.zf + H.zdf) / 2 + 0.002], 0.24, 0.008, 0.012, 'py', [Math.atan2(H.y2 - H.y1, H.zf - H.zdf), 0, 0]);
+  for (const s of [-1, 1]) glowDot(b, A, [s * (H.xd - 0.02), H.y1 + 0.012, H.zf - 0.004], 0.012);
+  const F = shellFaces(A);
+  // Steuerpult vorn mit Leuchtanzeige, zwei Kondensatorkaesten / control console at the front with a lit display, two capacitor boxes
+  b.add(softBox(0.13, 0.05, 0.07, 0.01), TECH.gear, { xf: { p: [0, H.y2 + 0.025, 0.11] } });
+  glowBar(b, A, [0, H.y2 + 0.052, 0.112], 0.07, 0.006, 0.036, 'py');
+  for (const s of [-1, 1]) b.add(boxed(softBox(0.07, 0.05, 0.09, 0.008, hi ? 1 : 0), { p: [s * 0.16, H.y2 + 0.025, 0.1] }, { ...F, py: A.get('hatchSquare') }), TECH.shell);
+  // zwei Spulen: Kugelkuppen an den festen Punkten der Lichtboegen / two coils: sphere tops at the fixed points of the arcs
+  for (const [x, y, z] of TESLA_TOPS) teslaCoil(b, A, x, H.y2, z, y);
+  // Kondensatorbank am Heck mit Kuehlgitter, Antenne / capacitor bank at the rear with a cooling grille, antenna
+  b.add(boxed(softBox(0.3, 0.07, 0.1, 0.012, hi ? 1 : 0), { p: [0, H.y2 + 0.035, -0.15] }, { ...F, py: A.get('grille') }), TECH.gear);
+  for (const s of [-1, 1]) b.add(softBox(0.046, 0.044, 0.09, 0.008), TECH.gearDark, { xf: { p: [s * 0.182, H.y2 + 0.022, -0.1] } });
+  tube(b, A, [0.17, H.y2 + 0.09, -0.15], [0.175, H.y2 + 0.27, -0.17], 0.0045, 0.003, mat.dark, hi ? 6 : 4);
+  glowDot(b, A, [0.175, H.y2 + 0.278, -0.17], 0.011);
+  return b;
+}
+
+// ---------- Oktokopter / octocopter ----------
+
+/** Arme wie in velkarTech.ts (dort haengt das Brett die Rotoren an) / arms as in velkarTech.ts (where the board attaches the rotors) */
+const OCTO_R = 0.28;
+const OCTO_ARMS: V3[] = Array.from({ length: 8 }, (_, i) => { const a = ((i + 0.5) / 8) * Math.PI * 2; return [Math.sin(a) * OCTO_R, 0, Math.cos(a) * OCTO_R] as V3; });
+
+/** Oktokopter: Rumpfkapsel mit dunkler Glaskuppel, acht Arme mit Motoren und Schutzringen, Sensorkapsel / octocopter: body pod with a dark glass dome, eight arms with motors and guard rings, sensor pod */
+export function octocopter(f: FactionId, A: AtlasLayout): UvBuilder {
+  const b = new UvBuilder(A.get('blank'));
+  const hi = fine();
+  const by = 0.16, ry = OCTO_ROTOR_Y;
+  // Rumpfkapsel: helle Schale, grauer Guertel / body pod: light shell, grey belt
+  const k = 1.22;
+  b.add(loft([
+    { y: by + 0.074, rx: 0.03, rz: 0.03 * k, hard: true, c: TECH.shell }, { y: by + 0.064, rx: 0.07, rz: 0.07 * k }, { y: by + 0.044, rx: 0.096, rz: 0.096 * k },
+    { y: by + 0.03, rx: 0.102, rz: 0.102 * k, hard: true }, { y: by + 0.03, rx: 0.106, rz: 0.106 * k, hard: true, c: TECH.gear }, { y: by + 0.012, rx: 0.106, rz: 0.106 * k, hard: true },
+    { y: by + 0.012, rx: 0.1, rz: 0.1 * k, hard: true, c: TECH.shellShade }, { y: by - 0.008, rx: 0.074, rz: 0.074 * k }, { y: by - 0.02, rx: 0.03, rz: 0.03 * k },
+  ], { seg: hi ? 24 : 12, region: A.get('panel:velkar'), capFirst: true, capLast: true }), null);
+  b.add(shaped([{ y: 0.034, rx: TIP }, { y: 0.029, rx: 0.03, rz: 0.04 }, { y: 0.016, rx: 0.048, rz: 0.064 }, { y: 0, rx: 0.054, rz: 0.072, hard: true }], { py: A.get('canopy'), all: A.get('canopy'), seg: hi ? 16 : 9, xf: { p: [0, by + 0.066, 0.02] } }), mat.glassDark, { gloss: 0.5, crease: 0.3 });
+  glowBar(b, A, [0, by + 0.036, 0.128], 0.06, 0.008, 0.006, 'pz');
+  // Arme mit Motoren, Naben, Schutzringen und Statuslichtern / arms with motors, hubs, guard rings and status lights
+  OCTO_ARMS.forEach(([x, , z], i) => {
+    tube(b, A, [x * 0.3, by + 0.022, z * 0.3], [x, by + 0.04, z], 0.012, 0.009, TECH.gear, hi ? 6 : 4);
+    b.add(loft([{ y: 0.046, rx: 0.012, hard: true }, { y: 0.04, rx: 0.022, hard: true }, { y: 0, rx: 0.026, hard: true }, { y: -0.006, rx: 0.016 }], { seg: hi ? 10 : 6, region: A.get('blank'), color: TECH.gearDark }), null, { xf: { p: [x, by + 0.02, z] } });
+    tube(b, A, [x, by + 0.06, z], [x, ry, z], 0.007, 0.007, mat.dark, 5);
+    b.add(loft([{ y: 0.012, rx: TIP }, { y: 0.008, rx: 0.009 }, { y: 0, rx: 0.012 }], { seg: hi ? 8 : 5, region: A.get('blank'), color: TECH.shell }), null, { xf: { p: [x, ry + 0.003, z] }, crease: 0 });
+    tub(b, A, [x, ry - 0.016, z], OCTO_BLADE + 0.016, 0.024, 0.01, hi ? 20 : 10, TECH.shell, 'blank', TECH.shellShade);
+    if (hi) for (const a of [Math.atan2(x, z), Math.atan2(x, z) + HALF_PI]) b.add(block(0.004, 0.004, OCTO_BLADE * 2 + 0.02, 0.001), TECH.gearDark, { xf: { p: [x, ry - 0.01, z], r: [0, a, 0] }, crease: 0 });
+    glowDot(b, A, [x * 1.07, by + 0.022, z * 1.07], 0.009);
+    if (i % 4 === 0) glowBar(b, A, [x * 0.62, by + 0.047, z * 0.62], 0.044, 0.006, 0.008, 'py', [0, Math.atan2(x, z) + HALF_PI, 0]);
+    // andere Fraktionen haben keine beweglichen Rotoren: feste Blaetter / other factions have no moving rotors: fixed blades
+    if (!isTech(f)) b.add(block(0.018, 0.005, OCTO_BLADE * 2, 0.002), TECH.gearDark, { xf: { p: [x, ry, z], r: [0, i * 0.7, 0] }, crease: 0 });
+  });
+  // Landekufen, Sensorkapsel unter dem Rumpf / landing skids, sensor pod under the body
+  for (const s of [-1, 1]) {
+    tube(b, A, [s * 0.078, OCTO_LIFT - 0.02, -0.11], [s * 0.078, OCTO_LIFT - 0.02, 0.11], 0.007, 0.007, TECH.gearDark, hi ? 6 : 4);
+    for (const z of [-0.06, 0.06]) tube(b, A, [s * 0.078, OCTO_LIFT - 0.018, z], [s * 0.046, by - 0.004, z], 0.005, 0.005, TECH.gearDark, 4);
+  }
+  b.add(loft([{ y: 0.02, rx: 0.026 }, { y: 0, rx: 0.036 }, { y: -0.022, rx: 0.028 }, { y: -0.03, rx: TIP }], { seg: hi ? 12 : 7, region: A.get('blank'), color: TECH.gearDark }), null, { xf: { p: [0, by - 0.026, 0.04] } });
+  glowDot(b, A, [0, by - 0.04, 0.066], 0.011);
+  tube(b, A, [0, by + 0.07, -0.07], [0, by + 0.19, -0.09], 0.003, 0.002, mat.dark, hi ? 5 : 3);
+  glowDot(b, A, [0, by + 0.196, -0.09], 0.008);
+  emblemDecal(b, A, f, [0, by + 0.054, -0.085], [0, 0.82, -0.57], 0.04, TECH.shell, [0, 0.57, 0.82]);
   return b;
 }

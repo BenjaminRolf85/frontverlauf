@@ -335,3 +335,17 @@ export function tankCells(): Cell[] {
     { name: 'mark:korvat', w: 96, h: 32, paint: (p) => stencil(p, mat.paper, 'K-217', 48, 17, 22, 157) },
   ];
 }
+
+/**
+ * Die Wannenzellen (Flanke, Deck, Bug, Heck, Schuerze) fuer einen weiteren Atlas, um k verkleinert: Fahrzeuge auf dem
+ * Wannenbau der Panzer (Flugabwehr, Minenleger, Tesla-Panzer) benutzen so dieselbe Zeichnung.
+ * The hull cells (flank, deck, glacis, rear, skirt) for another atlas, shrunk by k: vehicles on the tanks' hull
+ * construction (anti-air, mine layer, Tesla tank) thus use the same drawing.
+ */
+export function hullCells(k = 1): Cell[] {
+  const keep = new Set(['hullSide', 'deck', 'glacis', 'rear', 'hullNose']);
+  return tankCells().filter((c) => keep.has(c.name)).map((c): Cell => {
+    const d = c.design ?? [c.w, c.h];
+    return { ...c, design: d, w: Math.round(d[0] * k), h: Math.round(d[1] * k) };
+  });
+}
