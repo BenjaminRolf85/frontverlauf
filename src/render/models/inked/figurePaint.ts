@@ -13,7 +13,10 @@ import { look, mat, type Look } from '../look';
 import { MUD as MUD_BASE } from '../detailVehicles';
 import { arc, rrect, spline, type Cell, type Pen, type Pt } from './atlas';
 import { emblemCells, paintEmblem } from './emblem';
-import { COAT, FACE, helmetRings, HEAD, RIFLE } from './figure';
+import { COAT, FACE, helmetRings, HEAD, RIFLE, ROBE, ROPE } from './figure';
+import { armourCells } from './armourPaint';
+import { headCells } from './headPaint';
+import { kitPropCells } from './propPaint';
 import { ringT } from './uvkit';
 
 // neutrale Stoffe / neutral materials
@@ -573,16 +576,174 @@ export function paintHeadDravon(p: Pen, L: Look): void {
   paintEmblem(p, 'dravon', bx, by, 10, L.helmet, 0);
 }
 
-/** Zellen des Figurenatlas / cells of the figure atlas */
-export function figureCells(): Cell[] {
+// ---------- Kutte und nackte Haut / robe and bare skin ----------
+
+/** Kutte (Entwurf 448 x 300): Kapuzenkragen, Strick mit Knoten, lange Falten, Flicken, zerrissener Saum / robe (design 448 x 300): cowl, rope with knot, long folds, patches, torn hem */
+export function paintRobe(p: Pen): void {
+  const W = p.w, H = p.h, cx = W / 2;
+  const bottom = ROBE.hem + 0.014;
+  const Y = (y: number) => ((ROBE.top - y) / (ROBE.top - bottom)) * H;
+  const ropeTop = Y(0.051), ropeBot = Y(0.037), hem = Y(ROBE.hem);
+  const R = rng(701);
+  // Kragen der Kapuze: Schatten und zwei Falten / cowl collar: shade and two folds
+  p.gradient(0, 0, W, Y(0.14), [0, 0], [0, Y(0.14)], 0.7, 1);
+  for (const s of [-1, 1]) {
+    p.line(spline([[cx + s * 20, 10], [cx + s * 46, Y(0.14)], [cx + s * 78, Y(0.13)]], 5), 1.7, { taper: 0.35, wobble: 0.4 });
+    // Falten von der Achsel zum Strick / folds from the armpit to the rope
+    p.line(spline([[cx + s * 94, Y(0.12)], [cx + s * 80, Y(0.09)], [cx + s * 62, Y(0.06)]], 5), 1.6, { taper: 0.45 });
+    p.crease(spline([[cx + s * 92, Y(0.115)], [cx + s * 76, Y(0.085)], [cx + s * 56, Y(0.058)]], 5), 5, 0.78, 0.6, { taper: 0.4 });
+    p.line(spline([[cx + s * 28, Y(0.09)], [cx + s * 32, Y(0.07)], [cx + s * 26, ropeTop - 2]], 4), 1.3, { taper: 0.45 });
+  }
+  // Uebertritt vorn mit groben Stichen / front overlap with coarse stitches
+  p.line(spline([[cx + 3, 8], [cx + 8, Y(0.1)], [cx + 5, ropeTop - 1]], 5), 1.8, { taper: 0.1, wobble: 0.5 });
+  for (let y = 26; y < ropeTop - 8; y += 15) p.mark([[cx, y], [cx + 11, y + 4]], 1.6, LACE, 0.85, { taper: 0.1, wobble: 0.2 });
+  // Strick: gedrehte Windungen, Knoten vorn, zwei haengende Enden / rope: twisted turns, knot at the front, two hanging ends
+  p.line([[-3, ropeTop + 0.5], [W + 3, ropeTop + 0.5]], 1.6, { taper: 0, wobble: 0.3 });
+  p.line([[-3, ropeBot - 0.5], [W + 3, ropeBot - 0.5]], 1.6, { taper: 0, wobble: 0.3 });
+  for (let x = 6; x < W; x += 17 + R() * 6) p.line([[x - 3, ropeBot - 2], [x + 4, ropeTop + 2]], 1.2, { taper: 0.2, wobble: 0.1 });
+  const ky = (ropeTop + ropeBot) / 2;
+  p.fill(arc(cx - 6, ky + 1, 10, 9, 0, Math.PI * 2, 14), ROPE);
+  p.line(arc(cx - 6, ky + 1, 10, 9, 0, Math.PI * 2, 14), 1.7, { closed: true, wobble: 0.3 });
+  for (const [dx, len] of [[-12, 46], [-2, 60]] as [number, number][]) {
+    const end: Pt[] = [[cx + dx, ky + 8], [cx + dx - 3, ky + len * 0.5], [cx + dx + 1, ky + len]];
+    p.band(spline(end, 5), 6, ROPE, 1.3);
+    p.line([[cx + dx - 3, ky + len], [cx + dx + 5, ky + len + 7]], 1.2, { taper: 0.3 });
+    p.line([[cx + dx + 1, ky + len], [cx + dx - 4, ky + len + 8]], 1.2, { taper: 0.3 });
+  }
+  // lange Falten im Rock, unregelmaessig / long folds in the skirt, irregular
+  for (const s of [0.06, 0.2, 0.33, 0.42, 0.61, 0.72, 0.86, 0.95]) {
+    const x = s * W + (R() - 0.5) * 10, y0 = ropeBot + 14 + R() * 30;
+    p.line(spline([[x, y0], [x + 5, (y0 + hem) / 2], [x - 2, hem - 6]], 6), 1.3 + R() * 0.6, { taper: 0.4, wobble: 0.6 });
+    if (R() < 0.6) p.crease(spline([[x + 6, y0 + 10], [x + 11, (y0 + hem) / 2], [x + 4, hem - 4]], 6), 7, 0.78, 0.55, { taper: 0.3 });
+  }
+  // Flicken: heller Stoff mit groben Stichen / patches: lighter cloth with coarse stitches
+  for (const [px, py, pw, ph] of [[cx + 62, Y(-0.05), 34, 28], [cx - 150, Y(-0.12), 28, 32]] as [number, number, number, number][]) {
+    p.shade(rrect(px, py, pw, ph, 3), 1.4, 0.8);
+    p.line(rrect(px, py, pw, ph, 3), 1.3, { closed: true, wobble: 0.6 });
+    for (let i = 0; i < 4; i++) p.mark([[px + 4 + i * (pw - 8) / 3, py - 3], [px + 6 + i * (pw - 8) / 3, py + 4]], 1.5, LACE, 0.9, { taper: 0, wobble: 0 });
+  }
+  // zerrissener Saum: dunkle Zacken und kurze Risse / torn hem: dark notches and short tears
+  p.gradient(0, hem - 26, W, 26, [0, hem - 26], [0, hem], 1, 0.72);
+  for (let x = 4; x < W; x += 15 + R() * 12) {
+    const w = 5 + R() * 7, d = 8 + R() * 13;
+    p.fill([[x, hem + 2], [x + w / 2, hem - d], [x + w, hem + 2]], mat.ink);
+    p.line([[x, hem + 1], [x + w / 2, hem - d], [x + w, hem + 1]], 1.2, { taper: 0.1, wobble: 0.2 });
+    if (R() < 0.5) p.line([[x + w + 5, hem - 2], [x + w + 6 + R() * 3, hem - 14 - R() * 10]], 1.1, { taper: 0.35, wobble: 0.4 });
+  }
+  p.splatter(0, hem - 46, W, 46, 22, MUD, 709, { size: 4.5, rise: 1.6, alpha: 0.8 });
+  for (const x of [1.5, W - 1.5]) p.line([[x, 16], [x, hem - 6]], 1.2, { taper: 0.1, wobble: 0.4 });
+}
+
+/** Aermel der Kutte (Entwurf 176 x 200): oben Oberarm, unten Unterarm mit weitem, ausgefranstem Bund / robe sleeve (design 176 x 200): upper arm above, forearm with a wide frayed cuff below */
+export function paintRobeSleeve(p: Pen): void {
+  const W = p.w, H = p.h, cx = W / 2, m = H / 2;
+  const R = rng(719);
+  p.line(spline([[0, 18], [cx, 12], [W, 18]], 6), 1.4, { taper: 0.05, wobble: 0.4 });
+  for (const [x, y0, y1] of [[cx - 44, 30, 84], [cx + 6, 44, 92], [cx + 46, 26, 76], [cx - 30, m + 12, m + 60], [cx + 28, m + 8, m + 52]] as [number, number, number][]) {
+    p.line(spline([[x, y0], [x + 6, (y0 + y1) / 2], [x - 2, y1]], 5), 1.4, { taper: 0.42, wobble: 0.5 });
+    p.crease(spline([[x + 6, y0 + 4], [x + 11, (y0 + y1) / 2], [x + 4, y1]], 5), 5, 0.78, 0.55, { taper: 0.35 });
+  }
+  // Bund: Schatten und Zacken / cuff: shade and notches
+  p.gradient(0, H - 24, W, 24, [0, H - 24], [0, H], 1, 0.7);
+  for (let x = 5; x < W; x += 16 + R() * 9) p.fill([[x, H + 1], [x + 4, H - 9 - R() * 8], [x + 8, H + 1]], mat.ink);
+}
+
+/** Nackter Oberkoerper (Entwurf 448 x 208, Aufteilung wie die Feldbluse): Muskeln als wenige Linien, Narben, Koppel, Hosenbund / bare upper body (design 448 x 208, laid out like the tunic): muscles as a few lines, scars, belt, waistband */
+export function paintBareTorso(p: Pen): void {
+  const W = p.w, H = p.h, cx = W / 2;
+  const Y = (y: number) => ((0.176 - y) / 0.232) * H;
+  const beltTop = Y(0.0285), beltBot = Y(0.005), hem = Y(-0.024);
+  // Hals und Schluesselbein / neck and collar bones
+  p.gradient(0, 0, W, 16, [0, 0], [0, 16], 0.74, 1);
+  for (const s of [-1, 1]) {
+    p.line(spline([[cx + s * 8, 22], [cx + s * 34, 19], [cx + s * 62, 24]], 5), 1.7, { taper: 0.4 });
+    // Brustmuskel: Bogen mit flachem Schatten darunter / pectoral: arc with a flat shade below
+    const pec = spline([[cx + s * 6, 34], [cx + s * 10, 62], [cx + s * 36, 72], [cx + s * 66, 66], [cx + s * 82, 50]], 6);
+    p.shade([...pec, [cx + s * 82, 62], [cx + s * 40, 80], [cx + s * 8, 70]], 0.84, 0.6);
+    p.line(pec, 2, { taper: 0.3, wobble: 0.2 });
+    p.spot(cx + s * 40, 58, 2.6, shade(mat.skin, 0.62));
+    // Rippen und Flanke / ribs and flank
+    p.line(spline([[cx + s * 78, 82], [cx + s * 62, 90], [cx + s * 52, 88]], 4), 1.3, { taper: 0.45 });
+    p.line(spline([[cx + s * 80, 96], [cx + s * 66, 103], [cx + s * 56, 101]], 4), 1.2, { taper: 0.45 });
+    // Bauchmuskeln: zwei Querlinien je Seite / abdominals: two cross lines per side
+    for (const y of [92, 110]) p.line(spline([[cx + s * 5, y], [cx + s * 20, y + 3], [cx + s * 32, y - 1]], 4), 1.4, { taper: 0.4 });
+    p.line(spline([[cx + s * 36, 84], [cx + s * 38, 108], [cx + s * 30, beltTop - 2]], 5), 1.5, { taper: 0.4 });
+    // Ruecken: Schulterblatt / back: shoulder blade
+    p.line(spline([[cx + s * 196, 36], [cx + s * 168, 44], [cx + s * 160, 68], [cx + s * 178, 82]], 6), 1.6, { taper: 0.4 });
+    p.shade(spline([[cx + s * 196, 40], [cx + s * 170, 48], [cx + s * 164, 68], [cx + s * 180, 80], [cx + s * 204, 70]], 6, true), 0.86, 0.5);
+    p.line(spline([[cx + s * 206, 96], [cx + s * 186, 106], [cx + s * 176, 122]], 5), 1.3, { taper: 0.45 });
+    // Seitennaht der Hose, Koppelschlaufe / trouser side seam, belt loop
+    p.line(rrect(cx + s * 86 - 3.5, beltTop + 1.5, 7, beltBot - beltTop - 3, 1.5), 1.2, { closed: true, wobble: 0.1 });
+  }
+  // Brustbein, Nabel, Wirbelsaeule / sternum, navel, spine
+  p.line([[cx, 30], [cx, 84]], 1.5, { taper: 0.35, wobble: 0.3 });
+  p.line([[cx, 88], [cx, beltTop - 12]], 1.2, { taper: 0.4, wobble: 0.3 });
+  p.line(arc(cx, beltTop - 8, 3, 3.6, 0.3, Math.PI - 0.3, 6), 1.6, { taper: 0.3 });
+  for (const x of [2, W - 2]) p.line([[x, 20], [x, beltTop - 4]], 1.6, { taper: 0.3, wobble: 0.3 });
+  // Narben: Strich mit Querstichen / scars: a stroke with cross ticks
+  for (const [x, y, a] of [[cx - 58, 84, 0.5], [cx + 30, 46, -0.7], [cx + 150, 100, 0.3]] as [number, number, number][]) {
+    const dx = Math.cos(a) * 15, dy = Math.sin(a) * 15;
+    p.crease([[x - dx, y - dy], [x + dx, y + dy]], 3, [1.08, 0.72, 0.7], 0.9, { taper: 0.25 });
+    p.line([[x - dx, y - dy], [x + dx, y + dy]], 1.2, { taper: 0.35, wobble: 0.3 });
+    for (const t of [-0.5, 0, 0.5]) p.line([[x + dx * t - dy * 0.22, y + dy * t + dx * 0.22], [x + dx * t + dy * 0.22, y + dy * t - dx * 0.22]], 1, { taper: 0.2, wobble: 0 });
+  }
+  // Koppel wie an der Feldbluse / belt as on the tunic
+  p.stitch([[0, beltTop + 3.4], [W, beltTop + 3.4]], 3.4, 2.8, 1, 1.5);
+  p.stitch([[0, beltBot - 3.4], [W, beltBot - 3.4]], 3.4, 2.8, 1, 1.5);
+  p.fill(rrect(cx - 12, beltTop + 0.5, 24, beltBot - beltTop - 1, 2.5), BRASS);
+  p.line(rrect(cx - 12, beltTop + 0.5, 24, beltBot - beltTop - 1, 2.5), 1.8, { closed: true, wobble: 0.15 });
+  // Hosenbund, Schlitz, Schmutz / waistband, fly, dirt
+  p.line([[-3, beltBot + 5], [W + 3, beltBot + 5]], 1.3, { taper: 0, wobble: 0.3 });
+  p.line([[cx + 2, beltBot + 6], [cx + 3, H - 12]], 1.4, { taper: 0.3 });
+  p.crease([[0, hem - 3], [W, hem - 3]], 2.2, 0.78, 0.9, { taper: 0, wobble: 0.3 });
+  p.splatter(0, hem - 22, W, H - hem + 20, 16, MUD_LIGHT, 727, { size: 3.6, alpha: 0.6 });
+}
+
+/** Nackter Arm (Entwurf 176 x 200): oben Oberarm (s = 0.5 aussen), unten Unterarm mit Lederband am Handgelenk / bare arm (design 176 x 200): upper arm above (s = 0.5 outside), forearm with a leather wrist band below */
+export function paintBareArm(p: Pen): void {
+  const W = p.w, H = p.h, cx = W / 2, m = H / 2;
+  // Deltamuskel, Bizeps, Ellbogen / deltoid, biceps, elbow
+  p.line(spline([[cx - 44, 30], [cx - 10, 44], [cx + 30, 34]], 5), 1.7, { taper: 0.4 });
+  p.shade(spline([[cx - 44, 32], [cx - 10, 46], [cx + 30, 36], [cx + 20, 52], [cx - 30, 52]], 5, true), 0.86, 0.5);
+  p.line(spline([[cx + 44, 48], [cx + 50, 66], [cx + 42, 82]], 5), 1.4, { taper: 0.45 });
+  p.line(spline([[cx - 22, 88], [cx, 84], [cx + 20, 90]], 4), 1.3, { taper: 0.45 });
+  // Armreif in Leder / leather arm band
+  p.band([[-2, 62], [W + 2, 62]], 7, LEATHER_DARK);
+  // Unterarm: Muskellinie, Ader, Lederband mit Naht / forearm: muscle line, vein, leather band with stitching
+  p.line(spline([[cx - 30, m + 14], [cx - 16, m + 40], [cx - 22, m + 62]], 5), 1.4, { taper: 0.45 });
+  p.line(spline([[cx + 20, m + 20], [cx + 28, m + 44], [cx + 22, m + 60]], 5), 1.1, { taper: 0.45, wobble: 0.5 });
+  p.fill([[0, H - 30], [W, H - 30], [W, H - 6], [0, H - 6]], LEATHER);
+  for (const y of [H - 30, H - 6]) p.line([[-2, y], [W + 2, y]], 1.5, { taper: 0, wobble: 0.2 });
+  p.stitch([[0, H - 25], [W, H - 25]], 3.2, 2.6, 0.9, 0.6);
+  p.stitch([[0, H - 11], [W, H - 11]], 3.2, 2.6, 0.9, 0.6);
+  for (const x of [cx - 8, cx + 8]) p.spot(x, H - 18, 2.4, STEEL);
+}
+
+/** Zellen der Kutte und der nackten Haut, um k skaliert / cells of the robe and of bare skin, scaled by k */
+export function robeCells(k = 1): Cell[] {
+  return sized([
+    { name: 'robe', w: 448, h: 300, paint: paintRobe },
+    { name: 'robeSleeve', w: 176, h: 200, paint: paintRobeSleeve },
+    { name: 'bareTorso', w: 448, h: 208, paint: paintBareTorso },
+    { name: 'bareArm', w: 176, h: 200, paint: paintBareArm },
+  ], k);
+}
+
+/** Zellen um k skalieren; der Maler behaelt seine Entwurfsgroesse / scale cells by k; the painter keeps its design size */
+export function sized(cells: Cell[], k: number): Cell[] {
+  return cells.map((c): Cell => ({ ...c, design: c.design ?? [c.w, c.h], w: Math.max(16, Math.round(c.w * k)), h: Math.max(12, Math.round(c.h * k)) }));
+}
+
+/** Zellen des Koerpers in Entwurfsgroesse: Kopf, Rumpf, Glieder, Gepaeck, Gewehr / the body's cells at design size: head, torso, limbs, pack, rifle */
+export function bodyCells(): Cell[] {
   return [
     { name: 'head', w: 640, h: 288, paint: paintHead },
-    { name: 'head:dravon', w: 320, h: 144, design: [448, 200], paint: (p) => paintHeadDravon(p, look('dravon')) },
+    { name: 'head:dravon', w: 448, h: 200, paint: (p) => paintHeadDravon(p, look('dravon')) },
     { name: 'nose', w: 56, h: 44, paint: paintNose },
     { name: 'ear', w: 48, h: 44, paint: paintEar },
     { name: 'helmet:korvat', w: 448, h: 128, paint: (p) => paintHelmet(p, look('korvat')) },
     { name: 'torso', w: 448, h: 208, paint: paintTorso },
-    { name: 'coat', w: 384, h: 224, design: [448, 260], paint: paintCoat },
+    { name: 'coat', w: 448, h: 260, paint: paintCoat },
     { name: 'upperArm', w: 176, h: 104, paint: paintUpperArm },
     { name: 'foreArm', w: 160, h: 100, paint: paintForeArm },
     { name: 'hand', w: 112, h: 70, paint: paintHand },
@@ -598,17 +759,49 @@ export function figureCells(): Cell[] {
     { name: 'pouch', w: 64, h: 64, paint: paintPouch },
     { name: 'strap', w: 256, h: 24, paint: paintStrap },
     { name: 'rifle', w: 512, h: 96, paint: paintRifle },
-    ...emblemCells(48),
+  ];
+}
+/** Groesse einzelner Koerperzellen im Atlas 'figure' gegen den Entwurf (der Rest: BODY_K) / size of single body cells in the atlas 'figure' against the design (the rest: BODY_K) */
+const BODY_K = 0.82;
+const BODY_OWN: Record<string, number> = { head: 0.72, 'head:dravon': 0.62, 'helmet:korvat': 0.8, coat: 0.74, nose: 1, ear: 1 };
+/** Koerperzellen mit einem Faktor je Zelle / body cells with one factor per cell */
+export function bodyCellsAt(k: number, own: Record<string, number> = {}): Cell[] {
+  return bodyCells().flatMap((c) => sized([c], own[c.name] ?? k));
+}
+
+/**
+ * Zellen des Figurenatlas: Koerper, Kopfbedeckungen aller Fraktionen, Ruestung, Beiwerk der Fusstruppen, Embleme.
+ * Cells of the figure atlas: body, headgear of all factions, armour, props of the foot troops, emblems.
+ */
+export function figureCells(): Cell[] {
+  return [
+    ...bodyCellsAt(BODY_K, BODY_OWN),
+    ...headCells(0.7, 0.52),
+    ...armourCells(0.66),
+    ...kitPropCells(0.62),
+    ...emblemCells(40),
   ];
 }
 
 /**
- * Zellen der Figur fuer Besatzungen in einem anderen Atlas, um k verkleinert (Standard 0.5). Die Namen bleiben gleich,
- * figure() findet sie also auch im Fahrzeugatlas.
- * The figure's cells for crews inside another atlas, shrunk by k (default 0.5). The names stay the same, so figure()
- * finds them in the vehicle atlas too.
+ * Zellen der Figur fuer Besatzungen in einem anderen Atlas, um k verkleinert (Standard 0.5, bezogen auf den Entwurf).
+ * Die Namen bleiben gleich, figure() findet sie also auch im Fahrzeugatlas. Zellen, die ein Atlas nicht hat, ersetzt
+ * die Figur durch die neutrale Zelle (figkit.cell): die Form bleibt, nur die Zeichnung fehlt.
+ * The figure's cells for crews inside another atlas, shrunk by k (default 0.5, relative to the design). The names
+ * stay the same, so figure() finds them in the vehicle atlas too. Cells an atlas lacks are replaced by the neutral
+ * cell (figkit.cell): the shape stays, only the drawing is missing.
  */
 export function crewCells(k = 0.5): Cell[] {
   const keep = new Set(['head', 'head:dravon', 'nose', 'ear', 'helmet:korvat', 'torso', 'upperArm', 'foreArm', 'hand', 'strap', 'pouch']);
-  return figureCells().filter((c) => keep.has(c.name)).map((c): Cell => ({ ...c, design: c.design ?? [c.w, c.h], w: Math.max(16, Math.round(c.w * k)), h: Math.max(12, Math.round(c.h * k)) }));
+  // dieselben Groessen wie bisher (Kopf 640, Sturmhaube 320, Entwurf 448) / the same sizes as before (head 640, balaclava 320 from design 448)
+  return bodyCells().filter((c) => keep.has(c.name)).flatMap((c) => sized([c], c.name === 'head:dravon' ? k * (320 / 448) : k));
+}
+/**
+ * Zusatz fuer Besatzungen: Kopfbedeckungen der uebrigen Fraktionen und ihre Ruestung, um k verkleinert. Wer Platz im
+ * Atlas hat, nimmt sie dazu, dann tragen auch Helme, Barett und Brustplatten der Besatzung ihre Zeichnung.
+ * Extra for crews: headgear of the other factions and their armour, shrunk by k. An atlas with room adds them, then
+ * the crew's helmets, beret and chest plates carry their drawing too.
+ */
+export function crewExtraCells(k = 0.4): Cell[] {
+  return [...headCells(k), ...armourCells(k).filter((c) => c.name.startsWith('plate:') || c.name === 'vest:meridon')];
 }
