@@ -103,7 +103,7 @@ function mgTurret(b: UvBuilder, A: AtlasLayout, L: Look, p: V3, yaw: number): vo
 export function steppeColossus(f: FactionId, A: AtlasLayout): UvBuilder {
   const b = new UvBuilder(A.get('blank'));
   const L = look(f), hi = fine();
-  const H: HullSpec = { y0: 0.108, y1: 0.128, y2: 0.2, xb: 0.228, xd: 0.186, zf: 0.262, zr: -0.3, zdf: 0.19, zdr: -0.246 };
+  const H: HullSpec = { y0: 0.108, y1: 0.14, y2: 0.226, xb: 0.23, xd: 0.192, zf: 0.262, zr: -0.3, zdf: 0.196, zdr: -0.25 };
   const T: TrackSpec = { x: 0.162, w: 0.1, len: 0.55, h: 0.108, links: 54, thick: 0.012 };
   tankHull(b, A, L, f, H, T, { emblemZ: -0.2, emblem: 0.046 });
   b.group({ p: [0, 0, (H.zf + H.zr) / 2] }, () => tankGear(b, A, T, 7, L.hullDark, L.trim, shade(L.hullDark, 0.5)));

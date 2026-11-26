@@ -49,8 +49,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   heli: [4050, 1150, 4007], // 3850 / 1093 (gezeichnet / inked; vorher 6723 / 3695)
   tank: [11850, 4250, 7866], // 11280 / 4020 (gezeichnet / inked; vorher 18655 / 6824)
   antiTank: [7700, 3950, 3945], // 7310 / 3634 (Detailrunde 4 / detail round 4)
-  antiAir: [7600, 2200, 6024], // 7238 / 2055 (gezeichnet / inked; vorher 12584 / 4716)
-  mineLayer: [11700, 3850, 6430], // 11113 / 3660 (gezeichnet / inked; vorher 13879 / 5194)
+  antiAir: [7650, 2200, 6024], // 7266 / 2055 (gezeichnet / inked; vorher 12584 / 4716)
+  mineLayer: [11650, 3850, 6430], // 11073 / 3660 (gezeichnet / inked; vorher 13879 / 5194)
   landingBoat: [5600, 2150, 2276], // 5300 / 2020 (Detailrunde 4 / detail round 4)
   submarine: [8700, 3900, 3792], // 8239 / 3674 (Detailrunde 4 / detail round 4)
   destroyer: [13700, 5550, 5748], // 13016 / 5420 (Detailrunde 4 / detail round 4)
@@ -91,7 +91,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   sunLance: [10050, 4550, 5013], // 9539 / 4180 (Detailrunde 4 / detail round 4)
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
   divineSpark: [17550, 6650, 6338], // 16709 / 6296 (Detailrunde 4 / detail round 4)
-  steppeColossus: [13350, 4750, 8643], // 12672 / 4505 (gezeichnet / inked; vorher 19806 / 7649)
+  steppeColossus: [13350, 4750, 8643], // 12678 / 4505 (gezeichnet / inked; vorher 19806 / 7649)
   shadowCommando: [10700, 3800, 3531], // 10173 / 3213 (Detailrunde 4 / detail round 4)
   fogCutter: [5600, 1800, 704], // 5295 / 1680 (Detailrunde 4 / detail round 4)
   guidedMissile: [9300, 1400, 668], // 8820 / 1324 (Detailrunde 4 / detail round 4)
@@ -134,7 +134,7 @@ const INK_VEHICLES: Record<string, [number, number]> = {
   radarTruck: [3800, 1150], // 3596 / 1084
   teslaTank: [11650, 3150], // 11082 / 2992
   octocopter: [5900, 2150], // 5582 / 2014
-  steppeColossus: [15350, 4600], // 14572 / 4375
+  steppeColossus: [15300, 4600], // 14570 / 4375
 };
 /** Gruppe Roboter und Kultfahrzeuge (Drohnen, Laeufer, Schrottfahrzeuge) / group robots and cult vehicles */
 const INK_ROBOTS: Record<string, [number, number]> = {
