@@ -179,7 +179,7 @@ export function robotHead(b: Builder, L: Look, d: Detail, spy: boolean) {
 }
 
 /** Spionage-Hut je Fraktion / spy hat per faction */
-function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
+function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number, bare = false) {
   if (f === 'vesper' || f === 'nexus') {
     if (f === 'vesper') cultHood(b, L, d, true);
     else robotHead(b, L, d, true);
@@ -194,7 +194,7 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
     ring(b, 0.065, 0.016, ws, L.secondary, [0, 0.155, -0.006], [1, 1, 0.93]);
     return;
   }
-  face(b, d, 'spy', 5);
+  if (!bare) face(b, d, 'spy', 5);
   sunglasses(b, d);
   switch (f) {
     case 'korvat':
@@ -235,7 +235,8 @@ function spyHat(b: Builder, f: FactionId, L: Look, d: Detail, ws: number) {
 }
 
 /** Kopf + Kopfbedeckung / head + headgear */
-export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean, seed = 1) {
+/** bare: ohne Gesicht (die gezeichnete Figur bringt ihren eigenen Kopf mit) / bare: without the face (the inked figure brings its own head) */
+export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: boolean, seed = 1, bare = false) {
   // hohe Qualitaet: volle Rundung der Helme; niedrige Qualitaet: der Helm der Fusstruppen ist kleiner (HEAD_FOOT), dort reichen
   // weniger Segmente / high quality: full roundness of the helmets; low quality: the foot troops' helmet is smaller (HEAD_FOOT),
   // fewer segments suffice there
@@ -243,7 +244,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   const hs = d === 2 ? (fine() ? 8 : 5) : d === 1 ? (fine() ? 5 : 4) : fine() ? 4 : 3;
   const hc = L.helmet;
   if (fedora) {
-    spyHat(b, f, L, d, ws);
+    spyHat(b, f, L, d, ws, bare);
     return;
   }
   if (f === 'zyrr') {
@@ -260,7 +261,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
   }
   switch (f) {
     case 'korvat': {
-      face(b, d, 'none', seed);
+      if (!bare) face(b, d, 'none', seed);
       // hohe Qualitaet: Helm eine Spur hoeher, damit die Augen unter der Krempe sichtbar bleiben
       // high quality: helmet a touch higher so the eyes stay visible below the brim
       const up = fine() ? 0.012 : 0;
@@ -349,7 +350,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
     }
     case 'alvenia': {
       // Heiliges Alvenia: weisser Paladinhelm, offenes Gesicht / Holy Alvenia: white paladin helmet, open face
-      face(b, d, 'none', seed);
+      if (!bare) face(b, d, 'none', seed);
       const C: V3 = [0, 0.074, -0.004];
       b.add(geo.hemi(0.088, ws, hs), FAITH.plate, { p: C, s: [1, 1.02, 1.06] });
       ring(b, 0.0895, 0.014, ws, FAITH.gold, [0, 0.078, -0.004], [1, 1, 1.06], 0.091);
@@ -370,7 +371,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       break;
     }
     case 'meridon': {
-      face(b, d, 'sun', seed);
+      if (!bare) face(b, d, 'sun', seed);
       sunglasses(b, d);
       // Haare / hair
       b.add(d >= 1 ? geo.rbox(0.11, 0.04, 0.07, 0.01) : geo.box(0.11, 0.04, 0.07), mat.dark, { p: [0, 0.084, -0.024] });
@@ -396,7 +397,7 @@ export function headgear(b: Builder, f: FactionId, L: Look, d: Detail, fedora: b
       break;
     }
     case 'velkar': {
-      face(b, d, 'visor', seed);
+      if (!bare) face(b, d, 'visor', seed);
       // Labor im Feld: frostweisser Visierhelm, Visier unten mit tuerkiser Leuchtlinse, Kamm, Antenne, Sensorleuchte
       // lab in the field: frost-white visor helmet, visor down with a glowing teal lens, crest, antenna, sensor lamp
       const C: V3 = [0, 0.068, -0.006];

@@ -90,7 +90,9 @@ export function wreckGeometry(type: UnitTypeId, faction: FactionId, variant: num
   return memo(`wreck-${type}-${faction}-${variant}`, () => {
     // Fahrzeug in Truemmer zerlegen: Dreiecke nach Raster-Zellen gruppieren, Zellen verschieben, kippen, teils weglassen
     // break the vehicle into debris: group triangles by grid cell, move and tilt cells, drop some
-    const src = unitGeometry(type, faction, null);
+    // gezeichnete Einheiten: die ungeteilte Rohgeometrie reicht (weniger Dreiecke) / inked units: the unsubdivided raw geometry is enough (fewer triangles)
+    const unit = unitGeometry(type, faction, null);
+    const src = (unit.userData.inkSrc as THREE.BufferGeometry | undefined) ?? unit;
     const pos = src.getAttribute('position') as THREE.BufferAttribute;
     const nor = src.getAttribute('normal') as THREE.BufferAttribute;
     const r = rnd(variant * 7 + type.length * 13);

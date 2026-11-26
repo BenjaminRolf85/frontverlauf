@@ -6,8 +6,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { Builder, splitTurrets, turretsOf } from '../src/render/models/kit';
-import { unitGeometry } from '../src/render/models';
+import { Builder, turretsOf } from '../src/render/models/kit';
+import { legacyUnitGeometry, setUnitQuality, splitTurrets, unitGeometry } from '../src/render/models';
+import { inkFor } from '../src/render/models/inked/ink';
+import { TURRET } from '../src/render/models/inked/tank';
 import { tank } from '../src/render/models/vehicles';
 import { turretMuzzle, turretYaw } from '../src/render/combat';
 import type { FactionId, UnitTypeId } from '../src/data/balance';
@@ -104,7 +106,8 @@ describe('Einheiten mit Turm / units with a turret', () => {
   it('Vergroesserung nimmt den Drehpunkt mit / the enlargement carries the pivot along', () => {
     for (const f of tanks) {
       const raw = turretsOf(tank(f).build())[0];
-      const g = unitGeometry('tank', f, null);
+      // bisheriges Modell (der Korvat-Panzer ist inzwischen gezeichnet, siehe unten) / previous model (the Korvat tank is inked by now, see below)
+      const g = legacyUnitGeometry('tank', f, null);
       const t = turretsOf(g)[0];
       const k = g.userData.finishScale as number;
       expect(t.pivot[1]).toBeCloseTo(raw.pivot[1] * k, 5);
@@ -112,6 +115,29 @@ describe('Einheiten mit Turm / units with a turret', () => {
       const split = splitTurrets(g)!;
       expect(split.hull.getAttribute('position').count + split.turrets[0].geometry.getAttribute('position').count).toBe(g.getAttribute('position').count);
     }
+  });
+
+  it('gezeichneter Korvat-Panzer: Turm, Drehpunkt und Tusche je Teil / inked Korvat tank: turret, pivot and ink per part', () => {
+    for (const q of ['high', 'low'] as const) {
+      setUnitQuality(q);
+      const g = unitGeometry('tank', 'korvat', null);
+      expect(g.userData.inked).toBeTruthy();
+      const t = turretsOf(g);
+      expect(t).toHaveLength(1);
+      const k = g.userData.finishScale as number;
+      expect(t[0].pivot[1]).toBeCloseTo(TURRET.y * k, 5);
+      expect(t[0].pivot[2]).toBeCloseTo(TURRET.z * k, 5);
+      const split = splitTurrets(g)!;
+      expect(split.hull.getAttribute('position').count + split.turrets[0].geometry.getAttribute('position').count).toBe(g.getAttribute('position').count);
+      // Wanne und Turm bekommen je ihre eigene Tuschegeometrie / hull and turret each get their own ink geometry
+      for (const part of [split.hull, split.turrets[0].geometry]) {
+        expect(part.userData.inked).toBeTruthy();
+        expect(part.userData.inkSrc).toBeTruthy();
+        expect(inkFor(part).index!.count).toBeGreaterThan(0);
+      }
+      expect(split.hull.userData.inkSrc).not.toBe(g.userData.inkSrc);
+    }
+    setUnitQuality('high');
   });
 
   it('weitere Turmeinheiten / further turret units', () => {
