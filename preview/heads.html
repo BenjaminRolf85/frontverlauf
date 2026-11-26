@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Frontverlauf - Kopfbedeckungen / headgear</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--s-world-background); }
+    canvas { display: block; }
+    header { position: fixed; top: var(--space-2, 8px); left: var(--space-2, 8px); right: var(--space-2, 8px); color: var(--s-text-inverse); font: 14px 'Comic Neue', sans-serif; pointer-events: none; }
+    header p { margin: 0 0 4px; max-width: 60ch; }
+    header a { pointer-events: auto; color: var(--s-text); background: var(--s-accent); border: 2px solid var(--s-outline); border-radius: 8px; padding: 4px 8px; text-decoration: none; display: inline-block; min-height: 24px; line-height: 24px; margin: 2px 4px 2px 0; }
+  </style>
+  <link rel="stylesheet" href="/src/design/tokens.css" />
+</head>
+<body>
+  <header>
+    <p lang="de">Kopfbedeckungen im selben Massstab, oben von vorn, unten von der Seite. Linien: Kinn, Scheitel und Breite der Korvat-Kuppel. Prozent: Breite x Hoehe gegen Korvat.</p>
+    <p lang="en">Headgear at the same scale, front above, side below. Lines: chin, crown and width of the Korvat dome. Percent: width x height against Korvat.</p>
+    <a href="?">Helme / helmets</a>
+    <a href="?hat=1">Huete des Spions / spy hats</a>
+    <a href="?q=low">niedrige Qualitaet / low quality</a>
+    <a href="models.html">Modelle / models</a>
+  </header>
+  <script type="module" src="/src/render/models/inked/headsPreview.ts"></script>
+</body>
+</html>

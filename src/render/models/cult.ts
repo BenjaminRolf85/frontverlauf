@@ -9,7 +9,8 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, mix, rng, shade, type V3 } from './kit';
+import { ball, Builder, capsule, fine, geo, keepNormals, mix, rng, shade, type V3 } from './kit';
+import { eulerZ, headAt, headlight, lens, rivet, rivetRow, seam } from './detailFigures';
 import { look, mat } from './look';
 import { face } from './headgear';
 import { rifle, seatPose, soldier, standPose } from './soldiers';
@@ -127,6 +128,18 @@ export function torchbearer(f: FactionId, lite = false): Builder {
     b.add(geo.hemi(0.028, lite ? 8 : 12, 3), mat.rustDark, { p: [sx * 0.032, 0.305, -0.1] });
     if (!lite) b.cyl(0.006, 0.006, 0.02, 6, mat.metal, [sx * 0.032, 0.335, -0.1]);
     b.add(geo.cyl(0.029, 0.029, 0.01, lite ? 8 : 12, true), mat.ember, { p: [sx * 0.032, 0.22, -0.1] });
+    if (!lite && fine()) {
+      // hohe Qualitaet: Spannbaender, Ventilrad, Manometer, Schweissnaht / high quality: tank bands, valve wheel, pressure gauge, weld seam
+      for (const y of [0.195, 0.285]) b.add(geo.cyl(0.0295, 0.0295, 0.006, 14, true), mat.dark, { p: [sx * 0.032, y, -0.1] });
+      b.add(geo.torus(0.009, 0.0018, 3, 10), mat.red, { p: [sx * 0.032, 0.347, -0.1], r: [HALF_PI, 0, 0] });
+      seam(b, [[sx * 0.032, 0.175, -0.071], [sx * 0.032, 0.3, -0.071]], 0.0016, shade(mat.rust, 0.7));
+    }
+  }
+  if (!lite && fine()) {
+    b.cyl(0.011, 0.011, 0.006, 12, mat.white, [0.0, 0.26, -0.13], [HALF_PI, 0, 0]);
+    b.add(lens(4, 2), mat.red, { p: [0.003, 0.262, -0.1335], r: [0, Math.PI, 0.6], s: [0.006, 0.0012, 0.001] });
+    b.box(0.13, 0.012, 0.012, mat.dark, [0, 0.29, -0.068]);
+    for (const p of [[0.04, 0.16, 0.012], [0.06, 0.12, 0.025]] as V3[]) b.add(geo.torus(0.009, 0.0025, 3, 8), mat.metal, { p, r: [0.3, 0.8, 0] });
   }
   // Schlauch / hose
   const hose: V3[] = [[0.03, 0.18, -0.1], [0.09, 0.12, -0.05], [0.09, 0.13, 0.02], back];
@@ -154,6 +167,7 @@ function handAxe(b: Builder, hand: V3, dir: V3, len: number, spin: number, lite:
       b.add(geo.profileZY([[-0.014, -0.026], [0.035, -0.062], [0.088, -0.04], [0.094, 0.026], [0.062, 0.05], [-0.014, 0.028]], 0.01), mat.metal, {});
       b.box(0.012, 0.086, 0.01, mat.metalLight, [0, -0.006, 0.09]);
       if (!lite) b.box(0.012, 0.02, 0.024, mat.rust, [0, -0.02, 0.04]);
+      if (!lite && fine()) for (const sx of [-1, 1]) rivetRow(b, [sx * 0.0055, 0.012, 0.012], [sx * 0.0055, -0.016, 0.012], 2, [sx, 0, 0], 0.0035, mat.metalLight);
       b.cyl(0.012, 0.012, 0.02, lite ? 5 : 7, mat.rustDark, [0, 0, 0]);
     });
   });
@@ -179,9 +193,19 @@ export function berserker(f: FactionId, lite = false): Builder {
     detail: d, bare: true, plain: true, seed: 57,
     // wilde Maehne, Kriegsbemalung quer ueber die Augen, Bart / wild mane, war paint across the eyes, beard
     head: (hb, HL, hd) => {
-      face(hb, hd, 'none', 57);
-      hb.box(0.108, 0.018, 0.006, HL.primary, [0, 0.058, 0.052]);
-      if (hd >= 1) for (const sx of [-1, 1]) hb.box(0.008, 0.03, 0.005, HL.primary, [sx * 0.03, 0.03, 0.052], [0, 0, sx * 0.2]);
+      face(hb, hd, 'none', 57, { shout: true, hair: mat.dark });
+      if (fine()) {
+        // hohe Qualitaet: Bemalung als flache Schalen auf dem Gesicht, die Augen bleiben darueber sichtbar
+        // high quality: paint as flat shells on the face, the eyes stay visible above it
+        for (const sx of [-1, 1]) {
+          const A = headAt(sx * 0.4, 0.04, -0.0003), B = headAt(sx * 0.42, -0.35, -0.0003);
+          hb.group({ p: A.p, r: eulerZ(A.n) }, () => hb.add(lens(8, 3), HL.primary, { s: [0.032, 0.0105, 0.0026] }));
+          if (hd >= 1) hb.group({ p: B.p, r: eulerZ(B.n) }, () => hb.add(lens(6, 3), HL.primary, { r: [0, 0, sx * 0.2], s: [0.004, 0.016, 0.0024] }));
+        }
+      } else {
+        hb.box(0.108, 0.018, 0.006, HL.primary, [0, 0.058, 0.052]);
+        if (hd >= 1) for (const sx of [-1, 1]) hb.box(0.008, 0.03, 0.005, HL.primary, [sx * 0.03, 0.03, 0.052], [0, 0, sx * 0.2]);
+      }
       hb.add(geo.rbox(0.11, 0.03, 0.1, 0.01), mat.dark, { p: [0, 0.1, -0.006] });
       const spikes = hd >= 1 ? 7 : 4;
       for (let i = 0; i < spikes; i++) {
@@ -189,7 +213,18 @@ export function berserker(f: FactionId, lite = false): Builder {
         hb.add(geo.cone(0.02, 0.07 + R() * 0.03, hd >= 1 ? 5 : 4), mat.dark, { p: [Math.sin(a) * 0.045, 0.12, -0.01 - Math.cos(a) * 0.02], r: [-0.5 - R() * 0.4, 0, -a * 0.6] });
       }
       // Bart / beard
-      hb.add(geo.cone(0.034, 0.05, hd >= 1 ? 6 : 4), mat.dark, { p: [0, -0.002, 0.034], r: [Math.PI - 0.35, 0, 0] });
+      if (fine() && hd === 2) {
+        // hohe Qualitaet: Bart aus Straehnen um den offenen Mund / high quality: beard from strands around the open mouth
+        for (let i = 0; i < 9; i++) {
+          const a = (i / 8 - 0.5) * 2.4;
+          const root: V3 = [Math.sin(a) * 0.042, 0.0 + Math.abs(Math.sin(a)) * 0.012, 0.028 + Math.cos(a) * 0.014];
+          hb.tube(root, [root[0] * 0.7, -0.035 - Math.cos(a) * 0.012, root[2] + 0.006], 0.0055, 5, i % 2 ? mat.dark : mat.darkMid, 0.0015);
+        }
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 5 - 0.5) * 2.6;
+          hb.tube([Math.sin(a) * 0.045, 0.1, -0.03 - Math.cos(a) * 0.01], [Math.sin(a) * 0.075, 0.03 - R() * 0.02, -0.055 - Math.cos(a) * 0.02], 0.009, 5, mat.dark, 0.002);
+        }
+      } else hb.add(geo.cone(0.034, 0.05, hd >= 1 ? 6 : 4), mat.dark, { p: [0, -0.002, 0.034], r: [Math.PI - 0.35, 0, 0] });
     },
   });
   // Kriegsbemalung und Narben auf der nackten Brust (im Rumpfrahmen) / war paint and scars on the bare chest (in the torso frame)
@@ -270,6 +305,20 @@ export function prophet(f: FactionId, lite = false): Builder {
       b.box(0.026, 0.014, 0.01, mat.ember, [sx * 0.04, 0.105, 0.061]);
     }
     if (!lite) chainLinks(b, [-0.06, 0.29, 0.055], [0.06, 0.29, 0.055], 6);
+    if (!lite && fine()) {
+      // hohe Qualitaet: Borten und Sonnenzeichen am Ornat, Buchschliessen, Glutsteine an der Stola
+      // high quality: trims and sun marks on the vestment, book clasps, ember stones on the stole
+      b.add(geo.rtaper(0.344, 0.282, 0.32, 0.262, 0.012, 0.006), shade(mat.ember, 0.85), { p: [0, 0.08, -0.005] });
+      for (const sx of [-1, 1]) {
+        b.box(0.012, 0.22, 0.004, mat.ember, [sx * 0.04, 0.14, 0.1], [-0.2, 0, sx * -0.28]);
+        for (const y of [0.15, 0.19]) b.add(ball(1, 6, 4), mat.ember, { p: [sx * 0.035, y, 0.066], s: [0.006, 0.006, 0.003] });
+        addEmblem(b, 'vesper', 0.02, 0.003, mat.bone, { p: [sx * 0.11, 0.06, 0.118], r: [-0.22, sx * 0.4, 0] });
+      }
+      b.group({ p: [-0.1, 0.47, 0.075], r: [-1.2, 0.3, 0] }, () => {
+        for (const sx of [-1, 1]) b.box(0.006, 0.024, 0.012, mat.gold, [sx * 0.051, 0, 0.02]);
+        b.box(0.03, 0.003, 0.03, mat.gold, [0, 0.011, 0]);
+      });
+    }
   });
   return b;
 }
@@ -320,6 +369,34 @@ export function doomBuggy(f: FactionId, lite = false): Builder {
     b.group({ p: [0, by + 0.06, -0.205], r: [0, HALF_PI, 0] }, () => wheel(b, 0, 0, 0, 0.05, 0.03, { rim: L.trim }));
     b.tube([-0.09, by + 0.07, -0.17], [-0.09, top + 0.12, -0.18], 0.004, 4, mat.wood);
     b.box(0.006, 0.07, 0.06, L.primary, [-0.09, top + 0.08, -0.15]);
+  }
+  if (!lite && fine()) {
+    // hohe Qualitaet: Scheinwerfer mit Gitter, Nietreihen, aufgeschweisste Flickbleche, Schweissnaehte am Kaefig,
+    // Schaedel auf der Haube, Kanister / high quality: headlights with guards, rivet rows, welded patch plates, cage
+    // weld seams, skull on the hood, jerrycan
+    for (const sx of [-1, 1]) {
+      headlight(b, [sx * 0.07, by + 0.05, 0.19], [0, 0, 1], 0.016, mat.gunmetal, true);
+      rivetRow(b, [sx * 0.1115, by + 0.012, -0.15], [sx * 0.1115, by + 0.012, 0.16], 9, [sx, 0, 0], 0.0042, mat.gunmetal);
+      b.group({ p: [sx * 0.1125, by + 0.04, -0.06], r: [0, 0, 0] }, () => {
+        b.box(0.004, 0.035, 0.06, shade(L.hull, 0.8), [sx * 0.001, 0, 0]);
+        for (const [y, z] of [[-0.012, -0.024], [0.012, -0.024], [-0.012, 0.024], [0.012, 0.024]] as [number, number][]) rivet(b, [sx * 0.0035, y, z], [sx, 0, 0], 0.0035, mat.gunmetal);
+      });
+      for (const z of [0.0, -0.1]) b.add(ball(1, 6, 4), shade(mat.gunmetal, 1.3), { p: [sx * 0.085, top, z], s: 0.0095 });
+    }
+    b.add(ball(1, 10, 8), mat.bone, { p: [0, by + 0.075, 0.07], s: [0.022, 0.02, 0.022] });
+    b.group({ p: [0, by + 0.075, 0.091] }, () => {
+      for (const sx of [-1, 1]) b.add(lens(6, 3), mat.ink, { p: [sx * 0.008, 0.002, 0], s: [0.0055, 0.006, 0.002] });
+      b.add(lens(4, 2), mat.ember, { p: [0, -0.008, 0], s: [0.008, 0.0025, 0.0015] });
+    });
+    b.add(geo.cbox(0.05, 0.06, 0.022, 0.006), L.primaryDark, { p: [0.065, by + 0.1, -0.15] });
+    b.box(0.012, 0.012, 0.01, mat.dark, [0.078, by + 0.135, -0.15]);
+    // Stachelringe, Sitz mit Gurt, Lenkrad, Schutzbleche / spike collars, seat with harness, steering wheel, fenders
+    for (let i = 0; i < 5; i++) b.add(geo.torus(0.0125, 0.003, 3, 10), mat.gunmetal, { p: [-0.1 + i * 0.05, by + 0.01, 0.214] });
+    b.add(geo.torus(0.022, 0.0035, 3, 14), mat.dark, { p: [-0.045, by + 0.1, 0.035], r: [0.9, 0, 0] });
+    b.tube([-0.045, by + 0.1, 0.035], [-0.045, by + 0.07, 0.07], 0.003, 4, mat.dark);
+    for (const sx of [-1, 1]) for (const z of [-0.13, 0.14]) {
+      b.add(keepNormals(new THREE.CylinderGeometry(0.08, 0.08, 0.056, 14, 1, true, 0.3, Math.PI - 0.6)).rotateZ(HALF_PI), shade(L.hull, 0.8), { p: [sx * 0.13, wr, z] });
+    }
   }
   return b;
 }
@@ -387,6 +464,26 @@ export function rocketCart(f: FactionId, lite = false): Builder {
     b.add(geo.cbox(0.04, 0.03, 0.035, 0.006), L.primaryDark, { p: [-0.07, by + 0.028, -0.17] });
     rustPatches(b, 19, 6, 0.112, by + 0.02, by + 0.1, -0.18, 0.15);
   }
+  if (!lite && fine()) {
+    // hohe Qualitaet: Leitwerke an den Raketen, Nietreihen am Fuehrerhaus, Scheinwerfer, Gestellbolzen
+    // high quality: fins on the rockets, rivet rows on the cab, headlights, rack bolts
+    b.group({ p: [0, by + 0.23, -0.1], r: [-0.85, 0, 0] }, () => {
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+        const x = -0.06 + c * 0.06, y = -0.03 + r * 0.046;
+        for (let k = 0; k < 4; k++) b.box(0.003, 0.012, 0.03, shade(mat.rust, 0.75), [x + Math.sin(k * HALF_PI) * 0.024, y + Math.cos(k * HALF_PI) * 0.024, -0.15], [0, 0, k * HALF_PI]);
+      }
+      for (const sx of [-1, 1]) rivetRow(b, [sx * 0.107, -0.04, -0.14], [sx * 0.107, -0.04, 0.14], 6, [sx, 0, 0], 0.004, mat.metalLight);
+    });
+    for (const sx of [-1, 1]) {
+      rivetRow(b, [sx * 0.111, by + 0.07, 0.0], [sx * 0.111, by + 0.07, 0.08], 4, [sx, 0, 0], 0.0038, mat.gunmetal);
+      headlight(b, [sx * 0.085, by + 0.045, 0.2], [0, 0, 1], 0.014, mat.gunmetal, true);
+    }
+    rivetRow(b, [-0.1, by + 0.145, 0.091], [0.1, by + 0.145, 0.091], 8, [0, 0, 1], 0.0036, mat.gunmetal);
+    // Plane als Rolle mit Schnueren, Seil um die Kisten / tarp roll with ties, rope around the crates
+    b.add(capsule(0.018, 0.018, 0.2, 12, 2), shade(L.primaryDark, 1.2), { p: [0, by + 0.172, 0.0], r: [0, 0, HALF_PI] });
+    for (const x of [-0.06, 0.06]) b.add(geo.torus(0.0185, 0.0025, 3, 12), mat.dark, { p: [x, by + 0.172, 0.0], r: [0, HALF_PI, 0] });
+    for (const [x, w] of [[0.07, 0.05], [-0.07, 0.04]] as [number, number][]) b.add(geo.torus(w * 0.58, 0.002, 3, 12), mat.sand, { p: [x, by + 0.03, -0.17], r: [HALF_PI, 0, 0], s: [1, 0.8, 1] });
+  }
   return b;
 }
 
@@ -442,6 +539,28 @@ export function doomCrawler(f: FactionId, lite = false): Builder {
     commander(b, f, 0.08, 0.2, -0.02, 9);
     b.cyl(0.03, 0.034, 0.02, 10, L.hullDark, [0.08, 0.2, -0.02]);
     roofMg(b, L, -0.09, 0.19, 0.05, L.primary);
+  }
+  if (!lite && fine()) {
+    // hohe Qualitaet: Nietreihen an Rumpf und Fuehrerhaus, Schweissnaehte, Schaufelbolzen, Scheinwerfer mit Gitter,
+    // Glockenseil, Ersatzkettenglieder / high quality: rivet rows on hull and cab, weld seams, blade bolts, guarded
+    // headlights, bell rope, spare track links
+    for (const sx of [-1, 1]) {
+      rivetRow(b, [sx * 0.121, 0.175, -0.19], [sx * 0.121, 0.175, 0.15], 9, [sx, 0, 0], 0.0045, mat.gunmetal);
+      rivetRow(b, [sx * 0.081, 0.215, 0.03], [sx * 0.081, 0.215, 0.11], 3, [sx, 0, 0], 0.004, mat.gunmetal);
+      headlight(b, [sx * 0.06, 0.205, 0.128], [0, -0.1, 1], 0.014, mat.gunmetal, true);
+      seam(b, [[sx * 0.12, 0.075, -0.2], [sx * 0.12, 0.075, 0.17]], 0.002, shade(L.hull, 0.65));
+      for (let i = 0; i < 3; i++) b.add(geo.cbox(0.022, 0.006, 0.04, 0.003), mat.gunmetal, { p: [sx * 0.123, 0.13 - i * 0.004, -0.1 + i * 0.045], r: [0, 0, sx * HALF_PI] });
+    }
+    rivetRow(b, [-0.2, 0.03, 0.247], [0.2, 0.03, 0.247], 9, [0, 0, 1], 0.005, mat.gunmetal);
+    rivetRow(b, [-0.11, 0.135, 0.075], [0.11, 0.135, 0.075], 6, [0, 0.2, 1], 0.0045, mat.gunmetal);
+    seam(b, [[0.0, 0.26, -0.06], [0.0, 0.25, 0.05]], 0.0018, mat.dark);
+    // Schaedel auf der Schaufel, Sehschlitze, Glockenseil / skulls on the blade, vision blocks, bell rope
+    for (const x of [-0.13, 0.13]) {
+      b.add(ball(1, 10, 8), mat.bone, { p: [x, 0.07, 0.258], s: [0.017, 0.016, 0.016] });
+      for (const sx of [-1, 1]) b.group({ p: [x + sx * 0.006, 0.072, 0.273] }, () => b.add(lens(6, 3), mat.ink, { s: [0.0045, 0.005, 0.0015] }));
+    }
+    for (const x of [-0.05, 0.0, 0.05]) b.add(geo.cbox(0.026, 0.012, 0.008, 0.002), mat.glassDark, { p: [x, 0.252, 0.128] });
+    b.tube([0, ty + 0.1, tz], [0.04, ty + 0.03, tz + 0.04], 0.002, 3, mat.sand);
   }
   return b;
 }

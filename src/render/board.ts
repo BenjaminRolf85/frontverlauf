@@ -26,7 +26,7 @@ import { barrierGeometry, craterGeometry, dropletGeometry, fireballGeometry, sco
 import { brokenFenceGeometry, burntGrassGeometry, debrisGeometry, oilSlickGeometry, roadDamageGeometry, shellHolesGeometry, smokeWispGeometry, stumpsGeometry } from './remains';
 import { SCAR_MARK_SCALE, scarColors, scarGround, scarKeyTier, scarSmokes } from './scars';
 import { artifactGeometry, ARTIFACT_ORBIT_Y } from './models/artifact';
-import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, unitGlowMaterial, withGlow, type GlowKind } from './atmosphere';
+import { ATMO, cloudMaterial, cloudOutline, decalMaterial, landMaterial, withGlow, type GlowKind } from './atmosphere';
 import { TechParts } from './techParts';
 import { WATER_BOX_TOP, buildWater } from './water';
 import { CLIFF_STEP, NATURAL, beachCoast, buildLandscape, cliffRock, groundTone, growthRank } from './landscape';
@@ -90,14 +90,16 @@ const unitGeometry = (type: Parameters<typeof models.unitGeometry>[0], f: Parame
  * Unit model from the geometry: hull with outline, turrets as children 'turret' at their pivot (same material, same
  * outline width). Without turrets exactly an outlined() object as before.
  */
-function unitModel(g: THREE.BufferGeometry, material: THREE.Material): THREE.Group {
+function unitModel(g: THREE.BufferGeometry): THREE.Group {
+  // unitOutlined waehlt Material und Tuschelinie: gezeichnete und bisherige Modelle stehen nebeneinander
+  // unitOutlined picks material and ink line: inked and previous models stand side by side
   const split = models.splitTurrets(g);
-  if (!split) return outlined(g, OUTLINE.unit, material);
-  const model = outlined(split.hull, OUTLINE.unit, material);
+  if (!split) return unitOutlined(g, OUTLINE.unit);
+  const model = unitOutlined(split.hull, OUTLINE.unit);
   if (!g.boundingBox) g.computeBoundingBox();
   model.userData.bounds = g.boundingBox;
   for (const t of split.turrets) {
-    const tur = outlined(t.geometry, OUTLINE.unit, material);
+    const tur = unitOutlined(t.geometry, OUTLINE.unit);
     tur.name = 'turret';
     tur.position.copy(t.pivot);
     tur.rotation.y = t.yaw;
@@ -198,7 +200,8 @@ const CRATER_DIP = [0.26, 0.17, 0.08];
 /** Kraterradius um das Artefakt / crater radius around the artifact */
 const CRATER_RADIUS = 2;
 const craterDip = new WeakMap<Tile, number>();
-import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial, unitMaterial } from './toon';
+import { coloredBox, hullGeometry, outlined, outlinedInstanced, outlineMaterial, paint, toonMaterial } from './toon';
+import { unitMaterialLike, unitOutlined } from './unitDraw';
 
 /** reach = Reichweite des Hackturms (HACK.tower), in der Markierungsfarbe der NEXUS / reach of the hack tower (HACK.tower), in the NEXUS marker colour */
 export type HighlightKind = 'move' | 'attack' | 'safe' | 'unsafe' | 'select' | 'target' | 'hint' | 'build' | 'reach';
@@ -1433,7 +1436,7 @@ export class Board {
         const own = viewer >= 0 && u.owner === viewer;
         const ugeo = unitGeometry(u.type, f, u.carried, stage);
         // Velkar: leuchtende Lichter (Leuchtmaske in der Geometrie) / Velkar: glowing lights (glow mask in the geometry)
-        const model = unitModel(ugeo, ugeo.userData.unitGlow ? unitGlowMaterial() : unitMaterial());
+        const model = unitModel(ugeo);
         this.techParts.attach(u.id, model, u.type, f, ugeo.userData.finishScale ?? 1, this.quality === 'low');
         // Miniatur-Sockel: dunkle Platte mit Rand in Fraktionsfarbe / miniature base: dark plate with faction-coloured rim
         const base = outlined(baseGeometry(factionTokens[f].primary), OUTLINE.unit, baseMaterial());
@@ -1516,15 +1519,13 @@ export class Board {
       v.group.userData.noShadow = echo || submerged;
       this.life.track(u, v.group, model, model.position.y, UNIT_SCALE, submerged);
       const opts = hidden ? { transparent: true, opacity: echo ? 0.7 : 0.55 } : done ? { dim: true, transparent: true, opacity: DONE_OPACITY } : {};
-      const mat = unitMaterial(opts);
-      // leuchtende Teile behalten ihr Leuchtmaterial / glowing parts keep their glow material
-      const glowMat = unitGlowMaterial(opts);
+      // jede Flaeche behaelt ihre Materialfamilie (bisherig, leuchtend, gezeichnet) in der passenden Variante
+      // every fill keeps its material family (previous, glowing, inked) in the matching variant
       model.traverse((o) => {
         const mesh = o as THREE.Mesh;
         const cur = mesh.isMesh ? (mesh.material as THREE.Material) : null;
-        if (!cur?.userData?.unitMat) return;
-        const want = cur.userData.unitGlow ? glowMat : mat;
-        if (cur !== want) mesh.material = want;
+        const want = cur ? unitMaterialLike(cur, opts) : null;
+        if (want && cur !== want) mesh.material = want;
       });
     }
     // Wanne folgt der Ausrichtung im Spielstand (ausser waehrend einer Animation) / hull follows the facing in the game state (except while animating)

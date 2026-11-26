@@ -15,7 +15,7 @@ import { AI, ALVENIA_UNITS, HIT_KINDS, ORBITAL, PRODUCTION, ROSTER_EXTRA, SILO, 
 import { planNextCommand } from '../src/ai/ai';
 import { buildCtx } from '../src/ai/analysis';
 import { sparkShotValue } from '../src/ai/divineSpark';
-import { getUnitQuality, setUnitQuality, unitGeometry, UNIT_TRI_LIMIT } from '../src/render/models';
+import { getUnitQuality, setUnitQuality, unitGeometry, unitTriLimit } from '../src/render/models';
 import { has as hasText, setLanguage, t } from '../src/i18n/i18n';
 import { hasIcon } from '../src/ui/icons';
 import { UNIT_ROLE, unitRoleIcon } from '../src/ui/unitRoles';
@@ -369,7 +369,7 @@ describe('Goettlicher Funke: Modell, Rolle, Texte / Divine Spark: model, role, t
     for (const q of ['high', 'low'] as const) {
       setUnitQuality(q);
       const g = unitGeometry('divineSpark', 'alvenia', null);
-      expect(g.getAttribute('position').count / 3).toBeLessThanOrEqual(UNIT_TRI_LIMIT);
+      expect(g.getAttribute('position').count / 3).toBeLessThanOrEqual(unitTriLimit(q));
       g.computeBoundingBox();
       const a = unitGeometry('artillery', 'alvenia', null);
       a.computeBoundingBox();

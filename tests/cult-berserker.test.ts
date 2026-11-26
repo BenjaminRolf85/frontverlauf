@@ -296,7 +296,8 @@ describe('Berserker: Modell und Rolle / berserker: model and role', () => {
       setUnitQuality(q);
       const g = unitGeometry('berserker', 'vesper', null);
       const tris = g.getAttribute('position').count / 3;
-      expect(tris).toBeLessThan(q === 'high' ? 4200 : 3200);
+      // hoch: Detailrunde 4 (Gesicht, Bart, Bemalung), siehe BUDGET in unit-model-budget / high: detail round 4 (face, beard, paint), see BUDGET in unit-model-budget
+      expect(tris).toBeLessThan(q === 'high' ? 8500 : 3200);
       g.computeBoundingBox();
       expect(g.boundingBox!.max.y).toBeLessThanOrEqual(0.625);
       // eigener Umriss: nicht dasselbe Modell wie der Eiferer / own outline: not the same model as the zealot

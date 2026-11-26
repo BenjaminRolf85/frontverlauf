@@ -6,15 +6,62 @@
  */
 import type { FactionId } from '../../data/balance';
 import { addEmblem } from './emblems';
-import { Builder, fine, geo, mix, rng, shade, type ColorLike } from './kit';
+import { MUD, ammoBox, antennaBase, crate, grille, headlight, jerryCan, muffler, richBarrel, rivets, seam, tarpRoll, toolSet, towHook } from './detailVehicles';
+import { Builder, fine, geo, lathe, mix, rng, shade, type ColorLike } from './kit';
 import { look, mat, styleOf, type Look } from './look';
 import { seatPose, soldier, standPose } from './soldiers';
 
 const HALF_PI = Math.PI / 2;
 
-interface WheelOpts { seg?: number; rim?: ColorLike; spokes?: number; lite?: boolean }
+interface WheelOpts {
+  seg?: number; rim?: ColorLike; spokes?: number; lite?: boolean;
+  /**
+   * Reiches Rad bei hoher Qualitaet (Detailrunde 4, nur Fahrzeuggruppe): Reifen mit Schultern und versetztem Stollenprofil,
+   * gewoelbte Felge, Radmuttern, Ventil. / Rich wheel on high quality (detail round 4, vehicle group only): tyre with
+   * shoulders and staggered tread, dished rim, lug nuts, valve.
+   */
+  rich?: boolean;
+}
+
+/** Reiches Rad (Achse entlang x) / rich wheel (axle along x) */
+function richWheel(b: Builder, x: number, y: number, z: number, r: number, w: number, o: WheelOpts) {
+  const hw = w / 2, sh = Math.min(w * 0.3, r * 0.22);
+  const rim = o.rim ?? mat.metal;
+  b.group({ p: [x, y, z], r: [0, 0, HALF_PI] }, () => {
+    // lokal: Achse = y / local: axle = y
+    b.add(lathe([[r * 0.62, -hw], [r - sh, -hw], [r, -hw + sh], [r, hw - sh], [r - sh, hw], [r * 0.62, hw]], 18), mat.dark);
+    if (o.spokes) {
+      b.add(lathe([[r * 0.66, -hw * 0.8], [r * 0.66, hw * 0.8]], 18), rim);
+      for (let i = 0; i < o.spokes; i++) {
+        const a = (i / o.spokes) * Math.PI;
+        b.box(r * 0.11, w * 0.45, r * 1.3, rim, [0, 0, 0], [0, a, 0]);
+      }
+      b.add(lathe([[0, -hw * 1.3], [r * 0.24, -hw * 1.1], [r * 0.28, 0], [r * 0.24, hw * 1.1], [0, hw * 1.3]], 10), mat.metal);
+    } else {
+      b.add(lathe([[0, -hw * 0.95], [r * 0.3, -hw * 0.7], [r * 0.5, -hw * 0.75], [r * 0.63, -hw * 0.9, true], [r * 0.63, hw * 0.9, true], [r * 0.5, hw * 0.75], [r * 0.3, hw * 0.7], [r * 0.22, hw * 1.15], [0, hw * 1.2]], 14), rim);
+      b.add(lathe([[r * 0.12, -hw * 1.15], [r * 0.12, hw * 1.32, true], [0, hw * 1.38]], 8), mat.metal);
+      // Radmuttern auf beiden Seiten / lug nuts on both sides
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        for (const s of [-1, 1]) b.box(0.0055, 0.005, 0.0055, mat.darkMid, [Math.sin(a) * r * 0.2, s * hw * 0.82, Math.cos(a) * r * 0.2]);
+      }
+      b.box(0.003, 0.008, 0.003, mat.metal, [r * 0.5, hw * 0.8, 0]);
+    }
+  });
+  // Stollenprofil in zwei versetzten Reihen / tread blocks in two staggered rows
+  const treads = Math.max(12, Math.round(r * 240));
+  for (let i = 0; i < treads; i++) for (const k of [0, 1]) {
+    const a = ((i + k * 0.5) / treads) * Math.PI * 2;
+    b.box(w * 0.46, 0.0065, r * 0.24, mat.ink, [x + (k ? 1 : -1) * w * 0.24, y + Math.cos(a) * (r + 0.0015), z + Math.sin(a) * (r + 0.0015)], [a, 0, 0]);
+  }
+}
+
 /** Rad mit Reifen, Felge, Nabe und optional Speichen / wheel with tyre, rim, hub and optional spokes */
 export function wheel(b: Builder, x: number, y: number, z: number, r: number, w: number, o: WheelOpts = {}) {
+  if (o.rich && !o.lite && fine()) {
+    richWheel(b, x, y, z, r, w, o);
+    return;
+  }
   const seg = o.lite ? 8 : (o.seg ?? 10);
   if (o.lite || !fine()) b.cyl(r, r, w, seg, mat.dark, [x, y, z], [0, 0, HALF_PI]);
   else {
@@ -82,8 +129,9 @@ export function jeep(f: FactionId, lite = false): Builder {
   const wr = light ? 0.06 : styleOf(f) === 'velkar' ? 0.05 : 0.055;
   const wy = wr;
   const gunScale = styleOf(f) === 'dravon' ? 2 : 1.45;
+  const hi = !lite && fine();
   // Raeder / wheels
-  for (const x of [-0.118, 0.118]) for (const z of [-0.12, 0.13]) wheel(b, x, wy, z, wr, 0.045, { rim: L.trim, lite });
+  for (const x of [-0.118, 0.118]) for (const z of [-0.12, 0.13]) wheel(b, x, wy, z, wr, 0.045, { rim: L.trim, lite, rich: true });
   // Fahrgestell / chassis
   const cy = wy + 0.01;
   b.box(0.2, 0.04, 0.36, L.hullDark, [0, cy, 0]);
@@ -167,9 +215,14 @@ export function jeep(f: FactionId, lite = false): Builder {
     const front = styleOf(f) === 'dravon' ? 0.2 : 0.19;
     const ly = by + (styleOf(f) === 'meridon' ? 0.035 : 0.045);
     for (const s of [-1, 1]) {
+      if (hi) {
+        headlight(b, s * 0.075, ly, front + 0.008, 0.012, L.hullDark);
+        continue;
+      }
       b.cyl(0.018, 0.02, 0.016, 8, L.hullDark, [s * 0.075, ly, front + 0.004], [HALF_PI, 0, 0]);
       b.box(0.022, 0.022, 0.006, mat.yellow, [s * 0.075, ly, front + 0.013]);
     }
+    if (hi) jeepDetail(b, L, wy, wr, cy, by);
     b.box(0.24, 0.022, 0.024, mat.dark, [0, cy, 0.195]);
     b.box(0.22, 0.022, 0.024, mat.dark, [0, cy, -0.195]);
     for (const x of [-0.055, 0.055]) {
@@ -177,9 +230,10 @@ export function jeep(f: FactionId, lite = false): Builder {
     }
     b.add(geo.cyl(0.024, 0.024, 0.006, 8, true), mat.ink, { p: [-0.055, by + 0.115, 0.03], r: [1.1, 0, 0] });
     // Ersatzrad hinten in Fraktionsfarbe / spare wheel at the rear with faction rim
-    b.group({ p: [0, by + 0.07, -0.205], r: [0, HALF_PI, 0] }, () => wheel(b, 0, 0, 0, 0.048, 0.03, { rim: L.trim }));
+    b.group({ p: [0, by + 0.07, -0.205], r: [0, HALF_PI, 0] }, () => wheel(b, 0, 0, 0, 0.048, 0.03, { rim: L.trim, rich: true }));
     // Kanister / jerrycan
-    b.box(0.03, 0.05, 0.04, L.primaryDark, [0.105, by + 0.1, -0.18]);
+    if (hi) jerryCan(b, [0.105, by + 0.075, -0.18], 0, L.primaryDark, 1.05);
+    else b.box(0.03, 0.05, 0.04, L.primaryDark, [0.105, by + 0.1, -0.18]);
   }
   // Emblem auf der Haube / emblem on hood
   addEmblem(b, f, 0.04, 0.006, L.emblem, { p: [0, by + (styleOf(f) === 'velkar' ? 0.075 : styleOf(f) === 'korvat' ? 0.073 : 0.07), 0.13], r: [-HALF_PI + (styleOf(f) === 'dravon' ? 0.3 : 0.1), 0, 0] });
@@ -194,6 +248,17 @@ export function jeep(f: FactionId, lite = false): Builder {
     // Schutzschild in Zweitfarbe / gun shield in secondary colour
     b.add(geo.ctaper(0.11, 0.01, 0.09, 0.01, 0.065, 0.004), L.trim, { p: [0, 0.012, 0.075], r: [-0.12, 0, 0] });
     for (const s of [-1, 1]) b.box(0.008, 0.03, 0.03, mat.dark, [s * 0.015, -0.03, -0.05], [0.3, 0, 0]);
+    if (hi) {
+      // Kuehlmantel mit Loechern, Visier, Gurtkasten mit Gurt, Spatengriffe / cooling jacket with holes, sights, ammo box with belt, spade grips
+      const bz = 0.07 + 0.04 * gunScale;
+      b.cyl(0.0145 * gunScale, 0.0145 * gunScale, 0.06 * gunScale, 12, mat.darkMid, [0, 0.005, bz], [HALF_PI, 0, 0]);
+      for (let i = 0; i < 4; i++) for (const s of [-1, 1]) b.box(0.004, 0.004, 0.004, mat.ink, [s * 0.0145 * gunScale, 0.005, bz - 0.02 * gunScale + i * 0.013 * gunScale]);
+      b.box(0.004, 0.014, 0.004, mat.dark, [0, 0.026, 0.07 + 0.15 * gunScale]);
+      b.box(0.012, 0.012, 0.004, mat.dark, [0, 0.028, -0.01]);
+      ammoBox(b, [-0.04, -0.028, 0.01], HALF_PI, L.gear, 0.9);
+      for (let i = 0; i < 4; i++) b.box(0.006, 0.004, 0.008, mat.gold, [-0.028 + i * 0.006, -0.004 + i * 0.003, 0.012], [0, 0, 0.6]);
+      for (const s of [-1, 1]) b.tube([s * 0.012, -0.005, -0.03], [s * 0.016, -0.005, -0.065], 0.003, 5, mat.dark);
+    }
   });
   if (!lite) {
     // Fahrer, Kuehlergrill, Spiegel, Abschlepphaken / driver, grille, mirrors, tow hook
@@ -211,6 +276,54 @@ export function jeep(f: FactionId, lite = false): Builder {
   return b;
 }
 
+/**
+ * Jeep, hohe Qualitaet: Achsen mit Blattfedern und Differential, Schmutzfaenger, Auspufftopf, Kuehlergrill-Rahmen,
+ * Abschleppoesen, Nummernschilder, Ruecklichter, Armaturenbrett mit Anzeigen, Sitzlehnen, Schalthebel, Funkgeraet mit
+ * Antenne, Wischer, Planenrolle, Pickel neben der Schaufel. / Jeep, high quality: axles with leaf springs and
+ * differential, mud flaps, muffler, grille frame, tow eyes, number plates, tail lights, dashboard with gauges, seat backs,
+ * gear lever, radio with antenna, wipers, tarp roll, pickaxe next to the shovel.
+ */
+function jeepDetail(b: Builder, L: Look, wy: number, wr: number, cy: number, by: number) {
+  for (const z of [-0.12, 0.13]) {
+    b.cyl(0.008, 0.008, 0.2, 10, mat.dark, [0, wy, z], [0, 0, HALF_PI]);
+    b.add(geo.sphere(0.017, 10, 6), mat.darkMid, { p: [0, wy, z], s: [1, 0.9, 0.8] });
+    for (const s of [-1, 1]) {
+      b.box(0.012, 0.007, 0.1, mat.dark, [s * 0.075, wy + 0.012, z]);
+      b.box(0.014, 0.004, 0.02, mat.metal, [s * 0.075, wy + 0.017, z]);
+      // Schmutzfaenger hinter dem Rad / mud flap behind the wheel
+      b.box(0.045, 0.036, 0.004, mat.dark, [s * 0.118, wy - 0.012, z - wr - 0.01]);
+      b.box(0.04, 0.008, 0.005, MUD, [s * 0.118, wy - 0.024, z - wr - 0.01]);
+    }
+  }
+  muffler(b, [0.098, cy - 0.016, -0.03], 0.1, 0.011, mat.darkMid, -1);
+  b.add(geo.cbox(0.12, 0.042, 0.004, 0.004), L.hullDark, { p: [0, by + 0.03, 0.197] });
+  for (const s of [-1, 1]) {
+    towHook(b, s * 0.085, cy, 0.204, 1, L.hullDark);
+    b.box(0.014, 0.01, 0.005, mat.red, [s * 0.09, by + 0.03, -0.198]);
+    // Sitzlehne / seat back
+    b.add(geo.cbox(0.056, 0.05, 0.012, 0.004), mat.darkMid, { p: [s * 0.055, by + 0.1, -0.034], r: [-0.2, 0, 0] });
+  }
+  // Nummernschilder vorn und hinten / number plates front and rear
+  for (const z of [0.208, -0.208]) {
+    b.box(0.05, 0.016, 0.003, mat.paper, [0, cy, z]);
+    for (let i = 0; i < 3; i++) b.box(0.006, 0.009, 0.002, mat.ink, [-0.014 + i * 0.014, cy, z + Math.sign(z) * 0.002]);
+  }
+  // Armaturenbrett mit Anzeigen, Schalthebel / dashboard with gauges, gear lever
+  b.box(0.18, 0.022, 0.014, L.hullDark, [0, by + 0.078, 0.038]);
+  for (const x of [-0.07, -0.04, 0.02]) b.cyl(0.006, 0.006, 0.003, 10, mat.glass, [x, by + 0.08, 0.03], [HALF_PI, 0, 0]);
+  b.tube([0, by + 0.06, 0.0], [0.004, by + 0.095, 0.012], 0.0025, 5, mat.dark);
+  b.add(geo.sphere(0.0055, 8, 4), mat.ink, { p: [0.004, by + 0.097, 0.012] });
+  // Funkgeraet mit Antenne / radio with antenna
+  b.add(geo.cbox(0.05, 0.036, 0.034, 0.005), L.gear, { p: [-0.065, by + 0.088, -0.14] });
+  for (const x of [-0.078, -0.064]) b.cyl(0.004, 0.004, 0.003, 8, mat.ink, [x, by + 0.09, -0.122], [HALF_PI, 0, 0]);
+  b.box(0.012, 0.008, 0.002, mat.glass, [-0.052, by + 0.092, -0.122]);
+  antennaBase(b, -0.075, by + 0.106, -0.15);
+  b.tube([-0.075, by + 0.12, -0.15], [-0.08, by + 0.3, -0.18], 0.0018, 4, mat.dark);
+  // Planenrolle auf der linken Bordwand, Pickel neben der Schaufel / tarp roll on the left side wall, pickaxe next to the shovel
+  tarpRoll(b, [-0.112, by + 0.082, -0.1], 0.1, 0.012, mix(L.gear, mat.sand, 0.3), mat.dark, HALF_PI);
+  toolSet(b, [-0.136, by + 0.03, -0.03], [0, 0, HALF_PI], 0.1, ['axe']);
+}
+
 // Panzer: eigene Bauform je Fraktion in tanks.ts / tanks: own design per faction in tanks.ts
 export { tank } from './tanks';
 
@@ -221,13 +334,15 @@ export function artillery(f: FactionId, lite = false): Builder {
   const L = look(f);
   const big = styleOf(f) === 'dravon' ? 1.15 : 1;
   const wr = styleOf(f) === 'meridon' ? 0.07 : 0.075;
-  for (const s of [-1, 1]) wheel(b, s * 0.14, wr, 0.02, wr, 0.035, { spokes: lite ? 0 : 5, rim: L.hull, lite, seg: 12 });
+  const hi = !lite && fine();
+  for (const s of [-1, 1]) wheel(b, s * 0.14, wr, 0.02, wr, 0.035, { spokes: lite ? 0 : 5, rim: L.hull, lite, seg: 12, rich: true });
   b.box(0.27, 0.02, 0.02, mat.dark, [0, wr, 0.02]);
   // Spreizlafette / split trail
   for (const s of [-1, 1]) {
     b.add(geo.box(0.03, 0.03, 0.315), L.hullDark, { p: [s * 0.1, 0.045, -0.17], r: [-0.28, -s * 0.32, 0] });
     b.box(0.06, 0.05, 0.012, mat.dark, [s * 0.15, 0.025, -0.325], [0, -s * 0.32, 0]);
   }
+  if (hi) artilleryCarriage(b, L, wr);
   // Wiege + Schild / cradle + shield
   b.block(0, wr, 0.0, 0.1, 0.06, 0.12, L.hull);
   switch (styleOf(f)) {
@@ -266,7 +381,14 @@ export function artillery(f: FactionId, lite = false): Builder {
       b.box(0.008, 0.03, 0.03, mat.metal, [0.03, 0.0, -0.085]);
     }
     const bl = 0.36 * big;
-    b.cyl(0.021 * big, 0.025 * big, bl, 10, L.hullDark, [0, 0.0, 0.07 + bl / 2], [HALF_PI, 0, 0]);
+    if (hi) {
+      richBarrel(b, 0, 0, 0.07, bl, 0.0205 * big, L.hullDark, 2, 16);
+      // Rohrwiege: Ruecklaufbremse mit Baendern, Verschlusshebel, Rohrklammern / cradle: recoil brake with bands, breech lever, barrel clamps
+      for (const z of [0.0, 0.05, 0.1, 0.14]) b.cyl(0.0145, 0.0145, 0.005, 12, mat.dark, [0, 0.032, z], [HALF_PI, 0, 0]);
+      b.tube([0.026, 0.0, -0.1], [0.04, -0.03, -0.12], 0.003, 5, mat.metal);
+      b.add(geo.sphere(0.006, 8, 4), mat.ink, { p: [0.04, -0.03, -0.12] });
+      for (const sx of [-1, 1]) b.box(0.004, 0.02, 0.02, mat.ink, [sx * 0.031 * big, 0, 0.07 + bl - 0.045]);
+    } else b.cyl(0.021 * big, 0.025 * big, bl, 10, L.hullDark, [0, 0.0, 0.07 + bl / 2], [HALF_PI, 0, 0]);
     // Muendungsbremse / muzzle brake
     b.add(geo.cbox(0.06 * big, 0.04 * big, 0.05, 0.01), mat.dark, { p: [0, 0.0, 0.07 + bl - 0.02] });
     if (!lite) for (const sx of [-1, 1]) b.box(0.006, 0.026 * big, 0.03, mat.ink, [sx * 0.031 * big, 0, 0.07 + bl - 0.02]);
@@ -283,20 +405,209 @@ export function artillery(f: FactionId, lite = false): Builder {
       b.add(geo.cone(0.016, 0.03, 8), mat.dark, { p: [0.055, 0.18, 0.11], r: [0, 0, -HALF_PI] });
     });
     // Munitionskiste mit Granaten / ammo crate with shells
-    b.add(geo.cbox(0.09, 0.04, 0.06, 0.01), mat.wood, { p: [-0.26, 0.02, 0.06] });
-    for (const x of [-0.285, -0.26, -0.235]) b.cyl(0.01, 0.01, 0.05, 6, mat.gold, [x, 0.06, 0.06]);
+    if (hi) {
+      crate(b, [-0.26, 0, 0.06], 0.09, 0.04, 0.06, mat.wood, mat.dark);
+      for (const x of [-0.285, -0.26, -0.235]) {
+        b.cyl(0.01, 0.01, 0.04, 10, mat.gold, [x, 0.058, 0.06]);
+        b.add(geo.cone(0.0095, 0.022, 10), mat.dark, { p: [x, 0.089, 0.06] });
+        b.cyl(0.0102, 0.0102, 0.004, 10, mat.metal, [x, 0.07, 0.06]);
+      }
+      // leere Huelsen am Boden / spent casings on the ground
+      for (const [x, z, a] of [[-0.17, 0.12, 0.3], [-0.14, 0.15, 1.2], [-0.19, 0.17, 2.4]] as [number, number, number][]) {
+        b.cyl(0.009, 0.0095, 0.04, 10, mat.gold, [x, 0.009, z], [0, a, HALF_PI]);
+        b.cyl(0.0055, 0.0055, 0.002, 8, mat.ink, [x + Math.cos(a) * 0.021, 0.009, z - Math.sin(a) * 0.021], [0, a, HALF_PI]);
+      }
+      // Ansetzer am Boden / rammer staff on the ground
+      b.tube([0.15, 0.006, 0.0], [0.205, 0.006, 0.15], 0.004, 6, mat.wood);
+      b.tube([0.203, 0.011, 0.145], [0.211, 0.011, 0.167], 0.011, 10, mat.dark);
+    } else {
+      b.add(geo.cbox(0.09, 0.04, 0.06, 0.01), mat.wood, { p: [-0.26, 0.02, 0.06] });
+      for (const x of [-0.285, -0.26, -0.235]) b.cyl(0.01, 0.01, 0.05, 6, mat.gold, [x, 0.06, 0.06]);
+    }
   }
-  b.box(0.06, 0.04, 0.04, L.gear, [0.25, 0.02, 0.03]);
+  if (hi) ammoBox(b, [0.25, 0.0, 0.03], 0.2, L.gear, 1.4);
+  else b.box(0.06, 0.04, 0.04, L.gear, [0.25, 0.02, 0.03]);
+  if (hi) artilleryShield(b, L, f, wr);
   return b;
 }
 
+/**
+ * Lafette, hohe Qualitaet: Achse mit Bremstrommeln, Holme mit Nietenreihen, Zugoese und Handgriffen, Sporne mit Rippen,
+ * Hoehen- und Seitenrichtrad, Rundblickfernrohr, Tarnplane auf dem Holm.
+ * Carriage, high quality: axle with brake drums, trails with rivet rows, towing eye and handles, spades with ribs,
+ * elevation and traverse handwheels, panoramic sight, camouflage tarp on the trail.
+ */
+function artilleryCarriage(b: Builder, L: Look, wr: number) {
+  for (const s of [-1, 1]) {
+    b.cyl(0.026, 0.026, 0.02, 12, mat.darkMid, [s * 0.112, wr, 0.02], [0, 0, HALF_PI]);
+    b.group({ p: [s * 0.1, 0.045, -0.17], r: [-0.28, -s * 0.32, 0] }, () => {
+      for (const x of [-0.009, 0.009]) rivets(b, [x, 0.016, -0.13], [x, 0.016, 0.13], 8, shade(L.hullDark, 0.75), 0.0045);
+      seam(b, [0.0155, 0.0, -0.15], [0.0155, 0.0, 0.15], shade(L.hullDark, 0.7));
+      for (const z of [-0.13, -0.06]) {
+        b.tube([s * 0.015, 0.006, z - 0.02], [s * 0.026, 0.006, z - 0.02], 0.0025, 4, mat.dark);
+        b.tube([s * 0.026, 0.006, z - 0.02], [s * 0.026, 0.006, z + 0.02], 0.0025, 4, mat.dark);
+        b.tube([s * 0.026, 0.006, z + 0.02], [s * 0.015, 0.006, z + 0.02], 0.0025, 4, mat.dark);
+      }
+    });
+    // Sporn mit Rippen / spade with ribs
+    b.group({ p: [s * 0.15, 0.025, -0.325], r: [0, -s * 0.32, 0] }, () => {
+      for (const x of [-0.018, 0, 0.018]) b.box(0.004, 0.04, 0.016, mat.darkMid, [x, 0.002, 0.012]);
+      b.box(0.064, 0.006, 0.014, mat.metal, [0, -0.026, 0.0]);
+    });
+  }
+  // Zugoese an der Holmspitze und Tarnplane / towing eye at the trail tip and camouflage tarp
+  b.add(geo.torus(0.012, 0.004, 4, 10), mat.dark, { p: [0.15, 0.03, -0.345], r: [HALF_PI, 0, 0] });
+  tarpRoll(b, [-0.12, 0.05, -0.21], 0.11, 0.014, mix(L.gear, mat.leaf, 0.35), mat.dark, 1.25);
+  // Richtraeder und Rundblickfernrohr / handwheels and panoramic sight
+  for (const s of [-1, 1]) {
+    b.group({ p: [s * 0.058, wr + 0.035, -0.035], r: [0, 0, HALF_PI] }, () => {
+      b.add(geo.torus(0.017, 0.0028, 4, 14), mat.dark, {});
+      for (let i = 0; i < 3; i++) b.box(0.0035, 0.032, 0.0035, mat.dark, [0, 0, 0], [0, (i / 3) * Math.PI, 0]);
+      b.cyl(0.003, 0.003, 0.014, 5, mat.ink, [0.0, -0.008, 0.015]);
+    });
+  }
+  b.cyl(0.007, 0.008, 0.04, 10, L.hullDark, [-0.04, wr + 0.08, -0.04]);
+  b.add(geo.cbox(0.024, 0.018, 0.03, 0.005), L.hullDark, { p: [-0.04, wr + 0.105, -0.04] });
+  b.box(0.014, 0.008, 0.003, mat.glassDark, [-0.04, wr + 0.107, -0.024]);
+  b.cyl(0.006, 0.006, 0.02, 8, mat.dark, [-0.04, wr + 0.105, -0.062], [HALF_PI, 0, 0]);
+}
+
+/** Schutzschild, hohe Qualitaet: Bolzen, Visierfenster, Kantenleiste je Bauform / gun shield, high quality: bolts, sight window, edge strip per design */
+function artilleryShield(b: Builder, L: Look, f: FactionId, wr: number) {
+  const bolt = shade(L.hull, 0.7);
+  switch (styleOf(f)) {
+    case 'korvat':
+      b.group({ p: [0, wr + 0.09, 0.075], r: [-0.2, 0, 0] }, () => {
+        rivets(b, [-0.165, 0.07, 0.009], [0.165, 0.07, 0.009], 12, bolt, 0.005);
+        rivets(b, [-0.165, -0.07, 0.009], [0.165, -0.07, 0.009], 12, bolt, 0.005);
+        for (const s of [-1, 1]) rivets(b, [s * 0.172, -0.055, 0.009], [s * 0.172, 0.055, 0.009], 5, bolt, 0.005);
+        b.box(0.03, 0.016, 0.004, mat.ink, [-0.075, 0.03, 0.009]);
+        b.box(0.036, 0.006, 0.006, L.hullDark, [-0.075, 0.042, 0.01]);
+      });
+      break;
+    case 'dravon':
+      b.group({ p: [0, wr + 0.01, 0.075], r: [-0.25, 0, 0] }, () => {
+        rivets(b, [-0.15, 0.1, 0.009], [0.15, 0.1, 0.009], 11, bolt, 0.005);
+        b.box(0.03, 0.016, 0.004, mat.ink, [-0.08, 0.075, 0.009]);
+        b.box(0.12, 0.006, 0.004, L.trim, [0, 0.16, 0.009]);
+      });
+      break;
+    case 'alvenia':
+      b.add(geo.torus(0.188, 0.006, 4, 28), L.trim, { p: [0, wr + 0.06, 0.075], r: [-0.2, 0, 0], s: [1, 0.65, 1] });
+      b.group({ p: [0, wr + 0.06, 0.075], r: [-0.2, 0, 0] }, () => {
+        b.box(0.03, 0.014, 0.004, mat.ink, [-0.08, 0.05, 0.01]);
+        for (const x of [-0.12, 0.12]) b.cyl(0.006, 0.006, 0.004, 8, L.trim, [x, 0.02, 0.01], [HALF_PI, 0, 0]);
+      });
+      break;
+    case 'meridon':
+      b.group({ p: [0, wr + 0.085, 0.075], r: [-0.2, 0, 0] }, () => {
+        for (const x of [-0.08, 0, 0.08]) seam(b, [x, -0.07, 0.008], [x, 0.07, 0.008], bolt);
+        for (const s of [-1, 1]) for (const sy of [-1, 1]) b.box(0.012, 0.012, 0.006, shade(L.hull, 0.6), [s * 0.152, sy * 0.068, 0.008]);
+        b.box(0.03, 0.016, 0.004, mat.ink, [-0.04, 0.035, 0.008]);
+      });
+      break;
+    default:
+      break;
+  }
+}
+
 // ---------- Kampfhubschrauber / combat helicopter ----------
+
+/** halbe Rumpfbreite je Bauform (fuer Tueren und Nieten) / half fuselage width per design (for doors and rivets) */
+const HELI_HALF: Record<string, number> = { korvat: 0.062, dravon: 0.066, alvenia: 0.066, meridon: 0.048, velkar: 0.071 };
+
+/**
+ * Kampfhubschrauber, hohe Qualitaet: Kufenschuhe, Trittstufen und Schellen, Rotorkopf mit Gelenken und Steuerstangen,
+ * Taumelscheibe, Ansauggitter, Tuerumrisse mit Griff, Nietenreihen, Staurohre, Drahtschneider, Positionslichter,
+ * Blitzleuchte, Heckrotor-Getriebe, Hecksporn, Raketenrohre in den Behaeltern, Leitwerke der Lenkflugkoerper,
+ * Kuehlmantel der Bugkanone, Kennungsantennen.
+ * Combat helicopter, high quality: skid shoes, steps and clamps, rotor head with hinges and pitch links, swash plate,
+ * intake grilles, door outlines with handle, rivet rows, pitot tubes, wire cutters, navigation lights, beacon, tail rotor
+ * gearbox, tail skid, rocket tubes in the pods, missile fins, chin gun cooling jacket, IFF antennas.
+ */
+function heliDetail(b: Builder, L: Look, f: FactionId, lift: number, by: number, topY: number, boomH: number, gunLen: number, gk: number, podScale: number) {
+  const hw = HELI_HALF[styleOf(f)] ?? 0.062;
+  const seamC = shade(L.hull, 0.72);
+  // Instrumentenbrett in der Kanzel, Rueckspiegel, Abgasspuren, Dachnieten, Seitengitter am Triebwerk, Antennen unten
+  // instrument panel in the canopy, rear-view mirror, exhaust stains, roof rivets, side grilles on the engine, antennas below
+  b.box(0.06, 0.016, 0.008, mat.dark, [0, by + 0.075, 0.135], [-0.5, 0, 0]);
+  for (const x of [-0.018, 0, 0.018]) b.cyl(0.005, 0.005, 0.003, 8, mat.glass, [x, by + 0.08, 0.139], [HALF_PI - 0.5, 0, 0]);
+  b.box(0.012, 0.006, 0.003, mat.glass, [0.03, by + 0.112, 0.105]);
+  rivets(b, [0, topY - 0.004, 0.06], [0, topY - 0.004, -0.02], 5, seamC, 0.0035);
+  for (const s of [-1, 1]) {
+    b.box(0.012, 0.018, 0.05, MUD, [s * 0.05, topY - 0.003, -0.14]);
+    grille(b, [s * 0.06, topY - 0.01, -0.03], 0.04, 0.05, 4, L.hullDark, 0);
+    b.box(0.006, 0.01, 0.03, mat.dark, [s * (hw + 0.004), by + 0.008, 0.03]);
+    b.tube([s * (hw - 0.01), by - 0.005, 0.02], [s * (hw + 0.012), lift + 0.034, 0.03], 0.002, 4, mat.dark);
+  }
+  b.tube([0, by - 0.002, -0.04], [0, by - 0.03, -0.06], 0.0018, 4, mat.dark);
+  for (const s of [-1, 1]) {
+    // Kufen: Schuh vorn, Schellen, Trittstufe / skids: shoe at the front, clamps, step
+    b.add(geo.cbox(0.014, 0.008, 0.03, 0.003), mat.darkMid, { p: [s * 0.085, lift - 0.006, 0.12] });
+    for (const z of [0.1, -0.06]) b.cyl(0.0105, 0.0105, 0.012, 8, mat.darkMid, [s * 0.085, lift, z], [HALF_PI, 0, 0]);
+    b.box(0.03, 0.004, 0.022, mat.metal, [s * 0.07, lift + 0.036, 0.095]);
+    // Tuerumriss mit Griff und Trittstufe / door outline with handle and step
+    const x = s * (hw + 0.0015);
+    seam(b, [x, by + 0.02, 0.0], [x, by + 0.085, 0.0], seamC);
+    seam(b, [x, by + 0.02, 0.075], [x, by + 0.085, 0.075], seamC);
+    seam(b, [x, by + 0.02, 0.0], [x, by + 0.02, 0.075], seamC);
+    b.box(0.004, 0.004, 0.012, mat.dark, [x + s * 0.002, by + 0.05, 0.06]);
+    rivets(b, [x, by + 0.012, -0.1], [x, by + 0.012, 0.12], 10, seamC, 0.0035);
+    // Staurohre / pitot tubes
+    b.tube([s * 0.028, by + 0.05, 0.19], [s * 0.028, by + 0.05, 0.235], 0.0022, 4, mat.metal);
+    // Positionslichter an den Fluegelspitzen (links rot, rechts gruen) / navigation lights at the wing tips (left red, right green)
+    b.box(0.008, 0.008, 0.012, s > 0 ? mat.green : mat.red, [s * 0.171, by + 0.045, 0.0]);
+    // Raketenbehaelter: Rohroeffnungen, Halteband, Heckkonus / rocket pod: tube openings, strap, tail cone
+    const px = s * 0.155, py = by + 0.03, pr = 0.024 * podScale;
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 6) * Math.PI * 2, rr = k === 6 ? 0 : pr * 0.55;
+      b.cyl(0.0045 * podScale, 0.0045 * podScale, 0.004, 6, mat.ink, [px + Math.sin(a) * rr, py + Math.cos(a) * rr, 0.0635], [HALF_PI, 0, 0]);
+    }
+    for (const z of [-0.015, 0.035]) b.cyl(pr * 1.06, pr * 1.06, 0.006, 12, mat.dark, [px, py, z], [HALF_PI, 0, 0]);
+    b.add(geo.cone(pr * 0.95, 0.03, 12), L.hullDark, { p: [px, py, -0.055], r: [-HALF_PI, 0, 0] });
+    // Leitwerke der Lenkflugkoerper / missile fins
+    for (const dx of [-0.012, 0.012]) {
+      b.box(0.022, 0.0025, 0.01, mat.dark, [s * 0.11 + dx, by + 0.026, -0.018]);
+      b.box(0.0025, 0.022, 0.01, mat.dark, [s * 0.11 + dx, by + 0.026, -0.018]);
+    }
+  }
+  // Drahtschneider oben und unten am Bug / wire cutters on top and below the nose
+  b.box(0.006, 0.03, 0.008, mat.dark, [0, by + 0.115, 0.15], [0.6, 0, 0]);
+  b.box(0.006, 0.026, 0.008, mat.dark, [0, by - 0.01, 0.17], [-0.6, 0, 0]);
+  // Rotorkopf: Taumelscheibe, Gelenke, Steuerstangen / rotor head: swash plate, hinges, pitch links
+  b.add(geo.torus(0.026, 0.004, 4, 16), mat.metal, { p: [0, topY + 0.032, 0], r: [HALF_PI, 0, 0] });
+  const blades = styleOf(f) === 'meridon' ? 3 : 4;
+  for (let i = 0; i < blades; i++) {
+    const a = Math.PI / 4 + (i / blades) * Math.PI * 2;
+    b.group({ p: [0, topY + 0.05, 0], r: [0, a, 0] }, () => {
+      b.add(geo.cbox(0.02, 0.014, 0.022, 0.004), mat.darkMid, { p: [0, 0.002, 0.03] });
+      b.cyl(0.004, 0.004, 0.026, 6, mat.metal, [0, 0.004, 0.03], [0, 0, HALF_PI]);
+      b.tube([0.012, -0.018, 0.02], [0.012, 0.0, 0.03], 0.0022, 4, mat.dark);
+      // Trimmklappe an der Hinterkante / trim tab at the trailing edge
+      b.box(0.012, 0.0045, 0.024, L.trim, [-0.024, 0.0, 0.3], [0, 0, 0.08]);
+    });
+  }
+  // Ansauggitter auf dem Triebwerk / intake grille on the engine
+  grille(b, [0, topY + 0.006, -0.04], 0.05, 0.05, 4, L.hullDark);
+  // Heck: Getriebe des Heckrotors, Blitzleuchte, Hecksporn, Kennungsantennen / tail: tail rotor gearbox, beacon, tail skid, IFF antennas
+  b.add(geo.cbox(0.014, 0.022, 0.024, 0.004), L.hullDark, { p: [0.009, by + 0.11, -0.36] });
+  b.cyl(0.006, 0.006, 0.01, 8, mat.metal, [0.03, by + 0.11, -0.36], [0, 0, HALF_PI]);
+  b.add(geo.sphere(0.006, 8, 4), mat.red, { p: [0, by + 0.177, -0.378] });
+  b.tube([0, by + 0.066, -0.35], [0, by + 0.035, -0.38], 0.0025, 4, mat.dark);
+  rivets(b, [0, by + 0.07 + boomH / 2 + 0.0005, -0.135], [0, by + 0.07 + boomH * 0.33, -0.34], 8, seamC, 0.0035);
+  b.box(0.003, 0.018, 0.012, mat.dark, [0, by + 0.07 - boomH / 2 - 0.006, -0.22], [-0.3, 0, 0]);
+  // Bugkanone: Kuehlmantel mit Loechern, Munitionsschacht / chin gun: cooling jacket with holes, ammo chute
+  b.cyl(0.009 * gk, 0.009 * gk, gunLen * 0.4, 10, mat.darkMid, [0, by - 0.01, 0.13 + gunLen * 0.3], [HALF_PI, 0, 0]);
+  for (let i = 0; i < 3; i++) b.box(0.003, 0.003, 0.004, mat.ink, [0.009 * gk, by - 0.01, 0.13 + gunLen * (0.18 + i * 0.12)]);
+  b.tube([0.012, by - 0.002, 0.12], [0.03, by + 0.02, 0.07], 0.004, 5, mat.dark);
+}
 
 export function heli(f: FactionId, lite = false): Builder {
   const b = new Builder();
   const L = look(f);
   const lift = 0.08; // schwebt / hovering
   const by = lift + 0.05;
+  const hi = !lite && fine();
   // Kufen mit Querrohren / skids with cross tubes
   for (const s of [-1, 1]) {
     b.cyl(0.008, 0.008, 0.3, 4, mat.dark, [s * 0.085, lift, 0.02], [HALF_PI, 0, 0]);
@@ -412,6 +723,7 @@ export function heli(f: FactionId, lite = false): Builder {
   if (!lite) b.cyl(0.01 * gk, 0.008 * gk, 0.02, 6, mat.dark, [0, by - 0.01, 0.13 + gunLen], [HALF_PI, 0, 0]);
   // Emblem auf dem Ausleger / emblem on boom
   emblemSides(b, f, L, 0.022, by + 0.072, -0.17, lite ? 0 : 0.028);
+  if (hi) heliDetail(b, L, f, lift, by, topY, boomH, gunLen, gk, podScale);
   // Hauptrotor mit Taumelscheibe / main rotor with swash plate
   b.cyl(0.014, 0.018, 0.05, 8, mat.dark, [0, topY + 0.02, 0.0]);
   b.cyl(0.03, 0.03, 0.02, seg, L.trim, [0, topY + 0.045, 0.0]);

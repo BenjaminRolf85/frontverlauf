@@ -8,6 +8,7 @@
  * cat=basesF: every faction per kind (&lv= level), cat=naval: naval base per sea side
  * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
  * cat=special: Sonderbauarten der Fraktionen / faction designs
+ * cat=pick&pick=<typ:fraktion[!],...;...>: freie Auswahl, ';' neue Zeile, '!' bisheriges Modell / free pick, ';' new row, '!' previous model
  * cat=academy: schwebende Akademie der Velkar (Boden, Abheben, Luft, Terraformen, Stufen, niedrige Qualitaet) und Forschungsposten (mit Beamer) / Velkar floating academy (ground, lift, air, terraform, levels, low quality) and research posts (with beamer)
  */
 import '@fontsource/bangers';
@@ -19,7 +20,7 @@ import {
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, setUnitQuality, unitGeometry, xenoDecoration, UNIT_TRI_LIMIT, UNIT_TRI_LIMIT_BOSS,
+  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, legacyUnitGeometry, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry, unitTriLimit, xenoDecoration,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -29,6 +30,10 @@ import { ARTIFACT_ORBIT_Y, artifactGeometry, artifactGeometryAll } from './artif
 import { Builder } from './kit';
 import { academyGeometry, academyRadarAt, academyRadarGeometry, poseY, researchPostGeometry, type AcademyPose } from './academy';
 import { look } from './look';
+import { wreckGeometry } from '../remains';
+import { isInked, unitOutlined } from '../unitDraw';
+import { atlasStats, flushAtlases } from './inked/atlas';
+import { inkFor } from './inked/ink';
 
 /** tiles: Bodenflaeche in Brettfeldern (Wunder) / ground size in board tiles (wonders) */
 type Cell = { geo: THREE.BufferGeometry | null; ground: string | null; label?: string; tiles?: number };
@@ -41,6 +46,8 @@ if (params.get('labels') === '0') document.querySelector('nav')?.remove();
 const cat = params.get('cat') ?? 'units';
 // ?q=low zeigt die leichte Detailstufe der Einheiten / shows the light unit detail level
 if (params.get('q') === 'low') setUnitQuality('low');
+// ?style=legacy zeigt die bisherigen Modelle auch fuer schon gezeichnete Typen / shows the previous models for inked types too
+if (params.get('style') === 'legacy') setInkedUnits(false);
 const view = params.get('view') ?? 'iso';
 const onlyFaction = params.get('f') as FactionId | null;
 const factions: FactionId[] = onlyFaction ? [onlyFaction] : FACTION_IDS;
@@ -365,6 +372,27 @@ function sheet(): Sheet {
         ],
       };
     }
+    case 'wrecks': {
+      // Wracks aus dem Einheitenmodell (remains.ts), daneben das Modell: gezeichnete und bisherige Typen
+      // wrecks from the unit model (remains.ts), next to the model: inked and previous types
+      const list: [UnitTypeId, FactionId][] = [['tank', 'korvat'], ['tank', 'dravon'], ['jeep', 'korvat'], ['artillery', 'korvat'], ['heli', 'alvenia'], ['mineLayer', 'meridon'], ['teslaTank', 'velkar']];
+      // Gruppe Roboter und Kultfahrzeuge / group robots and cult vehicles
+      list.push(['railgun', 'nexus'], ['flameTank', 'nexus'], ['doomBuggy', 'vesper'], ['rocketCart', 'vesper'], ['doomCrawler', 'vesper']);
+      return {
+        cols: ['wreck 0', 'wreck 1', 'unit'],
+        rows: list.map(([t, f]) => ({ label: `${t} ${f}`, cells: [wreckGeometry(t, f, 0), wreckGeometry(t, f, 1), unitGeometry(t, f, null)].map((geo) => ({ geo, ground: plainGround })) })),
+      };
+    }
+    case 'pick': {
+      // freie Auswahl fuer Reihen- und Vergleichsbilder: ?pick=jeep:korvat,tank:dravon!;infantry:korvat (';' = neue Zeile, '!' = bisheriges Modell)
+      // free pick for line-up and comparison shots: ?pick=jeep:korvat,tank:dravon!;infantry:korvat (';' = new row, '!' = previous model)
+      const rows = (params.get('pick') ?? '').split(';').filter(Boolean).map((line, i) => ({ label: `pick ${i + 1}`, cells: line.split(',').filter(Boolean).map((e): Cell => {
+        const old = e.endsWith('!');
+        const [t, f] = e.replace('!', '').split(':') as [UnitTypeId, FactionId];
+        return { geo: old ? legacyUnitGeometry(t, f ?? 'korvat', null) : unitGeometry(t, f ?? 'korvat', null), ground: plainGround };
+      }) }));
+      return { cols: Array.from({ length: Math.max(1, ...rows.map((r) => r.cells.length)) }, (_, i) => String(i + 1)), rows };
+    }
     case 'special': {
       // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction
       const list: [UnitTypeId, FactionId][] = [
@@ -464,6 +492,10 @@ function label(text: string, size = 0.11): THREE.Sprite {
 }
 
 const tris: Record<string, number> = {};
+/** Dreiecke der Tuschegeometrie gezeichneter Einheiten / triangles of the ink geometry of inked units */
+const inkTris: Record<string, number> = {};
+/** Konturbreite der Vorschau (wie outlineMat unten) / outline width of the preview (as outlineMat below) */
+const OUTLINE_PREVIEW = 0.0075;
 const boxes: Record<string, number[]> = {};
 const content = new THREE.Group();
 scene.add(content);
@@ -480,12 +512,19 @@ async function buildScene() {
     sh.cols = keep.map((i) => sh.cols[i]);
     for (const r of sh.rows) r.cells = keep.map((i) => r.cells[i]).filter(Boolean);
   }
-  const pitch = cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' || cat === 'academy' ? 1.5 : 1.2;
+  // ?gap= Abstand der Zellen, ?ground=0 ohne Bodenplatten (Reihenbilder der Einheiten) / ?gap= cell spacing, ?ground=0 without ground tiles (line-up shots of units)
+  const pitch = Number(params.get('gap')) || (cat === 'wonders' ? 2.4 : cat === 'artifact' || cat === 'bases' || cat === 'basesF' || cat === 'naval' || cat === 'academy' ? 1.5 : 1.2);
   // Im Iso-Blick liegen Spalten waagrecht und Zeilen senkrecht auf dem Bildschirm
   // In the iso view columns run horizontally and rows vertically on screen
   const iso = view === 'iso';
   const k = iso ? pitch / Math.SQRT2 : pitch;
-  const at = (ci: number, ri: number): [number, number] => (iso ? [(ci + ri) * k, (ri - ci) * k] : [ci * k, ri * k]);
+  // ?lay=row legt die Zeilen nebeneinander statt untereinander (Reihenbild der Typen einer Fraktion)
+  // ?lay=row puts the rows side by side instead of below each other (line-up of one faction's types)
+  const flip = params.get('lay') === 'row';
+  const at = (c0: number, r0: number): [number, number] => {
+    const ci = flip ? r0 : c0, ri = flip ? c0 : r0;
+    return iso ? [(ci + ri) * k, (ri - ci) * k] : [ci * k, ri * k];
+  };
   sh.rows.forEach((row, ri) => {
     const lab = label(row.label);
     const [lx, lz] = at(-0.85, ri);
@@ -494,7 +533,7 @@ async function buildScene() {
     if (params.get('labels') !== '0') content.add(lab);
     row.cells.forEach((cell, ci) => {
       const [x, z] = at(ci, ri);
-      if (cell.ground) {
+      if (cell.ground && params.get('ground') !== '0') {
         // Wunder: echte Brettfelder (1 Feld = 1/1.25 Modelleinheiten) / wonders: real board tiles (1 tile = 1/1.25 model units)
         const tw = cell.tiles ? 0.8 : 1, n = cell.tiles ?? 1;
         const g = new THREE.Mesh(new THREE.BoxGeometry(tw * n - 0.02, 0.08, tw * n - 0.02), new THREE.MeshToonMaterial({ color: cell.ground, gradientMap: gradient }));
@@ -502,12 +541,23 @@ async function buildScene() {
         content.add(g);
       }
       if (!cell.geo) return;
-      const m = new THREE.Mesh(cell.geo, toon);
-      m.position.set(x, 0, z);
-      const o = new THREE.Mesh(outlineGeometry(cell.geo), outlineMat);
-      m.add(o);
-      content.add(m);
+      if (isInked(cell.geo)) {
+        // gezeichnete Einheit: Material und Tusche wie im Spiel, Tuerme zusammengesetzt / inked unit: material and ink as in the game, turrets assembled
+        const split = splitTurrets(cell.geo);
+        const m = unitOutlined(split ? split.hull : cell.geo, OUTLINE_PREVIEW);
+        for (const t of split?.turrets ?? []) { const tur = unitOutlined(t.geometry, OUTLINE_PREVIEW); tur.position.copy(t.pivot); tur.rotation.y = t.yaw; m.add(tur); }
+        m.position.set(x, 0, z);
+        content.add(m);
+        inkTris[`${row.label}|${sh.cols[ci]}`] = inkFor(cell.geo).index!.count / 3;
+      } else {
+        const m = new THREE.Mesh(cell.geo, toon);
+        m.position.set(x, 0, z);
+        const o = new THREE.Mesh(outlineGeometry(cell.geo), outlineMat);
+        m.add(o);
+        content.add(m);
+      }
       tris[`${row.label}|${sh.cols[ci]}`] = cell.geo.attributes.position.count / 3;
+      if (!cell.geo.boundingBox) cell.geo.computeBoundingBox();
       const bb = cell.geo.boundingBox!;
       boxes[`${row.label}|${sh.cols[ci]}`] = [bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z].map((v) => Math.round(v * 100) / 100);
     });
@@ -608,7 +658,7 @@ function checkAll(): string[] {
     for (let i = 0; i < n.length; i++) if (!Number.isFinite(n[i])) { errors.push(`${name}: NaN normal`); break; }
     const tri = g.getAttribute('position').count / 3;
     // Einheiten: Obergrenze je Modell (genau je Typ in tests/unit-model-budget.test.ts) / units: ceiling per model (exact per type in tests/unit-model-budget.test.ts)
-    const limit = name.startsWith('unit swarmMother') ? UNIT_TRI_LIMIT_BOSS : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : name.startsWith('unit') ? UNIT_TRI_LIMIT : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
+    const limit = name.startsWith('unit swarmMother') ? unitTriLimit(getUnitQuality(), true) : name.startsWith('mothership ') ? 14000 : name.startsWith('artifact') ? 20000 : name.startsWith('wonder fusionPlant') ? 40000 : name.startsWith('wonder') ? 25000 : name.startsWith('leader') ? 64000 : name.startsWith('unit') ? unitTriLimit(getUnitQuality()) : name.startsWith('city') ? 6000 : name.startsWith('xenoDeco') ? 800 : 4000;
     if (tri > limit) errors.push(`${name}: ${tri} triangles`);
     if (name === 'artifact all') {
       // ein Feld Grundflaeche, Hoehe 1.8 bis 2.2 / one tile footprint, height 1.8 to 2.2
@@ -636,7 +686,25 @@ buildScene().then(() => {
   if (params.get('check')) (window as unknown as { __check: string[] }).__check = checkAll();
   fit();
   render();
-  const w = window as unknown as { __tris: Record<string, number>; __boxes: Record<string, number[]>; __ready: boolean };
+  // Texturen der gezeichneten Einheiten sofort fertig zeichnen (die Vorschau zeichnet nur bei Bedarf neu)
+  // finish the textures of the inked units at once (the preview only redraws on demand)
+  flushAtlases();
+  render();
+  const w = window as unknown as { __tris: Record<string, number>; __inkTris: Record<string, number>; __atlas: unknown; __boxes: Record<string, number[]>; __bench: (n?: number) => number; __ready: boolean };
+  // Messhilfe: mittlere Zeit je Bild in ms ueber n Bilder (mit gl.finish), zum Vergleich von Shadern und Geometrien
+  // bench helper: mean time per frame in ms over n frames (with gl.finish), to compare shaders and geometries
+  w.__bench = (n = 20) => {
+    // readPixels zwingt den Browser, das Bild wirklich fertig zu zeichnen (gl.finish allein kehrt sofort zurueck)
+    // readPixels forces the browser to really finish the frame (gl.finish alone returns at once)
+    const gl = renderer.getContext(), px = new Uint8Array(4);
+    const frame = () => { render(); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); };
+    frame();
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) frame();
+    return Math.round(((performance.now() - t0) / n) * 100) / 100;
+  };
+  w.__inkTris = inkTris;
+  w.__atlas = atlasStats();
   w.__tris = tris;
   w.__boxes = boxes;
   w.__ready = true;

@@ -25,7 +25,10 @@ import { building, feature } from './buildings';
 import { tank } from './vehicles';
 import { city } from './city';
 import { memo, scaleWithTurrets, withDetail } from './kit';
-export { splitTurrets, turretsOf, type TurretRange, type TurretSplit } from './kit';
+export { turretsOf, type TurretRange, type TurretSplit } from './kit';
+import { buildInked, INKED, inkedType, inkedUnitsEnabled, setInkedUnits } from './inked';
+export { INKED, inkedType, inkedUnitsEnabled, setInkedUnits, splitTurrets, warmInked } from './inked';
+import { withBoatCargo } from './inked/boats';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
@@ -88,6 +91,17 @@ export type UnitQuality = 'low' | 'high';
  */
 export const UNIT_TRI_LIMIT = 9500;
 export const UNIT_TRI_LIMIT_BOSS = 16500;
+/**
+ * Hohe Qualitaet (Desktop): Detailrunde 4 hebt die Obergrenze deutlich an, damit Figuren und Fahrzeuge aus der Naehe
+ * und im Introfilm genug Einzelteile tragen. Die niedrige Qualitaet (Handy) bleibt bei UNIT_TRI_LIMIT.
+ * High quality (desktop): detail round 4 raises the ceiling clearly so figures and vehicles carry enough parts up close
+ * and in the intro film. Low quality (phone) stays at UNIT_TRI_LIMIT.
+ */
+export const UNIT_TRI_LIMIT_HIGH = 22000;
+export const UNIT_TRI_LIMIT_BOSS_HIGH = 34000;
+/** Obergrenze fuer eine Detailstufe / ceiling for a detail level */
+export const unitTriLimit = (q: UnitQuality, boss = false): number =>
+  q === 'high' ? (boss ? UNIT_TRI_LIMIT_BOSS_HIGH : UNIT_TRI_LIMIT_HIGH) : boss ? UNIT_TRI_LIMIT_BOSS : UNIT_TRI_LIMIT;
 let unitQuality: UnitQuality = 'high';
 export function setUnitQuality(q: UnitQuality): void {
   unitQuality = q;
@@ -103,6 +117,13 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
   // victory wonders: own models at structure size, without the unit size and value adjustments
   if (wonder) return wonderGeometry(type as WonderType, faction, stage);
   const hi = unitQuality === 'high';
+  // Gezeichnete Einheiten (models/inked): eigener Weg mit uv, Tusche und Verdeckung; alle anderen wie bisher
+  // inked units (models/inked): their own path with uv, ink and occlusion; all others as before
+  // Boote mit Ladung (c): das gezeichnete Boot nimmt das vereinfachte bisherige Modell der Ladung an Bord (inked/boats.ts)
+  // boats with cargo (c): the inked boat takes the simplified previous model of its cargo on board (inked/boats.ts)
+  if (inkedType(type, faction)) {
+    return memo(`unit|${type}|${faction}|inked${c ? `|${c}` : ''}${hi ? '' : '|low'}`, () => techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => withBoatCargo(c ? carriedGeometry(c, faction) : null, () => buildInked(type, faction, hi)), { smooth: true, fine: hi })));
+  }
   return memo(`unit|${type}|${faction}|${c ?? ''}${hi ? '' : '|low'}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
       case 'infantry': return infantry(faction).build();
@@ -180,6 +201,42 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
       default: return wonderGeometry(type as WonderType, faction, stage);
     }
   }, { smooth: true, fine: hi }))));
+}
+
+let warmQueue: (() => void)[] = [];
+let warmBusy = false;
+/**
+ * Gezeichnete Einheiten der Fraktionen einer Partie vorab bauen, eine je freier Zeitscheibe: der Aufbau (Verdeckung)
+ * kostet bei hoher Qualitaet um 100 ms je Typ und soll nicht mitten im Zug auffallen. Ohne Browser tut das nichts.
+ * Build the inked units of a match's factions ahead of time, one per idle slice: building (occlusion) costs around
+ * 100 ms per type on high quality and should not show in the middle of a turn. Does nothing without a browser.
+ */
+export function prewarmInked(factions: FactionId[]): void {
+  if (typeof window === 'undefined' || typeof requestAnimationFrame !== 'function') return;
+  const idle: (fn: () => void) => void = typeof requestIdleCallback === 'function' ? (fn) => requestIdleCallback(fn, { timeout: 800 }) : (fn) => { setTimeout(fn, 60); };
+  warmQueue = [];
+  for (const f of factions) for (const t of Object.keys(INKED) as UnitTypeId[]) if (inkedType(t, f)) warmQueue.push(() => { unitGeometry(t, f, null); });
+  const step = () => {
+    const job = warmQueue.shift();
+    if (!job) { warmBusy = false; return; }
+    try { job(); } catch { /* ein Modell darf das Vorwaermen nicht anhalten / one model must not stop the prewarm */ }
+    idle(step);
+  };
+  if (!warmBusy) { warmBusy = true; idle(step); }
+}
+
+/**
+ * Bisheriges Modell eines Typs, auch wenn er schon gezeichnet ist (Vergleich in der Vorschau, Introfilm).
+ * The previous model of a type even if it is inked already (comparison in the preview, intro film).
+ */
+export function legacyUnitGeometry(type: UnitTypeId, faction: FactionId, carried: UnitTypeId | null, stage = 0): THREE.BufferGeometry {
+  const was = inkedUnitsEnabled();
+  setInkedUnits(false);
+  try {
+    return unitGeometry(type, faction, carried, stage);
+  } finally {
+    setInkedUnits(was);
+  }
 }
 
 /**

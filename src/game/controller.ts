@@ -2,6 +2,7 @@
  * Controller: jede Eingabe (Maus, Touch, XR) wird hier zu einem Kommando an den Spielkern.
  * Controller: every input (mouse, touch, XR) becomes a command to the game core here.
  */
+import { prewarmInked } from '../render/models';
 import {
   score, isHostile, dist, weather, applyCommand, attackTargets, rocketTargets, captureKind, combatPreview, convertTargets, createGame, heliSafe, heliWillCrash,
   ownUnits, reachable, unitAt, workSpots, isSampler, unitById, cityAt, canSeeUnit, isExplored, barrierTargets, mineTargets, emplacementTargets, radioTargets, terraformTargets, turretTargets,
@@ -117,6 +118,8 @@ export class Controller {
     this.clearSelection();
     this.view.fit(s.size);
     this.refresh();
+    // gezeichnete Einheiten der Fraktionen dieser Partie im Leerlauf vorab bauen / prebuild the inked units of this match's factions while idle
+    prewarmInked(s.factions.map((f) => f.id));
     const hq = s.cities.find((c) => c.isHQ && c.hqOf === this.viewer && c.owner === this.viewer);
     if (hq) this.view.centerOn(this.view.board.tileCenter(s, hq.x, hq.y));
     else {
