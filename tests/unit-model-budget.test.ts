@@ -63,9 +63,9 @@ const BUDGET: Record<string, [number, number, number]> = {
   zealot: [10150, 4900, 4716], // 9646 / 4656 (Detailrunde 4 / detail round 4)
   torchbearer: [10450, 5100, 4984], // 9918 / 4848 (Detailrunde 4 / detail round 4)
   prophet: [10200, 4800, 5026], // 9680 / 4710 (Detailrunde 4 / detail round 4)
-  doomBuggy: [7700, 4800, 5576], // 7296 / 4556 (Detailrunde 4 / detail round 4)
-  rocketCart: [8100, 5500, 5392], // 7702 / 4624 (Detailrunde 4 / detail round 4)
-  doomCrawler: [9650, 7350, 8023], // 9159 / 6407 (Detailrunde 4 / detail round 4)
+  doomBuggy: [6500, 2250, 5576], // 6143 / 2137 (gezeichnet / inked; vorher 7296 / 4556)
+  rocketCart: [8300, 2200, 5392], // 7863 / 2062 (gezeichnet / inked; vorher 7702 / 4624)
+  doomCrawler: [8450, 3300, 8023], // 8047 / 3133 (gezeichnet / inked; vorher 9159 / 6407)
   faustZealot: [10600, 5250, 4967], // 10081 / 4963 (Detailrunde 4 / detail round 4)
   // neu (Berserker des Kults), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (the cult's berserker), no before state: before holds its own low value
   berserker: [8450, 2950, 2808], // 8004 / 2808 (Detailrunde 4 / detail round 4)
@@ -136,6 +136,9 @@ const INK_ROBOTS: Record<string, [number, number]> = {
   flakDrone: [4250, 1410], // 4026 / 1338
   quadDrone: [5700, 1930], // 5394 / 1832
   titan: [5200, 1740], // 4944 / 1656
+  doomBuggy: [5800, 2120], // 5520 / 2016
+  rocketCart: [5500, 2030], // 5198 / 1929
+  doomCrawler: [9850, 3170], // 9358 / 3014
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
@@ -151,7 +154,8 @@ const BEFORE_VEHICLES: Record<string, [number, number]> = {
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {
   railgun: [9874, 4876], flameTank: [12132, 5486], spider: [7704, 4364], kamikazeDrone: [7280, 3616],
-  flakDrone: [5974, 2242], quadDrone: [7198, 4166], titan: [11480, 5788],
+  flakDrone: [5974, 2242], quadDrone: [7198, 4166], titan: [11480, 5788], doomBuggy: [7296, 4556],
+  rocketCart: [7702, 4624], doomCrawler: [9159, 6407],
 };
 const BEFORE_NAVAL: Record<string, [number, number]> = {
 };
