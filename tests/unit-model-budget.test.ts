@@ -65,7 +65,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   prophet: [10200, 4800, 5026], // 9680 / 4710 (Detailrunde 4 / detail round 4)
   doomBuggy: [6500, 2250, 5576], // 6143 / 2137 (gezeichnet / inked; vorher 7296 / 4556)
   rocketCart: [8300, 2200, 5392], // 7863 / 2062 (gezeichnet / inked; vorher 7702 / 4624)
-  doomCrawler: [8450, 3300, 8023], // 8047 / 3133 (gezeichnet / inked; vorher 9159 / 6407)
+  doomCrawler: [8500, 3300, 8023], // 8049 / 3133 (gezeichnet / inked; vorher 9159 / 6407)
   faustZealot: [10600, 5250, 4967], // 10081 / 4963 (Detailrunde 4 / detail round 4)
   // neu (Berserker des Kults), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (the cult's berserker), no before state: before holds its own low value
   berserker: [8450, 2950, 2808], // 8004 / 2808 (Detailrunde 4 / detail round 4)
@@ -77,7 +77,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   flakDrone: [3050, 1500, 2074], // 2866 / 1398 (gezeichnet / inked; vorher 5974 / 2242)
   railgun: [6900, 2350, 5580], // 6556 / 2191 (gezeichnet / inked; vorher 9874 / 4876)
   flameTank: [8100, 2500, 7006], // 7678 / 2369 (gezeichnet / inked; vorher 12132 / 5486)
-  titan: [4300, 1900, 5772], // 4050 / 1796 (gezeichnet / inked; vorher 11480 / 5788)
+  titan: [4500, 2100, 5772], // 4272 / 1974 (gezeichnet / inked; vorher 11480 / 5788)
   steppeRider: [11000, 3500, 3367], // 10437 / 3228 (Detailrunde 4 / detail round 4)
   stormbreaker: [12500, 4450, 4681], // 11886 / 4025 (Detailrunde 4 / detail round 4)
   peacekeeper: [15850, 7100, 7414], // 15091 / 6441 (Detailrunde 4 / detail round 4)
@@ -135,7 +135,7 @@ const INK_ROBOTS: Record<string, [number, number]> = {
   kamikazeDrone: [2500, 860], // 2358 / 819
   flakDrone: [4250, 1410], // 4026 / 1338
   quadDrone: [5700, 1930], // 5394 / 1832
-  titan: [5200, 1740], // 4944 / 1656
+  titan: [5650, 1900], // 5380 / 1804
   doomBuggy: [5800, 2120], // 5520 / 2016
   rocketCart: [5500, 2030], // 5198 / 1929
   doomCrawler: [9850, 3170], // 9358 / 3014

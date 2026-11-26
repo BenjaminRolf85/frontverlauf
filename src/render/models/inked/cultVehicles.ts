@@ -198,7 +198,7 @@ export function doomCrawler(f: FactionId, A: AtlasLayout): UvBuilder {
     b.add(softBox(0.44, 0.012, 0.03, 0.003), mat.bone, { xf: { p: [0, 0.008, bz + 0.036] }, crease: 0.5 });
     for (let i = 0; i < 7; i++) spike(b, A, [-0.18 + i * 0.06, 0.088 + (i % 2) * 0.032, bz + 0.04], [0, 0.05, 1], 0.016, 0.072, mat.bone);
     b.mirrorX(() => b.add(softBox(0.03, 0.03, 0.13, 0.006), steel, { xf: { p: [0.11, 0.1, bz - 0.04], r: [0.3, 0, 0] }, gloss: 0.2 }));
-    emblemDecal(b, A, f, [0, 0.094, bz + 0.0468], [0, 0.12, 1], 0.07, mat.rustDark);
+    emblemDecal(b, A, f, [0, 0.094, bz + 0.0468], [0, 0.12, 1], 0.092, mat.rustDark);
     if (hi) for (const x of [-0.14, 0.14]) orb(b, A, [x, 0.118, bz + 0.05], 0.019, mat.bone, { cell: 'skull', seg: 12, rows: 6, sz: 1.08, gloss: 0.1 });
     // Fuehrerhaus mit Glutschlitz und Luk (breiter als bisher: der Kommandant steht im Luk)
     // cab with ember slit and hatch (wider than before: the commander stands in the hatch)
@@ -217,7 +217,7 @@ export function doomCrawler(f: FactionId, A: AtlasLayout): UvBuilder {
     tube(b, A, [0, ty + 0.2, tz], [0, ty + 0.357, tz], 0.0055, 0.0048, mat.wood, { seg: hi ? 6 : 4 });
     b.add(softBox(0.112, 0.008, 0.008, 0.002), mat.wood, { xf: { p: [0.05, ty + 0.348, tz] }, crease: 0.5 });
     b.add(projectBox(geo.profileXY([[-0.05, 0.06], [0.05, 0.06], [0.05, -0.05], [0.03, -0.034], [0.012, -0.06], [-0.012, -0.04], [-0.03, -0.06], [-0.05, -0.044]], 0.005), { pz: A.get('sBanner'), nz: A.get('sBanner'), all: A.get('blank') }), L.primary, { xf: { p: [0.055, ty + 0.284, tz] }, crease: 0.6 });
-    for (const s of [-1, 1]) emblemDecal(b, A, f, [0.055, ty + 0.292, tz + s * 0.0026], [0, 0, s], 0.05, L.primary);
+    for (const s of [-1, 1]) emblemDecal(b, A, f, [0.055, ty + 0.294, tz + s * 0.0026], [0, 0, s], 0.074, L.primary);
     // Schlote mit Glut und Rauch / smoke stacks with ember and smoke
     for (const sx of [-1, 1]) {
       b.add(loft([{ y: 0.166, rx: 0.015, hard: true, c: mat.ember }, { y: 0.162, rx: 0.0225, hard: true }, { y: 0.15, rx: 0.0225, hard: true, c: mat.rust }, { y: 0, rx: 0.026 }], { seg: hi ? 10 : 6, region: A.get('exhaust'), capFirst: true }), null, { xf: { p: [sx * 0.08, 0.19, -0.172] }, gloss: 0.1 });

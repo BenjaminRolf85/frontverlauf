@@ -13,7 +13,7 @@
 import type { FactionId } from '../../../data/balance';
 import { fine, geo, shade, softBox, taperSoft, type V3 } from '../kit';
 import { look, mat } from '../look';
-import { antenna, can, HALF_PI, limb, orb } from './robotKit';
+import { antenna, can, HALF_PI, limb, orb, spike } from './robotKit';
 import { emblemDecal } from './trim';
 import { AtlasLayout, loft, projectBox, UvBuilder } from './uvkit';
 
@@ -40,6 +40,8 @@ export function titan(f: FactionId, A: AtlasLayout): UvBuilder {
       if (hi) b.add(softBox(0.016, 0.07, 0.056, 0.005), L.primary, { xf: { p: [0.136, 0.205, 0.016], r: [0.3, 0, 0.08] } });
       // Fuss mit gezeichneten Zehen / foot with drawn toes
       b.add(projectBox(taperSoft(softBox(0.092, 0.042, 0.142, 0.01), 0.042, 0.8, 0.66, -0.012), { py: A.get('rFoot'), all: A.get('blank') }), metal, { xf: { p: [0.096, 0.021, 0.016] }, gloss: 0.3 });
+      // drei Krallen / three claws
+      for (const dx of [-0.03, 0, 0.03]) spike(b, A, [0.096 + dx, 0.012, 0.082], [dx * 4, -0.22, 1], 0.0095, 0.034, metal);
     });
     b.add(softBox(0.184, 0.062, 0.112, 0.018), metal, { xf: { p: [0, 0.27, 0] }, gloss: 0.3 });
     b.add(can(A, 0.07, 0.062, 0.03, metal, { seg: hi ? 14 : 8 }), null, { xf: { p: [0, 0.296, 0] } });
@@ -54,7 +56,9 @@ export function titan(f: FactionId, A: AtlasLayout): UvBuilder {
       // Leuchtkern in dunkler Fassung / glowing core in a dark bezel
       b.add(loft([{ y: 0.014, rx: 0.034, hard: true }, { y: 0.014, rx: 0.046, hard: true }, { y: 0, rx: 0.05 }], { seg: hi ? 14 : 8, region: A.get('blank'), capFirst: true, color: metal }), null, { xf: { p: [0, 0.39, 0.071], r: [HALF_PI, 0, 0] }, gloss: 0.4 });
       orb(b, A, [0, 0.39, 0.078], 0.031, glow, { seg: hi ? 14 : 8, rows: hi ? 6 : 4, gloss: 0.9 });
-      emblemDecal(b, A, f, [-0.088, 0.432, 0.0745], [0, 0.1, 1], 0.036, plate);
+      // Brustplatten in Fraktionsfarbe, links mit Emblem / chest plates in the faction colour, the left one with the emblem
+      b.mirrorX(() => b.add(softBox(0.08, 0.046, 0.012, 0.004), L.primary, { xf: { p: [0.07, 0.437, 0.0745], r: [-0.1, 0, 0] } }));
+      emblemDecal(b, A, f, [-0.07, 0.437, 0.0805], [0, 0.1, 1], 0.034, L.primary);
       // Kopf mit Visier und Kamm / head with visor and crest
       b.add(can(A, 0.036, 0.031, 0.02, metal, { seg: hi ? 10 : 6 }), null, { xf: { p: [0, 0.462, 0] } });
       b.add(loft([
