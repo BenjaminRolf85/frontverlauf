@@ -75,8 +75,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   spider: [8100, 4600, 4456], // 7704 / 4364 (Detailrunde 4 / detail round 4)
   quadDrone: [7600, 4400, 4742], // 7198 / 4166 (Detailrunde 4 / detail round 4)
   flakDrone: [6300, 2400, 2074], // 5974 / 2242 (Detailrunde 4 / detail round 4)
-  railgun: [10400, 5650, 5580], // 9874 / 4876 (Detailrunde 4 / detail round 4)
-  flameTank: [12750, 7200, 7006], // 12132 / 5486 (Detailrunde 4 / detail round 4)
+  railgun: [6900, 2350, 5580], // 6556 / 2191 (gezeichnet / inked; vorher 9874 / 4876)
+  flameTank: [8100, 2500, 7006], // 7678 / 2369 (gezeichnet / inked; vorher 12132 / 5486)
   titan: [12100, 6100, 5772], // 11480 / 5788 (Detailrunde 4 / detail round 4)
   steppeRider: [11000, 3500, 3367], // 10437 / 3228 (Detailrunde 4 / detail round 4)
   stormbreaker: [12500, 4450, 4681], // 11886 / 4025 (Detailrunde 4 / detail round 4)
@@ -129,6 +129,8 @@ const INK_VEHICLES: Record<string, [number, number]> = {
 };
 /** Gruppe Roboter und Kultfahrzeuge (Drohnen, Laeufer, Schrottfahrzeuge) / group robots and cult vehicles */
 const INK_ROBOTS: Record<string, [number, number]> = {
+  railgun: [8250, 2290], // 7818 / 2173
+  flameTank: [9050, 2450], // 8600 / 2329
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
@@ -143,6 +145,7 @@ const BEFORE_VEHICLES: Record<string, [number, number]> = {
   tank: [18655, 6824],
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {
+  railgun: [9874, 4876], flameTank: [12132, 5486],
 };
 const BEFORE_NAVAL: Record<string, [number, number]> = {
 };
