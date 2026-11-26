@@ -376,6 +376,8 @@ function sheet(): Sheet {
       // Wracks aus dem Einheitenmodell (remains.ts), daneben das Modell: gezeichnete und bisherige Typen
       // wrecks from the unit model (remains.ts), next to the model: inked and previous types
       const list: [UnitTypeId, FactionId][] = [['tank', 'korvat'], ['tank', 'dravon'], ['jeep', 'korvat'], ['artillery', 'korvat'], ['heli', 'alvenia'], ['mineLayer', 'meridon'], ['teslaTank', 'velkar']];
+      // Gruppe Roboter und Kultfahrzeuge / group robots and cult vehicles
+      list.push(['railgun', 'nexus'], ['flameTank', 'nexus'], ['doomBuggy', 'vesper'], ['rocketCart', 'vesper'], ['doomCrawler', 'vesper']);
       return {
         cols: ['wreck 0', 'wreck 1', 'unit'],
         rows: list.map(([t, f]) => ({ label: `${t} ${f}`, cells: [wreckGeometry(t, f, 0), wreckGeometry(t, f, 1), unitGeometry(t, f, null)].map((geo) => ({ geo, ground: plainGround })) })),
