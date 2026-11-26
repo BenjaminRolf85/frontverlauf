@@ -30,6 +30,15 @@ export interface InkedType {
    * crews are uniform (CREW); enlarge the vehicle inside the builder there.
    */
   scale?: number;
+  /**
+   * Eigene Grenzen statt Kachel und Lebensbalken (Standard INKED_MAX_H / INKED_MAX_EXT): nur fuer Einheiten, die das
+   * Spiel bewusst groesser zeigt und deren Lebensbalken hoeher sitzt (Endgegner). buildInked und die Tests lesen die
+   * Grenzen ueber inkedLimits().
+   * Own limits instead of tile and HP badge (default INKED_MAX_H / INKED_MAX_EXT): only for units the game deliberately
+   * shows larger and whose HP badge sits higher (the boss). buildInked and the tests read the limits via inkedLimits().
+   */
+  maxH?: number;
+  maxExt?: number;
 }
 
 /**

@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { FACTION_IDS, type FactionId, type UnitTypeId } from '../src/data/balance';
 import { getUnitQuality, INKED, inkedType, legacyUnitGeometry, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry } from '../src/render/models';
 import { ATLAS_SIZE, atlasBudget, atlasDef, atlasIds, atlasTextures, distanceField, MAX_ATLASES } from '../src/render/models/inked/atlas';
-import { defineAtlases, INKED_MAX_EXT, INKED_MAX_H } from '../src/render/models/inked';
+import { defineAtlases, INKED_MAX_EXT, INKED_MAX_H, inkedLimits } from '../src/render/models/inked';
 import { inkFor, inkGeometry } from '../src/render/models/inked/ink';
 import { AtlasLayout, loft, REF, subdivide, UvBuilder } from '../src/render/models/inked/uvkit';
 import { semantic } from '../src/design/tokens';
@@ -138,8 +138,10 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
         }
         g.computeBoundingBox();
         const bb = g.boundingBox!;
-        expect(bb.max.y, name).toBeLessThanOrEqual(INKED_MAX_H + 0.005);
-        expect(Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z), name).toBeLessThanOrEqual(INKED_MAX_EXT + 0.01);
+        // Kachel und Lebensbalken, ausser der Typ nennt eigene Grenzen (Endgegner) / tile and HP badge unless the type states its own limits (boss)
+        const lim = inkedLimits(INKED[t]!);
+        expect(bb.max.y, name).toBeLessThanOrEqual(lim.maxH + 0.005);
+        expect(Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z), name).toBeLessThanOrEqual(lim.maxExt + 0.01);
         // Werkzeug darf leicht im Boden stecken (bisher bis -0.08) / tools may stick slightly in the ground (up to -0.08 before)
         expect(bb.min.y, name).toBeGreaterThan(-0.03);
         // Tusche: Umriss immer, Innenlinien nur bei hoher Qualitaet / ink: silhouette always, inner lines on high quality only
@@ -150,6 +152,31 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
       }
     });
   }
+
+  it('eigene Grenzen nur fuer den Endgegner, der in wahrer Groesse gebaut ist / own limits only for the boss, which is built at its real size', () => {
+    const own = types.filter((t) => INKED[t]!.maxH !== undefined || INKED[t]!.maxExt !== undefined);
+    expect(own).toEqual(['swarmMother']);
+    expect(inkedLimits(INKED.infantry!)).toEqual({ maxH: INKED_MAX_H, maxExt: INKED_MAX_EXT });
+    const lim = inkedLimits(INKED.swarmMother!);
+    // wie das bisherige Modell: 1.76 hoch, 0.51 um die Mitte; der Lebensbalken sitzt bei 2.15 (board.ts)
+    // like the previous model: 1.76 tall, 0.51 about the centre; the HP badge sits at 2.15 (board.ts)
+    expect(lim).toEqual({ maxH: 1.76, maxExt: 0.51 });
+    for (const q of ['high', 'low'] as const) {
+      setUnitQuality(q);
+      const g = unitGeometry('swarmMother', 'zyrr', null), old = legacyUnitGeometry('swarmMother', 'zyrr', null);
+      expect(isInked(g)).toBe(true);
+      // in wahrer Groesse gebaut: die Grenzen greifen nicht / built at real size: the limits do not kick in
+      expect(g.userData.finishScale).toBe(1);
+      g.computeBoundingBox(); old.computeBoundingBox();
+      const a = g.boundingBox!, b = old.boundingBox!;
+      // rund dreimal so hoch wie eine Fusstruppe und so gross wie bisher / about three times as tall as a foot unit and as large as before
+      expect(a.max.y).toBeGreaterThan(INKED_MAX_H * 2.7);
+      expect(a.max.y / b.max.y).toBeGreaterThan(0.97);
+      expect((a.max.x - a.min.x) / (b.max.x - b.min.x)).toBeGreaterThan(0.92);
+      // schwebt: nichts unter dem Boden / floats: nothing below the ground
+      expect(a.min.y).toBeGreaterThanOrEqual(0);
+    }
+  });
 
   it('deterministisch und vom bisherigen Modell getrennt / deterministic and separate from the previous model', () => {
     setUnitQuality('low');
