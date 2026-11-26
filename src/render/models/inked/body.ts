@@ -182,6 +182,8 @@ export interface CrewOpts {
   /** ganze Figur mit Beinen (Geschuetzbedienung); sonst ab der Huefte / whole figure with legs (gun crews); otherwise from the hip up */
   legs?: boolean;
   seed?: number;
+  /** Zubehoer in den Koordinaten der Figur (z. B. die getragene Granate) / props in the figure's coordinates (e.g. the shell being carried) */
+  extra?: () => void;
 }
 
 /**
@@ -191,7 +193,10 @@ export interface CrewOpts {
  * group scale; if a figure does not fit a seat or hatch, the vehicle is changed.
  */
 export function crew(b: UvBuilder, A: AtlasLayout, f: FactionId, o: CrewOpts): void {
-  b.group({ p: o.p, r: [0, o.yaw ?? 0, 0], s: CREW }, () => figure(b, A, f, o.pose, { detail: 0, noLegs: !o.legs, pack: 'none', seed: o.seed ?? 5 }));
+  b.group({ p: o.p, r: [0, o.yaw ?? 0, 0], s: CREW }, () => {
+    figure(b, A, f, o.pose, { detail: 0, noLegs: !o.legs, pack: 'none', seed: o.seed ?? 5 });
+    o.extra?.();
+  });
 }
 /** Hoehe der Schultern, des Kinns und der Helmkuppe ueber dem Becken, schon im Massstab CREW / shoulder, chin and helmet top above the pelvis, already at the CREW scale */
 export const CREW_DIM = { pelvis: 0.302 * CREW, shoulder: 0.141 * CREW, chin: 0.2 * CREW, top: 0.365 * CREW };
@@ -307,4 +312,13 @@ export function cupola(b: UvBuilder, A: AtlasLayout, f: FactionId | null, p: V3,
     b.add(loft([{ y: 0.007, rx: 0.036, hard: true }, { y: 0, rx: 0.038, hard: true }], { seg, region: A.get('blank'), capFirst: A.get('hatch'), capLast: A.get('hatch'), color: lid }), null, { xf: { p: [0, 0.058, -0.05], r: [-1.2, 0, 0] } });
   });
   if (f) crew(b, A, f, { p: [p[0], p[1] + 0.045 - 0.443 * CREW, p[2]], yaw: o.yaw, pose: hatchPose(), seed: o.seed ?? 7 });
+}
+
+/** Quader: hohe Qualitaet mit weichen Kanten, niedrige als schlichter Kasten (12 statt 44 Dreiecke) / box: soft edges on high quality, a plain box on low (12 instead of 44 triangles) */
+export function block(w: number, h: number, d: number, r: number): THREE.BufferGeometry {
+  if (fine()) return softBox(w, h, d, r);
+  const g = new THREE.BoxGeometry(w, h, d).toNonIndexed();
+  g.deleteAttribute('uv');
+  g.deleteAttribute('normal');
+  return g;
 }

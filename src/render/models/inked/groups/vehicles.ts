@@ -11,11 +11,12 @@ import { fieldCar } from '../car';
 import { carCells } from '../carPaint';
 import { emblemCells } from '../emblem';
 import { crewCells, figureCells } from '../figurePaint';
+import { fieldGun, gunCells } from '../gun';
 import { korvatTank } from '../tank';
 import { tankCells, turretCells } from '../tankPaint';
 import { factionTank } from '../tanks';
 import { trimCells } from '../trim';
-import { sensorCarrier } from '../velkar';
+import { coilLauncher, sensorCarrier } from '../velkar';
 import { velkarCells } from '../velkarPaint';
 import type { InkedGroup } from '../types';
 
@@ -33,13 +34,15 @@ export const vehicles: InkedGroup = {
     // tanks of all factions: the kit without the generic plates (the hulls have cells of their own), plus one turret cell per faction
     ['vehicle', [...trimCells().filter((c) => !ARMOUR_DROP.has(c.name)), ...crewCells(0.5), ...emblemCells(48), ...tankCells(), ...turretCells()]],
     // Radfahrzeuge, Geschuetze, Fluggeraet / wheeled vehicles, guns, aircraft
-    ['vehicle3', [...trimCells(), ...crewCells(0.5), ...crewLegCells(), ...emblemCells(48), ...carCells(), ...velkarCells()]],
+    ['vehicle3', [...trimCells(), ...crewCells(0.5), ...crewLegCells(), ...emblemCells(48), ...carCells(), ...velkarCells(), ...gunCells()]],
   ],
   types: {
     // Panzer: Korvat (der Kult faehrt dieselbe Bauart), dazu Dravon, Alvenia, Meridon und die Hightech-Bauart
     // tanks: Korvat (the cult drives the same design), plus Dravon, Alvenia, Meridon and the hi-tech design
     tank: { atlas: 'vehicle', build: (f, A) => (f === 'korvat' || f === 'vesper' ? korvatTank(f, A) : factionTank(f, A)), maxEdge: 0.085, voxel: 0.0065 },
     // Gelaendewagen: je Fraktion eigene Form; die Velkar fahren den Sensortraeger / field car: own shape per faction; Velkar drive the sensor carrier
+    // Feldgeschuetz mit zwei Mann Bedienung; die Velkar fahren den Spulenwerfer / field gun with two crew; Velkar drive the coil launcher
+    artillery: { atlas: 'vehicle3', build: (f, A) => (f === 'velkar' ? coilLauncher(f, A) : fieldGun(f, A)), maxEdge: 0.085, voxel: 0.0065 },
     jeep: { atlas: 'vehicle3', build: (f, A) => (f === 'velkar' ? sensorCarrier(f, A) : fieldCar(f, A)), maxEdge: 0.085, voxel: 0.0065 },
   },
 };

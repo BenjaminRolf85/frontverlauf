@@ -111,7 +111,7 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
   it('umgebaute Typen: Fusstruppen, Panzer und Gelaendewagen fuer alle Fraktionen / converted types: foot troops, tanks and field cars for all factions', () => {
     for (const t of ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy'] as UnitTypeId[]) for (const f of FACTION_IDS) expect(inkedType(t, f), `${t} ${f}`).not.toBeNull();
     expect(inkedType('tank', 'korvat')).not.toBeNull();
-    for (const t of ['tank', 'jeep'] as UnitTypeId[]) for (const f of FACTION_IDS) expect(inkedType(t, f), `${t} ${f}`).not.toBeNull();
+    for (const t of ['tank', 'jeep', 'artillery'] as UnitTypeId[]) for (const f of FACTION_IDS) expect(inkedType(t, f), `${t} ${f}`).not.toBeNull();
   });
 
   for (const q of ['high', 'low'] as const) {

@@ -17,7 +17,8 @@ import type { FactionId } from '../../../data/balance';
 import { fine, softBox, type ColorLike, type V3 } from '../kit';
 import { mat } from '../look';
 import { TECH } from '../velkarTech';
-import { boxed, cupola, hullZ, machineGun, TIP, tube } from './body';
+import { boxed, crew, cupola, hullZ, machineGun, TIP, tube } from './body';
+import { standPose } from './figure';
 import { emblemDecal, runningGear, type TrackSpec } from './trim';
 import { AtlasLayout, loft, UvBuilder, type BoxFaces } from './uvkit';
 
@@ -101,5 +102,50 @@ export function sensorCarrier(f: FactionId, A: AtlasLayout): UvBuilder {
   tube(b, A, [-0.075, deck + 0.06, -0.185], [-0.085, deck + 0.24, -0.205], 0.003, 0.002, mat.dark, hi ? 5 : 3);
   glowDot(b, A, [-0.085, deck + 0.245, -0.205], 0.008);
   for (const s of [-1, 1]) emblemDecal(b, A, f, [s * 0.0955, deck + 0.034, -0.16], [s, 0, 0], 0.034, TECH.shell);
+  return b;
+}
+
+/** Spulenwerfer: Kondensatorbank, Drehlafette, lange Schiene mit Spulenringen, ein Bediener mit Steuertafel / coil launcher: capacitor bank, turntable, long rail with coil rings, one operator with a control panel */
+export function coilLauncher(f: FactionId, A: AtlasLayout): UvBuilder {
+  const b = new UvBuilder(A.get('blank'));
+  const hi = fine();
+  const T: TrackSpec = { x: 0.124, w: 0.074, len: 0.36, h: 0.074, links: 32, thick: 0.01 };
+  techChassis(b, A, T, 4, -0.03);
+  const deck = T.h + 0.046;
+  const F = shellFaces(A);
+  // Kondensatorbank mit Kuehlrippen (gezeichnetes Gitter obenauf) / capacitor bank with cooling fins (drawn grille on top)
+  b.add(boxed(softBox(0.2, 0.064, 0.13, 0.012, hi ? 1 : 0), { p: [0, deck + 0.032, -0.135] }, { ...F, py: A.get('grille') }), TECH.shell);
+  glowBar(b, A, [0, deck + 0.05, -0.0685], 0.12, 0.008, 0.004, 'pz');
+  for (const s of [-1, 1]) emblemDecal(b, A, f, [s * 0.1005, deck + 0.034, -0.15], [s, 0, 0], 0.034, TECH.shell);
+  // Drehlafette / turntable
+  b.add(loft([{ y: 0.03, rx: 0.062, hard: true }, { y: 0.03, rx: 0.07, hard: true }, { y: 0, rx: 0.08 }], { seg: hi ? 18 : 9, region: A.get('blank'), capFirst: true, color: TECH.gearDark }), null, { xf: { p: [0, deck, 0.03] } });
+  // Werfer, angehoben: Verschluss, Schiene, Spulenringe (abwechselnd Schale und Leuchte), Muendung
+  // launcher, raised: breech, rail, coil rings (alternating shell and glow), muzzle
+  b.group({ p: [0, deck + 0.064, 0.012], r: [-0.48, 0, 0] }, () => {
+    const len = 0.42;
+    b.add(boxed(softBox(0.086, 0.076, 0.12, 0.012, hi ? 1 : 0), { p: [0, 0, -0.03] }, F), TECH.shell);
+    b.add(softBox(0.05, 0.05, len, 0.01), TECH.gear, { xf: { p: [0, 0, 0.03 + len / 2] } });
+    b.add(softBox(0.012, 0.058, len * 0.92, 0.003), TECH.coil, { xf: { p: [0, 0, 0.03 + len / 2] } });
+    const n = hi ? 6 : 4;
+    for (let i = 0; i < n; i++) {
+      const z = 0.075 + (i / (n - 1)) * (len - 0.09), glow = i % 2 === 0;
+      b.add(loft([{ y: 0.01, rx: 0.031, e: 4, hard: true }, { y: 0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.031, e: 4, hard: true }], { seg: hi ? 12 : 8, region: A.get(glow ? 'glowStrip' : 'blank'), color: glow ? TECH.glow : TECH.shell }), null, { xf: { p: [0, 0, z], r: [HALF_PI, 0, 0] }, crease: glow ? 0 : 1 });
+    }
+    b.add(softBox(0.074, 0.074, 0.024, 0.01), TECH.gearDark, { xf: { p: [0, 0, 0.03 + len] } });
+    b.add(loft([{ y: 0.004, rx: TIP }, { y: 0.003, rx: 0.02 }, { y: 0, rx: 0.026, hard: true }], { seg: hi ? 12 : 7, region: A.get('blank'), color: TECH.glow }), null, { xf: { p: [0, 0, 0.042 + len], r: [HALF_PI, 0, 0] }, crease: 0 });
+    if (hi) for (const s of [-1, 1]) b.add(softBox(0.006, 0.012, len * 0.85, 0.002), TECH.gearDark, { xf: { p: [s * 0.029, 0.02, 0.03 + len / 2] } });
+  });
+  // Bediener mit Steuertafel: dieselbe Figur im Massstab CREW, mit Beinen / operator with a control panel: the same figure at the scale CREW, with legs
+  crew(b, A, f, {
+    p: [0.215, 0, -0.14], yaw: -0.6, legs: true, seed: 13,
+    pose: { ...standPose([[-0.04, 0.35, 0.1], [0.04, 0.35, 0.1]]), head: [0.1, 0.1, 0] },
+    extra: () => {
+      b.add(softBox(0.12, 0.012, 0.085, 0.004), TECH.gearDark, { xf: { p: [0, 0.345, 0.13], r: [0.6, 0, 0] } });
+      glowBar(b, A, [0, 0.354, 0.132], 0.085, 0.006, 0.05, 'py', [0.6, 0, 0]);
+    },
+  });
+  // Antenne mit Leuchtspitze / antenna with a glow tip
+  tube(b, A, [-0.08, deck + 0.064, -0.19], [-0.09, deck + 0.25, -0.21], 0.003, 0.002, mat.dark, hi ? 5 : 3);
+  glowDot(b, A, [-0.09, deck + 0.255, -0.21], 0.008);
   return b;
 }
