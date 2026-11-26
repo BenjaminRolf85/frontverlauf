@@ -57,7 +57,10 @@ def build():
         faces = [tuple(range(nv)), tuple(reversed(range(nv, 2 * nv)))] + [(k, (k + 1) % nv, nv + (k + 1) % nv, nv + k) for k in range(nv)]
         mat = map_material(s, tint=L.mix(L.fac(f), (1, 1, 1, 1), 0.25), amount=0.8, name='map_' + f)
         ob = L.mesh_obj(s, 'shard_' + f, vs, faces, mat, loc=mid, ink=True, px=3.0)
-        fig = L.model(s, 'infantry_%s' % f, loc=(0, 0, 0.6), rot=R.uniform(0, 360), scale=2.2)
+        # Figur zur Kartenmitte hin, damit sie im Bild bleibt, wenn die Scherben auseinandertreiben; Blick nach aussen
+        # figure towards the map centre so it stays in frame while the shards drift apart; facing outward
+        inward = (c - mid) * 0.42
+        fig = L.model(s, 'infantry_%s' % f, loc=(inward.x, inward.y, 0.6), rot=math.degrees(math.atan2(-inward.x, inward.y)) + R.uniform(-25, 25), scale=2.6)
         fig.parent = ob
         dirv = (mid - c).normalized()
         shards.append((ob, Vector(mid), dirv, R.uniform(-0.25, 0.25), R.uniform(0.6, 1.0)))

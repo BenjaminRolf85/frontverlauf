@@ -28,8 +28,22 @@ def build():
     cliff = L.prim(s, 'cyl', L.toon(s, 'rock600'), loc=(95, 190, 4), size=(110, 70, 10), segments=8)
     silo = L.model(s, 'silo_meridon', loc=(70, 160, 9), rot=0, scale=3.0)
     post = L.model(s, 'trading_post_meridon', loc=(110, 170, 9), rot=-30, scale=3.0)
-    rocket = L.model(s, 'guidedMissile_meridon', loc=(70, 160, 10), rot=0, scale=4.0)
+    # Die Rakete aus dem Silo ist ein eigenes Bauteil (Rumpf, Spitze, Flossen in Meridon-Farben): die Einheit
+    # "Lenkrakete" des Spiels ist ein Startwagen mit Schiene und steht als solcher an der Kueste.
+    # The rocket from the silo is a part of its own (body, nose, fins in Meridon colours): the game's "guided missile"
+    # unit is a launch truck with a rail and stands on the coast as such.
+    tok = L.tokens()['faction']['meridon']
+    rocket = L.prim(s, 'cyl', L.toon(s, 'paper50'), loc=(70, 160, 15), size=(3.8, 3.8, 13), segments=12, px=2.4)
+    nose = L.prim(s, 'cone', L.toon(s, tok['primary']), loc=(0, 0, 0.72), size=(1.0, 1.0, 0.44), segments=12, px=2.4 / 3.8)
+    nose.parent = rocket
+    band = L.prim(s, 'cyl', L.toon(s, tok['secondary']), loc=(0, 0, 0.2), size=(1.04, 1.04, 0.1), segments=12, ink=False)
+    band.parent = rocket
+    for k in range(4):
+        fin = L.prim(s, 'cube', L.toon(s, tok['primary']), loc=(0.62 * math.cos(k * math.pi / 2), 0.62 * math.sin(k * math.pi / 2), -0.36), size=(0.5, 0.08, 0.3),
+                     rot=(0, 0, k * math.pi / 2), px=2.4 / 3.8)
+        fin.parent = rocket
     r0 = Vector(rocket.location)
+    L.model(s, 'guidedMissile_meridon', loc=(30, 150, 1.0), rot=150, scale=3.0)
     ships = []
     for n, x, y, r, sc in (('privateer_meridon', -26, 30, 20, 3.0), ('destroyer_meridon', 22, 70, 30, 3.2), ('privateer_meridon', -50, 90, 10, 3.0),
                            ('battleship_meridon', -10, 140, 25, 3.4), ('landingBoat_meridon_marine', 8, 12, 25, 2.6)):
@@ -40,10 +54,15 @@ def build():
     trail = L.Puffs(s, 10, 'paper100', (70, 160, 12), spread=1.5, rise=0, size=(3, 6), life=2.5, seed=8)
     flame = L.prim(s, 'cone', L.flat('fireHot'), loc=r0, size=(3, 3, 8), segments=8, px=0.6)
 
+    # Geschuetztuerme der Kriegsschiffe schwenken langsam auf die See hinaus / the warships' gun turrets slowly traverse out to sea
+    aim_at = Vector((-260, 120, 0))
+
     @s.on
     def update(t):
         sea.update(t)
-        for ob, b, r, ph in ships:
+        for k, (ob, b, r, ph) in enumerate(ships):
+            for i in range(len(L.turrets(s, ob))):
+                L.aim(s, ob, aim_at + Vector((0, 160 * math.sin(t * 0.5 + k + i), 0)), i)
             sp = 3.0 if 'landing' in ob.name else 1.6
             d = Vector((math.sin(math.radians(r)) * -1, -math.cos(math.radians(r)) * -1, 0))
             p = b + d * sp * t
@@ -57,10 +76,10 @@ def build():
             pos = r0 + Vector((0, -4 * d * d, 14 * d * d + 6 * d))
             rocket.location = pos
             rocket.rotation_euler = Euler((-0.25 * L.seg(d, 0, 3), 0, 0))
-            flame.location = pos + Vector((0, 0, -4))
+            flame.location = pos + Vector((0, 0, -11))
             flame.rotation_euler = Euler((math.pi, 0, 0))
             flame.scale = (3, 3, 8 + 2 * math.sin(t * 30))
-            trail.origin = pos + Vector((0, 0, -6))
+            trail.origin = pos + Vector((0, 0, -13))
             trail.update(t)
         else:
             rocket.location = r0 + Vector((0, 0, 0.3 * math.sin(t * 40) * L.seg(t, LAUNCH - 0.8, LAUNCH)))

@@ -42,7 +42,7 @@ def build():
         flash.scale = (max(0.01, 4 + d * 60),) * 2 + (1,)
         L.hide(flash, not (0 < d < 1.0))
         p = L.ease_io(L.seg(t, 0, s.dur))
-        s.look(L.vlerp((6, -54, 8), (2, -44, 10), p), (0, 20, 14))
+        s.look(L.vlerp((6, -44, 7.5), (2, -36, 9), p), (0, 20, 14))
 
     update(0)
     return s

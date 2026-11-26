@@ -57,11 +57,10 @@ def build():
             L.prim(s, 'cube', red, loc=(side * 7.4, y, 9), size=(0.3, 3.2, 9))
             L.prim(s, 'cube', white, loc=(side * 7.25, y, 9.5), size=(0.2, 0.9, 6.5), ink=False)
     # Panzerparade in Verdan-Rot / tank parade in Verdan red
-    tint = L.toon_attr(s, tint='verdanRed', amount=0.55)
-    tanks = [L.model(s, 'tank_korvat', loc=(-3 + (i % 2) * 6, 2 + (i // 2) * 11, 0), rot=180, scale=1.6, mat=tint) for i in range(6)]
+    # Maschinen ohne Besatzung (Export hulk_*): das Reich herrschte mit Maschinen / machines without crew (export hulk_*): the empire ruled with machines
+    tanks = [L.model(s, 'hulk_tank_korvat', loc=(-3.2 + (i % 2) * 6.4, 2 + (i // 2) * 13, 0), rot=180, scale=1.6, tint=('verdanRed', 0.55)) for i in range(6)]
     # Kampfmaschinen Verdans (eingefaerbte Titanen) / Verdan war machines (tinted titans)
-    white_t = L.toon_attr(s, tint='verdanWhite', amount=0.45)
-    titans = [L.model(s, 'titan_nexus', loc=(x, y, 0), rot=180, scale=3.2, mat=white_t) for x, y in ((-5, 48), (5, 66))]
+    titans = [L.model(s, 'titan_nexus', loc=(x, y, 0), rot=180, scale=3.2, tint=('verdanWhite', 0.45)) for x, y in ((-5, 48), (5, 66))]
     tanks += titans
     tank0 = [Vector(t.location) for t in tanks]
     # Suchscheinwerfer / searchlights

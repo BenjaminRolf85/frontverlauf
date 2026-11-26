@@ -40,7 +40,7 @@ def build():
         for f in fires:
             f.update(t)
         p = L.ease_io(L.seg(t, 0, s.dur))
-        s.look(L.vlerp((0, -50, 5), (0, -40, 7), p), (0, 22, 14))
+        s.look(L.vlerp((0, -42, 5), (0, -33, 6.5), p), (0, 22, 14))
 
     update(0)
     return s

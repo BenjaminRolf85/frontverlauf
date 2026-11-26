@@ -45,7 +45,7 @@ def build():
         rise = L.ease_back(L.seg(t, 2.6, 4.0))
         titan.location = t_base + Vector((0, 0, -6 + 6 * rise))
         p = L.ease_io(L.seg(t, 0, s.dur))
-        s.look(L.vlerp((4, -62, 9), (2, -50, 11), p), (0, 16, 12))
+        s.look(L.vlerp((4, -50, 8), (2, -40, 9.5), p), (0, 16, 11))
 
     update(0)
     return s

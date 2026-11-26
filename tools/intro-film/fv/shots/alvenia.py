@@ -25,11 +25,11 @@ def build():
     L.ground(s, '#86cf7a', size=1000, sub=60, height=h)
     s.cam.data.lens = 28
     spark = L.model(s, 'divineSpark_alvenia', loc=(0, 0, h(0, 0) - 0.2), rot=-35, scale=3.2)
-    mz = spark.matrix_world.copy()
-    muzzle_local = Vector((0, -0.5202684262218176, 0.5803335556544499)) * 10
-    rot = Euler((0, 0, math.radians(-35)))
-    muzzle = spark.location + (muzzle_local * 3.2) @ rot.to_matrix().transposed()
-    wardens = K.unit_row(s, 'lightWarden_alvenia', 4, (-14, -18, 0), (6.5, -2.0, 0), rot=-20, scale=1.8, jitter=0.6, seed=3)
+    # Muendung aus dem Export (userData.muzzle des Spielmodells) / muzzle from the export (the game model's userData.muzzle)
+    muzzle = L.unit_point(spark, L.unit_data('divineSpark_alvenia')['muzzle'])
+    # Lichtschuetzen links vor dem Geschuetz, quer zur Blickrichtung gestaffelt, damit die ganzen Figuren im Bild stehen
+    # Light Wardens left in front of the gun, staggered across the view so the whole figures are in frame
+    wardens = K.unit_row(s, 'lightWarden_alvenia', 4, (-18.8, -25.6, 0), (1.7, 5.2, 0), rot=38, scale=1.8, jitter=0.5, seed=3)
     for w in wardens:
         w.location.z = h(w.location.x, w.location.y)
     rel = L.model(s, 'reliquary_alvenia', loc=(24, 6, h(24, 6)), rot=-50, scale=2.2)
@@ -71,7 +71,7 @@ def build():
         L.hide(dome_ring, not (0 < d < 1.6))
         p = L.ease_io(L.seg(t, 0, FIRE + 0.4))
         q = L.ease_io(L.seg(t, FIRE + 0.2, STRIKE + 0.6))
-        cam = L.vlerp((22, -36, 6.5), (16, -30, 8.5), p)
+        cam = L.vlerp((22, -36, 7.5), (16, -30, 9.0), p)
         tgt = L.vlerp(muzzle, camp + Vector((0, 0, 20)), q)
         cam = cam.lerp(Vector((6, -30, 34)), q)
         cam.z += h(cam.x, cam.y)

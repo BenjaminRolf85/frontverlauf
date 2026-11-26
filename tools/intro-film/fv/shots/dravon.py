@@ -36,7 +36,8 @@ def build():
     for i in range(10):
         a = -0.9 + i * 0.2
         L.model(s, 'sandbags', loc=(math.sin(a) * 18, 40 - math.cos(a) * 14, h(0, 28)), rot=math.degrees(-a), scale=5)
-    troops = K.unit_row(s, 'infantry_dravon', 6, (-20, 22, 0), (8, 0.0, 0), rot=-38, scale=1.6, seed=5)
+    # Reihe naeher an der Kamera und enger, damit die Soldaten gross genug im Bild stehen / row closer to the camera and tighter so the soldiers stand large enough in frame
+    troops = K.unit_row(s, 'infantry_dravon', 6, (-12, 18, 0), (6.5, -1.6, 0), rot=-38, scale=1.6, seed=5)
     for tr in troops:
         tr.location.z = h(tr.location.x, tr.location.y)
     mines = []

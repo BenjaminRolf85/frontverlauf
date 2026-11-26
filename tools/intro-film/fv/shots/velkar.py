@@ -35,7 +35,13 @@ def build():
     for i in range(10):
         x, y = R.uniform(-160, 160), R.uniform(80, 300)
         L.prim(s, 'cone', L.toon(s, 'velkarFrost'), loc=(x, y, h(x, y) + 8), size=(R.uniform(18, 40), R.uniform(18, 40), R.uniform(16, 40)), segments=6)
-    arcs = [K.arc(s, t.location + Vector((0, 0, 6)), t.location + Vector((6, -4, 9)), n=6, color='velkarArc', jitter=1.2, radius=0.18) for t in tesla]
+    # Lichtboegen an den Spulenkoepfen des Spielmodells (TESLA_TOPS aus dem Export): von Kopf zu Kopf und zum Deck
+    # arcs at the game model's coil tops (TESLA_TOPS from the export): from top to top and down to the deck
+    tops = L.unit_data('teslaTank_velkar')['teslaTops']
+    coil = [[L.unit_point(tk, p) for p in tops] for tk in tesla]
+    deck = [[L.unit_point(tk, (sx * 0.24, 0.2, 0.12)) for sx in (-1, 1)] for tk in tesla]
+    arcs = [K.arc(s, c[0], c[1], n=6, color='velkarArc', jitter=0.9, radius=0.16) for c in coil]
+    arcs2 = [K.arc(s, c[0], dk[0], n=5, color='velkarArc', jitter=0.8, radius=0.13) for c, dk in zip(coil, deck)]
     # Orbitallaser / orbital laser
     hit1 = Vector((-70, 160, 0))
     hit1.z = h(hit1.x, hit1.y)
@@ -54,9 +60,11 @@ def build():
         acad.location = a0 + Vector((0, 0, math.sin(t * 1.4) * 1.2))
         for o, b in zip(octo, o0):
             o.location = b + Vector((math.sin(t * 1.1 + b.x) * 2, 0, math.sin(t * 2 + b.y) * 1))
-        for k, (a, tk) in enumerate(zip(arcs, tesla)):
-            a(t, on=int(t * 8 + k * 3) % 4 != 0,
-              aa=tk.location + Vector((0, 0, 6)), bb=tk.location + Vector((5 * math.sin(t * 3 + k), -5, 8)))
+        for k in range(len(tesla)):
+            step = int(t * 8 + k * 3)
+            arcs[k](t, on=step % 4 != 0)
+            side = step // 3 % 2
+            arcs2[k](t, on=step % 3 == 0, aa=coil[k][side], bb=deck[k][side])
         d = t - LASER
         w = 9 * L.ease_out(L.seg(d, 0, 0.15)) * (1 - L.seg(d, 1.1, 1.5))
         L.set_beam(core, hit1 + Vector((0, 0, 600)), hit1, max(w * 0.45, 0.001))

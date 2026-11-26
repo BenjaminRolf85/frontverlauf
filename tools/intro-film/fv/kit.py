@@ -192,12 +192,12 @@ def bob(ob, base, t, amp=0.3, freq=8.0, ph=0.0):
     ob.location = Vector(base) + Vector((0, 0, abs(math.sin(t * freq + ph)) * amp))
 
 
-def unit_row(shot, name, n, start, step, rot=0.0, scale=1.6, jitter=0.0, seed=1, mat=None):
+def unit_row(shot, name, n, start, step, rot=0.0, scale=1.6, jitter=0.0, seed=1, mat=None, tint=None):
     R = random.Random(seed)
     out = []
     for i in range(n):
         p = Vector(start) + Vector(step) * i + Vector((R.uniform(-jitter, jitter), R.uniform(-jitter, jitter), 0))
-        out.append(L.model(shot, name, loc=p, rot=rot + R.uniform(-8, 8) * (1 if jitter else 0), scale=scale, mat=mat))
+        out.append(L.model(shot, name, loc=p, rot=rot + R.uniform(-8, 8) * (1 if jitter else 0), scale=scale, mat=mat, tint=tint))
     return out
 
 
