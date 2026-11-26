@@ -130,8 +130,8 @@ function paintHullSide(p: Pen): void {
   p.line(cable.map((q): Pt => [q[0], q[1] + 2.4]), 1.1, { taper: 0.02, wobble: 0.3 });
   for (let i = 2; i < cable.length - 1; i += 2) p.line([[cable[i][0] - 1.5, cable[i][1] - 2], [cable[i][0] + 1.5, cable[i][1] + 2]], 0.9, { taper: 0, wobble: 0 });
   p.line(arc(172, 50, 6, 5, 0, Math.PI * 2, 10), 2, { closed: true, wobble: 0.1 });
-  // Kennung / marking
-  stencil(p, mat.paper, 'K-217', 364, 30, 22, 157);
+  // die Kennung liegt als Auflage darueber ('mark:korvat'), damit andere Fraktionen dieselbe Flanke benutzen
+  // the marking lies on top as a decal ('mark:korvat') so other factions can use the same flank
   p.scratches(0, 12, W, K - 22, 22, 163, 30);
   p.chips(0, 1, W, 8, 26, BARE, 167, 3);
   p.chips(0, K - 12, W, 9, 20, BARE, 173, 3);
@@ -250,6 +250,75 @@ function paintNoseStrip(p: Pen): void {
 
 
 
+// ---------- Tuerme der anderen Fraktionen / the other factions' turrets ----------
+
+interface WallOpts {
+  /** Hoehe der Wand in der Zelle (darunter Kragen / Band) / height of the wall inside the cell (collar / band below) */
+  wall: number;
+  /** Grenzen der Flaechen eines kantigen Turms (s, 0..1) / borders of a faceted turret's faces */
+  facets?: number[];
+  /** Sehschlitze bei s / vision slits at s */
+  slits: number[];
+  /** Stelle der umlaufenden Naht (t) oder 0 / place of the seam all round (t) or 0 */
+  seam: number;
+  rivets: number;
+  rails: boolean;
+  seed: number;
+}
+/** Turmwand: s rundum (vorn in der Mitte), t Dachkante -> Turmkranz / turret wall: s around (front in the middle), t roof edge -> ring */
+function paintWall(p: Pen, o: WallOpts): void {
+  const W = p.w, H = p.h, lower = H * o.wall;
+  p.gradient(0, 0, W, 12, [0, 0], [0, 12], 1.2, 1);
+  if (o.seam > 0) { p.weld([0, lower * o.seam], [W * 0.4, lower * o.seam + 1], 4); p.weld([W * 0.6, lower * o.seam + 1], [W, lower * o.seam], 4); }
+  if (o.rivets > 0) p.rivets([10, lower - 7], [W - 10, lower - 7], o.rivets, 2.6);
+  // Nietenreihen neben den Kanten eines kantigen Turms / rivet rows beside the edges of a faceted turret
+  for (const s of o.facets ?? []) for (const d of [-6, 6]) p.rivets([s * W + d, 12], [s * W + d, lower - 14], 4, 2.2);
+  for (const s of o.slits) {
+    const x = s * W, y = lower * 0.34;
+    p.fill(rrect(x - 14, y - 3, 28, 6, 2), SOOT);
+    p.panel(rrect(x - 18, y - 7, 36, 14, 3).concat([[x + 15, y - 7]]), 1.5);
+    for (const bx of [x - 22, x + 22]) p.rivet(bx, y, 2);
+  }
+  if (o.rails) for (const s of [0.16, 0.84]) {
+    const x = s * W, y = lower * 0.3;
+    p.line(spline([[x - 20, y + 4], [x - 18, y - 3], [x + 18, y - 3], [x + 20, y + 4]], 6), 2.8, { taper: 0.05, wobble: 0.2 });
+    p.crease([[x - 18, y + 6], [x + 18, y + 6]], 3, 0.72, 0.6, { taper: 0.2 });
+  }
+  // Pistolenluken an den Flanken / pistol ports on the flanks
+  for (const s of [0.3, 0.7]) { const x = s * W + (s < 0.5 ? -34 : 34), y = lower * 0.56; p.dab(x, y, 8, 0.82, 0.9); p.line(arc(x, y, 7, 7, 0, Math.PI * 2, 12), 1.6, { closed: true, wobble: 0.15 }); p.line([[x - 4, y], [x + 4, y]], 1.8, { taper: 0.1 }); }
+  streaks(p, 0, 4, W, lower - 10, Math.round(W / 40), o.seed);
+  p.scratches(0, 12, W, lower - 26, Math.round(W / 34), o.seed + 2, 22);
+  p.chips(0, lower - 12, W, 10, Math.round(W / 22), BARE, o.seed + 4, 3);
+  p.chips(0, 2, W, 8, Math.round(W / 30), BARE, o.seed + 6, 2.6);
+  // Kragen: Nieten / collar: rivets
+  if (o.wall < 0.99) {
+    p.line([[-3, lower + 0.5], [W + 3, lower + 0.5]], 1.3, { taper: 0, wobble: 0.2 });
+    p.rivets([12, (lower + H) / 2 + 1], [W - 12, (lower + H) / 2 + 1], Math.round(W / 28), 2.3);
+  }
+  p.splatter(0, lower - 24, W, H - lower + 24, 10, MUD_WET, o.seed + 8, { size: 2.4, alpha: 0.45 });
+}
+/** Grenzen der Flaechen des Dravon-Achtecks in s (Umfang des untersten Vielecks, Beginn hinten links) / borders of the faces of Dravon's octagon in s (perimeter of the lowest polygon, starting rear left) */
+function octFacets(w: number, d: number, k: number): number[] {
+  const c = Math.hypot(k, k), len = [c, 2 * (d - k), c, 2 * (w - k), c, 2 * (d - k), c, 2 * (w - k)];
+  const total = len.reduce((a, v) => a + v, 0);
+  const out: number[] = [];
+  let acc = 0;
+  for (const l of len.slice(0, 7)) { acc += l; out.push(acc / total); }
+  return out;
+}
+
+/** Turmzellen der anderen Fraktionen (Hoehe passend zum Umfang ihrer Tuerme) / turret cells of the other factions (height matching the girth of their turrets) */
+export function turretCells(): Cell[] {
+  const oct = octFacets(0.132, 0.124, 0.05);
+  return [
+    // Dravon: kantig, Nieten an jeder Kante; die Front liegt zwischen der dritten und vierten Grenze / faceted, rivets at every edge; the front lies between the third and fourth border
+    { name: 'turret:dravon', w: 448, h: 96, paint: (p) => paintWall(p, { wall: 0.86, facets: oct, slits: [(oct[1] + oct[2]) / 2, (oct[3] + oct[4]) / 2], seam: 0, rivets: 0, rails: false, seed: 801 }) },
+    { name: 'turret:alvenia', w: 448, h: 80, paint: (p) => paintWall(p, { wall: 0.84, slits: [0.36, 0.64], seam: 0.62, rivets: 0, rails: true, seed: 821 }) },
+    { name: 'turret:meridon', w: 384, h: 72, paint: (p) => paintWall(p, { wall: 0.82, slits: [0.38, 0.62], seam: 0, rivets: 26, rails: true, seed: 841 }) },
+    { name: 'turret:velkar', w: 448, h: 44, paint: (p) => paintWall(p, { wall: 0.71, slits: [0.4, 0.6], seam: 0, rivets: 0, rails: false, seed: 861 }) },
+  ];
+}
+
 /** Eigene Zellen des Korvat-Panzers; alles andere kommt aus dem Fahrzeug-Baukasten (trim.ts) / the Korvat tank's own cells; everything else comes from the vehicle kit (trim.ts) */
 export function tankCells(): Cell[] {
   const L = look('korvat');
@@ -258,9 +327,11 @@ export function tankCells(): Cell[] {
     { name: 'turretTop', w: 176, h: 176, paint: paintTurretTop },
     { name: 'mantlet', w: 128, h: 64, paint: paintMantlet },
     { name: 'hullSide', w: 448, h: 96, paint: paintHullSide },
-    { name: 'deck', w: 312, h: 336, paint: paintDeck },
+    // kleiner als entworfen: der Turm verdeckt die Mitte / smaller than designed: the turret hides the centre
+    { name: 'deck', w: 264, h: 284, design: [312, 336], paint: paintDeck },
     { name: 'glacis', w: 400, h: 88, paint: paintGlacis },
     { name: 'rear', w: 400, h: 88, paint: paintRear },
     { name: 'hullNose', w: 192, h: 32, paint: paintNoseStrip },
+    { name: 'mark:korvat', w: 96, h: 32, paint: (p) => stencil(p, mat.paper, 'K-217', 48, 17, 22, 157) },
   ];
 }

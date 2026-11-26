@@ -40,14 +40,14 @@ const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [8500, 4100, 4891], // 8086 / 3900 (gezeichnet / inked; vorher 11078 / 4119)
   sniper: [9750, 4560, 6285], // 9258 / 4340 (gezeichnet / inked; vorher 12620 / 5539)
-  jeep: [12150, 5300, 5140], // 11526 / 5028 (Detailrunde 4 / detail round 4)
+  jeep: [10300, 4950, 5140], // 9770 / 4687 (gezeichnet / inked; vorher 11526 / 5028)
   pioneer: [9600, 4270, 5321], // 9142 / 4066 (gezeichnet / inked; vorher 12090 / 4791)
   mg: [10400, 4750, 5075], // 9870 / 4592 (gezeichnet / inked; vorher 13803 / 4444)
   medic: [10900, 4370, 5703], // 10352 / 4162 (gezeichnet / inked; vorher 11254 / 4817)
   artillery: [12350, 5700, 5839], // 11748 / 5016 (Detailrunde 4 / detail round 4)
   spy: [6900, 3100, 3237], // 6572 / 2962 (gezeichnet / inked; vorher 7702 / 2823)
   heli: [7100, 3900, 4007], // 6723 / 3695 (Detailrunde 4 / detail round 4)
-  tank: [19600, 7850, 7866], // 18655 / 6824 (Detailrunde 4 / detail round 4)
+  tank: [11850, 4250, 7866], // 11280 / 4020 (gezeichnet / inked; vorher 18655 / 6824)
   antiTank: [7700, 3950, 3945], // 7310 / 3634 (Detailrunde 4 / detail round 4)
   antiAir: [13250, 5500, 6024], // 12584 / 4716 (Detailrunde 4 / detail round 4)
   mineLayer: [14600, 6050, 6430], // 13879 / 5194 (Detailrunde 4 / detail round 4)
@@ -125,7 +125,8 @@ const INK_FIGURES: Record<string, [number, number]> = {
 };
 /** Gruppe Fahrzeuge (Landfahrzeuge, Roboter) / group vehicles (land vehicles, robots) */
 const INK_VEHICLES: Record<string, [number, number]> = {
-  tank: [14200, 4100], // 13494 / 3886 (Korvat; die anderen Fraktionen folgen / Korvat; the other factions follow)
+  jeep: [11700, 4750], // 11142 / 4495
+  tank: [14200, 4100], // 13498 / 3890
 };
 /** Gruppe Roboter und Kultfahrzeuge (Drohnen, Laeufer, Schrottfahrzeuge) / group robots and cult vehicles */
 const INK_ROBOTS: Record<string, [number, number]> = {
@@ -140,6 +141,7 @@ const BEFORE_FIGURES: Record<string, [number, number]> = {
   infantry: [11078, 4119], sniper: [12620, 5539], pioneer: [12090, 4791], mg: [13803, 4444], medic: [11254, 4817], spy: [7702, 2823],
 };
 const BEFORE_VEHICLES: Record<string, [number, number]> = {
+  jeep: [11526, 5028],
   tank: [18655, 6824],
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {

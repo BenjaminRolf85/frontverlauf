@@ -8,6 +8,7 @@
  * cat=basesF: every faction per kind (&lv= level), cat=naval: naval base per sea side
  * &only=<row labels> &col=<column labels> &zoom= &dpr= &labels=0 &q=low|high (Detailstufe der Einheiten / unit detail level)
  * cat=special: Sonderbauarten der Fraktionen / faction designs
+ * cat=pick&pick=<typ:fraktion[!],...;...>: freie Auswahl, ';' neue Zeile, '!' bisheriges Modell / free pick, ';' new row, '!' previous model
  * cat=academy: schwebende Akademie der Velkar (Boden, Abheben, Luft, Terraformen, Stufen, niedrige Qualitaet) und Forschungsposten (mit Beamer) / Velkar floating academy (ground, lift, air, terraform, levels, low quality) and research posts (with beamer)
  */
 import '@fontsource/bangers';
@@ -19,7 +20,7 @@ import {
 } from '../../data/balance';
 import { factionTokens, primitives, semantic } from '../../design/tokens';
 import {
-  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry, unitTriLimit, xenoDecoration,
+  baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, decorationGeometry, featureGeometry, outlineGeometry, getUnitQuality, legacyUnitGeometry, setInkedUnits, setUnitQuality, splitTurrets, unitGeometry, unitTriLimit, xenoDecoration,
   crashSiteGeometry, mothershipGeometry, mothershipSmokeGeometry, jungleDecoration, leaderGeometry, LEADER_MOODS, type LeaderMood, mineGeometry, labRuinGeometry, lavaGeometry, volcanoGeometry, volcanoSmokeGeometry,
 } from './index';
 import { headgear } from './headgear';
@@ -379,6 +380,16 @@ function sheet(): Sheet {
         cols: ['wreck 0', 'wreck 1', 'unit'],
         rows: list.map(([t, f]) => ({ label: `${t} ${f}`, cells: [wreckGeometry(t, f, 0), wreckGeometry(t, f, 1), unitGeometry(t, f, null)].map((geo) => ({ geo, ground: plainGround })) })),
       };
+    }
+    case 'pick': {
+      // freie Auswahl fuer Reihen- und Vergleichsbilder: ?pick=jeep:korvat,tank:dravon!;infantry:korvat (';' = neue Zeile, '!' = bisheriges Modell)
+      // free pick for line-up and comparison shots: ?pick=jeep:korvat,tank:dravon!;infantry:korvat (';' = new row, '!' = previous model)
+      const rows = (params.get('pick') ?? '').split(';').filter(Boolean).map((line, i) => ({ label: `pick ${i + 1}`, cells: line.split(',').filter(Boolean).map((e): Cell => {
+        const old = e.endsWith('!');
+        const [t, f] = e.replace('!', '').split(':') as [UnitTypeId, FactionId];
+        return { geo: old ? legacyUnitGeometry(t, f ?? 'korvat', null) : unitGeometry(t, f ?? 'korvat', null), ground: plainGround };
+      }) }));
+      return { cols: Array.from({ length: Math.max(1, ...rows.map((r) => r.cells.length)) }, (_, i) => String(i + 1)), rows };
     }
     case 'special': {
       // Sonderbauarten der Fraktionen und Kampagneneinheiten, je in der eigenen Fraktion / faction designs and campaign units, each in its own faction

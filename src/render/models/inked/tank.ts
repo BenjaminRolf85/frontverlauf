@@ -15,7 +15,7 @@ import type { FactionId } from '../../../data/balance';
 import { fine, geo, mix, shade, softBox, type ColorLike, type V3 } from '../kit';
 import { look, mat, type Look } from '../look';
 import { CREW, figure } from './figure';
-import { barrel, digitDecal, emblemDecal, fuelDrum, runningGear, type TrackSpec } from './trim';
+import { barrel, decal, digitDecal, emblemDecal, fuelDrum, runningGear, type TrackSpec } from './trim';
 import { AtlasLayout, loft, projectBox, quad, UvBuilder, type Region, type Ring } from './uvkit';
 
 const HALF_PI = Math.PI / 2;
@@ -75,6 +75,8 @@ function hull(b: UvBuilder, A: AtlasLayout, L: Look, f: FactionId): void {
     // Emblem der Fraktion hinten auf der schraegen Flanke / the faction's emblem at the rear of the sloped flank
     const nx = (y2 - y1), ny = (xb - xd);
     emblemDecal(b, A, f, [s * (xb + xd) / 2, (y1 + y2) / 2, -0.155], [s * nx, ny, 0], 0.036, L.hull, [-s * ny, nx, 0]);
+    // Kennung vor dem Emblem / marking in front of the emblem
+    decal(b, A, 'mark:korvat', [s * (xd + 0.4 * (xb - xd)), y2 - 0.4 * (y2 - y1), -0.098], [s * nx, ny, 0], [-s * ny, nx, 0], 0.074, 0.025, L.hull);
   }
   // Staukaesten auf den schraegen Flanken (Oliv auf Rot: Kennzeichen der Korvat) und Kotfluegel vorn und hinten
   // stowage bins on the sloped flanks (olive on red: a Korvat mark) and mudguards front and rear
