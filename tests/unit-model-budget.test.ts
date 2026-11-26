@@ -77,7 +77,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   flakDrone: [3050, 1500, 2074], // 2866 / 1398 (gezeichnet / inked; vorher 5974 / 2242)
   railgun: [6900, 2350, 5580], // 6556 / 2191 (gezeichnet / inked; vorher 9874 / 4876)
   flameTank: [8100, 2500, 7006], // 7678 / 2369 (gezeichnet / inked; vorher 12132 / 5486)
-  titan: [12100, 6100, 5772], // 11480 / 5788 (Detailrunde 4 / detail round 4)
+  titan: [4300, 1900, 5772], // 4050 / 1796 (gezeichnet / inked; vorher 11480 / 5788)
   steppeRider: [11000, 3500, 3367], // 10437 / 3228 (Detailrunde 4 / detail round 4)
   stormbreaker: [12500, 4450, 4681], // 11886 / 4025 (Detailrunde 4 / detail round 4)
   peacekeeper: [15850, 7100, 7414], // 15091 / 6441 (Detailrunde 4 / detail round 4)
@@ -135,6 +135,7 @@ const INK_ROBOTS: Record<string, [number, number]> = {
   kamikazeDrone: [2500, 860], // 2358 / 819
   flakDrone: [4250, 1410], // 4026 / 1338
   quadDrone: [5700, 1930], // 5394 / 1832
+  titan: [5200, 1740], // 4944 / 1656
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
@@ -150,7 +151,7 @@ const BEFORE_VEHICLES: Record<string, [number, number]> = {
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {
   railgun: [9874, 4876], flameTank: [12132, 5486], spider: [7704, 4364], kamikazeDrone: [7280, 3616],
-  flakDrone: [5974, 2242], quadDrone: [7198, 4166],
+  flakDrone: [5974, 2242], quadDrone: [7198, 4166], titan: [11480, 5788],
 };
 const BEFORE_NAVAL: Record<string, [number, number]> = {
 };

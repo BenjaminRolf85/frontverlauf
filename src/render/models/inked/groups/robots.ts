@@ -10,6 +10,7 @@
  * factions: defectors and taken-over units wear their new owner's colours (look.ts), as the previous models did.
  */
 import { robotCells } from '../robotPaint';
+import { titan } from '../robotsTitan';
 import { flameTank, railgun } from '../robotsTracked';
 import { flakDrone, kamikazeDrone, quadDrone, spider } from '../robotsWalkers';
 import type { InkedGroup } from '../types';
@@ -23,5 +24,6 @@ export const robots: InkedGroup = {
     kamikazeDrone: { atlas: 'robot', build: kamikazeDrone, maxEdge: 0.085, voxel: 0.006 },
     flakDrone: { atlas: 'robot', build: flakDrone, maxEdge: 0.085, voxel: 0.006 },
     quadDrone: { atlas: 'robot', build: quadDrone, maxEdge: 0.085, voxel: 0.006 },
+    titan: { atlas: 'robot', build: titan, maxEdge: 0.085, voxel: 0.0065 },
   },
 };
