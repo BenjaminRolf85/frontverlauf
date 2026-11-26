@@ -68,7 +68,9 @@ describe('Einheiten: Proportionen / units: proportions', () => {
         expect(d('jeep').area, f).toBeLessThan(d('tank').area * 0.75);
         // Minenleger lang und flach, Flak kurz und hoch / mine layer long and flat, AA short and tall
         expect(d('mineLayer').len, f).toBeGreaterThan(d('antiAir').len * 1.3);
-        expect(d('mineLayer').h, f).toBeLessThan(d('antiAir').h * 0.72);
+        // 0.75 statt 0.72: der Fahrer traegt jetzt den gezeichneten Helm seiner Fraktion (Velkar mit Antenne)
+        // 0.75 instead of 0.72: the driver now wears his faction's drawn helmet (Velkar with antenna)
+        expect(d('mineLayer').h, f).toBeLessThan(d('antiAir').h * 0.75);
         // Schiffe: Landungsboot kurz, Zerstoerer mittel und schlank, Schlachtschiff lang und breit
         // ships: landing boat short, destroyer medium and slim, battleship long and wide
         expect(d('landingBoat').len, f).toBeLessThan(d('destroyer').len - 0.08);

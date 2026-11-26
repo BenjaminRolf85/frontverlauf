@@ -44,7 +44,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   pioneer: [10500, 4700, 5321], // 9974 / 4452 (gezeichnet / inked; vorher 12090 / 4791)
   mg: [11250, 5227, 5075], // 10694 / 4970 (gezeichnet / inked; vorher 13803 / 4444)
   medic: [10800, 4600, 5703], // 10258 / 4352 (gezeichnet / inked; vorher 11254 / 4817)
-  artillery: [10900, 4650, 5839], // 10358 / 4427 (gezeichnet / inked; vorher 11748 / 5016)
+  artillery: [10900, 5016, 5839], // 10358 / 4783 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets (gezeichnet / inked; vorher 11748 / 5016)
   spy: [6500, 3100, 3237], // 6146 / 2910 (gezeichnet / inked; vorher 7702 / 2823)
   heli: [4050, 1150, 4007], // 3850 / 1093 (gezeichnet / inked; vorher 6723 / 3695)
   tank: [11850, 4250, 7866], // 11280 / 4020 (gezeichnet / inked; vorher 18655 / 6824)
@@ -63,7 +63,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   zealot: [6200, 2750, 4716], // 5870 / 2602 (gezeichnet / inked; vorher 9646 / 4656)
   torchbearer: [6600, 3000, 4984], // 6284 / 2844 (gezeichnet / inked; vorher 9918 / 4848)
   prophet: [7250, 3100, 5026], // 6860 / 2908 (gezeichnet / inked; vorher 9680 / 4710)
-  doomBuggy: [6500, 2250, 5576], // 6143 / 2137 (gezeichnet / inked; vorher 7296 / 4556)
+  doomBuggy: [6500, 2380, 5576], // 6143 / 2263 (gezeichnet / inked; vorher 7296 / 4556)
   rocketCart: [8300, 2200, 5392], // 7863 / 2062 (gezeichnet / inked; vorher 7702 / 4624)
   doomCrawler: [8500, 3300, 8023], // 8049 / 3133 (gezeichnet / inked; vorher 9159 / 6407)
   faustZealot: [7600, 2700, 4967], // 7226 / 2544 (gezeichnet / inked; vorher 10081 / 4963)
@@ -143,9 +143,9 @@ const INK_FIGURES: Record<string, [number, number]> = {
 };
 /** Gruppe Fahrzeuge (Landfahrzeuge, Roboter) / group vehicles (land vehicles, robots) */
 const INK_VEHICLES: Record<string, [number, number]> = {
-  jeep: [11700, 4750], // 11142 / 4495
+  jeep: [12650, 4750], // 12026 / 4495
   tank: [14200, 4100], // 13498 / 3890
-  artillery: [12150, 4350], // 11570 / 4128
+  artillery: [13460, 4700], // 12818 / 4468
   heli: [4250, 1150], // 4002 / 1076
   antiAir: [9700, 2150], // 9212 / 2023
   mineLayer: [14100, 3750], // 13397 / 3534
