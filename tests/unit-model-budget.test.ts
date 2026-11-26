@@ -51,8 +51,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   antiTank: [5500, 3200, 3945], // 5214 / 3020 (gezeichnet / inked; vorher 7310 / 3634)
   antiAir: [7650, 2200, 6024], // 7266 / 2055 (gezeichnet / inked; vorher 12584 / 4716)
   mineLayer: [11650, 3850, 6430], // 11073 / 3660 (gezeichnet / inked; vorher 13879 / 5194)
-  landingBoat: [4600, 1800, 2276], // 4349 / 1712 (gezeichnet / inked; vorher 5300 / 2020)
-  submarine: [3650, 2000, 3792], // 3437 / 1862 (gezeichnet / inked; vorher 8239 / 3674)
+  landingBoat: [4900, 2000, 2276], // 4638 / 1878 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
+  submarine: [3950, 2150, 3792], // 3726 / 2028 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   destroyer: [4250, 2100, 5748], // 4012 / 1963 (gezeichnet / inked; vorher 13016 / 5420)
   battleship: [6600, 2850, 7131], // 6266 / 2693 (gezeichnet / inked; vorher 16232 / 6569)
   grey: [2850, 1800, 4264], // 2698 / 1676 (gezeichnet / inked; vorher 6612 / 4072)
@@ -88,9 +88,9 @@ const BUDGET: Record<string, [number, number, number]> = {
   railSniper: [9300, 4450, 4951], // 8856 / 4194 (gezeichnet / inked; vorher 10536 / 4301)
   lightWarden: [13850, 5800, 7252], // 13156 / 5518 (gezeichnet / inked; vorher 15947 / 6181)
   reliquary: [6250, 2200, 6278], // 5916 / 2056 (gezeichnet / inked; vorher 8944 / 5318)
-  sunLance: [6000, 2800, 5013], // 5699 / 2656 (gezeichnet / inked; vorher 9539 / 4180)
+  sunLance: [6350, 3050, 5013], // 6026 / 2864 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
-  divineSpark: [9950, 2900, 6338], // 9463 / 2737 (gezeichnet / inked; vorher 16709 / 6296)
+  divineSpark: [9950, 3100, 6338], // - / 2945 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   steppeColossus: [13350, 4750, 8643], // 12678 / 4505 (gezeichnet / inked; vorher 19806 / 7649)
   shadowCommando: [6850, 3050, 3531], // 6486 / 2876 (gezeichnet / inked; vorher 10173 / 3213)
   fogCutter: [3950, 650, 704], // 3716 / 609 (gezeichnet / inked; vorher 5295 / 1680)
@@ -169,8 +169,8 @@ const INK_ROBOTS: Record<string, [number, number]> = {
 };
 /** Gruppe See und Fremde (Schiffe, Fremdwesen, Endgegner, Alvenia-Sonderbauarten) / group sea and aliens */
 const INK_NAVAL: Record<string, [number, number]> = {
-  landingBoat: [4650, 1750], // 4389 / 1630
-  submarine: [4700, 1900], // 4471 / 1768
+  landingBoat: [5000, 1900], // 4732 / 1776 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
+  submarine: [5050, 2050], // 4795 / 1914 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   destroyer: [5000, 1950], // 4753 / 1857
   battleship: [7800, 2700], // 7415 / 2537
   privateer: [2300, 950], // 2143 / 903
@@ -180,8 +180,8 @@ const INK_NAVAL: Record<string, [number, number]> = {
   mech: [5050, 1800], // 4786 / 1678
   tripod: [4750, 1500], // 4508 / 1426
   reliquary: [9600, 2150], // 9128 / 2026
-  sunLance: [7300, 2600], // 6943 / 2472
-  divineSpark: [8200, 2750], // 7765 / 2617
+  sunLance: [8050, 2850], // 7666 / 2672 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
+  divineSpark: [8800, 3000], // 8376 / 2817 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   guidedMissile: [2950, 850], // 2775 / 807
 };
 const INK_BUDGET: Record<string, [number, number]> = { ...INK_FIGURES, ...INK_VEHICLES, ...INK_ROBOTS, ...INK_NAVAL };
