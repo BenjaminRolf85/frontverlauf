@@ -9,12 +9,14 @@
  */
 import * as THREE from 'three';
 import type { FactionId } from '../../../data/balance';
-import { addEmblem } from '../emblems';
-import { fine, geo, mix, rng, shade, type Builder, type V3 } from '../kit';
+import { fine, geo, mix, rng, shade, softBox, type V3 } from '../kit';
 import { look, mat } from '../look';
 import { TECH, techDot } from '../velkarTech';
 import { ANKLE_Y, FIG, figure, kneelPose, PELVIS_Y, rifle, standPose } from './figure';
-import { AtlasLayout, UvBuilder } from './uvkit';
+import { bead, box, cell, frontLoft, rod } from './figkit';
+import { caseBox, sandbag as sandbagProp, shield } from './props';
+import { emblemDecal } from './trim';
+import { AtlasLayout, loft, UvBuilder, type Ring } from './uvkit';
 
 const HALF_PI = Math.PI / 2;
 const V = (a: V3) => new THREE.Vector3(a[0], a[1], a[2]);
@@ -57,30 +59,30 @@ export function sniper(f: FactionId, A: AtlasLayout): UvBuilder {
       kneePoleL: [0, -1, 0], kneePoleR: [0, -1, 0], elbowPoleL: [-0.7, -1, 0], elbowPoleR: [0.7, -1, 0],
     }, { armband: true, seed: 23 });
     rifle(b, A, G, [0, -0.01, 1], { scale: 1.28, scope: true, bipod: 0.098, bayonet: false });
-    // Tarnueberwurf: Buckel aus Laubbuescheln auf Ruecken und Beinen / ghillie: a hump of leaf tufts on back and legs
-    b.group({ p: pelvis, r: body }, () => b.legacy((k) => {
+    // Tarnueberwurf: ein Buckel ueber Ruecken und Beinen mit gezeichnetem Laub, am Rand einzelne Bueschel
+    // ghillie: one hump over back and legs with drawn foliage, single tufts along the edge
+    b.group({ p: pelvis, r: body }, () => {
+      const base = mix(mix(mat.leafDark, mat.leaf, 0.25), L.primary, 0.12);
+      const row = (y: number, rx: number, up: number) => ({ y, rx, rz: up, rzB: 0.012, cz: 0.024, e: 2.3 });
+      b.add(frontLoft([
+        { y: 0.265, rx: 1e-7, cz: 0.03, c: base }, row(0.235, 0.07, 0.04), row(0.15, 0.108, 0.082), row(0.03, 0.112, 0.078), row(-0.1, 0.098, 0.062),
+        row(-0.24, 0.086, 0.05), row(-0.33, 0.06, 0.03), { y: -0.36, rx: 1e-7, cz: 0.03 },
+      ], { seg: hi ? 20 : 10, region: cell(A, 'ghillie') }), null, { xf: { r: [0, Math.PI, 0] }, crease: 0 });
       const R = rng(77);
-      const tones = [mat.leafDark, shade(mat.leaf, 0.78), mix(mat.leafDark, L.primary, 0.3), shade(mat.leafDark, 0.82)];
-      const n = hi ? 34 : 12;
+      const tones = [mat.leafDark, shade(mat.leaf, 0.78), mix(mat.leafDark, L.primary, 0.3)];
+      const n = hi ? 10 : 4;
       for (let i = 0; i < n; i++) {
-        const y = -0.24 + R() * 0.4;
-        const hump = Math.max(0, 1 - Math.abs(y - 0.06) / 0.2);
-        const x = (R() - 0.5) * (y < 0 ? 0.15 : 0.19);
-        const s = 0.03 + R() * 0.024 + hump * 0.012;
-        k.add(geo.ico(s, 0), tones[i % tones.length], { p: [x, y, -0.05 - hump * (0.02 + R() * 0.04)], r: [R() * 3, R() * 3, R() * 3], s: [1, 1, 0.7] });
+        const side = i % 2 ? 1 : -1, y = 0.2 - (i / n) * 0.5 + R() * 0.03;
+        b.add(loft([{ y: 0, rx: 0.02, rz: 0.008 }, { y: 0.018, rx: 0.024, rz: 0.008 }, { y: 0.04 + R() * 0.016, rx: 1e-7 }], { seg: 4, region: A.get('blank'), color: tones[i % 3] }), null, { xf: { p: [side * (0.07 + R() * 0.03), y, -0.05 - R() * 0.02], r: [-1.2 + R() * 0.5, 0, side * (-0.9 - R() * 0.5)] }, crease: 0.5 });
       }
-      if (hi) for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        k.add(geo.cone(0.02, 0.09, 4), tones[i % 4], { p: [Math.cos(a) * 0.085, 0.22 + Math.sin(a) * 0.03, -0.045 + Math.sin(a) * 0.04], r: [-0.6 + (R() - 0.5) * 0.6, 0, Math.cos(a) * 1.2] });
-      }
-    }));
+    });
   });
   return b;
 }
 
 /** Sandsack oder Fertigteilblock der Velkar / sandbag or Velkar prefab block */
-function sandbag(k: Builder, x: number, y: number, z: number, ry: number, tech: boolean) {
-  k.add(geo.ctaper(0.118, 0.072, 0.1, 0.056, 0.046, 0.016), tech ? TECH.shell : mat.sandbag, { p: [x, y + 0.023, z], r: [0, ry, 0] });
+function sandbag(b: UvBuilder, A: AtlasLayout, x: number, y: number, z: number, ry: number, tech: boolean) {
+  sandbagProp(b, A, x, y, z, ry, tech ? TECH.shell : mat.sandbag);
 }
 
 /** Pionier: Schaufel ueber der Schulter, Spitzhacke, schweres Gepaeck, Sandsaecke / pioneer: shovel over the shoulder, pickaxe, heavy pack, sandbags */
@@ -123,14 +125,12 @@ export function pioneer(f: FactionId, A: AtlasLayout): UvBuilder {
   });
   // Sandsackstapel / sandbag stack
   const tk = f === 'velkar';
-  b.legacy((k) => {
-    sandbag(k, -0.13, 0, 0.21, 0.35, tk);
-    sandbag(k, -0.01, 0, 0.24, 0.05, tk);
-    sandbag(k, 0.11, 0, 0.22, -0.3, tk);
-    sandbag(k, 0.05, 0.046, 0.23, -0.12, tk);
-    if (hi) { sandbag(k, -0.07, 0.046, 0.225, 0.2, tk); sandbag(k, -0.01, 0.092, 0.23, 0.05, tk); sandbag(k, 0.23, 0, 0.1, -1.0, tk); }
-    if (tk) k.box(0.07, 0.008, 0.006, TECH.glow, [-0.01, 0.07, 0.262], [0, 0.05, 0]);
-  });
+  sandbag(b, A, -0.13, 0, 0.21, 0.35, tk);
+  sandbag(b, A, -0.01, 0, 0.24, 0.05, tk);
+  sandbag(b, A, 0.11, 0, 0.22, -0.3, tk);
+  sandbag(b, A, 0.05, 0.046, 0.23, -0.12, tk);
+  if (hi) { sandbag(b, A, -0.07, 0.046, 0.225, 0.2, tk); sandbag(b, A, -0.01, 0.092, 0.23, 0.05, tk); sandbag(b, A, 0.23, 0, 0.1, -1.0, tk); }
+  if (tk) b.add(softBox(0.07, 0.008, 0.006, 0.002), TECH.glow, { xf: { p: [-0.01, 0.07, 0.275], r: [0, 0.05, 0] }, gloss: 1, crease: 0 });
   return b;
 }
 
@@ -140,37 +140,39 @@ export function mgTeam(f: FactionId, A: AtlasLayout): UvBuilder {
   const L = look(f);
   const hi = fine();
   const gy = 0.155, K = 1.3, GZ = 0.04;
-  b.group({ p: [0, 0, GZ], s: K }, () => b.legacy((k) => {
-    for (const [x, z] of [[0.09, 0.09], [-0.09, 0.09], [0, -0.12]] as [number, number][]) k.tube([0, gy - 0.025, 0], [x, 0.004, z], 0.007, 6, mat.dark);
-    k.cyl(0.016, 0.02, 0.03, 8, mat.dark, [0, gy - 0.03, 0]);
-    k.add(geo.cbox(0.05, 0.052, 0.14, 0.01), mat.dark, { p: [0, gy, 0] });
-    k.box(0.044, 0.014, 0.1, mat.metal, [0, gy + 0.032, 0]);
-    if (f === 'velkar') {
-      // gekuehlter Laufmantel mit Leuchtringen / cooled barrel shroud with glowing rings
-      k.add(geo.cyl(0.03, 0.03, 0.19, 10), TECH.shell, { p: [0, gy + 0.004, 0.16], r: [HALF_PI, 0, 0] });
-      for (const z of hi ? [0.1, 0.145, 0.19, 0.235] : [0.16]) k.add(geo.cyl(0.033, 0.033, 0.01, 10, true), TECH.glow, { p: [0, gy + 0.004, z], r: [HALF_PI, 0, 0] });
-    } else {
-      k.cyl(0.021, 0.021, 0.18, 12, mat.metal, [0, gy + 0.004, 0.16], [HALF_PI, 0, 0]);
-      if (hi) for (const z of [0.11, 0.16, 0.21]) k.add(geo.cyl(0.025, 0.025, 0.008, 12, true), mat.dark, { p: [0, gy + 0.004, z], r: [HALF_PI, 0, 0] });
-    }
-    k.cyl(0.009, 0.009, 0.06, 8, mat.ink, [0, gy + 0.004, 0.28], [HALF_PI, 0, 0]);
-    k.cyl(0.016, 0.013, 0.03, 8, mat.dark, [0, gy + 0.004, 0.3], [HALF_PI, 0, 0]);
-    for (const s of [-1, 1]) k.box(0.012, 0.035, 0.012, mat.wood, [s * 0.03, gy - 0.005, -0.075], [0.3, 0, 0]);
-    // Kennform: breiter Schutzschild mit Fluegeln in Stahlgrau, Emblem / signature: wide gun shield with wings in steel grey, emblem
+  b.group({ p: [0, 0, GZ], s: K }, () => {
+    // Dreibein und Wiege / tripod and cradle
+    for (const [x, z] of [[0.09, 0.09], [-0.09, 0.09], [0, -0.12]] as [number, number][]) rod(b, A, [0, gy - 0.025, 0], [x, 0.004, z], 0.0075, 0.0065, 5, mat.dark);
+    rod(b, A, [0, gy - 0.045, 0], [0, gy - 0.015, 0], 0.02, 0.016, 6, mat.dark, { crease: 0.6 });
+    // Gehaeuse mit Deckel, Griffe / receiver with cover, grips
+    box(b, A, [0.05, 0.052, 0.14], 0.01, { px: 'case', nx: 'case' }, mat.dark, { xf: { p: [0, gy, 0] }, gloss: 0.4 });
+    box(b, A, [0.044, 0.014, 0.1], 0.004, {}, mat.metal, { xf: { p: [0, gy + 0.032, 0] }, gloss: 0.6 });
+    for (const s of [-1, 1]) box(b, A, [0.012, 0.035, 0.012], 0.003, {}, mat.wood, { xf: { p: [s * 0.03, gy - 0.005, -0.075], r: [0.3, 0, 0] } });
+    // Lauf: Kuehlmantel mit Ringen (Velkar: gekuehlter Mantel mit Leuchtringen), Muendung / barrel: jacket with rings (Velkar: cooled shroud with glowing rings), muzzle
+    const tech = f === 'velkar';
+    const jr = tech ? 0.03 : 0.021, jc = tech ? TECH.shell : mat.metal, rc = tech ? TECH.glow : mat.dark;
+    const rings: Ring[] = [{ y: -0.07, rx: jr, c: jc, hard: true }];
+    for (const z of hi ? (tech ? [0.1, 0.145, 0.19, 0.235] : [0.11, 0.16, 0.21]) : [0.16]) rings.push({ y: -(z - 0.005), rx: jr, hard: true }, { y: -(z - 0.005), rx: jr + 0.004, hard: true, c: rc }, { y: -(z + 0.005), rx: jr + 0.004, hard: true }, { y: -(z + 0.005), rx: jr, hard: true, c: jc });
+    rings.push({ y: -0.25, rx: jr, hard: true }, { y: -0.25, rx: 0.009, hard: true, c: mat.ink }, { y: -0.3, rx: 0.009, hard: true }, { y: -0.3, rx: 0.016, hard: true, c: mat.dark }, { y: -0.315, rx: 0.013, hard: true });
+    b.add(loft(rings, { seg: hi ? 12 : 8, region: A.get('blank'), capLast: true }), null, { xf: { p: [0, gy + 0.004, 0], r: [-HALF_PI, 0, 0] }, gloss: 0.6 });
+    // Kennform: breiter Schutzschild in Stahlgrau mit Sehschlitz, Leiste in der Zweitfarbe, Emblem / signature: wide gun shield in steel grey with a vision slit, bar in the secondary colour, emblem
     const steel = mix(mat.metal, L.primary, 0.22);
-    k.add(geo.rtaper(0.2, 0.014, 0.18, 0.014, 0.17, 0.006), steel, { p: [0, gy + 0.05, 0.075], r: [-0.12, 0, 0] });
-    if (hi) for (const s of [-1, 1]) k.add(geo.rtaper(0.07, 0.012, 0.06, 0.012, 0.15, 0.005), shade(steel, 0.82), { p: [s * 0.124, gy + 0.045, 0.06], r: [-0.12, s * 0.5, 0] });
-    k.box(0.2, 0.016, 0.018, L.secondary, [0, gy + 0.137, 0.09], [-0.12, 0, 0]);
-    k.box(0.04, 0.012, 0.022, mat.ink, [-0.04, gy + 0.105, 0.085], [-0.12, 0, 0]);
-    addEmblem(k, f, 0.026, 0.006, L.primary, { p: [0.045, gy + 0.05, 0.085], r: [-0.12, 0, 0] });
+    b.group({ p: [0, gy - 0.036, 0.075], r: [-0.12, 0, 0] }, () => {
+      shield(b, A, { w: 0.2, h: 0.172, t: 0.014, c: steel });
+      if (hi) for (const s of [-1, 1]) b.group({ p: [s * 0.124, 0.008, -0.016], r: [0, s * 0.5, 0] }, () => box(b, A, [0.07, 0.15, 0.012], 0.005, { pz: 'plate' }, shade(steel, 0.82), { xf: { p: [0, 0.075, 0] }, gloss: 0.3 }));
+      box(b, A, [0.204, 0.016, 0.018], 0.004, {}, L.secondary, { xf: { p: [0, 0.174, 0] } });
+      emblemDecal(b, A, f, [0.048, 0.07, 0.0075], [0, 0, 1], 0.05, steel);
+    });
     // Munitionskasten und Gurt / ammo box and belt
-    k.add(geo.cbox(0.07, 0.055, 0.045, 0.01), L.gear, { p: [0.085, 0.028, 0] });
-    const n = hi ? 14 : 4;
-    for (let i = 0; i < n; i++) {
-      const t = i / (n - 1);
-      k.box(0.012, 0.026, 0.009, mat.gold, [0.075 - t * 0.05, 0.06 + Math.sin(t * Math.PI) * 0.06 + t * 0.03, 0], [0, 0, 0.6 - t * 0.9]);
-    }
-  }));
+    caseBox(b, A, [0.07, 0.055, 0.045], L.gear, { p: [0.085, 0.028, 0] });
+    b.legacy((k) => {
+      const n = hi ? 14 : 4;
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        k.box(0.012, 0.026, 0.009, mat.gold, [0.075 - t * 0.05, 0.06 + Math.sin(t * Math.PI) * 0.06 + t * 0.03, 0], [0, 0, 0.6 - t * 0.9]);
+      }
+    });
+  });
   // Schuetze kniend an den Griffen (Figurmass: Einheitenkoordinaten / FIG) / gunner kneeling at the grips (figure size: unit coordinates / FIG)
   const gripY = ((gy - 0.005) * K) / FIG, gripZ = 0.115;
   b.group({ p: [0, 0, GZ - 0.075 * K - gripZ * FIG], s: FIG }, () =>
@@ -179,7 +181,7 @@ export function mgTeam(f: FactionId, A: AtlasLayout): UvBuilder {
   // Ladeschuetze seitlich mit Gurtkasten / loader at the side with a belt box
   b.group({ p: [-0.26, 0, -0.13], r: [0, 1.1, 0], s: FIG }, () => {
     figure(b, A, f, kneelPose([[-0.035, 0.22, 0.15], [0.045, 0.21, 0.15]]), { detail: 0, pack: hi ? 'pack' : 'none', seed: 43 });
-    b.legacy((k) => k.add(geo.cbox(0.08, 0.06, 0.05, 0.01), L.gear, { p: [0, 0.03, 0.2] }));
+    caseBox(b, A, [0.08, 0.06, 0.05], L.gear, { p: [0, 0.03, 0.2] });
   });
   return b;
 }
@@ -192,37 +194,35 @@ export function medic(f: FactionId, A: AtlasLayout): UvBuilder {
   const HR: V3 = [0.135, 0.245, 0.03];
   b.group({ p: [-0.07, 0, 0.01], s: FIG }, () => {
     figure(b, A, f, { ...standPose([[-0.12, 0.27, 0.07], HR]), twist: [0, -0.1, 0] }, { pack: 'medbag', armband: true, seed: 51 });
-    b.legacy((k) => {
-      // weisser Koffer in der Hand, Umhaengetasche / white case in hand, shoulder satchel
-      k.add(geo.rbox(0.034, 0.07, 0.09, 0.01), mat.white, { p: [HR[0] + 0.004, HR[1] - 0.085, 0.03] });
-      k.add(geo.rbox(0.036, 0.016, 0.092, 0.004), L.primary, { p: [HR[0] + 0.004, HR[1] - 0.085, 0.03] });
-      k.add(geo.rbox(0.012, 0.014, 0.04, 0.003), f === 'velkar' ? TECH.glow : L.secondary, { p: [HR[0] + 0.004, HR[1] - 0.045, 0.03] });
-      if (hi) addEmblem(k, f, 0.018, 0.004, L.primary, { p: [HR[0] + 0.022, HR[1] - 0.085, 0.03], r: [0, HALF_PI, 0] });
-      k.add(geo.rbox(0.04, 0.07, 0.085, 0.01), mat.white, { p: [-0.108, 0.3, 0] });
-      k.add(geo.rbox(0.042, 0.02, 0.087, 0.005), L.primary, { p: [-0.108, 0.315, 0] });
-      if (f === 'velkar') {
-        // Kryo-Kanister ragt statt der Kraxe ueber den Helm / the cryo canister rises above the helmet instead of the frame pack
-        k.cyl(0.05, 0.05, 0.2, 12, TECH.shell, [0, PELVIS_Y + 0.29, -0.125]);
-        k.add(geo.cyl(0.052, 0.052, 0.08, 12, true), TECH.glow, { p: [0, PELVIS_Y + 0.29, -0.125] });
-        for (const y of [0.19, 0.39]) k.cyl(0.036, 0.042, 0.022, 10, TECH.gear, [0, PELVIS_Y + y, -0.125]);
-        techDot(k, [0.06, PELVIS_Y + 0.4, -0.08], 0.009);
-      }
+    // weisser Koffer in der Hand mit Band in Fraktionsfarbe, Umhaengetasche / white case in hand with a band in the faction colour, shoulder satchel
+    caseBox(b, A, [0.036, 0.074, 0.094], mat.white, { p: [HR[0] + 0.004, HR[1] - 0.085, 0.03] });
+    box(b, A, [0.039, 0.016, 0.097], 0.004, {}, L.primary, { xf: { p: [HR[0] + 0.004, HR[1] - 0.085, 0.03] } });
+    box(b, A, [0.012, 0.014, 0.04], 0.003, {}, f === 'velkar' ? TECH.glow : L.secondary, { xf: { p: [HR[0] + 0.004, HR[1] - 0.043, 0.03] } });
+    if (hi) emblemDecal(b, A, f, [HR[0] + 0.0245, HR[1] - 0.1, 0.03], [1, 0, 0], 0.028, mat.white);
+    box(b, A, [0.04, 0.07, 0.085], 0.01, { nx: 'pouch' }, mat.white, { xf: { p: [-0.108, 0.3, 0] } });
+    box(b, A, [0.043, 0.02, 0.088], 0.005, {}, L.primary, { xf: { p: [-0.108, 0.318, 0] } });
+    if (f === 'velkar') b.legacy((k) => {
+      // Kryo-Kanister ragt statt der Kraxe ueber den Helm / the cryo canister rises above the helmet instead of the frame pack
+      k.cyl(0.05, 0.05, 0.2, 12, TECH.shell, [0, PELVIS_Y + 0.29, -0.125]);
+      k.add(geo.cyl(0.052, 0.052, 0.08, 12, true), TECH.glow, { p: [0, PELVIS_Y + 0.29, -0.125] });
+      for (const y of [0.19, 0.39]) k.cyl(0.036, 0.042, 0.022, 10, TECH.gear, [0, PELVIS_Y + y, -0.125]);
+      techDot(k, [0.06, PELVIS_Y + 0.4, -0.08], 0.009);
     });
   });
-  // Krankentrage neben dem Sanitaeter / stretcher on the ground next to the medic
-  b.group({ p: [0.17, 0, -0.02], r: [0, -0.35, 0] }, () => b.legacy((k) => {
+  // Krankentrage neben dem Sanitaeter: Holme, Segeltuch mit Naht, Decke / stretcher next to the medic: poles, canvas with stitching, blanket
+  b.group({ p: [0.17, 0, -0.02], r: [0, -0.35, 0] }, () => {
     const canvas = mix(mat.white, mat.sand, 0.35);
     for (const sx of [-1, 1]) {
-      k.cyl(0.009, 0.009, 0.44, 8, mat.wood, [sx * 0.06, 0.04, 0], [HALF_PI, 0, 0]);
-      for (const z of [-0.15, 0.15]) k.box(0.012, 0.03, 0.012, mat.dark, [sx * 0.06, 0.018, z]);
+      rod(b, A, [sx * 0.06, 0.04, -0.22], [sx * 0.06, 0.04, 0.22], 0.009, 0.009, hi ? 8 : 5, mat.wood);
+      for (const z of [-0.15, 0.15]) box(b, A, [0.012, 0.03, 0.012], 0.002, {}, mat.dark, { xf: { p: [sx * 0.06, 0.018, z] } });
     }
-    k.add(geo.rbox(0.12, 0.012, 0.34, 0.004), canvas, { p: [0, 0.042, 0] });
+    b.group({ p: [0, 0.042, 0], r: [-HALF_PI, 0, 0] }, () => box(b, A, [0.12, 0.34, 0.012], 0.004, { pz: 'cloth' }, canvas));
     if (hi) {
-      k.add(geo.rbox(0.1, 0.02, 0.12, 0.008), shade(L.gear, 1.2), { p: [0, 0.058, -0.08] });
-      for (const z of [-0.03, 0.08]) k.box(0.126, 0.008, 0.016, L.gear, [0, 0.05, z]);
-      k.add(geo.rbox(0.07, 0.03, 0.05, 0.01), mat.white, { p: [0, 0.064, 0.11] });
+      box(b, A, [0.1, 0.02, 0.12], 0.008, { py: 'pouch' }, shade(L.gear, 1.2), { xf: { p: [0, 0.058, -0.08] } });
+      for (const z of [-0.03, 0.08]) box(b, A, [0.126, 0.008, 0.016], 0.003, {}, L.gear, { xf: { p: [0, 0.05, z] } });
+      caseBox(b, A, [0.07, 0.03, 0.05], mat.white, { p: [0, 0.064, 0.11] });
     }
-  }));
+  });
   return b;
 }
 
@@ -239,24 +239,21 @@ export function spy(f: FactionId, A: AtlasLayout): UvBuilder {
       ...standPose([[-0.118, 0.3, 0.045], HR]), head: [0.1, 0.25, 0],
       footL: [-0.048, ANKLE_Y, 0.025], footR: [0.05, ANKLE_Y, -0.02],
     }, { coat: true, hat: 'fedora', seed: 61 });
-    b.legacy((k) => {
-      // Schal in Zweitfarbe, Aktentasche, Zeitung unter dem Arm / scarf in the secondary colour, briefcase, newspaper under the arm
-      k.add(geo.rbox(0.098, 0.022, 0.082, 0.008), L.secondary, { p: [0, PELVIS_Y + 0.178, 0.004] });
-      k.add(geo.rbox(0.03, 0.07, 0.012, 0.004), L.secondary, { p: [0.03, PELVIS_Y + 0.135, 0.056], r: [0.1, 0, 0.1] });
-      k.add(geo.rbox(0.03, 0.075, 0.1, 0.008), mat.dark, { p: [HR[0] + 0.004, HR[1] - 0.09, -0.01] });
-      k.add(geo.rbox(0.032, 0.012, 0.102, 0.003), shade(mat.dark, 1.4), { p: [HR[0] + 0.004, HR[1] - 0.068, -0.01] });
-      for (const z of [-0.036, 0.016]) k.box(0.034, 0.012, 0.012, mat.gold, [HR[0] + 0.004, HR[1] - 0.064, z]);
-      if (hi) {
-        k.add(geo.rbox(0.012, 0.05, 0.07, 0.004), mat.paper, { p: [-0.118, 0.36, 0], r: [0, 0, 0.15] });
-        k.box(0.013, 0.008, 0.06, mat.ink, [-0.118, 0.37, 0], [0, 0, 0.15]);
-      }
-      if (f === 'velkar') {
-        // Datensammler: Handscanner mit Antenne / data collector: hand scanner with antenna
-        k.add(geo.cbox(0.05, 0.03, 0.07, 0.006), TECH.shell, { p: [-0.118, 0.31, 0.075] });
-        k.box(0.03, 0.006, 0.04, TECH.glow, [-0.118, 0.327, 0.075]);
-        techDot(k, [-0.14, 0.4, 0.03], 0.007);
-      }
-    });
+    // Schal in Zweitfarbe, Aktentasche, Zeitung unter dem Arm / scarf in the secondary colour, briefcase, newspaper under the arm
+    b.add(loft([{ y: 0.012, rx: 0.036, rz: 0.035 }, { y: 0, rx: 0.049, rz: 0.042 }, { y: -0.012, rx: 0.047, rz: 0.041 }], { seg: hi ? 14 : 8, region: A.get('blank'), color: L.secondary }), null, { xf: { p: [0, PELVIS_Y + 0.178, 0.004] }, crease: 0.6 });
+    box(b, A, [0.03, 0.07, 0.012], 0.004, {}, L.secondary, { xf: { p: [0.03, PELVIS_Y + 0.135, 0.056], r: [0.1, 0, 0.1] } });
+    caseBox(b, A, [0.03, 0.075, 0.1], mat.dark, { p: [HR[0] + 0.004, HR[1] - 0.09, -0.01] });
+    for (const z of [-0.036, 0.016]) box(b, A, [0.034, 0.012, 0.012], 0.003, {}, mat.gold, { xf: { p: [HR[0] + 0.004, HR[1] - 0.064, z] }, gloss: 0.7 });
+    if (hi) {
+      box(b, A, [0.012, 0.05, 0.07], 0.004, {}, mat.paper, { xf: { p: [-0.118, 0.36, 0], r: [0, 0, 0.15] } });
+      box(b, A, [0.013, 0.008, 0.06], 0.002, {}, mat.ink, { xf: { p: [-0.118, 0.37, 0], r: [0, 0, 0.15] }, crease: 0 });
+    }
+    if (f === 'velkar') {
+      // Datensammler: Handscanner mit Leuchtfeld / data collector: hand scanner with a glowing panel
+      caseBox(b, A, [0.05, 0.03, 0.07], TECH.shell, { p: [-0.118, 0.31, 0.075] });
+      box(b, A, [0.03, 0.006, 0.04], 0.002, {}, TECH.glow, { xf: { p: [-0.118, 0.327, 0.075] }, gloss: 1, crease: 0 });
+      bead(b, A, [-0.14, 0.4, 0.03], 0.007, TECH.glow, 5, { gloss: 1 });
+    }
   });
   return b;
 }

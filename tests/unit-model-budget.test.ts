@@ -38,14 +38,14 @@ const LOW_SLACK = 1.03;
 const RAISED = new Set(['kamikazeDrone', 'flakDrone', 'fogCutter', 'guidedMissile', 'marine', 'berserker', 'divineSpark']);
 const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
-  infantry: [8500, 4100, 4891], // 8086 / 3900 (gezeichnet / inked; vorher 11078 / 4119)
-  sniper: [9750, 4560, 6285], // 9258 / 4340 (gezeichnet / inked; vorher 12620 / 5539)
+  infantry: [8800, 4250, 4891], // 8360 / 4002 (gezeichnet / inked; vorher 11078 / 4119)
+  sniper: [9900, 4650, 6285], // 9416 / 4406 (gezeichnet / inked; vorher 12620 / 5539)
   jeep: [12150, 5300, 5140], // 11526 / 5028 (Detailrunde 4 / detail round 4)
-  pioneer: [9600, 4270, 5321], // 9142 / 4066 (gezeichnet / inked; vorher 12090 / 4791)
-  mg: [10400, 4750, 5075], // 9870 / 4592 (gezeichnet / inked; vorher 13803 / 4444)
-  medic: [10900, 4370, 5703], // 10352 / 4162 (gezeichnet / inked; vorher 11254 / 4817)
+  pioneer: [10500, 4700, 5321], // 9974 / 4452 (gezeichnet / inked; vorher 12090 / 4791)
+  mg: [11250, 5227, 5075], // 10694 / 4970 (gezeichnet / inked; vorher 13803 / 4444)
+  medic: [10800, 4600, 5703], // 10258 / 4352 (gezeichnet / inked; vorher 11254 / 4817)
   artillery: [12350, 5700, 5839], // 11748 / 5016 (Detailrunde 4 / detail round 4)
-  spy: [6900, 3100, 3237], // 6572 / 2962 (gezeichnet / inked; vorher 7702 / 2823)
+  spy: [6500, 3100, 3237], // 6146 / 2910 (gezeichnet / inked; vorher 7702 / 2823)
   heli: [7100, 3900, 4007], // 6723 / 3695 (Detailrunde 4 / detail round 4)
   tank: [19600, 7850, 7866], // 18655 / 6824 (Detailrunde 4 / detail round 4)
   antiTank: [7700, 3950, 3945], // 7310 / 3634 (Detailrunde 4 / detail round 4)
@@ -116,12 +116,12 @@ const BUDGET: Record<string, [number, number, number]> = {
 // every rollout group enters its types into its own block (no collisions when merging).
 /** Gruppe Figuren (Fusstruppen, Kult, Einzigartige zu Fuss): Tusche [hoch, niedrig] / group figures: ink [high, low] */
 const INK_FIGURES: Record<string, [number, number]> = {
-  infantry: [11700, 3900], // 11112 / 3680
-  sniper: [14750, 4350], // 14040 / 4112
-  pioneer: [12900, 4050], // 12286 / 3846
-  mg: [15500, 4550], // 14720 / 4308
-  medic: [12850, 4150], // 12212 / 3942
-  spy: [8900, 2900], // 8438 / 2742
+  infantry: [11500, 3900], // 10946 / 3694
+  sniper: [12650, 4300], // 12046 / 4056
+  pioneer: [14150, 4400], // 13446 / 4156
+  mg: [15600, 4900], // 14848 / 4634
+  medic: [13100, 4300], // 12440 / 4056
+  spy: [8200, 2800], // 7778 / 2656
 };
 /** Gruppe Fahrzeuge (Landfahrzeuge, Roboter) / group vehicles (land vehicles, robots) */
 const INK_VEHICLES: Record<string, [number, number]> = {

@@ -19,12 +19,12 @@
  */
 import * as THREE from 'three';
 import type { FactionId } from '../../../data/balance';
-import { faithArmour, faithCape, faithPauldron, faithTabard } from '../alveniaFaith';
 import { gloveOf } from '../detailFigures';
-import { headgear as legacyHeadgear } from '../headgear';
 import { Builder, fine, geo, mix, shade, softBox, xfMatrix, type ColorLike, type V3, type Xf } from '../kit';
 import { look, mat, type Look } from '../look';
-import { TECH, techArmour, techDot, techPack } from '../velkarTech';
+import { pauldron, tabard, torsoArmour } from './armour';
+import { box, cell, hasCell, rod } from './figkit';
+import { nativeHead, skinOf } from './heads';
 import { AtlasLayout, loft, loftAt, projectBox, ribbon, UvBuilder, type Ring } from './uvkit';
 
 export type Detail = 0 | 1 | 2;
@@ -58,36 +58,14 @@ const FOOT_Y = 0.029;
 export const ANKLE_Y = 0.045;
 /** Alter Oberkoerper (soldiers.ts) auf den neuen: dort sitzt das Zubehoer der Fraktionen / old torso (soldiers.ts) onto the new one: faction accessories sit there */
 const TORSO_FIT: Xf = { p: [0, 0.03, 0], s: [0.98, 1.07, 1.02] };
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-/**
- * Alte Kopfbedeckung (headgear.ts, fuer den grossen Kopf gebaut) auf den neuen Kopf: Teile auf Gesichtshoehe (Brille,
- * Kopfhoerer) bleiben dort, Helm und Hut ruecken zusammen, hohe Aufsaetze (Antenne, Kranz) werden gestaucht, damit die
- * Figur unter dem Lebensbalken bleibt.
- * Old headgear (headgear.ts, built for the big head) onto the new head: parts at face level (glasses, headset) stay
- * there, helmet and hat shrink together, tall attachments (antenna, halo) are squashed so the figure stays below the
- * HP badge.
- */
-function hatWarp(v: THREE.Vector3, brim = 0.74): void {
-  const y = v.y > 0.15 ? 0.15 + (v.y - 0.15) * 0.18 : v.y;
-  const t = Math.min(1, Math.max(0, (v.y - 0.066) / 0.028)), s = t * t * (3 - 2 * t);
-  v.x *= lerp(0.82, brim, s);
-  v.z = v.z * lerp(0.86, brim + 0.04, s) + 0.001;
-  v.y = lerp(v.y + 0.004, 0.0336 + 0.72 * y, s);
-}
-/** Hut des Spions: die breite Krempe ruecken wir staerker zusammen / the spy's hat: the wide brim is pulled in more */
-function fedoraWarp(v: THREE.Vector3): void {
-  hatWarp(v, 0.6);
-}
-/** Ganzer alter Kopf (Fremdwesen, Kult, Roboter) auf die neue Kopfgroesse / whole old head (aliens, cult, robots) to the new head size */
-function headWarp(v: THREE.Vector3): void {
-  v.x *= 0.86;
-  v.y = v.y * 1.03 + 0.006;
-  v.z = v.z * 0.92 + 0.001;
-}
-
 /** Rundungssegmente [Glieder, Rumpf, Kopf] je Detailstufe, niedrige / hohe Qualitaet / radial segments [limbs, torso, head] per detail level, low / high quality */
 const SEG_LOW: [number, number, number][] = [[6, 8, 8], [6, 8, 10], [8, 10, 12]];
 const SEG_HIGH: [number, number, number][] = [[10, 12, 14], [14, 16, 20], [20, 24, 28]];
+
+/** Rundungssegmente des Kopfes fuer die Detailstufe d (fuer eigene Koepfe der Einheiten) / radial segments of the head for detail level d (for the units' own heads) */
+export function headSegments(d: Detail): number {
+  return (fine() ? SEG_HIGH : SEG_LOW)[d][2];
+}
 
 /** Ringe des Kopfes von oben nach unten (Kopfkoordinaten, Kinn bei y = 0) / head rings top to bottom (head coordinates, chin at y = 0) */
 export const HEAD: Ring[] = [
@@ -164,6 +142,35 @@ export function coatRings(c: ColorLike, dark: ColorLike, hem: number): Ring[] {
     { y: hem + 0.012, rx: TIP },
   ];
 }
+/** Grenzen der Kuttenzelle in Beckenkoordinaten / limits of the robe cell in pelvis coordinates */
+export const ROBE = { top: 0.176, hem: -0.215 };
+/** Strick als Guertel der Kutte / rope as the robe's belt */
+export const ROPE = mix(mat.sand, mat.wood, 0.45);
+/**
+ * Kutte des Kults: weiter als der Mantel, Strick statt Koppel, ausgefranster Saum bei hem (Beckenkoordinaten). Die Zelle
+ * 'robe' ist fuer ROBE.hem gezeichnet; ein kuerzerer Saum (kniend) staucht sie.
+ * Cult robe: wider than the coat, a rope instead of the belt, ragged hem at hem (pelvis coordinates). The cell 'robe' is
+ * drawn for ROBE.hem; a shorter hem (kneeling) squashes it.
+ */
+export function robeRings(c: ColorLike, hem: number = ROBE.hem): Ring[] {
+  const k = hem / ROBE.hem;
+  return [
+    { y: 0.176, rx: 0.023, rz: 0.023, c },
+    { y: 0.163, rx: 0.044, rz: 0.035, e: 2.2 },
+    { y: 0.148, rx: 0.08, rz: 0.047, rzB: 0.046, e: 2.7 },
+    { y: 0.122, rx: 0.086, rz: 0.056, rzB: 0.05, e: 2.5 },
+    { y: 0.09, rx: 0.081, rz: 0.057, rzB: 0.048, e: 2.4 },
+    { y: 0.052, rx: 0.071, rz: 0.051, rzB: 0.045, e: 2.4, hard: true },
+    { y: 0.051, rx: 0.0745, rz: 0.054, rzB: 0.048, e: 2.3, hard: true, c: ROPE },
+    { y: 0.038, rx: 0.0745, rz: 0.054, rzB: 0.048, e: 2.3, hard: true },
+    { y: 0.037, rx: 0.072, rz: 0.052, rzB: 0.047, e: 2.4, hard: true, c },
+    { y: -0.06 * k, rx: 0.088, rz: 0.07, rzB: 0.066, e: 2.5 },
+    { y: -0.15 * k, rx: 0.098, rz: 0.082, rzB: 0.078, e: 2.5 },
+    { y: hem, rx: 0.103, rz: 0.088, rzB: 0.084, e: 2.5, hard: true },
+    { y: hem - 0.001, rx: 0.09, rz: 0.076, rzB: 0.072, e: 2.4, hard: true, c: shade(c, 0.4) },
+    { y: hem + 0.014, rx: TIP },
+  ];
+}
 /** Grenzen der Mantelzelle in Beckenkoordinaten (fuer die Malerei) / limits of the coat cell in pelvis coordinates (for the painting) */
 export const COAT = { top: 0.176, hem: -0.128 };
 
@@ -205,6 +212,8 @@ export interface FigureOpts {
   seed?: number;
   /** Kutte bis zu den Knoecheln (Kult) / ankle-length robe (cult) */
   robe?: boolean;
+  /** Saum der Kutte in Beckenkoordinaten (Standard ROBE.hem; kniend kuerzer) / hem of the robe in pelvis coordinates (default ROBE.hem; shorter when kneeling) */
+  hem?: number;
   /** Beine weglassen (Besatzung in Luken) / omit legs (crew in hatches) */
   noLegs?: boolean;
   coatColor?: ColorLike;
@@ -285,13 +294,14 @@ export function bareHead(b: UvBuilder, A: AtlasLayout, seg: number, cell = 'head
   }));
 }
 
-/** Kopf samt Kopfbedeckung der Fraktion (Kopfkoordinaten, Kinn bei y = 0, Blick +z) / head with the faction's headgear (head coordinates, chin at y = 0, facing +z) */
-export function factionHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look, d: Detail, seg: number, fedora: boolean, seed: number): void {
-  const whole = f === 'zyrr' || f === 'vesper' || f === 'nexus';
-  const bridge = (bare: boolean) => b.legacy((k) => legacyHeadgear(k, f, L, d, fedora, seed, bare), { map: whole ? headWarp : fedora ? fedoraWarp : hatWarp });
-  // Fremdwesen, Kult, Roboter: eigener Kopf aus dem alten Baukasten / aliens, cult, robots: their own head from the old toolkit
-  if (whole) { bridge(false); return; }
-  if (fedora) { bareHead(b, A, seg); bridge(true); return; }
+/**
+ * Kopf samt Kopfbedeckung der Fraktion (Kopfkoordinaten, Kinn bei y = 0, Blick +z). Alle Kopfbedeckungen sind eigene
+ * Lofts in EINER Groessenklasse (heads.ts): Kopf, Helm und Hut werden nie einzeln vergroessert.
+ * Head with the faction's headgear (head coordinates, chin at y = 0, facing +z). All headgear is native lofts in ONE
+ * size class (heads.ts): head, helmet and hat are never enlarged separately.
+ */
+export function factionHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look, d: Detail, seg: number, fedora: boolean, _seed: number): void {
+  if (fedora) { nativeHead(b, A, f, L, d, seg, true); return; }
   switch (f) {
     case 'korvat':
       bareHead(b, A, seg);
@@ -304,9 +314,8 @@ export function factionHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look,
       b.add(loft([{ y: 0.114, rx: TIP }, { y: 0.112, rx: 0.026 }, { y: 0.104, rx: 0.04, rzB: 0.044 }, { y: 0.096, rx: 0.041, rzB: 0.046, hard: true }, { y: 0.094, rx: 0.036 }], { seg, region: A.get('blank'), color: shade(L.helmet, 1.5) }), null, { xf: { p: [0.004, 0.001, -0.002], r: [0.06, 0, -0.14] } });
       break;
     default:
-      // Alvenia, Meridon, Velkar: gezeichnetes Gesicht, Kopfbedeckung ueber die Bruecke / drawn face, headgear through the bridge
-      bareHead(b, A, seg);
-      bridge(true);
+      // Alvenia, Meridon, Velkar, Zyrr, Kult, NEXUS: eigene Formen mit Zeichnung / shapes of their own with drawing
+      nativeHead(b, A, f, L, d, seg, false);
   }
 }
 
@@ -326,19 +335,23 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
   const jacket: ColorLike = o.bare ? mat.skin : o.coat ? coatC : L.jacket;
   const sleeve = jacket;
   const boot = mat.dark;
-  const T = long ? coatRings(o.coat ? coatC : L.jacket, o.coat ? L.primaryDark : shade(L.jacket, 0.7), o.robe ? -0.215 : COAT.hem) : torsoRings(L, jacket, !!o.bare);
+  const T = o.robe ? robeRings(L.jacket, o.hem ?? ROBE.hem) : o.coat ? coatRings(coatC, L.primaryDark, COAT.hem) : torsoRings(L, jacket, !!o.bare);
+  // Zellen: Kutte und nackte Haut haben eigene Zeichnung, wo der Atlas sie hat / cells: robe and bare skin have their own drawing where the atlas has it
+  const torsoCell = o.robe ? cell(A, 'robe', 'coat') : long ? A.get('coat') : o.bare ? cell(A, 'bareTorso') : A.get('torso');
+  const armCell = (part: 'upperArm' | 'foreArm') => (o.bare ? cell(A, 'bareArm') : o.robe ? cell(A, 'robeSleeve', part) : A.get(part));
+  const armT = (upper: boolean) => (o.bare || (o.robe && hasCell(A, 'robeSleeve')) ? (upper ? { t1: 0.5 } : { t0: 0.5 }) : {});
   const skinFx = { crease: 0 };
 
   b.group({ p: pose.pelvis, r: pose.body }, () => {
     // Alvenia: Wappenrock am Becken / Alvenia: tabard at the pelvis
-    if (fx === 'alvenia' && !long && !o.noLegs) b.legacy((k) => faithTabard(k, d));
+    if (fx === 'alvenia' && !long && !o.noLegs) tabard(b, A, d);
     b.group({ r: pose.twist }, () => {
-      b.add(loft(T, { seg: segT, region: A.get(long ? 'coat' : o.bare ? 'blank' : 'torso') }), null, o.bare ? skinFx : {});
+      b.add(loft(T, { seg: segT, region: torsoCell }), null, o.bare ? skinFx : {});
       if (!o.bare) {
         // Stehkragen: offen, die Kante zeichnet die Tusche / stand collar: open, the ink draws its edge
         b.add(loft([{ y: 0.189, rx: 0.0285, rz: 0.029, cz: 0.001 }, { y: 0.169, rx: 0.036, rz: 0.035, cz: 0.001 }], { seg, region: A.get('blank'), color: shade(jacket, 0.82) }), null);
       }
-      b.add(loft([{ y: 0.2, rx: 0.0205 }, { y: 0.166, rx: 0.0225 }], { seg: Math.max(6, seg - 4), region: A.get('blank'), color: shade(mat.skin, 0.94) }), null, skinFx);
+      b.add(loft([{ y: 0.2, rx: 0.0205 }, { y: 0.166, rx: 0.0225 }], { seg: Math.max(6, seg - 4), region: A.get('blank'), color: shade(o.plain ? mat.skin : skinOf(f), 0.94) }), null, skinFx);
       if (fx === 'korvat' && !long && !o.bare) {
         // Schaerpe in Fraktionsfarbe als Auflage: Farbe aus der Vertexfarbe, Zeichnung aus dem Atlas
         // sash in the faction colour as a decal: colour from the vertex colour, drawing from the atlas
@@ -347,25 +360,11 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
         for (let i = 0; i <= n; i++) { const u = i / n; path.push(loftAt(T, 0.655 - u * 0.33, 0.15 - u * 0.118)); }
         b.add(ribbon(path, 0.0115, A.get('strap'), 0.0022), L.secondary);
       }
-      // Zubehoer der Fraktionen ueber die Bruecke (alter Oberkoerperrahmen) / faction accessories through the bridge (old torso frame)
-      const techGen = fx === 'velkar' && !long && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
-      const cape = fx === 'alvenia' && !long && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
-      b.group(TORSO_FIT, () => b.legacy((k) => {
-        if (o.bare || long) return;
-        if (fx === 'meridon') {
-          k.add(d >= 1 ? geo.ctaper(0.156, 0.098, 0.176, 0.108, 0.08, 0.014) : geo.taper(0.156, 0.098, 0.176, 0.108, 0.08), L.secondary, { p: [0, 0.06, 0] });
-          if (d >= 1) for (const s of [-1, 1]) k.box(0.034, 0.03, 0.012, shade(L.secondary, 0.75), [s * 0.04, 0.045, 0.056]);
-        }
-        if (fx === 'dravon') {
-          k.add(geo.taper(0.1, 0.012, 0.08, 0.012, 0.05), L.secondary, { p: [0, 0.07, 0.053] });
-          k.add(geo.taper(0.09, 0.01, 0.07, 0.01, 0.04), shade(L.jacket, 0.8), { p: [0, 0.07, 0.057] });
-        }
-        if (fx === 'alvenia') faithArmour(k, d);
-        if (fx === 'velkar') techArmour(k, d);
-        if (techGen) techPack(k, d);
-        else if (cape) faithCape(k, d);
-      }));
-      if (!techGen && !cape) pack(b, A, L, fx, d, o.pack ?? 'none');
+      // Ruestung der Fraktionen: Schalen um den Rumpf mit eigener Zeichnung (armour.ts); Umhang oder Generator belegen den Ruecken
+      // faction armour: shells around the torso with their own drawing (armour.ts); cape or generator take the back
+      const wantsBack = (fx === 'velkar' || fx === 'alvenia') && !long && !o.noLegs && (o.pack === undefined || o.pack === 'pack');
+      const backTaken = !o.bare && !long && torsoArmour(b, A, fx, L, d, T, segT, wantsBack);
+      if (!backTaken) pack(b, A, L, fx, d, o.pack ?? 'none');
       // Koppeltaschen / belt pouches
       if (rich && !long && !o.bare) for (const s of [-1, 1]) b.add(projectBox(softBox(0.031, 0.036, 0.017, 0.005), { pz: A.get('pouch'), all: A.get('blank') }), shade(L.gear, 0.82), { xf: { p: [s * 0.043, 0.012, 0.052], r: [0, s * 0.25, 0] } });
       b.group({ p: [0, NECK_Y, 0.003], r: pose.head, s: o.headScale ?? HEAD_SCALE }, () => {
@@ -389,29 +388,22 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
         { y: -0.026, rx: TIP, c: sleeve }, { y: -0.018, rx: 0.018 }, { y: -0.006, rx: 0.0275 }, { y: 0.014, rx: 0.031, rz: 0.0315 },
         ...(band ? [{ y: 0.03, rx: 0.0305, c: L.secondary, hard: true }, { y: 0.052, rx: 0.0285, c: sleeve, hard: true }] : [{ y: 0.048, rx: 0.0275 }]),
         { y: len - 0.012, rx: 0.0255 }, { y: len + 0.01, rx: 0.0235 }, { y: len + 0.022, rx: TIP },
-      ], { seg, region: A.get(o.bare ? 'blank' : 'upperArm'), ...flip }), null, o.bare ? skinFx : { crease: band ? 0.5 : 0 });
+      ], { seg, region: armCell('upperArm'), ...armT(true), ...flip }), null, o.bare ? skinFx : { crease: band ? 0.5 : 0 });
       // Schulterstuecke der Fraktionen / faction shoulder pieces
-      if (!long && !o.bare && (fx === 'dravon' || (d >= 1 && (fx === 'alvenia' || fx === 'velkar')))) b.legacy((k) => {
-        if (fx === 'dravon') k.box(0.064, 0.016, 0.064, L.secondary, [0, 0.004, 0]);
-        if (fx === 'alvenia') faithPauldron(k, side, d);
-        if (fx === 'velkar') {
-          k.add(geo.rtaper(0.07, 0.07, 0.06, 0.06, 0.03, 0.008), TECH.shell, { p: [0, 0.012, 0] });
-          if (d === 2) techDot(k, [side * 0.034, 0.012, 0.02], 0.007);
-        }
-      });
+      if (!long && !o.bare) pauldron(b, A, fx, L, d, side, seg);
     });
     b.bone(E, H, out, (len) => {
       const cuff = o.bare ? [] : [{ y: len - 0.026, rx: 0.0248, hard: true, c: shade(sleeve, 0.8) }, { y: len - 0.007, rx: 0.0248, hard: true }];
       b.add(loft([
         { y: -0.02, rx: TIP, c: sleeve }, { y: -0.01, rx: 0.02 }, { y: 0.006, rx: 0.0255 }, { y: 0.036, rx: 0.0245 }, { y: len - 0.027, rx: 0.022, hard: true },
         ...cuff, { y: len - 0.006, rx: 0.017, hard: true },
-      ], { seg, region: A.get(o.bare ? 'blank' : 'foreArm'), capLast: true, ...flip }), null, o.bare ? skinFx : {});
+      ], { seg, region: armCell('foreArm'), ...armT(false), capLast: true, ...flip }), null, o.bare ? skinFx : {});
     });
     // Faust: Handruecken nach aussen, Daumen oben / fist: back of the hand outward, thumb on top
     const dir = H.clone().sub(E).normalize();
     const z = out.clone().addScaledVector(dir, -out.dot(dir)).normalize();
     const sx = new THREE.Vector3().crossVectors(dir, z).y >= 0 ? 1 : -1;
-    const hand = glove ?? mat.skin;
+    const hand = glove ?? (o.plain ? mat.skin : skinOf(f));
     b.bone(H, H.clone().addScaledVector(dir, 0.05), out, () => {
       b.add(loft([
         { y: -0.008, rx: 0.0145, rz: 0.013 }, { y: 0.006, rx: 0.021, rz: 0.017, e: 2.6 }, { y: 0.026, rx: 0.0238, rz: 0.0195, e: 2.9 },
@@ -453,7 +445,8 @@ export function figure(b: UvBuilder, A: AtlasLayout, f: FactionId, pose: FigureP
       b.add(softBox(0.058, 0.108, 0.008, 0.003), mat.ink, { xf: { p: [0, 0.051, -0.025] } });
       if (rich) b.add(softBox(0.05, 0.032, 0.012, 0.003), mat.ink, { xf: { p: [0, 0.018, -0.0245] } });
     }));
-    if (fx === 'velkar' && d >= 1) b.group({ p: [An.x, An.y, An.z], r: rot }, () => b.legacy((k) => k.box(0.066, 0.012, 0.03, mat.snow, [0, -0.008, -0.012])));
+    // Velkar: Schneesohle / Velkar: snow sole
+    if (fx === 'velkar' && d >= 1) b.group({ p: [An.x, An.y, An.z], r: rot }, () => b.add(softBox(0.066, 0.012, 0.03, 0.003), mat.snow, { xf: { p: [0, -0.008, -0.012] } }));
   }
 }
 
@@ -484,31 +477,20 @@ function pack(b: UvBuilder, A: AtlasLayout, L: Look, fx: FactionId | null, d: De
     }));
     return;
   }
-  // Sanitaetskraxe: hoch ueber den Helm, gruenes Feld mit weissem Kreuz (kein Schutzzeichen); Velkar: niedriger Rucksack
-  // medical frame pack: rising above the helmet, green panel with a white cross (no protected emblem); Velkar: low pack
-  b.group(TORSO_FIT, () => b.legacy((k) => {
+  // Sanitaetskraxe: hoch ueber den Helm, gruenes Feld mit weissem Kreuz (kein Schutzzeichen) als Zeichnung; Velkar: niedriger Rucksack
+  // medical frame pack: rising above the helmet, green panel with a white cross (no protected emblem) as drawing; Velkar: low pack
+  b.group(TORSO_FIT, () => {
     const tall = fx !== 'velkar';
     const ph = tall ? 0.31 : 0.2, py = tall ? 0.175 : 0.085;
-    const part = (w: number, h: number, dd: number, ch: number) => (d >= 1 ? geo.cbox(w, h, dd, Math.min(w, dd) * ch) : geo.box(w, h, dd));
-    k.add(part(0.2, ph, 0.11, 0.18), mat.white, { p: [0, py, -0.11] });
-    k.add(part(0.206, 0.04, 0.116, 0.25), L.primary, { p: [0, 0.11, -0.11] });
-    if (tall) {
-      const cross = (pp: V3, ry: number, s: number) => k.group({ p: pp, r: [0, ry, 0] }, () => {
-        k.add(geo.box(0.13 * s, 0.13 * s, 0.006), mat.green, {});
-        k.add(geo.box(0.084 * s, 0.026 * s, 0.009), mat.white, {});
-        k.add(geo.box(0.026 * s, 0.084 * s, 0.009), mat.white, {});
-      });
-      cross([0, 0.235, -0.1635], Math.PI, 1);
-      if (d >= 1) for (const s of [-1, 1]) cross([s * 0.1005, 0.235, -0.11], s * HALF_PI, 0.75);
-      k.add(part(0.21, 0.03, 0.118, 0.3), shade(mat.white, 0.88), { p: [0, 0.325, -0.11] });
-      if (d >= 1) for (const s of [-1, 1]) k.box(0.012, 0.31, 0.012, L.gear, [s * 0.098, 0.165, -0.052]);
+    box(b, A, [0.2, ph, 0.11], 0.016, { nz: tall ? 'medPack' : 'packBack', px: 'packSide', nx: 'packSide', mirrorNx: true, py: 'packTop' }, mat.white, { xf: { p: [0, py, -0.11] } }, hi && d === 2 ? 1 : 0);
+    box(b, A, [0.206, 0.034, 0.116], 0.008, {}, L.primary, { xf: { p: [0, tall ? 0.046 : 0.11, -0.11] } });
+    if (tall) box(b, A, [0.21, 0.03, 0.118], 0.01, {}, shade(mat.white, 0.88), { xf: { p: [0, 0.325, -0.11] } });
+    else if (d >= 1) box(b, A, [0.17, 0.035, 0.1], 0.01, {}, shade(mat.white, 0.88), { xf: { p: [0, 0.2, -0.11] } });
+    if (d >= 1) for (const s of [-1, 1]) {
+      box(b, A, [0.04, 0.1, 0.08], 0.008, { px: 'pouch', nx: 'pouch' }, shade(mat.white, 0.92), { xf: { p: [s * 0.118, 0.05, -0.105] } });
+      if (tall && hi) rod(b, A, [s * 0.098, 0.012, -0.05], [s * 0.098, 0.32, -0.05], 0.007, 0.007, 5, L.gear);
     }
-    if (d >= 1) {
-      for (const s of [-1, 1]) k.add(part(0.04, 0.1, 0.08, 0.2), shade(mat.white, 0.92), { p: [s * 0.118, 0.05, -0.105] });
-      if (!tall) k.add(part(0.17, 0.035, 0.1, 0.25), shade(mat.white, 0.88), { p: [0, 0.2, -0.11] });
-      k.box(0.12, 0.05, 0.012, shade(mat.white, 0.85), [0, 0.04, -0.17]);
-    }
-  }));
+  });
 }
 
 // ---------- Gewehr / rifle ----------
