@@ -109,47 +109,56 @@ export function sensorCarrier(f: FactionId, A: AtlasLayout): UvBuilder {
 }
 
 /** Spulenwerfer: Kondensatorbank, Drehlafette, lange Schiene mit Spulenringen, ein Bediener mit Steuertafel / coil launcher: capacitor bank, turntable, long rail with coil rings, one operator with a control panel */
+/** Vergroesserung des Spulenwerfers gegenueber dem Entwurf (ohne den Bediener) / enlargement of the coil launcher over its design (without the operator) */
+const COIL_SCALE = 1.12;
+
 export function coilLauncher(f: FactionId, A: AtlasLayout): UvBuilder {
   const b = new UvBuilder(A.get('blank'));
   const hi = fine();
-  const T: TrackSpec = { x: 0.124, w: 0.074, len: 0.36, h: 0.074, links: 32, thick: 0.01 };
-  techChassis(b, A, T, 4, -0.03);
-  const deck = T.h + 0.046;
-  const F = shellFaces(A);
-  // Kondensatorbank mit Kuehlrippen (gezeichnetes Gitter obenauf) / capacitor bank with cooling fins (drawn grille on top)
-  b.add(boxed(softBox(0.2, 0.064, 0.13, 0.012, hi ? 1 : 0), { p: [0, deck + 0.032, -0.135] }, { ...F, py: A.get('grille') }), TECH.shell);
-  glowBar(b, A, [0, deck + 0.05, -0.0685], 0.12, 0.008, 0.004, 'pz');
-  for (const s of [-1, 1]) emblemDecal(b, A, f, [s * 0.1005, deck + 0.034, -0.15], [s, 0, 0], 0.034, TECH.shell);
-  // Drehlafette / turntable
-  b.add(loft([{ y: 0.03, rx: 0.062, hard: true }, { y: 0.03, rx: 0.07, hard: true }, { y: 0, rx: 0.08 }], { seg: hi ? 18 : 9, region: A.get('blank'), capFirst: true, color: TECH.gearDark }), null, { xf: { p: [0, deck, 0.03] } });
-  // Werfer, angehoben: Verschluss, Schiene, Spulenringe (abwechselnd Schale und Leuchte), Muendung
-  // launcher, raised: breech, rail, coil rings (alternating shell and glow), muzzle
-  b.group({ p: [0, deck + 0.064, 0.012], r: [-0.48, 0, 0] }, () => {
-    const len = 0.42;
-    b.add(boxed(softBox(0.086, 0.076, 0.12, 0.012, hi ? 1 : 0), { p: [0, 0, -0.03] }, F), TECH.shell);
-    b.add(softBox(0.05, 0.05, len, 0.01), TECH.gear, { xf: { p: [0, 0, 0.03 + len / 2] } });
-    b.add(softBox(0.012, 0.058, len * 0.92, 0.003), TECH.coil, { xf: { p: [0, 0, 0.03 + len / 2] } });
-    const n = hi ? 6 : 4;
-    for (let i = 0; i < n; i++) {
-      const z = 0.075 + (i / (n - 1)) * (len - 0.09), glow = i % 2 === 0;
-      b.add(loft([{ y: 0.01, rx: 0.031, e: 4, hard: true }, { y: 0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.031, e: 4, hard: true }], { seg: hi ? 12 : 8, region: A.get(glow ? 'glowStrip' : 'blank'), color: glow ? TECH.glow : TECH.shell }), null, { xf: { p: [0, 0, z], r: [HALF_PI, 0, 0] }, crease: glow ? 0 : 1 });
-    }
-    b.add(softBox(0.074, 0.074, 0.024, 0.01), TECH.gearDark, { xf: { p: [0, 0, 0.03 + len] } });
-    b.add(loft([{ y: 0.004, rx: TIP }, { y: 0.003, rx: 0.02 }, { y: 0, rx: 0.026, hard: true }], { seg: hi ? 12 : 7, region: A.get('blank'), color: TECH.glow }), null, { xf: { p: [0, 0, 0.042 + len], r: [HALF_PI, 0, 0] }, crease: 0 });
-    if (hi) for (const s of [-1, 1]) b.add(softBox(0.006, 0.012, len * 0.85, 0.002), TECH.gearDark, { xf: { p: [s * 0.029, 0.02, 0.03 + len / 2] } });
+  // Fahrzeug um COIL_SCALE vergroessert und nach hinten gerueckt (der Werfer ragt weit nach vorn): so gross wie der
+  // bisherige Spulenwerfer. Der Bediener steht ausserhalb der Gruppe und bleibt im Massstab CREW (Regel 1).
+  // vehicle enlarged by COIL_SCALE and moved back (the launcher reaches far forward): as large as the previous coil
+  // launcher. The operator stands outside the group and keeps the scale CREW (rule 1).
+  b.group({ p: [0, 0, -0.05], s: COIL_SCALE }, () => {
+    const T: TrackSpec = { x: 0.124, w: 0.074, len: 0.36, h: 0.074, links: 32, thick: 0.01 };
+    techChassis(b, A, T, 4, -0.03);
+    const deck = T.h + 0.046;
+    const F = shellFaces(A);
+    // Kondensatorbank mit Kuehlrippen (gezeichnetes Gitter obenauf) / capacitor bank with cooling fins (drawn grille on top)
+    b.add(boxed(softBox(0.2, 0.064, 0.13, 0.012, hi ? 1 : 0), { p: [0, deck + 0.032, -0.135] }, { ...F, py: A.get('grille') }), TECH.shell);
+    glowBar(b, A, [0, deck + 0.05, -0.0685], 0.12, 0.008, 0.004, 'pz');
+    for (const s of [-1, 1]) emblemDecal(b, A, f, [s * 0.1005, deck + 0.034, -0.15], [s, 0, 0], 0.034, TECH.shell);
+    // Drehlafette / turntable
+    b.add(loft([{ y: 0.03, rx: 0.062, hard: true }, { y: 0.03, rx: 0.07, hard: true }, { y: 0, rx: 0.08 }], { seg: hi ? 18 : 9, region: A.get('blank'), capFirst: true, color: TECH.gearDark }), null, { xf: { p: [0, deck, 0.03] } });
+    // Werfer, angehoben: Verschluss, Schiene, Spulenringe (abwechselnd Schale und Leuchte), Muendung
+    // launcher, raised: breech, rail, coil rings (alternating shell and glow), muzzle
+    b.group({ p: [0, deck + 0.064, 0.012], r: [-0.48, 0, 0] }, () => {
+      const len = 0.42;
+      b.add(boxed(softBox(0.086, 0.076, 0.12, 0.012, hi ? 1 : 0), { p: [0, 0, -0.03] }, F), TECH.shell);
+      b.add(softBox(0.05, 0.05, len, 0.01), TECH.gear, { xf: { p: [0, 0, 0.03 + len / 2] } });
+      b.add(softBox(0.012, 0.058, len * 0.92, 0.003), TECH.coil, { xf: { p: [0, 0, 0.03 + len / 2] } });
+      const n = hi ? 6 : 4;
+      for (let i = 0; i < n; i++) {
+        const z = 0.075 + (i / (n - 1)) * (len - 0.09), glow = i % 2 === 0;
+        b.add(loft([{ y: 0.01, rx: 0.031, e: 4, hard: true }, { y: 0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.04, e: 4, hard: true }, { y: -0.01, rx: 0.031, e: 4, hard: true }], { seg: hi ? 12 : 8, region: A.get(glow ? 'glowStrip' : 'blank'), color: glow ? TECH.glow : TECH.shell }), null, { xf: { p: [0, 0, z], r: [HALF_PI, 0, 0] }, crease: glow ? 0 : 1 });
+      }
+      b.add(softBox(0.074, 0.074, 0.024, 0.01), TECH.gearDark, { xf: { p: [0, 0, 0.03 + len] } });
+      b.add(loft([{ y: 0.004, rx: TIP }, { y: 0.003, rx: 0.02 }, { y: 0, rx: 0.026, hard: true }], { seg: hi ? 12 : 7, region: A.get('blank'), color: TECH.glow }), null, { xf: { p: [0, 0, 0.042 + len], r: [HALF_PI, 0, 0] }, crease: 0 });
+      if (hi) for (const s of [-1, 1]) b.add(softBox(0.006, 0.012, len * 0.85, 0.002), TECH.gearDark, { xf: { p: [s * 0.029, 0.02, 0.03 + len / 2] } });
+    });
+    // Antenne mit Leuchtspitze / antenna with a glow tip
+    tube(b, A, [-0.08, deck + 0.064, -0.19], [-0.09, deck + 0.25, -0.21], 0.003, 0.002, mat.dark, hi ? 5 : 3);
+    glowDot(b, A, [-0.09, deck + 0.255, -0.21], 0.008);
   });
   // Bediener mit Steuertafel: dieselbe Figur im Massstab CREW, mit Beinen / operator with a control panel: the same figure at the scale CREW, with legs
   crew(b, A, f, {
-    p: [0.215, 0, -0.14], yaw: -0.6, legs: true, seed: 13,
+    p: [0.235, 0, -0.2], yaw: -0.6, legs: true, seed: 13,
     pose: { ...standPose([[-0.04, 0.35, 0.1], [0.04, 0.35, 0.1]]), head: [0.1, 0.1, 0] },
     extra: () => {
       b.add(softBox(0.12, 0.012, 0.085, 0.004), TECH.gearDark, { xf: { p: [0, 0.345, 0.13], r: [0.6, 0, 0] } });
       glowBar(b, A, [0, 0.354, 0.132], 0.085, 0.006, 0.05, 'py', [0.6, 0, 0]);
     },
   });
-  // Antenne mit Leuchtspitze / antenna with a glow tip
-  tube(b, A, [-0.08, deck + 0.064, -0.19], [-0.09, deck + 0.25, -0.21], 0.003, 0.002, mat.dark, hi ? 5 : 3);
-  glowDot(b, A, [-0.09, deck + 0.255, -0.21], 0.008);
   return b;
 }
 
@@ -172,32 +181,53 @@ function teslaCoil(b: UvBuilder, A: AtlasLayout, x: number, y: number, z: number
   b.add(loft([{ y: 0.024, rx: TIP }, { y: 0.019, rx: 0.015 }, { y: 0.008, rx: 0.023 }, { y: -0.008, rx: 0.023 }, { y: -0.02, rx: 0.014 }], { seg: hi ? 12 : 7, region: A.get('blank'), color: mat.glass }), null, { xf: { p: [x, sy, z] }, gloss: 1, crease: 0 });
 }
 
-/** Tesla-Panzer: breite helle Wanne, zwei Spulen (Spitzen = TESLA_TOPS, dort haengt das Brett die Lichtboegen an) / Tesla tank: wide light hull, two coils (tops = TESLA_TOPS, where the board attaches the arcs) */
+/**
+ * Massstab der beiden Bauarten mit festen Anbaupunkten (InkedType.scale, wie UNIT_SIZE der bisherigen Modelle): das
+ * Brett haengt Lichtboegen und Rotoren an TESLA_TOPS / OCTO_ARMS mal userData.finishScale.
+ * Scale of the two designs with fixed attach points (InkedType.scale, as UNIT_SIZE of the previous models): the board
+ * attaches arcs and rotors at TESLA_TOPS / OCTO_ARMS times userData.finishScale.
+ */
+export const TESLA_SCALE = 1.25;
+export const OCTO_SCALE = 1.1;
+
+/**
+ * Tesla-Panzer: breite helle Wanne, zwei Spulen (Spitzen = TESLA_TOPS, dort haengt das Brett die Lichtboegen an).
+ * Die Wanne ist in Endgroesse entworfen und steht deshalb in einer um TESLA_SCALE verkleinerten Gruppe; die Spulen
+ * stehen in den Koordinaten der Lichtboegen. buildInked vergroessert beides gemeinsam um TESLA_SCALE.
+ * Tesla tank: wide light hull, two coils (tops = TESLA_TOPS, where the board attaches the arcs). The hull is designed
+ * at final size and therefore sits in a group shrunk by TESLA_SCALE; the coils stand in the coordinates of the arcs.
+ * buildInked enlarges both together by TESLA_SCALE.
+ */
 export function teslaTank(f: FactionId, A: AtlasLayout): UvBuilder {
   const b = new UvBuilder(A.get('blank'));
   const L = look(f), hi = fine();
   // flache Wanne: die Spulen sollen sie ueberragen, ihre Kuppen liegen fest / flat hull: the coils are meant to tower over it, their tops are fixed
   const H: HullSpec = { y0: 0.088, y1: 0.104, y2: 0.14, xb: 0.246, xd: 0.208, zf: 0.252, zr: -0.252, zdf: 0.192, zdr: -0.206 };
   const T: TrackSpec = { x: 0.178, w: 0.108, len: 0.492, h: 0.088, links: 48, thick: 0.012 };
-  tankHull(b, A, L, f, H, T, { color: TECH.shell, emblem: 0.042, emblemZ: 0.14 });
-  tankGear(b, A, T, 6, TECH.coil, TECH.gearDark, mat.dark);
-  // Leuchtleisten an den Flanken, Leuchtband am Bug / light strips on the flanks, light band at the bow
-  glowBar(b, A, [H.xb + 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'px');
-  glowBar(b, A, [-H.xb - 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'nx');
-  glowBar(b, A, [0, (H.y1 + H.y2) / 2 + 0.003, (H.zf + H.zdf) / 2 + 0.002], 0.24, 0.008, 0.012, 'py', [Math.atan2(H.y2 - H.y1, H.zf - H.zdf), 0, 0]);
-  for (const s of [-1, 1]) glowDot(b, A, [s * (H.xd - 0.02), H.y1 + 0.012, H.zf - 0.004], 0.012);
-  const F = shellFaces(A);
-  // Steuerpult vorn mit Leuchtanzeige, zwei Kondensatorkaesten / control console at the front with a lit display, two capacitor boxes
-  b.add(softBox(0.13, 0.05, 0.07, 0.01), TECH.gear, { xf: { p: [0, H.y2 + 0.025, 0.11] } });
-  glowBar(b, A, [0, H.y2 + 0.052, 0.112], 0.07, 0.006, 0.036, 'py');
-  for (const s of [-1, 1]) b.add(boxed(softBox(0.07, 0.05, 0.09, 0.008, hi ? 1 : 0), { p: [s * 0.16, H.y2 + 0.025, 0.1] }, { ...F, py: A.get('hatchSquare') }), TECH.shell);
+  // 0.96: die Wanne ist laenger entworfen als die bisherige; so bleiben Breite und Laenge beide nah am alten Mass
+  // 0.96: the hull is designed longer than the previous one; this keeps width and length both close to the old size
+  const hk = 0.96 / TESLA_SCALE;
+  b.group({ s: hk }, () => {
+    tankHull(b, A, L, f, H, T, { color: TECH.shell, emblem: 0.042, emblemZ: 0.14 });
+    tankGear(b, A, T, 6, TECH.coil, TECH.gearDark, mat.dark);
+    // Leuchtleisten an den Flanken, Leuchtband am Bug / light strips on the flanks, light band at the bow
+    glowBar(b, A, [H.xb + 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'px');
+    glowBar(b, A, [-H.xb - 0.002, H.y1 + 0.001, -0.02], 0.006, 0.01, 0.36, 'nx');
+    glowBar(b, A, [0, (H.y1 + H.y2) / 2 + 0.003, (H.zf + H.zdf) / 2 + 0.002], 0.24, 0.008, 0.012, 'py', [Math.atan2(H.y2 - H.y1, H.zf - H.zdf), 0, 0]);
+    for (const s of [-1, 1]) glowDot(b, A, [s * (H.xd - 0.02), H.y1 + 0.012, H.zf - 0.004], 0.012);
+    const F = shellFaces(A);
+    // Steuerpult vorn mit Leuchtanzeige, zwei Kondensatorkaesten / control console at the front with a lit display, two capacitor boxes
+    b.add(softBox(0.13, 0.05, 0.07, 0.01), TECH.gear, { xf: { p: [0, H.y2 + 0.025, 0.125] } });
+    glowBar(b, A, [0, H.y2 + 0.052, 0.127], 0.07, 0.006, 0.036, 'py');
+    for (const s of [-1, 1]) b.add(boxed(softBox(0.07, 0.05, 0.09, 0.008, hi ? 1 : 0), { p: [s * 0.164, H.y2 + 0.025, 0.115] }, { ...F, py: A.get('hatchSquare') }), TECH.shell);
+    // Kondensatorbank am Heck mit Kuehlgitter, Antenne / capacitor bank at the rear with a cooling grille, antenna
+    b.add(boxed(softBox(0.3, 0.07, 0.085, 0.012, hi ? 1 : 0), { p: [0, H.y2 + 0.035, -0.16] }, { ...F, py: A.get('grille') }), TECH.gear);
+    for (const s of [-1, 1]) b.add(softBox(0.046, 0.044, 0.085, 0.008), TECH.gearDark, { xf: { p: [s * 0.182, H.y2 + 0.022, -0.16] } });
+    tube(b, A, [0.17, H.y2 + 0.09, -0.16], [0.175, H.y2 + 0.27, -0.18], 0.0045, 0.003, mat.dark, hi ? 6 : 4);
+    glowDot(b, A, [0.175, H.y2 + 0.278, -0.18], 0.011);
+  });
   // zwei Spulen: Kugelkuppen an den festen Punkten der Lichtboegen / two coils: sphere tops at the fixed points of the arcs
-  for (const [x, y, z] of TESLA_TOPS) teslaCoil(b, A, x, H.y2, z, y);
-  // Kondensatorbank am Heck mit Kuehlgitter, Antenne / capacitor bank at the rear with a cooling grille, antenna
-  b.add(boxed(softBox(0.3, 0.07, 0.1, 0.012, hi ? 1 : 0), { p: [0, H.y2 + 0.035, -0.15] }, { ...F, py: A.get('grille') }), TECH.gear);
-  for (const s of [-1, 1]) b.add(softBox(0.046, 0.044, 0.09, 0.008), TECH.gearDark, { xf: { p: [s * 0.182, H.y2 + 0.022, -0.1] } });
-  tube(b, A, [0.17, H.y2 + 0.09, -0.15], [0.175, H.y2 + 0.27, -0.17], 0.0045, 0.003, mat.dark, hi ? 6 : 4);
-  glowDot(b, A, [0.175, H.y2 + 0.278, -0.17], 0.011);
+  for (const [x, y, z] of TESLA_TOPS) teslaCoil(b, A, x, H.y2 * hk, z, y);
   return b;
 }
 
@@ -241,8 +271,9 @@ export function octocopter(f: FactionId, A: AtlasLayout): UvBuilder {
   }
   b.add(loft([{ y: 0.02, rx: 0.026 }, { y: 0, rx: 0.036 }, { y: -0.022, rx: 0.028 }, { y: -0.03, rx: TIP }], { seg: hi ? 12 : 7, region: A.get('blank'), color: TECH.gearDark }), null, { xf: { p: [0, by - 0.026, 0.04] } });
   glowDot(b, A, [0, by - 0.04, 0.066], 0.011);
-  tube(b, A, [0, by + 0.07, -0.07], [0, by + 0.19, -0.09], 0.003, 0.002, mat.dark, hi ? 5 : 3);
-  glowDot(b, A, [0, by + 0.196, -0.09], 0.008);
+  // Antenne kurz: mit OCTO_SCALE bleibt das Modell so hoch wie bisher / short antenna: with OCTO_SCALE the model stays as tall as before
+  tube(b, A, [0, by + 0.07, -0.07], [0, by + 0.155, -0.085], 0.003, 0.002, mat.dark, hi ? 5 : 3);
+  glowDot(b, A, [0, by + 0.161, -0.085], 0.008);
   emblemDecal(b, A, f, [0, by + 0.054, -0.085], [0, 0.82, -0.57], 0.04, TECH.shell, [0, 0.57, 0.82]);
   return b;
 }

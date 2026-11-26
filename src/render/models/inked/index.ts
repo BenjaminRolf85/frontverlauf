@@ -32,6 +32,11 @@ export type { InkedGroup, InkedType } from './types';
 export const INKED_MAX_H = 0.62;
 export const INKED_MAX_EXT = 0.45;
 
+/** Grenzen eines Typs: Hoehe und groesste Ausdehnung um die Mitte (InkedType.maxH / maxExt, sonst Kachel und Lebensbalken) / limits of a type: height and largest extent about the centre (InkedType.maxH / maxExt, otherwise tile and HP badge) */
+export function inkedLimits(t: InkedType): { maxH: number; maxExt: number } {
+  return { maxH: t.maxH ?? INKED_MAX_H, maxExt: t.maxExt ?? INKED_MAX_EXT };
+}
+
 /** Gruppen der Einfuehrung, je eine Datei unter groups/ / rollout groups, one file each under groups/ */
 const GROUPS: InkedGroup[] = [figures, vehicles, robots, naval];
 
@@ -73,11 +78,19 @@ export function buildInked(type: UnitTypeId, faction: FactionId, hi: boolean): T
   defineAtlases();
   let t0 = performance.now();
   const raw = t.build(faction, atlasDef(t.atlas).layout).build();
-  // auf Kachel und Hoehe begrenzen; die Modelle sind in Endgroesse gebaut / limit to tile and height; the models are built at final size
+  // Die Modelle sind in Endgroesse gebaut; ein Typ kann einen Massstab nennen (InkedType.scale), begrenzt auf Kachel
+  // und Hoehe (oder die eigenen Grenzen des Typs, inkedLimits). scaleWithTurrets nimmt Turmdrehpunkte und userData.muzzle mit, die Tusche entsteht aus derselben
+  // Rohgeometrie, und finishScale sagt dem Brett, wo die techParts sitzen.
+  // The models are built at final size; a type may state a scale (InkedType.scale), limited to tile and height (or
+  // to the type's own limits, inkedLimits).
+  // scaleWithTurrets carries turret pivots and userData.muzzle along, the ink is made from the same raw geometry, and
+  // finishScale tells the board where the techParts sit.
   const bb = raw.boundingBox!;
   const ext = Math.max(-bb.min.x, bb.max.x, -bb.min.z, bb.max.z);
-  const s = Math.min(1, INKED_MAX_EXT / ext, INKED_MAX_H / bb.max.y);
-  if (s < 0.999) scaleWithTurrets(raw, s, s, s);
+  const lim = inkedLimits(t);
+  const fit = Math.min(t.scale ?? 1, lim.maxExt / ext, lim.maxH / bb.max.y);
+  const s = Math.abs(fit - 1) > 0.001 ? fit : 1;
+  if (s !== 1) scaleWithTurrets(raw, s, s, s);
   raw.computeBoundingBox();
   raw.computeBoundingSphere();
   lastBuild.ms.geometry = performance.now() - t0;

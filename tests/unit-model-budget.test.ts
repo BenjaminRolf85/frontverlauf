@@ -44,7 +44,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   pioneer: [10500, 4700, 5321], // 9974 / 4452 (gezeichnet / inked; vorher 12090 / 4791)
   mg: [11250, 5227, 5075], // 10694 / 4970 (gezeichnet / inked; vorher 13803 / 4444)
   medic: [10800, 4600, 5703], // 10258 / 4352 (gezeichnet / inked; vorher 11254 / 4817)
-  artillery: [10900, 5016, 5839], // 10358 / 4783 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets (gezeichnet / inked; vorher 11748 / 5016)
+  artillery: [11460, 5016, 5839], // 10914 / 4783 Spulenwerfer in der Groesse des bisherigen / coil launcher at the previous one's size (gezeichnet / inked; vorher 11748 / 5016)
   spy: [6500, 3100, 3237], // 6146 / 2910 (gezeichnet / inked; vorher 7702 / 2823)
   heli: [4050, 1150, 4007], // 3850 / 1093 (gezeichnet / inked; vorher 6723 / 3695)
   tank: [11850, 4250, 7866], // 11280 / 4020 (gezeichnet / inked; vorher 18655 / 6824)
@@ -83,8 +83,8 @@ const BUDGET: Record<string, [number, number, number]> = {
   peacekeeper: [12050, 6100, 7414], // 11474 / 5764 (gezeichnet / inked; vorher 15091 / 6441)
   privateer: [4000, 950, 3388], // 3788 / 903 (gezeichnet / inked; vorher 7598 / 2896)
   protoWalker: [3550, 1550, 4260], // 3342 / 1464 (gezeichnet / inked; vorher 6360 / 4068)
-  teslaTank: [11150, 3200, 7212], // 10608 / 3036 (gezeichnet / inked; vorher 12673 / 6504)
-  octocopter: [5400, 2300, 4876], // 5126 / 2170 (gezeichnet / inked; vorher 7896 / 4252)
+  teslaTank: [11150, 3200, 7212], // 10450 / 3036 (gezeichnet / inked; vorher 12673 / 6504)
+  octocopter: [5400, 2300, 4876], // 5154 / 2170 (gezeichnet / inked; vorher 7896 / 4252)
   railSniper: [9300, 4450, 4951], // 8856 / 4194 (gezeichnet / inked; vorher 10536 / 4301)
   lightWarden: [13850, 5800, 7252], // 13156 / 5518 (gezeichnet / inked; vorher 15947 / 6181)
   reliquary: [6250, 2200, 6278], // 5916 / 2056 (gezeichnet / inked; vorher 8944 / 5318)
@@ -98,7 +98,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   radarTruck: [3500, 1250, 3470], // 3290 / 1150 (gezeichnet / inked; vorher 6927 / 3382)
   // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
   marine: [8050, 3800, 3698], // 7640 / 3588 (gezeichnet / inked; vorher 10946 / 3698)
-  swarmMother: [28050, 16250, 15432], // 26670 / 15432 (Detailrunde 4 / detail round 4)
+  swarmMother: [16150, 6850, 15432], // 15374 / 6522 (gezeichnet / inked; vorher 26670 / 15432)
   scientist: [6600, 3050, 3038], // 6254 / 2880 (gezeichnet / inked; vorher 7886 / 2998)
 };
 
@@ -179,6 +179,7 @@ const INK_NAVAL: Record<string, [number, number]> = {
   skimmer: [2450, 800], // 2319 / 728
   mech: [5050, 1800], // 4786 / 1678
   tripod: [4750, 1500], // 4508 / 1426
+  swarmMother: [16400, 6200], // 15585 / 5904
   reliquary: [9600, 2150], // 9128 / 2026
   sunLance: [8050, 2850], // 7666 / 2672 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
   divineSpark: [8800, 3000], // 8376 / 2817 mit den gezeichneten Helmen der Besatzung / with the crew's drawn helmets
@@ -213,7 +214,7 @@ const BEFORE_ROBOTS: Record<string, [number, number]> = {
 const BEFORE_NAVAL: Record<string, [number, number]> = {
   landingBoat: [5300, 2020], submarine: [8239, 3674], destroyer: [13016, 5420], battleship: [16232, 6569], privateer: [7598, 2896],
   fogCutter: [5295, 1680], terraformer: [8952, 4240], skimmer: [8114, 4228], mech: [10356, 5964], tripod: [12627, 7099],
-  reliquary: [8944, 5318], sunLance: [9539, 4180], divineSpark: [16709, 6296], guidedMissile: [8820, 1324],
+  reliquary: [8944, 5318], sunLance: [9539, 4180], divineSpark: [16709, 6296], guidedMissile: [8820, 1324], swarmMother: [26670, 15432],
 };
 const BEFORE_INKED: Record<string, [number, number]> = { ...BEFORE_FIGURES, ...BEFORE_VEHICLES, ...BEFORE_ROBOTS, ...BEFORE_NAVAL };
 

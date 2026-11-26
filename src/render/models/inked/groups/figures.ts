@@ -52,7 +52,8 @@ export const figures: InkedGroup = {
     peacekeeper: { atlas: 'figure2', build: peacekeeper, maxEdge: 0.12 },
     protoWalker: { atlas: 'figure2', build: protoWalker, maxEdge: 0.085, voxel: 0.006 },
     // Fremde und Maschinen zu Fuss / aliens and machines on foot
-    grey: { atlas: 'figure2', build: grey, maxEdge: FIGURE_EDGE },
+    // der Graue stand bisher 0.58 hoch (gebaut 0.52): Massstab stellt die alte Groesse her / the grey stood 0.58 tall before (built 0.52): the scale restores the old size
+    grey: { atlas: 'figure2', build: grey, maxEdge: FIGURE_EDGE, scale: 1.12 },
     android: { atlas: 'figure2', build: android, maxEdge: FIGURE_EDGE },
     cyborg: { atlas: 'figure2', build: cyborg, maxEdge: FIGURE_EDGE },
     // Kult / cult

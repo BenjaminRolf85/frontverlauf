@@ -24,9 +24,11 @@
  * - abs: deckende Farbe mit Alpha (Augen, Metall, Leder, Schlamm, Abzeichen) / opaque colour with alpha (eyes, metal,
  *        leather, mud, insignia).
  * - ink: Tuschelinien. Sie werden als Abstandsfeld gespeichert (eigene 8-Bit-Textur), der Shader zieht daraus eine
- *        scharfe Kante in jeder Vergroesserung und laesst die Strichstaerke leicht schwanken.
+ *        scharfe Kante in jeder Vergroesserung. Bei hoher Qualitaet schwankt die Strichstaerke leicht: das Rauschen
+ *        dafuer wird hier ins Feld eingerechnet (inkWaver), nicht je Bildpunkt im Shader.
  *        / ink lines. Stored as a distance field (own 8 bit texture); the shader draws a sharp edge from it at any
- *        magnification and lets the line weight waver slightly.
+ *        magnification. On high quality the line weight wavers slightly: the noise for that is baked into the field
+ *        here (inkWaver), not computed per fragment in the shader.
  * mul und abs werden zu EINER RGBA-Textur verrechnet (rgb = Mischung, a = Deckkraft der Farbe).
  * mul and abs are combined into ONE RGBA texture (rgb = blend, a = opacity of the colour).
  */
@@ -490,17 +492,23 @@ export function atlasTextures(id: string, size: number): AtlasTextures {
   const paint = new Uint8Array(N * 4), sdf = new Uint8Array(N);
   // neutral: mul = 1, keine Farbe, keine Tusche / neutral: mul = 1, no colour, no ink
   for (let i = 0; i < N; i++) { paint[i * 4] = 128; paint[i * 4 + 1] = 128; paint[i * 4 + 2] = 128; }
-  const mk = (data: Uint8Array, format: THREE.PixelFormat) => {
+  const mk = (data: Uint8Array, format: THREE.PixelFormat, anisotropy: number) => {
     const x = new THREE.DataTexture(data, size, size, format, THREE.UnsignedByteType);
     x.colorSpace = THREE.NoColorSpace;
     x.minFilter = THREE.LinearMipmapLinearFilter;
     x.magFilter = THREE.LinearFilter;
     x.generateMipmaps = true;
-    x.anisotropy = 4;
+    x.anisotropy = anisotropy;
     x.needsUpdate = true;
     return x;
   };
-  t = { paint: mk(paint, THREE.RGBAFormat), ink: mk(sdf, THREE.RedFormat), size, bytes: Math.round((N * 5 * 4) / 3), ms: 0, maxStepMs: 0, ready: false };
+  // Die Tusche bleibt auf schraeg gesehenen Flaechen (Decks, Daecher) nur mit anisotroper Filterung scharf. Die
+  // Zeichnung (weiche Toene und Farbflaechen) kommt bei der kleinen Textur der niedrigen Qualitaet ohne aus: das spart
+  // dort je Bildpunkt die zweite Abtastung, die Linien bleiben unveraendert.
+  // The ink only stays sharp on surfaces seen at a slant (decks, roofs) with anisotropic filtering. The drawing (soft
+  // tones and colour areas) does without it for the small texture of low quality: that saves the second sample per
+  // fragment there, the lines stay unchanged.
+  t = { paint: mk(paint, THREE.RGBAFormat, size >= ATLAS_SIZE.high ? 4 : 1), ink: mk(sdf, THREE.RedFormat, 4), size, bytes: Math.round((N * 5 * 4) / 3), ms: 0, maxStepMs: 0, ready: false };
   textures.set(key, t);
   if (hasDom()) {
     const canvases: HTMLCanvasElement[] = [], ctx: CanvasRenderingContext2D[] = [];
@@ -546,12 +554,15 @@ function step(job: Job): void {
   const w = x1 - x0, h = y1 - y0;
   const mul = job.ctx[0].getImageData(x0, y0, w, h).data, abs = job.ctx[1].getImageData(x0, y0, w, h).data, ink = job.ctx[2].getImageData(x0, y0, w, h).data;
   const field = distanceField(ink, w, h, SDF_RANGE * k);
+  // hohe Qualitaet: schwankende Strichstaerke ins Feld einrechnen (nur wo Tusche in Reichweite ist)
+  // high quality: bake the wavering line weight into the field (only where ink is within reach)
+  const waver = job.size >= ATLAS_SIZE.high;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x, o = (y0 + y) * job.size + x0 + x;
     const a = abs[i * 4 + 3] / 255;
     for (let c = 0; c < 3; c++) job.paint[o * 4 + c] = Math.round(mul[i * 4 + c] * (1 - a) + abs[i * 4 + c] * a);
     job.paint[o * 4 + 3] = abs[i * 4 + 3];
-    job.sdf[o] = field[i];
+    job.sdf[o] = waver && field[i] > 0 ? Math.max(0, Math.min(255, Math.round(field[i] + 255 * inkWaver((x0 + x + 0.5) / job.size, (y0 + y + 0.5) / job.size)))) : field[i];
   }
   const ms = performance.now() - t0;
   job.tex.ms += ms;
@@ -605,6 +616,42 @@ export function atlasStats(): { key: string; bytes: number; ms: number; maxStepM
 }
 
 // ---------- Abstandsfeld / distance field ----------
+
+/**
+ * Schwankung der Strichstaerke: zwei Lagen Wertrauschen ueber dem Atlas (freq Gitterzellen je Atlaskante, amp in
+ * Anteilen des Abstandsfelds, 1 = 2 x SDF_RANGE Texel). Bisher rechnete der Shader dieses Rauschen je Bildpunkt.
+ * Wavering of the line weight: two layers of value noise over the atlas (freq lattice cells per atlas edge, amp in
+ * shares of the distance field, 1 = 2 x SDF_RANGE texels). The shader used to compute this noise per fragment.
+ */
+export const INK_WAVER: readonly { freq: number; amp: number }[] = [{ freq: 150, amp: 0.085 }, { freq: 37, amp: 0.06 }];
+const lattices = new Map<number, Float32Array>();
+/** Feste Streuwerte an den Gitterpunkten / fixed hash values at the lattice points */
+function lattice(n: number): Float32Array {
+  let t = lattices.get(n);
+  if (!t) {
+    t = new Float32Array((n + 2) * (n + 2));
+    for (let j = 0; j < n + 2; j++) for (let i = 0; i < n + 2; i++) {
+      const v = Math.sin(i * 127.1 + j * 311.7) * 43758.5453;
+      t[j * (n + 2) + i] = v - Math.floor(v);
+    }
+    lattices.set(n, t);
+  }
+  return t;
+}
+/** Schwankung an der Stelle (u, v) des Atlas (0..1), als Anteil des Abstandsfelds / waver at (u, v) of the atlas (0..1) as a share of the distance field */
+export function inkWaver(u: number, v: number): number {
+  let sum = 0;
+  for (const { freq, amp } of INK_WAVER) {
+    const T = lattice(freq), w = freq + 2;
+    const x = Math.max(0, Math.min(freq, u * freq)), y = Math.max(0, Math.min(freq, v * freq));
+    const i = Math.floor(x), j = Math.floor(y);
+    let fx = x - i, fy = y - j;
+    fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+    const top = T[j * w + i] + (T[j * w + i + 1] - T[j * w + i]) * fx, bottom = T[(j + 1) * w + i] + (T[(j + 1) * w + i + 1] - T[(j + 1) * w + i]) * fx;
+    sum += (top + (bottom - top) * fy - 0.5) * amp;
+  }
+  return sum;
+}
 
 const INF = 1e20;
 /** 1D-Abstandstransformation (Felzenszwalb) / 1D distance transform (Felzenszwalb) */
