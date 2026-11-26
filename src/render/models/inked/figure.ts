@@ -104,6 +104,9 @@ export function helmetRings(L: Look): Ring[] {
   return out.map((r) => ({ ...r, rz: r.rx * 1.07, rzB: r.rx * 1.1 }));
 }
 
+/** Flaches Barett der Dravon ueber der Sturmhaube (Kopfkoordinaten); Breite und Hoehe in der Groessenklasse der Helme / the Dravon flat beret above the balaclava (head coordinates); width and height in the helmets' size class */
+export const DRAVON_CAP: Ring[] = [{ y: 0.124, rx: TIP }, { y: 0.1215, rx: 0.028 }, { y: 0.111, rx: 0.0445, rzB: 0.048 }, { y: 0.1, rx: 0.046, rzB: 0.05, hard: true }, { y: 0.097, rx: 0.038 }];
+
 /** Rumpf von oben nach unten (Beckenkoordinaten): Hals, Schultern, Brust, Taille, Koppel, Rockschoss, Schritt / torso top to bottom (pelvis coordinates) */
 export function torsoRings(L: Look, jacket: ColorLike = L.jacket, bare = false): Ring[] {
   const skirt = bare ? L.pants : jacket;
@@ -311,7 +314,7 @@ export function factionHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look,
     case 'dravon':
       // Sturmhaube: derselbe Kopf in Schwarz mit gezeichnetem Augenausschnitt, flaches Barett / balaclava: the same head in black with a drawn eye opening, flat beret
       bareHead(b, A, seg, 'head:dravon', L.helmet);
-      b.add(loft([{ y: 0.114, rx: TIP }, { y: 0.112, rx: 0.026 }, { y: 0.104, rx: 0.04, rzB: 0.044 }, { y: 0.096, rx: 0.041, rzB: 0.046, hard: true }, { y: 0.094, rx: 0.036 }], { seg, region: A.get('blank'), color: shade(L.helmet, 1.5) }), null, { xf: { p: [0.004, 0.001, -0.002], r: [0.06, 0, -0.14] } });
+      b.add(loft(DRAVON_CAP, { seg, region: A.get('blank'), color: shade(L.helmet, 1.5) }), null, { xf: { p: [0.004, 0.001, -0.002], r: [0.06, 0, -0.14] } });
       break;
     default:
       // Alvenia, Meridon, Velkar, Zyrr, Kult, NEXUS: eigene Formen mit Zeichnung / shapes of their own with drawing

@@ -264,7 +264,11 @@ export function protoWalker(f: FactionId, A: AtlasLayout): UvBuilder {
         rod(b, A, [0.124, 0.25, -0.03], [0.124, 0.13, -0.06], 0.008, 0.008, 6, mat.metalLight, { gloss: 0.7 });
         rod(b, A, [0.124, 0.19, -0.045], [0.124, 0.13, -0.06], 0.012, 0.012, 6, mat.yellow, { crease: 0.6 });
       }
-      for (const a of [-0.45, 0, 0.45]) b.add(softBox(0.026, 0.022, 0.075, 0.006), metal, { xf: { p: [0.097 + Math.sin(a) * 0.036, 0.012, 0.03 + Math.cos(a) * 0.032], r: [0, a, 0] }, gloss: 0.4 });
+      for (const a of [-0.45, 0, 0.45]) {
+        b.add(softBox(0.026, 0.022, 0.075, 0.006), metal, { xf: { p: [0.097 + Math.sin(a) * 0.036, 0.012, 0.03 + Math.cos(a) * 0.032], r: [0, a, 0] }, gloss: 0.4 });
+        // helle Kralle an jeder Zehe / a light claw on every toe
+        if (hi) rod(b, A, [0.097 + Math.sin(a) * 0.07, 0.012, 0.03 + Math.cos(a) * 0.066], [0.097 + Math.sin(a) * 0.086, 0.004, 0.03 + Math.cos(a) * 0.082], 0.007, 0.001, 5, mat.metalLight, { gloss: 0.8 });
+      }
       b.add(softBox(0.022, 0.02, 0.05, 0.005), metal, { xf: { p: [0.097, 0.012, -0.05] }, gloss: 0.4 });
     });
     // Becken und Kanzel / pelvis and cockpit

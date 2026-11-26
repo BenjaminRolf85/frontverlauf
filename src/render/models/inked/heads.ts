@@ -24,14 +24,14 @@ import { FAITH, haloRing } from '../alveniaFaith';
 import { fine, geo, mix, shade, softBox, type ColorLike, type V3 } from '../kit';
 import { mat, type Look } from '../look';
 import { TECH } from '../velkarTech';
-import { bareHead, FACE, HEAD, type Detail } from './figure';
+import { bareHead, DRAVON_CAP, FACE, HEAD, helmetRings, type Detail } from './figure';
 import { bead, cell, dome, frontLoft, hasCell, plain, rod, TIP } from './figkit';
 import { AtlasLayout, loft, loftAt, ribbon, UvBuilder, type Ring } from './uvkit';
 
 /** Groessenklasse der Helme (Kopfkoordinaten) / size class of the helmets (head coordinates) */
 export const HELM = { C: 0.081, R: 0.053, rim: 0.0665 };
 /** groesste Hutkrempe / widest hat brim */
-export const HAT_BRIM = 0.082;
+export const HAT_BRIM = 0.076;
 /** Anteil der Helmzelle fuer die Kuppel; der Rest gehoert dem Nacken- und Wangenschutz / share of the helmet cell for the dome; the rest belongs to the neck and cheek guard */
 export const DOME_T = 0.66, SKIRT_T = 0.7;
 /** Sitz der Helme wie beim Korvat-Helm: leicht in den Nacken / seat of the helmets like the Korvat helmet: pushed back slightly */
@@ -41,12 +41,12 @@ const oval = (rings: Ring[], front = 1.07, back = 1.1): Ring[] => rings.map((r) 
 // ---------- Sonnenbrille / sunglasses ----------
 
 /** Sonnenbrille als Auflage auf dem Gesicht (Zelle 'shades'); ohne die Zelle ein dunkles Band / sunglasses as a decal on the face (cell 'shades'); without the cell a dark band */
-export function shades(b: UvBuilder, A: AtlasLayout, rings: Ring[] = HEAD, y = FACE.eye - 0.001, half = 0.118): void {
+export function shades(b: UvBuilder, A: AtlasLayout, rings: Ring[] = HEAD, y = FACE.eye - 0.001, half = 0.118, skin: ColorLike = mat.skin): void {
   const n = fine() ? 8 : 4;
   const path = [];
   for (let i = 0; i <= n; i++) path.push(loftAt(rings, 0.5 - half + (i / n) * 2 * half, y));
   const drawn = hasCell(A, 'shades');
-  b.add(ribbon(path, 0.0105, cell(A, 'shades'), 0.0058), drawn ? mat.skin : mat.ink, { crease: 0, gloss: drawn ? 0 : 0.8 });
+  b.add(ribbon(path, 0.0105, cell(A, 'shades'), 0.0058), drawn ? skin : mat.ink, { crease: 0, gloss: drawn ? 0 : 0.8 });
 }
 
 // ---------- Alvenia: Paladinhelm / paladin helmet ----------
@@ -161,10 +161,12 @@ function techHelmet(b: UvBuilder, A: AtlasLayout, L: Look, d: Detail, seg: numbe
 
 // ---------- Meridon: Barett / beret ----------
 
+/** Hoehe des Barettbunds in Kopfkoordinaten / height of the beret's band in head coordinates */
+const BERET_Y = 0.0955;
 export function beretRings(L: Look): Ring[] {
   return oval([
     { y: 0.03, rx: TIP, c: L.helmet },
-    { y: 0.0288, rx: 0.02 }, { y: 0.0245, rx: 0.042 }, { y: 0.0155, rx: 0.058 }, { y: 0.0065, rx: 0.0625 }, { y: -0.0015, rx: 0.058 },
+    { y: 0.0288, rx: 0.02 }, { y: 0.0245, rx: 0.041 }, { y: 0.0155, rx: 0.0555 }, { y: 0.0065, rx: 0.059 }, { y: -0.0015, rx: 0.0555 },
     { y: -0.007, rx: 0.0492, hard: true },
     { y: -0.0075, rx: 0.0478, hard: true, c: shade(L.primary, 0.7) },
     { y: -0.0195, rx: 0.0462, hard: true },
@@ -172,7 +174,7 @@ export function beretRings(L: Look): Ring[] {
   ], 1.08, 1.1);
 }
 function beret(b: UvBuilder, A: AtlasLayout, L: Look, d: Detail, seg: number): void {
-  b.add(loft(beretRings(L), { seg, region: cell(A, 'beret:meridon'), arc: true }), null, { xf: { p: [0.007, 0.0955, -0.004], r: [0.05, 0, -0.24] }, crease: 0.7 });
+  b.add(loft(beretRings(L), { seg, region: cell(A, 'beret:meridon'), arc: true }), null, { xf: { p: [0.007, BERET_Y, -0.004], r: [0.05, 0, -0.24] }, crease: 0.7 });
   // Stiel / stalk
   if (d >= 1) rod(b, A, [0.0145, 0.123, -0.004], [0.017, 0.131, -0.004], 0.004, 0.003, 5, shade(L.helmet, 0.7));
   // Kopfhoerer rechts mit Mikrofonarm / headset on the right with a mic boom
@@ -233,16 +235,16 @@ export function brimHat(b: UvBuilder, A: AtlasLayout, o: HatSpec, seg: number): 
 }
 /** Hut des Spions je Fraktion / the spy's hat per faction */
 export function spyHat(f: FactionId, L: Look): HatSpec {
-  const base = { y: 0.083, crownR: 0.046, topR: 0.037, h: 0.044, brimR: 0.076 };
+  const base = { y: 0.083, crownR: 0.046, topR: 0.037, h: 0.044, brimR: 0.072 };
   switch (f) {
-    case 'korvat': return { ...base, brimR: 0.079, droop: 0.007, crown: L.secondary, band: L.primary, tilt: [0.07, 0, 0] };
+    case 'korvat': return { ...base, brimR: 0.075, droop: 0.007, crown: L.secondary, band: L.primary, tilt: [0.07, 0, 0] };
     case 'dravon': return { ...base, crown: shade(L.helmet, 1.5), band: L.secondary, tilt: [0.05, 0, 0.04] };
     case 'alvenia': return { ...base, brimR: HAT_BRIM, topR: 0.041, h: 0.04, droop: 0.002, crown: shade(L.primary, 0.85), band: L.secondary };
     case 'meridon': return { ...base, brimR: HAT_BRIM, topR: 0.045, h: 0.026, droop: 0.001, crown: mix(L.secondary, mat.sand, 0.45), band: L.primary };
     case 'velkar': return { ...base, y: 0.08, crownR: 0.05, topR: 0.046, h: 0.046, brimR: 0.072, droop: 0.006, crown: L.primary, band: L.secondary, brim: shade(L.primary, 0.6), round: true, bobble: mat.snow };
-    case 'zyrr': return { ...base, y: 0.112, crownR: 0.04, topR: 0.032, h: 0.036, brimR: 0.074, crown: L.primary, band: L.secondary };
-    case 'vesper': return { ...base, y: 0.116, crownR: 0.04, topR: 0.034, h: 0.034, brimR: 0.076, droop: 0.006, crown: L.helmet, band: L.primary };
-    case 'nexus': return { ...base, y: 0.112, crownR: 0.04, topR: 0.036, h: 0.032, brimR: 0.07, droop: 0.001, crown: mat.gunmetal, band: mat.cyanGlow };
+    case 'zyrr': return { ...base, y: 0.112, crownR: 0.04, topR: 0.032, h: 0.036, brimR: 0.072, crown: L.primary, band: L.secondary };
+    case 'vesper': return { ...base, y: 0.116, crownR: 0.04, topR: 0.034, h: 0.034, brimR: 0.074, droop: 0.006, crown: L.helmet, band: L.primary };
+    case 'nexus': return { ...base, y: 0.121, crownR: 0.04, topR: 0.036, h: 0.03, brimR: 0.068, droop: 0.001, crown: mat.gunmetal, band: mat.cyanGlow };
   }
 }
 
@@ -324,16 +326,16 @@ export function cultHead(b: UvBuilder, A: AtlasLayout, L: Look, d: Detail, seg: 
 export function robotRings(L: Look): Ring[] {
   const plate = L.helmet, metal = mat.gunmetal;
   return [
-    { y: 0.114, rx: TIP, c: plate },
-    { y: 0.113, rx: 0.03, e: 3 },
-    { y: 0.106, rx: 0.0445, rzB: 0.046, e: 3.6, hard: true },
-    { y: 0.086, rx: 0.0465, rzB: 0.048, e: 3.8, hard: true },
-    { y: 0.0855, rx: 0.048, rzB: 0.049, e: 3.8, hard: true, c: metal },
-    { y: 0.062, rx: 0.048, rzB: 0.049, e: 3.8, hard: true },
-    { y: 0.0615, rx: 0.0465, rzB: 0.048, e: 3.8, hard: true, c: plate },
-    { y: 0.031, rx: 0.0455, rzB: 0.047, e: 3.6, hard: true },
-    { y: 0.0305, rx: 0.039, rz: 0.041, rzB: 0.036, e: 3.2, hard: true, c: metal },
-    { y: 0.007, rx: 0.033, rz: 0.036, rzB: 0.03, e: 3 },
+    { y: 0.124, rx: TIP, c: plate },
+    { y: 0.123, rx: 0.03, e: 3 },
+    { y: 0.1155, rx: 0.0445, rzB: 0.046, e: 3.6, hard: true },
+    { y: 0.094, rx: 0.0465, rzB: 0.048, e: 3.8, hard: true },
+    { y: 0.0935, rx: 0.048, rzB: 0.049, e: 3.8, hard: true, c: metal },
+    { y: 0.0675, rx: 0.048, rzB: 0.049, e: 3.8, hard: true },
+    { y: 0.067, rx: 0.0465, rzB: 0.048, e: 3.8, hard: true, c: plate },
+    { y: 0.034, rx: 0.0455, rzB: 0.047, e: 3.6, hard: true },
+    { y: 0.0335, rx: 0.039, rz: 0.041, rzB: 0.036, e: 3.2, hard: true, c: metal },
+    { y: 0.0075, rx: 0.033, rz: 0.036, rzB: 0.03, e: 3 },
     { y: 0, rx: TIP },
   ];
 }
@@ -341,15 +343,15 @@ export function robotHead(b: UvBuilder, A: AtlasLayout, L: Look, d: Detail, seg:
   const drawn = hasCell(A, 'head:nexus');
   b.add(loft(robotRings(L), { seg, region: cell(A, 'head:nexus') }), null, { gloss: 0.3 });
   // ohne Zeichnung: Leuchtstreifen als Teil / without drawing: light strip as a part
-  if (!drawn) b.add(loft([{ y: 0.078, rx: 0.049, rz: 0.049, rzB: 0.01, e: 3.8 }, { y: 0.069, rx: 0.049, rz: 0.049, rzB: 0.01, e: 3.8 }], { seg, region: A.get('blank'), color: mat.cyanGlow }), null, { crease: 0, gloss: 1 });
+  if (!drawn) b.add(loft([{ y: 0.0855, rx: 0.049, rz: 0.049, rzB: 0.01, e: 3.8 }, { y: 0.0755, rx: 0.049, rz: 0.049, rzB: 0.01, e: 3.8 }], { seg, region: A.get('blank'), color: mat.cyanGlow }), null, { crease: 0, gloss: 1 });
   // Ohrscheiben / ear discs
   for (const s of [-1, 1]) {
-    rod(b, A, [s * 0.044, 0.056, -0.002], [s * 0.054, 0.056, -0.002], 0.0155, 0.0145, fine() && d >= 1 ? 10 : 6, mat.gunmetal, { crease: 0.7, gloss: 0.4 });
-    if (d >= 1) bead(b, A, [s * 0.0545, 0.056, -0.002], 0.0075, mat.cyanGlow, 6, { gloss: 1 }, [0.4, 1, 1]);
+    rod(b, A, [s * 0.044, 0.061, -0.002], [s * 0.054, 0.061, -0.002], 0.0155, 0.0145, fine() && d >= 1 ? 10 : 6, mat.gunmetal, { crease: 0.7, gloss: 0.4 });
+    if (d >= 1) bead(b, A, [s * 0.0545, 0.061, -0.002], 0.0075, mat.cyanGlow, 6, { gloss: 1 }, [0.4, 1, 1]);
   }
   if (antenna) {
-    rod(b, A, [0.026, 0.108, -0.026], [0.033, 0.158, -0.036], 0.003, 0.002, 4, mat.gunmetal);
-    bead(b, A, [0.0334, 0.1612, -0.0366], 0.006, mat.cyanGlow, 5, { gloss: 1 });
+    rod(b, A, [0.026, 0.117, -0.026], [0.033, 0.162, -0.036], 0.003, 0.002, 4, mat.gunmetal);
+    bead(b, A, [0.0334, 0.1652, -0.0366], 0.006, mat.cyanGlow, 5, { gloss: 1 });
   }
 }
 
@@ -400,7 +402,7 @@ export function combatHelmet(b: UvBuilder, A: AtlasLayout, c: ColorLike, strap: 
  */
 export function nativeHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look, d: Detail, seg: number, fedora: boolean): void {
   if (fedora) {
-    if (f === 'zyrr') { greyHead(b, A, L, d, seg, false); shades(b, A, GREY_HEAD, GREY_FACE.eye, 0.15); }
+    if (f === 'zyrr') { greyHead(b, A, L, d, seg, false); shades(b, A, GREY_HEAD, GREY_FACE.eye, 0.15, mat.alienSkin); }
     else if (f === 'vesper') cultHead(b, A, L, d, seg);
     else if (f === 'nexus') robotHead(b, A, L, d, seg, false);
     else { bareHead(b, A, seg); shades(b, A); }
@@ -417,6 +419,31 @@ export function nativeHead(b: UvBuilder, A: AtlasLayout, f: FactionId, L: Look, 
     default: bareHead(b, A, seg);
   }
 }
+
+/**
+ * Aussenmass der Kopfbedeckung einer Fraktion in Kopfkoordinaten: Breite und Hoehe ueber dem Kinn. Gemessen wird die
+ * Schale (Kuppel, Kapuze, Schaedel); Krempen, Kaemme, Antennen und der Sonnenkranz zaehlen nicht. Der Test
+ * tests/inked-headgear.test.ts haelt alle Fraktionen innerhalb von HEAD_CLASS um den Helm der Korvat.
+ * Outer size of a faction's headgear in head coordinates: width and height above the chin. The shell is measured
+ * (dome, hood, skull); brims, crests, antennas and the sun halo do not count. The test tests/inked-headgear.test.ts
+ * keeps every faction within HEAD_CLASS of the Korvat helmet.
+ */
+export function headgearSize(f: FactionId, L: Look): { w: number; h: number } {
+  const span = (rings: Ring[], dy = 0, extraW = 0) => ({ w: Math.max(extraW, 2 * Math.max(...rings.map((r) => r.rx))), h: Math.max(...rings.map((r) => r.y)) + dy });
+  switch (f) {
+    // Kuppel ohne die ausgestellte Krempe (die ersten neun Ringe) / dome without the flared rim (the first nine rings)
+    case 'korvat': return span(helmetRings(L).slice(0, 9), SEAT.p[1]);
+    case 'dravon': return span(DRAVON_CAP, 0.001, 2 * Math.max(...HEAD.map((r) => r.rx)));
+    case 'alvenia': return span(paladinRings(), SEAT.p[1]);
+    case 'velkar': return span(techHelmRings(), SEAT.p[1]);
+    case 'meridon': return span(beretRings(L), BERET_Y);
+    case 'zyrr': return span(GREY_HEAD);
+    case 'vesper': return span(hoodRings(L));
+    case 'nexus': return span(robotRings(L), 0, 2 * 0.054);
+  }
+}
+/** erlaubte Abweichung der Kopfbedeckungen vom Helm der Korvat / allowed deviation of the headgear from the Korvat helmet */
+export const HEAD_CLASS = 0.15;
 
 /** Hautfarbe von Hals und Haenden je Fraktion / skin colour of neck and hands per faction */
 export function skinOf(f: FactionId | null): THREE.Color {

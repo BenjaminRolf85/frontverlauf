@@ -82,7 +82,7 @@ const BUDGET: Record<string, [number, number, number]> = {
   stormbreaker: [7350, 3350, 4681], // 6954 / 3178 (gezeichnet / inked; vorher 11886 / 4025)
   peacekeeper: [12050, 6100, 7414], // 11474 / 5764 (gezeichnet / inked; vorher 15091 / 6441)
   privateer: [8000, 3200, 3388], // 7598 / 2896 (Detailrunde 4 / detail round 4)
-  protoWalker: [3400, 1550, 4260], // 3222 / 1464 (gezeichnet / inked; vorher 6360 / 4068)
+  protoWalker: [3550, 1550, 4260], // 3342 / 1464 (gezeichnet / inked; vorher 6360 / 4068)
   teslaTank: [13350, 7400, 7212], // 12673 / 6504 (Detailrunde 4 / detail round 4)
   octocopter: [8300, 4500, 4876], // 7896 / 4252 (Detailrunde 4 / detail round 4)
   railSniper: [9300, 4450, 4951], // 8856 / 4194 (gezeichnet / inked; vorher 10536 / 4301)
@@ -131,7 +131,7 @@ const INK_FIGURES: Record<string, [number, number]> = {
   steppeRider: [8000, 2800], // 7606 / 2638
   stormbreaker: [9300, 3150], // 8820 / 2954
   peacekeeper: [15600, 5650], // 14828 / 5348
-  protoWalker: [4750, 1500], // 4492 / 1400
+  protoWalker: [4850, 1500], // 4612 / 1400
   grey: [3100, 1500], // 2944 / 1422
   android: [4950, 1750], // 4686 / 1656
   cyborg: [6150, 2000], // 5852 / 1886
