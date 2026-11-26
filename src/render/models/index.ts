@@ -28,6 +28,7 @@ import { memo, scaleWithTurrets, withDetail } from './kit';
 export { turretsOf, type TurretRange, type TurretSplit } from './kit';
 import { buildInked, INKED, inkedType, inkedUnitsEnabled, setInkedUnits } from './inked';
 export { INKED, inkedType, inkedUnitsEnabled, setInkedUnits, splitTurrets, warmInked } from './inked';
+import { withBoatCargo } from './inked/boats';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
@@ -118,8 +119,10 @@ export function unitGeometry(type: UnitTypeId, faction: FactionId, carried: Unit
   const hi = unitQuality === 'high';
   // Gezeichnete Einheiten (models/inked): eigener Weg mit uv, Tusche und Verdeckung; alle anderen wie bisher
   // inked units (models/inked): their own path with uv, ink and occlusion; all others as before
-  if (!c && inkedType(type, faction)) {
-    return memo(`unit|${type}|${faction}|inked${hi ? '' : '|low'}`, () => techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => buildInked(type, faction, hi), { smooth: true, fine: hi })));
+  // Boote mit Ladung (c): das gezeichnete Boot nimmt das vereinfachte bisherige Modell der Ladung an Bord (inked/boats.ts)
+  // boats with cargo (c): the inked boat takes the simplified previous model of its cargo on board (inked/boats.ts)
+  if (inkedType(type, faction)) {
+    return memo(`unit|${type}|${faction}|inked${c ? `|${c}` : ''}${hi ? '' : '|low'}`, () => techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => withBoatCargo(c ? carriedGeometry(c, faction) : null, () => buildInked(type, faction, hi)), { smooth: true, fine: hi })));
   }
   return memo(`unit|${type}|${faction}|${c ?? ''}${hi ? '' : '|low'}`, () => finishUnit(type, techGlow(faction, withDetail(UNIT_DETAIL[type] ?? 1.6, true, () => {
     switch (type) {
