@@ -40,17 +40,17 @@ const BUDGET: Record<string, [number, number, number]> = {
   // Typ: [hoch, niedrig, vorher], // gemessen hoch / niedrig / type: [high, low, before], // measured high / low
   infantry: [8800, 4250, 4891], // 8360 / 4002 (gezeichnet / inked; vorher 11078 / 4119)
   sniper: [9900, 4650, 6285], // 9416 / 4406 (gezeichnet / inked; vorher 12620 / 5539)
-  jeep: [12150, 5300, 5140], // 11526 / 5028 (Detailrunde 4 / detail round 4)
+  jeep: [10300, 4950, 5140], // 9770 / 4687 (gezeichnet / inked; vorher 11526 / 5028)
   pioneer: [10500, 4700, 5321], // 9974 / 4452 (gezeichnet / inked; vorher 12090 / 4791)
   mg: [11250, 5227, 5075], // 10694 / 4970 (gezeichnet / inked; vorher 13803 / 4444)
   medic: [10800, 4600, 5703], // 10258 / 4352 (gezeichnet / inked; vorher 11254 / 4817)
-  artillery: [12350, 5700, 5839], // 11748 / 5016 (Detailrunde 4 / detail round 4)
+  artillery: [10900, 4650, 5839], // 10358 / 4427 (gezeichnet / inked; vorher 11748 / 5016)
   spy: [6500, 3100, 3237], // 6146 / 2910 (gezeichnet / inked; vorher 7702 / 2823)
-  heli: [7100, 3900, 4007], // 6723 / 3695 (Detailrunde 4 / detail round 4)
-  tank: [19600, 7850, 7866], // 18655 / 6824 (Detailrunde 4 / detail round 4)
+  heli: [4050, 1150, 4007], // 3850 / 1093 (gezeichnet / inked; vorher 6723 / 3695)
+  tank: [11850, 4250, 7866], // 11280 / 4020 (gezeichnet / inked; vorher 18655 / 6824)
   antiTank: [5500, 3200, 3945], // 5214 / 3020 (gezeichnet / inked; vorher 7310 / 3634)
-  antiAir: [13250, 5500, 6024], // 12584 / 4716 (Detailrunde 4 / detail round 4)
-  mineLayer: [14600, 6050, 6430], // 13879 / 5194 (Detailrunde 4 / detail round 4)
+  antiAir: [7650, 2200, 6024], // 7266 / 2055 (gezeichnet / inked; vorher 12584 / 4716)
+  mineLayer: [11650, 3850, 6430], // 11073 / 3660 (gezeichnet / inked; vorher 13879 / 5194)
   landingBoat: [5600, 2150, 2276], // 5300 / 2020 (Detailrunde 4 / detail round 4)
   submarine: [8700, 3900, 3792], // 8239 / 3674 (Detailrunde 4 / detail round 4)
   destroyer: [13700, 5550, 5748], // 13016 / 5420 (Detailrunde 4 / detail round 4)
@@ -83,19 +83,19 @@ const BUDGET: Record<string, [number, number, number]> = {
   peacekeeper: [12050, 6100, 7414], // 11474 / 5764 (gezeichnet / inked; vorher 15091 / 6441)
   privateer: [8000, 3200, 3388], // 7598 / 2896 (Detailrunde 4 / detail round 4)
   protoWalker: [3550, 1550, 4260], // 3342 / 1464 (gezeichnet / inked; vorher 6360 / 4068)
-  teslaTank: [13350, 7400, 7212], // 12673 / 6504 (Detailrunde 4 / detail round 4)
-  octocopter: [8300, 4500, 4876], // 7896 / 4252 (Detailrunde 4 / detail round 4)
+  teslaTank: [11150, 3200, 7212], // 10608 / 3036 (gezeichnet / inked; vorher 12673 / 6504)
+  octocopter: [5400, 2300, 4876], // 5126 / 2170 (gezeichnet / inked; vorher 7896 / 4252)
   railSniper: [9300, 4450, 4951], // 8856 / 4194 (gezeichnet / inked; vorher 10536 / 4301)
   lightWarden: [13850, 5800, 7252], // 13156 / 5518 (gezeichnet / inked; vorher 15947 / 6181)
   reliquary: [9400, 6050, 6278], // 8944 / 5318 (Detailrunde 4 / detail round 4)
   sunLance: [10050, 4550, 5013], // 9539 / 4180 (Detailrunde 4 / detail round 4)
   // neu (Goettlicher Funke der Alvenia, Riesengeschuetz), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (Alvenia's Divine Spark, giant gun), no before state: before holds its own low value
   divineSpark: [17550, 6650, 6338], // 16709 / 6296 (Detailrunde 4 / detail round 4)
-  steppeColossus: [20800, 8800, 8643], // 19806 / 7649 (Detailrunde 4 / detail round 4)
+  steppeColossus: [13350, 4750, 8643], // 12678 / 4505 (gezeichnet / inked; vorher 19806 / 7649)
   shadowCommando: [6850, 3050, 3531], // 6486 / 2876 (gezeichnet / inked; vorher 10173 / 3213)
   fogCutter: [5600, 1800, 704], // 5295 / 1680 (Detailrunde 4 / detail round 4)
   guidedMissile: [9300, 1400, 668], // 8820 / 1324 (Detailrunde 4 / detail round 4)
-  radarTruck: [7300, 3600, 3470], // 6927 / 3382 (Detailrunde 4 / detail round 4)
+  radarTruck: [3500, 1250, 3470], // 3290 / 1150 (gezeichnet / inked; vorher 6927 / 3382)
   // neu (Marines statt Infanterie, Meridon), kein Vorher-Stand: vorher steht der eigene Wert niedrig / new (marines instead of infantry, Meridon), no before state: before holds its own low value
   marine: [8050, 3800, 3698], // 7640 / 3588 (gezeichnet / inked; vorher 10946 / 3698)
   swarmMother: [28050, 16250, 15432], // 26670 / 15432 (Detailrunde 4 / detail round 4)
@@ -143,7 +143,16 @@ const INK_FIGURES: Record<string, [number, number]> = {
 };
 /** Gruppe Fahrzeuge (Landfahrzeuge, Roboter) / group vehicles (land vehicles, robots) */
 const INK_VEHICLES: Record<string, [number, number]> = {
-  tank: [14200, 4100], // 13494 / 3886 (Korvat; die anderen Fraktionen folgen / Korvat; the other factions follow)
+  jeep: [11700, 4750], // 11142 / 4495
+  tank: [14200, 4100], // 13498 / 3890
+  artillery: [12150, 4350], // 11570 / 4128
+  heli: [4250, 1150], // 4002 / 1076
+  antiAir: [9700, 2150], // 9212 / 2023
+  mineLayer: [14100, 3750], // 13397 / 3534
+  radarTruck: [3800, 1150], // 3596 / 1084
+  teslaTank: [11650, 3150], // 11082 / 2992
+  octocopter: [5900, 2150], // 5582 / 2014
+  steppeColossus: [15300, 4600], // 14570 / 4375
 };
 /** Gruppe Roboter und Kultfahrzeuge (Drohnen, Laeufer, Schrottfahrzeuge) / group robots and cult vehicles */
 const INK_ROBOTS: Record<string, [number, number]> = {
@@ -161,7 +170,16 @@ const BEFORE_FIGURES: Record<string, [number, number]> = {
   cyborg: [8580, 3632], zealot: [9646, 4656], torchbearer: [9918, 4848], prophet: [9680, 4710], berserker: [8004, 2808], faustZealot: [10081, 4963],
 };
 const BEFORE_VEHICLES: Record<string, [number, number]> = {
+  jeep: [11526, 5028],
   tank: [18655, 6824],
+  artillery: [11748, 5016],
+  heli: [6723, 3695],
+  antiAir: [12584, 4716],
+  mineLayer: [13879, 5194],
+  radarTruck: [6927, 3382],
+  teslaTank: [12673, 6504],
+  octocopter: [7896, 4252],
+  steppeColossus: [19806, 7649],
 };
 const BEFORE_ROBOTS: Record<string, [number, number]> = {
 };

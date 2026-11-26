@@ -108,11 +108,10 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
   const start = getUnitQuality();
   afterAll(() => { setUnitQuality(start); setInkedUnits(true); });
 
-  it('umgebaute Typen: Fusstruppen fuer alle Fraktionen, Korvat-Panzer / converted types: foot troops for all factions, the Korvat tank', () => {
+  it('umgebaute Typen: Fusstruppen, Panzer und Gelaendewagen fuer alle Fraktionen / converted types: foot troops, tanks and field cars for all factions', () => {
     for (const t of ['infantry', 'sniper', 'pioneer', 'mg', 'medic', 'spy'] as UnitTypeId[]) for (const f of FACTION_IDS) expect(inkedType(t, f), `${t} ${f}`).not.toBeNull();
     expect(inkedType('tank', 'korvat')).not.toBeNull();
-    expect(inkedType('tank', 'dravon')).toBeNull();
-    expect(inkedType('jeep', 'korvat')).toBeNull();
+    for (const t of ['tank', 'jeep', 'artillery', 'heli', 'antiAir', 'mineLayer', 'radarTruck', 'teslaTank', 'octocopter', 'steppeColossus'] as UnitTypeId[]) for (const f of FACTION_IDS) expect(inkedType(t, f), `${t} ${f}`).not.toBeNull();
   });
 
   for (const q of ['high', 'low'] as const) {
@@ -183,7 +182,7 @@ describe('Gezeichnete Einheiten im Spiel / inked units in the game', () => {
 
   it('ein Weg fuer Material und Tuschelinie beider Arten / one path for material and ink line of both kinds', () => {
     setUnitQuality('high');
-    const g = unitGeometry('tank', 'korvat', null), old = unitGeometry('tank', 'dravon', null);
+    const g = unitGeometry('tank', 'korvat', null), old = legacyUnitGeometry('tank', 'dravon', null);
     const m = unitMaterialFor(g), dim = unitMaterialLike(m, { dim: true, transparent: true, opacity: 0.5 })!;
     expect(m.userData.unitMat).toBe(true);
     expect(m.userData.inked.atlas).toBe('vehicle');
