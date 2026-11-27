@@ -40,6 +40,9 @@ Quelle der Geschichte / source of the story: `lore.prologueText`, `campaign.intr
 | 15 | 111-117 | `banners` | Appell der fuenf Anfuehrer (gezeichnete Heldenbuesten aus `src/render/models/inked/leaders.ts`): fuenf Nahaufnahmen (je knapp eine Sekunde, harter Schnitt), jedes Gesicht fuellt das Bild, daneben das Banner mit dem Emblem der Fraktion; zum Schluss alle fuenf in einer Reihe, davor leuchtet und wandert die Frontlinie. / Roll call of the five leaders (inked hero busts from `src/render/models/inked/leaders.ts`): five close-ups (just under a second each, hard cuts), every face fills the frame, beside it the banner with the faction's emblem; at the end all five in a row, in front of them the front line glows and moves. | Fünf Banner, ein Kontinent. Und die Front wandert wieder. | Five banners, one continent. And the front is moving again. |
 | 16 | 117-124 | `title` | Strahlenkranz, Schriftzug FRONTVERLAUF (Eigenname, in beiden Sprachen gleich) schlaegt ein, die Panzer der fuenf Fraktionen fahren von unten vor das Band. Einblendung "Halte die Front / Hold the front" (`intro.tagline`) ab 119,4 s. / Sunburst, the FRONTVERLAUF lettering slams in, the tanks of the five factions drive up from below in front of the bar. Tagline overlay from 119.4 s. | (Slogan) | (tagline) |
 
-Klang / sound: `src/intro/filmScore.ts` (prozedurale Fraktionsmusik und Effekte der Audio-Engine, CC0), offline gerechnet
-und in das Video gemischt / procedural faction music and effects of the audio engine, CC0, rendered offline and mixed
-into the video.
+Klang / sound: Musik aus den Stuecken des Spiels (`public/music`, vom Auftraggeber), je Abschnitt geschnitten nach
+`tools/intro-film/music.json` (Vorgeschichte, Absturz, Erwachen, Krieg, je Fraktion ihr Thema, Triumphmarsch zum
+Schluss); darueber die Geraeusche aus `src/intro/filmScore.ts` (Audio-Engine, CC0), offline gerechnet und in das Video
+gemischt. / Music from the game's tracks (`public/music`, from the owner), cut per section as listed in
+`tools/intro-film/music.json` (backstory, crash, awakening, war, each faction its theme, triumphal march at the end);
+on top the sound effects from `src/intro/filmScore.ts` (audio engine, CC0), rendered offline and mixed into the video.

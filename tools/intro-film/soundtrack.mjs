@@ -3,7 +3,11 @@
 // Render the intro film's soundtrack as WAV: Vite (dev mode) serves the export page ?intro-export=1, Playwright calls
 // window.__intro.filmWav() (OfflineAudioContext with src/intro/filmScore.ts).
 //
-// node tools/intro-film/soundtrack.mjs [--out tools/intro-film/.cache/soundtrack.wav]
+// node tools/intro-film/soundtrack.mjs [--out tools/intro-film/.cache/sfx.wav] [--all]
+// Standard: nur die Geraeusche (Bus 'sfx'); die Musik mischt music.py aus den Stuecken des Spiels dazu. --all rechnet
+// auch die prozedurale Musik (fruehere Fassung).
+// Default: only the sound effects (bus 'sfx'); music.py mixes in the music from the game's tracks. --all also renders
+// the procedural music (earlier version).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
@@ -12,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const i = process.argv.indexOf('--out');
-const out = resolve(i > 0 ? process.argv[i + 1] : join(root, 'tools/intro-film/.cache/soundtrack.wav'));
+const all = process.argv.includes('--all');
+const out = resolve(i > 0 ? process.argv[i + 1] : join(root, 'tools/intro-film/.cache', all ? 'soundtrack.wav' : 'sfx.wav'));
 mkdirSync(dirname(out), { recursive: true });
 
 async function loadPlaywright() {
@@ -31,7 +36,7 @@ try {
   page.on('pageerror', (e) => console.error('pageerror', e.message));
   await page.goto(`${srv.resolvedUrls.local[0]}?intro-export=1&w=640&h=360`);
   await page.waitForFunction(() => window.__intro?.ready, null, { timeout: 120000 });
-  writeFileSync(out, Buffer.from(await page.evaluate(() => window.__intro.filmWav()), 'base64'));
+  writeFileSync(out, Buffer.from(await page.evaluate((b) => window.__intro.filmWav(b), all ? undefined : ['sfx']), 'base64'));
   console.log(out);
 } finally {
   await browser.close();

@@ -18,7 +18,8 @@ Result: `public/intro/frontverlauf-intro.webm`, `.mp4` and `-poster.webp`.
 | `fv/shots/*.py` | eine Datei je Einstellung (`build()` gibt eine `Shot` mit Aktualisierung je Bild zurueck); `sheet.py` ist ein Modellbogen zur Kontrolle / one file per shot; `sheet.py` is a model sheet for checks |
 | `render.py` | rendert eine Einstellung als PNG-Folge oder einzelne Standbilder / renders one shot as a PNG sequence or single stills |
 | `render-all.sh` | rendert alle Einstellungen in Abschnitten auf zwei Prozesse verteilt und setzt nach Abbruch fort / renders all shots in sections across two processes and resumes after an abort |
-| `soundtrack.mjs` | rechnet die Klangspur (`src/intro/filmScore.ts`) per OfflineAudioContext als WAV / renders the soundtrack as WAV |
+| `soundtrack.mjs` | rechnet die Geraeusche des Films (`src/intro/filmScore.ts`, Bus 'sfx') per OfflineAudioContext als WAV / renders the film's sound effects (bus 'sfx') as WAV |
+| `music.json`, `music.py` | Musik aus den Stuecken des Spiels (`public/music`) je Abschnitt mit Ueberblendung, Lautheit angeglichen, Geraeusche darueber gemischt / music from the game's tracks per section with crossfades, loudness matched, effects mixed on top |
 | `assemble.py` | setzt Clips, Comicseite, Ton, WebM/MP4 und Standbild zusammen (nur ffmpeg) / assembles clips, comic page, audio, WebM/MP4 and poster (ffmpeg only) |
 
 Die Zeitleiste (`src/intro/film.json`) teilen sich Blender und Spiel; Einstellungslaengen nur dort aendern.
@@ -42,7 +43,8 @@ Without a GPU Eevee renders via Mesa (llvmpipe); set `EGL_PLATFORM=surfaceless` 
 ```bash
 node tools/intro-film/export-models.mjs                 # Modelle + Tokens / models + tokens
 PY=/tmp/bpyenv/bin/python tools/intro-film/render-all.sh # alle Einstellungen / all shots (.cache/frames)
-node tools/intro-film/soundtrack.mjs                    # .cache/soundtrack.wav
+node tools/intro-film/soundtrack.mjs                    # .cache/sfx.wav (Geraeusche / effects)
+python3 tools/intro-film/music.py                       # .cache/soundtrack.wav (Musik + Geraeusche / music + effects)
 python3 tools/intro-film/assemble.py                    # public/intro/*
 ```
 
@@ -90,3 +92,21 @@ Groessen / sizes: Zwischenbilder (`.cache/`, nicht im Repository) etwa 1 GB / in
 
 Lizenz / licence: eigene Schoepfung des Projekts, CC0; Modelle und Farben aus dem Spiel, Klang prozedural.
 Own creation of the project, CC0; models and colours from the game, procedural sound.
+
+## Musik / music
+
+Die Musik stammt aus den Stuecken des Spiels (`public/music`, vom Auftraggeber geliefert). `music.json` legt je Abschnitt
+Stueck, Startpunkt und Pegel fest: Trompetenruf fuer die Vorgeschichte (0-32 s), "tense-1" fuer brennenden Himmel,
+Absturz und Glocke (32-52 s), Zyrr-Thema fuer das Erwachen (52-62 s), "battle-city-attacked" fuer Tor und Bruch
+(62-76 s), dann je Fraktionsszene ihr eigenes Thema (Korvat, Alvenia, Dravon, Velkar, Meridon, je 7 s) und der
+Triumphmarsch fuer Anfuehrer und Titel (111-124 s). Uebergaenge blenden 1,2 s, die Musik wird auf -19 LUFS gebracht,
+die Geraeusche liegen darueber, die Mischung endet bei -16 LUFS mit 2 s Ausblendung. Andere Stuecke oder Schnitte: nur
+`music.json` aendern und `music.py` sowie `assemble.py --encode-only` neu laufen lassen (kein neues Rendern noetig).
+
+The music comes from the game's tracks (`public/music`, supplied by the owner). `music.json` sets track, start point
+and level per section: trumpet call for the backstory (0-32 s), "tense-1" for the burning sky, crash and bell
+(32-52 s), the Zyrr theme for the awakening (52-62 s), "battle-city-attacked" for gate and fracture (62-76 s), then
+each faction scene its own theme (Korvat, Alvenia, Dravon, Velkar, Meridon, 7 s each) and the triumphal march for the
+leaders and the title (111-124 s). Transitions crossfade over 1.2 s, the music is brought to -19 LUFS, the effects sit
+on top, the mix ends at -16 LUFS with a 2 s fade. Other tracks or cuts: change only `music.json` and re-run `music.py`
+and `assemble.py --encode-only` (no re-render needed).

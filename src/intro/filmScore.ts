@@ -141,8 +141,13 @@ export function buildFilmScore(): ScoreEvent[] {
   return ev.filter((e) => e.at < FILM.duration).map((e, i) => ({ e, i })).sort((a, z) => a.e.at - z.e.at || a.i - z.i).map((x) => x.e);
 }
 
-/** Ganze Klangspur des Films offline rechnen / render the film's whole soundtrack offline */
-export async function renderFilmSoundtrack(sampleRate = 48000): Promise<AudioBuffer> {
+/**
+ * Ganze Klangspur des Films offline rechnen; `buses` waehlt die Spuren (ohne Angabe beide). Der Film nutzt nur 'sfx':
+ * die Musik kommt aus den Stuecken des Spiels (tools/intro-film/music.json).
+ * Render the film's whole soundtrack offline; `buses` picks the tracks (both if omitted). The film uses only 'sfx':
+ * the music comes from the game's tracks (tools/intro-film/music.json).
+ */
+export async function renderFilmSoundtrack(sampleRate = 48000, buses?: readonly ScoreEvent['bus'][]): Promise<AudioBuffer> {
   const D = FILM.duration;
   const ctx = new OfflineAudioContext(2, Math.ceil(D * sampleRate), sampleRate);
   const out = output(ctx);
@@ -150,6 +155,6 @@ export async function renderFilmSoundtrack(sampleRate = 48000): Promise<AudioBuf
   out.fade.gain.linearRampToValueAtTime(0, D);
   const eng = new AudioEngine();
   eng.attach(ctx, out, { rnd: rng(SEED), music: 0.42 });
-  for (const e of buildFilmScore()) e.play(eng, e.at);
+  for (const e of buildFilmScore()) if (!buses || buses.includes(e.bus)) e.play(eng, e.at);
   return ctx.startRendering();
 }

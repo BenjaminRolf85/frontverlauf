@@ -44,6 +44,6 @@ export async function bootExport(params: URLSearchParams) {
     frame(t: number, quality = 0.93) { draw(t); return canvas.toDataURL('image/jpeg', quality); },
     async wav() { return base64(wavBytes(await renderSoundtrack(48000))); },
     /** Klangspur des Introfilms (tools/intro-film/soundtrack.mjs) / soundtrack of the intro film (tools/intro-film/soundtrack.mjs) */
-    async filmWav() { return base64(wavBytes(await renderFilmSoundtrack(48000))); },
+    async filmWav(buses?: ('music' | 'sfx')[]) { return base64(wavBytes(await renderFilmSoundtrack(48000, buses))); },
   };
 }
