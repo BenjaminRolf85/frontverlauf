@@ -26,7 +26,7 @@ import { loft, type AtlasLayout, type UvBuilder } from './uvkit';
 const L = look('korvat');
 const SKIN = shade(mix(mat.skin, mat.orange, 0.2), 0.97);
 const HAIR = mix(mat.snow, mat.concrete, 0.28);
-const BROW = mix(mat.snow, mat.concrete, 0.62);
+const BROW = mix(mat.snow, mat.concrete, 0.74);
 const COAT = L.primary;
 const CAP = L.helmet;
 const GEM = mat.red;
@@ -204,8 +204,8 @@ function paintFace(p: Pen, m: MoodArt): void {
   // Wangenflaechen: die lichtabgewandte Seite (im Bild rechts) kraeftiger / cheek planes: the side away from the light (right in the picture) stronger
   shadow(p, M, [[0.5, 0.02], [0.62, -0.1], [0.6, -0.3], [0.5, -0.5], [0.42, -0.72], [0.3, -0.92], [0.62, -0.88], [0.86, -0.5], [0.9, 0], [0.8, 0.2], [0.66, 0.14]], 0.8, 0.9, false);
   shadow(p, M, [[-0.68, 0.02], [-0.72, -0.3], [-0.62, -0.56], [-0.47, -0.8], [-0.72, -0.72], [-0.88, -0.3], [-0.88, 0.1]], 0.86, 0.9, false);
-  // Augenhoehle unter dem Brauenwulst / socket below the brow ridge
-  shadow(p, M, [[0.1, 0.21], [0.3, 0.26], [0.58, 0.24], [0.64, 0.13], [0.52, 0.19], [0.3, 0.205], [0.13, 0.15]], 0.76, 0.9);
+  // Augenhoehle unter dem schweren Brauenwulst: tief, harte Kante / socket below the heavy brow ridge: deep, hard edge
+  shadow(p, M, [[0.08, 0.22], [0.3, 0.27], [0.6, 0.25], [0.68, 0.12], [0.6, 0.06], [0.52, 0.17], [0.3, 0.19], [0.12, 0.13]], 0.7, 0.92);
   // gesunde Farbe an Wangen und Nase / ruddy cheeks and nose
   for (const s of [-1, 1]) { const c = P(s * 0.44, -0.2); p.dab(c[0], c[1], M.u(0.17), [1.08, 0.84, 0.8], 0.55); }
   { const c = P(0, -0.2); p.dab(c[0], c[1], M.u(0.1), [1.08, 0.84, 0.8], 0.5); }
@@ -224,7 +224,7 @@ function paintFace(p: Pen, m: MoodArt): void {
   }
 
   // Stirnfalten (im Schatten des Schirms), Zornesfalten / forehead lines (in the peak's shadow), frown lines
-  const fw = lw(1.2 + 0.8 * m.forehead);
+  const fw = lw(1.6 + 0.8 * m.forehead);
   for (const [y, w] of [[0.46, 0.34], [0.54, 0.4], [0.62, 0.3]] as [number, number][]) wrinkle(p, M, [[-w, y + 0.012], [-w * 0.4, y - 0.008], [0, y + 0.004], [w * 0.4, y - 0.008], [w, y + 0.012]], fw, false);
   wrinkle(p, M, [[0.05, 0.2 + m.browIn(1) * 0.5], [0.068, 0.27], [0.055, 0.35]], lw(1.5 + 1.2 * m.frown));
   if (angry) wrinkle(p, M, [[0.13, 0.33], [0.17, 0.38], [0.2, 0.36]], lw(1.6));
@@ -232,14 +232,19 @@ function paintFace(p: Pen, m: MoodArt): void {
   for (const s of [-1, 1] as const) {
     drawEye(p, M, s, {
       x: 0.36, y: 0.115, w: 0.152, h: 0.08, tilt: -0.07, upper: 0.36 + m.upper(s), lower: 0.12 + m.lower(s), iris: mat.blue, irisR: 0.07 * m.iris,
-      look: [0, shocked ? 0 : 0.04], crease: 0.04, bag: 1, lid: 3.8,
+      look: [0, shocked ? 0 : 0.04], crease: 0.045, bag: 1, lid: 4.2,
     }, lw);
-    drawBrow(p, M, s, { x0: 0.075, y0: 0.215 + m.browIn(s), x1: 0.66, y1: 0.33 + m.browOut(s), arch: 0.032, thick: 0.12, colour: BROW, strands: 6, wild: 1, seed: 11 + s }, lw);
+    drawBrow(p, M, s, { x0: 0.07, y0: 0.205 + m.browIn(s), x1: 0.68, y1: 0.31 + m.browOut(s), arch: 0.03, thick: 0.145, colour: BROW, strands: 7, wild: 1.1, seed: 11 + s }, lw);
   }
   // Kraehenfuesse, zweite Linie unter dem Auge, Wangenfalte, Nasolabialfalte, Hamsterbacke / crow's feet, second line below the eye, cheek crease, nasolabial fold, jowl
-  for (const [x1, y1] of [[0.645, 0.165], [0.65, 0.07]] as [number, number][]) wrinkle(p, M, [[0.56, 0.11], [(0.56 + x1) / 2, (0.11 + y1) / 2 + 0.006], [x1, y1]], lw(1.2));
+  // drei Kraehenfuesse am aeusseren Augenwinkel / three crow's feet at the outer eye corner
+  for (const [x1, y1] of [[0.69, 0.19], [0.71, 0.11], [0.68, 0.03]] as [number, number][]) wrinkle(p, M, [[0.57, 0.11], [(0.57 + x1) / 2, (0.11 + y1) / 2 + 0.008], [x1, y1]], lw(1.5));
+  // Nasolabialfalte: vom Nasenfluegel in einem Bogen zum Schnurrbart, aussen ein flacher Schatten
+  // nasolabial fold: from the nose wing in an arc to the moustache, a flat shade on its outer side
+  shadow(p, M, [[0.17, -0.13], [0.25, -0.24], [0.31, -0.37], [0.4, -0.37], [0.33, -0.23], [0.23, -0.11]], 0.84, 0.9);
+  wrinkle(p, M, [[0.16, -0.12], [0.235, -0.22], [0.29, -0.31], [0.32, -0.4]], lw(2.3));
   wrinkle(p, M, [[0.24, -0.045], [0.37, -0.075], [0.5, -0.045]], lw(1.2));
-  wrinkle(p, M, [[0.52, -0.06], [0.6, -0.17], [0.585, -0.31]], lw(1.4));
+  wrinkle(p, M, [[0.52, -0.06], [0.6, -0.17], [0.585, -0.31]], lw(1.8));
   wrinkle(p, M, [[0.2, -0.19], [0.31, -0.29], [0.4, -0.43], [0.43, -0.55]], lw(2));
   wrinkle(p, M, [[0.56, -0.6], [0.47, -0.77], [0.32, -0.9]], lw(1.5));
   wrinkle(p, M, [[0.7, 0.0], [0.72, -0.25], [0.64, -0.5]], lw(1.3));
