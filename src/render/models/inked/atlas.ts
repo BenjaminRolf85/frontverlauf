@@ -492,24 +492,36 @@ export function hasAtlas(id: string): boolean { return defs.has(id); }
  * small ones that must be stacked beside it.
  */
 function packFree(id: string, cells: Cell[], layout: AtlasLayout): void {
-  const pad = layout.pad;
+  // Mehrere feste Regeln nacheinander, die erste passende gilt (Regel 0 = die urspruengliche): kleine Aenderungen an
+  // den Zellen kippen so nicht gleich die ganze Packung. / Several fixed rules in turn, the first that fits wins (rule 0
+  // = the original one): small changes to the cells thus do not tip the whole packing at once.
+  for (let rule = 0; rule < 4; rule++) {
+    const placed = packRule(cells, layout.pad, rule);
+    if (placed) { for (const [name, x, y, w, h] of placed) layout.place(name, x, y, w, h); return; }
+  }
+  throw new Error(`atlas ${id}: full`);
+}
+/** Eine Packregel: Bewertung (kuerzeste Seite / Flaeche) x Schnitt (groesserer Rest ganz / umgekehrt) / one packing rule: score (short side / area) x cut (larger remainder whole / reversed) */
+function packRule(cells: Cell[], pad: number, rule: number): [string, number, number, number, number][] | null {
   const free: { x: number; y: number; w: number; h: number }[] = [{ x: pad, y: pad, w: REF - pad, h: REF - pad }];
   const order = cells.map((c, i) => ({ c, i })).sort((a, b) => Math.max(b.c.w, b.c.h) - Math.max(a.c.w, a.c.h) || b.c.w * b.c.h - a.c.w * a.c.h || a.i - b.i);
+  const out: [string, number, number, number, number][] = [];
   for (const { c } of order) {
     const w = c.w + pad, h = c.h + pad;
     let best = -1, score = Infinity;
     free.forEach((f, k) => {
       if (f.w < w || f.h < h) return;
-      const sc = Math.min(f.w - w, f.h - h);
+      const sc = rule & 1 ? f.w * f.h - w * h : Math.min(f.w - w, f.h - h);
       if (sc < score) { score = sc; best = k; }
     });
-    if (best < 0) throw new Error(`atlas ${id}: full at ${c.name}`);
+    if (best < 0) return null;
     const f = free.splice(best, 1)[0];
-    layout.place(c.name, f.x, f.y, c.w, c.h);
-    // Rest teilen: der groessere Rest bleibt ein ganzes Rechteck / split the rest: the larger remainder stays one whole rectangle
-    if (f.w - w > f.h - h) free.push({ x: f.x + w, y: f.y, w: f.w - w, h: f.h }, { x: f.x, y: f.y + h, w, h: f.h - h });
+    out.push([c.name, f.x, f.y, c.w, c.h]);
+    // Rest teilen: der groessere Rest bleibt ein ganzes Rechteck (Regel 2, 3: umgekehrt) / split the rest: the larger remainder stays one whole rectangle (rules 2, 3: reversed)
+    if ((f.w - w > f.h - h) !== rule >= 2) free.push({ x: f.x + w, y: f.y, w: f.w - w, h: f.h }, { x: f.x, y: f.y + h, w, h: f.h - h });
     else free.push({ x: f.x + w, y: f.y, w: f.w - w, h }, { x: f.x, y: f.y + h, w: f.w, h: f.h - h });
   }
+  return out;
 }
 export function atlasDef(id: string): AtlasDef {
   const d = defs.get(id);
