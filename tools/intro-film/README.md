@@ -12,7 +12,7 @@ Result: `public/intro/frontverlauf-intro.webm`, `.mp4` and `-poster.webp`.
 
 | Datei / file | Aufgabe / purpose |
 |---|---|
-| `export-models.mjs`, `web/` | Vite + Playwright: baut die prozeduralen Modelle aus `src/render/models`. Gelaende, Bauwerke, Requisiten als Rohdaten (Positionen, Normalen, Vertexfarben, Leuchtmaske) nach `.cache/models/`; Einheiten als gezeichnete Modelle nach `.cache/units/`, ihre Atlanten als PNG nach `.cache/atlas/`, Kenngroessen des Stils nach `.cache/inked.json`, die Design-Tokens nach `.cache/tokens.json` / builds the procedural models: terrain, buildings, props as raw data; units as inked models, their atlases as PNG, the figures of the style and the design tokens |
+| `export-models.mjs`, `web/` | Vite + Playwright: baut die prozeduralen Modelle aus `src/render/models`. Gelaende, Bauwerke, Requisiten als Rohdaten (Positionen, Normalen, Vertexfarben, Leuchtmaske) nach `.cache/models/`; alles, was dem Vertrag der gezeichneten Einheiten folgt (uv, fx, Farbe, Normalen, `userData.inked`, `userData.inkSrc`), nach `.cache/units/`: die Einheiten und die gezeichneten Anfuehrer-Buesten; ihre Atlanten als PNG nach `.cache/atlas/` (Brett 2048 statt 1024, Heldenatlanten der Anfuehrer in ihrer eigenen Groesse aus `atlasSize`, 2048), Kenngroessen des Stils nach `.cache/inked.json`, die Design-Tokens nach `.cache/tokens.json` / builds the procedural models: terrain, buildings, props as raw data; everything that follows the inked units' contract to `.cache/units/`: the units and the inked leader busts; their atlases as PNG (board atlases at 2048 instead of 1024, the leaders' hero atlases at their own size from `atlasSize`, 2048), the figures of the style and the design tokens |
 | `fv/lib.py` | Szene, Comic-Material (3 flache Lichtbaender, Leuchten, Fensterlicht), Tuschekontur (umgedrehte Huelle), Modell-Import, gezeichnete Einheiten (Atlas-Material, Umriss und Innenlinien), Himmel, Rauch, Strahlen / scene, comic material (3 flat light bands, glow, window light), ink outline, model import, inked units (atlas material, silhouette and inner lines), sky, smoke, beams |
 | `fv/kit.py` | Gelaende, Explosionen, Truemmer, Flaggen, Meer, Wolken, Lichtboegen / terrain, explosions, debris, flags, sea, clouds, arcs |
 | `fv/shots/*.py` | eine Datei je Einstellung (`build()` gibt eine `Shot` mit Aktualisierung je Bild zurueck); `sheet.py` ist ein Modellbogen zur Kontrolle / one file per shot; `sheet.py` is a model sheet for checks |
@@ -61,24 +61,30 @@ Gemessen auf 4 CPU-Kernen ohne GPU (Mesa llvmpipe), 1280x720 / measured on 4 CPU
 | Eevee, Standard-Samples / default samples | ca. 48 |
 | Cycles CPU, 16 Samples | ca. 9,5 |
 | Workbench | ca. 1 (kein Toon-Shading moeglich / no toon shading possible) |
-| **Eevee, 1 TAA-Sample, Toon ueber Shader-to-RGB, grobe Schatten (verwendet / used)** | **ca. 2-5** |
+| **Eevee, 1 TAA-Sample, Toon ueber Shader-to-RGB, grobe Schatten (verwendet / used)** | **ca. 3-14, Mittel / mean 6,1** |
 | dasselbe mit feinen Schatten / same with fine shadows | ca. 10 |
 
 Gewaehlt: Eevee mit einem Sample, alle Materialien unbeleuchtet (Emission) mit eigener Stufen-Schattierung aus
 Shader-to-RGB, Schattenaufloesung 0,25 und Sonnen-Schattenkarten 0,2 (halbiert die Zeit), 12 Bilder je Sekunde, im Video
-auf 24 fps gehalten. Gesamt 1488 Bilder plus 3 x 120 Comicfelder (416x664), gemessen rund 60-65 Minuten mit den detailreichen Einheiten der hohen Stufe (1,6-5 s je Bild,
-die Stadt Verdan ist am teuersten); Zusammensetzen und Kodieren (zwei Durchgaenge VP9 und H.264) rund 12 Minuten.
+auf 24 fps gehalten. Gesamt 1488 Bilder plus 3 x 120 Comicfelder (416x664). Gemessen mit den gezeichneten Einheiten
+(Umriss und Innenlinien als Geometrie, Atlanten 2048): im Mittel 6,1 s je Bild und Prozess, von 3,4 s (Glocke) bis
+14,2 s (Stadt Verdan, 192 Bilder); alle 1728 Bilder mit zwei Prozessen in 91 Minuten. Die Nahaufnahmen der
+Anfuehrer-Buesten (bis 36.000 Dreiecke, Heldenatlas 2048) kosten rund 6 s je Bild. Zusammensetzen und Kodieren (zwei
+Durchgaenge VP9 und H.264) rund 12 Minuten.
 Chosen: Eevee with one sample, all materials unlit (emission) with their own banded shading from Shader-to-RGB, shadow
 resolution 0.25 and sun shadow maps 0.2 (halves the time), 12 frames per second, held to 24 fps in the video.
-1488 frames plus 3 x 120 comic panels (416x664) in total, measured at about 60-65 minutes with the detailed high-level units (1.6-5 s per frame, the Verdan city
-is the most expensive); assembly and encoding (two passes VP9 and H.264) about 12 minutes.
+1488 frames plus 3 x 120 comic panels (416x664) in total. Measured with the inked units (silhouette and inner lines as
+geometry, atlases at 2048): on average 6.1 s per frame and process, from 3.4 s (bell) to 14.2 s (Verdan city, 192
+frames); all 1728 frames with two processes in 91 minutes. The close-ups of the leader busts (up to 36,000 triangles,
+hero atlas 2048) cost about 6 s per frame. Assembly and encoding (two passes VP9 and H.264) about 12 minutes.
 
-Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (11,9 MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s (12,6 MB).
-Einheiten immer in der hohen Detailstufe (export-models.ts setzt setUnitQuality('high')); Wracks nutzen die leichte Fassung
-der Fahrzeuge ohne Besatzung. / Units always at the high detail level (export-models.ts sets setUnitQuality('high'));
-wrecks use the light vehicle version without crew.
-Die Rasterpunkte kosten Bitrate; mit konstanter Qualitaet (CRF) wurden die Dateien 33 und 23 MB gross.
-The halftone dots cost bitrate; with constant quality (CRF) the files came out at 33 and 23 MB.
+Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (@WEBM@ MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s
+(@MP4@ MB), Standbild / poster @POSTER@ kB; zusammen / together @TOTAL@ MB (Grenze / limit 25 MB). Feste Zielbitrate in
+zwei Durchgaengen: die flachen Toene ohne Rasterpunkte brauchen weniger Bits, die feste Rate gibt sie den Einheiten als
+Schaerfe zurueck statt kleinerer Dateien. / Fixed target bitrate in two passes: the flat tones without halftone dots
+need fewer bits, the fixed rate gives them back to the units as sharpness instead of smaller files.
+Einheiten und Anfuehrer-Buesten immer in der hohen Detailstufe (export-models.ts setzt setUnitQuality('high')).
+Units and leader busts always at the high detail level (export-models.ts sets setUnitQuality('high')).
 
 Groessen / sizes: Zwischenbilder (`.cache/`, nicht im Repository) etwa 1 GB / intermediate frames about 1 GB.
 
