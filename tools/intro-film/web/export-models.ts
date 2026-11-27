@@ -25,7 +25,7 @@ import {
   emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, setUnitQuality, splitTurrets, techParts, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
 } from '../../../src/render/models/index';
 import { academyGeometry } from '../../../src/render/models/academy';
-import { atlasDef, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
+import { atlasDef, atlasSize, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
 import { crewCells, crewExtraCells } from '../../../src/render/models/inked/figurePaint';
 import { CREASE_HALF_WIDTH, inkFor, inkGeometry, OUTLINE_MAX_PX } from '../../../src/render/models/inked/ink';
 import { Builder, splitTurrets as kitSplit, type TurretRange } from '../../../src/render/models/kit';
@@ -406,14 +406,13 @@ function atlas(id: string, wanted: number) {
   return { id, size, ready: t.ready, paintBytes: (t.paint.image.data as Uint8Array).length, inkBytes: (t.ink.image.data as Uint8Array).length, blank: [blank.x / REF, blank.y / REF, blank.w / REF, blank.h / REF] };
 }
 /**
- * Kantenlaenge, in der ein Atlas exportiert wird: die gewuenschte, mindestens aber seine eigene (ein Atlas darf eine
- * eigene Groesse nennen, etwa fuer Nahaufnahmen: Feld size seiner Definition).
- * Edge length an atlas is exported at: the wanted one, but at least its own (an atlas may state a size of its own, e.g.
- * for close-ups: field size of its definition).
+ * Kantenlaenge, in der ein Atlas exportiert wird: die gewuenschte, mindestens aber seine eigene hohe Stufe
+ * (atlasSize: Heldenatlanten der Anfuehrer nennen 2048, Atlanten des Bretts 1024).
+ * Edge length an atlas is exported at: the wanted one, but at least its own high level (atlasSize: the leaders' hero
+ * atlases state 2048, board atlases 1024).
  */
 function atlasEdge(id: string, wanted: number): number {
-  const own = (atlasDef(id) as { size?: number }).size;
-  return Math.max(wanted, typeof own === 'number' ? own : 0);
+  return Math.max(wanted, atlasSize(id, 'high'));
 }
 function atlasChunk(id: string, wanted: number, layer: 'paint' | 'ink', off: number, len: number): string {
   const t = atlasTextures(id, atlasEdge(id, wanted));
