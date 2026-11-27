@@ -76,7 +76,7 @@ function hat(b: UvBuilder, A: AtlasLayout): void {
   const k = 8.55;
   for (const s of [-1, 1]) {
     const p0 = revolveAt(HAT, HAT_O, 0.5 + s * 0.075, k), n = new THREE.Vector3(s * 0.34, 0.2, 1).normalize();
-    b.add(loft([{ y: 0, rx: 0.066, c: BRASS }, { y: 0.04, rx: 0.063, hard: true }, { y: 0.044, rx: 0.052, hard: true }, { y: 0.036, rx: 0.05 }], { seg: fine() ? 20 : 12, region: A.get('blank') }), null, { gloss: 0.6, crease: 0.9, xf: { p: [p0.x - n.x * 0.012, p0.y - n.y * 0.012, p0.z - n.z * 0.012], r: aimY(n) } });
+    b.add(loft([{ y: 0, rx: 0.066, c: BRASS }, { y: 0.04, rx: 0.063, hard: true }, { y: 0.044, rx: 0.052, hard: true }, { y: 0.036, rx: 0.05 }], { seg: fine() ? 20 : 12, region: A.get('blank'), arc: true }), null, { gloss: 0.6, crease: 0.9, xf: { p: [p0.x - n.x * 0.012, p0.y - n.y * 0.012, p0.z - n.z * 0.012], r: aimY(n) } });
     stud(b, A, p0.clone().addScaledVector(n, 0.028), n, 0.051, 0.004, 'lensBlue', LENS, 0.15, 18);
   }
   const mid = revolveAt(HAT, HAT_O, 0.5, k + 0.25), nf = new THREE.Vector3(0, 0.25, 1).normalize();

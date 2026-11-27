@@ -157,7 +157,7 @@ function build(b: UvBuilder, A: AtlasLayout, m: MoodArt): void {
     // nach aussen oben geschwungene Spitze am Schulterende / point at the shoulder's end sweeping up and outward
     b.add(sheet((u, v) => {
       const w = 0.05 * (1 - v) ** 0.8 + 0.003, off = (u - 0.5) * 2 * w;
-      const x = 0.33 + 0.16 * v + 0.07 * v * v, y = 0.27 + 0.15 * v + 0.04 * v * v, z = -0.02 - 0.03 * v;
+      const x = 0.33 + 0.1 * v + 0.04 * v * v, y = 0.27 + 0.18 * v + 0.05 * v * v, z = -0.02 - 0.03 * v;
       return new THREE.Vector3(x - off * 0.55, y + off * 0.8, z + 0.014 * Math.sin(Math.PI * u));
     }, { nu: 4, nv: fine() ? 10 : 5, region: A.get('blade'), thick: 0.013, color: ARMOUR_LIGHT, backColor: ARMOUR_DARK, st: (u, v) => [u, 1 - v] }), null, { gloss: 0.5, crease: 1 });
     // Brustplatte je Seite, leicht erhaben, ihre Kanten leuchten / chest plate per side, slightly raised, its edges glow
