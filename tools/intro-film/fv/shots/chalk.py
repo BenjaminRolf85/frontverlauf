@@ -149,6 +149,8 @@ def build():
         for i, sg in enumerate(segs):
             k = L.clamp(draw * n - i)
             sg.scale.x = max(sg['len'] * k, 0.001)
+            # noch nicht gezogene Striche ausblenden (ihre Tuschehuelle bliebe sonst als Strichel stehen) / hide strokes not drawn yet (their ink hull would otherwise remain as ticks)
+            L.hide(sg, k <= 0.0)
         tip = segs[min(n - 1, int(draw * n))]
         chalk_bits.origin = Vector((tip.location.x, tip.location.y, 0.4))
         chalk_bits.update(t if draw < 1 else -10)

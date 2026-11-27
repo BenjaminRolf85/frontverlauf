@@ -1118,7 +1118,7 @@ def inked_mat(shot, atlas, tint=None):
     uvm.uv_map = 'UVMap'
     tp = n.new('ShaderNodeTexImage')
     tp.image = paint
-    tp.interpolation = os.environ.get('FV_INTERP', 'Linear')
+    tp.interpolation = 'Linear'
     tp.extension = 'EXTEND'
     L.new(uvm.outputs['UV'], tp.inputs['Vector'])
     ti = n.new('ShaderNodeTexImage')
@@ -1194,9 +1194,6 @@ def inked_mat(shot, atlas, tint=None):
     L.new(math('SUBTRACT', 0.5, w), inkf.inputs['From Min'])
     L.new(math('ADD', 0.5, w), inkf.inputs['From Max'])
     final = mixc(inkf.outputs['Result'], lit, rgb('ink'))
-    dbg = os.environ.get('FV_DBG')
-    if dbg:
-        final = {'base': base, 'toon': tg.outputs['Color'], 'lit': lit, 'tex': tp.outputs['Color'], 'ink': ti.outputs['Color'], 'col': col, 'sun': tg.outputs['Sun'], 'nrm': geo.outputs['Normal']}[dbg]
     em = n.new('ShaderNodeEmission')
     L.new(final, em.inputs[0])
     L.new(em.outputs[0], out.inputs[0])

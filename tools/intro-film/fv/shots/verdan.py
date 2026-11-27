@@ -58,7 +58,7 @@ def build():
             L.prim(s, 'cube', white, loc=(side * 7.25, y, 9.5), size=(0.2, 0.9, 6.5), ink=False)
     # Panzerparade in Verdan-Rot / tank parade in Verdan red
     # Maschinen ohne Besatzung (Export hulk_*): das Reich herrschte mit Maschinen / machines without crew (export hulk_*): the empire ruled with machines
-    tanks = [L.model(s, 'hulk_tank_korvat', loc=(-3.2 + (i % 2) * 6.4, 2 + (i // 2) * 13, 0), rot=180, scale=1.6, tint=('verdanRed', 0.55)) for i in range(6)]
+    tanks = [L.model(s, 'hulk_tank_korvat', loc=(-3.7 + (i % 2) * 7.4, 2 + (i // 2) * 11.5, 0), rot=180, scale=1.35, tint=('verdanRed', 0.55)) for i in range(6)]
     # Kampfmaschinen Verdans (eingefaerbte Titanen) / Verdan war machines (tinted titans)
     titans = [L.model(s, 'titan_nexus', loc=(x, y, 0), rot=180, scale=3.2, tint=('verdanWhite', 0.45)) for x, y in ((-5, 48), (5, 66))]
     tanks += titans
