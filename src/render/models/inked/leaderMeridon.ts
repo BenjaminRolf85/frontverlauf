@@ -39,7 +39,7 @@ const LENS = mix(mat.blue, mat.glass, 0.45);
 const ORANGE = L.secondary;
 const LIPS = mix(mat.red, mat.wood, 0.42);
 const EYE = mix(mat.teal, mat.blue, 0.45);
-/** Glas des Monokels: faengt das Licht (leuchtet leicht) / the monocle's glass: catches the light (glows slightly) */
+/** Toenung des Monokelglases / tint of the monocle's glass */
 const LENS_GOLD = mix(mat.lamp, mat.white, 0.4);
 
 const T: TorsoSpec = { w: 0.44, d: 0.21, h: 0.335, slope: 0.095, neckR: 0.1, rise: 0.055, square: 0.26, z: -0.01, chest: 0.024 };
@@ -131,8 +131,8 @@ function build(b: UvBuilder, A: AtlasLayout, m: MoodArt): void {
     b.add(loft([{ y: 0.03, rx: 1e-7, c: ORANGE }, { y: 0.022, rx: 0.024 }, { y: 0, rx: 0.034 }, { y: -0.024, rx: 0.026 }, { y: -0.034, rx: 1e-7 }], { seg: fine() ? 12 : 8, region: A.get('blank') }), null, { crease: 0, xf: { p: [0.004, 0.3, 0.135], s: [1.5, 1.25, 0.9] } });
     // Tuch: Dreieck ueber der Brust, folgt dem Koerper / cloth: a triangle over the chest, following the body
     b.add(sheet((u, v) => {
-      const half = 0.105 * (1 - v) ** 0.8 + 0.006, q = chestAt(T, (2 * u - 1) * half + 0.01 * Math.sin(v * 5), 0.305 - 0.25 * v);
-      return q.p.addScaledVector(q.n, 0.03 - 0.012 * v + 0.012 * Math.cos((2 * u - 1) * Math.PI * 1.5) * (1 - v));
+      const half = 0.082 * (1 - v) ** 0.62 + 0.004, q = chestAt(T, (2 * u - 1) * half + 0.014 * Math.sin(v * 4), 0.3 - 0.27 * v);
+      return q.p.addScaledVector(q.n, 0.026 - 0.01 * v + 0.007 * Math.cos((2 * u - 1) * Math.PI) * (1 - v));
     }, { nu: fine() ? 10 : 5, nv: fine() ? 10 : 5, region: A.get('scarfDrape'), back: A.get('blank'), thick: 0.01, flip: true, color: ORANGE, backColor: shade(ORANGE, 0.6) }), null, { crease: 0.9 });
   }
 
@@ -171,7 +171,8 @@ function build(b: UvBuilder, A: AtlasLayout, m: MoodArt): void {
     const ring: V3[] = [];
     for (let i = 0; i <= 16; i++) { const a = (i / 16) * Math.PI * 2; const q = c.clone().addScaledVector(e1, Math.cos(a) * 0.058).addScaledVector(e2, Math.sin(a) * 0.058); ring.push([q.x, q.y, q.z]); }
     b.add(tube(ring, () => 0.011, { seg: fine() ? 8 : 5, samples: fine() ? 32 : 16, region: A.get('blank'), color: BRASS }), null, { gloss: 0.7, crease: 0.4 });
-    stud(b, A, c.clone().addScaledVector(n, -0.004), n, 0.053, 0.004, 'lensGold', LENS_GOLD, 0.15, 18);
+    // das Glas ist in die Gesichtszelle gezeichnet (getoent, mit Glanz), damit das Auge dahinter sichtbar bleibt
+    // the glass is drawn into the face cell (tinted, with shine) so the eye behind it stays visible
     const t0 = c.clone().addScaledVector(e1, -0.058), t1 = new THREE.Vector3(...S.dir([-0.9, 0.2, 0.42], 0.03));
     b.add(tube([[t0.x, t0.y, t0.z], [(t0.x + t1.x) / 2 - 0.01, t0.y + 0.012, (t0.z + t1.z) / 2 + 0.01], [t1.x, t1.y, t1.z]], () => 0.007, { seg: 5, samples: 6, region: A.get('blank'), color: BRASS }), null, { gloss: 0.6, crease: 0.4 });
     gemDome(b, A, c.clone().addScaledVector(e2, -0.06).addScaledVector(n, 0.004), n, 0.012, 0.01, BRASS, 0.7);
@@ -218,6 +219,15 @@ function paintFace(p: Pen, m: MoodArt): void {
       look: [0, 0.03], crease: 0.03, lid: 4.4, wing: 0.045, lashes: 3, shadow: mix(SKIN, mat.wood, 0.4),
     }, lw);
     drawBrow(p, M, s, { x0: 0.09, y0: 0.215 + m.browIn(s), x1: 0.62, y1: 0.285 + m.browOut(s) + (s > 0 ? 0.02 : 0), arch: 0.04, thick: 0.055, colour: HAIR_DARK, strands: 2, seed: 61 + s }, lw);
+  }
+  // Monokelglas vor dem rechten Auge (im Bild links): Bernsteintoenung, harter Glanzbogen links oben, Gegenglanz
+  // monocle glass before the right eye (left in the picture): amber tint, hard arc of shine upper left, counter glint
+  {
+    const c = P(-0.37, 0.1), r = M.u(0.3);
+    p.fill(arc(c[0], c[1], r, r, 0, Math.PI * 2, 28), LENS_GOLD, 0.24);
+    p.fill(arc(c[0] + r * 0.12, c[1] + r * 0.1, r * 0.92, r * 0.92, -0.2, Math.PI * 0.9, 16).concat(arc(c[0] + r * 0.2, c[1] + r * 0.18, r * 0.7, r * 0.7, Math.PI * 0.9, -0.2, 16)), shade(LENS_GOLD, 0.7), 0.22);
+    p.fill(arc(c[0], c[1], r * 0.82, r * 0.82, Math.PI * 1.05, Math.PI * 1.45, 10).concat(arc(c[0], c[1], r * 0.62, r * 0.62, Math.PI * 1.45, Math.PI * 1.05, 10)), mat.white, 0.85);
+    p.spot(c[0] + r * 0.42, c[1] + r * 0.38, r * 0.08, mat.white, 0.85);
   }
   drawNose(p, M, { y: -0.24, w: 0.88, top: 0.15, shade: 0.85 }, lw);
   drawMouth(p, M, { y: MOUTH.y, w: MOUTH.w, smile: 0.03 + m.smile, asym: 0.02 + m.asym, lipU: 0.046, lipL: 0.062, colour: LIPS, shine: 0.5, open: m.open * 0.75, line: 2.8 }, lw);
@@ -344,7 +354,8 @@ function paintScarfDrape(p: Pen): void {
   fold(p, spline([[W * 0.44, H * 0.06], [W * 0.34, H * 0.4], [W * 0.42, H * 0.84]], 5), lw(1.4), 7, 0.82);
   fold(p, spline([[W * 0.58, H * 0.06], [W * 0.68, H * 0.36], [W * 0.56, H * 0.72]], 5), lw(1.4), -7, 0.82);
   fold(p, spline([[W * 0.3, H * 0.1], [W * 0.16, H * 0.3], [W * 0.22, H * 0.5]], 5), lw(1.2), 6, 0.84);
-  p.shade([[W * 0.5, H * 0.2], [W, H * 0.2], [W, H], [W * 0.5, H]], 0.88, 0.9);
+  // Schattenseite als Keil vom Knoten zur Spitze / shadow side as a wedge from the knot to the point
+  p.shade(spline([[W * 0.6, H * 0.1], [W, H * 0.12], [W, H], [W * 0.56, H], [W * 0.62, H * 0.5]], 5, true), 0.86, 0.9);
 }
 
 /** Medaillon: Messingscheibe, Kompassrose, Gradteilung als vier Kerben / medallion: brass disc, compass rose, graduation as four notches */
@@ -419,7 +430,6 @@ function cells(m: MoodArt): Cell[] {
     { name: 'brimUnder', w: 256, h: 96, paint: paintBrimUnder },
     { name: 'crown', w: 320, h: 144, paint: paintCrown },
     { name: 'lensBlue', w: 96, h: 96, paint: (p) => paintLens(p, LENS) },
-    { name: 'lensGold', w: 96, h: 96, paint: (p) => paintLens(p, LENS_GOLD) },
     { name: 'feather', w: 208, h: 64, paint: paintFeather },
     { name: 'lock', w: 256, h: 96, paint: paintLock },
     { name: 'braid', w: 400, h: 64, paint: paintBraid },
@@ -434,4 +444,4 @@ function cells(m: MoodArt): Cell[] {
   ];
 }
 
-export const meridon: LeaderDef = { cells, build, glow: [LENS_GOLD], side: 1 };
+export const meridon: LeaderDef = { cells, build, side: 1 };
