@@ -4014,6 +4014,27 @@
       "dravon": "Geschütze und Minen",
       "velkar": "Orbitallaser",
       "meridon": "Kaperbriefe"
+    },
+    "film": {
+      "title": "Introfilm: Die Vorgeschichte",
+      "sub": {
+        "empire": "Einst herrschte das Reich Verdan mit Maschinen über den ganzen Kontinent.",
+        "standstill": "Dann der Große Stillstand: Über Nacht gingen alle Lichter aus.",
+        "wrecks": "Rostende Wracks erinnern an den Krieg danach.",
+        "chalk": "Zwei Generationen lang hielten Grenzen aus Kreide auf alten Karten.",
+        "skyBurned": "Bis der Himmel brannte.",
+        "crash": "Das Mutterschiff der Zyrr stürzt in die Wüste, Trümmer regnen herab.",
+        "bell": "Die Glocke schlägt von selbst.",
+        "awaken": "NEXUS erwacht, der Kult der Letzten Stunde erhebt sich, und die Zyrr bauen ein Tor in ihre Heimatwelt.",
+        "gate": "Dahinter wartet eine dritte Welt, die alle vergessen haben.",
+        "fracture": "Die Front der Menschen zerbricht in fünf Teile.",
+        "korvat": "Korvat stürmt: Die Steppenreiter des Volksbunds jagen im Steppensturm voran, niemand bleibt zurück.",
+        "alvenia": "Alvenia richtet: Sünder trifft das Strafgericht, der Göttliche Funke holt das Sonnenlicht vom Himmel.",
+        "dravon": "Dravon befestigt: Betonbunker, Geschütze, Minenfelder und eiserner Drill.",
+        "velkar": "Velkar forscht voraus: Die Akademie schwebt, der Orbitallaser zielt, der Neutronenstrahl trifft.",
+        "meridon": "Meridon handelt im Verborgenen: Kaperschiffe, Raketensilos und Marines treiben jeden Preis ein.",
+        "banners": "Fünf Banner, ein Kontinent. Und die Front wandert wieder."
+      }
     }
   },
   "emplacement": {

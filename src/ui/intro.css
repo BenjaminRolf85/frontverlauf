@@ -32,3 +32,45 @@
 }
 /* Diashow: Bedienleiste mittig oben / slideshow: control bar centred at the top */
 .intro-slides .intro-bar { left: var(--c-intro-control-gap); justify-content: center; }
+
+/*
+ * Introfilm: Buehne im Format 16:9, mittig mit Balken (Hoch- und Querformat), Untertitel wie im 2D-Intro als HTML,
+ * im Hochformat unter dem Bild. Lautmalerei und Slogan als Einblendung in Comicschrift.
+ * Intro film: 16:9 stage, centred with bars (portrait and landscape), captions like the 2D intro as HTML,
+ * below the picture in portrait. Onomatopoeia and tagline as overlays in the comic font.
+ */
+.dialog.intro-film { display: grid; place-items: center; }
+.intro-film-stage {
+  position: relative; width: min(100%, calc(100dvh * 16 / 9)); aspect-ratio: 16 / 9; max-height: 100%; container-type: size;
+  cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.intro-video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: contain; background: var(--c-intro-bg); }
+.intro-caption {
+  position: absolute; left: 50%; bottom: var(--c-intro-film-caption-bottom); transform: translateX(-50%); margin: 0;
+  width: max-content; max-width: var(--c-intro-film-caption-max-width); text-align: center; pointer-events: none;
+  font-family: var(--p-font-body); font-weight: 700; font-size: var(--c-intro-film-caption-size); line-height: 1.28;
+  color: var(--c-intro-subtitle-ink); padding: 0.4em 0.8em; border-radius: var(--c-intro-film-caption-radius);
+  background: color-mix(in srgb, var(--c-intro-subtitle-bg) var(--c-intro-film-caption-alpha), transparent);
+  border: var(--c-intro-film-caption-border) solid var(--c-intro-hazard);
+}
+.intro-film-overlay {
+  position: absolute; left: 50%; top: 50%; margin: 0; pointer-events: none; white-space: nowrap; text-transform: uppercase;
+  font-family: var(--p-font-comic); letter-spacing: var(--p-letter-spacing-display); line-height: 1;
+  -webkit-text-stroke: var(--p-border-width-thick) var(--s-outline); paint-order: stroke fill; text-shadow: var(--p-shadow-pop-lg) var(--s-outline);
+}
+.intro-film-overlay[data-kind="boom"] {
+  top: 38%; font-size: var(--c-intro-film-boom-size); color: var(--c-intro-hazard);
+  transform: translate(-50%, -50%) rotate(var(--c-intro-film-boom-tilt));
+}
+.intro-film-overlay[data-kind="tagline"] {
+  top: var(--c-intro-film-tagline-top); font-size: var(--c-intro-film-tagline-size); color: var(--c-intro-paper);
+  transform: translate(-50%, -50%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .intro-film-overlay:not([hidden]) { animation: intro-film-pop var(--p-duration-slow) ease-out; }
+}
+@keyframes intro-film-pop { from { opacity: 0; scale: 1.6; } to { opacity: 1; scale: 1; } }
+/* Hochformat: Untertitel unter dem Bild, im freien Balken / portrait: captions below the picture, in the free bar */
+@media (orientation: portrait) {
+  .intro-caption { top: calc(100% + var(--p-space-4)); bottom: auto; max-width: calc(100vw - var(--p-space-6)); }
+}

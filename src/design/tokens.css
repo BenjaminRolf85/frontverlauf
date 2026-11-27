@@ -971,4 +971,15 @@
   --c-intro-hold-ms: 650ms;
   --c-intro-hint-ms: 2500ms;
   --c-intro-control-gap: 12px;
+  --c-intro-film-caption-size: clamp(15px, 1.6vmin + 9px, 30px);
+  --c-intro-film-caption-max-width: 78%;
+  --c-intro-film-caption-bottom: 4%;
+  --c-intro-film-caption-alpha: 86%;
+  --c-intro-film-caption-radius: 14px;
+  --c-intro-film-caption-border: 3px;
+  --c-intro-film-boom-size: clamp(36px, 22cqh, 170px);
+  --c-intro-film-boom-tilt: -8deg;
+  --c-intro-film-tagline-size: clamp(14px, 7.6cqh, 80px);
+  --c-intro-film-tagline-top: 76.5%;
+  --c-intro-film-stall-ms: 12000ms;
 }

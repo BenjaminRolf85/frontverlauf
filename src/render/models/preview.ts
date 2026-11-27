@@ -408,9 +408,10 @@ function sheet(): Sheet {
     }
     case 'leaders': {
       // Anfuehrer-Buesten; view=34 dreht sie in die Dreiviertelansicht / leader busts; view=34 turns them three-quarter
+      // gezeichnete Buesten dreht die Szene (yaw), damit Flaeche und Tusche zusammenbleiben / inked busts are turned by the scene (yaw) so fill and ink stay together
       const bust = (f: FactionId) => {
         const g = leaderGeometry(f, (params.get('mood') ?? 'neutral') as LeaderMood);
-        if (view !== '34') return g;
+        if (view !== '34' || isInked(g)) return g;
         const c = g.clone();
         c.rotateY(-0.62);
         c.computeBoundingBox();
@@ -547,6 +548,7 @@ async function buildScene() {
         const m = unitOutlined(split ? split.hull : cell.geo, OUTLINE_PREVIEW);
         for (const t of split?.turrets ?? []) { const tur = unitOutlined(t.geometry, OUTLINE_PREVIEW); tur.position.copy(t.pivot); tur.rotation.y = t.yaw; m.add(tur); }
         m.position.set(x, 0, z);
+        if (cat === 'leaders' && view === '34') m.rotation.y = -0.62;
         content.add(m);
         inkTris[`${row.label}|${sh.cols[ci]}`] = inkFor(cell.geo).index!.count / 3;
       } else {

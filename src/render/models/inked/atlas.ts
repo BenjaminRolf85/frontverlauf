@@ -418,12 +418,33 @@ export class Pen {
  */
 export interface Cell { name: string; w: number; h: number; paint: (p: Pen) => void; design?: [number, number] }
 
-export interface AtlasDef { id: string; cells: Cell[]; layout: AtlasLayout }
+export interface AtlasDef {
+  id: string; cells: Cell[]; layout: AtlasLayout;
+  /** Heldenatlas: gehoert nicht zum Brett (siehe AtlasOpts.hero) / hero atlas: not part of the board (see AtlasOpts.hero) */
+  hero: boolean;
+}
 
-/** Hoechstzahl an Atlanten: begrenzt den Texturspeicher (siehe atlasBudget) / maximum number of atlases: bounds the texture memory (see atlasBudget) */
+/** Hoechstzahl an Atlanten DES BRETTS: begrenzt den Texturspeicher (siehe atlasBudget) / maximum number of atlases OF THE BOARD: bounds the texture memory (see atlasBudget) */
 export const MAX_ATLASES = 12;
 /** Kantenlaenge der Texturen je Qualitaet / texture edge length per quality */
 export const ATLAS_SIZE = { high: 1024, low: 512 } as const;
+/**
+ * Kantenlaenge der Heldenatlanten (Anfuehrer-Buesten: Introfilm und Vorschau). Das Spiel legt sie nie an: weder
+ * warmInked() noch das Brett fragen danach, sie zaehlen nicht gegen MAX_ATLASES und nicht in atlasBudget().
+ * Edge length of the hero atlases (leader busts: intro film and preview). The game never creates them: neither
+ * warmInked() nor the board ask for them, they do not count against MAX_ATLASES and not in atlasBudget().
+ */
+export const HERO_ATLAS_SIZE = { high: 2048, low: 1024 } as const;
+
+export interface AtlasOpts {
+  /**
+   * Heldenatlas: fuer Modelle, die nie auf dem Brett stehen und ein Bild fuellen (Anfuehrer). Eigene, groessere
+   * Texturen (HERO_ATLAS_SIZE), eigene Zaehlung, erst beim ersten Zeichnen angelegt.
+   * Hero atlas: for models that never stand on the board and fill a frame (leaders). Own, larger textures
+   * (HERO_ATLAS_SIZE), counted separately, created only when first drawn.
+   */
+  hero?: boolean;
+}
 
 const defs = new Map<string, AtlasDef>();
 /**
@@ -432,37 +453,92 @@ const defs = new Map<string, AtlasDef>();
  * Define an atlas: cells are sorted by height and packed into shelves (deterministic). Throws when the atlas is full:
  * shrink cells or define another atlas then. The cell 'blank' (neutral) is always added.
  */
-export function defineAtlas(id: string, cells: Cell[]): AtlasDef {
+export function defineAtlas(id: string, cells: Cell[], opts: AtlasOpts = {}): AtlasDef {
   if (defs.has(id)) throw new Error(`atlas ${id} defined twice`);
-  if (defs.size >= MAX_ATLASES) throw new Error(`more than ${MAX_ATLASES} atlases`);
+  // nur die Atlanten des Bretts zaehlen gegen die Grenze / only the board's atlases count against the limit
+  if (!opts.hero && atlasIds().length >= MAX_ATLASES) throw new Error(`more than ${MAX_ATLASES} atlases`);
   const all: Cell[] = [{ name: 'blank', w: 16, h: 16, paint: () => {} }, ...cells];
   const layout = new AtlasLayout();
   const pad = layout.pad;
-  const order = all.map((c, i) => ({ c, i })).sort((a, b) => b.c.h - a.c.h || b.c.w - a.c.w || a.i - b.i);
-  // Regale: jede Zelle kommt ins erste Regal, in dem noch Platz ist / shelves: every cell goes into the first shelf with room left
-  const shelves: { y: number; h: number; x: number }[] = [];
-  for (const { c } of order) {
-    let shelf = shelves.find((s) => s.x + c.w + pad <= REF && c.h <= s.h);
-    if (!shelf) {
-      const last = shelves[shelves.length - 1];
-      shelf = { y: last ? last.y + last.h + pad : pad, h: c.h, x: pad };
-      if (shelf.y + c.h + pad > REF) throw new Error(`atlas ${id}: full at ${c.name}`);
-      shelves.push(shelf);
+  if (opts.hero) packFree(id, all, layout);
+  else {
+    const order = all.map((c, i) => ({ c, i })).sort((a, b) => b.c.h - a.c.h || b.c.w - a.c.w || a.i - b.i);
+    // Regale: jede Zelle kommt ins erste Regal, in dem noch Platz ist / shelves: every cell goes into the first shelf with room left
+    const shelves: { y: number; h: number; x: number }[] = [];
+    for (const { c } of order) {
+      let shelf = shelves.find((s) => s.x + c.w + pad <= REF && c.h <= s.h);
+      if (!shelf) {
+        const last = shelves[shelves.length - 1];
+        shelf = { y: last ? last.y + last.h + pad : pad, h: c.h, x: pad };
+        if (shelf.y + c.h + pad > REF) throw new Error(`atlas ${id}: full at ${c.name}`);
+        shelves.push(shelf);
+      }
+      layout.place(c.name, shelf.x, shelf.y, c.w, c.h);
+      shelf.x += c.w + pad;
     }
-    layout.place(c.name, shelf.x, shelf.y, c.w, c.h);
-    shelf.x += c.w + pad;
   }
-  const def: AtlasDef = { id, cells: all, layout };
+  const def: AtlasDef = { id, cells: all, layout, hero: !!opts.hero };
   defs.set(id, def);
   return def;
+}
+export function hasAtlas(id: string): boolean { return defs.has(id); }
+
+/**
+ * Packen der Heldenatlanten: freie Rechtecke statt Regale (Guillotine-Schnitt, deterministisch). Die Regale der
+ * Brettatlanten verschenken neben einer hohen Zelle die ganze Hoehe; ein Heldenatlas hat eine sehr grosse Zelle (das
+ * Gesicht) und viele kleine, die daneben gestapelt werden muessen.
+ * Packing of the hero atlases: free rectangles instead of shelves (guillotine cut, deterministic). The shelves of the
+ * board atlases waste the whole height next to a tall cell; a hero atlas has one very large cell (the face) and many
+ * small ones that must be stacked beside it.
+ */
+function packFree(id: string, cells: Cell[], layout: AtlasLayout): void {
+  // Mehrere feste Regeln nacheinander, die erste passende gilt (Regel 0 = die urspruengliche): kleine Aenderungen an
+  // den Zellen kippen so nicht gleich die ganze Packung. / Several fixed rules in turn, the first that fits wins (rule 0
+  // = the original one): small changes to the cells thus do not tip the whole packing at once.
+  for (let rule = 0; rule < 4; rule++) {
+    const placed = packRule(cells, layout.pad, rule);
+    if (placed) { for (const [name, x, y, w, h] of placed) layout.place(name, x, y, w, h); return; }
+  }
+  throw new Error(`atlas ${id}: full`);
+}
+/** Eine Packregel: Bewertung (kuerzeste Seite / Flaeche) x Schnitt (groesserer Rest ganz / umgekehrt) / one packing rule: score (short side / area) x cut (larger remainder whole / reversed) */
+function packRule(cells: Cell[], pad: number, rule: number): [string, number, number, number, number][] | null {
+  const free: { x: number; y: number; w: number; h: number }[] = [{ x: pad, y: pad, w: REF - pad, h: REF - pad }];
+  const order = cells.map((c, i) => ({ c, i })).sort((a, b) => Math.max(b.c.w, b.c.h) - Math.max(a.c.w, a.c.h) || b.c.w * b.c.h - a.c.w * a.c.h || a.i - b.i);
+  const out: [string, number, number, number, number][] = [];
+  for (const { c } of order) {
+    const w = c.w + pad, h = c.h + pad;
+    let best = -1, score = Infinity;
+    free.forEach((f, k) => {
+      if (f.w < w || f.h < h) return;
+      const sc = rule & 1 ? f.w * f.h - w * h : Math.min(f.w - w, f.h - h);
+      if (sc < score) { score = sc; best = k; }
+    });
+    if (best < 0) return null;
+    const f = free.splice(best, 1)[0];
+    out.push([c.name, f.x, f.y, c.w, c.h]);
+    // Rest teilen: der groessere Rest bleibt ein ganzes Rechteck (Regel 2, 3: umgekehrt) / split the rest: the larger remainder stays one whole rectangle (rules 2, 3: reversed)
+    if ((f.w - w > f.h - h) !== rule >= 2) free.push({ x: f.x + w, y: f.y, w: f.w - w, h: f.h }, { x: f.x, y: f.y + h, w, h: f.h - h });
+    else free.push({ x: f.x + w, y: f.y, w: f.w - w, h }, { x: f.x, y: f.y + h, w: f.w, h: f.h - h });
+  }
+  return out;
 }
 export function atlasDef(id: string): AtlasDef {
   const d = defs.get(id);
   if (!d) throw new Error(`no atlas ${id}`);
   return d;
 }
-export function atlasIds(): string[] { return [...defs.keys()]; }
-/** Obergrenze des Texturspeichers aller Atlanten in Bytes / ceiling of the texture memory of all atlases in bytes */
+/** Atlanten des Bretts (ohne Heldenatlanten) / the board's atlases (without hero atlases) */
+export function atlasIds(): string[] { return [...defs.values()].filter((d) => !d.hero).map((d) => d.id); }
+/** Heldenatlanten (Anfuehrer): nie auf dem Brett / hero atlases (leaders): never on the board */
+export function heroAtlasIds(): string[] { return [...defs.values()].filter((d) => d.hero).map((d) => d.id); }
+/** Kantenlaenge der Textur eines Atlas in einer Qualitaet / texture edge length of an atlas at a quality */
+export function atlasSize(id: string, quality: keyof typeof ATLAS_SIZE): number {
+  return (atlasDef(id).hero ? HERO_ATLAS_SIZE : ATLAS_SIZE)[quality];
+}
+/** Grafikspeicher eines Atlas der Kantenlaenge size: RGBA + 8 Bit Tusche samt Mip-Stufen / GPU memory of an atlas of edge length size: RGBA + 8 bit ink including mip levels */
+export function atlasBytes(size: number): number { return Math.round((size * size * 5 * 4) / 3); }
+/** Obergrenze des Texturspeichers aller Atlanten des Bretts in Bytes / ceiling of the texture memory of all board atlases in bytes */
 export function atlasBudget(quality: keyof typeof ATLAS_SIZE): number {
   const n = ATLAS_SIZE[quality];
   return Math.round((MAX_ATLASES * n * n * 5 * 4) / 3);
@@ -473,9 +549,14 @@ export function atlasBudget(quality: keyof typeof ATLAS_SIZE): number {
 interface Job {
   def: AtlasDef; size: number; tex: AtlasTextures; next: number;
   paint: Uint8Array; sdf: Uint8Array;
+  /** Zeichenflaechen: erst beim ersten Schritt angelegt (wartende Auftraege belegen so keinen Speicher) / canvases: created at the first step only (waiting jobs thus hold no memory) */
   canvases: HTMLCanvasElement[]; ctx: CanvasRenderingContext2D[];
+  /** schwankende Strichstaerke einrechnen (hohe Qualitaet) / bake the wavering line weight (high quality) */
+  waver: boolean;
 }
 const textures = new Map<string, AtlasTextures>();
+/** Texturen der Heldenatlanten: releaseAtlases() laesst sie in Ruhe / textures of the hero atlases: releaseAtlases() leaves them alone */
+const heroTextures = new Set<AtlasTextures>();
 const jobs: Job[] = [];
 let scheduled = false;
 const hasDom = () => typeof document !== 'undefined' && typeof document.createElement === 'function';
@@ -508,27 +589,34 @@ export function atlasTextures(id: string, size: number): AtlasTextures {
   // The ink only stays sharp on surfaces seen at a slant (decks, roofs) with anisotropic filtering. The drawing (soft
   // tones and colour areas) does without it for the small texture of low quality: that saves the second sample per
   // fragment there, the lines stay unchanged.
-  t = { paint: mk(paint, THREE.RGBAFormat, size >= ATLAS_SIZE.high ? 4 : 1), ink: mk(sdf, THREE.RedFormat, 4), size, bytes: Math.round((N * 5 * 4) / 3), ms: 0, maxStepMs: 0, ready: false };
+  // hohe Qualitaet eines Atlas = seine groessere Kantenlaenge / high quality of an atlas = its larger edge length
+  const high = size >= (def.hero ? HERO_ATLAS_SIZE : ATLAS_SIZE).high;
+  t = { paint: mk(paint, THREE.RGBAFormat, high ? 4 : 1), ink: mk(sdf, THREE.RedFormat, 4), size, bytes: atlasBytes(size), ms: 0, maxStepMs: 0, ready: false };
   textures.set(key, t);
+  if (def.hero) heroTextures.add(t);
   if (hasDom()) {
-    const canvases: HTMLCanvasElement[] = [], ctx: CanvasRenderingContext2D[] = [];
-    for (let i = 0; i < 3; i++) {
-      const c = document.createElement('canvas');
-      c.width = size; c.height = size;
-      canvases.push(c);
-      ctx.push(c.getContext('2d', { willReadFrequently: true })!);
-    }
-    ctx[0].fillStyle = tone(1);
-    ctx[0].fillRect(0, 0, size, size);
-    jobs.push({ def, size, tex: t, next: 0, paint, sdf, canvases, ctx });
+    jobs.push({ def, size, tex: t, next: 0, paint, sdf, canvases: [], ctx: [], waver: high });
     schedule();
   }
   return t;
 }
 
+/** Zeichenflaechen eines Auftrags anlegen (mul, abs, Tusche) / create the canvases of a job (mul, abs, ink) */
+function openCanvases(job: Job): void {
+  for (let i = 0; i < 3; i++) {
+    const c = document.createElement('canvas');
+    c.width = job.size; c.height = job.size;
+    job.canvases.push(c);
+    job.ctx.push(c.getContext('2d', { willReadFrequently: true })!);
+  }
+  job.ctx[0].fillStyle = tone(1);
+  job.ctx[0].fillRect(0, 0, job.size, job.size);
+}
+
 /** Eine Zelle zeichnen und in die Texturdaten uebernehmen / paint one cell and copy it into the texture data */
 function step(job: Job): void {
   const t0 = performance.now();
+  if (!job.canvases.length) openCanvases(job);
   const cell = job.def.cells[job.next++];
   const r = job.def.layout.get(cell.name);
   const k = job.size / REF;
@@ -556,7 +644,7 @@ function step(job: Job): void {
   const field = distanceField(ink, w, h, SDF_RANGE * k);
   // hohe Qualitaet: schwankende Strichstaerke ins Feld einrechnen (nur wo Tusche in Reichweite ist)
   // high quality: bake the wavering line weight into the field (only where ink is within reach)
-  const waver = job.size >= ATLAS_SIZE.high;
+  const waver = job.waver;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x, o = (y0 + y) * job.size + x0 + x;
     const a = abs[i * 4 + 3] / 255;
@@ -606,7 +694,7 @@ export function flushAtlases(): void {
  * drawn after all, three.js uploads it again.
  */
 export function releaseAtlases(keepSize: number): void {
-  for (const t of textures.values()) if (t.size !== keepSize) { t.paint.dispose(); t.ink.dispose(); }
+  for (const t of textures.values()) if (t.size !== keepSize && !heroTextures.has(t)) { t.paint.dispose(); t.ink.dispose(); }
 }
 /** Steht noch Zeichnen aus? / is painting still pending? */
 export function atlasesPending(): boolean { return jobs.length > 0; }

@@ -32,6 +32,8 @@ import { withBoatCargo } from './inked/boats';
 import { semantic } from '../../design/tokens';
 import { leader, type LeaderMood } from './leaders';
 export { LEADER_MOODS, type LeaderMood } from './leaders';
+import { buildLeader, hasInkedLeader } from './inked/leaders';
+export { defineLeaderAtlas, leaderAtlasId } from './inked/leaders';
 
 /** Detailfaktor fuer Einheiten (Rundungssegmente) / detail factor for units (radial segments) */
 const UNIT_DETAIL: Partial<Record<UnitTypeId, number>> = {
@@ -332,9 +334,21 @@ function finishUnit(type: UnitTypeId, g: THREE.BufferGeometry): THREE.BufferGeom
 
 /**
  * Anfuehrer-Bueste der Fraktion (Kopf und Schultern, Blick +z, Ursprung unten mittig, ca. 1.0 hoch, 0.9 breit).
+ * Gezeichnete Heldenbueste (models/inked/leaders.ts): traegt uv, fx und userData.inked wie eine gezeichnete Einheit und
+ * wird mit unitOutlined() dargestellt; hohe oder niedrige Qualitaet wie die Einheiten (setUnitQuality). Mit
+ * setInkedUnits(false) oder legacyLeaderGeometry() gibt es die bisherige Bueste.
  * Faction leader bust (head and shoulders, facing +z, origin bottom centre, about 1.0 tall and 0.9 wide).
+ * Inked hero bust (models/inked/leaders.ts): carries uv, fx and userData.inked like an inked unit and is shown with
+ * unitOutlined(); high or low quality like the units (setUnitQuality). setInkedUnits(false) or legacyLeaderGeometry()
+ * give the previous bust.
  */
 export function leaderGeometry(faction: FactionId, mood: LeaderMood = 'neutral'): THREE.BufferGeometry {
+  if (!inkedUnitsEnabled() || !hasInkedLeader(faction)) return legacyLeaderGeometry(faction, mood);
+  const hi = unitQuality === 'high';
+  return memo(`leader|${faction}|${mood}|inked${hi ? '' : '|low'}`, () => withDetail(1.6, true, () => buildLeader(faction, mood, hi), { smooth: true, fine: hi }));
+}
+/** Bisherige Bueste (modellierte Kugelkoepfe, nur Vertexfarben): Vergleich / previous bust (sculpted sphere heads, vertex colours only): comparison */
+export function legacyLeaderGeometry(faction: FactionId, mood: LeaderMood = 'neutral'): THREE.BufferGeometry {
   return memo(`leader|${faction}|${mood}`, () => withDetail(1, true, () => leader(faction, mood).build()));
 }
 
