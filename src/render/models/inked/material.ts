@@ -40,7 +40,7 @@
 import * as THREE from 'three';
 import { hex, semantic } from '../../../design/tokens';
 import { gradientMap, TOON_RAMP, UNIT_BRIGHTNESS, UNIT_DIM } from '../../toon';
-import { ATLAS_SIZE, atlasDef, atlasTextures } from './atlas';
+import { ATLAS_SIZE, atlasDef, atlasSize, atlasTextures } from './atlas';
 import { REF } from './uvkit';
 
 export type InkedQuality = keyof typeof ATLAS_SIZE;
@@ -186,7 +186,8 @@ export function comicMaterial(atlas: string, quality: InkedQuality, o: InkedMatO
   const key = `${atlas}|${quality}|${o.transparent ? 1 : 0}|${o.opacity ?? 1}|${o.dim ? 1 : 0}|${o.glow ? 1 : 0}`;
   let m = mats.get(key);
   if (m) return m;
-  const tex = atlasTextures(atlas, ATLAS_SIZE[quality]);
+  // Heldenatlanten (Anfuehrer) haben eigene Kantenlaengen / hero atlases (leaders) have their own edge lengths
+  const tex = atlasTextures(atlas, atlasSize(atlas, quality));
   m = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: gradientMap(), transparent: !!o.transparent, opacity: o.opacity ?? 1 });
   // wie unitMaterial: gezogene Einheiten dunkler und leicht grau / like unitMaterial: units that have moved darker and slightly grey
   const tint = new THREE.Vector3(1, 1, 1);
