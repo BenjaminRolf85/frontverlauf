@@ -226,6 +226,8 @@ export interface MouthArt {
   teeth?: boolean;
   /** Staerke der Mundlinie in Bildpixeln / weight of the mouth line in screen pixels */
   line?: number;
+  /** Glanz auf der Unterlippe 0..1 (Standard 1) / shine on the lower lip 0..1 (default 1) */
+  shine?: number;
 }
 /** Mundlinie y(x) wie Sculpt.mouthLine (w = halbe Breite) / mouth line y(x) as Sculpt.mouthLine (w = half width) */
 export const mouthY = (m: MouthArt, x: number): number => { const u = x / m.w; return m.y + (m.smile ?? 0) * u * u + (m.asym ?? 0) * u; };
@@ -241,11 +243,11 @@ export function drawMouth(p: Pen, M: FaceMap, m: MouthArt, lw: (n: number) => nu
   const lower = xs.map((x) => M.P(x, mouthY(m, x) - gapL(x) - m.lipL * (1 - (x / m.w) ** 2) ** 0.8));
   const lipU: Pt[] = [...upper, ...line.slice().reverse()], lipL: Pt[] = [...lineL, ...lower.slice().reverse()];
   if (m.colour) {
-    p.fill(lipU, shade(m.colour, 0.8));
+    p.fill(lipU, shade(m.colour, 0.88));
     p.fill(lipL, m.colour);
     // Glanz auf der Unterlippe / shine on the lower lip
     const c = M.P(-m.w * 0.18, mouthY(m, 0) - gapL(0) - m.lipL * 0.42);
-    p.fill(arc(c[0], c[1], M.u(m.w * 0.3), M.u(m.lipL * 0.2), 0, Math.PI * 2, 12), mix(m.colour, mat.white, 0.5), 0.85);
+    if ((m.shine ?? 1) > 0) p.fill(arc(c[0], c[1], M.u(m.w * 0.26), M.u(m.lipL * 0.16), 0, Math.PI * 2, 12), mix(m.colour, mat.white, 0.32), 0.9 * (m.shine ?? 1));
     p.line(upper, lw(1.3), { taper: 0.3, wobble: 0.2 });
   } else {
     const t = m.tint ?? [1, 0.82, 0.78];

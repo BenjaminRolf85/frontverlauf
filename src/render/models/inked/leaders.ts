@@ -26,7 +26,11 @@ import { col, type ColorLike } from '../kit';
 import type { LeaderMood } from '../leaders';
 import { bakeAO } from './ao';
 import { atlasDef, defineAtlas, hasAtlas, type Cell } from './atlas';
+import { alvenia } from './leaderAlvenia';
+import { dravon } from './leaderDravon';
 import { korvat } from './leaderKorvat';
+import { meridon } from './leaderMeridon';
+import { velkar } from './leaderVelkar';
 import { moodArt, type MoodArt } from './leaderPaint';
 import { AtlasLayout, UvBuilder } from './uvkit';
 
@@ -40,7 +44,7 @@ export interface LeaderDef {
   side?: 1 | -1;
 }
 
-const DEFS: Partial<Record<FactionId, LeaderDef>> = { korvat };
+const DEFS: Partial<Record<FactionId, LeaderDef>> = { korvat, dravon, alvenia, meridon, velkar };
 
 /** Gibt es die gezeichnete Bueste der Fraktion? / does the inked bust of the faction exist? */
 export function hasInkedLeader(f: FactionId): boolean { return !!DEFS[f]; }

@@ -328,19 +328,24 @@ export function earGeometry(region: Region, size: number, color: ColorLike, poin
 }
 
 /**
- * Flache Platte mit freiem Umriss in der x-y-Ebene (Vorderseite +z, Punkte gegen den Uhrzeigersinn, sternfoermig um
- * den Ursprung); UV: Draufsicht, Rahmen = groesster Radius.
- * Flat plate with a free outline in the x-y plane (front +z, points counter-clockwise, star-shaped about the origin);
- * uv: plan view, frame = largest radius.
+ * Flache Platte mit freiem Umriss in der x-y-Ebene (Vorderseite +z, sternfoermig um den Schwerpunkt der Ecken); UV:
+ * Draufsicht um den Ursprung, Rahmen = groesste Koordinate.
+ * Flat plate with a free outline in the x-y plane (front +z, star-shaped about the centroid of its corners); uv: plan
+ * view about the origin, frame = largest coordinate.
  */
 export function polyPlate(outline: [number, number][], thick: number, region: Region, color: ColorLike, backColor: ColorLike = color): THREE.BufferGeometry {
   const m = new Mesh();
   const c = col(color), cb = col(backColor), zf = new THREE.Vector3(0, 0, 1);
-  const pts = outline.map(([x, y]) => new THREE.Vector3(x, y, 0));
+  // im Uhrzeigersinn angegebene Umrisse umdrehen / reverse outlines given clockwise
+  let area = 0;
+  outline.forEach(([x, y], i) => { const [x2, y2] = outline[(i + 1) % outline.length]; area += x * y2 - x2 * y; });
+  const pts = (area < 0 ? outline.slice().reverse() : outline).map(([x, y]) => new THREE.Vector3(x, y, 0));
   const ro = Math.max(...pts.map((q) => Math.max(Math.abs(q.x), Math.abs(q.y)))) || 1;
   const st = (p: THREE.Vector3): [number, number] => [0.5 + p.x / (2 * ro), 0.5 - p.y / (2 * ro)];
   const front = (p: THREE.Vector3): Vtx => { const [s, t] = st(p); return { p: p.clone().setZ(thick), n: zf, r: region, s, t, c }; };
-  const centre = front(new THREE.Vector3());
+  const mid = new THREE.Vector3();
+  for (const q of pts) mid.addScaledVector(q, 1 / pts.length);
+  const centre = front(mid);
   for (let i = 0; i < pts.length; i++) {
     const a = pts[i], b = pts[(i + 1) % pts.length];
     m.tri(centre, front(a), front(b));
