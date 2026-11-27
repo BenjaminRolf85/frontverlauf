@@ -20,7 +20,7 @@ ORDER = ['korvat', 'alvenia', 'dravon', 'velkar', 'meridon']
 # spacing of the leaders, cuts (in frames at 12 per second), height of the faces above the base
 SPACING = 15.0
 CUTS = (0, 11, 22, 33, 44, 55)
-FACE_Z = 6.6
+FACE_Z = 7.0
 
 
 def banner(shot, f, loc, w=6.4, hgt=13.5):
@@ -60,6 +60,7 @@ def build():
         return 6 * math.exp(-(x * x + y * y) / 6000.0)
     L.ground(s, 'grass500', size=900, sub=60, height=h)
     spots = []
+    tops = []
     banners = []
     for i, f in enumerate(ORDER):
         x = (i - 2) * SPACING
@@ -68,6 +69,10 @@ def build():
         L.model(s, 'leader_%s' % f, loc=(x, 0, z), rot=(i - 2) * 5, scale=1.0)
         banners.append(banner(s, f, (x + 6.2, 4.5, z - 0.4)))
         spots.append(Vector((x, 0, z)))
+        # Oberkante der Bueste (Muetze, Helmkamm, Haar) fuer den Bildausschnitt; alte Buesten ohne Kopfdaten: 1 Feld
+        # top of the bust (cap, crest, hair) for the framing; old busts without header data: 1 tile
+        name = 'leader_%s' % f
+        tops.append((L.unit_data(name)['bounds'][1][1] if L.is_unit(name) else 1.0) * L.TILE)
     from .chalk import chalk_line
     line = chalk_line(s, z=0.4, width=1.8, mat=L.toon(s, 'hazard', glow=0.6))
     base = [Vector(o.location) for o in line]
@@ -89,7 +94,11 @@ def build():
             q = (frame - CUTS[k]) / (CUTS[k + 1] - CUTS[k])
             c = spots[k]
             s.cam.data.lens = 40
-            s.look(c + Vector((-2.6 + 1.4 * q, -15.6 + 1.0 * q, FACE_Z - 0.5)), c + Vector((2.0, 0, FACE_Z)))
+            # Abstand so, dass die Kopfbedeckung am Ende der Fahrt noch ganz im Bild ist, das Gesicht aber gross bleibt
+            # distance such that the headgear is still fully in frame at the end of the move, while the face stays large
+            half = math.atan(s.cam.data.sensor_width * 9 / 16 / 2 / s.cam.data.lens)
+            near = min(max(14.6, (tops[k] + 0.35 - FACE_Z) / math.tan(half)), 17.0)
+            s.look(c + Vector((-2.6 + 1.4 * q, -near - 1.0 + 1.0 * q, FACE_Z - 0.5)), c + Vector((2.0, 0, FACE_Z)))
         else:
             # alle fuenf, die Kamera rueckt vor / all five, the camera moves in
             q = L.ease_out(L.seg(t, CUTS[-1] / L.FPS, s.dur))
