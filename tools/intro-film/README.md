@@ -78,8 +78,8 @@ geometry, atlases at 2048): on average 6.1 s per frame and process, from 3.4 s (
 frames); all 1728 frames with two processes in 91 minutes. The close-ups of the leader busts (up to 36,000 triangles,
 hero atlas 2048) cost about 6 s per frame. Assembly and encoding (two passes VP9 and H.264) about 12 minutes.
 
-Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (@WEBM@ MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s
-(@MP4@ MB), Standbild / poster @POSTER@ kB; zusammen / together @TOTAL@ MB (Grenze / limit 25 MB). Feste Zielbitrate in
+Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (11,9 MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s
+(12,6 MB), Standbild / poster 57 kB; zusammen / together 24,5 MB (Grenze / limit 25 MB). Feste Zielbitrate in
 zwei Durchgaengen: die flachen Toene ohne Rasterpunkte brauchen weniger Bits, die feste Rate gibt sie den Einheiten als
 Schaerfe zurueck statt kleinerer Dateien. / Fixed target bitrate in two passes: the flat tones without halftone dots
 need fewer bits, the fixed rate gives them back to the units as sharpness instead of smaller files.
