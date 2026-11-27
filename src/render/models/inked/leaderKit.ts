@@ -391,10 +391,23 @@ export function torsoShell(o: TorsoSpec, map: (u: number, v: number) => [number,
   return sheet((u, v) => {
     const [a, vv, grow] = map(u, v);
     const p = torsoPoint(o, a, vv);
-    const du = torsoPoint(o, a + 0.01, vv).sub(torsoPoint(o, a - 0.01, vv)), dv = torsoPoint(o, a, Math.min(1, vv + 0.01)).sub(torsoPoint(o, a, Math.max(0, vv - 0.01)));
-    const n = new THREE.Vector3().crossVectors(dv, du).normalize();
-    // nach aussen: weg von der Koerperachse, auf der Schulter nach oben / outward: away from the body axis, upward on the shoulder
-    if (n.dot(new THREE.Vector3(p.x, vv > WALL ? 0.35 : 0, p.z - (o.z ?? 0))) < 0) n.negate();
+    // Richtung des Abstands: Normale, ueber die Kante zwischen Wand und Schulter gemittelt und mit der Richtung aus dem
+    // Koerperinneren gemischt; sonst knickt die Schale an der Schulterkante ein (Tuschesalat am Schulterende).
+    // direction of the offset: the normal averaged across the edge between wall and shoulder and mixed with the
+    // direction from inside the body; otherwise the shell kinks at the shoulder edge (ink tangle at the shoulder's end).
+    const n = new THREE.Vector3();
+    for (const d of [-0.06, -0.03, 0, 0.03, 0.06]) {
+      const w = Math.max(0.02, Math.min(0.98, vv + d));
+      const du = torsoPoint(o, a + 0.01, w).sub(torsoPoint(o, a - 0.01, w)), dv = torsoPoint(o, a, Math.min(1, w + 0.01)).sub(torsoPoint(o, a, Math.max(0, w - 0.01)));
+      const nn = new THREE.Vector3().crossVectors(dv, du);
+      if (nn.lengthSq() < 1e-14) continue;
+      nn.normalize();
+      // nach aussen: weg von der Koerperachse, auf der Schulter nach oben / outward: away from the body axis, upward on the shoulder
+      if (nn.dot(new THREE.Vector3(p.x, w > WALL ? 0.35 : 0, p.z - (o.z ?? 0))) < 0) nn.negate();
+      n.add(nn);
+    }
+    const core = p.clone().sub(new THREE.Vector3(0, o.h * 0.55, o.z ?? 0)).normalize();
+    n.normalize().add(core).normalize();
     return p.addScaledVector(n, grow);
   }, opts);
 }

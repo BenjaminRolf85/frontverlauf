@@ -31,6 +31,7 @@ import { dravon } from './leaderDravon';
 import { korvat } from './leaderKorvat';
 import { meridon } from './leaderMeridon';
 import { velkar } from './leaderVelkar';
+import { vesper } from './leaderVesper';
 import { zyrr } from './leaderZyrr';
 import { moodArt, type MoodArt } from './leaderPaint';
 import { AtlasLayout, UvBuilder } from './uvkit';
@@ -45,7 +46,7 @@ export interface LeaderDef {
   side?: 1 | -1;
 }
 
-const DEFS: Partial<Record<FactionId, LeaderDef>> = { korvat, dravon, alvenia, meridon, velkar, zyrr };
+const DEFS: Partial<Record<FactionId, LeaderDef>> = { korvat, dravon, alvenia, meridon, velkar, zyrr, vesper };
 
 /** Gibt es die gezeichnete Bueste der Fraktion? / does the inked bust of the faction exist? */
 export function hasInkedLeader(f: FactionId): boolean { return !!DEFS[f]; }
