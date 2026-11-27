@@ -135,6 +135,15 @@ class Shot:
         sc.render.film_transparent = False
         # harte Schattenraender brauchen die volle Aufloesung, sonst zeigen sie Treppen / hard shadow edges need the full resolution, otherwise they show stair steps
         sc.eevee.shadow_resolution_scale = float(os.environ.get('FV_SHADOW', '0.5'))
+        # Sparen ohne sichtbaren Unterschied (gemessen, Bilder gleich): ein Schritt je Schattenstrahl (der Rand ist ohnehin
+        # hart), kleinstes Streulicht (alle Materialien sind unbeleuchtet mit eigenen Stufen)
+        # savings without a visible difference (measured, pictures equal): one step per shadow ray (the edge is hard
+        # anyway), minimal indirect light (all materials are unlit with their own bands)
+        sc.eevee.shadow_step_count = 1
+        sc.eevee.fast_gi_method = 'AMBIENT_OCCLUSION_ONLY'
+        sc.eevee.fast_gi_ray_count = 1
+        sc.eevee.fast_gi_step_count = 1
+        sc.eevee.fast_gi_resolution = '16'
         self.updaters = []
         cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam'))
         sc.collection.objects.link(cam)
@@ -1448,6 +1457,10 @@ def sky(shot, stops, stars=0.0, star_col='starWarm'):
     """
     w = bpy.data.worlds.new('sky')
     shot.sc.world = w
+    # der Himmel beleuchtet nichts: keine Sonne aus dem Himmel ableiten (spart je Bild rund eine Sekunde)
+    # the sky lights nothing: derive no sun from the sky (saves about a second per frame)
+    w.use_sun_shadow = False
+    w.probe_resolution = '128'
     nt, n, L = _nodes(w)
     out = n.new('ShaderNodeOutputWorld')
     tc = n.new('ShaderNodeTexCoord')

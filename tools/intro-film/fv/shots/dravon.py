@@ -25,7 +25,8 @@ def build():
 
     def h(x, y):
         return max(0.0, (y - 10) * 0.12) + 1.2 * math.sin(x * 0.05) * math.cos(y * 0.04)
-    L.ground(s, '#a9b07a', size=800, sub=60, height=h)
+    # trockenes Gras: Mischung zweier Tokens / dry grass: a mix of two tokens
+    L.ground(s, L.mix(L.rgb('khaki500'), L.rgb('grass400'), 0.3), size=800, sub=60, height=h)
     s.cam.data.lens = 30
     gun_rot = -38
     emps = []

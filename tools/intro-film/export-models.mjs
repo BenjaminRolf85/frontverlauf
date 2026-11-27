@@ -9,7 +9,7 @@
 // as PNG to .cache/atlas/ (<id>-paint.png RGBA, <id>-ink.png distance field), figures of the style to .cache/inked.json.
 //
 // node tools/intro-film/export-models.mjs [--out tools/intro-film/.cache/models] [--only name1,name2] [--atlas 2048]
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
@@ -72,10 +72,22 @@ try {
   writeFileSync(join(cache, 'tokens.json'), JSON.stringify(await page.evaluate(() => window.__models.tokens()), null, 1));
   const only = args.only ? new Set(args.only.split(',')) : null;
   const names = (await page.evaluate(() => window.__models.names)).filter((n) => !only || only.has(n));
+  /** Gezeichnetes Modell: Kopf und Felder nach .cache/units (Blender erkennt es daran) / inked model: header and arrays to .cache/units (Blender recognises it by that) */
+  const writeInked = (name, data) => {
+    const bin = Buffer.from(data.data, 'base64');
+    delete data.data;
+    writeFileSync(join(unitsOut, `${name}.bin`), bin);
+    writeFileSync(join(unitsOut, `${name}.json`), JSON.stringify(data));
+    rmSync(join(out, `${name}.json`), { force: true });
+    console.log(`${name}: inked, atlas ${data.atlas}, ${data.tris} tris, ink ${data.inkTris}, ${data.parts.length - 1} turret(s), scale ${data.finishScale.toFixed(3)}`);
+  };
   for (const name of names) {
     const data = await page.evaluate((n) => window.__models.dump(n), name);
     if (data.error) { console.error(`${name}: ${data.error}`); failed++; continue; }
+    // ein Modell nach dem Vertrag der gezeichneten Einheiten (z. B. Anfuehrer) / a model following the inked units' contract (e.g. leaders)
+    if (data.kind === 'inked') { writeInked(name, data); continue; }
     writeFileSync(join(out, `${name}.json`), JSON.stringify(data));
+    for (const ext of ['json', 'bin']) rmSync(join(unitsOut, `${name}.${ext}`), { force: true });
     console.log(`${name}: ${data.count / 3} tris`);
   }
   // Gezeichnete Einheiten / inked units
@@ -83,31 +95,34 @@ try {
   for (const name of units) {
     const data = await page.evaluate((n) => window.__models.dumpInked(n), name);
     if (data.error) { console.error(`${name}: ${data.error}`); failed++; continue; }
-    const bin = Buffer.from(data.data, 'base64');
-    delete data.data;
-    writeFileSync(join(unitsOut, `${name}.bin`), bin);
-    writeFileSync(join(unitsOut, `${name}.json`), JSON.stringify(data));
-    console.log(`${name}: inked, atlas ${data.atlas}, ${data.tris} tris, ink ${data.inkTris}, ${data.parts.length - 1} turret(s), scale ${data.finishScale.toFixed(3)}`);
+    writeInked(name, data);
   }
   // Atlanten der exportierten Einheiten als Bilder / atlases of the exported units as images
+  // (die Atlanten der in diesem Lauf exportierten Modelle; mit --only bleiben die uebrigen Eintraege von inked.json stehen)
+  // (the atlases of the models exported in this run; with --only the other entries of inked.json stay)
   const style = await page.evaluate(() => window.__models.style());
+  const stylePath = join(cache, 'inked.json');
+  const before = only && existsSync(stylePath) ? JSON.parse(readFileSync(stylePath, 'utf8')) : { atlases: [], blank: {}, sizes: {} };
   style.atlasSize = atlasSize;
-  style.blank = {};
-  for (const id of only ? [] : style.atlases) {
+  style.blank = { ...before.blank };
+  style.sizes = { ...before.sizes };
+  for (const id of style.atlases) {
     const info = await page.evaluate(([i, s]) => window.__models.atlas(i, s), [id, atlasSize]);
     if (!info.ready) { console.error(`atlas ${id}: not painted`); failed++; continue; }
     style.blank[id] = info.blank;
+    style.sizes[id] = info.size;
     for (const [layer, bytes, channels] of [['paint', info.paintBytes, 4], ['ink', info.inkBytes, 1]]) {
       const parts = [];
       const step = 6 * 1024 * 1024;
       for (let off = 0; off < bytes; off += step) parts.push(Buffer.from(await page.evaluate(([i, s, l, o, n]) => window.__models.atlasChunk(i, s, l, o, n), [id, atlasSize, layer, off, step]), 'base64'));
       // Zeile 0 der Texturdaten ist v = 0 und zugleich die oberste Zeile der Zeichenflaeche: sie wird die oberste PNG-Zeile
       // row 0 of the texture data is v = 0 and also the top row of the drawing canvas: it becomes the top PNG row
-      writeFileSync(join(atlasOut, `${id}-${layer}.png`), png(Buffer.concat(parts), atlasSize, atlasSize, channels));
+      writeFileSync(join(atlasOut, `${id}-${layer}.png`), png(Buffer.concat(parts), info.size, info.size, channels));
     }
-    console.log(`atlas ${id}: ${atlasSize} px`);
+    console.log(`atlas ${id}: ${info.size} px`);
   }
-  if (!only) writeFileSync(join(cache, 'inked.json'), JSON.stringify(style, null, 1));
+  style.atlases = [...new Set([...before.atlases, ...style.atlases])].sort();
+  writeFileSync(stylePath, JSON.stringify(style, null, 1));
 } finally {
   await browser.close();
   await srv.close();

@@ -28,7 +28,8 @@ import { academyGeometry } from '../../../src/render/models/academy';
 import { atlasDef, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
 import { crewCells, crewExtraCells } from '../../../src/render/models/inked/figurePaint';
 import { CREASE_HALF_WIDTH, inkFor, inkGeometry, OUTLINE_MAX_PX } from '../../../src/render/models/inked/ink';
-import { splitTurrets as kitSplit, type TurretRange } from '../../../src/render/models/kit';
+import { Builder, splitTurrets as kitSplit, type TurretRange } from '../../../src/render/models/kit';
+import { addEmblem } from '../../../src/render/models/emblems';
 import { REF } from '../../../src/render/models/inked/uvkit';
 import { OCTO_BLADE, rotorBlades, surveyDrone, TESLA_TOPS } from '../../../src/render/models/velkarTech';
 import { OUTLINE } from '../../../src/render/config';
@@ -75,7 +76,7 @@ add('nuclear_neutral', () => baseGeometry('nuclearPlant', null, 6, {} as never),
 add('smokestack', () => smokestack(0.4));
 add('bell_tower', () => bellTower());
 add('sandbags', () => sandbags());
-add('house_red', () => house('#b03a2e'));
+add('house_red', () => house(semantic.stamp));
 for (const v of [0, 1, 2]) add(`conifer_${v}`, () => conifer(v));
 for (const v of [0, 1]) add(`leafy_${v}`, () => leafy(v));
 for (const v of [0, 1, 2]) add(`cloud_${v}`, () => cloudGeometry(v));
@@ -117,6 +118,8 @@ for (const t of ['zealot', 'torchbearer', 'prophet', 'berserker', 'doomBuggy', '
 for (const f of HUMANS) {
   for (const t of ['infantry', 'tank', 'jeep', 'artillery', 'heli', 'mg'] as UnitTypeId[]) unit(t, f);
   add(`leader_${f}`, () => leaderGeometry(f, 'neutral'), 'bright');
+  // Emblem der Fraktion fuer das Banner hinter dem Anfuehrer, in der Schriftfarbe der Fraktion / the faction's emblem for the banner behind the leader, in the faction's ink colour
+  add(`emblem_${f}`, () => { const b = new Builder(); addEmblem(b, f, 0.1, 0.012, factionTokens[f].ink); return b.build(); }, 'none');
   add(`city_${f}_5`, () => cityGeometry(f, 5, { ...flagsNone, hq: true, factory: true }), 'built');
   add(`bunker_${f}`, () => baseGeometry('bunker', f, 4, {} as never), 'built');
 }
@@ -154,6 +157,11 @@ function b64(arr: ArrayBufferView): string {
 function dump(name: string) {
   const [make, kind] = MODELS[name];
   let g = make();
+  // Folgt das Modell dem Vertrag der gezeichneten Einheiten (userData.inked = { atlas }, userData.inkSrc, uv, fx),
+  // geht es denselben Weg wie sie, ohne Sonderfall: so kommen auch gezeichnete Bauten oder Anfuehrer in den Film.
+  // If the model follows the contract of the inked units (userData.inked = { atlas }, userData.inkSrc, uv, fx) it
+  // takes the same path as they do, without a special case: inked structures or leaders reach the film that way too.
+  if (g.userData.inked) return dumpInkedGeometry(name, g, null, null, false);
   // Muendung (z. B. Goettlicher Funke) fuer Effekte im Film / muzzle (e.g. Divine Spark) for effects in the film
   const muzzle = (g.userData.muzzle as number[] | undefined) ?? null;
   if (g.index) g = g.toNonIndexed();
@@ -339,8 +347,13 @@ function stripCrew(raw: THREE.BufferGeometry, fill: THREE.BufferGeometry, atlas:
 function dumpInked(name: string) {
   const [type, f, cargo, hulk] = UNITS[name];
   const g = unitGeometry(type, f, cargo);
-  const inked = g.userData.inked as { atlas: string } | undefined;
-  if (!inked) throw new Error(`${name}: not an inked unit`);
+  if (!g.userData.inked) throw new Error(`${name}: not an inked unit`);
+  return dumpInkedGeometry(name, g, type, f, hulk);
+}
+
+/** Eine Geometrie nach dem Vertrag der gezeichneten Einheiten (Einheit, Anfuehrer, ...) / a geometry following the inked units' contract (unit, leader, ...) */
+function dumpInkedGeometry(name: string, g: THREE.BufferGeometry, type: UnitTypeId | null, f: FactionId | null, hulk: boolean) {
+  const inked = g.userData.inked as { atlas: string };
   usedAtlases.add(inked.atlas);
   const pack = new Pack();
   type PartHead = { role: string; pivot: number[]; yaw: number; arc: number | null };
@@ -367,7 +380,7 @@ function dumpInked(name: string) {
     muzzle: (g.userData.muzzle as number[] | undefined) ?? null,
     bounds: [g.boundingBox!.min.toArray(), g.boundingBox!.max.toArray()],
     // bewegliche Teile wie TechParts.attach: Ort mal finishScale / moving parts as in TechParts.attach: place times finishScale
-    tech: techParts(type, f).map((p) => ({ kind: p.kind, p: p.p.map((v) => v * k), dir: p.dir ?? 1, variant: p.variant ?? 0, scale: k })),
+    tech: type && f ? techParts(type, f).map((p) => ({ kind: p.kind, p: p.p.map((v) => v * k), dir: p.dir ?? 1, variant: p.variant ?? 0, scale: k })) : [],
     // Spulenkoepfe des Tesla-Panzers fuer die Lichtboegen des Films / coil tops of the Tesla tank for the film's arcs
     teslaTops: type === 'teslaTank' ? TESLA_TOPS.map((p) => p.map((v) => v * k)) : null,
     tris: parts.reduce((n, p) => n + p.count / 3, 0), inkTris: parts.reduce((n, p) => n + p.ink.tris + p.ink.creases * 2, 0),
@@ -385,14 +398,25 @@ function style() {
 }
 
 /** Texturen eines Atlas in der Kantenlaenge size fertig zeichnen; die Rohbytes holt atlasChunk / paint an atlas at edge length size; atlasChunk fetches the raw bytes */
-function atlas(id: string, size: number) {
+function atlas(id: string, wanted: number) {
+  const size = atlasEdge(id, wanted);
   const t = atlasTextures(id, size);
   flushAtlases();
   const blank = atlasDef(id).layout.get('blank');
   return { id, size, ready: t.ready, paintBytes: (t.paint.image.data as Uint8Array).length, inkBytes: (t.ink.image.data as Uint8Array).length, blank: [blank.x / REF, blank.y / REF, blank.w / REF, blank.h / REF] };
 }
-function atlasChunk(id: string, size: number, layer: 'paint' | 'ink', off: number, len: number): string {
-  const t = atlasTextures(id, size);
+/**
+ * Kantenlaenge, in der ein Atlas exportiert wird: die gewuenschte, mindestens aber seine eigene (ein Atlas darf eine
+ * eigene Groesse nennen, etwa fuer Nahaufnahmen: Feld size seiner Definition).
+ * Edge length an atlas is exported at: the wanted one, but at least its own (an atlas may state a size of its own, e.g.
+ * for close-ups: field size of its definition).
+ */
+function atlasEdge(id: string, wanted: number): number {
+  const own = (atlasDef(id) as { size?: number }).size;
+  return Math.max(wanted, typeof own === 'number' ? own : 0);
+}
+function atlasChunk(id: string, wanted: number, layer: 'paint' | 'ink', off: number, len: number): string {
+  const t = atlasTextures(id, atlasEdge(id, wanted));
   const data = (layer === 'paint' ? t.paint.image.data : t.ink.image.data) as Uint8Array;
   return b64(data.subarray(off, Math.min(data.length, off + len)));
 }

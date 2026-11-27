@@ -12,12 +12,12 @@ Result: `public/intro/frontverlauf-intro.webm`, `.mp4` and `-poster.webp`.
 
 | Datei / file | Aufgabe / purpose |
 |---|---|
-| `export-models.mjs`, `web/` | Vite + Playwright: baut die prozeduralen Modelle aus `src/render/models` und schreibt sie als Rohdaten (Positionen, Normalen, Vertexfarben, Leuchtmaske) nach `.cache/models/`, die Design-Tokens nach `.cache/tokens.json` / builds the procedural models and writes them as raw data, plus the design tokens |
-| `fv/lib.py` | Szene, Comic-Material (3 Lichtbaender, Rasterpunkte, Leuchten, Fensterlicht), Tuschekontur (umgedrehte Huelle), Modell-Import, Himmel, Rauch, Strahlen / scene, comic material, ink outline, model import, sky, smoke, beams |
+| `export-models.mjs`, `web/` | Vite + Playwright: baut die prozeduralen Modelle aus `src/render/models`. Gelaende, Bauwerke, Requisiten als Rohdaten (Positionen, Normalen, Vertexfarben, Leuchtmaske) nach `.cache/models/`; Einheiten als gezeichnete Modelle nach `.cache/units/`, ihre Atlanten als PNG nach `.cache/atlas/`, Kenngroessen des Stils nach `.cache/inked.json`, die Design-Tokens nach `.cache/tokens.json` / builds the procedural models: terrain, buildings, props as raw data; units as inked models, their atlases as PNG, the figures of the style and the design tokens |
+| `fv/lib.py` | Szene, Comic-Material (3 flache Lichtbaender, Leuchten, Fensterlicht), Tuschekontur (umgedrehte Huelle), Modell-Import, gezeichnete Einheiten (Atlas-Material, Umriss und Innenlinien), Himmel, Rauch, Strahlen / scene, comic material (3 flat light bands, glow, window light), ink outline, model import, inked units (atlas material, silhouette and inner lines), sky, smoke, beams |
 | `fv/kit.py` | Gelaende, Explosionen, Truemmer, Flaggen, Meer, Wolken, Lichtboegen / terrain, explosions, debris, flags, sea, clouds, arcs |
 | `fv/shots/*.py` | eine Datei je Einstellung (`build()` gibt eine `Shot` mit Aktualisierung je Bild zurueck); `sheet.py` ist ein Modellbogen zur Kontrolle / one file per shot; `sheet.py` is a model sheet for checks |
 | `render.py` | rendert eine Einstellung als PNG-Folge oder einzelne Standbilder / renders one shot as a PNG sequence or single stills |
-| `render-all.sh` | rendert alle Einstellungen nacheinander und setzt nach Abbruch fort / renders all shots in sequence and resumes after an abort |
+| `render-all.sh` | rendert alle Einstellungen in Abschnitten auf zwei Prozesse verteilt und setzt nach Abbruch fort / renders all shots in sections across two processes and resumes after an abort |
 | `soundtrack.mjs` | rechnet die Klangspur (`src/intro/filmScore.ts`) per OfflineAudioContext als WAV / renders the soundtrack as WAV |
 | `assemble.py` | setzt Clips, Comicseite, Ton, WebM/MP4 und Standbild zusammen (nur ffmpeg) / assembles clips, comic page, audio, WebM/MP4 and poster (ffmpeg only) |
 

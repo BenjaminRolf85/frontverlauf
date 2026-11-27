@@ -22,7 +22,7 @@ def build():
     s.sunlight(rot=(0.75, 0.1, -2.4))
     L.sky(s, [(-1, 'grass500'), (0.0, 'sunDawn'), (0.15, 'skyDawn'), (0.6, 'sky700'), (1, 'sky800')])
     h = K.hills(3.0, 0.02, 5)
-    L.ground(s, '#86cf7a', size=1000, sub=60, height=h)
+    L.ground(s, 'grass400', size=1000, sub=60, height=h)
     s.cam.data.lens = 28
     spark = L.model(s, 'divineSpark_alvenia', loc=(0, 0, h(0, 0) - 0.2), rot=-35, scale=3.2)
     # Muendung aus dem Export (userData.muzzle des Spielmodells) / muzzle from the export (the game model's userData.muzzle)
