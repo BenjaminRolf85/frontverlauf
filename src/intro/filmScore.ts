@@ -15,6 +15,14 @@ import { BEAT, rng } from './timeline';
 
 const STEP = BEAT / 2;
 
+/**
+ * Zeiten der Eroeffnung (Bild: tools/intro-film/fv/shots/oldworld.py): Laufschrift flackert, Welle der Abschaltung,
+ * letzte Lampe aus (danach Stille), Summen des Rechenzentrums von NEXUS.
+ * Times of the opening (picture: tools/intro-film/fv/shots/oldworld.py): ticker flickers, wave of switch-offs, last lamp
+ * out (silence after it), hum of the NEXUS data centre.
+ */
+export const OPENING = { flicker: 8.4, wave: [9.0, 11.8] as const, black: 11.8, hum: 12.6 };
+
 export function buildFilmScore(): ScoreEvent[] {
   const ev: ScoreEvent[] = [];
   const cue = (at: number, kind: ScoreCue, f?: FactionId, vol?: number) =>
@@ -29,14 +37,22 @@ export function buildFilmScore(): ScoreEvent[] {
   };
   const S = shotStart;
 
-  // 1 Verdan: Marsch der Maschinen, dann der Stillstand (8,4 s) / Verdan: march of the machines, then the standstill (8.4 s)
-  theme('dravon', 1, 0, 8);
-  pad(0, 98, 8, 0.06);
-  cue(0.5, 'heavyEngine', undefined, 0.7); cue(3, 'heavyEngine', undefined, 0.8); cue(5.5, 'horn', undefined, 0.6);
-  cue(8.4, 'boom'); cue(8.4, 'crash', undefined, 0.6); cue(8.5, 'drone');
-  cue(9.4, 'radio', 'dravon', 0.7);
-  for (const at of [11, 12, 13.5, 15]) cue(at, 'kick', undefined, 0.5);
-  pad(9, 73.4, 7, 0.07);
+  // 1 Die alte Welt Meridons, dann der Grosse Stillstand (Zeiten wie OPENING und tools/intro-film/fv/shots/oldworld.py)
+  // 1 Meridon's old world, then the Great Standstill (times as OPENING and tools/intro-film/fv/shots/oldworld.py)
+  const O = OPENING;
+  theme('meridon', 0, 0, O.flicker);
+  pad(0, 98, O.flicker, 0.05);
+  // Hafen: Schiffshorn, Muenzen klingen in die Bank / harbour: ship's horn, coins chime into the bank
+  cue(0.8, 'horn', undefined, 0.45); cue(5.2, 'horn', undefined, 0.35);
+  for (const at of [2.0, 3.6, 5.8, 7.2]) cue(at, 'coins', undefined, 0.45);
+  // die Laufschrift flackert, der Strom faellt ab / the ticker flickers, the power falls away
+  cue(O.flicker, 'crackle', undefined, 0.7); cue(O.flicker, 'powerDown');
+  cue(O.flicker + 0.3, 'beep', undefined, 0.5);
+  // Viertel fuer Viertel schalten ab, immer naeher / district by district switches off, ever closer
+  for (let k = 0; k < 5; k++) cue(O.wave[0] + 0.4 + k * (O.wave[1] - O.wave[0] - 0.4) / 4, 'kick', undefined, 0.35 + k * 0.12);
+  // dann Stille; nur das Rechenzentrum von NEXUS summt kalt / then silence; only the NEXUS data centre hums coldly
+  cue(O.hum, 'drone', undefined, 0.55);
+  cue(O.hum + 1.2, 'beep', undefined, 0.35); cue(O.hum + 2.6, 'beep', undefined, 0.3);
 
   // 2 Wracks / wrecks
   const w = S('wrecks');

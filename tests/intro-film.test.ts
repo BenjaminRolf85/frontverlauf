@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import de from '../src/i18n/de.json';
 import en from '../src/i18n/en.json';
 import { FILM, FILM_FILES, FILM_PANELS, captionAt, chooseIntro, filmSources, overlayAt, overlayKey, shotStart } from '../src/intro/film';
-import { buildFilmScore } from '../src/intro/filmScore';
+import { OPENING, buildFilmScore } from '../src/intro/filmScore';
 
 const lookup = (d: unknown, key: string) => key.split('.').reduce<unknown>((o, k) => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined), d);
 // ohne @types/node: Dateisystem dynamisch laden / without @types/node: load the file system dynamically
@@ -128,6 +128,11 @@ describe('Klangspur des Films / film soundtrack', () => {
     expect(a.length).toBeGreaterThan(200);
     for (const e of a) { expect(e.at).toBeGreaterThanOrEqual(0); expect(e.at).toBeLessThan(FILM.duration); }
     for (let i = 1; i < a.length; i++) expect(a[i].at).toBeGreaterThanOrEqual(a[i - 1].at);
+    // Grosser Stillstand: Stromausfall beim Flackern, nach der letzten Lampe Stille bis zum Summen von NEXUS
+    // Great Standstill: power-down at the flicker, silence after the last lamp until the NEXUS hum
+    const sfx = a.filter((e) => e.bus === 'sfx');
+    expect(sfx.some((e) => e.label === 'powerDown' && e.at === OPENING.flicker)).toBe(true);
+    expect(sfx.filter((e) => e.at > OPENING.black + 0.05 && e.at < OPENING.hum)).toHaveLength(0);
     // Einschlag des Mutterschiffs genau beim Treffer im Bild / mothership impact exactly at the hit in the picture
     expect(a.some((e) => e.label === 'explosion' && Math.abs(e.at - (shotStart('crash') + 1)) < 1e-9)).toBe(true);
   });
