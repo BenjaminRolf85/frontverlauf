@@ -349,13 +349,14 @@ def paint_sky(spec):
     return np.clip(img, 0, 1)
 
 
-def cyclorama(shot, spec, centre, radius=3000.0, name='sky_korvat', drift=None):
+def cyclorama(shot, spec, centre, radius=3000.0, name='sky_korvat', drift=None, painter=None):
     """
     Rundhorizont: Zylinderstueck um centre mit dem gemalten Himmel, unbeleuchtet, ohne Schatten. drift = Grad je Sekunde
     (Wolken ziehen: die Textur wandert, Sonne und Land bleiben im Bild fest, deshalb nur kleine Werte).
     Cyclorama: a cylinder segment around centre with the painted sky, unlit, no shadows. drift = degrees per second.
     """
-    img = painted(name, paint_sky, spec)
+    # painter: eigener Maler (bekommt spec), z. B. paint_sky mit Zutaten / own painter (gets spec), e.g. paint_sky with additions
+    img = painted(name, painter or paint_sky, spec)
     nseg = 96
     t0, t1 = math.tan(math.radians(spec.el[0])), math.tan(math.radians(spec.el[1]))
     verts, faces, uvs = [], [], []
@@ -679,39 +680,6 @@ def rock(shot, loc, size, color, seed=1, px=2.6, squash=(1, 1, 0.7), sub=3):
     ob.scale = (size, size, size) if isinstance(size, (int, float)) else size
     L._ink_shared(shot, ob, px)
     return ob
-
-
-# ---------- Ganze Figur / full figure ----------
-# Masse aus tools/intro-film/web/leaderFigure.ts (Modell-Einheiten, x TILE = Meter vor der Skalierung)
-# sizes from tools/intro-film/web/leaderFigure.ts (model units, x TILE = metres before scaling)
-FIG_FLOOR = -2.05
-FIG_STEP = 0.36
-FIG_ROCK = (0.24, 0.34)
-FIG_CAPE = (0.34, -1.5)
-
-
-def leader_figure(shot, faction, loc, rot, scale, rock_col=None, wind=1.2):
-    """
-    Anfuehrer als ganze Figur (Koerper + Umhang), die Sohlen auf loc; der linke Fuss steht auf einem Felsen.
-    Rueckgabe: (Koerper, Umhang, Wind, Felsen).
-    Leader as a full figure (body + cape), the soles on loc; the left foot stands on a rock.
-    Returns (body, cape, wind, rock).
-    """
-    z = loc[2] - FIG_FLOOR * L.TILE * scale
-    body = L.model(shot, 'leaderFull_%s' % faction, loc=(loc[0], loc[1], z), rot=rot, scale=scale)
-    cape = L.model(shot, 'leaderCape_%s' % faction, loc=(loc[0], loc[1], z), rot=rot, scale=scale)
-    cw = CapeWind(shot, cape, amp=wind, top=FIG_CAPE[0] * L.TILE, hem=FIG_CAPE[1] * L.TILE)
-    # Felsen unter dem linken Fuss: Oberkante = Sohle / rock under the left foot: top = sole
-    a = math.radians(rot)
-    rx, rz = FIG_ROCK[0] * L.TILE * scale, FIG_ROCK[1] * L.TILE * scale
-    # three (x, z) -> Blender (x, -z), dann um z drehen / three (x, z) -> Blender (x, -z), then rotate about z
-    bx, by = rx, -rz
-    wx = loc[0] + bx * math.cos(a) - by * math.sin(a)
-    wy = loc[1] + bx * math.sin(a) + by * math.cos(a)
-    top = loc[2] + FIG_STEP * L.TILE * scale
-    rs = 3.4 * scale * L.TILE * 0.2
-    rk = rock(shot, (wx, wy, top - rs * 0.32), (rs * 1.15, rs, rs * 0.75), rock_col or 'rock400', seed=3)
-    return body, cape, cw, rk
 
 
 def sun_rot(az, el):

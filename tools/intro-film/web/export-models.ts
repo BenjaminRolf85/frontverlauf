@@ -25,7 +25,8 @@ import {
   emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, setUnitQuality, splitTurrets, techParts, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
 } from '../../../src/render/models/index';
 import { setFilmSegments, withDetail } from '../../../src/render/models/kit';
-import { buildFigure } from './leaderFigure';
+import { figureExtras } from './figureKit';
+import { FIGURES } from './figures';
 import { academyGeometry } from '../../../src/render/models/academy';
 import { atlasDef, atlasSize, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
 import { crewCells, crewExtraCells } from '../../../src/render/models/inked/figurePaint';
@@ -130,10 +131,9 @@ for (const f of HUMANS) {
   add(`city_${f}_5`, () => cityGeometry(f, 5, { ...flagsNone, hq: true, factory: true }), 'built');
   add(`bunker_${f}`, () => baseGeometry('bunker', f, 4, {} as never), 'built');
 }
+// Anime-Schnitt: Filmfiguren mit Skelett (nur Filmexport, figures.ts) / anime cut: film figures with a skeleton (film export only)
+for (const [name, make] of Object.entries(FIGURES)) add(name, () => withDetail(1.6, true, make, { smooth: true, fine: true }), 'bright');
 // Korvat
-// Anime-Schnitt: Brodnik als ganze Figur und sein Umhang (nur Filmexport, leaderFigure.ts) / anime cut: Brodnik as a full figure and his cape (film export only)
-add('leaderFull_korvat', () => withDetail(1.6, true, () => buildFigure('body'), { smooth: true, fine: true }), 'bright');
-add('leaderCape_korvat', () => withDetail(1.6, true, () => buildFigure('cape'), { smooth: true, fine: true }), 'bright');
 for (const t of ['steppeRider', 'stormbreaker', 'steppeColossus'] as UnitTypeId[]) unit(t, 'korvat');
 add('kolkhoz_korvat', () => buildingGeometry('kolkhoz', 'korvat'), 'built');
 // Alvenia
@@ -394,6 +394,8 @@ function dumpInkedGeometry(name: string, g: THREE.BufferGeometry, type: UnitType
     // Spulenkoepfe des Tesla-Panzers fuer die Lichtboegen des Films / coil tops of the Tesla tank for the film's arcs
     teslaTops: type === 'teslaTank' ? TESLA_TOPS.map((p) => p.map((v) => v * k)) : null,
     tris: parts.reduce((n, p) => n + p.count / 3, 0), inkTris: parts.reduce((n, p) => n + p.ink.tris + p.ink.creases * 2, 0),
+    // Filmfiguren: Skelett und Gewichte (figureKit.ts) / film figures: skeleton and weights
+    figure: g.userData.figure ? figureExtras(g, pack) : null,
     parts, data: pack.b64(),
   };
 }

@@ -183,16 +183,20 @@ current film, its shots and `public/intro/` stay untouched; new are only own fil
 
 | Datei / file | Aufgabe / purpose |
 |---|---|
-| `web/leaderFigure.ts` | nur Filmexport: Brodnik als ganze Figur (die Heldenbueste des Spiels unveraendert, darunter Rockschoss, Koppel, Reithose, Stiefel, Arme, Handschuhe, Saebel) und sein Umhang als eigenes Modell; eigener Heldenatlas `leader-korvat-film`, Umhang `leader-korvat-cape` / export only: Brodnik as a full figure (the game's hero bust unchanged, below it skirt, belt, breeches, boots, arms, gloves, sabre) and his cape as a model of its own; own hero atlases |
-| `fv/anime.py` | gemalter Himmel als Rundhorizont (Verlauf, Sonne, Lichtfinger, Wolkenbaenke mit drei Toenen und Saum, Rauchsaeule, ferne Huegel; numpy, deterministisch), gemaltes Gelaende, Luftperspektive fuer alle Materialien, Randlicht auf den gezeichneten Figuren, Wind im Umhang (derselbe Wellen-Modifikator auf Flaeche und Tusche), Felsen, Gras, Rauchfahnen / painted sky as a cyclorama, painted terrain, aerial perspective for all materials, rim light on the inked figures, wind in the cape, rocks, grass, smoke plumes |
-| `fv/shots/anime/korvat.py` | Stilbild und Testclip Korvat: Brodnik auf dem Felsen, Armee im Tal, Kolchosfelder, Fabriken, Abendhimmel / Korvat style frame and test clip |
+| `web/figureKit.ts`, `web/figureHuman.ts` | nur Filmexport: Figurenbaukasten. Skelett, Gewichte je Ecke (Knochen, Gewicht gegen den Elternknochen, Tuchwert), Glieder mit Anatomie; der Mensch mit Armen, Haenden mit Fingern, Beinen, Stiefeln, Rumpf / export only: figure kit. Skeleton, weights per vertex, limbs with anatomy; the human with arms, hands with fingers, legs, boots, trunk |
+| `web/figureKorvat.ts`, `web/figureArmy.ts`, `web/figures.ts` | Brodnik als Filmfigur (Kopf, Brust und Orden aus der unveraenderten Heldenbueste; Koerper, Umhang, Gesichtszeichnungen neu), das Heer (Soldat in vier Ausruestungen, Pferd, Banner mit Zahnrad), Verzeichnis fuer den Export / Brodnik as a film figure (head, chest and medals from the unchanged hero bust; body, cape, face drawings new), the army (soldier in four kits, horse, banner with the cog), directory for the export |
+| `fv/anime.py` | gemalter Himmel als Rundhorizont (Verlauf, Sonne, Lichtfinger, Wolkenbaenke mit drei Toenen und Saum, ferne Huegel; numpy, deterministisch), gemaltes Gelaende, Luftperspektive fuer alle Materialien, Randlicht auf den gezeichneten Figuren, Rauchfahnen / painted sky as a cyclorama, painted terrain, aerial perspective for all materials, rim light on the inked figures, smoke plumes |
+| `fv/figure.py`, `fv/poses.py`, `fv/army.py` | bewegliche Figuren: Posen als Tabellen von Gelenkwinkeln, Bewegung zwischen Schluesselposen, Atmen, Wind im Tuch, Blinzeln und Mienenwechsel; Heere aus gebackenen Phasen (Galopp, Marsch) / movable figures: poses as tables of joint angles, motion between key poses, breathing, wind in cloth, blinks and changes of expression; armies from baked phases (gallop, march) |
+| `fv/korvat.py`, `fv/shots/anime/e1a.py`, `e1b.py`, `e1c.py` | die Welt der Korvat in wahrem Massstab und ihre drei Einstellungen (Heimat mit Heer, Heldenpose, Nahaufnahme) / the Korvat world at true scale and its three shots (homeland with army, hero pose, close-up) |
+| `fv/shots/anime/figsheet.py` | Kontrollboegen der Figuren (`FV_SHEET=turn`, `poses`, `one`, `half`, `hands`, `face`, `army`, `motion`) / check sheets of the figures |
+| `FILM-GUIDE.md` | Leitfaden fuer weitere Anfuehrer und Szenen: Figur und Pose anlegen, Proportion und Texeldichte, Licht und Schichten, Pruefliste, Zeiten / guide for further leaders and scenes |
 | `fv/shots/anime/boards.py` | grobe Storyboard-Blockouts (`FV_BOARD=a02`, `b03`, `c01`, `d05`, `e2`, `e3`, `e5`, `f02`, `f03`) / rough storyboard blockouts |
-| `fv/shots/anime/figcheck.py` | Kontrollbild der ganzen Figur von vier Seiten / check picture of the full figure from four sides |
 
 ```bash
-node tools/intro-film/export-models.mjs --quality film --out tools/intro-film/.cache/anime/models --only leaderFull_korvat,leaderCape_korvat
 cp tools/intro-film/.cache/film/inked.json tools/intro-film/.cache/anime/   # einmal vor dem ersten Export / once before the first export
-FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.korvat --stills 4.9
-FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.korvat        # 120 Bilder / frames
+node tools/intro-film/export-models.mjs --quality film --out tools/intro-film/.cache/anime/models --only fig_korvat_body,fig_korvat_head,fig_korvat_cape,figatlas_korvat_head_narrow,figatlas_korvat_head_blink,fig_korvat_rider,fig_korvat_lancer,fig_korvat_officer,fig_korvat_foot,fig_korvat_guard,fig_korvat_horse,fig_korvat_banner
+FV_SHEET=turn FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.figsheet --stills 0
+FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.e1b --stills 2.6 --scale 0.5
+FV_RESUME=1 FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.e1b   # 96 Bilder / frames; e1a 72, e1c 24
 FV_QUALITY=animeRough FV_BOARD=e2 EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.boards --stills 1
 ```
