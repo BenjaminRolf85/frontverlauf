@@ -64,7 +64,7 @@ def coast(y):
 
 class Meridon:
     def __init__(self, shot, cam, wave=None, lit=0.55, ink=1.3, far=True, ships=True, people=True, glass='sky700', gate='shut',
-                 rows=None, seed=7, mirror=True, win_gain=1.0, sail_glow=0.85, nexus_beam=0.75, mirror_nexus=False, smoke_tint=(1, 1, 1), wake_col='foam', place=None, nexus_lit=0.78):
+                 rows=None, seed=7, mirror=True, win_gain=1.0, sail_glow=0.85, nexus_beam=0.75, mirror_nexus=False, smoke_tint=(1, 1, 1), wake_col='foam', place=None, nexus_lit=0.78, avenue=True):
         self.shot, self.cam, self.wave, self.lit = shot, tuple(cam), wave, lit
         self.sail_glow, self.nexus_beam, self.smoke_tint, self.wake_col, self.nexus_lit = sail_glow, nexus_beam, smoke_tint, wake_col, nexus_lit
         # place: Schiffe je Einstellung umsetzen {Name: (Ort, Kurs, Fahrt)} / move ships per shot {name: (place, heading, speed)}
@@ -74,6 +74,7 @@ class Meridon:
         self.halo = W.sprite_mat('halo', attr_col=True, add=True, shape='disc', switch=True, keep=0.75)
         self.pool = W.sprite_mat('pool', attr_col=True, add=True, shape='disc', switch=True, keep=0.2)
         self.updaters = []
+        self.avenue = avenue
         self.flags = []
         self.objs = {}
         R = np.random.default_rng(seed)
@@ -297,7 +298,8 @@ class Meridon:
             self._tree(mb, R, x, y)
         for sx in (-1, 1):
             for yy in (48, 58, 68, 78, 88):
-                self._tree(self.front, R, BANK[0] + sx * 47, yy, kind=1)
+                if self.avenue:
+                    self._tree(self.front, R, BANK[0] + sx * 47, yy, kind=1)
 
     def _tree(self, mb, R, x, y, kind=None):
         z = height(x, y)

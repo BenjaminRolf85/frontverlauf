@@ -207,7 +207,7 @@ def warehouse(mb, R, w, d, pal, h=9.0, sign=None, lit=0.3):
 BANK_W, BANK_D = 104.0, 62.0
 
 
-def bank(mb, pal, lit=0.85, cols=10, gate='shut'):
+def bank(mb, pal, lit=0.85, cols=10, gate='shut', flutes=False):
     """
     Die grosse Bank Meridons: Freitreppe, Saeulenhalle mit Gebaelk, Giebel mit dem Emblem der Republik, Seitenfluegel
     mit Balkon, Attika, Tambour mit Lichtkranz, Kupferkuppel mit Laterne. Rueckgabe: wichtige Punkte (lokal).
@@ -250,16 +250,25 @@ def bank(mb, pal, lit=0.85, cols=10, gate='shut'):
         mb.box(ex - 8.3, fy - 2.3, hz + 6.5, ex + 8.3, fy + 14.7, hz + 7.6, trim, bottom=True)
         mb.frustum(ex - 7.9, fy - 1.9, ex + 7.9, fy + 14.3, hz + 7.6, 5.5, 4.6, copper, top=_dk(copper, 0.75))
         mb.tube((ex, fy + 6.2, hz + 13.1), (ex, fy + 6.2, hz + 24), 0.18, pal.dark, n=4)
-        # Balkon ueber dem Erdgeschoss des Fluegels (A03) / balcony above the wing's ground storey (A03)
-        bx0, bx1 = (x0 + 3.0, ex - 9.0) if sx > 0 else (ex + 9.0, x1 - 3.0)
-        mb.box(bx0, fy - 3.4, base + fh - 0.6, bx1, fy, base + fh, trim, bottom=True, g0=0.3, g1=0.3)
-        nb = int((bx1 - bx0) / 0.9)
+        # Balkon am Eckpavillon ueber dem Erdgeschoss (A03): Platte auf Konsolen, Baluster, Handlauf
+        # balcony on the corner pavilion above the ground storey (A03): slab on consoles, balusters, hand rail
+        bz, by0, by1 = base + fh + 2.1, fy - 1.6 - 3.4, fy - 1.6
+        bx0, bx1 = ex - 6.8, ex + 6.8
+        mb.box(bx0, by0, bz - 0.5, bx1, by1, bz, trim, bottom=True, g0=0.5, g1=0.5)
+        for cx in (bx0 + 0.9, ex - 2.3, ex + 2.3, bx1 - 0.9):
+            mb.box(cx - 0.45, by0 + 0.5, bz - 1.5, cx + 0.45, by1, bz - 0.5, stone2, bottom=True, g0=0.4, g1=0.5)
+            mb.box(cx - 0.45, by0 + 1.9, bz - 2.6, cx + 0.45, by1, bz - 1.5, stone2, bottom=True, g0=0.35, g1=0.4)
+        nb = int((bx1 - bx0) / 0.62)
         for i in range(nb + 1):
             bx = bx0 + 0.2 + i * (bx1 - bx0 - 0.4) / nb
-            mb.box(bx - 0.14, fy - 3.3, base + fh, bx + 0.14, fy - 3.0, base + fh + 1.0, trim, g0=0.3, g1=0.3)
-        mb.box(bx0, fy - 3.4, base + fh + 1.0, bx1, fy - 2.9, base + fh + 1.25, trim, bottom=True, g0=0.3, g1=0.3)
-        for cx in (bx0 + 0.6, bx1 - 0.6):
-            mb.box(cx - 0.5, fy - 3.4, base + fh - 3.0, cx + 0.5, fy - 0.2, base + fh - 0.6, stone2, g0=0.2, g1=0.3)
+            big = i % 6 == 0
+            mb.box(bx - (0.22 if big else 0.1), by0 + 0.08, bz, bx + (0.22 if big else 0.1), by0 + (0.52 if big else 0.3), bz + (1.25 if big else 1.0), trim, g0=0.5, g1=0.5)
+        for yy in np.arange(by0 + 0.7, by1 - 0.2, 0.62):
+            for bx in (bx0 + 0.1, bx1 - 0.3):
+                mb.box(bx, float(yy), bz, bx + 0.2, float(yy) + 0.2, bz + 1.0, trim, g0=0.5, g1=0.5)
+        mb.box(bx0, by0, bz + 1.0, bx1, by0 + 0.45, bz + 1.22, trim, bottom=True, g0=0.5, g1=0.5)
+        for bx in (bx0, bx1 - 0.4):
+            mb.box(bx, by0, bz + 1.0, bx + 0.4, by1, bz + 1.22, trim, bottom=True, g0=0.5, g1=0.5)
     # Mittelbau hinter den Saeulen / central block behind the columns
     ch = 25.0
     mb.box(-pw, fy, base, pw, BANK_D / 2, base + ch, stone, mat=MAT['grand'], bay=6.2, floor=ch / 3, uo=20, g0=0.12, g1=0.8, cap=False)
@@ -276,6 +285,14 @@ def bank(mb, pal, lit=0.85, cols=10, gate='shut'):
         mb.box(cx - 1.9, py - 1.9, base, cx + 1.9, py + 1.9, base + 1.0, stone2, g0=0.12, g1=0.14)
         mb.revolve(cx, py, [(1.45, base + 1.0), (1.3, base + chh * 0.6), (1.18, base + chh - 1.2)], trim, n=14)
         mb.revolve(cx, py, [(1.2, base + chh - 1.2), (1.75, base + chh - 0.6), (1.75, base + chh)], stone2, n=14)
+        if flutes:
+            # Kanneluren als gezeichnete Linien (nur fuer Nahaufnahmen) / flutes as drawn lines (close shots only)
+            mb.ink = 0.0
+            for k in range(14):
+                a = 2 * math.pi * (k + 0.5) / 14
+                r0, r1 = 1.455, 1.19
+                mb.tube((cx + math.cos(a) * r0, py + math.sin(a) * r0, base + 1.6), (cx + math.cos(a) * r1, py + math.sin(a) * r1, base + chh - 1.5), 0.035, _dk(stone2, 0.62), n=4)
+            mb.ink = 1.0
         mb.box(cx - 1.95, py - 1.95, base + chh, cx + 1.95, py + 1.95, base + chh + 0.6, trim)
     ez = base + chh + 0.6
     # Gebaelk: Architrav, Fries (Goldband), Gesims / entablature: architrave, frieze (gold band), cornice
@@ -342,7 +359,7 @@ def bank(mb, pal, lit=0.85, cols=10, gate='shut'):
     mb.revolve(0, cy, [(0.0, lz + 9.0), (0.75, lz + 9.9), (0.0, lz + 10.8)], gold, n=8)
     mb.tube((0, cy, lz + 10.6), (0, cy, lz + 15.5), 0.16, gold, n=4, r2=0.03)
     return {'top': lz + 15.5, 'base': base, 'gate': (0.0, gy, base), 'steps': (0.0, py - 3 - nst * 1.15, 0.0), 'front': fy, 'portico': py,
-            'balcony': (pw + 3.0 + (hw - 14 - 9 - pw - 3) / 2, fy - 3.2, base + fh), 'flags': [(-(hw - 7), fy + 6.2, hz + 24), (hw - 7, fy + 6.2, hz + 24)],
+            'balcony': (hw - 7.0, fy - 1.6 - 1.5, base + fh + 2.1), 'flags': [(-(hw - 7), fy + 6.2, hz + 24), (hw - 7, fy + 6.2, hz + 24)],
             'dome': (0.0, cy, kz)}
 
 

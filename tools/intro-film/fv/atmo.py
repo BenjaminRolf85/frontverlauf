@@ -387,6 +387,62 @@ class Trail:
         self.me.update()
 
 
+class Burst:
+    """
+    Einmaliger Stoss aus gemalten Wolkenkarten (Staub beim Aufschlag): ab t0 fliegen die Karten vom Ursprung nach aussen,
+    bremsen, wachsen und vergehen. / a one-off burst of painted cloud cards (dust at an impact): from t0 the cards fly
+    outwards from the origin, slow down, grow and fade.
+    """
+
+    def __init__(self, shot, name, atlas, origin, t0, n=10, life=1.2, reach=3.0, size=(0.3, 1.6), alpha=0.9, seed=1, up=0.6, tint=(1, 1, 1), spread=(1.0, 1.0)):
+        img, uvs = atlas
+        R = np.random.default_rng(seed)
+        self.shot, self.n, self.t0, self.life, self.reach, self.size, self.alpha = shot, n, t0, life, reach, size, alpha
+        self.origin = np.array(origin, np.float64)
+        a = R.uniform(0, 2 * math.pi, n)
+        self.dir = np.stack([np.cos(a) * spread[0], np.sin(a) * spread[1], R.uniform(0.1, 1.0, n) * up], 1)
+        self.var = R.uniform(0.6, 1.3, n)
+        self.dl = R.uniform(0.0, 0.12, n)
+        self.mat = W.sprite_mat(name, tex=img, attr_col=True)
+        me = bpy.data.meshes.new(name)
+        me.from_pydata([(0, 0, 0)] * (4 * n), [], [(4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3) for i in range(n)])
+        ca = me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
+        self.col = np.tile(np.array([tint[0], tint[1], tint[2], 0.0], np.float32), (4 * n, 1))
+        ca.data.foreach_set('color', self.col.ravel())
+        uv = me.uv_layers.new(name='UVMap')
+        uvl = []
+        for i in range(n):
+            u0, v0, u1, v1 = uvs[i % len(uvs)]
+            uvl += [u0, v0, u1, v0, u1, v1, u0, v1]
+        uv.data.foreach_set('uv', np.asarray(uvl, np.float32))
+        me.materials.append(self.mat)
+        self.me = me
+        self.ob = bpy.data.objects.new(name, me)
+        shot.sc.collection.objects.link(self.ob)
+        self.ob.visible_shadow = False
+        self.aspect = img.size[1] / (img.size[0] / len(uvs))
+
+    def update(self, t):
+        n = self.n
+        M = self.shot.cam.matrix_world
+        right, upv = np.array(M.col[0][:3]), np.array(M.col[1][:3])
+        p = np.clip((t - self.t0 - self.dl) / self.life, 0, 1)
+        k = 1 - (1 - p) ** 3
+        pos = self.origin + self.dir * (k * self.reach * self.var)[:, None]
+        sz = (self.size[0] + (self.size[1] - self.size[0]) * k) * self.var * (p > 0)
+        a = (1 - p) ** 1.4 * self.alpha * (p > 0)
+        rv, uv_ = np.outer(sz, right), np.outer(sz * self.aspect, upv)
+        v = np.empty((n, 4, 3))
+        v[:, 0] = pos - rv - uv_
+        v[:, 1] = pos + rv - uv_
+        v[:, 2] = pos + rv + uv_
+        v[:, 3] = pos - rv + uv_
+        self.me.vertices.foreach_set('co', v.ravel())
+        self.col[:, 3] = np.repeat(a, 4)
+        self.me.color_attributes['Col'].data.foreach_set('color', self.col.ravel())
+        self.me.update()
+
+
 class Cards:
     """
     Karten zur Kamera gedreht in einem Netz (Staubwolken, Rauchbaenke, Menschen): items = [(Ort, Breite, Hoehe, Deckung,
@@ -557,7 +613,7 @@ class Flag:
     edge, deterministic), a stripe or field in a second colour.
     """
 
-    def __init__(self, shot, loc, w, h, color, stripe=None, wind=(1.0, 0.0), seed=1, amp=1.0, nx=12, ny=4, unit=True, ink=None, droop=0.25):
+    def __init__(self, shot, loc, w, h, color, stripe=None, wind=(1.0, 0.0), seed=1, amp=1.0, nx=12, ny=4, unit=True, ink=None, droop=0.25, glow=0.0, ragged=0.0):
         self.loc, self.w, self.h, self.amp, self.nx, self.ny = Vector(loc), w, h, amp, nx, ny
         d = Vector((wind[0], wind[1], 0)).normalized()
         self.d, self.side = d, Vector((-d.y, d.x, 0))
@@ -577,6 +633,9 @@ class Flag:
                     c = W.col(stripe[0])
                 cols += [(c[0], c[1], c[2], 1.0)] * 4
         ca.data.foreach_set('color', np.asarray(cols, np.float32).ravel())
+        # glow: durchscheinendes Tuch im Gegenlicht (Farbe ungeschattet) / translucent cloth against the light (colour unshaded)
+        ax = me.attributes.new('aux', 'FLOAT_VECTOR', 'CORNER')
+        ax.data.foreach_set('vector', np.tile(np.array([W.NEVER, 0.5, glow], np.float32), len(cols)))
         for p in me.polygons:
             p.use_smooth = True
         me.materials.append(W.arch_mat(shot, unit=unit, name='flagcloth_%d' % int(unit)))
@@ -728,7 +787,9 @@ def _figure(kind, X, Y, R):
     elif kind == 'lady':
         add(_capsule(X, Y, (head[0] - 0.02, head[1] + 0.06), (head[0] - 0.03, head[1] + 0.075), 0.04))
     elif kind in ('woman', 'old'):
-        add(_poly(X, Y, [(head[0] - 0.08, head[1] - 0.09), (head[0] + 0.08, head[1] - 0.09), (head[0] + 0.05, head[1] + 0.07), (head[0] - 0.05, head[1] + 0.07)]))
+        # Kopftuch: weiche Haube bis auf die Schultern / headscarf: a soft hood down to the shoulders
+        add(_capsule(X, Y, (head[0], head[1] - 0.075), (head[0], head[1] + 0.012), 0.076))
+        add(_capsule(X, Y, (sh[0] - 0.06, sh[1] + 0.005), (sh[0] + 0.06, sh[1] + 0.005), 0.05))
     elif kind in ('soldier', 'run', 'bearer'):
         add(_capsule(X, Y, (head[0] - 0.07, head[1] + 0.02), (head[0] + 0.07, head[1] + 0.02), 0.018))
         add(_capsule(X, Y, (head[0] - 0.03, head[1] + 0.045), (head[0] + 0.03, head[1] + 0.045), 0.035))
@@ -739,7 +800,7 @@ def _figure(kind, X, Y, R):
     return d
 
 
-def people_atlas(name, kinds, dark, rim=None, light=(-1.0, 0.4), seed=1, cell=(160, 288), flip=None):
+def people_atlas(name, kinds, dark, rim=None, light=(-1.0, 0.4), seed=1, cell=(160, 288), flip=None, back=False, rim_px=2.5):
     """
     Bogen mit Figuren-Silhouetten (eine je Feld): flache dunkle Farbe, optional ein Lichtsaum zur Lichtseite (Gegenlicht).
     Rueckgabe: (Bild, [UV-Rechteck je Figur], Seitenverhaeltnis Breite / Hoehe eines Feldes). Ein Feld ist 1,1 Koerper-
@@ -763,9 +824,14 @@ def people_atlas(name, kinds, dark, rim=None, light=(-1.0, 0.4), seed=1, cell=(1
         a = np.clip(d / px / 1.2 + 0.5, 0, 1)
         c = np.tile(dk, (ch, cw, 1))
         if rim is not None:
-            sx, sy = int(round(light[0] * 2.5)), int(round(-light[1] * 2.5))
-            sh = np.roll(np.roll(d, -sx, 1), -sy, 0)
-            edge = (d > 0) & (sh < 0)
+            k = rim_px * ch / 288.0
+            if back:
+                # Gegenlicht: Saum an beiden Seiten und oben, nicht an den Sohlen / back light: fringe on both sides and on top, not at the soles
+                edge = (d > 0) & ((np.roll(d, int(round(k)), 1) < 0) | (np.roll(d, -int(round(k)), 1) < 0) | (np.roll(d, int(round(k)), 0) < 0)) & (Y > 0.06)
+            else:
+                sx, sy = int(round(light[0] * k)), int(round(-light[1] * k))
+                sh = np.roll(np.roll(d, -sx, 1), -sy, 0)
+                edge = (d > 0) & (sh < 0)
             c = np.where(edge[..., None], np.asarray(rim, np.float32), c)
         img[:, i * cw:(i + 1) * cw, :3] = c
         img[:, i * cw:(i + 1) * cw, 3] = a

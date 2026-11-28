@@ -253,8 +253,8 @@ def bronze_gate(mb, w=10.4, h=13.0, color=None, depth=1.6):
     Ursprung unten Mitte, Front nach -y. / bronze gate in a round-arched niche: two leaves with coffers, bosses, a centre
     joint; a grille of bars in front. Origin bottom centre, front towards -y.
     """
-    c = A.cmix('goldDark', 'ink700', 0.55) if color is None else color
-    lit, dk = A.cmix('goldDark', 'paper300', 0.2), A.cmix('goldDark', 'ink800', 0.75)
+    c = A.cmix('goldDark', 'ink700', 0.45) if color is None else color
+    lit, dk = A.cmix('goldDark', 'paper300', 0.25), A.cmix('goldDark', 'ink800', 0.8)
     r = w / 2
     sp = h - r
     # Rueckwand der Nische (Fluegel) / back of the niche (leaves)
