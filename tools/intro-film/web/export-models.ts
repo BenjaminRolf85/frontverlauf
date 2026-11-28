@@ -24,7 +24,8 @@ import {
   baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, crashSiteGeometry, decorationGeometry, emplacementGeometry,
   emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, setUnitQuality, splitTurrets, techParts, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
 } from '../../../src/render/models/index';
-import { setFilmSegments } from '../../../src/render/models/kit';
+import { setFilmSegments, withDetail } from '../../../src/render/models/kit';
+import { buildFigure } from './leaderFigure';
 import { academyGeometry } from '../../../src/render/models/academy';
 import { atlasDef, atlasSize, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
 import { crewCells, crewExtraCells } from '../../../src/render/models/inked/figurePaint';
@@ -130,6 +131,9 @@ for (const f of HUMANS) {
   add(`bunker_${f}`, () => baseGeometry('bunker', f, 4, {} as never), 'built');
 }
 // Korvat
+// Anime-Schnitt: Brodnik als ganze Figur und sein Umhang (nur Filmexport, leaderFigure.ts) / anime cut: Brodnik as a full figure and his cape (film export only)
+add('leaderFull_korvat', () => withDetail(1.6, true, () => buildFigure('body'), { smooth: true, fine: true }), 'bright');
+add('leaderCape_korvat', () => withDetail(1.6, true, () => buildFigure('cape'), { smooth: true, fine: true }), 'bright');
 for (const t of ['steppeRider', 'stormbreaker', 'steppeColossus'] as UnitTypeId[]) unit(t, 'korvat');
 add('kolkhoz_korvat', () => buildingGeometry('kolkhoz', 'korvat'), 'built');
 // Alvenia

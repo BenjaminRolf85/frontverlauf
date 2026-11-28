@@ -170,3 +170,29 @@ each faction scene its own theme (Korvat, Alvenia, Dravon, Velkar, Meridon, 7 s 
 leaders and the title (111-124 s). Transitions crossfade over 1.2 s, the music is brought to -19 LUFS, the effects sit
 on top, the mix ends at -16 LUFS with a 2 s fade. Other tracks or cuts: change only `music.json` and re-run `music.py`
 and `assemble.py --encode-only` (no re-render needed).
+
+## Anime-Schnitt (Test) / anime cut (test)
+
+Stilbeweis fuer einen neuen Schnitt, der die Geschichte wie ein Anime-Film erzaehlt (Drehbuch und Storyboard liegen
+beim Auftraggeber). Der bisherige Film, seine Einstellungen und `public/intro/` bleiben unberuehrt; neu sind nur
+eigene Dateien und die Stufen `anime` / `animeRough` in `quality.json` mit eigenem Cache `.cache/anime/` (fehlende
+Dateien aus `.cache/film/`, dann `.cache/`).
+Style proof for a new cut that tells the story like an anime film (script and storyboard are with the owner). The
+current film, its shots and `public/intro/` stay untouched; new are only own files and the levels `anime` /
+`animeRough` in `quality.json` with their own cache `.cache/anime/` (missing files from `.cache/film/`, then `.cache/`).
+
+| Datei / file | Aufgabe / purpose |
+|---|---|
+| `web/leaderFigure.ts` | nur Filmexport: Brodnik als ganze Figur (die Heldenbueste des Spiels unveraendert, darunter Rockschoss, Koppel, Reithose, Stiefel, Arme, Handschuhe, Saebel) und sein Umhang als eigenes Modell; eigener Heldenatlas `leader-korvat-film`, Umhang `leader-korvat-cape` / export only: Brodnik as a full figure (the game's hero bust unchanged, below it skirt, belt, breeches, boots, arms, gloves, sabre) and his cape as a model of its own; own hero atlases |
+| `fv/anime.py` | gemalter Himmel als Rundhorizont (Verlauf, Sonne, Lichtfinger, Wolkenbaenke mit drei Toenen und Saum, Rauchsaeule, ferne Huegel; numpy, deterministisch), gemaltes Gelaende, Luftperspektive fuer alle Materialien, Randlicht auf den gezeichneten Figuren, Wind im Umhang (derselbe Wellen-Modifikator auf Flaeche und Tusche), Felsen, Gras, Rauchfahnen / painted sky as a cyclorama, painted terrain, aerial perspective for all materials, rim light on the inked figures, wind in the cape, rocks, grass, smoke plumes |
+| `fv/shots/anime/korvat.py` | Stilbild und Testclip Korvat: Brodnik auf dem Felsen, Armee im Tal, Kolchosfelder, Fabriken, Abendhimmel / Korvat style frame and test clip |
+| `fv/shots/anime/boards.py` | grobe Storyboard-Blockouts (`FV_BOARD=a02`, `b03`, `c01`, `d05`, `e2`, `e3`, `e5`, `f02`, `f03`) / rough storyboard blockouts |
+| `fv/shots/anime/figcheck.py` | Kontrollbild der ganzen Figur von vier Seiten / check picture of the full figure from four sides |
+
+```bash
+node tools/intro-film/export-models.mjs --quality film --out tools/intro-film/.cache/anime/models --only leaderFull_korvat,leaderCape_korvat
+cp tools/intro-film/.cache/film/inked.json tools/intro-film/.cache/anime/   # einmal vor dem ersten Export / once before the first export
+FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.korvat --stills 4.9
+FV_QUALITY=anime EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.korvat        # 120 Bilder / frames
+FV_QUALITY=animeRough FV_BOARD=e2 EGL_PLATFORM=surfaceless $PY tools/intro-film/render.py --shot anime.boards --stills 1
+```

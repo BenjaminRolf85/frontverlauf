@@ -43,8 +43,13 @@ def cache_file(*parts):
     Datei im Cache der Qualitaetsstufe, sonst im Grund-Cache (so braucht die Filmstufe nur neu exportierte Einheiten).
     File in the quality level's cache, else in the base cache (so the film level only needs the re-exported units).
     """
-    p = os.path.join(CACHE, *parts)
-    return p if os.path.exists(p) else os.path.join(BASE_CACHE, *parts)
+    # Stufen mit 'fallback' (anime) suchen zuerst dort weiter (z. B. .cache/film), dann im Grund-Cache
+    # levels with 'fallback' (anime) look there next (e.g. .cache/film), then in the base cache
+    for c in [CACHE] + [os.path.join(HERE, f) for f in PROFILE.get('fallback', [])]:
+        p = os.path.join(c, *parts)
+        if os.path.exists(p):
+            return p
+    return os.path.join(BASE_CACHE, *parts)
 
 
 def _render_fps():

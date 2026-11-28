@@ -40,5 +40,41 @@
     "heroAtlas": 4096,
     "segments": 2,
     "ease": true
+  },
+  "anime": {
+    "renderFps": 24,
+    "scale": 1.5,
+    "samples": 8,
+    "shadow": 1.0,
+    "shadowMax": 0.01,
+    "shadowSteps": 1,
+    "motionBlur": 0,
+    "cache": ".cache/anime",
+    "atlas": 2048,
+    "heroAtlas": 4096,
+    "segments": 2,
+    "ease": true,
+    "fallback": [
+      ".cache/film"
+    ],
+    "comment": "Anime-Schnitt (Test): wie film, eigener Cache .cache/anime, fehlende Dateien aus .cache/film, dann .cache / anime cut (test): as film, own cache, missing files from .cache/film, then .cache"
+  },
+  "animeRough": {
+    "renderFps": 12,
+    "scale": 0.5,
+    "samples": 2,
+    "shadow": 0.25,
+    "shadowMax": 0.05,
+    "shadowSteps": 1,
+    "motionBlur": 0,
+    "cache": ".cache/anime",
+    "atlas": 2048,
+    "heroAtlas": 4096,
+    "segments": 2,
+    "ease": true,
+    "fallback": [
+      ".cache/film"
+    ],
+    "comment": "Grobe Vorschau fuer Storyboard-Bilder (halbe Groesse, 2 Proben) / rough preview for storyboard frames (half size, 2 samples)"
   }
 }
