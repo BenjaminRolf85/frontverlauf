@@ -1,8 +1,11 @@
 """
-8 Das Tor (62-70 s): Kamerafahrt durch das Tor der Zyrr. Dahinter die violette Heimatwelt mit zwei Monden, dann
-ein Riss in eine rote Wueste mit halb versunkenen Statuen Verdans: die dritte, vergessene Welt.
-8 The gate (62-70 s): camera flight through the Zyrr gate. Behind it the violet homeworld with two moons, then a rift
-into a red desert with half-buried Verdan statues: the third, forgotten world.
+8 Das Tor (62-70 s): Kamerafahrt durch das Tor der Zyrr. Dahinter die violette Landschaft ihrer Heimat mit zwei
+Monden, wie sie den Planeten umformen wollen, dann die rote Wueste mit alten Ruinen Verdans, in die ab 5,4 s violetter
+Xeno-Boden vordringt und fremde Kristalle spriessen (Kanon docs/lore.md: der Schwarm macht den Planeten zur zweiten
+Heimat).
+8 The gate (62-70 s): camera flight through the Zyrr gate. Behind it the violet landscape of their home with two moons,
+as they want to reshape the planet, then the red desert with old Verdan ruins into which violet xeno-soil spreads from
+5.4 s and alien crystals sprout (canon docs/lore.md: the swarm turns the planet into a second home).
 """
 import math
 import random
@@ -39,6 +42,67 @@ def swirl(shot, name, c1, c2):
     return m
 
 
+def xeno_soil(shot, color, origin, name='xenosoil'):
+    """
+    Violetter Xeno-Boden: Comic-Ton, sichtbar innerhalb eines wachsenden Radius um origin mit ausgefranstem Rand
+    (Rauschen); Regler 'radius' je Bild.
+    Violet xeno-soil: comic tone, visible within a growing radius around origin with a frayed edge (noise); control
+    'radius' per frame.
+    """
+    import bpy
+    m = bpy.data.materials.new(name)
+    nt, n, Lk = L._nodes(m)
+    out = n.new('ShaderNodeOutputMaterial')
+    tg = n.new('ShaderNodeGroup')
+    tg.node_tree = shot.toon.g
+    tg.inputs['Base'].default_value = L.rgb(color)
+    em = n.new('ShaderNodeEmission')
+    Lk.new(tg.outputs[0], em.inputs[0])
+    geo = n.new('ShaderNodeNewGeometry')
+    sub = n.new('ShaderNodeVectorMath')
+    sub.operation = 'SUBTRACT'
+    sub.inputs[1].default_value = origin
+    Lk.new(geo.outputs['Position'], sub.inputs[0])
+    flat = n.new('ShaderNodeVectorMath')
+    flat.operation = 'MULTIPLY'
+    flat.inputs[1].default_value = (1, 1, 0)
+    Lk.new(sub.outputs[0], flat.inputs[0])
+    ln = n.new('ShaderNodeVectorMath')
+    ln.operation = 'LENGTH'
+    Lk.new(flat.outputs[0], ln.inputs[0])
+    noise = n.new('ShaderNodeTexNoise')
+    noise.inputs['Scale'].default_value = 0.035
+    noise.inputs['Detail'].default_value = 2.0
+    Lk.new(geo.outputs['Position'], noise.inputs['Vector'])
+    fray = n.new('ShaderNodeMath')
+    fray.operation = 'MULTIPLY_ADD'
+    fray.inputs[1].default_value = 70.0
+    fray.inputs[2].default_value = -35.0
+    Lk.new(noise.outputs['Fac'], fray.inputs[0])
+    dist = n.new('ShaderNodeMath')
+    dist.operation = 'ADD'
+    Lk.new(ln.outputs['Value'], dist.inputs[0])
+    Lk.new(fray.outputs[0], dist.inputs[1])
+    rad = n.new('ShaderNodeValue')
+    rad.name = 'radius'
+    rad.outputs[0].default_value = 0.0
+    inside = n.new('ShaderNodeMath')
+    inside.operation = 'LESS_THAN'
+    Lk.new(dist.outputs[0], inside.inputs[0])
+    Lk.new(rad.outputs[0], inside.inputs[1])
+    tr = n.new('ShaderNodeBsdfTransparent')
+    mx = n.new('ShaderNodeMixShader')
+    Lk.new(inside.outputs[0], mx.inputs[0])
+    Lk.new(tr.outputs[0], mx.inputs[1])
+    Lk.new(em.outputs[0], mx.inputs[2])
+    Lk.new(mx.outputs[0], out.inputs[0])
+    try:
+        m.surface_render_method = 'DITHERED'
+    except AttributeError:
+        m.blend_method = 'HASHED'
+    return m
+
+
 def build():
     s = L.Shot(L.shot_dur('gate'))
     R = random.Random(51)
@@ -70,6 +134,21 @@ def build():
         x, y = Y - 60 + i * 30 + R.uniform(-6, 6), 60 + (i % 2) * 40
         L.model(s, n, loc=(x, y, 1), rot=R.uniform(0, 360), scale=9)
     L.prim(s, 'cyl', L.flat('marsSun'), loc=(Y + 90, 700, 120), size=(70, 70, 1), rot=(math.pi / 2, 0, 0), segments=32, ink=False)
+    # Xeno-Boden der Zyrr breitet sich ueber die Wueste aus, Kristalle spriessen / the Zyrr xeno-soil spreads over the desert, crystals sprout
+    SOIL0 = Vector((Y - 52, -22, 0))
+    soil_m = xeno_soil(s, 'xeno600', SOIL0)
+    dh = K.dunes(3)
+    soil = L.ground(s, soil_m, size=600, sub=60, loc=(Y, 0, 0), height=lambda xx, yy: dh(xx, yy) + 0.35, name='xenosoil')
+    soil.visible_shadow = False
+    crystals = []
+    for i in range(16):
+        a_ = R.uniform(-0.3, 1.5)
+        r_ = R.uniform(15, 150)
+        cx, cy = SOIL0.x + math.cos(a_) * r_, SOIL0.y + math.sin(a_) * r_
+        col = R.choice(['alienCrystal300', 'alienCrystal500', 'xeno400', 'alienMoss500'])
+        ob = L.prim(s, R.choice(['cone', 'ico']), L.toon(s, col, glow=0.35), loc=(cx, cy, dh(cx, cy)), size=1.0, sub=1, px=2.6)
+        crystals.append((ob, r_, R.uniform(4, 9), R.uniform(10, 24)))
+    SPREAD = (5.4, 8.2, 165.0)
     worlds_sky = [
         [(-1, 'alienSky900'), (0.0, 'alienSky500'), (0.25, 'alienSky700'), (1, 'alienSky900')],
         [(-1, 'alienSky700'), (0.0, 'alienHaze'), (0.25, 'alienSky500'), (1, 'alienSky900')],
@@ -98,6 +177,11 @@ def build():
             p = L.ease_out(L.seg(t, T2, s.dur))
             s.look(L.vlerp((Y - 20, -70, 26), (Y + 5, -40, 30), p), (Y + 10, 90, 18))
             s.toon.set_light((0.42, 0.22, 0.24, 1), (0.75, 0.48, 0.42, 1), (1.0, 0.86, 0.74, 1))
+        grow = L.ease_io(L.seg(t, SPREAD[0], SPREAD[1])) * SPREAD[2]
+        soil_m.node_tree.nodes['radius'].outputs[0].default_value = grow
+        for ob, r_, w_, h_ in crystals:
+            k = L.ease_back(L.seg(grow - r_, 0, 18)) if grow > r_ else 0.0
+            ob.scale = (max(w_ * k, 0.001), max(w_ * k, 0.001), max(h_ * k, 0.001))
         wv = disc.material_slots[0].material.node_tree.nodes['wave']
         wv.inputs['Phase Offset'].default_value = -t * 8
         rift.material_slots[0].material.node_tree.nodes['wave'].inputs['Phase Offset'].default_value = -t * 6

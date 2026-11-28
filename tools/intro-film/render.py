@@ -2,8 +2,8 @@
 Eine Einstellung des Introfilms rendern (Blender als Python-Modul "bpy" oder blender -b -P).
 Render one shot of the intro film (Blender as the Python module "bpy" or blender -b -P).
 
-  python render.py --shot verdan [--out DIR] [--first 1] [--last N] [--every 1] [--stills 2.5,8] [--scale 0.5]
-  blender -b -P render.py -- --shot verdan
+  python render.py --shot oldworld [--out DIR] [--first 1] [--last N] [--every 1] [--stills 2.5,8] [--scale 0.5]
+  blender -b -P render.py -- --shot oldworld
 
 --stills rendert nur einzelne Zeitpunkte (Sekunden) als Vorschau; --scale verkleinert die Aufloesung fuer Tests.
 --stills renders single moments (seconds) as a preview; --scale reduces the resolution for tests.

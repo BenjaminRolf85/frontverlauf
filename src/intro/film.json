@@ -3,7 +3,7 @@
   "renderFps": 12,
   "duration": 124,
   "shots": [
-    { "id": "verdan", "start": 0, "end": 16 },
+    { "id": "oldworld", "start": 0, "end": 16 },
     { "id": "wrecks", "start": 16, "end": 24 },
     { "id": "chalk", "start": 24, "end": 32 },
     { "id": "skyburns", "start": 32, "end": 38 },
@@ -21,15 +21,22 @@
     { "id": "title", "start": 117, "end": 124 }
   ],
   "captions": [
-    { "key": "empire", "start": 0.6, "end": 7.6 },
-    { "key": "standstill", "start": 8.2, "end": 15.6 },
-    { "key": "wrecks", "start": 16.4, "end": 23.6 },
-    { "key": "chalk", "start": 24.4, "end": 31.6 },
-    { "key": "skyBurned", "start": 32.4, "end": 37.6 },
-    { "key": "crash", "start": 38.6, "end": 45.6 },
+    { "key": "oldWorld", "start": 1.2, "end": 4.3 },
+    { "key": "banks", "start": 4.5, "end": 7.8 },
+    { "key": "standstill", "start": 8.2, "end": 12.2 },
+    { "key": "nexusLit", "start": 12.4, "end": 15.8 },
+    { "key": "borders", "start": 16.3, "end": 19.8 },
+    { "key": "wars", "start": 20, "end": 23.8 },
+    { "key": "founding", "start": 24.3, "end": 27.9 },
+    { "key": "peace", "start": 28.1, "end": 31.8 },
+    { "key": "starfall", "start": 32.4, "end": 37.6 },
+    { "key": "crash", "start": 38.6, "end": 41.8 },
+    { "key": "ship", "start": 42, "end": 45.8 },
     { "key": "bell", "start": 46.4, "end": 51.6 },
-    { "key": "awaken", "start": 52.4, "end": 61.6 },
-    { "key": "gate", "start": 62.4, "end": 69.6 },
+    { "key": "awakenNexus", "start": 52.3, "end": 55.3 },
+    { "key": "awakenCult", "start": 55.4, "end": 58.5 },
+    { "key": "awakenZyrr", "start": 58.7, "end": 61.8 },
+    { "key": "secondHome", "start": 62.4, "end": 69.6 },
     { "key": "fracture", "start": 70.4, "end": 75.6 },
     { "key": "korvat", "start": 76.4, "end": 82.6 },
     { "key": "alvenia", "start": 83.4, "end": 89.6 },
@@ -40,6 +47,7 @@
   ],
   "panels": [0, 3.3, 6.6],
   "overlays": [
+    { "key": "narrator", "start": 0.2, "end": 3.4 },
     { "key": "boom", "start": 39.0, "end": 40.4 },
     { "key": "tagline", "start": 119.4, "end": 124 }
   ]

@@ -1,19 +1,41 @@
 {
-  "comment": "Musik des Introfilms aus den Stuecken des Spiels (public/music). at/end: Filmzeit in s, from: Startpunkt im Stueck in s, gain: Pegel in dB. Uebergaenge blenden ueber 'fade' s. / Intro film music from the game's tracks (public/music). at/end: film time in s, from: start point in the track in s, gain: level in dB. Transitions crossfade over 'fade' s.",
-  "fade": 1.2,
+  "comment": "Musik des Introfilms aus den Stuecken des Spiels (public/music). at/end: Filmzeit in s, from: Startpunkt im Stueck in s, gain: Feinkorrektur in dB. Jedes Stueck wird einzeln auf musicLufs gebracht; Uebergaenge blenden ueber 'fade' s (gleiche Leistung), mittig um den Schnitt. Wenige, lange Abschnitte: die Musik soll den Film tragen, nicht jede Szene nachzeichnen. / Intro film music from the game's tracks (public/music). at/end: film time in s, from: start point in the track in s, gain: fine correction in dB. Each piece is brought to musicLufs on its own; transitions crossfade over 'fade' s (equal power), centred on the cut. Few, long sections: the music should carry the film, not trace every scene.",
+  "fade": 4,
   "musicLufs": -19,
-  "sfxGainDb": -3,
+  "sfxGainDb": -4,
   "masterLufs": -16,
   "cues": [
-    { "track": "menu-last-trumpet-call", "at": 0, "end": 32, "from": 0, "gain": 0, "note": "Verdan, Wracks, Kreide: die Vorgeschichte / Verdan, wrecks, chalk: the backstory" },
-    { "track": "tense-1", "at": 32, "end": 52, "from": 0, "gain": 0, "note": "Himmel brennt, Absturz, Glocke / sky burns, crash, bell" },
-    { "track": "faction-zyrr-1", "at": 52, "end": 62, "from": 4, "gain": 0, "note": "Erwachen: Nexus, Vesper, Zyrr / awakening" },
-    { "track": "battle-city-attacked", "at": 62, "end": 76, "from": 0, "gain": 0, "note": "Tor und Bruch: der Krieg beginnt / gate and fracture: the war begins" },
-    { "track": "faction-korvat", "at": 76, "end": 83, "from": 0, "gain": 0, "note": "Korvat" },
-    { "track": "faction-alvenia", "at": 83, "end": 90, "from": 0, "gain": 0, "note": "Alvenia" },
-    { "track": "faction-dravon", "at": 90, "end": 97, "from": 0, "gain": 0, "note": "Dravon" },
-    { "track": "faction-velkar", "at": 97, "end": 104, "from": 4, "gain": 0, "note": "Velkar" },
-    { "track": "faction-meridon", "at": 104, "end": 111, "from": 0, "gain": 0, "note": "Meridon" },
-    { "track": "victory-triumphal-march", "at": 111, "end": 124, "from": 0, "gain": 0, "note": "Anfuehrer und Titel / leaders and title" }
+    {
+      "track": "menu-last-trumpet-call",
+      "at": 0,
+      "end": 38,
+      "from": 0,
+      "gain": 0,
+      "note": "Verdan, Wracks, Kreide, brennender Himmel: die Vorgeschichte / Verdan, wrecks, chalk, burning sky: the backstory"
+    },
+    {
+      "track": "tense-1",
+      "at": 38,
+      "end": 76,
+      "from": 2,
+      "gain": 0,
+      "note": "Absturz bis Bruch: Bedrohung / crash to fracture: the threat; der Uebergang liegt unter dem Einschlag / the transition sits under the impact"
+    },
+    {
+      "track": "final-stand-1",
+      "at": 76,
+      "end": 111,
+      "from": 2,
+      "gain": 0,
+      "note": "die fuenf Fraktionen marschieren auf, ein durchgehendes Stueck / the five factions march up, one continuous piece"
+    },
+    {
+      "track": "victory-triumphal-march",
+      "at": 111,
+      "end": 124,
+      "from": 2,
+      "gain": 0,
+      "note": "Anfuehrer und Titel / leaders and title"
+    }
   ]
 }

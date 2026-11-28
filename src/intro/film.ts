@@ -18,7 +18,10 @@ export interface Film {
   captions: readonly FilmCue[];
   /** Erscheinen der drei Comicfelder in der Einstellung "awaken" (Sekunden ab Einstellungsbeginn) / appearance of the three comic panels in the "awaken" shot (seconds from shot start) */
   panels: readonly number[];
-  /** Sprachabhaengige Einblendungen ueber dem Bild (Lautmalerei, Slogan) / language-dependent overlays on the picture (onomatopoeia, tagline) */
+  /**
+   * Sprachabhaengige Einblendungen ueber dem Bild: Erzaehlerkarte (narrator: intro.film.narrator), Lautmalerei, Slogan.
+   * Language-dependent overlays on the picture: narrator card (narrator: intro.film.narrator), onomatopoeia, tagline.
+   */
   overlays: readonly FilmCue[];
 }
 
@@ -35,7 +38,7 @@ export function shotStart(id: string): number {
 const cueAt = (list: readonly FilmCue[], t: number) => list.find((c) => t >= c.start && t < c.end) ?? null;
 /** Untertitel zur Zeit t (Schluessel unter intro.film.sub) / caption at time t (key under intro.film.sub) */
 export const captionAt = (t: number) => cueAt(FILM.captions, t);
-/** Einblendung zur Zeit t (boom: intro.boom, tagline: intro.tagline) / overlay at time t */
+/** Einblendung zur Zeit t (narrator: intro.film.narrator, boom: intro.boom, tagline: intro.tagline) / overlay at time t */
 export const overlayAt = (t: number) => cueAt(FILM.overlays, t);
 
 /** Sprachschluessel einer Einblendung / language key of an overlay */

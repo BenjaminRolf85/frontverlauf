@@ -109,7 +109,8 @@ const VOWEL = { a: [800, 1200], o: [500, 900], u: [350, 800], e: [550, 1800] } a
 /** Klangereignis, das eine Zeitleiste (Intro) auf einen festen Zeitpunkt legt / sound event a timeline (intro) puts at a fixed time */
 export type ScoreCue =
   | 'explosion' | 'boom' | 'radio' | 'bell' | 'engine' | 'heavyEngine' | 'laser' | 'charge' | 'horn' | 'fanfare' | 'cry' | 'gunshot'
-  | 'mg' | 'whistle' | 'riser' | 'drone' | 'crackle' | 'hooves' | 'beep' | 'shield' | 'coins' | 'kick' | 'snare' | 'roll' | 'crash' | 'stab';
+  | 'mg' | 'whistle' | 'riser' | 'drone' | 'crackle' | 'hooves' | 'beep' | 'shield' | 'coins' | 'kick' | 'snare' | 'roll' | 'crash' | 'stab'
+  | 'powerDown';
 
 /** Audio-Engine; eine Instanz (audio) fuer das Spiel, weitere fuer das Intro / audio engine; one instance (audio) for the game, more for the intro */
 export class AudioEngine {
@@ -1011,6 +1012,11 @@ export class AudioEngine {
       case 'snare': this.snare(t, out, 0.45); break;
       case 'roll': for (let i = 0; i < 16; i++) this.noise(t + i * 0.0625, 0.06, 0.05 + i * 0.016, 2500, out, { type: 'bandpass', q: 0.9 }); break;
       case 'crash': this.noise(t, 1.6, 0.3, 6000, out, { type: 'highpass', attack: 0.002 }); this.noise(t, 0.4, 0.2, 3000, out, { type: 'bandpass', q: 0.6 }); break;
+      // Stromausfall: Netzbrummen und Pfeifen fallen ab (Introfilm, Grosser Stillstand) / power-down: mains hum and whine fall away (intro film, Great Standstill)
+      case 'powerDown':
+        this.tone(1400, t, 3.2, 'sawtooth', 0.07, out, 0.03, 0.04); this.tone(100, t, 3.4, 'square', 0.1, out, 0.35, 0.02);
+        this.noise(t, 2.8, 0.1, 5000, out, { freqEnd: 90, attack: 0.05 });
+        break;
       case 'stab': { const th = THEMES[f]; for (const n of [0, 7, 12, 16]) this.tone(th.root * Math.pow(2, n / 12), t, 0.5, 'sawtooth', 0.09, out, 1, 0.01); this.kick(t, out, 0.7); break; }
     }
   }

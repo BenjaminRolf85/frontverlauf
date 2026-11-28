@@ -880,6 +880,11 @@ export const components = {
     filmCaptionSize: 'clamp(15px, 1.6vmin + 9px, 30px)', filmCaptionMaxWidth: '78%', filmCaptionBottom: '4%', filmCaptionAlpha: '86%',
     filmCaptionRadius: '14px', filmCaptionBorder: '3px', filmBoomSize: 'clamp(36px, 22cqh, 170px)', filmBoomTilt: '-8deg',
     filmTaglineSize: 'clamp(14px, 7.6cqh, 80px)', filmTaglineTop: '76.5%', filmStallMs: '12000ms',
+    /**
+     * Erzaehlerkarte zu Beginn ("Aus der Chronik von Verdan", intro.film.narrator): Schild oben im Bild, leicht schraeg.
+     * Narrator card at the start ("From the Chronicle of Verdan", intro.film.narrator): plate at the top of the picture, slightly tilted.
+     */
+    filmNarratorSize: 'clamp(15px, 5cqh, 46px)', filmNarratorTop: '15%', filmNarratorTilt: '-2deg',
   },
 } as const;
 
