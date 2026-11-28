@@ -884,7 +884,7 @@ export const components = {
      * Erzaehlerkarte zu Beginn ("Aus der Chronik von Verdan", intro.film.narrator): Schild oben im Bild, leicht schraeg.
      * Narrator card at the start ("From the Chronicle of Verdan", intro.film.narrator): plate at the top of the picture, slightly tilted.
      */
-    filmNarratorSize: 'clamp(15px, 6.4cqh, 58px)', filmNarratorTop: '15%', filmNarratorTilt: '-2deg',
+    filmNarratorSize: 'clamp(15px, 5cqh, 46px)', filmNarratorTop: '15%', filmNarratorTilt: '-2deg',
   },
 } as const;
 

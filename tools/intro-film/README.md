@@ -70,14 +70,16 @@ Gewaehlt: Eevee mit einem Sample, alle Materialien unbeleuchtet (Emission) mit e
 Shader-to-RGB, Schattenaufloesung 0,25 und Sonnen-Schattenkarten 0,2 (halbiert die Zeit), 12 Bilder je Sekunde, im Video
 auf 24 fps gehalten. Gesamt 1488 Bilder plus 3 x 120 Comicfelder (416x664). Gemessen mit den gezeichneten Einheiten
 (Umriss und Innenlinien als Geometrie, Atlanten 2048): im Mittel 6,1 s je Bild und Prozess, von 3,4 s (Glocke) bis
-14,2 s (Stadt Verdan, 192 Bilder); alle 1728 Bilder mit zwei Prozessen in 91 Minuten. Die Nahaufnahmen der
+14,2 s (fruehere Eroeffnung, Stadt Verdan, 192 Bilder); alle 1728 Bilder mit zwei Prozessen in 91 Minuten. Die neue
+Eroeffnung `oldworld` (Hafen Meridons, 192 Bilder) braucht im Mittel 9,7 s je Bild, mit zwei Prozessen rund 16 Minuten. Die Nahaufnahmen der
 Anfuehrer-Buesten (bis 36.000 Dreiecke, Heldenatlas 2048) kosten rund 6 s je Bild. Zusammensetzen und Kodieren (zwei
 Durchgaenge VP9 und H.264) rund 12 Minuten.
 Chosen: Eevee with one sample, all materials unlit (emission) with their own banded shading from Shader-to-RGB, shadow
 resolution 0.25 and sun shadow maps 0.2 (halves the time), 12 frames per second, held to 24 fps in the video.
 1488 frames plus 3 x 120 comic panels (416x664) in total. Measured with the inked units (silhouette and inner lines as
-geometry, atlases at 2048): on average 6.1 s per frame and process, from 3.4 s (bell) to 14.2 s (Verdan city, 192
-frames); all 1728 frames with two processes in 91 minutes. The close-ups of the leader busts (up to 36,000 triangles,
+geometry, atlases at 2048): on average 6.1 s per frame and process, from 3.4 s (bell) to 14.2 s (earlier opening, Verdan city, 192
+frames); all 1728 frames with two processes in 91 minutes. The new opening `oldworld` (Meridon's harbour, 192 frames)
+takes 9.7 s per frame on average, about 16 minutes with two processes. The close-ups of the leader busts (up to 36,000 triangles,
 hero atlas 2048) cost about 6 s per frame. Assembly and encoding (two passes VP9 and H.264) about 12 minutes.
 
 Kodierung / encoding: WebM VP9 640 kbit/s + Opus 96 kbit/s (11,9 MB), MP4 H.264 High 690 kbit/s + AAC 112 kbit/s

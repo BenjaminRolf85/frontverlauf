@@ -43,16 +43,16 @@ export function buildFilmScore(): ScoreEvent[] {
   theme('meridon', 0, 0, O.flicker);
   pad(0, 98, O.flicker, 0.05);
   // Hafen: Schiffshorn, Muenzen klingen in die Bank / harbour: ship's horn, coins chime into the bank
-  cue(0.8, 'horn', undefined, 0.45); cue(5.2, 'horn', undefined, 0.35);
-  for (const at of [2.0, 3.6, 5.8, 7.2]) cue(at, 'coins', undefined, 0.45);
+  cue(0.8, 'horn', undefined, 0.9); cue(2.6, 'engine', undefined, 0.35); cue(5.2, 'horn', undefined, 0.7);
+  for (const at of [2.0, 3.6, 5.8, 7.2]) cue(at, 'coins', undefined, 0.9);
   // die Laufschrift flackert, der Strom faellt ab / the ticker flickers, the power falls away
   cue(O.flicker, 'crackle', undefined, 0.7); cue(O.flicker, 'powerDown');
   cue(O.flicker + 0.3, 'beep', undefined, 0.5);
   // Viertel fuer Viertel schalten ab, immer naeher / district by district switches off, ever closer
   for (let k = 0; k < 5; k++) cue(O.wave[0] + 0.4 + k * (O.wave[1] - O.wave[0] - 0.4) / 4, 'kick', undefined, 0.35 + k * 0.12);
   // dann Stille; nur das Rechenzentrum von NEXUS summt kalt / then silence; only the NEXUS data centre hums coldly
-  cue(O.hum, 'drone', undefined, 0.55);
-  cue(O.hum + 1.2, 'beep', undefined, 0.35); cue(O.hum + 2.6, 'beep', undefined, 0.3);
+  cue(O.hum, 'drone', undefined, 1.1);
+  cue(O.hum + 1.2, 'beep', undefined, 0.5); cue(O.hum + 2.6, 'beep', undefined, 0.4);
 
   // 2 Wracks / wrecks
   const w = S('wrecks');
