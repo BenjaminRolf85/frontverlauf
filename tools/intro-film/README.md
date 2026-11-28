@@ -134,7 +134,24 @@ python3 tools/intro-film/assemble.py --quality film               # 24 fps, 1920
   und `low` unveraendert (Tests, Fingerabdruck aller Modelle gleich). / `setFilmSegments` is set by the film export
   only; the game builds `high` and `low` unchanged (tests, fingerprint of all models equal).
 
-Messwerte und Hochrechnung fuer den ganzen Film: siehe unten / measurements and projection for the whole film: below.
+Gemessen (Testlauf korvat, banners, oldworld; 4 Kerne, zwei Prozesse) / measured (test run, 4 cores, two processes):
+
+| | s je Bild und Prozess / s per frame and process | ganzer Film (Hochrechnung) / whole film (projection) |
+|---|---|---|
+| `preview` | korvat 6,4, banners 6,3, oldworld 9,7 (12 fps) | ~1,4 h |
+| `film` | korvat 28,3, banners 15,5, oldworld 32,3 (24 fps; 696 Bilder in 2 h 49 min) | ~10,8 h |
+| `filmLite` | aus Standbildern / from stills: etwa 1,7 / 1,4 / 1,3 x `preview` je Bild | ~4,3 h |
+
+Hebel einzeln (ein Prozess, s je Bild korvat / banners / oldworld) / levers alone: bisher 4,1 / 3,7 / 6,0; 1080p mit
+4 Proben 5,3 / 4,7 / 7,4; 8 Proben 9,8 / 8,5 / 13,7; 16 Proben 19,3 / 16,2 / 26,6; feine Schatten (Aufloesung 1,0)
+etwa +40-80 % in Szenen mit Sonne; Filmmodelle bis +15 %. Knie der Kantenglaettung bei 8 Proben (gegen 16: 46-50 dB).
+Zwischenbilder 1080p etwa 1,8 MB je PNG, ganzer Film etwa 6 GB. Kodierung bei 1080p24 ohne Verschmieren (H.264 CRF 18 /
+VP9 CRF 30): 4,5-9 Mbit/s je nach Bewegung, ganzer Film etwa 73-115 MB je Format; die Zielbitraten in assemble.py
+bleiben bis zur Entscheidung wie bisher.
+Single levers (one process): 1080p costs only +20-30 %, samples scale almost linearly, fine shadows (scale 1.0) cost
++40-80 % in sunlit shots, film models up to +15 %. Anti-aliasing knee at 8 samples. Frames at 1080p about 1.8 MB per
+PNG, about 6 GB for the film. Encoding at 1080p24 without smear: 4.5-9 Mbit/s depending on motion, about 73-115 MB per
+format for the whole film; assemble.py keeps its target bitrates until that is decided.
 
 ## Musik / music
 
