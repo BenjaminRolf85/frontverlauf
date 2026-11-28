@@ -56,24 +56,38 @@ describe('Introfilm-Zeitleiste / intro film timeline', () => {
 
   it('Untertitel und Einblendungen zur Zeit t / captions and overlays at time t', () => {
     expect(captionAt(0.2)).toBeNull();
-    expect(captionAt(1)?.key).toBe('empire');
+    expect(captionAt(2)?.key).toBe('oldWorld');
     expect(captionAt(shotStart('velkar') + 1)?.key).toBe('velkar');
     expect(captionAt(FILM.duration - 0.5)).toBeNull();
     expect(overlayAt(shotStart('crash') + 1.5)?.key).toBe('boom');
     expect(overlayAt(FILM.duration - 0.5)?.key).toBe('tagline');
     expect(overlayAt(10)).toBeNull();
+    // Erzaehlerkarte ab der ersten Sekunde / narrator card from the first second
+    expect(overlayAt(0.5)?.key).toBe('narrator');
+    expect(overlayKey('narrator')).toBe('intro.film.narrator');
     expect(() => shotStart('nope')).toThrow();
   });
 
-  it('die ganze Vorgeschichte in beiden Sprachen / the whole backstory in both languages', () => {
+  it('die ganze Vorgeschichte in beiden Sprachen, in der Reihenfolge der Chronik (docs/lore.md) / the whole backstory in both languages, in the order of the chronicle (docs/lore.md)', () => {
     const all = (d: unknown) => FILM.captions.map((c) => lookup(d, `intro.film.sub.${c.key}`) as string).join(' ');
-    const deText = all(de), enText = all(en);
-    for (const w of ['Verdan', 'Stillstand', 'Wracks', 'Kreide', 'Himmel', 'Mutterschiff', 'Glocke', 'NEXUS', 'Kult', 'Tor', 'dritte Welt', 'fünf',
-      'Korvat', 'Alvenia', 'Göttliche Funke', 'Dravon', 'Minenfelder', 'Velkar', 'Akademie', 'Orbitallaser', 'Neutronenstrahl', 'Meridon', 'Kaperschiffe', 'Raketensilos', 'Marines'])
-      expect(deText).toContain(w);
-    for (const w of ['Verdan', 'Standstill', 'wrecks', 'chalk', 'sky', 'mothership', 'bell', 'NEXUS', 'Cult', 'gate', 'third world', 'five',
-      'Korvat', 'Alvenia', 'Divine Spark', 'Dravon', 'minefields', 'Velkar', 'Academy', 'orbital laser', 'neutron beam', 'Meridon', 'privateers', 'rocket silos', 'marines'])
-      expect(enText).toContain(w);
+    const inOrder = (text: string, words: string[]) => {
+      let at = -1;
+      for (const w of words) {
+        const i = text.indexOf(w, at + 1);
+        expect(i, w).toBeGreaterThan(at);
+        at = i;
+      }
+    };
+    // alte Welt, Stillstand, Verteilungskriege, Gruendung Verdans, Sternfall, Wettlauf / old world, standstill, distribution wars, founding of Verdan, Starfall, race
+    inOrder(all(de), ['Weltrepublik Meridon', 'Banken', 'Große Stillstand', 'NEXUS', 'Grenzen', 'Verteilungskriege', 'Fünf Völker', 'Verdan', 'Frieden', '500 Jahren',
+      'Sternfall', 'Raumschiff', 'Kult der Letzten Stunde', 'Glocke', 'NEXUS', 'wartet', 'Zyrr', 'zweiten Heimat', 'Frieden zerbricht', 'Wrack',
+      'Korvat', 'Alvenia', 'Dravon', 'Velkar', 'Meridon', 'Rivalen', 'Front wandert wieder']);
+    inOrder(all(en), ['world republic of Meridon', 'banks', 'Great Standstill', 'NEXUS', 'Borders', 'distribution wars', 'Five peoples', 'Verdan', 'peace', '500 years',
+      'Starfall', 'alien ship', 'Cult of the Final Hour', 'bell', 'NEXUS', 'waits', 'Zyrr', 'second home', 'peace breaks', 'wreck',
+      'Korvat', 'Alvenia', 'Dravon', 'Velkar', 'Meridon', 'rivals', 'front is moving again']);
+    // wer erzaehlt / who narrates
+    expect(lookup(de, 'intro.film.narrator')).toBe('Aus der Chronik von Verdan');
+    expect(lookup(en, 'intro.film.narrator')).toBe('From the Chronicle of Verdan');
   });
 });
 

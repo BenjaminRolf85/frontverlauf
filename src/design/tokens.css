@@ -982,4 +982,7 @@
   --c-intro-film-tagline-size: clamp(14px, 7.6cqh, 80px);
   --c-intro-film-tagline-top: 76.5%;
   --c-intro-film-stall-ms: 12000ms;
+  --c-intro-film-narrator-size: clamp(15px, 6.4cqh, 58px);
+  --c-intro-film-narrator-top: 15%;
+  --c-intro-film-narrator-tilt: -2deg;
 }

@@ -9,7 +9,7 @@
 cd "$(dirname "$0")"
 PY=${PY:-python}
 JOBS=${JOBS:-2}
-SHOTS=${@:-verdan wrecks chalk skyburns crash bell awaken_nexus awaken_vesper awaken_zyrr gate fracture korvat alvenia dravon velkar meridon banners title}
+SHOTS=${@:-oldworld wrecks chalk skyburns crash bell awaken_nexus awaken_vesper awaken_zyrr gate fracture korvat alvenia dravon velkar meridon banners title}
 # Abschnitte "shot first last" aus der Zeitleiste / sections "shot first last" from the timeline
 SECTIONS=$(python3 - $SHOTS <<'EOF'
 import json, sys

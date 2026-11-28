@@ -62,6 +62,14 @@
   top: 38%; font-size: var(--c-intro-film-boom-size); color: var(--c-intro-hazard);
   transform: translate(-50%, -50%) rotate(var(--c-intro-film-boom-tilt));
 }
+/* Erzaehlerkarte: wer erzaehlt, als Schild wie die Untertitel / narrator card: who tells the story, as a plate like the captions */
+.intro-film-overlay[data-kind="narrator"] {
+  top: var(--c-intro-film-narrator-top); font-size: var(--c-intro-film-narrator-size); color: var(--c-intro-paper);
+  padding: 0.3em 0.7em 0.25em; border-radius: var(--c-intro-film-caption-radius);
+  background: color-mix(in srgb, var(--c-intro-subtitle-bg) var(--c-intro-film-caption-alpha), transparent);
+  border: var(--c-intro-film-caption-border) solid var(--c-intro-hazard);
+  transform: translate(-50%, -50%) rotate(var(--c-intro-film-narrator-tilt));
+}
 .intro-film-overlay[data-kind="tagline"] {
   top: var(--c-intro-film-tagline-top); font-size: var(--c-intro-film-tagline-size); color: var(--c-intro-paper);
   transform: translate(-50%, -50%);

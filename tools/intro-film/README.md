@@ -30,7 +30,7 @@ Blender and the game share the timeline (`src/intro/film.json`); change shot len
 ```bash
 # Blender als Python-Modul (getestet: bpy 5.2 unter Python 3.13) / Blender as a Python module (tested: bpy 5.2 on Python 3.13)
 python3.13 -m venv /tmp/bpyenv && /tmp/bpyenv/bin/pip install bpy fonttools brotli
-# alternativ eine Blender-Installation: blender -b -P render.py -- --shot verdan / alternatively a Blender install
+# alternativ eine Blender-Installation: blender -b -P render.py -- --shot oldworld / alternatively a Blender install
 # ffmpeg mit libvpx-vp9, libopus, libx264 / ffmpeg with libvpx-vp9, libopus, libx264
 npm install   # Vite, three, Playwright (global oder lokal / global or local)
 ```

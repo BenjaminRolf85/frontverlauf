@@ -132,6 +132,7 @@ function playFilm(root: HTMLElement, opts: IntroOptions): { close: () => void } 
       ovEl.dataset.kind = ovKey;
       ovEl.hidden = !ov;
       if (ov?.key === 'tagline') live.textContent = `${t('app.title')}. ${t('intro.tagline')}.`;
+      else if (ov?.key === 'narrator') live.textContent = t(overlayKey(ov.key));
     }
     bar.style.transform = `scaleX(${Math.min(1, time / FILM.duration)})`;
     raf = requestAnimationFrame(frame);
