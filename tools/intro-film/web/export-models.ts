@@ -24,6 +24,7 @@ import {
   baseGeometry, buildingGeometry, cityGeometry, cloudGeometry, crashSiteGeometry, decorationGeometry, emplacementGeometry,
   emplacementRuinGeometry, leaderGeometry, mineGeometry, mothershipGeometry, setUnitQuality, splitTurrets, techParts, unitGeometry, verdanRuinGeometry, verdanTurretGeometry,
 } from '../../../src/render/models/index';
+import { setFilmSegments } from '../../../src/render/models/kit';
 import { academyGeometry } from '../../../src/render/models/academy';
 import { atlasDef, atlasSize, atlasTextures, flushAtlases, SDF_RANGE } from '../../../src/render/models/inked/atlas';
 import { crewCells, crewExtraCells } from '../../../src/render/models/inked/figurePaint';
@@ -45,6 +46,11 @@ import { bellTower, conifer, leafy, house, smokestack, sandbags } from '../../..
 
 // Film: immer die hohe Detailstufe der Einheiten / film: always the high unit detail level
 setUnitQuality('high');
+// Filmstufe (export-models.mjs --quality film, ?seg=2): runde Teile mit mehr Segmenten und Ringen, nur in diesem Export;
+// ohne Angabe genau die Modelle des Spiels / film level (?seg=2): round parts with more segments and rings, only in this
+// export; without it exactly the game's models
+const FILM_SEG = Number(new URLSearchParams(location.search).get('seg') ?? '1');
+if (FILM_SEG > 1) setFilmSegments(FILM_SEG);
 
 type Maker = () => THREE.BufferGeometry;
 const HUMANS: FactionId[] = ['korvat', 'alvenia', 'dravon', 'velkar', 'meridon'];
@@ -392,8 +398,8 @@ function dumpInkedGeometry(name: string, g: THREE.BufferGeometry, type: UnitType
 function style() {
   return {
     ref: REF, sdfRange: SDF_RANGE, unitBrightness: UNIT_BRIGHTNESS, toonRamp: TOON_RAMP.hard,
-    outline: OUTLINE.unit, outlineMaxPx: OUTLINE_MAX_PX, creaseHalfWidth: CREASE_HALF_WIDTH,
-    atlases: [...usedAtlases].sort(),
+    outline: OUTLINE.unit, outlineMaxPx: OUTLINE_MAX_PX, creaseHalfWidth: CREASE_HALF_WIDTH, filmSegments: FILM_SEG,
+    atlases: [...usedAtlases].sort(), hero: [...usedAtlases].filter((id) => atlasDef(id).hero).sort(),
   };
 }
 

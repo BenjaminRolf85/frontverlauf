@@ -8,7 +8,10 @@
 // Units come as inked models (dumpInked): <name>.json (header) and <name>.bin (arrays) to .cache/units/, their atlases
 // as PNG to .cache/atlas/ (<id>-paint.png RGBA, <id>-ink.png distance field), figures of the style to .cache/inked.json.
 //
-// node tools/intro-film/export-models.mjs [--out tools/intro-film/.cache/models] [--only name1,name2] [--atlas 2048]
+// node tools/intro-film/export-models.mjs [--out tools/intro-film/.cache/models] [--only name1,name2] [--atlas 2048] [--hero 2048] [--quality film]
+// --quality film: Werte aus quality.json (Segmentfaktor, Atlasgroessen, Ziel .cache/film/models); das Spiel bleibt
+// unveraendert, die Filmstufe gibt es nur in diesem Export / values from quality.json (segment factor, atlas sizes,
+// target .cache/film/models); the game is unchanged, the film level exists only in this export
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
@@ -21,12 +24,18 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
   if (a.startsWith('--')) acc.push([a.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : 'true']);
   return acc;
 }, []));
-const out = resolve(args.out ?? join(root, 'tools/intro-film/.cache/models'));
+const profile = JSON.parse(readFileSync(join(root, 'tools/intro-film/quality.json'), 'utf8'))[args.quality ?? 'preview'];
+if (!profile) throw new Error(`unknown quality ${args.quality}`);
+const out = resolve(args.out ?? join(root, 'tools/intro-film', profile.cache, 'models'));
 const cache = join(out, '..');
 const unitsOut = join(cache, 'units'), atlasOut = join(cache, 'atlas');
-// Kantenlaenge der Atlanten: 2048, weil der Film Einheiten naeher zeigt als das Brett (die Maler sind aufloesungsunabhaengig)
-// atlas edge length: 2048 because the film shows units closer than the board does (the painters are resolution independent)
-const atlasSize = Number(args.atlas ?? 2048);
+// Kantenlaenge der Atlanten: 2048, weil der Film Einheiten naeher zeigt als das Brett (die Maler sind aufloesungsunabhaengig);
+// Heldenatlanten der Anfuehrer in der Filmstufe 4096 (Gesichter fuellen das Bild)
+// atlas edge length: 2048 because the film shows units closer than the board does (the painters are resolution
+// independent); the leaders' hero atlases at 4096 on the film level (faces fill the frame)
+const atlasSize = Number(args.atlas ?? profile.atlas);
+const heroSize = Number(args.hero ?? profile.heroAtlas);
+const segments = Number(args.seg ?? profile.segments);
 for (const d of [out, unitsOut, atlasOut]) mkdirSync(d, { recursive: true });
 
 /** Playwright lokal oder global / Playwright local or global */
@@ -60,7 +69,7 @@ function png(data, w, h, channels) {
 const { createServer } = await import('vite');
 const srv = await createServer({ root, configFile: false, base: '/', logLevel: 'warn', server: { port: Number(args.port ?? 5219), fs: { strict: false } } });
 await srv.listen();
-const url = `${srv.resolvedUrls.local[0]}tools/intro-film/web/models.html`;
+const url = `${srv.resolvedUrls.local[0]}tools/intro-film/web/models.html${segments > 1 ? `?seg=${segments}` : ''}`;
 const { chromium } = await loadPlaywright();
 const browser = await chromium.launch();
 let failed = 0;
@@ -107,14 +116,15 @@ try {
   style.blank = { ...before.blank };
   style.sizes = { ...before.sizes };
   for (const id of style.atlases) {
-    const info = await page.evaluate(([i, s]) => window.__models.atlas(i, s), [id, atlasSize]);
+    const want = style.hero.includes(id) ? heroSize : atlasSize;
+    const info = await page.evaluate(([i, s]) => window.__models.atlas(i, s), [id, want]);
     if (!info.ready) { console.error(`atlas ${id}: not painted`); failed++; continue; }
     style.blank[id] = info.blank;
     style.sizes[id] = info.size;
     for (const [layer, bytes, channels] of [['paint', info.paintBytes, 4], ['ink', info.inkBytes, 1]]) {
       const parts = [];
       const step = 6 * 1024 * 1024;
-      for (let off = 0; off < bytes; off += step) parts.push(Buffer.from(await page.evaluate(([i, s, l, o, n]) => window.__models.atlasChunk(i, s, l, o, n), [id, atlasSize, layer, off, step]), 'base64'));
+      for (let off = 0; off < bytes; off += step) parts.push(Buffer.from(await page.evaluate(([i, s, l, o, n]) => window.__models.atlasChunk(i, s, l, o, n), [id, want, layer, off, step]), 'base64'));
       // Zeile 0 der Texturdaten ist v = 0 und zugleich die oberste Zeile der Zeichenflaeche: sie wird die oberste PNG-Zeile
       // row 0 of the texture data is v = 0 and also the top row of the drawing canvas: it becomes the top PNG row
       writeFileSync(join(atlasOut, `${id}-${layer}.png`), png(Buffer.concat(parts), info.size, info.size, channels));
@@ -122,6 +132,7 @@ try {
     console.log(`atlas ${id}: ${info.size} px`);
   }
   style.atlases = [...new Set([...before.atlases, ...style.atlases])].sort();
+  style.hero = [...new Set([...(before.hero ?? []), ...style.hero])].sort();
   writeFileSync(stylePath, JSON.stringify(style, null, 1));
 } finally {
   await browser.close();

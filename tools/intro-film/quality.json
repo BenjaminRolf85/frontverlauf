@@ -1,0 +1,44 @@
+{
+  "preview": {
+    "renderFps": null,
+    "scale": 1.0,
+    "samples": 4,
+    "shadow": 0.5,
+    "shadowMax": 0.05,
+    "shadowSteps": 1,
+    "motionBlur": 0,
+    "cache": ".cache",
+    "atlas": 2048,
+    "heroAtlas": 2048,
+    "segments": 1,
+    "ease": false
+  },
+  "film": {
+    "renderFps": 24,
+    "scale": 1.5,
+    "samples": 8,
+    "shadow": 1.0,
+    "shadowMax": 0.01,
+    "shadowSteps": 1,
+    "motionBlur": 0,
+    "cache": ".cache/film",
+    "atlas": 2048,
+    "heroAtlas": 4096,
+    "segments": 2,
+    "ease": true
+  },
+  "filmLite": {
+    "renderFps": 24,
+    "scale": 1.5,
+    "samples": 4,
+    "shadow": 0.5,
+    "shadowMax": 0.01,
+    "shadowSteps": 1,
+    "motionBlur": 0,
+    "cache": ".cache/film",
+    "atlas": 2048,
+    "heroAtlas": 4096,
+    "segments": 2,
+    "ease": true
+  }
+}

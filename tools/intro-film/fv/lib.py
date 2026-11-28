@@ -24,15 +24,55 @@ from mathutils import Euler, Vector
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-CACHE = os.path.join(HERE, '.cache')
-FPS = 12
+BASE_CACHE = os.path.join(HERE, '.cache')
+# Qualitaetsstufe aus quality.json: 'preview' (Standard: schnell, 12 fps, 1280x720, wie bisher) oder 'film' (24 fps,
+# 1920x1080, mehr Bildproben, feine Schatten, Modelle aus dem Filmexport in .cache/film). Einzelne Werte lassen sich
+# weiter ueber FV_SAMPLES, FV_SHADOW, FV_SHADOW_MAX, FV_SHADOW_STEPS, FV_MBLUR, FV_SCALE, FV_FPS ueberschreiben.
+# quality level from quality.json: 'preview' (default: fast, 12 fps, 1280x720, as before) or 'film' (24 fps, 1920x1080,
+# more samples, fine shadows, models from the film export in .cache/film). Single values can still be overridden with
+# FV_SAMPLES, FV_SHADOW, FV_SHADOW_MAX, FV_SHADOW_STEPS, FV_MBLUR, FV_SCALE, FV_FPS.
+QUALITY = os.environ.get('FV_QUALITY', 'preview')
+with open(os.path.join(HERE, 'quality.json')) as _fh:
+    PROFILE = json.load(_fh)[QUALITY]
+# FV_CACHE: anderer Cache (Vergleiche) / other cache (comparisons)
+CACHE = os.environ.get('FV_CACHE') or os.path.join(HERE, PROFILE['cache'])
+
+
+def cache_file(*parts):
+    """
+    Datei im Cache der Qualitaetsstufe, sonst im Grund-Cache (so braucht die Filmstufe nur neu exportierte Einheiten).
+    File in the quality level's cache, else in the base cache (so the film level only needs the re-exported units).
+    """
+    p = os.path.join(CACHE, *parts)
+    return p if os.path.exists(p) else os.path.join(BASE_CACHE, *parts)
+
+
+def _render_fps():
+    if os.environ.get('FV_FPS'):
+        return int(os.environ['FV_FPS'])
+    if PROFILE.get('renderFps'):
+        return int(PROFILE['renderFps'])
+    with open(os.path.join(ROOT, 'src', 'intro', 'film.json')) as fh:
+        return int(json.load(fh)['renderFps'])
+
+
+# Bilder je Sekunde beim Rendern (Vorschau 12, im Video auf 24 gehalten; Film 24) / frames per second when rendering
+FPS = _render_fps()
+# Aufloesung: die Szenen sind in Bildpunkten einer 1280 breiten Leinwand gebaut (Linienbreiten, Raster); SCALE
+# vergroessert nur die Ausgabe, damit Linien im Verhaeltnis gleich dick bleiben
+# resolution: the shots are built in pixels of a 1280 wide canvas (line widths, screen); SCALE only enlarges the
+# output so lines stay equally thick in proportion
+SCALE = float(os.environ.get('FV_SCALE', PROFILE['scale']))
+# Weiche Bewegungen (Filmstufe): Fahrten und Stopps laufen ein und aus statt mit harter Kante; 0 = wie bisher
+# eased motion (film level): moves and stops ease in and out instead of a hard edge; 0 = as before
+EASE = os.environ.get('FV_EASE', '1' if PROFILE.get('ease') else '0') == '1'
 TILE = 10.0
 HULL = float(os.environ.get("FV_HULL", "2.2"))
 # Rasterpunkte auf der Umgebung (Einheiten sind immer flach): 0 = flach (Standard), 1 = Punkte (nur zum Vergleich)
 # halftone dots on the environment (units are always flat): 0 = flat (default), 1 = dots (for comparison only)
 DOTS = os.environ.get('FV_DOTS', '0') == '1'
 # Kantenglaettung: Bildproben je Bild (Tuschelinien brauchen sie) / anti-aliasing: samples per frame (ink lines need them)
-SAMPLES = int(os.environ.get('FV_SAMPLES', '4'))
+SAMPLES = int(os.environ.get('FV_SAMPLES', PROFILE['samples']))
 
 _TOK = None
 
@@ -40,7 +80,7 @@ _TOK = None
 def tokens():
     global _TOK
     if _TOK is None:
-        with open(os.path.join(CACHE, 'tokens.json')) as fh:
+        with open(cache_file('tokens.json')) as fh:
             _TOK = json.load(fh)
     return _TOK
 
@@ -123,7 +163,7 @@ class Shot:
         self.w, self.h = w, h
         sc.render.engine = 'BLENDER_EEVEE'
         sc.eevee.taa_render_samples = samples
-        sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, 100
+        sc.render.resolution_x, sc.render.resolution_y, sc.render.resolution_percentage = w, h, int(round(SCALE * 100))
         sc.render.fps = FPS
         sc.frame_start, sc.frame_end = 1, int(round(dur * FPS))
         sc.render.filter_size = 0.9
@@ -134,12 +174,20 @@ class Shot:
         sc.render.image_settings.compression = 15
         sc.render.film_transparent = False
         # harte Schattenraender brauchen die volle Aufloesung, sonst zeigen sie Treppen / hard shadow edges need the full resolution, otherwise they show stair steps
-        sc.eevee.shadow_resolution_scale = float(os.environ.get('FV_SHADOW', '0.5'))
+        sc.eevee.shadow_resolution_scale = float(os.environ.get('FV_SHADOW', PROFILE['shadow']))
         # Sparen ohne sichtbaren Unterschied (gemessen, Bilder gleich): ein Schritt je Schattenstrahl (der Rand ist ohnehin
         # hart), kleinstes Streulicht (alle Materialien sind unbeleuchtet mit eigenen Stufen)
         # savings without a visible difference (measured, pictures equal): one step per shadow ray (the edge is hard
         # anyway), minimal indirect light (all materials are unlit with their own bands)
-        sc.eevee.shadow_step_count = 1
+        sc.eevee.shadow_step_count = int(os.environ.get('FV_SHADOW_STEPS', PROFILE['shadowSteps']))
+        # Bewegungsunschaerfe (nur zum Vergleich, Standard aus): Zeitschritte je Bild; die Szene folgt ueber
+        # frame_change_pre auch den Zwischenzeiten / motion blur (comparison only, off by default): time steps per frame;
+        # the scene follows the sub-frame times through frame_change_pre
+        mb = int(os.environ.get('FV_MBLUR', PROFILE.get('motionBlur', 0)))
+        sc.render.use_motion_blur = mb > 0
+        if mb > 0:
+            sc.eevee.motion_blur_steps = mb
+            sc.render.motion_blur_shutter = float(os.environ.get('FV_SHUTTER', '0.5'))
         sc.eevee.fast_gi_method = 'AMBIENT_OCCLUSION_ONLY'
         sc.eevee.fast_gi_ray_count = 1
         sc.eevee.fast_gi_step_count = 1
@@ -191,7 +239,8 @@ class Shot:
         # hard shadow edge without scatter: with few samples the soft edge is noisy like a dot screen
         self.sun.data.angle = angle
         self.sun.data.shadow_filter_radius = 0.0
-        self.sun.data.shadow_maximum_resolution = float(os.environ.get('FV_SHADOW_MAX', '0.05'))
+        # kleinster Weltabstand je Schattenkarten-Bildpunkt (kleiner = feiner) / smallest world size per shadow map texel (smaller = finer)
+        self.sun.data.shadow_maximum_resolution = float(os.environ.get('FV_SHADOW_MAX', PROFILE['shadowMax']))
         # Lichtrichtung fuer Lichtbaender und Glanzfleck der Einheiten / light direction for the units' light bands and glint
         self.toon.set_sun(Euler(rot).to_matrix() @ Vector((0, 0, 1)))
         return self.sun
@@ -202,9 +251,27 @@ class Shot:
         # Hochformat (Comicfelder): der Sensor liegt an der Bildhoehe an / portrait (comic panels): the sensor fits the picture height
         return 2 * dist * math.tan(fov / 2) / (self.h if self.cam.data.sensor_fit == 'VERTICAL' else self.w)
 
+    def px_out(self, dist):
+        """Weltgroesse eines ausgegebenen Bildpunkts (mit SCALE) / world size of one output pixel (with SCALE)"""
+        return self.px(dist) * 100.0 / self.sc.render.resolution_percentage
+
+    def _subframes(self):
+        """
+        Mit Bewegungsunschaerfe wertet Eevee Zwischenzeiten aus; die Szene wird von Python bewegt, also folgt sie ihnen
+        ueber frame_change_pre. / With motion blur Eevee evaluates sub-frame times; the scene is moved by Python, so it
+        follows them through frame_change_pre.
+        """
+        if not self.sc.render.use_motion_blur:
+            return
+
+        def follow(scene, *_):
+            self.update((scene.frame_current - 1 + scene.frame_subframe) / FPS)
+        bpy.app.handlers.frame_change_pre.append(follow)
+
     def render(self, out_dir, first=1, last=None, every=1):
         os.makedirs(out_dir, exist_ok=True)
         last = last or self.frames
+        self._subframes()
         import time
         for f in range(first, last + 1, every):
             t = (f - 1) / FPS
@@ -659,7 +726,7 @@ def model_mesh(name):
     """Spielmodell als Blender-Mesh (geteilt) / game model as a Blender mesh (shared)"""
     if name in _MESH:
         return _MESH[name]
-    with open(os.path.join(CACHE, 'models', name + '.json')) as fh:
+    with open(cache_file('models', name + '.json')) as fh:
         d = json.load(fh)
     p = _arr(d['pos']).reshape(-1, 3).astype(np.float64)
     nrm = _arr(d['nor']).reshape(-1, 3)
@@ -794,22 +861,22 @@ def style():
     """Kenngroessen des gezeichneten Stils aus dem Export / figures of the inked style from the export"""
     global _STYLE
     if _STYLE is None:
-        with open(os.path.join(CACHE, 'inked.json')) as fh:
+        with open(cache_file('inked.json')) as fh:
             _STYLE = json.load(fh)
     return _STYLE
 
 
 def is_unit(name):
-    return name in _UNIT or os.path.exists(os.path.join(CACHE, 'units', name + '.json'))
+    return name in _UNIT or os.path.exists(cache_file('units', name + '.json'))
 
 
 def unit_data(name):
     """Kopf und Felder einer exportierten Einheit / header and arrays of an exported unit"""
     if name in _UNIT:
         return _UNIT[name]
-    with open(os.path.join(CACHE, 'units', name + '.json')) as fh:
+    with open(cache_file('units', name + '.json')) as fh:
         d = json.load(fh)
-    with open(os.path.join(CACHE, 'units', name + '.bin'), 'rb') as fh:
+    with open(cache_file('units', name + '.bin'), 'rb') as fh:
         blob = fh.read()
 
     def arr(ref, width):
@@ -1033,7 +1100,7 @@ def atlas_images(atlas):
         return _ATLAS[atlas]
     out = []
     for layer in ('paint', 'ink'):
-        src = bpy.data.images.load(os.path.join(CACHE, 'atlas', '%s-%s.png' % (atlas, layer)))
+        src = bpy.data.images.load(cache_file('atlas', '%s-%s.png' % (atlas, layer)))
         src.colorspace_settings.name = 'Non-Color'
         w, h = src.size
         px = np.empty(w * h * 4, np.float32)
@@ -1338,7 +1405,9 @@ def units_refresh(shot, t=0.0):
             line.update_tag()
             # Kantenbreite der Tusche im Abstandsfeld: Feldwert je Bildpunkt (wie fwidth im Spiel)
             # edge width of the ink in the distance field: field value per pixel (like fwidth in the game)
-            fill['inkw'] = float(min(0.5, st['ref'] / (2.0 * st['sdfRange']) * INK_SOFT * px / (TILE * sc)))
+            # (je ausgegebenem Bildpunkt: bei hoeherer Aufloesung bleibt die Kante einen Bildpunkt breit und wird schaerfer)
+            # (per output pixel: at a higher resolution the edge stays one pixel wide and gets sharper)
+            fill['inkw'] = float(min(0.5, st['ref'] / (2.0 * st['sdfRange']) * INK_SOFT * shot.px_out(dist) / (TILE * sc)))
             fill['glowoff'] = glowoff
             fill.update_tag()
     for ob, tp, base, phase in shot.spinners:
@@ -1631,7 +1700,7 @@ def text_obj(shot, body, size=1.0, extrude=0.1, color='hazard', font='bangers', 
 
 def font_path(name):
     """Schrift aus @fontsource (woff) als TTF in den Cache / font from @fontsource (woff) as TTF in the cache"""
-    out = os.path.join(CACHE, name + '.ttf')
+    out = cache_file(name + '.ttf')
     if os.path.exists(out):
         return out
     for base in (os.path.join(ROOT, 'node_modules'), os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(ROOT))), 'node_modules')):

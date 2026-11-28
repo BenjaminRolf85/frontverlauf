@@ -24,7 +24,7 @@
  *   (cap band, collar, helmet).
  */
 import * as THREE from 'three';
-import { col, fine, type ColorLike, type V3 } from '../kit';
+import { col, filmSeg, fine, type ColorLike, type V3 } from '../kit';
 import { Sculpt, smoothNormals, smoothstep } from '../sculpt';
 import { loft, projectBox, REF, type AtlasLayout, type Region, type UvBuilder } from './uvkit';
 import type { Pt } from './atlas';
@@ -306,7 +306,7 @@ export function revolve(profile: [number, number][], o: RevolveOpts): THREE.Buff
   const t0 = o.t0 ?? 0, t1 = o.t1 ?? 1;
   const tAt = (v: number) => { const k = Math.min(m, v * m), i = Math.min(m - 1, Math.floor(k + 1e-9)); return t0 + ((t1 - t0) * (acc[i] + (acc[i + 1] - acc[i]) * (k - i))) / total; };
   return sheet((u, v) => revolveAt(profile, o, u, v * m), {
-    nu: o.seg, nv: m * sub, region: o.region, closedU: true, flip: o.flip, color: o.color,
+    nu: Math.round(filmSeg(o.seg)), nv: Math.round(filmSeg(m * sub)), region: o.region, closedU: true, flip: o.flip, color: o.color,
     colorAt: o.colorAt ? (_u, v) => o.colorAt!(Math.min(m - 1, Math.floor(v * m))) : undefined,
     st: (u, v) => [o.mirror ? Math.abs(2 * u - 1) : u, tAt(v)],
   });
@@ -443,7 +443,8 @@ export interface TubeOpts {
  */
 export function tube(path: V3[], radius: (t: number) => number | [number, number], o: TubeOpts): THREE.BufferGeometry {
   const curve = new THREE.CatmullRomCurve3(path.map(V), false, 'centripetal');
-  const n = o.samples ?? Math.max(6, path.length * 4), seg = Math.max(3, o.seg);
+  // Filmexport: mehr Stuetzstellen und Segmente (im Spiel unveraendert) / film export: more samples and segments (unchanged in the game)
+  const n = Math.round(filmSeg(o.samples ?? Math.max(6, path.length * 4))), seg = Math.max(3, Math.round(filmSeg(o.seg)));
   const rings: { p: THREE.Vector3; n: THREE.Vector3; t: number; a: number; c?: THREE.Color }[][] = [];
   const centres: THREE.Vector3[] = [], tans: THREE.Vector3[] = [];
   for (let i = 0; i <= n; i++) {

@@ -25,7 +25,9 @@ the start as an overlay; all captions speak in the voice of this chronicle: thir
 Starfall, present tense from the bell for the race that starts now. Another narrator (e.g. Jaco, the young Dravoner of
 the audiobook) is swapped in by texts only: `intro.film.narrator` and `intro.film.sub.*`; picture and timings stay.
 
-- Laenge / length: 124 s, 1280x720, gerendert mit 12 fps und auf 24 fps gehalten ("on twos") / rendered at 12 fps, held to 24 fps ("on twos")
+- Laenge / length: 124 s, 1280x720, gerendert mit 12 fps und auf 24 fps gehalten ("on twos") / rendered at 12 fps, held to 24 fps ("on twos").
+  Filmstufe (Test, `FV_QUALITY=film`, siehe `tools/intro-film/README.md`): 24 echte Bilder je Sekunde, 1920x1080, feinere
+  Modelle nur im Export / film level (test): 24 real frames per second, 1920x1080, finer models in the export only
 - Takt / tempo: 120 BPM, Schnitte auf Taktanfaengen / cuts on bar starts
 - Look: Spielmodelle aus `src/render/models` (als Rohdaten exportiert). Einheiten sind die gezeichneten Modelle des Spiels
   (`src/render/models/inked`): Zeichnung aus den Atlanten auf der Vertexfarbe, Tusche aus dem Abstandsfeld, Umriss und

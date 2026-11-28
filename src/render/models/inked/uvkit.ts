@@ -13,7 +13,7 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { Builder, col, fine, withDetail, xfMatrix, type ColorLike, type TurretRange, type V3, type Xf } from '../kit';
+import { Builder, col, filmSeg, filmSegments, fine, withDetail, xfMatrix, type ColorLike, type TurretRange, type V3, type Xf } from '../kit';
 import { semantic } from '../../../design/tokens';
 
 // ---------- Atlas ----------
@@ -114,13 +114,73 @@ export function ringT(rings: Ring[], arc = false): number[] {
 const sgnPow = (v: number, p: number) => Math.sign(v) * Math.pow(Math.abs(v), p);
 
 /**
+ * Nur Filmexport (filmSegments() > 1, im Spiel nie): zwischen zwei Ringen weitere Ringe auf einer monotonen
+ * Hermite-Kurve (Fritsch-Carlson, kein Ueberschwingen: gerade Stuecke bleiben gerade), damit Umrisse von Rumpf, Kopf
+ * und Gliedern rund statt eckig werden. Harte Ringe, Enden und Stufen gleicher Hoehe bleiben Knicke; t der
+ * urspruenglichen Ringe bleibt, die Malerei sitzt also an derselben Stelle.
+ * Film export only (filmSegments() > 1, never in the game): more rings between two rings on a monotone Hermite curve
+ * (Fritsch-Carlson, no overshoot: straight runs stay straight) so the outlines of torso, head and limbs get round
+ * instead of angular. Hard rings, ends and steps at the same height stay creases; the original rings keep their t, so
+ * the painting stays in place.
+ */
+export function refineRings(rings: Ring[], T: number[]): { rings: Ring[]; T: number[] } {
+  const k = Math.round(filmSegments());
+  const m = rings.length;
+  if (k <= 1 || m < 3) return { rings, T };
+  // Kurvenparameter: Laenge entlang des Profils (fuer loft und loftAt gleich) / curve parameter: length along the profile (the same for loft and loftAt)
+  const X = [0];
+  for (let i = 1; i < m; i++) X.push(X[i - 1] + Math.hypot(rings[i].y - rings[i - 1].y, rings[i].rx - rings[i - 1].rx, (rings[i].cz ?? 0) - (rings[i - 1].cz ?? 0)));
+  const flat = (i: number) => Math.abs(rings[i + 1].y - rings[i].y) < 1e-6;
+  const keys = ['rx', 'rz', 'rzB', 'cx', 'cz'] as const;
+  const val = (r: Ring, key: (typeof keys)[number]): number => {
+    switch (key) {
+      case 'rx': return r.rx;
+      case 'rz': return r.rz ?? r.rx;
+      case 'rzB': return r.rzB ?? r.rz ?? r.rx;
+      case 'cx': return r.cx ?? 0;
+      default: return r.cz ?? 0;
+    }
+  };
+  /** Ring i darf rund durchlaufen werden / ring i may be passed through smoothly */
+  const smooth = (i: number) => i > 0 && i < m - 1 && !rings[i].hard && !flat(i - 1) && !flat(i);
+  const slope = (i: number, key: (typeof keys)[number]) => (val(rings[i + 1], key) - val(rings[i], key)) / (X[i + 1] - X[i]);
+  const tangent = (i: number, key: (typeof keys)[number]) => {
+    const d0 = slope(i - 1, key), d1 = slope(i, key);
+    return d0 * d1 <= 0 ? 0 : (2 * d0 * d1) / (d0 + d1);
+  };
+  const out: Ring[] = [], outT: number[] = [];
+  for (let i = 0; i < m - 1; i++) {
+    out.push(rings[i]);
+    outT.push(T[i]);
+    if (flat(i)) continue;
+    const a = rings[i], b = rings[i + 1], h = X[i + 1] - X[i];
+    for (let j = 1; j < k; j++) {
+      const f = j / k, f2 = f * f, f3 = f2 * f;
+      const h00 = 2 * f3 - 3 * f2 + 1, h10 = f3 - 2 * f2 + f, h01 = -2 * f3 + 3 * f2, h11 = f3 - f2;
+      const v = (key: (typeof keys)[number]) => {
+        const d = slope(i, key);
+        const mS = smooth(i) ? tangent(i, key) : d, mE = smooth(i + 1) ? tangent(i + 1, key) : d;
+        return h00 * val(a, key) + h10 * h * mS + h01 * val(b, key) + h11 * h * mE;
+      };
+      out.push({ y: a.y + (b.y - a.y) * f, rx: Math.max(0, v('rx')), rz: Math.max(0, v('rz')), rzB: Math.max(0, v('rzB')), cx: v('cx'), cz: v('cz'), e: (a.e ?? 2) + ((b.e ?? 2) - (a.e ?? 2)) * f });
+      outT.push(T[i] + (T[i + 1] - T[i]) * f);
+    }
+  }
+  out.push(rings[m - 1]);
+  outT.push(T[m - 1]);
+  return { rings: out, T: outT };
+}
+
+/**
  * Loft entlang y: Ringe mit freiem Querschnitt, glatte Normalen, UV zylindrisch (s = Umfang, Naht hinten, vorn bei
  * s = 0.5, +x bei 0.75; t vom ersten zum letzten Ring). Deckt Kapsel, Zylinder, Kuppel und Drehkoerper ab.
  * Loft along y: rings with a free cross-section, smooth normals, cylindrical UV (s = around, seam at the back, front at
  * s = 0.5, +x at 0.75; t from the first to the last ring). Covers capsule, cylinder, dome and turned parts.
  */
-export function loft(rings: Ring[], o: LoftOpts): THREE.BufferGeometry {
-  const m = rings.length, n = Math.max(3, Math.round(o.seg));
+export function loft(rings0: Ring[], o: LoftOpts): THREE.BufferGeometry {
+  // Filmexport: mehr Ringe und Segmente (im Spiel unveraendert) / film export: more rings and segments (unchanged in the game)
+  const { rings, T } = refineRings(rings0, ringT(rings0, o.arc));
+  const m = rings.length, n = Math.max(3, Math.round(filmSeg(o.seg)));
   const P: THREE.Vector3[][] = [];
   for (const r of rings) {
     const row: THREE.Vector3[] = [];
@@ -135,7 +195,6 @@ export function loft(rings: Ring[], o: LoftOpts): THREE.BufferGeometry {
     row[n].copy(row[0]);
     P.push(row);
   }
-  const T = ringT(rings, o.arc);
   const s0 = o.s0 ?? 0, s1 = o.s1 ?? 1, t0 = o.t0 ?? 0, t1 = o.t1 ?? 1;
   const centre = (i: number) => new THREE.Vector3(rings[i].cx ?? 0, rings[i].y, rings[i].cz ?? 0);
   const tiny = (i: number) => Math.max(rings[i].rx, rings[i].rz ?? rings[i].rx) < 1e-6;
@@ -514,7 +573,10 @@ export function subdivide(g: THREE.BufferGeometry, maxEdge: number, passes = 4):
 // ---------- Auflagen auf einem Loft / decals on a loft ----------
 
 /** Punkt und Normale auf der Loft-Flaeche bei Umfang s (0..1) und Hoehe y / point and normal on the loft surface at s (0..1) around and height y */
-export function loftAt(rings: Ring[], s: number, y: number): { p: THREE.Vector3; n: THREE.Vector3 } {
+export function loftAt(rings0: Ring[], s: number, y: number): { p: THREE.Vector3; n: THREE.Vector3 } {
+  // dieselben Ringe wie loft (im Filmexport verfeinert), damit Auflagen auf der Flaeche bleiben
+  // the same rings as loft (refined in the film export) so decals stay on the surface
+  const rings = filmSegments() > 1 ? refineRings(rings0, ringT(rings0)).rings : rings0;
   const at = (ss: number, yy: number): THREE.Vector3 => {
     let i = 0;
     const up = rings[0].y < rings[rings.length - 1].y;

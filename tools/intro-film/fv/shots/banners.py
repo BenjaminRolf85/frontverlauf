@@ -16,10 +16,12 @@ from mathutils import Euler, Vector
 from .. import lib as L
 
 ORDER = ['korvat', 'alvenia', 'dravon', 'velkar', 'meridon']
-# Abstand der Anfuehrer, Schnitte (in Bildern bei 12 je Sekunde), Hoehe der Gesichter ueber dem Sockel
-# spacing of the leaders, cuts (in frames at 12 per second), height of the faces above the base
+# Abstand der Anfuehrer, Schnitte (in Sekunden; gewaehlt als Bild 0, 11, 22, ... bei 12 je Sekunde, so liegen sie bei
+# 12 und 24 Bildern je Sekunde auf einem Bild), Hoehe der Gesichter ueber dem Sockel
+# spacing of the leaders, cuts (in seconds; chosen as frame 0, 11, 22, ... at 12 per second, so they land on a frame at
+# 12 and at 24 frames per second), height of the faces above the base
 SPACING = 15.0
-CUTS = (0, 11, 22, 33, 44, 55)
+CUTS = tuple(f / 12.0 for f in (0, 11, 22, 33, 44, 55))
 FACE_Z = 7.0
 
 
@@ -87,11 +89,15 @@ def build():
             p.y += 2.2 * math.sin(b.x * 0.15 + t * 2)
             o.location = p
             o.location.z = h(p.x, p.y) + 0.4
-        frame = int(round(t * L.FPS))
-        k = max(i for i, c in enumerate(CUTS) if frame >= c)
+        k = max(i for i, c in enumerate(CUTS) if t >= c - 1e-6)
         if k < len(ORDER):
-            # Nahaufnahme: Gesicht links der Mitte, Banner rechts dahinter / close-up: face left of centre, banner behind on the right
-            q = (frame - CUTS[k]) / (CUTS[k + 1] - CUTS[k])
+            # Nahaufnahme: Gesicht links der Mitte, Banner rechts dahinter; die Fahrt laeuft nach dem harten Schnitt
+            # weich aus (wie bisher bei 12 Bildern je Sekunde gleichmaessig, wenn FV_EASE=0)
+            # close-up: face left of centre, banner behind on the right; the move eases out after the hard cut
+            # (evenly as before at 12 frames per second when FV_EASE=0)
+            q = (t - CUTS[k]) / (CUTS[k + 1] - CUTS[k])
+            if L.EASE:
+                q = math.sin(q * math.pi / 2)
             c = spots[k]
             s.cam.data.lens = 40
             # Abstand so, dass die Kopfbedeckung am Ende der Fahrt noch ganz im Bild ist, das Gesicht aber gross bleibt
@@ -101,7 +107,7 @@ def build():
             s.look(c + Vector((-2.6 + 1.4 * q, -near - 1.0 + 1.0 * q, FACE_Z - 0.5)), c + Vector((2.0, 0, FACE_Z)))
         else:
             # alle fuenf, die Kamera rueckt vor / all five, the camera moves in
-            q = L.ease_out(L.seg(t, CUTS[-1] / L.FPS, s.dur))
+            q = L.ease_out(L.seg(t, CUTS[-1], s.dur))
             s.cam.data.lens = 28
             z0 = h(0, 0)
             s.look(Vector((3, -70 + 8 * q, z0 + 8.5 - 1.0 * q)), Vector((3, 0, z0 + 7.2)))

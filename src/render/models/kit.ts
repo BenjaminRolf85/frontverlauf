@@ -172,7 +172,27 @@ function S(n: number, min = 3, size = Infinity): number {
     if (size < TINY) k = 1;
     else if (size < SMALL) k = Math.min(k, 1.25);
   }
-  return Math.max(min, Math.round(n * k));
+  return Math.max(min, Math.round(filmSeg(n * k)));
+}
+/**
+ * Nur fuer den Modellexport des Introfilms (tools/intro-film/web/export-models.ts): Faktor auf die Segmentzahl runder
+ * Teile (Lofts, Schlaeuche, Kugeln, Drehkoerper), damit Raeder, Rohre, Helme und Koepfe in der Nahaufnahme rund statt
+ * facettiert sind. Das Spiel ruft setFilmSegments nie auf; bei 1 bauen 'high' und 'low' genau wie bisher.
+ * Export of the intro film only (tools/intro-film/web/export-models.ts): factor on the segment count of round parts
+ * (lofts, tubes, balls, turned parts) so wheels, barrels, helmets and heads are round instead of faceted in close-ups.
+ * The game never calls setFilmSegments; at 1 'high' and 'low' build exactly as before.
+ */
+let FILM_SEG = 1;
+export function setFilmSegments(k: number): void {
+  FILM_SEG = k;
+}
+/** Faktor des Filmexports (1 im Spiel) / factor of the film export (1 in the game) */
+export function filmSegments(): number {
+  return FILM_SEG;
+}
+/** Segmentzahl n mit dem Faktor des Filmexports / segment count n with the film export factor */
+export function filmSeg(n: number): number {
+  return FILM_SEG === 1 ? n : n * FILM_SEG;
 }
 /** Radien, unter denen Rundungen keine bzw. weniger Zusatzsegmente bekommen / radii below which curves get no or fewer extra segments */
 const TINY = 0.0075;

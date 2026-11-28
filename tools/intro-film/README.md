@@ -95,6 +95,47 @@ Groessen / sizes: Zwischenbilder (`.cache/`, nicht im Repository) etwa 1 GB / in
 Lizenz / licence: eigene Schoepfung des Projekts, CC0; Modelle und Farben aus dem Spiel, Klang prozedural.
 Own creation of the project, CC0; models and colours from the game, procedural sound.
 
+## Filmqualitaet / film quality
+
+Zwei Stufen in `quality.json`, umgeschaltet mit `FV_QUALITY` (render.py, render-all.sh, assemble.py `--quality`) und
+`export-models.mjs --quality film`. Ohne Angabe gilt `preview`: genau der bisherige schnelle Weg (12 fps, 1280x720,
+4 Bildproben, Schatten 0,5 / 0,05, Cache `.cache/`). Die Filmstufe hat eigenen Cache (`.cache/film/`: Modelle, Einheiten,
+Atlanten, Bilder, Clips); fehlt dort eine Datei, nimmt lib.py die aus `.cache/`.
+Two levels in `quality.json`, switched with `FV_QUALITY` (render.py, render-all.sh, assemble.py `--quality`) and
+`export-models.mjs --quality film`. Without it `preview` applies: exactly the previous fast path (12 fps, 1280x720,
+4 samples, shadows 0.5 / 0.05, cache `.cache/`). The film level has its own cache (`.cache/film/`: models, units,
+atlases, frames, clips); a file missing there is taken from `.cache/`.
+
+```bash
+node tools/intro-film/export-models.mjs --quality film            # .cache/film (Segmente x2, Heldenatlanten 4096)
+FV_QUALITY=film PY=/tmp/bpyenv/bin/python tools/intro-film/render-all.sh korvat banners oldworld
+python3 tools/intro-film/assemble.py --quality film               # 24 fps, 1920x1080 (Kodierung noch wie bisher)
+```
+
+| Stufe / level | fps | Bild / picture | Proben / samples | Schatten / shadows | Modelle / models |
+|---|---|---|---|---|---|
+| `preview` | 12 (auf 24 gehalten / held to 24) | 1280x720 | 4 | 0,5 / 0,05 | Spiel `high`, Atlanten 2048 |
+| `film` | 24 | 1920x1080 | 8 | 1,0 / 0,01 | Filmexport: Segmente und Ringe x2, Heldenatlanten 4096 |
+| `filmLite` | 24 | 1920x1080 | 4 | 0,5 / 0,01 | wie `film` / as `film` |
+
+- Bewegung / motion: 24 echte Bilder je Sekunde; `FV_EASE` (in den Filmstufen an) laesst die Fahrten der
+  Anfuehrer-Nahaufnahmen nach dem Schnitt weich auslaufen und die Frachter der Eroeffnung abbremsen statt hart zu
+  stehen; die uebrigen Kamerafahrten liefen schon mit `ease_io`. Bewegungsunschaerfe (`FV_MBLUR=1`, die Szene folgt den
+  Zwischenzeiten ueber `frame_change_pre`) funktioniert (+15 %), verwischt aber die Tuschelinien und ist aus. / 24 real
+  frames per second; `FV_EASE` (on in the film levels) lets the leader close-up moves ease out after the cut and the
+  opening's freighters slow down instead of stopping hard; the other camera moves already used `ease_io`. Motion blur
+  (`FV_MBLUR=1`, the scene follows the sub-frame times via `frame_change_pre`) works (+15 %) but smears the ink lines
+  and is off.
+- Bild / picture: `FV_SCALE` vergroessert nur die Ausgabe (die Szenen bleiben in Bildpunkten einer 1280 breiten
+  Leinwand gebaut, Linien behalten ihr Verhaeltnis; die weiche Tuschekante folgt dem ausgegebenen Bildpunkt). / `FV_SCALE`
+  only enlarges the output (the shots stay built in pixels of a 1280 wide canvas, lines keep their proportion; the soft
+  ink edge follows the output pixel).
+- Modelle / models: `setFilmSegments` (src/render/models/kit.ts) wird nur vom Filmexport gesetzt; das Spiel baut `high`
+  und `low` unveraendert (Tests, Fingerabdruck aller Modelle gleich). / `setFilmSegments` is set by the film export
+  only; the game builds `high` and `low` unchanged (tests, fingerprint of all models equal).
+
+Messwerte und Hochrechnung fuer den ganzen Film: siehe unten / measurements and projection for the whole film: below.
+
 ## Musik / music
 
 Die Musik stammt aus den Stuecken des Spiels (`public/music`, vom Auftraggeber geliefert). `music.json` legt je Abschnitt

@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import type { FactionId } from '../../../data/balance';
 import { semantic } from '../../../design/tokens';
-import { col, fine, softBox, type ColorLike, type TurretRange, type V3, type Xf } from '../kit';
+import { col, filmSeg, fine, softBox, type ColorLike, type TurretRange, type V3, type Xf } from '../kit';
 import { digitDecal, emblemDecal } from './trim';
 import { AtlasLayout, loft, projectBox, REF, UvBuilder, type BoxFaces, type PartOpts, type Region, type Ring } from './uvkit';
 
@@ -330,7 +330,7 @@ export interface SweepOpts {
  * A radius of TIP closes the end.
  */
 export function sweep(path: V3[], radius: number | ((t: number, i: number) => number), o: SweepOpts): THREE.BufferGeometry {
-  const m = path.length, n = Math.max(3, Math.round(o.seg));
+  const m = path.length, n = Math.max(3, Math.round(filmSeg(o.seg)));
   const C = path.map(V);
   const acc = [0];
   for (let i = 1; i < m; i++) acc.push(acc[i - 1] + C[i].distanceTo(C[i - 1]));
@@ -429,6 +429,8 @@ export function loftZ(rings: ZRing[], o: Omit<Parameters<typeof loft>[1], 'regio
 /** Kugel oder Ellipsoid als Loft (t von oben nach unten) / sphere or ellipsoid as a loft (t from top to bottom) */
 export function ballRings(r: number, ry = r, rows = fine() ? 7 : 4, c?: ColorLike, a0 = 0, a1 = Math.PI): Ring[] {
   const out: Ring[] = [];
+  // Filmexport: mehr Breitenkreise / film export: more rows of latitude
+  rows = Math.round(filmSeg(rows));
   for (let i = 0; i <= rows; i++) {
     const a = a0 + ((a1 - a0) * i) / rows;
     out.push({ y: Math.cos(a) * ry, rx: Math.max(TIP, Math.sin(a) * r), ...(i === 0 && c !== undefined ? { c } : {}) });

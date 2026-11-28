@@ -357,7 +357,9 @@ def build():
             pv.rotation_euler = Euler((0, 0, math.radians(r + 28 * math.sin(tc * 0.45 + ph))))
         # Frachter fahren ein und stoppen / freighters come in and stop
         for sh, b, r, v in ships:
-            ts = min(t, 9.5)
+            # Filmstufe: die Frachter bremsen ab 8,5 s aus (gleicher Endpunkt), statt bei 9,5 s hart zu stehen
+            # film level: the freighters slow down from 8.5 s (same end point) instead of stopping hard at 9.5 s
+            ts = (t if t < 8.5 else 9.5 - math.exp(-(t - 8.5))) if L.EASE else min(t, 9.5)
             d = Vector((math.sin(math.radians(r)), -math.cos(math.radians(r)), 0)) * -v * ts
             sh.location = b + d + Vector((0, 0, 0.35 * math.sin(t * 1.3 + b.x)))
         # Muenzen: Bogen vom Schiff zur Bank; nach dem Stillstand fallen sie / coins: arc from ship to bank; after the standstill they fall
